@@ -1,0 +1,28 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "main": "build/server.js",
+  "scripts": {
+    "build": "rm -rf build && tsc",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node build/server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "description": "",
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "fastify-tsconfig": "^2.0.0",
+    "typescript": "^5.7.2"
+  },
+  "dependencies": {
+    "@fastify/autoload": "^6.0.3",
+    "@fastify/swagger": "^9.4.0",
+    "@fastify/swagger-ui": "^5.2.0",
+    "@fastify/type-provider-typebox": "^5.1.0",
+    "fastify": "^5.2.1",
+    "pino-pretty": "^13.0.0"
+  }
+}
