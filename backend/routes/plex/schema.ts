@@ -11,7 +11,8 @@ export const schemas = {
           title: Type.String(),
           key: Type.String(),
           type: Type.String(),
-          guids: Type.Array(Type.String())
+          guids: Type.Array(Type.String()),
+          genres: Type.Array(Type.String()) 
         })),
         Type.Object({
           error: Type.String()
@@ -26,7 +27,8 @@ export const schemas = {
           title: Type.String(),
           key: Type.String(),
           type: Type.String(),
-          guids: Type.Array(Type.String())
+          guids: Type.Array(Type.String()),
+          genres: Type.Array(Type.String())
         })),
         Type.Object({
           error: Type.String()
