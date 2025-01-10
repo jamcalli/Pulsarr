@@ -15,5 +15,8 @@ node_modules/
 # builds
 build
 
+# builds
+tests
+
 # configs
 config.json
