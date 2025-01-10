@@ -1,11 +1,28 @@
 import { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import { getSelfWatchlist } from '../../utils/plex';
 import { getConfig } from '../../utils/config-manager';
-import { schemas } from './schema';
+import { Type } from '@sinclair/typebox';
 
-export const watchlistRoute: FastifyPluginAsyncTypebox = async (fastify) => {
-  fastify.get('/watchlist', {
-    schema: schemas.watchlist
+const watchlistSchema = {
+  response: {
+    200: Type.Union([
+      Type.Array(Type.Object({
+        title: Type.String(),
+        key: Type.String(),
+        type: Type.String(),
+        guids: Type.Array(Type.String()),
+        genres: Type.Array(Type.String())
+      })),
+      Type.Object({
+        error: Type.String()
+      })
+    ])
+  }
+};
+
+export const selfWatchlisTokenRoute: FastifyPluginAsyncTypebox = async (fastify) => {
+  fastify.get('/self-watchlist-token', {
+    schema: watchlistSchema
   }, async (request, reply) => {
     const config = getConfig(fastify.log);
     if (!config.plexTokens || config.plexTokens.length === 0) {

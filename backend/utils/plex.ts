@@ -14,7 +14,7 @@ export const pingPlex = async (token: string, log: FastifyBaseLogger): Promise<v
   }
 };
 
-export const getWatchlist = async (token: string, containerStart = 0): Promise<PlexResponse> => {
+export const getWatchlist = async (token: string): Promise<PlexResponse> => {
   if (!token) {
     throw new Error('No Plex token provided');
   }
@@ -22,7 +22,7 @@ export const getWatchlist = async (token: string, containerStart = 0): Promise<P
   const containerSize = 300;
   const url = new URL('https://metadata.provider.plex.tv/library/sections/watchlist/all');
   url.searchParams.append('X-Plex-Token', token);
-  url.searchParams.append('X-Plex-Container-Start', containerStart.toString());
+  url.searchParams.append('X-Plex-Container-Start', '0');
   url.searchParams.append('X-Plex-Container-Size', containerSize.toString());
 
   const response = await fetch(url.toString(), {
@@ -56,7 +56,7 @@ export const getSelfWatchlist = async (
     while (hasNextPage) {
       try {
         log.debug(`Fetching self watchlist with start: ${currentStart}`);
-        const response = await getWatchlist(token, currentStart);
+        const response = await getWatchlist(token);
         log.debug(`Response data: ${JSON.stringify(response.MediaContainer)}`);
 
         const items = response.MediaContainer.Metadata.map((metadata) => {
@@ -241,24 +241,42 @@ export const getWatchlistIdsForUser = async (
   return allItems;
 };
 
-export const getOthersWatchlist = async (config: PlexConfig, log: FastifyBaseLogger): Promise<Set<Item>> => {
-  const allItems = new Set<Item>();
+export const getOthersWatchlist = async (config: PlexConfig, log: FastifyBaseLogger): Promise<Map<User, Set<TokenWatchlistItem>>> => {
+  const userWatchlistMap = new Map<User, Set<TokenWatchlistItem>>();
 
   try {
     const friends = await getFriends(config, log);
     for (const [user, token] of friends) {
       log.debug(`Processing friend: ${JSON.stringify(user)}`);
       const watchlistItems = await getWatchlistIdsForUser(config, log, token, user);
-      for (const item of watchlistItems) {
-        const detailedItems = await toItems(config, log, item);
-        detailedItems.forEach((detailedItem: Item) => allItems.add(detailedItem));
-      }
+      userWatchlistMap.set(user, watchlistItems);
     }
+    const totalItems = Array.from(userWatchlistMap.values()).reduce((acc, items) => acc + items.size, 0);
+    log.info(`Others' watchlist fetched successfully with ${totalItems} total items`);
   } catch (err) {
     log.error(`Unable to fetch others' watchlist: ${err}`);
   }
 
-  return allItems;
+  return userWatchlistMap;
+};
+
+export const processWatchlistItems = async (
+  config: PlexConfig,
+  log: FastifyBaseLogger,
+  userWatchlistMap: Map<User, Set<TokenWatchlistItem>>
+): Promise<Map<User, Set<Item>>> => {
+  const userDetailedWatchlistMap = new Map<User, Set<Item>>();
+
+  for (const [user, watchlistItems] of userWatchlistMap) {
+    const detailedItems = new Set<Item>();
+    for (const item of watchlistItems) {
+      const items = await toItems(config, log, item);
+      items.forEach((detailedItem: Item) => detailedItems.add(detailedItem));
+    }
+    userDetailedWatchlistMap.set(user, detailedItems);
+  }
+
+  return userDetailedWatchlistMap;
 };
 
 const toItems = async (config: PlexConfig, log: FastifyBaseLogger, item: TokenWatchlistItem): Promise<Set<Item>> => {
@@ -278,12 +296,25 @@ const toItems = async (config: PlexConfig, log: FastifyBaseLogger, item: TokenWa
     }
 
     const json = await response.json();
-    const guids = json.MediaContainer.Metadata.flatMap((metadata: any) => metadata.Guid.map((guid: any) => guid.id));
-    const genres = json.MediaContainer.Metadata.flatMap((metadata: any) => metadata.Genre.map((genre: any) => genre.tag));
-    
+    if (!json.MediaContainer || !json.MediaContainer.Metadata) {
+      throw new Error('Invalid response structure');
+    }
+
+    const guids = json.MediaContainer.Metadata.flatMap((metadata: any) => 
+      metadata.Guid?.map((guid: any) => guid.id.replace('//', '')) || []
+    );
+    const genres = json.MediaContainer.Metadata.flatMap((metadata: any) => 
+      metadata.Genre?.map((genre: any) => genre.tag) || []
+    );
+
     allItems.add({ title: item.title, key: item.id, type: item.type, guids, genres });
   } catch (err) {
-    log.error(`Unable to fetch item details for ${item.title}: ${err}`);
+    const error = err as Error;
+    if (error.message.includes('Plex API error')) {
+      log.warn(`Found item ${item.title} on the watchlist, but we cannot find this in Plex's database.`);
+    } else {
+      log.error(`Unable to fetch item details for ${item.title}: ${error}`);
+    }
   }
 
   return allItems;
