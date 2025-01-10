@@ -1,5 +1,7 @@
 export interface PlexConfig {
   plexTokens: string[];
+  selfRss?: string[];
+  friendsRss?: string[];
 }
 
 export interface PlexResponse {
@@ -64,4 +66,12 @@ export interface TokenWatchlistFriend {
 export interface GraphQLQuery {
   query: string;
   variables?: Record<string, any>;
+}
+
+export interface RssFeedGenerated {
+  RSSInfo: {
+    [0]: {
+      url: string;
+    };
+  };
 }
