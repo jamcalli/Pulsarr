@@ -1,12 +1,12 @@
-import { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox'
-import { watchlistRoute } from './watchlist'
-import { othersWatchlistRoute } from './others-watchlist'
-import { pingRoute } from './ping'
+import { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
+import { selfWatchlisTokenRoute } from './self-watchlist-token';
+import { othersWatchlistTokenRoute } from './others-watchlist-token';
+import { pingRoute } from './ping';
 
 const plexPlugin: FastifyPluginAsyncTypebox = async (fastify) => {
-  await fastify.register(watchlistRoute)
-  await fastify.register(othersWatchlistRoute)
-  await fastify.register(pingRoute)
-}
+  await fastify.register(selfWatchlisTokenRoute);
+  await fastify.register(othersWatchlistTokenRoute);
+  await fastify.register(pingRoute);
+};
 
-export default plexPlugin
+export default plexPlugin;

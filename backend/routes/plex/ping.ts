@@ -1,11 +1,19 @@
 import { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import { pingPlex } from '../../utils/plex';
-import { schemas } from './schema';
 import { getConfig } from '../../utils/config-manager';
+import { Type } from '@sinclair/typebox';
+
+const pingSchema = {
+  response: {
+    200: Type.Object({
+      success: Type.Boolean()
+    })
+  }
+};
 
 export const pingRoute: FastifyPluginAsyncTypebox = async (fastify) => {
   fastify.post('/ping', {
-    schema: schemas.ping
+    schema: pingSchema
   }, async () => {
     const config = getConfig(fastify.log);
     const tokens: string[] = config.plexTokens || [];
