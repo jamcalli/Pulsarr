@@ -9,6 +9,7 @@ export interface PlexResponse {
       key: string;
       type: string;
       Guid?: Array<{ id: string }>;
+      Genre?: Array<{ tag: string }>;
     }>;
     totalSize: number;
   };
@@ -19,6 +20,7 @@ export interface Item {
   key: string;
   type: string;
   guids: string[];
+  genres: string[];
 }
 
 export interface User {

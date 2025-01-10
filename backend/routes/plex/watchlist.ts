@@ -1,7 +1,7 @@
 import { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import { getSelfWatchlist } from '../../utils/plex';
-import { schemas } from './schema';
 import { getConfig } from '../../utils/config-manager';
+import { schemas } from './schema';
 
 export const watchlistRoute: FastifyPluginAsyncTypebox = async (fastify) => {
   fastify.get('/watchlist', {
@@ -13,7 +13,7 @@ export const watchlistRoute: FastifyPluginAsyncTypebox = async (fastify) => {
       return;
     }
     try {
-      const items = await getSelfWatchlist(config, fastify.log, request.query.start);
+      const items = await getSelfWatchlist(config, fastify.log);
       if (items.size === 0) {
         reply.code(500).send({ error: 'Unable to fetch watchlist items' });
       } else {

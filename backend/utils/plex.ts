@@ -45,30 +45,49 @@ export const getWatchlist = async (token: string, containerStart = 0): Promise<P
 
 export const getSelfWatchlist = async (
   config: PlexConfig,
-  log: FastifyBaseLogger,
-  containerStart = 0
+  log: FastifyBaseLogger
 ): Promise<Set<Item>> => {
   const allItems = new Set<Item>();
 
   for (const token of config.plexTokens) {
     let hasNextPage = true;
-    let currentStart = containerStart;
+    let currentStart = 0;
 
     while (hasNextPage) {
       try {
+        log.debug(`Fetching self watchlist with start: ${currentStart}`);
         const response = await getWatchlist(token, currentStart);
-        const items = response.MediaContainer.Metadata.map((metadata) => ({
-          title: metadata.title,
-          key: metadata.key,
-          type: metadata.type,
-          guids: metadata.Guid?.map((guid) => guid.id) || []
-        }));
+        log.debug(`Response data: ${JSON.stringify(response.MediaContainer)}`);
 
-        items.forEach((item) => allItems.add(item));
+        const items = response.MediaContainer.Metadata.map((metadata) => {
+          const id = metadata.key
+            .replace('/library/metadata/', '')
+            .replace('/children', '');
+          
+          log.debug(`Processed key ${metadata.key} to id ${id}`);
+          
+          return {
+            title: metadata.title,
+            id,
+            type: metadata.type,
+            guids: metadata.Guid?.map((guid) => guid.id) || [],
+            genres: metadata.Genre?.map((genre) => genre.tag) || []
+          };
+        });
+
+        log.debug(`Found ${items.length} items in current page`);
+
+        for (const item of items) {
+          log.debug(`Processing item: ${item.title}`);
+          const detailedItems = await toItems(config, log, item);
+          detailedItems.forEach((detailedItem: Item) => allItems.add(detailedItem));
+        }
 
         if (response.MediaContainer.totalSize > currentStart + 300) {
+          log.debug(`More pages available, current total: ${currentStart + 300} of ${response.MediaContainer.totalSize}`);
           currentStart += 300;
         } else {
+          log.debug('No more pages available');
           hasNextPage = false;
         }
       } catch (err) {
@@ -78,6 +97,7 @@ export const getSelfWatchlist = async (
     }
   }
 
+  log.info(`Self watchlist fetched successfully with ${allItems.size} total items`);
   return allItems;
 };
 
@@ -259,7 +279,9 @@ const toItems = async (config: PlexConfig, log: FastifyBaseLogger, item: TokenWa
 
     const json = await response.json();
     const guids = json.MediaContainer.Metadata.flatMap((metadata: any) => metadata.Guid.map((guid: any) => guid.id));
-    allItems.add({ title: item.title, key: item.id, type: item.type, guids });
+    const genres = json.MediaContainer.Metadata.flatMap((metadata: any) => metadata.Genre.map((genre: any) => genre.tag));
+    
+    allItems.add({ title: item.title, key: item.id, type: item.type, guids, genres });
   } catch (err) {
     log.error(`Unable to fetch item details for ${item.title}: ${err}`);
   }

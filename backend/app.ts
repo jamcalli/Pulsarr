@@ -6,6 +6,7 @@ import SwaggerUI from '@fastify/swagger-ui';
 export function build () {
   const server = Fastify({
     logger: {
+      level: 'info',
       transport: {
         target: 'pino-pretty',
         options: {

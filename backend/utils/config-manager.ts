@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { FastifyBaseLogger } from 'fastify';
 
-const configPath = path.resolve(__dirname, '../../../config/config.json');
+const configPath = path.resolve(__dirname, '../../config/config.json');
 
 let config: any = null;
 
