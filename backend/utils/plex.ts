@@ -319,3 +319,63 @@ const toItems = async (config: PlexConfig, log: FastifyBaseLogger, item: TokenWa
 
   return allItems;
 };
+
+export const getPlexWatchlistUrls = async (
+  tokens: Set<string>,
+  skipFriendSync: boolean,
+  log: FastifyBaseLogger
+): Promise<Set<string>> => {
+  const watchlistsFromTokenIo = await Promise.all(
+    Array.from(tokens).map(async (token) => {
+      const selfWatchlist = await getRssFromPlexToken(token, 'watchlist', log);
+      log.info(`Generated watchlist RSS feed for self: ${selfWatchlist}`);
+      const friendsWatchlist = skipFriendSync ? null : await getRssFromPlexToken(token, 'friendsWatchlist', log);
+      log.info(`Generated watchlist RSS feed for friends: ${friendsWatchlist}`);
+      return [selfWatchlist, friendsWatchlist].filter(Boolean) as string[];
+    })
+  );
+
+  const watchlistsFromToken = new Set<string>(watchlistsFromTokenIo.flat());
+
+  if (watchlistsFromToken.size === 0) {
+    log.warn('Missing RSS URL. Are you an active Plex Pass user?');
+    log.warn('Real-time RSS sync disabled');
+  }
+
+  return watchlistsFromToken;
+};
+
+export const getRssFromPlexToken = async (
+  token: string,
+  rssType: string,
+  log: FastifyBaseLogger
+): Promise<string | null> => {
+  const url = new URL('https://discover.provider.plex.tv/rss');
+  url.searchParams.append('X-Plex-Token', token);
+  url.searchParams.append('X-Plex-Client-Identifier', 'watchlistarr');
+  url.searchParams.append('format', 'json');
+
+  const body = JSON.stringify({ feedType: rssType });
+
+  try {
+    const response = await fetch(url.toString(), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body
+    });
+
+    if (!response.ok) {
+      log.warn(`Unable to generate an RSS feed: ${response.statusText}`);
+      return null;
+    }
+
+    const json = await response.json();
+    log.debug('Got a result from Plex when generating RSS feed, attempting to decode');
+    return json.RSSInfo[0]?.url || null;
+  } catch (err) {
+    log.warn(`Unable to generate an RSS feed: ${err}`);
+    return null;
+  }
+};
