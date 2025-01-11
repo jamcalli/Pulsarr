@@ -1,9 +1,3 @@
-export interface PlexConfig {
-  plexTokens: string[];
-  selfRss?: string[];
-  friendsRss?: string[];
-}
-
 export interface PlexResponse {
   MediaContainer: {
     Metadata: Array<{
@@ -17,23 +11,22 @@ export interface PlexResponse {
   };
 }
 
+export interface Friend {
+  watchlistId: string;
+  username: string;
+}
+
 export interface Item {
   title: string;
   key: string;
   type: string;
-  guids: string[];
-  genres: string[];
+  guids?: string[];
+  genres?: string[];
+  user?: string;
 }
 
-export interface User {
+export interface TokenWatchlistItem extends Item {
   id: string;
-  username: string;
-}
-
-export interface TokenWatchlistItem {
-  id: string;
-  title: string;
-  type: string;
 }
 
 export interface GraphQLError {

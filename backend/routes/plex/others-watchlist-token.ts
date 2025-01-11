@@ -8,12 +8,12 @@ const othersWatchlistSchema = {
     200: Type.Union([
       Type.Array(Type.Object({
         user: Type.Object({
-          id: Type.String(),
+          watchlistId: Type.String(),
           username: Type.String()
         }),
         watchlist: Type.Array(Type.Object({
           title: Type.String(),
-          key: Type.String(),
+          plexKey: Type.String(),
           type: Type.String(),
           guids: Type.Array(Type.String()),
           genres: Type.Array(Type.String())
@@ -42,8 +42,14 @@ export const othersWatchlistTokenRoute: FastifyPluginAsyncTypebox = async (fasti
       } else {
         const userDetailedWatchlistMap = await processWatchlistItems(config, fastify.log, userWatchlistMap);
         const response = Array.from(userDetailedWatchlistMap.entries()).map(([user, watchlist]) => ({
-          user,
-          watchlist: Array.from(watchlist)
+          user: { watchlistId: user.watchlistId, username: user.username },
+          watchlist: Array.from(watchlist).map(item => ({
+            title: item.title,
+            plexKey: item.key,
+            type: item.type,
+            guids: item.guids ?? [],
+            genres: item.genres ?? []
+          }))
         }));
         reply.send(response);
       }

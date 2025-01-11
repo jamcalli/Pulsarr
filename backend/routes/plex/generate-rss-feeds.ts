@@ -6,7 +6,10 @@ import { Type } from '@sinclair/typebox';
 const plexWatchlistSchema = {
   response: {
     200: Type.Union([
-      Type.Array(Type.String()),
+      Type.Object({
+        self: Type.String(),
+        friends: Type.String()
+      }),
       Type.Object({
         error: Type.String()
       })
@@ -29,7 +32,11 @@ export const generateRssFeedsRoute: FastifyPluginAsyncTypebox = async (fastify) 
       if (watchlistUrls.size === 0) {
         reply.code(500).send({ error: 'Unable to fetch watchlist URLs' });
       } else {
-        reply.send(Array.from(watchlistUrls));
+        const response = {
+          self: Array.from(watchlistUrls)[0] || '',
+          friends: Array.from(watchlistUrls)[1] || ''
+        };
+        reply.send(response);
       }
     } catch (err) {
       fastify.log.error(err);
