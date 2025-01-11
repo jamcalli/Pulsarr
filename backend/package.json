@@ -14,16 +14,19 @@
   "type": "commonjs",
   "description": "",
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
     "@types/node": "^22.10.5",
     "fastify-tsconfig": "^2.0.0",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.3"
   },
   "dependencies": {
     "@fastify/autoload": "^6.0.3",
     "@fastify/swagger": "^9.4.0",
     "@fastify/swagger-ui": "^5.2.0",
     "@fastify/type-provider-typebox": "^5.1.0",
+    "better-sqlite3": "^11.7.2",
+    "dotenv": "^16.4.7",
     "fastify": "^5.2.1",
     "pino-pretty": "^13.0.0"
   }

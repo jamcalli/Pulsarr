@@ -22,3 +22,6 @@ tests/
 
 # configs
 config.json
+
+# databases
+*.db*

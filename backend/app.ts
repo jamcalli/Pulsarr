@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import AutoLoad from '@fastify/autoload';
 import Swagger from '@fastify/swagger';
 import SwaggerUI from '@fastify/swagger-ui';
+import { getDbInstance } from './db/db';
 
 export function build () {
   const server = Fastify({
@@ -18,6 +19,10 @@ export function build () {
     }
   });
 
+  const db = getDbInstance(server.log);
+
+  server.decorate('db', db);
+
   server.register(Swagger);
   server.register(SwaggerUI);
 
@@ -25,5 +30,5 @@ export function build () {
     dir: `${__dirname}/routes`,
   });
 
-  return server
+  return server;
 }

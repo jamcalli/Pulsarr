@@ -1,5 +1,6 @@
 import { FastifyBaseLogger } from 'fastify';
-import { PlexConfig, PlexResponse, Item, User, TokenWatchlistItem, TokenWatchlistFriend, GraphQLQuery } from '../types/plex.types';
+import { PlexResponse, Item, TokenWatchlistItem, TokenWatchlistFriend, GraphQLQuery, Friend } from '../types/plex.types';
+import { Config } from '../types/config.types';
 
 export const pingPlex = async (token: string, log: FastifyBaseLogger): Promise<void> => {
   try {
@@ -44,7 +45,7 @@ export const getWatchlist = async (token: string): Promise<PlexResponse> => {
 };
 
 export const getSelfWatchlist = async (
-  config: PlexConfig,
+  config: Config,
   log: FastifyBaseLogger
 ): Promise<Set<Item>> => {
   const allItems = new Set<Item>();
@@ -69,8 +70,9 @@ export const getSelfWatchlist = async (
           return {
             title: metadata.title,
             id,
+            key: id, 
             type: metadata.type,
-            guids: metadata.Guid?.map((guid) => guid.id) || [],
+            guids: metadata.Guid?.map((guid) => guid.id) || [], 
             genres: metadata.Genre?.map((genre) => genre.tag) || []
           };
         });
@@ -79,7 +81,7 @@ export const getSelfWatchlist = async (
 
         for (const item of items) {
           log.debug(`Processing item: ${item.title}`);
-          const detailedItems = await toItems(config, log, item);
+          const detailedItems = await toItems(config, log, item as TokenWatchlistItem);
           detailedItems.forEach((detailedItem: Item) => allItems.add(detailedItem));
         }
 
@@ -101,8 +103,8 @@ export const getSelfWatchlist = async (
   return allItems;
 };
 
-export const getFriends = async (config: PlexConfig, log: FastifyBaseLogger): Promise<Set<[User, string]>> => {
-  const allFriends = new Set<[User, string]>();
+export const getFriends = async (config: Config, log: FastifyBaseLogger): Promise<Set<[Friend, string]>> => {
+  const allFriends = new Set<[Friend, string]>();
 
   for (const token of config.plexTokens) {
     const url = new URL('https://community.plex.tv/api');
@@ -140,8 +142,8 @@ export const getFriends = async (config: PlexConfig, log: FastifyBaseLogger): Pr
         continue;
       }
 
-      const friends = json.data.allFriendsV2.map((friend: { user: User }) => 
-        [friend.user, token] as [User, string]
+      const friends = json.data.allFriendsV2.map((friend: { user: { id: string; username: string } }) => 
+        [{ watchlistId: friend.user.id, username: friend.user.username }, token] as [Friend, string]
       );
       
       if (friends.length === 0) {
@@ -149,7 +151,7 @@ export const getFriends = async (config: PlexConfig, log: FastifyBaseLogger): Pr
         continue;
       }
 
-      friends.forEach((friend: [User, string]) => {
+      friends.forEach((friend: [Friend, string]) => {
         allFriends.add(friend);
         log.debug(`Added friend: ${JSON.stringify(friend)}`);
       });
@@ -163,16 +165,16 @@ export const getFriends = async (config: PlexConfig, log: FastifyBaseLogger): Pr
 };
 
 export const getWatchlistIdsForUser = async (
-  config: PlexConfig,
+  config: Config,
   log: FastifyBaseLogger,
   token: string,
-  user: User,
+  user: Friend,
   page: string | null = null
 ): Promise<Set<TokenWatchlistItem>> => {
   const allItems = new Set<TokenWatchlistItem>();
   const url = new URL('https://community.plex.tv/api');
   
-  if (!user || !user.id) {
+  if (!user || !user.watchlistId) {
     log.error('Invalid user object provided to getWatchlistIdsForUser');
     return allItems;
   }
@@ -194,13 +196,13 @@ export const getWatchlistIdsForUser = async (
       }
     }`,
     variables: {
-      uuid: user.id,
+      uuid: user.watchlistId,
       first: 100,
       after: page
     }
   };
 
-  log.debug(`Fetching watchlist for user: ${user.username}, UUID: ${user.id}`);
+  log.debug(`Fetching watchlist for user: ${user.username}, UUID: ${user.watchlistId}`);
 
   try {
     const response = await fetch(url.toString(), {
@@ -241,8 +243,8 @@ export const getWatchlistIdsForUser = async (
   return allItems;
 };
 
-export const getOthersWatchlist = async (config: PlexConfig, log: FastifyBaseLogger): Promise<Map<User, Set<TokenWatchlistItem>>> => {
-  const userWatchlistMap = new Map<User, Set<TokenWatchlistItem>>();
+export const getOthersWatchlist = async (config: Config, log: FastifyBaseLogger): Promise<Map<Friend, Set<TokenWatchlistItem>>> => {
+  const userWatchlistMap = new Map<Friend, Set<TokenWatchlistItem>>();
 
   try {
     const friends = await getFriends(config, log);
@@ -261,11 +263,11 @@ export const getOthersWatchlist = async (config: PlexConfig, log: FastifyBaseLog
 };
 
 export const processWatchlistItems = async (
-  config: PlexConfig,
+  config: Config,
   log: FastifyBaseLogger,
-  userWatchlistMap: Map<User, Set<TokenWatchlistItem>>
-): Promise<Map<User, Set<Item>>> => {
-  const userDetailedWatchlistMap = new Map<User, Set<Item>>();
+  userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>
+): Promise<Map<Friend, Set<Item>>> => {
+  const userDetailedWatchlistMap = new Map<Friend, Set<Item>>();
 
   for (const [user, watchlistItems] of userWatchlistMap) {
     const detailedItems = new Set<Item>();
@@ -279,7 +281,7 @@ export const processWatchlistItems = async (
   return userDetailedWatchlistMap;
 };
 
-const toItems = async (config: PlexConfig, log: FastifyBaseLogger, item: TokenWatchlistItem): Promise<Set<Item>> => {
+const toItems = async (config: Config, log: FastifyBaseLogger, item: TokenWatchlistItem): Promise<Set<Item>> => {
   const allItems = new Set<Item>();
   const url = new URL(`https://discover.provider.plex.tv/library/metadata/${item.id}`);
   url.searchParams.append('X-Plex-Token', config.plexTokens[0]);

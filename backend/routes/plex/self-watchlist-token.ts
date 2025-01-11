@@ -34,7 +34,14 @@ export const selfWatchlisTokenRoute: FastifyPluginAsyncTypebox = async (fastify)
       if (items.size === 0) {
         reply.code(500).send({ error: 'Unable to fetch watchlist items' });
       } else {
-        reply.send(Array.from(items));
+        const response = Array.from(items).map(item => ({
+          title: item.title,
+          key: item.key,
+          type: item.type,
+          guids: item.guids ?? [],
+          genres: item.genres ?? []
+        }));
+        reply.send(response);
       }
     } catch (err) {
       fastify.log.error(err);

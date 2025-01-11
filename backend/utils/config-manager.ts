@@ -1,16 +1,18 @@
-import fs from 'fs';
-import path from 'path';
 import { FastifyBaseLogger } from 'fastify';
-
-const configPath = path.resolve(__dirname, '../../config/config.json');
+import { getDbInstance } from '../db/db';
 
 let config: any = null;
 
 export const loadConfig = (logger: FastifyBaseLogger) => {
   logger.info('Loading configuration...');
-  const rawConfig = fs.readFileSync(configPath, 'utf-8');
-  config = JSON.parse(rawConfig);
-  logger.info('Configuration loaded successfully.');
+  const db = getDbInstance(logger);
+  const configFromDb = db.getConfig(1);
+  if (configFromDb) {
+    config = configFromDb;
+    logger.info('Configuration loaded successfully from database.');
+  } else {
+    logger.error('Failed to load configuration from database.');
+  }
 };
 
 export const getConfig = (logger?: FastifyBaseLogger) => {
