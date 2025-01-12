@@ -72,12 +72,13 @@ class DatabaseConnection implements DatabaseOperations {
             );
             CREATE TABLE IF NOT EXISTS watchlist_items (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user TEXT,
+                user TEXT NOT NULL,
                 title TEXT NOT NULL,
-                key TEXT NOT NULL UNIQUE,
+                key TEXT NOT NULL,
                 type TEXT NOT NULL,
                 guids TEXT,
-                genres TEXT
+                genres TEXT,
+                UNIQUE(user, key)
             );
         `);
 
@@ -173,22 +174,66 @@ class DatabaseConnection implements DatabaseOperations {
     }
 
     public getBulkWatchlistItems(userIds: string[], keys: string[]): WatchlistItem[] {
-
-        const sql = `
-            SELECT * FROM watchlist_items 
-            WHERE (user, key) IN (${
-                Array(Math.min(userIds.length, keys.length))
-                    .fill('(?, ?)')
-                    .join(',')
-            })
-        `;
-
-        const params = userIds.flatMap((userId, index) => 
-            keys[index] ? [userId, keys[index]] : []
-        );
-
-        const stmt = this.db.prepare(sql);
-        return stmt.all(params) as WatchlistItem[];
+        this.logger.info(`Checking for existing items with ${userIds.length} users and ${keys.length} keys`);
+        
+        if (keys.length === 0) {
+            return [];
+        }
+    
+        // Create chunks of 100 items to avoid SQL query length limits
+        const chunkSize = 100;
+        const keyChunks = [];
+        for (let i = 0; i < keys.length; i += chunkSize) {
+            keyChunks.push(keys.slice(i, i + chunkSize));
+        }
+    
+        const userChunks = [];
+        if (userIds.length > 0) {
+            for (let i = 0; i < userIds.length; i += chunkSize) {
+                userChunks.push(userIds.slice(i, i + chunkSize));
+            }
+        }
+    
+        const allResults: WatchlistItem[] = [];
+    
+        // Process each chunk
+        for (const keyChunk of keyChunks) {
+            if (userChunks.length > 0) {
+                for (const userChunk of userChunks) {
+                    const sql = `
+                        SELECT * FROM watchlist_items 
+                        WHERE key IN (${keyChunk.map(() => '?').join(',')})
+                        AND user IN (${userChunk.map(() => '?').join(',')})
+                    `;
+                    
+                    try {
+                        const stmt = this.db.prepare(sql);
+                        const params = [...keyChunk, ...userChunk];
+                        const results = stmt.all(params) as WatchlistItem[];
+                        allResults.push(...results);
+                    } catch (err) {
+                        this.logger.error(`Error executing bulk watchlist query chunk: ${err}`);
+                    }
+                }
+            } else {
+                // If no users specified, just check keys
+                const sql = `
+                    SELECT * FROM watchlist_items 
+                    WHERE key IN (${keyChunk.map(() => '?').join(',')})
+                `;
+                
+                try {
+                    const stmt = this.db.prepare(sql);
+                    const results = stmt.all(keyChunk) as WatchlistItem[];
+                    allResults.push(...results);
+                } catch (err) {
+                    this.logger.error(`Error executing bulk watchlist query chunk: ${err}`);
+                }
+            }
+        }
+    
+        this.logger.info(`Query returned ${allResults.length} total matches from database`);
+        return allResults;
     }
 
     public createWatchlistItems(items: WatchlistItem[]): void {
