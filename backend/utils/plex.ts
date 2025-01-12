@@ -15,28 +15,39 @@ export const pingPlex = async (token: string, log: FastifyBaseLogger): Promise<v
   }
 };
 
-export const getWatchlist = async (token: string): Promise<PlexResponse> => {
+export const getWatchlist = async (
+  token: string, 
+  log: FastifyBaseLogger, 
+  start: number = 0,
+  retryCount = 0
+): Promise<PlexResponse> => {
   if (!token) {
     throw new Error('No Plex token provided');
   }
-
   const containerSize = 300;
   const url = new URL('https://metadata.provider.plex.tv/library/sections/watchlist/all');
   url.searchParams.append('X-Plex-Token', token);
-  url.searchParams.append('X-Plex-Container-Start', '0');
+  url.searchParams.append('X-Plex-Container-Start', start.toString());
   url.searchParams.append('X-Plex-Container-Size', containerSize.toString());
-
+  
   const response = await fetch(url.toString(), {
     headers: {
       'Accept': 'application/json'
     }
   });
+  
   const contentType = response.headers.get('Content-Type');
-
   if (!response.ok) {
+    if (response.status === 429) {
+      const retryAfter = response.headers.get('Retry-After');
+      const retryAfterMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : 1000 * Math.pow(2, retryCount);
+      log.warn(`Rate limited. Retrying after ${retryAfterMs} ms. Attempt ${retryCount + 1}`);
+      await new Promise(resolve => setTimeout(resolve, retryAfterMs));
+      return getWatchlist(token, log, start, retryCount + 1);
+    }
     throw new Error(`Plex API error: ${response.statusText}`);
   }
-
+  
   if (contentType && contentType.includes('application/json')) {
     return response.json();
   } else {
@@ -49,56 +60,51 @@ export const getSelfWatchlist = async (
   log: FastifyBaseLogger
 ): Promise<Set<Item>> => {
   const allItems = new Set<Item>();
-
+  
   for (const token of config.plexTokens) {
-    let hasNextPage = true;
     let currentStart = 0;
-
-    while (hasNextPage) {
+    
+    while (true) {
       try {
-        log.debug(`Fetching self watchlist with start: ${currentStart}`);
-        const response = await getWatchlist(token);
-        log.debug(`Response data: ${JSON.stringify(response.MediaContainer)}`);
-
+        log.debug(`Fetching watchlist for token with start: ${currentStart}`);
+        const response = await getWatchlist(token, log, currentStart);
+        
         const items = response.MediaContainer.Metadata.map((metadata) => {
           const id = metadata.key
             .replace('/library/metadata/', '')
             .replace('/children', '');
           
-          log.debug(`Processed key ${metadata.key} to id ${id}`);
-          
           return {
             title: metadata.title,
             id,
-            key: id, 
+            key: id,
             type: metadata.type,
-            guids: metadata.Guid?.map((guid) => guid.id) || [], 
+            guids: metadata.Guid?.map((guid) => guid.id) || [],
             genres: metadata.Genre?.map((genre) => genre.tag) || []
           };
         });
-
+        
         log.debug(`Found ${items.length} items in current page`);
-
+        
         for (const item of items) {
-          log.debug(`Processing item: ${item.title}`);
           const detailedItems = await toItems(config, log, item as TokenWatchlistItem);
           detailedItems.forEach((detailedItem: Item) => allItems.add(detailedItem));
         }
-
-        if (response.MediaContainer.totalSize > currentStart + 300) {
-          log.debug(`More pages available, current total: ${currentStart + 300} of ${response.MediaContainer.totalSize}`);
-          currentStart += 300;
-        } else {
-          log.debug('No more pages available');
-          hasNextPage = false;
+        
+        if (response.MediaContainer.totalSize <= currentStart + items.length) {
+          log.debug(`Completed processing all pages for current token`);
+          break;
         }
+        
+        currentStart += items.length;
+        
       } catch (err) {
-        log.error(`Unable to fetch watchlist: ${err}`);
-        hasNextPage = false;
+        log.error(`Error fetching watchlist: ${err}`);
+        break;
       }
     }
   }
-
+  
   log.info(`Self watchlist fetched successfully with ${allItems.size} total items`);
   return allItems;
 };

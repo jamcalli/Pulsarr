@@ -6,13 +6,16 @@ import { Type } from '@sinclair/typebox';
 const watchlistSchema = {
   response: {
     200: Type.Union([
-      Type.Array(Type.Object({
-        title: Type.String(),
-        key: Type.String(),
-        type: Type.String(),
-        guids: Type.Array(Type.String()),
-        genres: Type.Array(Type.String())
-      })),
+      Type.Object({
+        total: Type.Number(),
+        items: Type.Array(Type.Object({
+          title: Type.String(),
+          key: Type.String(),
+          type: Type.String(),
+          guids: Type.Array(Type.String()),
+          genres: Type.Array(Type.String())
+        }))
+      }),
       Type.Object({
         error: Type.String()
       })
@@ -34,13 +37,16 @@ export const selfWatchlisTokenRoute: FastifyPluginAsyncTypebox = async (fastify)
       if (items.size === 0) {
         reply.code(500).send({ error: 'Unable to fetch watchlist items' });
       } else {
-        const response = Array.from(items).map(item => ({
-          title: item.title,
-          key: item.key,
-          type: item.type,
-          guids: item.guids ?? [],
-          genres: item.genres ?? []
-        }));
+        const response = {
+          total: items.size,
+          items: Array.from(items).map(item => ({
+            title: item.title,
+            key: item.key,
+            type: item.type,
+            guids: item.guids ?? [],
+            genres: item.genres ?? []
+          }))
+        };
         reply.send(response);
       }
     } catch (err) {
