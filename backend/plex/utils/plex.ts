@@ -1,5 +1,5 @@
 import { FastifyBaseLogger } from 'fastify';
-import { PlexResponse, Item, TokenWatchlistItem, TokenWatchlistFriend, GraphQLQuery, Friend } from '@plex/types/plex.types';
+import { PlexResponse, Item, TokenWatchlistItem, GraphQLQuery, Friend, PlexApiResponse } from '@plex/types/plex.types';
 import { Config } from '@shared/types/config.types';
 
 export const pingPlex = async (token: string, log: FastifyBaseLogger): Promise<void> => {
@@ -49,7 +49,7 @@ export const getWatchlist = async (
   }
   
   if (contentType && contentType.includes('application/json')) {
-    return response.json();
+    return response.json() as Promise<PlexResponse>;
   } else {
     throw new Error(`Unexpected content type: ${contentType}`);
   }
@@ -141,26 +141,28 @@ export const getFriends = async (config: Config, log: FastifyBaseLogger): Promis
         continue;
       }
 
-      const json = await response.json();
+      const json = await response.json() as PlexApiResponse;
       log.debug(`Response JSON: ${JSON.stringify(json)}`);
       if (json.errors) {
         log.warn(`GraphQL errors: ${JSON.stringify(json.errors)}`);
         continue;
       }
 
-      const friends = json.data.allFriendsV2.map((friend: { user: { id: string; username: string } }) => 
-        [{ watchlistId: friend.user.id, username: friend.user.username }, token] as [Friend, string]
-      );
-      
-      if (friends.length === 0) {
-        log.warn(`No friends found for token: ${token}`);
-        continue;
-      }
+      if (json.data?.allFriendsV2) {
+        const friends = json.data.allFriendsV2.map((friend: { user: { id: string; username: string } }) => 
+          [{ watchlistId: friend.user.id, username: friend.user.username }, token] as [Friend, string]
+        );
+        
+        if (friends.length === 0) {
+          log.warn(`No friends found for token: ${token}`);
+          continue;
+        }
 
-      friends.forEach((friend: [Friend, string]) => {
-        allFriends.add(friend);
-        log.debug(`Added friend: ${JSON.stringify(friend)}`);
-      });
+        friends.forEach((friend: [Friend, string]) => {
+          allFriends.add(friend);
+          log.debug(`Added friend: ${JSON.stringify(friend)}`);
+        });
+      }
     } catch (err) {
       log.warn(`Unable to fetch friends from Plex: ${err}`);
     }
@@ -224,23 +226,21 @@ export const getWatchlistIdsForUser = async (
       throw new Error(`Plex API error: ${response.statusText}`);
     }
 
-    const json: TokenWatchlistFriend = await response.json();
+    const json = await response.json() as PlexApiResponse;
     log.debug(`Response JSON: ${JSON.stringify(json)}`);
     
     if (json.errors) {
       throw new Error(`GraphQL errors: ${JSON.stringify(json.errors)}`);
     }
     
-    if (!json.data?.user?.watchlist) {
-      throw new Error('Invalid response structure: missing watchlist data');
-    }
-    
-    const watchlist = json.data.user.watchlist;
-    watchlist.nodes.forEach((item: TokenWatchlistItem) => allItems.add(item));
+    if (json.data?.user?.watchlist) {
+      const watchlist = json.data.user.watchlist;
+      watchlist.nodes.forEach((item: TokenWatchlistItem) => allItems.add(item));
 
-    if (watchlist.pageInfo.hasNextPage && watchlist.pageInfo.endCursor) {
-      const nextPageItems = await getWatchlistIdsForUser(config, log, token, user, watchlist.pageInfo.endCursor);
-      nextPageItems.forEach((item: TokenWatchlistItem) => allItems.add(item));
+      if (watchlist.pageInfo.hasNextPage && watchlist.pageInfo.endCursor) {
+        const nextPageItems = await getWatchlistIdsForUser(config, log, token, user, watchlist.pageInfo.endCursor);
+        nextPageItems.forEach((item: TokenWatchlistItem) => allItems.add(item));
+      }
     }
   } catch (err) {
     log.error(`Unable to fetch watchlist for user ${user.username}: ${err}`);
@@ -303,7 +303,7 @@ const toItems = async (config: Config, log: FastifyBaseLogger, item: TokenWatchl
       throw new Error(`Plex API error: ${response.statusText}`);
     }
 
-    const json = await response.json();
+    const json = await response.json() as PlexApiResponse;
     if (!json.MediaContainer || !json.MediaContainer.Metadata) {
       throw new Error('Invalid response structure');
     }
@@ -379,9 +379,9 @@ export const getRssFromPlexToken = async (
       return null;
     }
 
-    const json = await response.json();
+    const json = await response.json() as PlexApiResponse;
     log.debug('Got a result from Plex when generating RSS feed, attempting to decode');
-    return json.RSSInfo[0]?.url || null;
+    return json.RSSInfo?.[0]?.url || null;
   } catch (err) {
     log.warn(`Unable to generate an RSS feed: ${err}`);
     return null;
