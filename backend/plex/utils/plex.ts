@@ -1,6 +1,6 @@
 import { FastifyBaseLogger } from 'fastify';
 import { PlexResponse, Item, TokenWatchlistItem, TokenWatchlistFriend, GraphQLQuery, Friend } from '../types/plex.types';
-import { Config } from '../types/config.types';
+import { Config } from '../../types/config.types';
 
 export const pingPlex = async (token: string, log: FastifyBaseLogger): Promise<void> => {
   try {

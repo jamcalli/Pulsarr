@@ -4,7 +4,7 @@ import type { FastifyBaseLogger } from 'fastify';
 import { join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import dotenv from 'dotenv';
-import { Item as WatchlistItem } from '../types/plex.types';
+import { Item as WatchlistItem } from '../plex/types/plex.types';
 import { Config, User } from '../types/config.types';
 
 dotenv.config({ path: join(__dirname, '../../.env') });
