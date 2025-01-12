@@ -68,3 +68,26 @@ export interface RssFeedGenerated {
     };
   };
 }
+
+export interface PlexApiResponse {
+  MediaContainer?: {
+    Metadata?: Array<{
+      Guid?: Array<{ id: string }>;
+      Genre?: Array<{ tag: string }>;
+    }>;
+  };
+  errors?: any;
+  data?: {
+    allFriendsV2?: Array<{ user: { id: string; username: string } }>;
+    user?: {
+      watchlist?: {
+        nodes: Array<TokenWatchlistItem>;
+        pageInfo: {
+          hasNextPage: boolean;
+          endCursor: string;
+        };
+      };
+    };
+  };
+  RSSInfo?: Array<{ url: string }>;
+}
