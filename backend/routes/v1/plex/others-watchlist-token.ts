@@ -1,9 +1,9 @@
 import { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
-import { getOthersWatchlist, processWatchlistItems } from '../../../plex/utils/plex';
-import { getConfig } from '../../../utils/config-manager';
+import { getOthersWatchlist, processWatchlistItems } from '@plex/utils/plex';
+import { getConfig } from '@shared/config/config-manager';
 import { Type } from '@sinclair/typebox';
-import { getDbInstance } from '../../../db/db';
-import { Item as WatchlistItem, TokenWatchlistItem, Friend } from '../../../plex/types/plex.types';
+import { getDbInstance } from '@db/db';
+import { Item as WatchlistItem, TokenWatchlistItem, Friend } from '@plex/types/plex.types';
 
 const othersWatchlistSchema = {
   response: {

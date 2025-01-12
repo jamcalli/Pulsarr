@@ -1,5 +1,5 @@
 import { FastifyBaseLogger } from 'fastify';
-import { getDbInstance } from '../db/db';
+import { getDbInstance } from '@db/db';
 
 let config: any = null;
 

@@ -1,6 +1,6 @@
 import { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
-import { pingPlex } from '../../../plex/utils/plex';
-import { getConfig } from '../../../utils/config-manager';
+import { pingPlex } from '@plex/utils/plex';
+import { getConfig } from '@shared/config/config-manager';
 import { Type } from '@sinclair/typebox';
 
 const pingSchema = {
