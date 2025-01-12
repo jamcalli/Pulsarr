@@ -1,7 +1,6 @@
 import Fastify from 'fastify';
 import AutoLoad from '@fastify/autoload';
 import Swagger from '@fastify/swagger';
-import SwaggerUI from '@fastify/swagger-ui';
 import { getDbInstance } from './db/db';
 
 export function build () {
@@ -24,7 +23,9 @@ export function build () {
   server.decorate('db', db);
 
   server.register(Swagger);
-  server.register(SwaggerUI);
+  server.register(require('@scalar/fastify-api-reference'), {
+    routePrefix: '/documentation',
+  })
 
   server.register(AutoLoad, {
     dir: `${__dirname}/routes`,
