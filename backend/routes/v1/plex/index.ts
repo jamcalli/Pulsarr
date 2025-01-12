@@ -1,8 +1,8 @@
 import { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
-import { selfWatchlisTokenRoute } from './self-watchlist-token';
-import { othersWatchlistTokenRoute } from './others-watchlist-token';
-import { pingRoute } from './ping';
-import { generateRssFeedsRoute } from './generate-rss-feeds';
+import { selfWatchlisTokenRoute } from '@routes/v1/plex/self-watchlist-token';
+import { othersWatchlistTokenRoute } from '@routes/v1/plex/others-watchlist-token';
+import { pingRoute } from '@routes/v1/plex/ping';
+import { generateRssFeedsRoute } from '@routes/v1/plex/generate-rss-feeds';
 
 const plexPlugin: FastifyPluginAsyncTypebox = async (fastify) => {
   await fastify.register(selfWatchlisTokenRoute);
