@@ -4,10 +4,10 @@ import type { FastifyBaseLogger } from 'fastify';
 import { join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import dotenv from 'dotenv';
-import { Item as WatchlistItem } from '../plex/types/plex.types';
-import { Config, User } from '../shared/types/config.types';
+import { Item as WatchlistItem } from '@plex/types/plex.types';
+import { Config, User } from '@shared/types/config.types';
 
-dotenv.config({ path: join(__dirname, '@root/.env') });
+dotenv.config({ path: join(__dirname, '../../.env') });
 
 interface DatabaseOperations {
     getUser(id: number): User | undefined;

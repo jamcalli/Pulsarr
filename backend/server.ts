@@ -1,3 +1,4 @@
+import 'tsconfig-paths/register';
 import { build } from './app';
 import { getConfig } from './shared/config/config-manager';
 
