@@ -1,6 +1,6 @@
 import { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
-import { getPlexWatchlistUrls } from '../../utils/plex';
-import { getConfig } from '../../utils/config-manager';
+import { getPlexWatchlistUrls } from '../../../plex/utils/plex';
+import { getConfig } from '../../../utils/config-manager';
 import { Type } from '@sinclair/typebox';
 
 const plexWatchlistSchema = {
