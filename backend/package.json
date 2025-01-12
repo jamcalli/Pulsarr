@@ -17,13 +17,15 @@
     "@types/better-sqlite3": "^7.6.12",
     "@types/node": "^22.10.5",
     "fastify-tsconfig": "^2.0.0",
+    "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
+    "tsconfig-paths": "^4.2.0",
     "typescript": "^5.7.3"
   },
   "dependencies": {
     "@fastify/autoload": "^6.0.3",
-    "@fastify/swagger": "^9.4.0",
-    "@fastify/swagger-ui": "^5.2.0",
+    "@fastify/swagger": "^9.4.1",
+    "@fastify/swagger-ui": "^5.2.1",
     "@fastify/type-provider-typebox": "^5.1.0",
     "better-sqlite3": "^11.7.2",
     "dotenv": "^16.4.7",
