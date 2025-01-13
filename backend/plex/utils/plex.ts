@@ -55,11 +55,11 @@ export const getWatchlist = async (
   }
 };
 
-export const getSelfWatchlist = async (
+export const fetchSelfWatchlist = async (
   config: Config,
   log: FastifyBaseLogger
-): Promise<Set<Item>> => {
-  const allItems = new Set<Item>();
+): Promise<Set<TokenWatchlistItem>> => {
+  const allItems = new Set<TokenWatchlistItem>();
   
   for (const token of config.plexTokens) {
     let currentStart = 0;
@@ -85,11 +85,7 @@ export const getSelfWatchlist = async (
         });
         
         log.debug(`Found ${items.length} items in current page`);
-        
-        for (const item of items) {
-          const detailedItems = await toItems(config, log, item as TokenWatchlistItem);
-          detailedItems.forEach((detailedItem: Item) => allItems.add(detailedItem));
-        }
+        items.forEach(item => allItems.add(item as TokenWatchlistItem));
         
         if (response.MediaContainer.totalSize <= currentStart + items.length) {
           log.debug(`Completed processing all pages for current token`);
@@ -172,7 +168,7 @@ export const getFriends = async (config: Config, log: FastifyBaseLogger): Promis
   return allFriends;
 };
 
-export const getWatchlistIdsForUser = async (
+export const getWatchlistForUser = async (
   config: Config,
   log: FastifyBaseLogger,
   token: string,
@@ -183,7 +179,7 @@ export const getWatchlistIdsForUser = async (
   const url = new URL('https://community.plex.tv/api');
   
   if (!user || !user.watchlistId) {
-    log.error('Invalid user object provided to getWatchlistIdsForUser');
+    log.error('Invalid user object provided to getWatchlistForUser');
     return allItems;
   }
 
@@ -238,7 +234,7 @@ export const getWatchlistIdsForUser = async (
       watchlist.nodes.forEach((item: TokenWatchlistItem) => allItems.add(item));
 
       if (watchlist.pageInfo.hasNextPage && watchlist.pageInfo.endCursor) {
-        const nextPageItems = await getWatchlistIdsForUser(config, log, token, user, watchlist.pageInfo.endCursor);
+        const nextPageItems = await getWatchlistForUser(config, log, token, user, watchlist.pageInfo.endCursor);
         nextPageItems.forEach((item: TokenWatchlistItem) => allItems.add(item));
       }
     }
@@ -249,43 +245,53 @@ export const getWatchlistIdsForUser = async (
   return allItems;
 };
 
-export const getOthersWatchlist = async (config: Config, log: FastifyBaseLogger): Promise<Map<Friend, Set<TokenWatchlistItem>>> => {
+export const getOthersWatchlist = async (
+  config: Config,
+  log: FastifyBaseLogger,
+  friends: Set<[Friend, string]>
+): Promise<Map<Friend, Set<TokenWatchlistItem>>> => {
   const userWatchlistMap = new Map<Friend, Set<TokenWatchlistItem>>();
 
-  try {
-    const friends = await getFriends(config, log);
-    for (const [user, token] of friends) {
-      log.debug(`Processing friend: ${JSON.stringify(user)}`);
-      const watchlistItems = await getWatchlistIdsForUser(config, log, token, user);
-      userWatchlistMap.set(user, watchlistItems);
-    }
-    const totalItems = Array.from(userWatchlistMap.values()).reduce((acc, items) => acc + items.size, 0);
-    log.info(`Others' watchlist fetched successfully with ${totalItems} total items`);
-  } catch (err) {
-    log.error(`Unable to fetch others' watchlist: ${err}`);
+  for (const [user, token] of friends) {
+    log.debug(`Processing friend: ${JSON.stringify(user)}`);
+    const watchlistItems = await getWatchlistForUser(config, log, token, user);
+    userWatchlistMap.set(user, watchlistItems);
   }
+  
+  const totalItems = Array.from(userWatchlistMap.values())
+    .reduce((acc, items) => acc + items.size, 0);
+  log.info(`Others' watchlist fetched successfully with ${totalItems} total items`);
 
   return userWatchlistMap;
 };
 
-export const processWatchlistItems = async (
+export async function processWatchlistItems(
   config: Config,
   log: FastifyBaseLogger,
-  userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>
-): Promise<Map<Friend, Set<Item>>> => {
-  const userDetailedWatchlistMap = new Map<Friend, Set<Item>>();
+  input: Map<Friend, Set<TokenWatchlistItem>> | Set<TokenWatchlistItem>
+): Promise<Map<Friend, Set<Item>> | Set<Item>> {
+  if (input instanceof Map) {
+    const userDetailedWatchlistMap = new Map<Friend, Set<Item>>();
 
-  for (const [user, watchlistItems] of userWatchlistMap) {
+    for (const [user, watchlistItems] of input) {
+      const detailedItems = new Set<Item>();
+      for (const item of watchlistItems) {
+        const items = await toItems(config, log, item);
+        items.forEach((detailedItem: Item) => detailedItems.add(detailedItem));
+      }
+      userDetailedWatchlistMap.set(user, detailedItems);
+    }
+
+    return userDetailedWatchlistMap;
+  } else {
     const detailedItems = new Set<Item>();
-    for (const item of watchlistItems) {
+    for (const item of input) {
       const items = await toItems(config, log, item);
       items.forEach((detailedItem: Item) => detailedItems.add(detailedItem));
     }
-    userDetailedWatchlistMap.set(user, detailedItems);
+    return detailedItems;
   }
-
-  return userDetailedWatchlistMap;
-};
+}
 
 const toItems = async (config: Config, log: FastifyBaseLogger, item: TokenWatchlistItem): Promise<Set<Item>> => {
   const allItems = new Set<Item>();

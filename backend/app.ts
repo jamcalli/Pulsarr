@@ -1,31 +1,21 @@
 import Fastify from 'fastify';
 import AutoLoad from '@fastify/autoload';
 import Swagger from '@fastify/swagger';
-import { getDbInstance } from './db/db';
+import { getDbInstance } from '@db/db';
+import { loggerConfig } from '@shared/logger/logger';
 
-export function build () {
+export function build() {
   const server = Fastify({
-    logger: {
-      level: 'info',
-      transport: {
-        target: 'pino-pretty',
-        options: {
-          colorize: true,
-          translateTime: 'SYS:standard',
-          ignore: 'pid,hostname'
-        }
-      }
-    }
+    logger: loggerConfig
   });
 
   const db = getDbInstance(server.log);
-
   server.decorate('db', db);
 
   server.register(Swagger);
   server.register(require('@scalar/fastify-api-reference'), {
     routePrefix: '/documentation',
-  })
+  });
 
   server.register(AutoLoad, {
     dir: `${__dirname}/routes`,

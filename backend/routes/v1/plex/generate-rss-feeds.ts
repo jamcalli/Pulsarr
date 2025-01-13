@@ -18,7 +18,7 @@ const plexWatchlistSchema = {
 };
 
 export const generateRssFeedsRoute: FastifyPluginAsyncTypebox = async (fastify) => {
-  fastify.post('/generate-rss-feeds', {
+  fastify.get('/generate-rss-feeds', {
     schema: plexWatchlistSchema
   }, async (request, reply) => {
     const config = getConfig(fastify.log);
