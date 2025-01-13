@@ -8,9 +8,19 @@ const WatchlistItemSchema = z.object({
   genres: z.array(z.string())
 });
 
+const UserSchema = z.object({
+  watchlistId: z.string(),
+  username: z.string()
+});
+
+const UserWatchlistSchema = z.object({
+  user: UserSchema,
+  watchlist: z.array(WatchlistItemSchema)
+});
+
 const SelfWatchlistSuccessSchema = z.object({
   total: z.number(),
-  items: z.array(WatchlistItemSchema)
+  users: z.array(UserWatchlistSchema)
 });
 
 const SelfWatchlistErrorSchema = z.object({
@@ -33,3 +43,5 @@ export type SelfWatchlistResponse = z.infer<typeof SelfWatchlistResponseSchema>;
 export type SelfWatchlistSuccess = z.infer<typeof SelfWatchlistSuccessSchema>;
 export type SelfWatchlistError = z.infer<typeof SelfWatchlistErrorSchema>;
 export type WatchlistItem = z.infer<typeof WatchlistItemSchema>;
+export type User = z.infer<typeof UserSchema>;
+export type UserWatchlist = z.infer<typeof UserWatchlistSchema>;

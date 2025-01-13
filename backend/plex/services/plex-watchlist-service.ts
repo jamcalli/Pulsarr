@@ -1,5 +1,5 @@
 import { FastifyBaseLogger } from 'fastify';
-import { getOthersWatchlist, processWatchlistItems, getFriends, pingPlex } from '@plex/utils/plex';
+import { getOthersWatchlist, processWatchlistItems, getFriends, pingPlex, fetchSelfWatchlist } from '@plex/utils/plex';
 import { getDbInstance } from '@db/db';
 import { getConfig } from '@shared/config/config-manager';
 import { Config } from '@shared/types/config.types';
@@ -47,6 +47,42 @@ export class PlexWatchlistService {
 
     if (userWatchlistMap.size === 0) {
       throw new Error('Unable to fetch others\' watchlist items');
+    }
+
+    const { allKeys, userKeyMap } = this.extractKeysAndRelationships(userWatchlistMap);
+    const existingItems = this.getExistingItems(userKeyMap, allKeys);
+    const { brandNewItems, existingItemsToLink } = this.categorizeItems(userWatchlistMap, existingItems);
+    
+    await this.processAndSaveNewItems(brandNewItems);
+    this.linkExistingItems(existingItemsToLink);
+
+    return this.buildResponse(userWatchlistMap, existingItems, existingItemsToLink, brandNewItems);
+  }
+
+  async getSelfWatchlist() {
+    this.ensureConfig();
+
+    if (!this.config.plexTokens || this.config.plexTokens.length === 0) {
+      throw new Error('No Plex token configured');
+    }
+
+    const userWatchlistMap = new Map<Friend, Set<TokenWatchlistItem>>();
+
+    await Promise.all(this.config.plexTokens.map(async (token, index) => {
+      const tokenConfig = { ...this.config, plexTokens: [token] };
+      const items = await fetchSelfWatchlist(tokenConfig, this.log);
+      
+      if (items.size > 0) {
+        const tokenUser: Friend = {
+          watchlistId: `token${index + 1}`,
+          username: `token${index + 1}`
+        };
+        userWatchlistMap.set(tokenUser, items);
+      }
+    }));
+
+    if (userWatchlistMap.size === 0) {
+      throw new Error('Unable to fetch watchlist items');
     }
 
     const { allKeys, userKeyMap } = this.extractKeysAndRelationships(userWatchlistMap);
