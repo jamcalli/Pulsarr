@@ -1,7 +1,6 @@
 import { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
-import { pingPlex } from '@plex/utils/plex';
-import { getConfig } from '@shared/config/config-manager';
 import { Type } from '@sinclair/typebox';
+import { PlexWatchlistService } from '@plex/services/plex-watchlist-service';
 
 const pingSchema = {
   response: {
@@ -12,12 +11,17 @@ const pingSchema = {
 };
 
 export const pingRoute: FastifyPluginAsyncTypebox = async (fastify) => {
-  fastify.post('/ping', {
+  const plexService = new PlexWatchlistService(fastify.log);
+
+  fastify.get('/ping', {
     schema: pingSchema
-  }, async () => {
-    const config = getConfig(fastify.log);
-    const tokens: string[] = config.plexTokens || [];
-    await Promise.all(tokens.map(token => pingPlex(token, fastify.log)));
-    return { success: true };
+  }, async (_request, reply) => {
+    try {
+      const success = await plexService.pingPlex();
+      reply.send({ success });
+    } catch (err) {
+      fastify.log.error(err);
+      reply.code(500).send({ success: false });
+    }
   });
 };
