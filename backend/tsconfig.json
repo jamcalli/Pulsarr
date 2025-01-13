@@ -12,7 +12,8 @@
       "@utils/*": ["utils/*"],
       "@types/*": ["types/*"],
       "@plex/*": ["plex/*"],
-      "@shared/*": ["shared/*"]
+      "@shared/*": ["shared/*"],
+      "@data/*": ["data/*"]
     }
   }
 }

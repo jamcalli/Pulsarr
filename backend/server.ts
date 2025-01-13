@@ -1,6 +1,5 @@
-import 'tsconfig-paths/register';
 import { build } from './app';
-import { getConfig } from './shared/config/config-manager';
+import { getConfig } from '@shared/config/config-manager';
 
 const server = build();
 const config = getConfig(server.log);

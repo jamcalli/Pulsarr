@@ -2,12 +2,17 @@ import Database from 'better-sqlite3';
 import type { Database as DatabaseType, Statement } from 'better-sqlite3';
 import type { FastifyBaseLogger } from 'fastify';
 import { join } from 'path';
-import { existsSync, mkdirSync } from 'fs';
 import dotenv from 'dotenv';
 import { Item as WatchlistItem } from '@plex/types/plex.types';
 import { Config, User } from '@shared/types/config.types';
 
-dotenv.config({ path: join(__dirname, '../../.env') });
+const isBuildDir = __dirname.includes('build');
+const projectRoot = isBuildDir ? join(__dirname, '../../') : join(__dirname, '../');
+
+const dbDir = join(projectRoot, 'data/db');
+const envPath = join(projectRoot, '../.env');
+
+dotenv.config({ path: envPath });
 
 interface DatabaseOperations {
     getUser(id: number): User | undefined;
@@ -42,12 +47,6 @@ class DatabaseConnection implements DatabaseOperations {
                 this.logger.error(message, ...additionalArgs);
             }
         };
-
-        // Ensure the directory exists
-        const dbDir = join(__dirname, '..');
-        if (!existsSync(dbDir)) {
-            mkdirSync(dbDir);
-        }
 
         const dbPath = join(dbDir, 'plexwatchlist.db');
 
