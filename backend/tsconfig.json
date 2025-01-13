@@ -13,7 +13,8 @@
       "@types/*": ["types/*"],
       "@plex/*": ["plex/*"],
       "@shared/*": ["shared/*"],
-      "@data/*": ["data/*"]
+      "@data/*": ["data/*"],
+      "@schemas/*": ["schemas/*"]
     }
   }
 }
