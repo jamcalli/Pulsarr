@@ -1,27 +1,22 @@
-import { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
-import { Type } from '@sinclair/typebox';
+import { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
 import { PlexWatchlistService } from '@plex/services/plex-watchlist-service';
+import { pingSchema } from '@schemas/plex/ping.schema';
 
-const pingSchema = {
-  response: {
-    200: Type.Object({
-      success: Type.Boolean()
-    })
-  }
-};
-
-export const pingRoute: FastifyPluginAsyncTypebox = async (fastify) => {
+export const pingRoute: FastifyPluginAsyncZod = async function(fastify, _opts) {
   const plexService = new PlexWatchlistService(fastify.log);
 
-  fastify.get('/ping', {
-    schema: pingSchema
-  }, async (_request, reply) => {
-    try {
-      const success = await plexService.pingPlex();
-      reply.send({ success });
-    } catch (err) {
-      fastify.log.error(err);
-      reply.code(500).send({ success: false });
+  fastify.route({
+    method: 'GET',
+    url: '/ping',
+    schema: pingSchema,
+    handler: async (_request, reply) => {
+      try {
+        const success = await plexService.pingPlex();
+        reply.send({ success });
+      } catch (err) {
+        fastify.log.error(err);
+        reply.code(500).send({ success: false });
+      }
     }
   });
 };
