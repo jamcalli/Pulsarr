@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "main": "build/server.js",
   "scripts": {
-    "build": "rm -rf build && tsc",
+    "build": "rm -rf build && tsc && tsc-alias",
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node build/server.js",
-    "dev": "ts-node-dev --respawn --transpile-only ./server.ts"
+    "dev": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register ./server.ts"
   },
   "keywords": [],
   "author": "",
@@ -30,6 +30,7 @@
     "better-sqlite3": "^11.7.2",
     "dotenv": "^16.4.7",
     "fastify": "^5.2.1",
-    "pino-pretty": "^13.0.0"
+    "pino-pretty": "^13.0.0",
+    "tsc-alias": "^1.8.10"
   }
 }
