@@ -1,60 +1,6 @@
 import { FastifyBaseLogger } from 'fastify';
-import { PlexResponse, Item, GraphQLQuery, Friend, PlexApiResponse, RssWatchlistResponse } from '@plex/types/plex.types';
+import { PlexResponse, Item, TokenWatchlistItem, GraphQLQuery, Friend, PlexApiResponse } from '@plex/types/plex.types';
 import { Config } from '@shared/types/config.types';
-
-export const fetchWatchlistFromRss = async (
-  url: string,
-  log: FastifyBaseLogger
-): Promise<Set<Item>> => {
-  const randomUUID = Math.random().toString(36).substring(2, 14);
-  const jsonFormatUrl = new URL(url);
-  jsonFormatUrl.searchParams.append('format', 'json');
-  jsonFormatUrl.searchParams.append('cache_buster', randomUUID);
-
-  try {
-    const response = await fetch(jsonFormatUrl.toString(), {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json'
-      }
-    });
-
-    if (!response.ok) {
-      if (response.status === 500) {
-        log.debug('Unable to fetch watchlist from Plex, see https://github.com/nylonee/watchlistarr/issues/161');
-        return new Set<Item>();
-      }
-      log.warn(`Unable to fetch watchlist from Plex: ${response.statusText}`);
-      return new Set<Item>();
-    }
-
-    const json = await response.json() as RssWatchlistResponse;
-    log.debug('Found JSON from Plex watchlist, attempting to decode');
-
-    if (json && Array.isArray(json.items) && json.items.every(item => 
-      typeof item.title === 'string' &&
-      (typeof item.key === 'string' || item.key === undefined) &&
-      typeof item.type === 'string' &&
-      Array.isArray(item.guids) &&
-      Array.isArray(item.genres)
-    )) {
-      const items = json.items.map((item) => ({
-        title: item.title,
-        key: item.key || '',
-        type: item.type,
-        guids: item.guids,
-        genres: item.genres
-      }));
-      return new Set<Item>(items);
-    } else {
-      log.warn('Unable to fetch watchlist from Plex - decoding failure');
-      return new Set<Item>();
-    }
-  } catch (err) {
-    log.warn(`Unable to fetch watchlist from Plex: ${err}`);
-    return new Set<Item>();
-  }
-};
 
 export const pingPlex = async (token: string, log: FastifyBaseLogger): Promise<void> => {
   try {
@@ -112,8 +58,8 @@ export const getWatchlist = async (
 export const fetchSelfWatchlist = async (
   config: Config,
   log: FastifyBaseLogger
-): Promise<Set<Item>> => {
-  const allItems = new Set<Item>();
+): Promise<Set<TokenWatchlistItem>> => {
+  const allItems = new Set<TokenWatchlistItem>();
   
   for (const token of config.plexTokens) {
     let currentStart = 0;
@@ -130,6 +76,7 @@ export const fetchSelfWatchlist = async (
           
           return {
             title: metadata.title,
+            id,
             key: id,
             type: metadata.type,
             guids: metadata.Guid?.map((guid) => guid.id) || [],
@@ -138,7 +85,7 @@ export const fetchSelfWatchlist = async (
         });
         
         log.debug(`Found ${items.length} items in current page`);
-        items.forEach(item => allItems.add(item as Item));
+        items.forEach(item => allItems.add(item as TokenWatchlistItem));
         
         if (response.MediaContainer.totalSize <= currentStart + items.length) {
           log.debug(`Completed processing all pages for current token`);
@@ -227,8 +174,8 @@ export const getWatchlistForUser = async (
   token: string,
   user: Friend,
   page: string | null = null
-): Promise<Set<Item>> => {
-  const allItems = new Set<Item>();
+): Promise<Set<TokenWatchlistItem>> => {
+  const allItems = new Set<TokenWatchlistItem>();
   const url = new URL('https://community.plex.tv/api');
   
   if (!user || !user.watchlistId) {
@@ -284,11 +231,11 @@ export const getWatchlistForUser = async (
     
     if (json.data?.user?.watchlist) {
       const watchlist = json.data.user.watchlist;
-      watchlist.nodes.forEach((item: Item) => allItems.add(item));
+      watchlist.nodes.forEach((item: TokenWatchlistItem) => allItems.add(item));
 
       if (watchlist.pageInfo.hasNextPage && watchlist.pageInfo.endCursor) {
         const nextPageItems = await getWatchlistForUser(config, log, token, user, watchlist.pageInfo.endCursor);
-        nextPageItems.forEach((item: Item) => allItems.add(item));
+        nextPageItems.forEach((item: TokenWatchlistItem) => allItems.add(item));
       }
     }
   } catch (err) {
@@ -302,8 +249,8 @@ export const getOthersWatchlist = async (
   config: Config,
   log: FastifyBaseLogger,
   friends: Set<[Friend, string]>
-): Promise<Map<Friend, Set<Item>>> => {
-  const userWatchlistMap = new Map<Friend, Set<Item>>();
+): Promise<Map<Friend, Set<TokenWatchlistItem>>> => {
+  const userWatchlistMap = new Map<Friend, Set<TokenWatchlistItem>>();
 
   for (const [user, token] of friends) {
     log.debug(`Processing friend: ${JSON.stringify(user)}`);
@@ -321,7 +268,7 @@ export const getOthersWatchlist = async (
 export async function processWatchlistItems(
   config: Config,
   log: FastifyBaseLogger,
-  input: Map<Friend, Set<Item>> | Set<Item>
+  input: Map<Friend, Set<TokenWatchlistItem>> | Set<TokenWatchlistItem>
 ): Promise<Map<Friend, Set<Item>> | Set<Item>> {
   if (input instanceof Map) {
     const userDetailedWatchlistMap = new Map<Friend, Set<Item>>();
@@ -346,9 +293,9 @@ export async function processWatchlistItems(
   }
 }
 
-const toItems = async (config: Config, log: FastifyBaseLogger, item: Item): Promise<Set<Item>> => {
+const toItems = async (config: Config, log: FastifyBaseLogger, item: TokenWatchlistItem): Promise<Set<Item>> => {
   const allItems = new Set<Item>();
-  const url = new URL(`https://discover.provider.plex.tv/library/metadata/${item.key}`);
+  const url = new URL(`https://discover.provider.plex.tv/library/metadata/${item.id}`);
   url.searchParams.append('X-Plex-Token', config.plexTokens[0]);
 
   try {
@@ -367,14 +314,25 @@ const toItems = async (config: Config, log: FastifyBaseLogger, item: Item): Prom
       throw new Error('Invalid response structure');
     }
 
+    // Explicitly transform and validate the arrays
     const guids = json.MediaContainer.Metadata.flatMap((metadata: any) => 
-      metadata.Guid?.map((guid: any) => guid.key.replace('//', '')) || []
+      (metadata.Guid || []).map((guid: any) => guid.id.replace('//', ''))
     );
     const genres = json.MediaContainer.Metadata.flatMap((metadata: any) => 
-      metadata.Genre?.map((genre: any) => genre.tag) || []
+      (metadata.Genre || []).map((genre: any) => genre.tag)
     );
 
-    allItems.add({ title: item.title, key: item.key, type: item.type, guids, genres });
+    // Log the extracted data for debugging
+    log.debug(`Extracted guids: ${JSON.stringify(guids)}`);
+    log.debug(`Extracted genres: ${JSON.stringify(genres)}`);
+
+    allItems.add({ 
+      title: item.title, 
+      key: item.id, 
+      type: item.type, 
+      guids: guids || [], 
+      genres: genres || [] 
+    });
   } catch (err) {
     const error = err as Error;
     if (error.message.includes('Plex API error')) {
