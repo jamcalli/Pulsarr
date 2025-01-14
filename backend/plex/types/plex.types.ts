@@ -16,6 +16,16 @@ export interface Friend {
   username: string;
 }
 
+export interface RssWatchlistResponse {
+  items: Array<{
+    title: string;
+    key?: string;
+    type: string;
+    guids: string[];
+    genres: string[];
+  }>;
+}
+
 export interface Item {
   title: string;
   key: string;
