@@ -1,6 +1,60 @@
 import { FastifyBaseLogger } from 'fastify';
-import { PlexResponse, Item, TokenWatchlistItem, GraphQLQuery, Friend, PlexApiResponse } from '@plex/types/plex.types';
+import { PlexResponse, Item, TokenWatchlistItem, GraphQLQuery, Friend, PlexApiResponse, RssWatchlistResponse } from '@plex/types/plex.types';
 import { Config } from '@shared/types/config.types';
+
+export const fetchWatchlistFromRss = async (
+  url: string,
+  log: FastifyBaseLogger
+): Promise<Set<Item>> => {
+  const randomUUID = Math.random().toString(36).substring(2, 14);
+  const jsonFormatUrl = new URL(url);
+  jsonFormatUrl.searchParams.append('format', 'json');
+  jsonFormatUrl.searchParams.append('cache_buster', randomUUID);
+
+  try {
+    const response = await fetch(jsonFormatUrl.toString(), {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      if (response.status === 500) {
+        log.debug('Unable to fetch watchlist from Plex, see https://github.com/nylonee/watchlistarr/issues/161');
+        return new Set<Item>();
+      }
+      log.warn(`Unable to fetch watchlist from Plex: ${response.statusText}`);
+      return new Set<Item>();
+    }
+
+    const json = await response.json() as RssWatchlistResponse;
+    log.debug('Found JSON from Plex watchlist, attempting to decode');
+
+    if (json && Array.isArray(json.items) && json.items.every(item => 
+      typeof item.title === 'string' &&
+      (typeof item.key === 'string' || item.key === undefined) &&
+      typeof item.type === 'string' &&
+      Array.isArray(item.guids) &&
+      Array.isArray(item.genres)
+    )) {
+      const items = json.items.map((item) => ({
+        title: item.title,
+        key: item.key || '',
+        type: item.type,
+        guids: item.guids,
+        genres: item.genres
+      }));
+      return new Set<Item>(items);
+    } else {
+      log.warn('Unable to fetch watchlist from Plex - decoding failure');
+      return new Set<Item>();
+    }
+  } catch (err) {
+    log.warn(`Unable to fetch watchlist from Plex: ${err}`);
+    return new Set<Item>();
+  }
+};
 
 export const pingPlex = async (token: string, log: FastifyBaseLogger): Promise<void> => {
   try {
