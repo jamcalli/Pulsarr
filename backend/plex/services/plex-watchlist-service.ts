@@ -3,7 +3,7 @@ import { getOthersWatchlist, processWatchlistItems, getFriends, pingPlex, fetchS
 import { getDbInstance } from '@db/db';
 import { getConfig } from '@shared/config/config-manager';
 import { Config } from '@shared/types/config.types';
-import { Item as WatchlistItem, TokenWatchlistItem, Friend } from '@plex/types/plex.types';
+import { Item as WatchlistItem, Friend } from '@plex/types/plex.types';
 
 export class PlexWatchlistService {
   private readonly log: FastifyBaseLogger;
@@ -66,7 +66,7 @@ export class PlexWatchlistService {
       throw new Error('No Plex token configured');
     }
 
-    const userWatchlistMap = new Map<Friend, Set<TokenWatchlistItem>>();
+    const userWatchlistMap = new Map<Friend, Set<WatchlistItem>>();
 
     await Promise.all(this.config.plexTokens.map(async (token, index) => {
       const tokenConfig = { ...this.config, plexTokens: [token] };
@@ -95,15 +95,17 @@ export class PlexWatchlistService {
     return this.buildResponse(userWatchlistMap, existingItems, existingItemsToLink, brandNewItems);
   }
 
-  private extractKeysAndRelationships(userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>) {
+  private extractKeysAndRelationships(userWatchlistMap: Map<Friend, Set<WatchlistItem>>) {
     const allKeys = new Set<string>();
     const userKeyMap = new Map<string, Set<string>>();
 
-    userWatchlistMap.forEach((items: Set<TokenWatchlistItem>, user: Friend) => {
+    userWatchlistMap.forEach((items: Set<WatchlistItem>, user: Friend) => {
       const userKeys = new Set<string>();
       items.forEach(item => {
-        allKeys.add(item.id);
-        userKeys.add(item.id);
+        if (item.key) {
+          allKeys.add(item.key);
+          userKeys.add(item.key);
+        }
       });
       userKeyMap.set(user.watchlistId, userKeys);
     });
@@ -131,10 +133,10 @@ export class PlexWatchlistService {
   }
 
   private categorizeItems(
-    userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>,
+    userWatchlistMap: Map<Friend, Set<WatchlistItem>>,
     existingItems: WatchlistItem[]
   ) {
-    const brandNewItems = new Map<Friend, Set<TokenWatchlistItem>>();
+    const brandNewItems = new Map<Friend, Set<WatchlistItem>>();
     const existingItemsToLink = new Map<Friend, Set<WatchlistItem>>();
     const existingItemsByKey = this.mapExistingItemsByKey(existingItems);
 
@@ -150,7 +152,7 @@ export class PlexWatchlistService {
     return { brandNewItems, existingItemsToLink };
   }
 
-  private async processAndSaveNewItems(brandNewItems: Map<Friend, Set<TokenWatchlistItem>>) {
+  private async processAndSaveNewItems(brandNewItems: Map<Friend, Set<WatchlistItem>>) {
     if (brandNewItems.size === 0) return new Map<Friend, Set<WatchlistItem>>();
   
     const processedItems = await processWatchlistItems(this.config, this.log, brandNewItems);
@@ -180,7 +182,7 @@ export class PlexWatchlistService {
   }
 
   private buildResponse(
-    userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>,
+    userWatchlistMap: Map<Friend, Set<WatchlistItem>>,
     existingItems: WatchlistItem[],
     existingItemsToLink: Map<Friend, Set<WatchlistItem>>,
     processedItems: Map<Friend, Set<WatchlistItem>>
@@ -210,33 +212,35 @@ export class PlexWatchlistService {
   }
 
   private separateNewAndExistingItems(
-    items: Set<TokenWatchlistItem>,
+    items: Set<WatchlistItem>,
     user: Friend,
     existingItemsByKey: Map<string, Map<string, WatchlistItem>>
   ) {
-    const newItems = new Set<TokenWatchlistItem>();
+    const newItems = new Set<WatchlistItem>();
     const itemsToLink = new Set<WatchlistItem>();
-
+  
     items.forEach(item => {
-      const existingItem = existingItemsByKey.get(item.id);
-      if (!existingItem) {
-        newItems.add(item);
-      } else if (!existingItem.has(user.watchlistId)) {
-        const templateItem = existingItem.values().next().value;
-        if (templateItem?.title && templateItem?.type) {
-          itemsToLink.add(this.createWatchlistItem(user, item, templateItem));
+      if (item.key) {
+        const existingItem = existingItemsByKey.get(item.key);
+        if (!existingItem) {
+          newItems.add(item);
+        } else if (!existingItem.has(user.watchlistId)) {
+          const templateItem = existingItem.values().next().value;
+          if (templateItem?.title && templateItem?.type) {
+            itemsToLink.add(this.createWatchlistItem(user, item, templateItem));
+          }
         }
       }
     });
-
+  
     return { newItems, itemsToLink };
   }
 
-  private createWatchlistItem(user: Friend, item: TokenWatchlistItem, templateItem: WatchlistItem): WatchlistItem {
+  private createWatchlistItem(user: Friend, item: WatchlistItem, templateItem: WatchlistItem): WatchlistItem {
     return {
       user: user.watchlistId,
       title: templateItem.title,
-      key: item.id,
+      key: item.key,
       type: templateItem.type,
       guids: templateItem.guids || [],
       genres: templateItem.genres || []
@@ -270,7 +274,7 @@ export class PlexWatchlistService {
   }
 
   private buildUserWatchlists(
-    userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>,
+    userWatchlistMap: Map<Friend, Set<WatchlistItem>>,
     existingItems: WatchlistItem[],
     existingItemsToLink: Map<Friend, Set<WatchlistItem>>,
     processedItems: Map<Friend, Set<WatchlistItem>>

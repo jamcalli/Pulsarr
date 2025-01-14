@@ -5,16 +5,17 @@ import { loggerConfig } from '@shared/logger/logger';
 import { getOpenapiConfig } from '@shared/config/openapi-config';
 import { getConfig } from '@shared/config/config-manager';
 import cors from '@fastify/cors';
-import { 
-  serializerCompiler, 
-  validatorCompiler,
-  jsonSchemaTransform 
-} from 'fastify-type-provider-zod';
+import { serializerCompiler, validatorCompiler, jsonSchemaTransform } from 'fastify-type-provider-zod';
+import { gracefulShutdown } from '@shared/utils/app-specific';
+import { fastifySwagger } from '@fastify/swagger';
 
 export function build() {
+  
   const server = Fastify({
     logger: loggerConfig
   });
+
+  gracefulShutdown(server);
 
   server.setValidatorCompiler(validatorCompiler);
   server.setSerializerCompiler(serializerCompiler);
@@ -33,7 +34,7 @@ export function build() {
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
   });
 
-  server.register(require('@fastify/swagger'), openapiConfig);
+  server.register(fastifySwagger, openapiConfig);
 
   server.register(require('@scalar/fastify-api-reference'), {
     routePrefix: '/documentation',
