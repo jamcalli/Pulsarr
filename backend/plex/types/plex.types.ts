@@ -4,6 +4,7 @@ export interface PlexResponse {
       title: string;
       key: string;
       type: string;
+      thumb: string;
       Guid?: Array<{ id: string }>;
       Genre?: Array<{ tag: string }>;
     }>;
@@ -16,6 +17,16 @@ export interface Friend {
   username: string;
 }
 
+export interface Item {
+  title: string;
+  key: string;
+  type: string;
+  thumb?: string;
+  guids?: string[] | string;
+  genres?: string[] | string;
+  user?: string;
+}
+
 export interface RssWatchlistResponse {
   items: Array<{
     title: string;
@@ -26,14 +37,8 @@ export interface RssWatchlistResponse {
   }>;
 }
 
-export interface Item {
-  title: string;
-  key?: string;
-  type: string;
-  guids?: string[];
-  genres?: string[];
-  thumbnail?: string;
-  user?: string;
+export interface TokenWatchlistItem extends Item {
+  id: string;
 }
 
 export interface GraphQLError {
@@ -52,7 +57,7 @@ export interface TokenWatchlistFriend {
   data?: {
     user?: {
       watchlist: {
-        nodes: Item[];
+        nodes: TokenWatchlistItem[];
         pageInfo: {
           hasNextPage: boolean;
           endCursor: string;
@@ -88,7 +93,7 @@ export interface PlexApiResponse {
     allFriendsV2?: Array<{ user: { id: string; username: string } }>;
     user?: {
       watchlist?: {
-        nodes: Array<Item>;
+        nodes: Array<TokenWatchlistItem>;
         pageInfo: {
           hasNextPage: boolean;
           endCursor: string;
