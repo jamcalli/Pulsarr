@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 const WatchlistItemSchema = z.object({
   title: z.string(),
-  plexKey: z.string(),
+  plexKey: z.string().optional(),
   type: z.string(),
   guids: z.array(z.string()),
   genres: z.array(z.string())

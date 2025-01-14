@@ -28,15 +28,12 @@ export interface RssWatchlistResponse {
 
 export interface Item {
   title: string;
-  key: string;
+  key?: string;
   type: string;
   guids?: string[];
   genres?: string[];
+  thumbnail?: string;
   user?: string;
-}
-
-export interface TokenWatchlistItem extends Item {
-  id: string;
 }
 
 export interface GraphQLError {
@@ -55,7 +52,7 @@ export interface TokenWatchlistFriend {
   data?: {
     user?: {
       watchlist: {
-        nodes: TokenWatchlistItem[];
+        nodes: Item[];
         pageInfo: {
           hasNextPage: boolean;
           endCursor: string;
@@ -91,7 +88,7 @@ export interface PlexApiResponse {
     allFriendsV2?: Array<{ user: { id: string; username: string } }>;
     user?: {
       watchlist?: {
-        nodes: Array<TokenWatchlistItem>;
+        nodes: Array<Item>;
         pageInfo: {
           hasNextPage: boolean;
           endCursor: string;

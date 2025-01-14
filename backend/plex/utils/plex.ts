@@ -1,5 +1,5 @@
 import { FastifyBaseLogger } from 'fastify';
-import { PlexResponse, Item, TokenWatchlistItem, GraphQLQuery, Friend, PlexApiResponse, RssWatchlistResponse } from '@plex/types/plex.types';
+import { PlexResponse, Item, GraphQLQuery, Friend, PlexApiResponse, RssWatchlistResponse } from '@plex/types/plex.types';
 import { Config } from '@shared/types/config.types';
 
 export const fetchWatchlistFromRss = async (
@@ -112,8 +112,8 @@ export const getWatchlist = async (
 export const fetchSelfWatchlist = async (
   config: Config,
   log: FastifyBaseLogger
-): Promise<Set<TokenWatchlistItem>> => {
-  const allItems = new Set<TokenWatchlistItem>();
+): Promise<Set<Item>> => {
+  const allItems = new Set<Item>();
   
   for (const token of config.plexTokens) {
     let currentStart = 0;
@@ -130,7 +130,6 @@ export const fetchSelfWatchlist = async (
           
           return {
             title: metadata.title,
-            id,
             key: id,
             type: metadata.type,
             guids: metadata.Guid?.map((guid) => guid.id) || [],
@@ -139,7 +138,7 @@ export const fetchSelfWatchlist = async (
         });
         
         log.debug(`Found ${items.length} items in current page`);
-        items.forEach(item => allItems.add(item as TokenWatchlistItem));
+        items.forEach(item => allItems.add(item as Item));
         
         if (response.MediaContainer.totalSize <= currentStart + items.length) {
           log.debug(`Completed processing all pages for current token`);
@@ -228,8 +227,8 @@ export const getWatchlistForUser = async (
   token: string,
   user: Friend,
   page: string | null = null
-): Promise<Set<TokenWatchlistItem>> => {
-  const allItems = new Set<TokenWatchlistItem>();
+): Promise<Set<Item>> => {
+  const allItems = new Set<Item>();
   const url = new URL('https://community.plex.tv/api');
   
   if (!user || !user.watchlistId) {
@@ -285,11 +284,11 @@ export const getWatchlistForUser = async (
     
     if (json.data?.user?.watchlist) {
       const watchlist = json.data.user.watchlist;
-      watchlist.nodes.forEach((item: TokenWatchlistItem) => allItems.add(item));
+      watchlist.nodes.forEach((item: Item) => allItems.add(item));
 
       if (watchlist.pageInfo.hasNextPage && watchlist.pageInfo.endCursor) {
         const nextPageItems = await getWatchlistForUser(config, log, token, user, watchlist.pageInfo.endCursor);
-        nextPageItems.forEach((item: TokenWatchlistItem) => allItems.add(item));
+        nextPageItems.forEach((item: Item) => allItems.add(item));
       }
     }
   } catch (err) {
@@ -303,8 +302,8 @@ export const getOthersWatchlist = async (
   config: Config,
   log: FastifyBaseLogger,
   friends: Set<[Friend, string]>
-): Promise<Map<Friend, Set<TokenWatchlistItem>>> => {
-  const userWatchlistMap = new Map<Friend, Set<TokenWatchlistItem>>();
+): Promise<Map<Friend, Set<Item>>> => {
+  const userWatchlistMap = new Map<Friend, Set<Item>>();
 
   for (const [user, token] of friends) {
     log.debug(`Processing friend: ${JSON.stringify(user)}`);
@@ -322,7 +321,7 @@ export const getOthersWatchlist = async (
 export async function processWatchlistItems(
   config: Config,
   log: FastifyBaseLogger,
-  input: Map<Friend, Set<TokenWatchlistItem>> | Set<TokenWatchlistItem>
+  input: Map<Friend, Set<Item>> | Set<Item>
 ): Promise<Map<Friend, Set<Item>> | Set<Item>> {
   if (input instanceof Map) {
     const userDetailedWatchlistMap = new Map<Friend, Set<Item>>();
@@ -347,9 +346,9 @@ export async function processWatchlistItems(
   }
 }
 
-const toItems = async (config: Config, log: FastifyBaseLogger, item: TokenWatchlistItem): Promise<Set<Item>> => {
+const toItems = async (config: Config, log: FastifyBaseLogger, item: Item): Promise<Set<Item>> => {
   const allItems = new Set<Item>();
-  const url = new URL(`https://discover.provider.plex.tv/library/metadata/${item.id}`);
+  const url = new URL(`https://discover.provider.plex.tv/library/metadata/${item.key}`);
   url.searchParams.append('X-Plex-Token', config.plexTokens[0]);
 
   try {
@@ -369,13 +368,13 @@ const toItems = async (config: Config, log: FastifyBaseLogger, item: TokenWatchl
     }
 
     const guids = json.MediaContainer.Metadata.flatMap((metadata: any) => 
-      metadata.Guid?.map((guid: any) => guid.id.replace('//', '')) || []
+      metadata.Guid?.map((guid: any) => guid.key.replace('//', '')) || []
     );
     const genres = json.MediaContainer.Metadata.flatMap((metadata: any) => 
       metadata.Genre?.map((genre: any) => genre.tag) || []
     );
 
-    allItems.add({ title: item.title, key: item.id, type: item.type, guids, genres });
+    allItems.add({ title: item.title, key: item.key, type: item.type, guids, genres });
   } catch (err) {
     const error = err as Error;
     if (error.message.includes('Plex API error')) {
