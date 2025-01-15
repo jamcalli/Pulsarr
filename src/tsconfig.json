@@ -1,10 +1,21 @@
 {
   "extends": "fastify-tsconfig",
   "compilerOptions": {
-    "outDir": "build",
-    "target": "es2018",
-    "lib": ["es2018"],
-    "baseUrl": ".",
+    "allowJs": false,
+    "allowSyntheticDefaultImports": true,
+    "composite": true,
+    "lib": ["es2022"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "noEmit": false,
+    "outDir": "dist",
+    "removeComments": true,
+    "rootDir": "src",
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "strict": true,
+    "target": "es2022",
+    "baseUrl": "./src",
     "paths": {
       "@root/*": ["../*"],
       "@db/*": ["db/*"],
@@ -16,5 +27,7 @@
       "@data/*": ["data/*"],
       "@schemas/*": ["schemas/*"]
     }
-  }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["src/client/**/*"]
 }
