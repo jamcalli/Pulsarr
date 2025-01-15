@@ -1,14 +1,16 @@
 export const getOpenapiConfig = (port: number) => ({
-    openapi: {
-      info: {
-        title: 'Test swagger',
-        description: 'testing the fastify swagger api',
-        version: '0.1.0'
-      },
-      servers: [{
-        url: `http://localhost:${port}`
-      }],
-      /*
+	openapi: {
+		info: {
+			title: "Test swagger",
+			description: "testing the fastify swagger api",
+			version: "0.1.0",
+		},
+		servers: [
+			{
+				url: `http://localhost:${port}`,
+			},
+		],
+		/*
       components: {
         securitySchemes: {
           apiKey: {
@@ -19,13 +21,13 @@ export const getOpenapiConfig = (port: number) => ({
         }
       },
       */
-      tags: [
-        {
-          name: 'Plex',
-          description: 'Plex related endpoints'
-        }
-      ]
-    },
-    hideUntagged: true,
-    exposeRoute: true
-  });
+		tags: [
+			{
+				name: "Plex",
+				description: "Plex related endpoints",
+			},
+		],
+	},
+	hideUntagged: true,
+	exposeRoute: true,
+});
