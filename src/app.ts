@@ -1,11 +1,11 @@
 import Fastify from 'fastify';
 import AutoLoad from '@fastify/autoload';
-import { getDbInstance } from '@db/db';
-import { getOpenapiConfig } from '@shared/config/openapi-config';
-import { getConfig } from '@shared/config/config-manager';
+import { getDbInstance } from '@db/db.js';
+import { getOpenapiConfig } from '@shared/config/openapi-config.js';
+import { getConfig } from '@shared/config/config-manager.js';
 import cors from '@fastify/cors';
 import { serializerCompiler, validatorCompiler, jsonSchemaTransform } from 'fastify-type-provider-zod';
-import { gracefulShutdown } from '@shared/utils/app-specific';
+import { gracefulShutdown } from '@shared/utils/app-specific.js';
 import { fastifySwagger } from '@fastify/swagger';
 import FastifyFormBody from '@fastify/formbody'
 

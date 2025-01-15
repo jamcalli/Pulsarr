@@ -1,5 +1,5 @@
-import { build } from './app';
-import { getConfig } from '@shared/config/config-manager';
+import { build } from './app.js';
+import { getConfig } from '@shared/config/config-manager.js';
 
 const server = build();
 const config = getConfig(server.log);

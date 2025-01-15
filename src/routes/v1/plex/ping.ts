@@ -1,8 +1,8 @@
-import { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
-import { PlexWatchlistService } from '@plex/services/plex-watchlist-service';
-import { pingSchema } from '@schemas/plex/ping.schema';
+import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
+import { PlexWatchlistService } from '@plex/services/plex-watchlist-service.js';
+import { pingSchema } from '@schemas/plex/ping.schema.js';
 
-export const pingRoute: FastifyPluginAsyncZod = async function(fastify, _opts) {
+export const pingRoute: FastifyPluginAsyncZod = async (fastify, _opts) => {
   const plexService = new PlexWatchlistService(fastify.log);
 
   fastify.route({

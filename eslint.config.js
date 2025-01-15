@@ -1,4 +1,4 @@
-'use strict'
+
 
 import neo from 'neostandard'
 

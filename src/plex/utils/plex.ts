@@ -1,6 +1,6 @@
-import { FastifyBaseLogger } from 'fastify';
-import { PlexResponse, Item, TokenWatchlistItem, GraphQLQuery, Friend, PlexApiResponse, RssResponse  } from '@plex/types/plex.types';
-import { Config } from '@shared/types/config.types';
+import type { FastifyBaseLogger } from 'fastify';
+import type { PlexResponse, Item, TokenWatchlistItem, GraphQLQuery, Friend, PlexApiResponse, RssResponse  } from '@plex/types/plex.types.js';
+import type { Config } from '@shared/types/config.types.js';
 
 export const pingPlex = async (token: string, log: FastifyBaseLogger): Promise<void> => {
   try {
@@ -18,7 +18,7 @@ export const pingPlex = async (token: string, log: FastifyBaseLogger): Promise<v
 export const getWatchlist = async (
   token: string, 
   log: FastifyBaseLogger, 
-  start: number = 0,
+  start = 0,
   retryCount = 0
 ): Promise<PlexResponse> => {
   if (!token) {
@@ -40,7 +40,7 @@ export const getWatchlist = async (
   if (!response.ok) {
     if (response.status === 429) {
       const retryAfter = response.headers.get('Retry-After');
-      const retryAfterMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : 1000 * Math.pow(2, retryCount);
+      const retryAfterMs = retryAfter ? Number.parseInt(retryAfter, 10) * 1000 : 1000 * Math.pow(2, retryCount);
       log.warn(`Rate limited. Retrying after ${retryAfterMs} ms. Attempt ${retryCount + 1}`);
       await new Promise(resolve => setTimeout(resolve, retryAfterMs));
       return getWatchlist(token, log, start, retryCount + 1);
