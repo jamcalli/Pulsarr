@@ -25,6 +25,8 @@
   "dependencies": {
     "@fastify/autoload": "^6.0.3",
     "@fastify/cors": "^10.0.2",
+    "@fastify/formbody": "^8.0.2",
+    "@fastify/one-line-logger": "^2.0.2",
     "@fastify/swagger": "^9.4.1",
     "@scalar/fastify-api-reference": "^1.25.102",
     "better-sqlite3": "^11.7.2",
