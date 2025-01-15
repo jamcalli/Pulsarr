@@ -238,6 +238,7 @@ export class PlexWatchlistService {
       title: templateItem.title,
       key: item.id,
       type: templateItem.type,
+      thumb: templateItem.thumb,
       guids: templateItem.guids || [],
       genres: templateItem.genres || []
     };
@@ -249,6 +250,7 @@ export class PlexWatchlistService {
         user: user.watchlistId,
         title: item.title,
         key: item.key,
+        thumb: item.thumb,
         type: item.type,
         guids: item.guids || [],
         genres: item.genres || []
@@ -311,6 +313,7 @@ export class PlexWatchlistService {
       title: item.title,
       plexKey: item.key,
       type: item.type,
+      thumb: item.thumb || '',
       guids: typeof item.guids === 'string' ? JSON.parse(item.guids) : item.guids || [],
       genres: typeof item.genres === 'string' ? JSON.parse(item.genres) : item.genres || []
     };

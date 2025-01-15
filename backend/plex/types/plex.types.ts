@@ -86,6 +86,7 @@ export interface PlexApiResponse {
     Metadata?: Array<{
       Guid?: Array<{ id: string }>;
       Genre?: Array<{ tag: string }>;
+      thumb?: string;
     }>;
   };
   errors?: any;
