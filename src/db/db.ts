@@ -10,7 +10,7 @@ import { getDirname } from "@utils/paths.js";
 const currentDir = getDirname(import.meta.url);
 const projectRoot = join(currentDir, "../../");
 const dbDir = join(projectRoot, "data", "db");
-const envPath = join(projectRoot, "../.env");
+const envPath = join(projectRoot, ".env");
 
 dotenv.config({ path: envPath });
 
