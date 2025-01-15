@@ -1,24 +1,24 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 const RssFeedsSuccessSchema = z.object({
-  self: z.string(),
-  friends: z.string()
+	self: z.string(),
+	friends: z.string(),
 });
 
 const RssFeedsErrorSchema = z.object({
-  error: z.string()
+	error: z.string(),
 });
 
 const RssFeedsResponseSchema = z.union([
-  RssFeedsSuccessSchema,
-  RssFeedsErrorSchema
+	RssFeedsSuccessSchema,
+	RssFeedsErrorSchema,
 ]);
 
 export const rssFeedsSchema = {
-  tags: ['Plex'],
-  response: {
-    200: RssFeedsResponseSchema
-  }
+	tags: ["Plex"],
+	response: {
+		200: RssFeedsResponseSchema,
+	},
 };
 
 export type RssFeedsResponse = z.infer<typeof RssFeedsResponseSchema>;
