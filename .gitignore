@@ -22,5 +22,8 @@ tests/
 # configs
 config.json
 
+# TypeScript incremental compilation cache
+*.tsbuildinfo
+
 # databases
 *.db*
