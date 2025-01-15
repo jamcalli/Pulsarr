@@ -1,9 +1,9 @@
-import { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
-import { getPlexWatchlistUrls } from '@plex/utils/plex';
-import { getConfig } from '@shared/config/config-manager';
-import { rssFeedsSchema } from '@schemas/plex/generate-rss-feeds.schema';
+import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod';
+import { getPlexWatchlistUrls } from '@plex/utils/plex.js';
+import { getConfig } from '@shared/config/config-manager.js';
+import { rssFeedsSchema } from '@schemas/plex/generate-rss-feeds.schema.js';
 
-export const generateRssFeedsRoute: FastifyPluginAsyncZod = async function(fastify, _opts) {
+export const generateRssFeedsRoute: FastifyPluginAsyncZod = async (fastify, _opts) => {
   fastify.route({
     method: 'GET',
     url: '/generate-rss-feeds',

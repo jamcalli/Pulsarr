@@ -1,5 +1,4 @@
 {
-  "extends": "fastify-tsconfig",
   "compilerOptions": {
     "allowJs": false,
     "allowSyntheticDefaultImports": true,
@@ -17,7 +16,7 @@
     "target": "es2022",
     "baseUrl": "./src",
     "paths": {
-      "@root/*": ["../*"],
+      "@root/*": ["*"],
       "@db/*": ["db/*"],
       "@routes/*": ["routes/*"],
       "@utils/*": ["utils/*"],

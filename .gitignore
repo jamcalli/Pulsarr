@@ -12,7 +12,7 @@ node_modules/
 .env.test
 
 # builds
-build
+dist
 
 # builds
 backend/tests/

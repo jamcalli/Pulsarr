@@ -1,5 +1,5 @@
-import { FastifyRequest } from 'fastify';
-import { PinoLoggerOptions } from 'fastify/types/logger';
+import type { FastifyRequest } from 'fastify';
+import type { PinoLoggerOptions } from 'fastify/types/logger.js';
 
 export const loggerConfig: PinoLoggerOptions = {
   level: 'info',

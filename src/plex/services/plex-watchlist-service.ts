@@ -1,9 +1,9 @@
-import { FastifyBaseLogger } from 'fastify';
-import { getOthersWatchlist, processWatchlistItems, getFriends, pingPlex, fetchSelfWatchlist } from '@plex/utils/plex';
-import { getDbInstance } from '@db/db';
-import { getConfig } from '@shared/config/config-manager';
-import { Config } from '@shared/types/config.types';
-import { Item as WatchlistItem, TokenWatchlistItem, Friend } from '@plex/types/plex.types';
+import type { FastifyBaseLogger } from 'fastify';
+import { getOthersWatchlist, processWatchlistItems, getFriends, pingPlex, fetchSelfWatchlist } from '@plex/utils/plex.js';
+import { getDbInstance } from '@db/db.js';
+import { getConfig } from '@shared/config/config-manager.js';
+import type { Config } from '@shared/types/config.types.js';
+import type { Item as WatchlistItem, TokenWatchlistItem, Friend } from '@plex/types/plex.types.js';
 
 export class PlexWatchlistService {
   private readonly log: FastifyBaseLogger;

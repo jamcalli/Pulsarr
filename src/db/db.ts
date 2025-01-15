@@ -3,8 +3,8 @@ import type { Database as DatabaseType, Statement } from 'better-sqlite3';
 import type { FastifyBaseLogger } from 'fastify';
 import { join } from 'path';
 import dotenv from 'dotenv';
-import { Item as WatchlistItem } from '@plex/types/plex.types';
-import { Config, User } from '@shared/types/config.types';
+import type { Item as WatchlistItem } from '@plex/types/plex.types.js';
+import type { Config, User } from '@shared/types/config.types.js';
 
 const isBuildDir = __dirname.includes('build');
 const projectRoot = isBuildDir ? join(__dirname, '../../') : join(__dirname, '../');
@@ -286,7 +286,7 @@ class DatabaseConnection implements DatabaseOperations {
         }
 
         const plexTokens = JSON.parse(process.env.PLEX_TOKENS);
-        const port = parseInt(process.env.PORT, 10);
+        const port = Number.parseInt(process.env.PORT, 10);
         const config: Config = { plexTokens, port };
         this.createConfig(config);
         this.logger.info('Configuration migrated from .env to database.');

@@ -1,5 +1,5 @@
-import { FastifyInstance } from 'fastify';
-import { getDbInstance } from '@db/db';
+import type { FastifyInstance } from 'fastify';
+import { getDbInstance } from '@db/db.js';
 
 export function gracefulShutdown(server: FastifyInstance) {
   ['SIGTERM', 'SIGINT'].forEach((signal) => {
