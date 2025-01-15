@@ -75,7 +75,7 @@ class DatabaseConnection implements DatabaseOperations {
                 title TEXT NOT NULL,
                 key TEXT NOT NULL,
                 type TEXT NOT NULL,
-                thumb TEXT NOT NULL,
+                thumb TEXT,
                 guids TEXT,
                 genres TEXT,
                 UNIQUE(user, key)
@@ -91,7 +91,7 @@ class DatabaseConnection implements DatabaseOperations {
             createConfig: this.db.prepare('INSERT INTO configs (plexTokens, port, selfRss, friendsRss) VALUES (?, ?, ?, ?)'),
             updateConfig: this.db.prepare('UPDATE configs SET plexTokens = COALESCE(?, plexTokens), port = COALESCE(?, port), selfRss = COALESCE(?, selfRss), friendsRss = COALESCE(?, friendsRss) WHERE id = ?'),
             getWatchlistItem: this.db.prepare('SELECT * FROM watchlist_items WHERE user = ? AND key = ?'),
-            createWatchlistItem: this.db.prepare('INSERT INTO watchlist_items (user, title, key, type, thumb, guids, genres) VALUES (?, ?, ?, ?, ?, ?)'),
+            createWatchlistItem: this.db.prepare('INSERT INTO watchlist_items (user, title, key, type, thumb, guids, genres) VALUES (?, ?, ?, ?, ?, ?, ?)'),
             getBulkWatchlistItems: this.db.prepare(`
                 SELECT * FROM watchlist_items 
                 WHERE user IN (${Array(20).fill('?').join(',')})
@@ -241,7 +241,7 @@ class DatabaseConnection implements DatabaseOperations {
             INSERT OR IGNORE INTO watchlist_items (user, title, key, type, thumb, guids, genres)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         `);
-
+    
         this.runTransaction(() => {
             for (const item of items) {
                 insertStatement.run(

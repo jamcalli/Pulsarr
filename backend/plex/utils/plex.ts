@@ -78,6 +78,7 @@ export const fetchSelfWatchlist = async (
             title: metadata.title,
             id,
             key: id,
+            thumb: metadata.thumb,
             type: metadata.type,
             guids: metadata.Guid?.map((guid) => guid.id) || [],
             genres: metadata.Genre?.map((genre) => genre.tag) || []
@@ -314,25 +315,20 @@ const toItems = async (config: Config, log: FastifyBaseLogger, item: TokenWatchl
       throw new Error('Invalid response structure');
     }
 
-    // Explicitly transform and validate the arrays
-    const guids = json.MediaContainer.Metadata.flatMap((metadata: any) => 
-      (metadata.Guid || []).map((guid: any) => guid.id.replace('//', ''))
-    );
-    const genres = json.MediaContainer.Metadata.flatMap((metadata: any) => 
-      (metadata.Genre || []).map((genre: any) => genre.tag)
-    );
-
-    // Log the extracted data for debugging
-    log.debug(`Extracted guids: ${JSON.stringify(guids)}`);
-    log.debug(`Extracted genres: ${JSON.stringify(genres)}`);
-
-    allItems.add({ 
-      title: item.title, 
-      key: item.id, 
-      type: item.type, 
-      guids: guids || [], 
-      genres: genres || [] 
+    const items = json.MediaContainer.Metadata.map((metadata) => {
+      return {
+        title: item.title, 
+        key: item.id,       
+        type: item.type,    
+        thumb: item.thumb || metadata.thumb || '',
+        guids: metadata.Guid?.map((guid) => guid.id.replace('//', '')) || [],
+        genres: metadata.Genre?.map((genre) => genre.tag) || []
+      };
     });
+
+    log.debug(`Processed metadata for item: ${item.title}`);
+    items.forEach(processedItem => allItems.add(processedItem));
+
   } catch (err) {
     const error = err as Error;
     if (error.message.includes('Plex API error')) {

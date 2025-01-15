@@ -4,6 +4,7 @@ const WatchlistItemSchema = z.object({
   title: z.string(),
   plexKey: z.string().optional(),
   type: z.string(),
+  thumb: z.string().optional(),
   guids: z.array(z.string()),
   genres: z.array(z.string())
 });
