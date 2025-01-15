@@ -7,7 +7,7 @@ import type {
 	Friend,
 	PlexApiResponse,
 	RssResponse,
-} from "@plex/types/plex.types.js";
+} from "@root/types/plex.types.js";
 import type { Config } from "@shared/types/config.types.js";
 
 export const pingPlex = async (

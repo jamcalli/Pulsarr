@@ -3,7 +3,7 @@ import type { Database as DatabaseType, Statement } from "better-sqlite3";
 import type { FastifyBaseLogger } from "fastify";
 import { join } from "path";
 import dotenv from "dotenv";
-import type { Item as WatchlistItem } from "@plex/types/plex.types.js";
+import type { Item as WatchlistItem } from "@root/types/plex.types.js";
 import type { Config, User } from "@shared/types/config.types.js";
 import { getDirname } from "@utils/paths.js";
 

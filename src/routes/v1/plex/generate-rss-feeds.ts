@@ -1,5 +1,5 @@
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
-import { getPlexWatchlistUrls } from "@plex/utils/plex.js";
+import { getPlexWatchlistUrls } from "@root/utils/plex.js";
 import { getConfig } from "@shared/config/config-manager.js";
 import { rssFeedsSchema } from "@schemas/plex/generate-rss-feeds.schema.js";
 

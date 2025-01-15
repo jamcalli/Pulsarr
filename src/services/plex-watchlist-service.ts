@@ -5,7 +5,7 @@ import {
 	getFriends,
 	pingPlex,
 	fetchSelfWatchlist,
-} from "@plex/utils/plex.js";
+} from "@root/utils/plex.js";
 import { getDbInstance } from "@db/db.js";
 import { getConfig } from "@shared/config/config-manager.js";
 import type { Config } from "@shared/types/config.types.js";
@@ -13,7 +13,7 @@ import type {
 	Item as WatchlistItem,
 	TokenWatchlistItem,
 	Friend,
-} from "@plex/types/plex.types.js";
+} from "@root/types/plex.types.js";
 
 export class PlexWatchlistService {
 	private readonly log: FastifyBaseLogger;
