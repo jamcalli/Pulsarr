@@ -1,5 +1,5 @@
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
-import { PlexWatchlistService } from "@plex/services/plex-watchlist-service.js";
+import { PlexWatchlistService } from "@root/services/plex-watchlist-service.js";
 import { selfWatchlistSchema } from "@schemas/plex/self-watchlist-token.schema.js";
 
 export const selfWatchlistTokenRoute: FastifyPluginAsyncZod = async (
