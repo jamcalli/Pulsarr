@@ -1,5 +1,5 @@
 import { FastifyBaseLogger } from 'fastify';
-import { PlexResponse, Item, TokenWatchlistItem, GraphQLQuery, Friend, PlexApiResponse } from '@plex/types/plex.types';
+import { PlexResponse, Item, TokenWatchlistItem, GraphQLQuery, Friend, PlexApiResponse, RssResponse  } from '@plex/types/plex.types';
 import { Config } from '@shared/types/config.types';
 
 export const pingPlex = async (token: string, log: FastifyBaseLogger): Promise<void> => {
@@ -399,4 +399,74 @@ export const getRssFromPlexToken = async (
     log.warn(`Unable to generate an RSS feed: ${err}`);
     return null;
   }
+};
+
+export const fetchWatchlistFromRss = async (
+  url: string,
+  prefix: 'selfRSS' | 'otherRSS',
+  log: FastifyBaseLogger
+): Promise<Set<Item>> => {
+  const items = new Set<Item>();
+  
+  try {
+    const urlObj = new URL(url);
+    urlObj.searchParams.append('format', 'json');
+    urlObj.searchParams.append('cache_buster', Math.random().toString(36).substring(2, 14));
+    
+    const response = await fetch(urlObj.toString(), {
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      if (response.status === 500) {
+        log.debug('Unable to fetch watchlist from Plex, see https://github.com/nylonee/watchlistarr/issues/161');
+        return items;
+      }
+      log.warn(`Unable to fetch watchlist from Plex: ${response.statusText}`);
+      return items;
+    }
+
+    const json = await response.json() as RssResponse;
+    log.debug('Found Json from Plex watchlist, attempting to process');
+
+    if (json?.items && Array.isArray(json.items)) {
+      for (const metadata of json.items) {
+        try {
+          const item: Item = {
+            title: metadata.title,
+            key: `${prefix}_${Math.random().toString(36).substring(2, 15)}`,
+            type: metadata.category.toUpperCase(),
+            thumb: metadata.thumbnail?.url || '',
+            guids: metadata.guids.map(guid => {
+              const [provider, id] = guid.split('://');
+              return `${provider}:${id}`;
+            }),
+            genres: (metadata.keywords || []).map(genre => {
+              // Special case for "sci-fi & fantasy"
+              if (genre.toLowerCase() === 'sci-fi & fantasy') {
+                return 'Sci-Fi & Fantasy';
+              }
+              
+              // Handle all other genres by capitalizing each word
+              return genre.split(' ')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ');
+            })
+          };
+          items.add(item);
+        } catch (err) {
+          log.warn(`Failed to process item ${metadata.title}: ${err}`);
+        }
+      }
+    } else {
+      log.warn('Unable to fetch watchlist from Plex - invalid response structure');
+    }
+  } catch (err) {
+    log.warn(`Unable to fetch watchlist from Plex: ${err}`);
+  }
+
+  log.debug(`Successfully processed ${items.size} items from RSS feed`);
+  return items;
 };
