@@ -5,9 +5,11 @@ import { join } from 'path';
 import dotenv from 'dotenv';
 import type { Item as WatchlistItem } from '@plex/types/plex.types.js';
 import type { Config, User } from '@shared/types/config.types.js';
+import { getDirname } from '@utils/paths.js';
 
-const isBuildDir = __dirname.includes('build');
-const projectRoot = isBuildDir ? join(__dirname, '../../') : join(__dirname, '../');
+const currentDir = getDirname(import.meta.url);
+const isBuildDir = currentDir.includes('build');
+const projectRoot = isBuildDir ? join(currentDir, '../../') : join(currentDir, '../');
 
 const dbDir = join(projectRoot, 'data/db');
 const envPath = join(projectRoot, '../.env');

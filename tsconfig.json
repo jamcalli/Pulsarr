@@ -16,15 +16,15 @@
     "target": "es2022",
     "baseUrl": "./src",
     "paths": {
-      "@root/*": ["*"],
-      "@db/*": ["db/*"],
-      "@routes/*": ["routes/*"],
-      "@utils/*": ["utils/*"],
-      "@types/*": ["types/*"],
-      "@plex/*": ["plex/*"],
-      "@shared/*": ["shared/*"],
-      "@data/*": ["data/*"],
-      "@schemas/*": ["schemas/*"]
+      "@root/*": ["./*"],
+      "@db/*": ["./db/*"],
+      "@routes/*": ["./routes/*"],
+      "@utils/*": ["./utils/*"],
+      "@types/*": ["./types/*"],
+      "@plex/*": ["./plex/*"],
+      "@shared/*": ["./shared/*"],
+      "@data/*": ["./data/*"],
+      "@schemas/*": ["./schemas/*"]
     }
   },
   "include": ["src/**/*"],

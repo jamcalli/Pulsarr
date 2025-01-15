@@ -7,10 +7,11 @@ import cors from '@fastify/cors';
 import { serializerCompiler, validatorCompiler, jsonSchemaTransform } from 'fastify-type-provider-zod';
 import { gracefulShutdown } from '@shared/utils/app-specific.js';
 import { fastifySwagger } from '@fastify/swagger';
-import FastifyFormBody from '@fastify/formbody'
+import FastifyFormBody from '@fastify/formbody';
+import { getDirname } from '@utils/paths.js';
+import apiReference from '@scalar/fastify-api-reference';
 
 export function build() {
-  
   const server = Fastify({
     logger: {
       transport: {
@@ -19,7 +20,7 @@ export function build() {
     }
   });
 
-  server.register(FastifyFormBody)
+  server.register(FastifyFormBody);
 
   gracefulShutdown(server);
 
@@ -41,12 +42,13 @@ export function build() {
 
   server.register(fastifySwagger, openapiConfig);
 
-  server.register(require('@scalar/fastify-api-reference'), {
+  server.register(apiReference, {
     routePrefix: '/documentation',
   });
 
+  const currentDir = getDirname(import.meta.url);
   server.register(AutoLoad, {
-    dir: `${__dirname}/routes`,
+    dir: `${currentDir}/routes`,
   });
 
   return server;
