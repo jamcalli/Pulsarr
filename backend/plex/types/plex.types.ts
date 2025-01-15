@@ -104,3 +104,30 @@ export interface PlexApiResponse {
   };
   RSSInfo?: Array<{ url: string }>;
 }
+
+export interface RssWatchlistItem {
+  title: string;
+  pubDate: string;
+  link: string;
+  guids: string[];
+  description: string;
+  category: string;
+  credits: Array<{
+    credit: string;
+    role: string;
+  }>;
+  thumbnail?: {
+    url: string;
+  };
+  keywords?: string[];
+}
+
+export interface RssResponse {
+  title: string;
+  links: {
+    self: string;
+    next?: string;
+  };
+  description: string;
+  items: RssWatchlistItem[];
+}
