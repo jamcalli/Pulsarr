@@ -1,19 +1,25 @@
 import Fastify from 'fastify';
 import AutoLoad from '@fastify/autoload';
 import { getDbInstance } from '@db/db';
-import { loggerConfig } from '@shared/logger/logger';
 import { getOpenapiConfig } from '@shared/config/openapi-config';
 import { getConfig } from '@shared/config/config-manager';
 import cors from '@fastify/cors';
 import { serializerCompiler, validatorCompiler, jsonSchemaTransform } from 'fastify-type-provider-zod';
 import { gracefulShutdown } from '@shared/utils/app-specific';
 import { fastifySwagger } from '@fastify/swagger';
+import FastifyFormBody from '@fastify/formbody'
 
 export function build() {
   
   const server = Fastify({
-    logger: loggerConfig
+    logger: {
+      transport: {
+        target: '@fastify/one-line-logger'
+      }
+    }
   });
+
+  server.register(FastifyFormBody)
 
   gracefulShutdown(server);
 
@@ -30,7 +36,6 @@ export function build() {
   };
 
   server.register(cors, {
-    origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
   });
 
