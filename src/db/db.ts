@@ -8,12 +8,8 @@ import type { Config, User } from "@shared/types/config.types.js";
 import { getDirname } from "@utils/paths.js";
 
 const currentDir = getDirname(import.meta.url);
-const isBuildDir = currentDir.includes("build");
-const projectRoot = isBuildDir
-	? join(currentDir, "../../")
-	: join(currentDir, "../");
-
-const dbDir = join(projectRoot, "data/db");
+const projectRoot = join(currentDir, "../../");
+const dbDir = join(projectRoot, "data", "db");
 const envPath = join(projectRoot, "../.env");
 
 dotenv.config({ path: envPath });
