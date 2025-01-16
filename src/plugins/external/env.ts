@@ -9,9 +9,10 @@ interface EnvConfig {
   COOKIE_SECRET: string;
   COOKIE_NAME: string;
   COOKIE_SECURED: boolean;
-  INITIAL_PLEX_TOKENS?: string;
-  LOG_LEVEL?: string;
-  CLOSE_GRACE_DELAY?: number;
+  INITIAL_PLEX_TOKENS: string;
+  LOG_LEVEL: string;
+  CLOSE_GRACE_DELAY: number;
+  RATE_LIMIT_MAX: number;
 }
 
 // User configurable settings
@@ -69,6 +70,10 @@ const schema = {
     CLOSE_GRACE_DELAY: {
       type: 'number',
       default: 500
+    },
+    RATE_LIMIT_MAX: {
+      type: 'number',
+      default: 100
     }
   }
 }
