@@ -83,7 +83,7 @@ export default async function serviceApp(
     return { message }
   })
 
-  /* 404 handler with rate limiting
+  // 404 handler with rate limiting
   fastify.setNotFoundHandler(
     {
       preHandler: fastify.rateLimit({
@@ -107,5 +107,5 @@ export default async function serviceApp(
       return { message: 'Not Found' }
     }
   )
-    */
+
 }
