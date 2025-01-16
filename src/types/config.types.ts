@@ -6,7 +6,7 @@ export interface User {
 
 export interface Config {
 	plexTokens: string[];
-	port: number;
+	port?: number;
 	selfRss?: string[];
 	friendsRss?: string[];
 }

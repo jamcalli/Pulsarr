@@ -2,7 +2,7 @@ import Fastify from 'fastify'
 import fp from 'fastify-plugin'
 import closeWithGrace from 'close-with-grace'
 import serviceApp from './app.js'
-import { getConfig } from '@shared/config/config-manager.js'
+import type { LevelWithSilent } from 'pino'
 
 function getLoggerOptions() {
   if (process.stdout.isTTY) {
@@ -12,8 +12,18 @@ function getLoggerOptions() {
       }
     }
   }
-  return { level: process.env.LOG_LEVEL ?? 'silent' }
+  return { level: 'silent' }
 }
+
+const validLogLevels: LevelWithSilent[] = [
+  'fatal',
+  'error',
+  'warn',
+  'info',
+  'debug',
+  'trace',
+  'silent'
+]
 
 async function init() {
   const app = Fastify({
@@ -26,20 +36,17 @@ async function init() {
     }
   })
 
-  // Register the application as a plugin
-  app.register(fp(serviceApp))
+  await app.register(fp(serviceApp))
+  await app.ready()
 
-  const graceDelay = process.env.FASTIFY_CLOSE_GRACE_DELAY 
-    ? Number(process.env.FASTIFY_CLOSE_GRACE_DELAY)
-    : 500;
-
-  if (isNaN(graceDelay)) {
-    app.log.warn(`Invalid FASTIFY_CLOSE_GRACE_DELAY value: ${process.env.FASTIFY_CLOSE_GRACE_DELAY}, using default of 500ms`);
+    const configLogLevel = app.config.LOG_LEVEL
+  if (configLogLevel && validLogLevels.includes(configLogLevel as LevelWithSilent)) {
+    app.log.level = configLogLevel as LevelWithSilent
   }
 
   closeWithGrace(
     { 
-      delay: isNaN(graceDelay) ? 500 : graceDelay 
+      delay: app.config.CLOSE_GRACE_DELAY
     },
     async ({ err }) => {
       if (err != null) {
@@ -49,12 +56,9 @@ async function init() {
     }
   )
 
-  await app.ready()
-
   try {
-    const config = getConfig(app.log)
     await app.listen({ 
-      port: config.port ?? 3000, 
+      port: app.config.PORT, 
       host: '127.0.0.1' 
     })
   } catch (err) {
