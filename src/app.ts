@@ -1,15 +1,7 @@
 import path from 'node:path'
 import fastifyAutoload from '@fastify/autoload'
-import { FastifyInstance, FastifyPluginOptions } from 'fastify'
+import type { FastifyInstance, FastifyPluginOptions } from 'fastify'
 import FastifyFormBody from '@fastify/formbody'
-import { fastifySwagger } from '@fastify/swagger'
-import apiReference from '@scalar/fastify-api-reference'
-import {
-  serializerCompiler,
-  validatorCompiler,
-  jsonSchemaTransform,
-} from 'fastify-type-provider-zod'
-import { getOpenapiConfig } from '@shared/config/openapi-config.js'
 
 export const options = {
   ajv: {
@@ -26,20 +18,6 @@ export default async function serviceApp(
 ) {
   // Basic setup
   fastify.register(FastifyFormBody)
-  fastify.setValidatorCompiler(validatorCompiler)
-  fastify.setSerializerCompiler(serializerCompiler)
-
-  // Configuration
-  const openapiConfig = {
-    ...getOpenapiConfig(3003),
-    transform: jsonSchemaTransform,
-  }
-
-  // Documentation
-  fastify.register(fastifySwagger, openapiConfig)
-  fastify.register(apiReference, {
-    routePrefix: '/documentation'
-  })
 
   // Load external plugins
   await fastify.register(fastifyAutoload, {

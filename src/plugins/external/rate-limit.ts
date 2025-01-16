@@ -1,5 +1,5 @@
 import fastifyRateLimit from '@fastify/rate-limit'
-import { FastifyInstance } from 'fastify'
+import type { FastifyInstance } from 'fastify'
 
 export const autoConfig = (fastify: FastifyInstance) => {
   return {
