@@ -1,17 +1,14 @@
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
-import { PlexWatchlistService } from "@root/services/plex-watchlist-service.js";
 import { pingSchema } from "@schemas/plex/ping.schema.js";
 
 export const pingRoute: FastifyPluginAsyncZod = async (fastify, _opts) => {
-	const plexService = new PlexWatchlistService(fastify.log);
-
 	fastify.route({
 		method: "GET",
 		url: "/ping",
 		schema: pingSchema,
 		handler: async (_request, reply) => {
 			try {
-				const success = await plexService.pingPlex();
+				const success = await fastify.plexWatchlist.pingPlex();
 				reply.send({ success });
 			} catch (err) {
 				fastify.log.error(err);

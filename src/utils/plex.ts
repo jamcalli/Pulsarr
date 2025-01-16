@@ -8,7 +8,7 @@ import type {
 	PlexApiResponse,
 	RssResponse,
 } from "@root/types/plex.types.js";
-import type { Config } from "@shared/types/config.types.js";
+import type { Config } from "@root/types/config.types.js";
 
 export const pingPlex = async (
 	token: string,

@@ -20,11 +20,11 @@
 			"@db/*": ["./db/*"],
 			"@routes/*": ["./routes/*"],
 			"@utils/*": ["./utils/*"],
-			"@types/*": ["./types/*"],
 			"@plex/*": ["./plex/*"],
 			"@shared/*": ["./shared/*"],
 			"@data/*": ["./data/*"],
-			"@schemas/*": ["./schemas/*"]
+			"@schemas/*": ["./schemas/*"],
+			"@services/*": ["./services/*"]
 		}
 	},
 	"include": ["src/**/*"],

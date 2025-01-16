@@ -1,5 +1,4 @@
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
-import { PlexWatchlistService } from "@root/services/plex-watchlist-service.js";
 import { othersWatchlistSchema } from "@schemas/plex/others-watchlist-token.schema.js";
 
 export const othersWatchlistTokenRoute: FastifyPluginAsyncZod = async (
@@ -12,8 +11,7 @@ export const othersWatchlistTokenRoute: FastifyPluginAsyncZod = async (
 		schema: othersWatchlistSchema,
 		handler: async (_request, reply) => {
 			try {
-				const plexService = new PlexWatchlistService(fastify.log);
-				const response = await plexService.getOthersWatchlists();
+				const response = await fastify.plexWatchlist.getOthersWatchlists();
 				reply.send(response);
 			} catch (err) {
 				fastify.log.error(err);

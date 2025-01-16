@@ -1,7 +1,6 @@
 import path from 'node:path'
 import fastifyAutoload from '@fastify/autoload'
 import { FastifyInstance, FastifyPluginOptions } from 'fastify'
-import cors from '@fastify/cors'
 import FastifyFormBody from '@fastify/formbody'
 import { fastifySwagger } from '@fastify/swagger'
 import apiReference from '@scalar/fastify-api-reference'
@@ -10,9 +9,7 @@ import {
   validatorCompiler,
   jsonSchemaTransform,
 } from 'fastify-type-provider-zod'
-import { getDbInstance } from '@db/db.js'
 import { getOpenapiConfig } from '@shared/config/openapi-config.js'
-import { getConfig } from '@shared/config/config-manager.js'
 
 export const options = {
   ajv: {
@@ -32,21 +29,11 @@ export default async function serviceApp(
   fastify.setValidatorCompiler(validatorCompiler)
   fastify.setSerializerCompiler(serializerCompiler)
 
-  // Database setup
-  const db = getDbInstance(fastify.log)
-  fastify.decorate('db', db)
-
   // Configuration
-  const config = getConfig(fastify.log)
   const openapiConfig = {
-    ...getOpenapiConfig(config.port),
+    ...getOpenapiConfig(3003),
     transform: jsonSchemaTransform,
   }
-
-  // CORS
-  fastify.register(cors, {
-    methods: ['GET', 'POST', 'PUT', 'DELETE']
-  })
 
   // Documentation
   fastify.register(fastifySwagger, openapiConfig)
@@ -55,16 +42,16 @@ export default async function serviceApp(
   })
 
   // Load external plugins
-  //await fastify.register(fastifyAutoload, {
-  //  dir: path.join(import.meta.dirname, 'plugins/external'),
-  //  options: { ...opts }
-  //})
+  await fastify.register(fastifyAutoload, {
+    dir: path.join(import.meta.dirname, 'plugins/external'),
+    options: { ...opts }
+  })
 
   // Load custom plugins
-  //fastify.register(fastifyAutoload, {
-  //  dir: path.join(import.meta.dirname, 'plugins/custom'),
-  //  options: { ...opts }
-  //})
+  fastify.register(fastifyAutoload, {
+    dir: path.join(import.meta.dirname, 'plugins/custom'),
+    options: { ...opts }
+  })
 
   // Load routes
   fastify.register(fastifyAutoload, {
