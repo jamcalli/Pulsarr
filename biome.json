@@ -1,6 +1,6 @@
 {
     "files": {
-      "ignore": ["dist"]
+      "ignore": ["dist", "tests", "migrations"]
     },
     "javascript": {
       "formatter": {

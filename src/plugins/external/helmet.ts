@@ -1,12 +1,18 @@
 import helmet from '@fastify/helmet'
 
 export const autoConfig = {
-  // Set plugin options here
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      connectSrc: ["'self'", "http://localhost:3003", "ws://localhost:3003"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "http:", "https:"],
+      fontSrc: ["'self'", "data:"]
+    }
+  },
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: "cross-origin" }
 }
 
-/**
- * This plugins sets the basic security headers.
- *
- * @see {@link https://github.com/fastify/fastify-helmet}
- */
 export default helmet
