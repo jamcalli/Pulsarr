@@ -17,12 +17,6 @@ export interface PlexResponse {
 	username: string;
 	userId: number;
   }
-
-  export interface WatchlistUser {
-	watchlistId: string;
-	username: string;
-	userId: number;
-  }
   
   export interface WatchlistItem {
 	title: string;
@@ -35,7 +29,7 @@ export interface PlexResponse {
   }
   
   export interface WatchlistGroup {
-	user: WatchlistUser;
+	user: Friend;
 	watchlist: WatchlistItem[];
   }
   
@@ -75,16 +69,6 @@ export interface PlexResponse {
 	updated_at: string;
   }
   
-  export interface RssWatchlistResponse {
-	items: Array<{
-	  title: string;
-	  key?: string;
-	  type: string;
-	  guids: string[];
-	  genres: string[];
-	}>;
-  }
-  
   export interface TokenWatchlistItem extends Item {
 	id: string;
   }
@@ -101,33 +85,10 @@ export interface GraphQLError {
 	};
 }
 
-export interface TokenWatchlistFriend {
-	data?: {
-		user?: {
-			watchlist: {
-				nodes: TokenWatchlistItem[];
-				pageInfo: {
-					hasNextPage: boolean;
-					endCursor: string;
-				};
-			};
-		};
-	};
-	errors?: GraphQLError[];
-}
-
 export interface GraphQLQuery {
 	query: string;
 	variables?: Record<string, unknown>;
   }
-
-export interface RssFeedGenerated {
-	RSSInfo: {
-		[0]: {
-			url: string;
-		};
-	};
-}
 
 interface PlexGraphQLError {
 	message: string;
