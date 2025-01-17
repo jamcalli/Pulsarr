@@ -187,7 +187,7 @@ export class DatabaseService {
             thumb: item.thumb,
             guids: JSON.stringify(item.guids || []),
             genres: JSON.stringify(item.genres || []),
-            sync_status: item.sync_status || 'pending',
+            sync: item.status || 'pending',
             created_at: this.timestamp,
             updated_at: this.timestamp
           }));
@@ -208,30 +208,6 @@ export class DatabaseService {
         }
       }
     });
-  }
-
-  async updateWatchlistItemStatus(
-    userId: number,
-    key: string,
-    status: 'pending' | 'processing' | 'synced'
-  ): Promise<boolean> {
-    const updateData: Record<string, unknown> = {
-      sync_status: status,
-      updated_at: this.timestamp
-    }
-
-    // Set appropriate timestamps based on status
-    if (status === 'processing') {
-      updateData.sync_started_at = this.timestamp
-    } else if (status === 'synced') {
-      updateData.last_synced_at = this.timestamp
-    }
-
-    const updated = await this.knex('watchlist_items')
-      .where({ user_id: userId, key })
-      .update(updateData)
-    
-    return updated > 0
   }
 
   private chunkArray<T>(array: T[], size: number): T[][] {
@@ -263,4 +239,25 @@ export class DatabaseService {
     await this.createConfig({ plexTokens, port })
     this.log.info('Configuration migrated from config to database.')
   }
+
+  async getRssPendingUser(): Promise<User> {
+    const user = await this.getUser('rss_pending_match');
+    if (!user) throw new Error('RSS pending user not found');
+    return user;
+  }
+
+  async getPendingRssItems(): Promise<WatchlistItem[]> {
+    return this.knex('watchlist_items')
+      .where('key', 'like', 'rss_temp_%')
+      .select('*');
+  }
+
+  async deletePendingRssItems(): Promise<void> {
+    const deleted = await this.knex('watchlist_items')
+      .where('key', 'like', 'rss_temp_%')
+      .delete();
+    
+    this.log.info(`Deleted ${deleted} pending RSS items`);
+  }
+
 }

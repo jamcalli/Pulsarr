@@ -101,7 +101,7 @@ export const fetchSelfWatchlist = async (
 			  guids: [],
 			  genres: [],
 			  user_id: userId,
-			  sync_status: 'pending' as const,
+			  status: 'pending',
 			  created_at: new Date().toISOString(),
 			  updated_at: new Date().toISOString(),
 			};
@@ -273,7 +273,7 @@ export const getWatchlistForUser = async (
 		  const item: TokenWatchlistItem = {
 			...node,
 			user_id: userId,
-			sync_status: 'pending' as const,
+			status: 'pending',
 			created_at: currentTime,
 			updated_at: currentTime,
 			guids: [],
@@ -400,7 +400,7 @@ const toItems = async (
 		guids: metadata.Guid?.map((guid) => guid.id.replace("//", "")) || [],
 		genres: metadata.Genre?.map((genre) => genre.tag) || [],
 		user_id: item.user_id,
-		sync_status: 'pending' as const,
+		status: 'pending' as const,
 		created_at: new Date().toISOString(),
 		updated_at: new Date().toISOString()
 	  }));
@@ -542,7 +542,7 @@ export const fetchWatchlistFromRss = async (
 					  .join(" ");
 				  }),
 				  user_id: userId,
-				  sync_status: 'pending',
+				  status: 'pending',
 				  created_at: new Date().toISOString(),
 				  updated_at: new Date().toISOString(),
 				};

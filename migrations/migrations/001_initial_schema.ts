@@ -4,13 +4,15 @@ export async function up(knex: Knex): Promise<void> {
   await knex.schema.createTable('users', (table) => {
     table.increments('id').primary()
     table.string('name').notNullable()
-    table.string('email').notNullable().unique()
-    table.string('discord_id')  // Discord user ID for notifications
-    table.boolean('notify_email').defaultTo(false)  // Whether to send email notifications
-    table.boolean('notify_discord').defaultTo(false)  // Whether to send Discord notifications
-    table.boolean('can_sync').defaultTo(true)  // Whether user has permission to sync
+    table.string('email').nullable()
+    table.string('discord_id')
+    table.boolean('notify_email').defaultTo(false)
+    table.boolean('notify_discord').defaultTo(false)
+    table.boolean('can_sync').defaultTo(true)
     table.timestamp('created_at').defaultTo(knex.fn.now())
     table.timestamp('updated_at').defaultTo(knex.fn.now())
+    table.index('name')
+    table.index(['notify_discord', 'discord_id'])
   })
 
   await knex.schema.createTable('configs', (table) => {
@@ -36,18 +38,28 @@ export async function up(knex: Knex): Promise<void> {
     table.string('thumb')
     table.json('guids')
     table.json('genres')
-    table.enum('sync_status', ['pending', 'processing', 'synced'])
+    table.enum('status', ['pending', 'requested', 'grabbed', 'notified'])
       .notNullable()
       .defaultTo('pending')
-    table.timestamp('last_synced_at')
-    table.timestamp('sync_started_at')
     table.timestamp('created_at').defaultTo(knex.fn.now())
     table.timestamp('updated_at').defaultTo(knex.fn.now())
     table.unique(['user_id', 'key'])
+    table.index(['user_id', 'key'])
+    table.index('user_id') 
+    table.index('guids')
   })
+
+  // Create RSS pending user
+  await knex('users').insert({
+    name: 'rss_pending_match',
+    notify_email: false,
+    notify_discord: false,
+    can_sync: false
+  });
 }
 
 export async function down(knex: Knex): Promise<void> {
+  // Drop tables in reverse order due to foreign key constraints
   await knex.schema.dropTable('watchlist_items')
   await knex.schema.dropTable('configs')
   await knex.schema.dropTable('users')
