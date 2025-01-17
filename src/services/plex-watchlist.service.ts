@@ -1,5 +1,4 @@
 import type { FastifyBaseLogger } from "fastify";
-import type { Knex } from "knex";
 import type { FastifyInstance } from "fastify";
 import {
   getOthersWatchlist,
@@ -7,7 +6,8 @@ import {
   getFriends,
   pingPlex,
   fetchSelfWatchlist,
-  getPlexWatchlistUrls
+  getPlexWatchlistUrls,
+  fetchWatchlistFromRss
 } from "@utils/plex.js";
 import type {
   Item as WatchlistItem,
@@ -18,8 +18,8 @@ import type {
 export class PlexWatchlistService {
   constructor(
     private readonly log: FastifyBaseLogger,
-    private readonly knex: Knex,
-    private readonly config: FastifyInstance['config']
+    private readonly config: FastifyInstance['config'],
+	private readonly dbService: FastifyInstance['db']
   ) {}
 
   async pingPlex(): Promise<boolean> {
@@ -34,50 +34,60 @@ export class PlexWatchlistService {
   }
 
   async getSelfWatchlist() {
-    if (this.config.userConfig.plexTokens.length === 0) {
-      throw new Error("No Plex token configured");
-    }
-
-    const userWatchlistMap = new Map<Friend, Set<TokenWatchlistItem>>();
-
-    await Promise.all(
-      this.config.userConfig.plexTokens.map(async (token, index) => {
-        const tokenConfig = { 
-          ...this.config.userConfig, 
-          plexTokens: [token] 
-        };
-        const items = await fetchSelfWatchlist(tokenConfig, this.log);
-
-        if (items.size > 0) {
-          const tokenUser: Friend = {
-            watchlistId: `token${index + 1}`,
-            username: `token${index + 1}`,
-          };
-          userWatchlistMap.set(tokenUser, items);
-        }
-      })
-    );
-
-    if (userWatchlistMap.size === 0) {
-      throw new Error("Unable to fetch watchlist items");
-    }
-
-    const { allKeys, userKeyMap } = this.extractKeysAndRelationships(userWatchlistMap);
-    const existingItems = await this.getExistingItems(userKeyMap, allKeys);
-    const { brandNewItems, existingItemsToLink } = this.categorizeItems(
-      userWatchlistMap,
-      existingItems
-    );
-
-    const processedItems = await this.processAndSaveNewItems(brandNewItems);
-    await this.linkExistingItems(existingItemsToLink);
-
-    return this.buildResponse(
-      userWatchlistMap,
-      existingItems,
-      existingItemsToLink,
-      processedItems
-    );
+	if (this.config.userConfig.plexTokens.length === 0) {
+	  throw new Error("No Plex token configured");
+	}
+  
+	const userMap = await this.ensureTokenUsers();
+	const userWatchlistMap = new Map<Friend, Set<TokenWatchlistItem>>();
+  
+	await Promise.all(
+	  this.config.userConfig.plexTokens.map(async (token, index) => {
+		const tokenConfig = { 
+		  ...this.config.userConfig, 
+		  plexTokens: [token] 
+		};
+		const username = `token${index + 1}`;
+		const userId = userMap.get(username);
+		
+		if (!userId) {
+		  this.log.error(`No user ID found for token user: ${username}`);
+		  return;
+		}
+  
+		const items = await fetchSelfWatchlist(tokenConfig, this.log, userId);
+  
+		if (items.size > 0) {
+		  const tokenUser: Friend = {
+			watchlistId: username,
+			username: username,
+			userId: userId
+		  };
+		  userWatchlistMap.set(tokenUser, items);
+		}
+	  })
+	);
+  
+	if (userWatchlistMap.size === 0) {
+	  throw new Error("Unable to fetch watchlist items");
+	}
+  
+	const { allKeys, userKeyMap } = this.extractKeysAndRelationships(userWatchlistMap);
+	const existingItems = await this.getExistingItems(userKeyMap, allKeys);
+	const { brandNewItems, existingItemsToLink } = this.categorizeItems(
+	  userWatchlistMap,
+	  existingItems
+	);
+  
+	const processedItems = await this.processAndSaveNewItems(brandNewItems);
+	await this.linkExistingItems(existingItemsToLink);
+  
+	return this.buildResponse(
+	  userWatchlistMap,
+	  existingItems,
+	  existingItemsToLink,
+	  processedItems
+	);
   }
 
   async generateRssFeeds() {
@@ -107,79 +117,156 @@ export class PlexWatchlistService {
   }
 
   async getOthersWatchlists() {
-    if (this.config.userConfig.plexTokens.length === 0) {
-      throw new Error("No Plex token configured");
-    }
+	if (this.config.userConfig.plexTokens.length === 0) {
+	  throw new Error("No Plex token configured");
+	}
+  
+	const friends = await getFriends(this.config.userConfig, this.log);
+	const userMap = await this.ensureFriendUsers(friends);
+	
+	const friendsWithIds = new Set(
+	  Array.from(friends)
+		.map(([friend, token]) => {
+		  const userId = userMap.get(friend.watchlistId);
+		  if (!userId) {
+			this.log.warn(`No user ID found for friend with watchlist ID: ${friend.watchlistId}`);
+			return null;
+		  }
+		  return [
+			{ ...friend, userId },
+			token
+		  ] as [Friend & { userId: number }, string];
+		})
+		.filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+	);
+	
+	const userWatchlistMap = await getOthersWatchlist(
+	  this.config.userConfig,
+	  this.log,
+	  friendsWithIds
+	);
+  
+	if (userWatchlistMap.size === 0) {
+	  throw new Error("Unable to fetch others' watchlist items");
+	}
+  
+	const { allKeys, userKeyMap } = this.extractKeysAndRelationships(userWatchlistMap);
+	const existingItems = await this.getExistingItems(userKeyMap, allKeys);
+	const { brandNewItems, existingItemsToLink } = this.categorizeItems(
+	  userWatchlistMap,
+	  existingItems
+	);
+  
+	const processedItems = await this.processAndSaveNewItems(brandNewItems);
+	await this.linkExistingItems(existingItemsToLink);
+  
+	return this.buildResponse(
+	  userWatchlistMap,
+	  existingItems,
+	  existingItemsToLink,
+	  processedItems
+	);
+  }
 
-    const friends = await getFriends(this.config.userConfig, this.log);
-    const userWatchlistMap = await getOthersWatchlist(
-      this.config.userConfig,
-      this.log,
-      friends
+  private async ensureTokenUsers(): Promise<Map<string, number>> {
+    const userMap = new Map<string, number>();
+    
+    await Promise.all(
+      this.config.userConfig.plexTokens.map(async (_, index) => {
+        const username = `token${index + 1}`;
+        
+        let user = await this.dbService.getUser(username);
+        
+        if (!user) {
+          user = await this.dbService.createUser({
+            name: username,
+            email: `${username}@placeholder.com`,
+            notify_email: false,
+            notify_discord: false,
+            can_sync: true
+          });
+        }
+        
+        if (!user.id) throw new Error(`No ID for user ${username}`);
+        userMap.set(username, user.id);
+      })
     );
+    
+    return userMap;
+  }
 
-    if (userWatchlistMap.size === 0) {
-      throw new Error("Unable to fetch others' watchlist items");
-    }
+  private async ensureFriendUsers(friends: Set<[Friend, string]>): Promise<Map<string, number>> {
+    const userMap = new Map<string, number>();
+    
+    await Promise.all(
+      Array.from(friends).map(async ([friend]) => {
+        let user = await this.dbService.getUser(friend.username);
+        
+        if (!user) {
+          user = await this.dbService.createUser({
+            name: friend.username,
+            email: `${friend.username}@placeholder.com`,
+            notify_email: false,
+            notify_discord: false,
+            can_sync: true
+          });
+        }
 
-    const { allKeys, userKeyMap } = this.extractKeysAndRelationships(userWatchlistMap);
-    const existingItems = await this.getExistingItems(userKeyMap, allKeys);
-    const { brandNewItems, existingItemsToLink } = this.categorizeItems(
-      userWatchlistMap,
-      existingItems
+        if (!user.id) throw new Error(`No ID for user ${friend.username}`);
+        userMap.set(friend.watchlistId, user.id);
+      })
     );
-
-    const processedItems = await this.processAndSaveNewItems(brandNewItems);
-    await this.linkExistingItems(existingItemsToLink);
-
-    return this.buildResponse(
-      userWatchlistMap,
-      existingItems,
-      existingItemsToLink,
-      processedItems
-    );
+    
+    return userMap;
   }
 
   private extractKeysAndRelationships(
-    userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>
-  ) {
-    const allKeys = new Set<string>();
-    const userKeyMap = new Map<string, Set<string>>();
-
-    userWatchlistMap.forEach((items: Set<TokenWatchlistItem>, user: Friend) => {
-      const userKeys = new Set<string>();
-      items.forEach((item) => {
-        allKeys.add(item.id);
-        userKeys.add(item.id);
-      });
-      userKeyMap.set(user.watchlistId, userKeys);
-    });
-
-    this.log.info(
-      `Collected ${userKeyMap.size} users and ${allKeys.size} unique keys`
-    );
-    return { allKeys, userKeyMap };
-  }
+	userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>
+   ) {
+	const allKeys = new Set<string>();
+	const userKeyMap = new Map<string, Set<string>>();
+   
+	for (const [user, items] of userWatchlistMap) {
+	  const userId = String(user.userId);
+	  const userKeys = new Set<string>();
+   
+	  for (const item of items) {
+		if (item.id) {
+		  allKeys.add(item.id);
+		  userKeys.add(item.id);
+		} else {
+		  this.log.warn(`Encountered item with null/undefined id for user ${userId}`);
+		}
+	  }
+   
+	  if (userKeys.size > 0) {
+		userKeyMap.set(userId, userKeys);
+	  }
+	}
+   
+	this.log.info(
+	  `Collected ${userKeyMap.size} users and ${allKeys.size} unique keys`,
+	  { userIds: Array.from(userKeyMap.keys()) }
+	);
+	return { allKeys, userKeyMap };
+   }
 
   private async getExistingItems(
-    userKeyMap: Map<string, Set<string>>,
-    allKeys: Set<string>
+	userKeyMap: Map<string, Set<string>>,
+	allKeys: Set<string>
   ): Promise<WatchlistItem[]> {
-    const allUsers = Array.from(userKeyMap.keys());
-    const keys = Array.from(allKeys);
+	const keys = Array.from(allKeys);
+	const userIds = Array.from(userKeyMap.keys()).map(Number);
 
-    const existingItems = await this.knex('watchlist_items')
-      .whereIn('user', allUsers)
-      .whereIn('key', keys)
-      .select('*')
-      .then(rows => rows.map(row => ({
-        ...row,
-        guids: JSON.parse(row.guids || '[]'),
-        genres: JSON.parse(row.genres || '[]')
-      })));
-
-    this.log.info(`Found ${existingItems.length} existing items in database`);
-    return existingItems;
+	const existingItems = await this.dbService.getBulkWatchlistItems(userIds, keys);
+	
+	this.log.info(`Found ${existingItems.length} existing items in database`, {
+	  itemCount: existingItems.length,
+	  uniqueUsers: new Set(existingItems.map(item => item.user_id)).size,
+	  uniqueKeys: new Set(existingItems.map(item => item.key)).size
+	});
+  
+	return existingItems;
   }
 
 	private categorizeItems(
@@ -210,32 +297,26 @@ export class PlexWatchlistService {
 		if (brandNewItems.size === 0) {
 		  return new Map<Friend, Set<WatchlistItem>>();
 		}
-	
+	  
+		this.log.debug(`Processing ${brandNewItems.size} new items`);
+	  
 		const processedItems = await processWatchlistItems(
 		  this.config.userConfig,
 		  this.log,
 		  brandNewItems
 		);
-	
+	  
 		if (processedItems instanceof Map) {
 		  const itemsToInsert = this.prepareItemsForInsertion(processedItems);
-	
+	  
 		  if (itemsToInsert.length > 0) {
-			await this.knex('watchlist_items')
-			  .insert(itemsToInsert.map(item => ({
-				...item,
-				guids: JSON.stringify(item.guids),
-				genres: JSON.stringify(item.genres)
-			  })))
-			  .onConflict(['user', 'key'])
-			  .merge();
-	
-			this.log.info(`Processed and inserted ${itemsToInsert.length} new items`);
+			await this.dbService.createWatchlistItems(itemsToInsert);
+			this.log.info(`Processed ${itemsToInsert.length} new items`);
 		  }
-	
+	  
 		  return processedItems;
 		}
-	
+	  
 		throw new Error(
 		  "Expected Map<Friend, Set<WatchlistItem>> from processWatchlistItems"
 		);
@@ -246,17 +327,9 @@ export class PlexWatchlistService {
 	  ): Promise<void> {
 		const linkItems = Array.from(existingItemsToLink.values())
 		  .flatMap((items) => Array.from(items));
-	
+	  
 		if (linkItems.length > 0) {
-		  await this.knex('watchlist_items')
-			.insert(linkItems.map(item => ({
-			  ...item,
-			  guids: JSON.stringify(item.guids),
-			  genres: JSON.stringify(item.genres)
-			})))
-			.onConflict(['user', 'key'])
-			.merge();
-	
+		  await this.dbService.createWatchlistItems(linkItems, { onConflict: 'merge' });
 		  this.log.info(`Linked ${linkItems.length} existing items to new users`);
 		}
 	  }
@@ -283,147 +356,270 @@ export class PlexWatchlistService {
 	}
 
 	private mapExistingItemsByKey(existingItems: WatchlistItem[]) {
-		const map = new Map<string, Map<string, WatchlistItem>>();
-		existingItems.forEach((item) => {
-			if (item.user && item.key) {
-				if (!map.has(item.key)) {
-					map.set(item.key, new Map());
-				}
-				map.get(item.key)!.set(item.user, item);
-			}
-		});
+		const map = new Map<string, Map<number, WatchlistItem>>();
+		
+		for (const item of existingItems) {
+		  if (!item.key || !item.user_id) continue;
+		  
+		  let userMap = map.get(item.key);
+		  if (!userMap) {
+			userMap = new Map<number, WatchlistItem>();
+			map.set(item.key, userMap);
+		  }
+		  
+		  userMap.set(item.user_id, item);
+		}
+		
 		return map;
-	}
+	  }
 
-	private separateNewAndExistingItems(
+	  private separateNewAndExistingItems(
 		items: Set<TokenWatchlistItem>,
-		user: Friend,
-		existingItemsByKey: Map<string, Map<string, WatchlistItem>>,
-	) {
+		user: Friend & { userId: number },
+		existingItemsByKey: Map<string, Map<number, WatchlistItem>>,
+	  ) {
 		const newItems = new Set<TokenWatchlistItem>();
 		const itemsToLink = new Set<WatchlistItem>();
-
-		items.forEach((item) => {
-			const existingItem = existingItemsByKey.get(item.id);
-			if (!existingItem) {
-				newItems.add(item);
-			} else if (!existingItem.has(user.watchlistId)) {
-				const templateItem = existingItem.values().next().value;
-				if (templateItem?.title && templateItem?.type) {
-					itemsToLink.add(this.createWatchlistItem(user, item, templateItem));
-				}
+	  
+		for (const item of items) {
+		  const existingItem = existingItemsByKey.get(item.id);
+		  if (!existingItem) {
+			newItems.add(item);
+		  } else if (!Array.from(existingItem.keys()).includes(user.userId)) {
+			const templateItem = existingItem.values().next().value;
+			if (templateItem?.title && templateItem?.type) {
+			  itemsToLink.add(this.createWatchlistItem(user, item, templateItem));
 			}
-		});
-
+		  }
+		}
+	  
 		return { newItems, itemsToLink };
-	}
+	  }
 
-	private createWatchlistItem(
-		user: Friend,
+	  private createWatchlistItem(
+		user: Friend & { userId: number },
 		item: TokenWatchlistItem,
 		templateItem: WatchlistItem,
-	): WatchlistItem {
+	  ): WatchlistItem {
 		return {
-			user: user.watchlistId,
-			title: templateItem.title,
-			key: item.id,
-			type: templateItem.type,
-			thumb: templateItem.thumb,
-			guids: templateItem.guids || [],
-			genres: templateItem.genres || [],
+		  user_id: user.userId,
+		  title: templateItem.title,
+		  key: item.id,
+		  type: templateItem.type,
+		  thumb: templateItem.thumb,
+		  guids: templateItem.guids || [],
+		  genres: templateItem.genres || [],
+		  sync_status: 'pending',
+		  created_at: new Date().toISOString(),
+		  updated_at: new Date().toISOString(),
 		};
-	}
+	  }
 
-	private prepareItemsForInsertion(
-		processedItems: Map<Friend, Set<WatchlistItem>>,
-	) {
+	  private prepareItemsForInsertion(
+		processedItems: Map<Friend & { userId: number }, Set<WatchlistItem>>,
+	  ) {
 		return Array.from(processedItems.entries()).flatMap(([user, items]) =>
-			Array.from(items).map((item) => ({
-				user: user.watchlistId,
-				title: item.title,
-				key: item.key,
-				thumb: item.thumb,
-				type: item.type,
-				guids: item.guids || [],
-				genres: item.genres || [],
-			})),
+		  Array.from(items).map((item) => ({
+			user_id: user.userId,
+			title: item.title,
+			key: item.key,
+			thumb: item.thumb,
+			type: item.type,
+			guids: item.guids || [],
+			genres: item.genres || [],
+			sync_status: 'pending' as 'pending' | 'processing' | 'synced',
+			created_at: new Date().toISOString(),
+			updated_at: new Date().toISOString(),
+		  })),
 		);
-	}
+	  }
 
-	private calculateTotal(
+	  private calculateTotal(
 		existingItems: WatchlistItem[],
 		existingItemsToLink: Map<Friend, Set<WatchlistItem>>,
 		processedItems: Map<Friend, Set<WatchlistItem>>,
-	) {
+	  ) {
+
 		const linkItemsCount = Array.from(existingItemsToLink.values()).reduce(
-			(acc, items) => acc + items.size,
-			0,
+		  (acc, items) => acc + items.size,
+		  0,
 		);
 		const processedItemsCount = Array.from(processedItems.values()).reduce(
-			(acc, items) => acc + items.size,
-			0,
+		  (acc, items) => acc + items.size,
+		  0,
 		);
-
 		return existingItems.length + linkItemsCount + processedItemsCount;
-	}
+	  }
 
-	private buildUserWatchlists(
-		userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>,
+	  private buildUserWatchlists(
+		userWatchlistMap: Map<Friend & { userId: number }, Set<TokenWatchlistItem>>,
 		existingItems: WatchlistItem[],
-		existingItemsToLink: Map<Friend, Set<WatchlistItem>>,
-		processedItems: Map<Friend, Set<WatchlistItem>>,
-	) {
+		existingItemsToLink: Map<Friend & { userId: number }, Set<WatchlistItem>>,
+		processedItems: Map<Friend & { userId: number }, Set<WatchlistItem>>,
+	  ) {
 		return Array.from(userWatchlistMap.keys()).map((user) => ({
-			user: {
-				watchlistId: user.watchlistId,
-				username: user.username,
-			},
-			watchlist: [
-				...this.formatExistingItems(existingItems, user),
-				...this.formatLinkedItems(existingItemsToLink, user),
-				...this.formatProcessedItems(processedItems, user),
-			],
+		  user: {
+			watchlistId: user.watchlistId,
+			username: user.username,
+			userId: user.userId,
+		  },
+		  watchlist: [
+			...this.formatExistingItems(existingItems, user),
+			...this.formatLinkedItems(existingItemsToLink, user),
+			...this.formatProcessedItems(processedItems, user),
+		  ],
 		}));
-	}
+	  }
 
-	private formatExistingItems(existingItems: WatchlistItem[], user: Friend) {
+	  private formatExistingItems(
+		existingItems: WatchlistItem[],
+		user: Friend & { userId: number }
+	  ) {
 		return existingItems
-			.filter((item) => item.user === user.watchlistId)
-			.map(this.formatWatchlistItem);
-	}
-
-	private formatLinkedItems(
-		existingItemsToLink: Map<Friend, Set<WatchlistItem>>,
-		user: Friend,
-	) {
+		  .filter((item) => item.user_id === user.userId)
+		  .map(this.formatWatchlistItem);
+	  }
+	  
+	  private formatLinkedItems(
+		existingItemsToLink: Map<Friend & { userId: number }, Set<WatchlistItem>>,
+		user: Friend & { userId: number },
+	  ) {
 		return existingItemsToLink.has(user)
-			? Array.from(existingItemsToLink.get(user)!).map(this.formatWatchlistItem)
-			: [];
-	}
-
-	private formatProcessedItems(
-		processedItems: Map<Friend, Set<WatchlistItem>>,
-		user: Friend,
-	) {
+		  ? Array.from(existingItemsToLink.get(user) as Set<WatchlistItem>).map(this.formatWatchlistItem)
+		  : [];
+	  }
+	  
+	  private formatProcessedItems(
+		processedItems: Map<Friend & { userId: number }, Set<WatchlistItem>>,
+		user: Friend & { userId: number },
+	  ) {
 		return processedItems.has(user)
-			? Array.from(processedItems.get(user)!).map(this.formatWatchlistItem)
-			: [];
-	}
+		  ? Array.from(processedItems.get(user) as Set<WatchlistItem>).map(this.formatWatchlistItem)
+		  : [];
+	  }
 
-	private formatWatchlistItem(item: WatchlistItem) {
+	  private formatWatchlistItem(item: WatchlistItem) {
 		return {
-			title: item.title,
-			plexKey: item.key,
-			type: item.type,
-			thumb: item.thumb || "",
-			guids:
-				typeof item.guids === "string"
-					? JSON.parse(item.guids)
-					: item.guids || [],
-			genres:
-				typeof item.genres === "string"
-					? JSON.parse(item.genres)
-					: item.genres || [],
+		  title: item.title,
+		  plexKey: item.key,
+		  type: item.type,
+		  thumb: item.thumb || "",
+		  guids: typeof item.guids === "string"
+			? JSON.parse(item.guids)
+			: item.guids || [],
+		  genres: typeof item.genres === "string"
+			? JSON.parse(item.genres)
+			: item.genres || [],
+		  sync_status: item.sync_status,
 		};
-	}
+	  }
+
+	  async processRssWatchlists() {
+		// Generate RSS feeds
+		const rssFeeds = await this.generateRssFeeds();
+	  
+		// Prepare results
+		const results = {
+		  self: {
+			total: 0,
+			users: [] as Array<{
+			  user: {
+				watchlistId: string,
+				username: string,
+				userId: number
+			  },
+			  watchlist: Array<{
+				title: string,
+				plexKey: string,
+				type: string,
+				thumb: string,
+				guids: string[],
+				genres: string[],
+				sync_status: 'pending'
+			  }>
+			}>
+		  },
+		  friends: {
+			total: 0,
+			users: [] as Array<{
+			  user: {
+				watchlistId: string,
+				username: string,
+				userId: number
+			  },
+			  watchlist: Array<{
+				title: string,
+				plexKey: string,
+				type: string,
+				thumb: string,
+				guids: string[],
+				genres: string[],
+				sync_status: 'pending'
+			  }>
+			}>
+		  }
+		};
+	  
+		// Process self watchlist RSS
+		if (rssFeeds.self) {
+		  const selfItems = await fetchWatchlistFromRss(
+			rssFeeds.self, 
+			'selfRSS', 
+			1, // Use a placeholder user ID
+			this.log
+		  );
+	  
+		  results.self = {
+			total: selfItems.size,
+			users: [{
+			  user: {
+				watchlistId: 'self',
+				username: 'Self Watchlist',
+				userId: 1
+			  },
+			  watchlist: Array.from(selfItems).map(item => ({
+				title: item.title,
+				plexKey: item.key,
+				type: item.type,
+				thumb: item.thumb || "",
+				guids: Array.isArray(item.guids) ? item.guids : (item.guids ? [item.guids] : []),
+				genres: Array.isArray(item.genres) ? item.genres : (item.genres ? [item.genres] : []),
+				sync_status: 'pending'
+			  }))
+			}]
+		  };
+		}
+	  
+		// Process friends watchlist RSS
+		if (rssFeeds.friends) {
+		  const friendsItems = await fetchWatchlistFromRss(
+			rssFeeds.friends, 
+			'otherRSS', 
+			2, // Use a placeholder user ID
+			this.log
+		  );
+	  
+		  results.friends = {
+			total: friendsItems.size,
+			users: [{
+			  user: {
+				watchlistId: 'friends',
+				username: 'Friends Watchlist',
+				userId: 2
+			  },
+			  watchlist: Array.from(friendsItems).map(item => ({
+				title: item.title,
+				plexKey: item.key,
+				type: item.type,
+				thumb: item.thumb || "",
+				guids: Array.isArray(item.guids) ? item.guids : (item.guids ? [item.guids] : []),
+				genres: Array.isArray(item.genres) ? item.genres : (item.genres ? [item.genres] : []),
+				sync_status: 'pending'
+			  }))
+			}]
+		  };
+		}
+	  
+		return results;
+	  }
 }

@@ -4,31 +4,39 @@ import { DatabaseService } from '@services/database.service.js'
 
 declare module 'fastify' {
   interface FastifyInstance {
-    db: DatabaseService; 
+    db: DatabaseService
   }
 }
 
 export default fp(async (fastify: FastifyInstance) => {
-  const dbService = new DatabaseService(fastify.knex, fastify.log)
+
+  const dbService = new DatabaseService(
+    fastify.log,
+    fastify.config
+  )
   
   fastify.decorate('db', dbService)
+  
+  fastify.addHook('onClose', async () => {
+    await dbService.close()
+  })
 
   const dbConfig = await dbService.getConfig(1)
   if (dbConfig?.plexTokens) {
     fastify.config.userConfig.plexTokens = dbConfig.plexTokens
   } else if (fastify.config.INITIAL_PLEX_TOKENS) {
-    let initialTokens: string[] = [];
+    let initialTokens: string[] = []
     try {
-      const parsed = JSON.parse(fastify.config.INITIAL_PLEX_TOKENS);
+      const parsed = JSON.parse(fastify.config.INITIAL_PLEX_TOKENS)
       if (Array.isArray(parsed)) {
         initialTokens = parsed.filter((token): token is string => 
           typeof token === 'string' && token.length > 0
-        );
+        )
       } else {
-        fastify.log.warn('INITIAL_PLEX_TOKENS must be an array of strings');
+        fastify.log.warn('INITIAL_PLEX_TOKENS must be an array of strings')
       }
     } catch (error) {
-      fastify.log.warn('Failed to parse INITIAL_PLEX_TOKENS, using empty array');
+      fastify.log.warn('Failed to parse INITIAL_PLEX_TOKENS, using empty array')
     }
 
     await dbService.createConfig({
@@ -38,5 +46,5 @@ export default fp(async (fastify: FastifyInstance) => {
   }
 }, { 
   name: 'database',
-  dependencies: ['knex', 'config']
+  dependencies: ['config']
 })
