@@ -18,6 +18,37 @@ export interface PlexResponse {
 	userId: number;
   }
 
+  export interface WatchlistUser {
+	watchlistId: string;
+	username: string;
+	userId: number;
+  }
+  
+  export interface WatchlistItem {
+	title: string;
+	plexKey: string;
+	type: string;
+	thumb: string;
+	guids: string[];
+	genres: string[];
+	sync_status: 'pending';
+  }
+  
+  export interface WatchlistGroup {
+	user: WatchlistUser;
+	watchlist: WatchlistItem[];
+  }
+  
+  export interface WatchlistResponse {
+	total: number;
+	users: WatchlistGroup[];
+  }
+  
+  export interface RssWatchlistResults {
+	self: WatchlistResponse;
+	friends: WatchlistResponse;
+  }
+
   export interface User {
 	id: number;
 	name: string;

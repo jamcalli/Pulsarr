@@ -13,6 +13,8 @@ import type {
   Item as WatchlistItem,
   TokenWatchlistItem,
   Friend,
+  RssWatchlistResults,
+  WatchlistGroup,
 } from "@root/types/plex.types.js";
 
 export class PlexWatchlistService {
@@ -90,30 +92,32 @@ export class PlexWatchlistService {
 	);
   }
 
-  async generateRssFeeds() {
-	const tokens = this.config.userConfig.plexTokens;
-  
-	if (tokens.length === 0) {
-	  throw new Error("No Plex token configured");
-	}
-  
-	const tokenSet: Set<string> = new Set(tokens);
-	const skipFriendSync = this.config.userConfig.skipFriendSync || false;
-  
-	const watchlistUrls = await getPlexWatchlistUrls(
-	  tokenSet,
-	  skipFriendSync,
-	  this.log
-	);
-  
-	if (watchlistUrls.size === 0) {
-	  throw new Error("Unable to fetch watchlist URLs");
-	}
-  
-	return {
-	  self: Array.from(watchlistUrls)[0] || "",
-	  friends: Array.from(watchlistUrls)[1] || "",
-	};
+  async generateAndSaveRssFeeds(): Promise<void> {
+    const tokens = this.config.userConfig.plexTokens;
+    if (tokens.length === 0) {
+      throw new Error("No Plex token configured");
+    }
+
+    const tokenSet: Set<string> = new Set(tokens);
+    const skipFriendSync = this.config.userConfig.skipFriendSync || false;
+
+    const watchlistUrls = await getPlexWatchlistUrls(
+      tokenSet,
+      skipFriendSync,
+      this.log
+    );
+
+    if (watchlistUrls.size === 0) {
+      throw new Error("Unable to fetch watchlist URLs");
+    }
+
+    const urls = {
+      selfRss: Array.from(watchlistUrls)[0] || "",
+      friendsRss: Array.from(watchlistUrls)[1] || "",
+    };
+
+    await this.dbService.updateConfig(1, urls);
+    this.log.info('RSS feed URLs saved to database', urls);
   }
 
   async getOthersWatchlists() {
@@ -514,109 +518,90 @@ export class PlexWatchlistService {
 		};
 	  }
 
-	  async processRssWatchlists() {
-		// Generate RSS feeds
-		const rssFeeds = await this.generateRssFeeds();
+	  async processRssWatchlists(): Promise<RssWatchlistResults> {
+		let config = await this.dbService.getConfig(1);
+		
+		if (!config?.selfRss && !config?.friendsRss) {
+		  this.log.info('No RSS feeds found in database, attempting to generate...');
+		  await this.generateAndSaveRssFeeds();
+		  config = await this.dbService.getConfig(1);
+		  if (!config?.selfRss && !config?.friendsRss) {
+			throw new Error("Unable to generate or retrieve RSS feed URLs");
+		  }
+		}
 	  
-		// Prepare results
-		const results = {
+		const results: RssWatchlistResults = {
 		  self: {
 			total: 0,
-			users: [] as Array<{
-			  user: {
-				watchlistId: string,
-				username: string,
-				userId: number
-			  },
-			  watchlist: Array<{
-				title: string,
-				plexKey: string,
-				type: string,
-				thumb: string,
-				guids: string[],
-				genres: string[],
-				sync_status: 'pending'
-			  }>
-			}>
+			users: []
 		  },
 		  friends: {
 			total: 0,
-			users: [] as Array<{
-			  user: {
-				watchlistId: string,
-				username: string,
-				userId: number
-			  },
-			  watchlist: Array<{
-				title: string,
-				plexKey: string,
-				type: string,
-				thumb: string,
-				guids: string[],
-				genres: string[],
-				sync_status: 'pending'
-			  }>
-			}>
+			users: []
 		  }
 		};
 	  
-		// Process self watchlist RSS
-		if (rssFeeds.self) {
+		// Process self watchlist RSS if available
+		if (config.selfRss) {
 		  const selfItems = await fetchWatchlistFromRss(
-			rssFeeds.self, 
-			'selfRSS', 
-			1, // Use a placeholder user ID
+			config.selfRss,
+			'selfRSS',
+			1,
 			this.log
 		  );
+	  
+		  const selfWatchlistGroup: WatchlistGroup = {
+			user: {
+			  watchlistId: 'self',
+			  username: 'Self Watchlist',
+			  userId: 1
+			},
+			watchlist: Array.from(selfItems).map((item) => ({
+			  title: item.title,
+			  plexKey: item.key,
+			  type: item.type,
+			  thumb: item.thumb || "",
+			  guids: Array.isArray(item.guids) ? item.guids : (item.guids ? [item.guids] : []),
+			  genres: Array.isArray(item.genres) ? item.genres : (item.genres ? [item.genres] : []),
+			  sync_status: 'pending' as const
+			}))
+		  };
 	  
 		  results.self = {
 			total: selfItems.size,
-			users: [{
-			  user: {
-				watchlistId: 'self',
-				username: 'Self Watchlist',
-				userId: 1
-			  },
-			  watchlist: Array.from(selfItems).map(item => ({
-				title: item.title,
-				plexKey: item.key,
-				type: item.type,
-				thumb: item.thumb || "",
-				guids: Array.isArray(item.guids) ? item.guids : (item.guids ? [item.guids] : []),
-				genres: Array.isArray(item.genres) ? item.genres : (item.genres ? [item.genres] : []),
-				sync_status: 'pending'
-			  }))
-			}]
+			users: [selfWatchlistGroup]
 		  };
 		}
 	  
-		// Process friends watchlist RSS
-		if (rssFeeds.friends) {
+		// Process friends watchlist RSS if available
+		if (config.friendsRss) {
 		  const friendsItems = await fetchWatchlistFromRss(
-			rssFeeds.friends, 
-			'otherRSS', 
-			2, // Use a placeholder user ID
+			config.friendsRss,
+			'otherRSS',
+			2,
 			this.log
 		  );
 	  
+		  const friendsWatchlistGroup: WatchlistGroup = {
+			user: {
+			  watchlistId: 'friends',
+			  username: 'Friends Watchlist',
+			  userId: 2
+			},
+			watchlist: Array.from(friendsItems).map((item) => ({
+			  title: item.title,
+			  plexKey: item.key,
+			  type: item.type,
+			  thumb: item.thumb || "",
+			  guids: Array.isArray(item.guids) ? item.guids : (item.guids ? [item.guids] : []),
+			  genres: Array.isArray(item.genres) ? item.genres : (item.genres ? [item.genres] : []),
+			  sync_status: 'pending' as const
+			}))
+		  };
+	  
 		  results.friends = {
 			total: friendsItems.size,
-			users: [{
-			  user: {
-				watchlistId: 'friends',
-				username: 'Friends Watchlist',
-				userId: 2
-			  },
-			  watchlist: Array.from(friendsItems).map(item => ({
-				title: item.title,
-				plexKey: item.key,
-				type: item.type,
-				thumb: item.thumb || "",
-				guids: Array.isArray(item.guids) ? item.guids : (item.guids ? [item.guids] : []),
-				genres: Array.isArray(item.genres) ? item.genres : (item.genres ? [item.genres] : []),
-				sync_status: 'pending'
-			  }))
-			}]
+			users: [friendsWatchlistGroup]
 		  };
 		}
 	  
