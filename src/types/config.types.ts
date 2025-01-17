@@ -14,8 +14,8 @@ export interface User {
 	id?: number;  
 	plexTokens: string[];
 	port?: number;
-	selfRss?: string[];
-	friendsRss?: string[];
+	selfRss?: string;
+	friendsRss?: string;
 	created_at?: string; 
 	updated_at?: string;
   }
