@@ -25,7 +25,7 @@ export interface PlexResponse {
 	thumb: string;
 	guids: string[];
 	genres: string[];
-	sync_status: 'pending';
+	status: 'pending';
   }
   
   export interface WatchlistGroup {
@@ -62,9 +62,8 @@ export interface PlexResponse {
 	guids?: string[] | string;
 	genres?: string[] | string;
 	user_id: number;
-	sync_status: 'pending' | 'processing' | 'synced';
+	status: 'pending' | 'requested' | 'grabbed' | 'notified';
 	sync_started_at?: string;
-	last_synced_at?: string;
 	created_at: string;
 	updated_at: string;
   }
@@ -143,6 +142,15 @@ export interface RssWatchlistItem {
 	};
 	keywords?: string[];
 }
+
+export interface TemptRssWatchlistItem {
+	title: string;
+	key: string;
+	type: string;
+	thumb?: string;
+	guids?: string | string[];
+	genres?: string | string[];
+  }
 
 export interface RssResponse {
 	title: string;

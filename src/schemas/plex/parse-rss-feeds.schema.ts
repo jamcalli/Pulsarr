@@ -7,7 +7,7 @@ const WatchlistItemSchema = z.object({
 	thumb: z.string(),
 	guids: z.array(z.string()),
 	genres: z.array(z.string()),
-	sync_status: z.literal('pending')
+	status: z.literal('pending')
 });
 
 const UserSchema = z.object({
