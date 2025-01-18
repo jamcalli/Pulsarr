@@ -50,16 +50,21 @@ export async function up(knex: Knex): Promise<void> {
   })
 
   // Create RSS pending user
-  await knex('users').insert({
-    name: 'rss_pending_match',
-    notify_email: false,
-    notify_discord: false,
-    can_sync: false
-  });
+  await knex.schema.createTable('temp_rss_items', (table) => {
+    table.increments('id').primary()
+    table.string('title').notNullable()
+    table.string('type').notNullable()
+    table.string('thumb')
+    table.json('guids').notNullable()
+    table.json('genres')
+    table.string('source').notNullable()
+    table.timestamp('created_at').defaultTo(knex.fn.now())
+    table.index('guids') 
+  })
 }
 
 export async function down(knex: Knex): Promise<void> {
-  // Drop tables in reverse order due to foreign key constraints
+  await knex.schema.dropTable('temp_rss_items')
   await knex.schema.dropTable('watchlist_items')
   await knex.schema.dropTable('configs')
   await knex.schema.dropTable('users')
