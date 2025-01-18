@@ -259,7 +259,7 @@ export class DatabaseService {
       return
     }
 
-    const plexTokens = this.config.userConfig.plexTokens
+    const plexTokens = this.config.plexTokens
     const port = this.config.PORT
     await this.createConfig({ plexTokens, port })
     this.log.info('Configuration migrated from config to database.')

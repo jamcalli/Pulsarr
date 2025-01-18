@@ -18,6 +18,8 @@ import type {
   TemptRssWatchlistItem,
 } from '@root/types/plex.types.js'
 
+import type { RssFeedsResponse } from '@schemas/plex/generate-rss-feeds.schema.js'
+
 export class PlexWatchlistService {
   constructor(
     private readonly log: FastifyBaseLogger,
@@ -26,7 +28,7 @@ export class PlexWatchlistService {
   ) {}
 
   async pingPlex(): Promise<boolean> {
-    const tokens = this.config.userConfig.plexTokens
+    const tokens = this.config.plexTokens
 
     if (tokens.length === 0) {
       throw new Error('No Plex tokens configured')
@@ -37,7 +39,7 @@ export class PlexWatchlistService {
   }
 
   async getSelfWatchlist() {
-    if (this.config.userConfig.plexTokens.length === 0) {
+    if (this.config.plexTokens.length === 0) {
       throw new Error('No Plex token configured')
     }
 
@@ -45,9 +47,9 @@ export class PlexWatchlistService {
     const userWatchlistMap = new Map<Friend, Set<TokenWatchlistItem>>()
 
     await Promise.all(
-      this.config.userConfig.plexTokens.map(async (token, index) => {
+      this.config.plexTokens.map(async (token, index) => {
         const tokenConfig = {
-          ...this.config.userConfig,
+          ...this.config,
           plexTokens: [token],
         }
         const username = `token${index + 1}`
@@ -86,10 +88,8 @@ export class PlexWatchlistService {
     const processedItems = await this.processAndSaveNewItems(brandNewItems)
     await this.linkExistingItems(existingItemsToLink)
 
-    // Create a combined map of all items with their GUIDs for matching
     const allItemsMap = new Map<Friend, Set<WatchlistItem>>()
 
-    // Add existing items first
     for (const item of existingItems) {
       const user = Array.from(userWatchlistMap.keys()).find(
         (u) => u.userId === item.user_id,
@@ -101,12 +101,10 @@ export class PlexWatchlistService {
       }
     }
 
-    // Only add processed items if they don't already exist
     for (const [user, items] of processedItems.entries()) {
       const existingUserItems =
         allItemsMap.get(user) || new Set<WatchlistItem>()
       for (const item of items) {
-        // Only add if not already in existingItems
         if (!existingUserItems.has(item)) {
           existingUserItems.add(item)
         }
@@ -114,7 +112,6 @@ export class PlexWatchlistService {
       allItemsMap.set(user, existingUserItems)
     }
 
-    // Match against all items (both new and existing)
     await this.matchRssPendingItemsSelf(
       allItemsMap as Map<Friend, Set<TokenWatchlistItem>>,
     )
@@ -127,14 +124,14 @@ export class PlexWatchlistService {
     )
   }
 
-  async generateAndSaveRssFeeds(): Promise<void> {
-    const tokens = this.config.userConfig.plexTokens
+  async generateAndSaveRssFeeds(): Promise<RssFeedsResponse> {
+    const tokens = this.config.plexTokens
     if (tokens.length === 0) {
-      throw new Error('No Plex token configured')
+      return { error: 'No Plex token configured' }
     }
 
     const tokenSet: Set<string> = new Set(tokens)
-    const skipFriendSync = this.config.userConfig.skipFriendSync || false
+    const skipFriendSync = this.config.skipFriendSync || false
 
     const watchlistUrls = await getPlexWatchlistUrls(
       tokenSet,
@@ -143,24 +140,28 @@ export class PlexWatchlistService {
     )
 
     if (watchlistUrls.size === 0) {
-      throw new Error('Unable to fetch watchlist URLs')
+      return { error: 'Unable to fetch watchlist URLs' }
     }
 
-    const urls = {
+    const dbUrls = {
       selfRss: Array.from(watchlistUrls)[0] || '',
       friendsRss: Array.from(watchlistUrls)[1] || '',
     }
+    await this.dbService.updateConfig(1, dbUrls)
+    this.log.info('RSS feed URLs saved to database', dbUrls)
 
-    await this.dbService.updateConfig(1, urls)
-    this.log.info('RSS feed URLs saved to database', urls)
+    return {
+      self: dbUrls.selfRss,
+      friends: dbUrls.friendsRss,
+    }
   }
 
   async getOthersWatchlists() {
-    if (this.config.userConfig.plexTokens.length === 0) {
+    if (this.config.plexTokens.length === 0) {
       throw new Error('No Plex token configured')
     }
 
-    const friends = await getFriends(this.config.userConfig, this.log)
+    const friends = await getFriends(this.config, this.log)
     const userMap = await this.ensureFriendUsers(friends)
 
     const friendsWithIds = new Set(
@@ -182,7 +183,7 @@ export class PlexWatchlistService {
     )
 
     const userWatchlistMap = await getOthersWatchlist(
-      this.config.userConfig,
+      this.config,
       this.log,
       friendsWithIds,
     )
@@ -202,15 +203,12 @@ export class PlexWatchlistService {
     const processedItems = await this.processAndSaveNewItems(brandNewItems)
     await this.linkExistingItems(existingItemsToLink)
 
-    // Create a combined map of all items with their GUIDs for matching
     const allItemsMap = new Map<Friend, Set<WatchlistItem>>()
 
-    // Add processed items
     for (const [user, items] of processedItems.entries()) {
       allItemsMap.set(user, items)
     }
 
-    // Add existing items
     for (const item of existingItems) {
       const user = Array.from(userWatchlistMap.keys()).find(
         (u) => u.userId === item.user_id,
@@ -222,7 +220,6 @@ export class PlexWatchlistService {
       }
     }
 
-    // Match against all items (both new and existing)
     await this.matchRssPendingItemsFriends(
       allItemsMap as Map<Friend, Set<TokenWatchlistItem>>,
     )
@@ -239,7 +236,7 @@ export class PlexWatchlistService {
     const userMap = new Map<string, number>()
 
     await Promise.all(
-      this.config.userConfig.plexTokens.map(async (_, index) => {
+      this.config.plexTokens.map(async (_, index) => {
         const username = `token${index + 1}`
 
         let user = await this.dbService.getUser(username)
@@ -375,7 +372,7 @@ export class PlexWatchlistService {
     this.log.debug(`Processing ${brandNewItems.size} new items`)
 
     const processedItems = await processWatchlistItems(
-      this.config.userConfig,
+      this.config,
       this.log,
       brandNewItems,
     )
@@ -647,7 +644,6 @@ export class PlexWatchlistService {
       this.log,
     )
 
-    // Store items in temp_rss_items table with proper type conversion
     await this.dbService.createTempRssItems(
       Array.from(selfItems as Set<TemptRssWatchlistItem>).map((item) => ({
         title: item.title,
@@ -657,12 +653,12 @@ export class PlexWatchlistService {
           ? item.guids
           : item.guids
             ? [item.guids]
-            : [], // Ensure array
+            : [],
         genres: Array.isArray(item.genres)
           ? item.genres
           : item.genres
             ? [item.genres]
-            : undefined, // Make optional
+            : undefined,
         source: 'self' as const,
       })),
     )
@@ -694,7 +690,6 @@ export class PlexWatchlistService {
       this.log,
     )
 
-    // Store items in temp_rss_items table with proper type conversion
     await this.dbService.createTempRssItems(
       Array.from(friendsItems as Set<TemptRssWatchlistItem>).map((item) => ({
         title: item.title,
@@ -704,12 +699,12 @@ export class PlexWatchlistService {
           ? item.guids
           : item.guids
             ? [item.guids]
-            : [], // Ensure array
+            : [],
         genres: Array.isArray(item.genres)
           ? item.genres
           : item.genres
             ? [item.genres]
-            : undefined, // Make optional
+            : undefined,
         source: 'friends' as const,
       })),
     )
@@ -809,7 +804,6 @@ export class PlexWatchlistService {
       }
     }
 
-    // Delete matched items from temp_rss_items
     if (matchedItemIds.length > 0) {
       await this.dbService.deleteTempRssItems(matchedItemIds)
     }
@@ -865,7 +859,6 @@ export class PlexWatchlistService {
       }
     }
 
-    // Delete matched items from temp_rss_items
     if (matchedItemIds.length > 0) {
       await this.dbService.deleteTempRssItems(matchedItemIds)
     }

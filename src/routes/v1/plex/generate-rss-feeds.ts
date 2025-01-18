@@ -11,7 +11,7 @@ export const generateRssFeedsRoute: FastifyPluginAsyncZod = async (
     schema: rssFeedsSchema,
     handler: async (_request, reply) => {
       try {
-        const response = await fastify.plexWatchlist.generateRssFeeds()
+        const response = await fastify.plexWatchlist.generateAndSaveRssFeeds()
         reply.send(response)
       } catch (err) {
         fastify.log.error(err)
