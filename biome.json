@@ -1,17 +1,17 @@
 {
-    "files": {
-      "ignore": ["dist", "tests", "migrations"]
-    },
-    "javascript": {
-      "formatter": {
-        "indentStyle": "space",
-        "semicolons": "asNeeded",
-        "quoteStyle": "single"
-      }
-    },
-    "json": {
-      "formatter": {
-        "indentStyle": "space"
-      }
+  "files": {
+    "ignore": ["dist", "tests", "migrations"]
+  },
+  "javascript": {
+    "formatter": {
+      "indentStyle": "space",
+      "semicolons": "asNeeded",
+      "quoteStyle": "single"
+    }
+  },
+  "json": {
+    "formatter": {
+      "indentStyle": "space"
     }
   }
+}

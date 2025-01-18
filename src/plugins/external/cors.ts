@@ -1,7 +1,7 @@
 import cors, { type FastifyCorsOptions } from '@fastify/cors'
 
 export const autoConfig: FastifyCorsOptions = {
-  methods: ['GET', 'POST', 'PUT', 'DELETE']
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
 }
 
 /**

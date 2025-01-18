@@ -8,8 +8,8 @@ function getLoggerOptions() {
   if (process.stdout.isTTY) {
     return {
       transport: {
-        target: '@fastify/one-line-logger'
-      }
+        target: '@fastify/one-line-logger',
+      },
     }
   }
   return { level: 'silent' }
@@ -22,7 +22,7 @@ const validLogLevels: LevelWithSilent[] = [
   'info',
   'debug',
   'trace',
-  'silent'
+  'silent',
 ]
 
 async function init() {
@@ -31,35 +31,38 @@ async function init() {
     ajv: {
       customOptions: {
         coerceTypes: 'array',
-        removeAdditional: 'all'
-      }
-    }
+        removeAdditional: 'all',
+      },
+    },
   })
 
   await app.register(fp(serviceApp))
   await app.ready()
 
-    const configLogLevel = app.config.LOG_LEVEL
-  if (configLogLevel && validLogLevels.includes(configLogLevel as LevelWithSilent)) {
+  const configLogLevel = app.config.LOG_LEVEL
+  if (
+    configLogLevel &&
+    validLogLevels.includes(configLogLevel as LevelWithSilent)
+  ) {
     app.log.level = configLogLevel as LevelWithSilent
   }
 
   closeWithGrace(
-    { 
-      delay: app.config.CLOSE_GRACE_DELAY
+    {
+      delay: app.config.CLOSE_GRACE_DELAY,
     },
     async ({ err }) => {
       if (err != null) {
         app.log.error(err)
       }
       await app.close()
-    }
+    },
   )
 
   try {
-    await app.listen({ 
-      port: app.config.PORT, 
-      host: '127.0.0.1' 
+    await app.listen({
+      port: app.config.PORT,
+      host: '127.0.0.1',
     })
   } catch (err) {
     app.log.error(err)

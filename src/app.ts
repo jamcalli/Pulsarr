@@ -7,14 +7,14 @@ export const options = {
   ajv: {
     customOptions: {
       coerceTypes: 'array',
-      removeAdditional: 'all'
-    }
-  }
+      removeAdditional: 'all',
+    },
+  },
 }
 
 export default async function serviceApp(
   fastify: FastifyInstance,
-  opts: FastifyPluginOptions
+  opts: FastifyPluginOptions,
 ) {
   // Basic setup
   fastify.register(FastifyFormBody)
@@ -22,13 +22,13 @@ export default async function serviceApp(
   // Load external plugins
   await fastify.register(fastifyAutoload, {
     dir: path.join(import.meta.dirname, 'plugins/external'),
-    options: { ...opts }
+    options: { ...opts },
   })
 
   // Load custom plugins
   fastify.register(fastifyAutoload, {
     dir: path.join(import.meta.dirname, 'plugins/custom'),
-    options: { ...opts }
+    options: { ...opts },
   })
 
   // Load routes
@@ -36,7 +36,7 @@ export default async function serviceApp(
     dir: path.join(import.meta.dirname, 'routes'),
     autoHooks: true,
     cascadeHooks: true,
-    options: { ...opts }
+    options: { ...opts },
   })
 
   // Error handler
@@ -48,10 +48,10 @@ export default async function serviceApp(
           method: request.method,
           url: request.url,
           query: request.query,
-          params: request.params
-        }
+          params: request.params,
+        },
       },
-      'Unhandled error occurred'
+      'Unhandled error occurred',
     )
     reply.code(err.statusCode ?? 500)
     let message = 'Internal Server Error'
@@ -66,8 +66,8 @@ export default async function serviceApp(
     {
       preHandler: fastify.rateLimit({
         max: 3,
-        timeWindow: 500
-      })
+        timeWindow: 500,
+      }),
     },
     (request, reply) => {
       request.log.warn(
@@ -76,14 +76,13 @@ export default async function serviceApp(
             method: request.method,
             url: request.url,
             query: request.query,
-            params: request.params
-          }
+            params: request.params,
+          },
         },
-        'Resource not found'
+        'Resource not found',
       )
       reply.code(404)
       return { message: 'Not Found' }
-    }
+    },
   )
-
 }
