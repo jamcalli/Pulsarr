@@ -20,7 +20,7 @@ export default fp(
 
     const dbConfig = await dbService.getConfig(1)
     if (dbConfig?.plexTokens) {
-      fastify.config.userConfig.plexTokens = dbConfig.plexTokens
+      fastify.config.plexTokens = dbConfig.plexTokens
     } else if (fastify.config.INITIAL_PLEX_TOKENS) {
       let initialTokens: string[] = []
       try {

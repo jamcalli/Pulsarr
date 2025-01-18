@@ -2,8 +2,7 @@ import fp from 'fastify-plugin'
 import env from '@fastify/env'
 import type { FastifyInstance } from 'fastify'
 
-// Separate environment config type from user config type
-interface EnvConfig {
+interface Config {
   PORT: number
   DB_PATH: string
   COOKIE_SECRET: string
@@ -13,21 +12,8 @@ interface EnvConfig {
   LOG_LEVEL: string
   CLOSE_GRACE_DELAY: number
   RATE_LIMIT_MAX: number
-}
-
-// User configurable settings
-interface UserConfig {
   plexTokens: string[]
-  skipFriendSync?: boolean
-}
-
-declare module 'fastify' {
-  export interface FastifyInstance {
-    config: EnvConfig & {
-      userConfig: UserConfig
-    }
-    updateUserConfig(config: Partial<UserConfig>): Promise<UserConfig>
-  }
+  skipFriendSync: boolean
 }
 
 const schema = {
@@ -78,6 +64,13 @@ const schema = {
   },
 }
 
+declare module 'fastify' {
+  export interface FastifyInstance {
+    config: Config
+    updateConfig(config: Partial<Config>): Promise<Config>
+  }
+}
+
 export default fp(
   async (fastify: FastifyInstance) => {
     await fastify.register(env, {
@@ -86,29 +79,6 @@ export default fp(
       dotenv: true,
       data: process.env,
     })
-
-    let initialTokens: string[] = []
-    if (fastify.config.INITIAL_PLEX_TOKENS) {
-      try {
-        const parsed = JSON.parse(fastify.config.INITIAL_PLEX_TOKENS)
-        if (Array.isArray(parsed)) {
-          initialTokens = parsed.filter(
-            (token): token is string =>
-              typeof token === 'string' && token.length > 0,
-          )
-        } else {
-          fastify.log.warn('INITIAL_PLEX_TOKENS must be an array of strings')
-        }
-      } catch (error) {
-        fastify.log.warn(
-          'Failed to parse INITIAL_PLEX_TOKENS, using empty array',
-        )
-      }
-    }
-
-    fastify.config.userConfig = {
-      plexTokens: initialTokens,
-    }
   },
   { name: 'config' },
 )
