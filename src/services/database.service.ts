@@ -38,7 +38,6 @@ export class DatabaseService {
     }
   }
 
-  // Add method to close database connection
   async close(): Promise<void> {
     await this.knex.destroy()
   }
@@ -98,7 +97,6 @@ export class DatabaseService {
     return updated > 0
   }
 
-  // Config operations
   async getConfig(id: number): Promise<Config | undefined> {
     const config = await this.knex('configs').where({ id }).first()
 
@@ -151,7 +149,6 @@ export class DatabaseService {
     return updated > 0
   }
 
-  // Watchlist operations
   async getWatchlistItem(
     userId: number,
     key: string,
@@ -265,7 +262,6 @@ export class DatabaseService {
     this.log.info('Configuration migrated from config to database.')
   }
 
-  // Add to DatabaseService class
   async createTempRssItems(
     items: Array<{
       title: string
@@ -327,5 +323,26 @@ export class DatabaseService {
       query.where({ source })
     }
     await query.delete()
+  }
+
+  async deleteWatchlistItems(userId: number, keys: string[]): Promise<void> {
+    if (keys.length === 0) return
+
+    await this.knex('watchlist_items')
+      .where('user_id', userId)
+      .whereIn('key', keys)
+      .delete()
+  }
+
+  async getAllWatchlistItemsForUser(userId: number): Promise<WatchlistItem[]> {
+    const items = await this.knex('watchlist_items')
+      .where('user_id', userId)
+      .select('*')
+
+    return items.map((item) => ({
+      ...item,
+      guids: JSON.parse(item.guids || '[]'),
+      genres: JSON.parse(item.genres || '[]'),
+    }))
   }
 }

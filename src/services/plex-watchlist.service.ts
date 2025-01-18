@@ -116,6 +116,8 @@ export class PlexWatchlistService {
       allItemsMap as Map<Friend, Set<TokenWatchlistItem>>,
     )
 
+    await this.checkForRemovedItems(userWatchlistMap)
+
     return this.buildResponse(
       userWatchlistMap,
       existingItems,
@@ -223,6 +225,8 @@ export class PlexWatchlistService {
     await this.matchRssPendingItemsFriends(
       allItemsMap as Map<Friend, Set<TokenWatchlistItem>>,
     )
+
+    await this.checkForRemovedItems(userWatchlistMap)
 
     return this.buildResponse(
       userWatchlistMap,
@@ -634,6 +638,33 @@ export class PlexWatchlistService {
     return config
   }
 
+  async storeRssWatchlistItems(
+    items: Set<TemptRssWatchlistItem>,
+    source: 'self' | 'friends',
+  ): Promise<void> {
+    const formattedItems = Array.from(items).map((item) => ({
+      title: item.title,
+      type: item.type,
+      thumb: item.thumb || undefined,
+      guids: Array.isArray(item.guids)
+        ? item.guids
+        : item.guids
+          ? [item.guids]
+          : [],
+      genres: Array.isArray(item.genres)
+        ? item.genres
+        : item.genres
+          ? [item.genres]
+          : undefined,
+      source: source,
+    }))
+
+    if (formattedItems.length > 0) {
+      await this.dbService.createTempRssItems(formattedItems)
+      this.log.info(`Stored ${formattedItems.length} RSS items for ${source}`)
+    }
+  }
+
   private async processSelfRssWatchlist(
     rssUrl: string,
   ): Promise<{ total: number; users: WatchlistGroup[] }> {
@@ -642,25 +673,6 @@ export class PlexWatchlistService {
       'selfRSS',
       1,
       this.log,
-    )
-
-    await this.dbService.createTempRssItems(
-      Array.from(selfItems as Set<TemptRssWatchlistItem>).map((item) => ({
-        title: item.title,
-        type: item.type,
-        thumb: item.thumb || undefined,
-        guids: Array.isArray(item.guids)
-          ? item.guids
-          : item.guids
-            ? [item.guids]
-            : [],
-        genres: Array.isArray(item.genres)
-          ? item.genres
-          : item.genres
-            ? [item.genres]
-            : undefined,
-        source: 'self' as const,
-      })),
     )
 
     const watchlistGroup: WatchlistGroup = {
@@ -673,7 +685,6 @@ export class PlexWatchlistService {
         selfItems as Set<TemptRssWatchlistItem>,
       ),
     }
-
     return {
       total: selfItems.size,
       users: [watchlistGroup],
@@ -690,25 +701,6 @@ export class PlexWatchlistService {
       this.log,
     )
 
-    await this.dbService.createTempRssItems(
-      Array.from(friendsItems as Set<TemptRssWatchlistItem>).map((item) => ({
-        title: item.title,
-        type: item.type,
-        thumb: item.thumb || undefined,
-        guids: Array.isArray(item.guids)
-          ? item.guids
-          : item.guids
-            ? [item.guids]
-            : [],
-        genres: Array.isArray(item.genres)
-          ? item.genres
-          : item.genres
-            ? [item.genres]
-            : undefined,
-        source: 'friends' as const,
-      })),
-    )
-
     const watchlistGroup: WatchlistGroup = {
       user: {
         watchlistId: 'friends',
@@ -719,27 +711,10 @@ export class PlexWatchlistService {
         friendsItems as Set<TemptRssWatchlistItem>,
       ),
     }
-
     return {
       total: friendsItems.size,
       users: [watchlistGroup],
     }
-  }
-
-  private prepareTemporaryWatchlistItems(
-    items: Set<TemptRssWatchlistItem>,
-    pendingUserId: number,
-  ): Array<Omit<WatchlistItem, 'created_at' | 'updated_at'>> {
-    return Array.from(items).map((item) => ({
-      user_id: pendingUserId,
-      title: item.title,
-      key: `rss_temp_${item.guids?.[0] || crypto.randomUUID()}`,
-      type: item.type,
-      thumb: item.thumb || '',
-      guids: item.guids || [],
-      genres: item.genres || [],
-      status: 'pending' as const,
-    }))
   }
 
   private mapRssItemsToWatchlist(items: Set<TemptRssWatchlistItem>) {
@@ -868,5 +843,36 @@ export class PlexWatchlistService {
       matched: matchCount,
       unmatched: noMatchCount,
     })
+  }
+
+  private async handleRemovedItems(
+    userId: number,
+    currentKeys: Set<string>,
+    fetchedKeys: Set<string>,
+  ): Promise<void> {
+    const removedKeys = Array.from(currentKeys).filter(
+      (key) => !fetchedKeys.has(key),
+    )
+
+    if (removedKeys.length > 0) {
+      this.log.info(
+        `Detected ${removedKeys.length} removed items for user ${userId}`,
+      )
+      await this.dbService.deleteWatchlistItems(userId, removedKeys)
+    }
+  }
+
+  private async checkForRemovedItems(
+    userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>,
+  ): Promise<void> {
+    for (const [user, items] of userWatchlistMap.entries()) {
+      const currentItems = await this.dbService.getAllWatchlistItemsForUser(
+        user.userId,
+      )
+      const currentKeys = new Set(currentItems.map((item) => item.key))
+      const fetchedKeys = new Set(Array.from(items).map((item) => item.id))
+
+      await this.handleRemovedItems(user.userId, currentKeys, fetchedKeys)
+    }
   }
 }

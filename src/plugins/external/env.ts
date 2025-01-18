@@ -44,10 +44,6 @@ const schema = {
       type: 'string',
       default: '[]',
     },
-    SKIP_FRIEND_SYNC: {
-      type: 'boolean',
-      default: false,
-    },
     LOG_LEVEL: {
       type: 'string',
       default: 'silent',
@@ -60,6 +56,17 @@ const schema = {
     RATE_LIMIT_MAX: {
       type: 'number',
       default: 100,
+    },
+    plexTokens: {
+      type: 'array',
+      items: {
+        type: 'string',
+      },
+      default: [],
+    },
+    skipFriendSync: {
+      type: 'boolean',
+      default: false,
     },
   },
 }
