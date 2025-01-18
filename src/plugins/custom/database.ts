@@ -15,6 +15,7 @@ export default fp(
     fastify.decorate('db', dbService)
 
     fastify.addHook('onClose', async () => {
+      fastify.log.info('Closing database service...')
       await dbService.close()
     })
 
