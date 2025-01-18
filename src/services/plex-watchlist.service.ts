@@ -84,24 +84,31 @@ export class PlexWatchlistService {
   
 	const processedItems = await this.processAndSaveNewItems(brandNewItems);
 	await this.linkExistingItems(existingItemsToLink);
-  
+
 	// Create a combined map of all items with their GUIDs for matching
 	const allItemsMap = new Map<Friend, Set<WatchlistItem>>();
-	
-	// Add processed items
-	for (const [user, items] of processedItems.entries()) {
-	  allItemsMap.set(user, items);
-	}
-  
-	// Add existing items
+
+	// Add existing items first
 	for (const item of existingItems) {
-	  const user = Array.from(userWatchlistMap.keys())
+	const user = Array.from(userWatchlistMap.keys())
 		.find(u => u.userId === item.user_id);
-	  if (user) {
+	if (user) {
 		const userItems = allItemsMap.get(user) || new Set<WatchlistItem>();
 		userItems.add(item);
 		allItemsMap.set(user, userItems);
-	  }
+	}
+	}
+
+	// Only add processed items if they don't already exist
+	for (const [user, items] of processedItems.entries()) {
+	const existingUserItems = allItemsMap.get(user) || new Set<WatchlistItem>();
+	for (const item of items) {
+		// Only add if not already in existingItems
+		if (!existingUserItems.has(item)) {
+		existingUserItems.add(item);
+		}
+	}
+	allItemsMap.set(user, existingUserItems);
 	}
   
 	// Match against all items (both new and existing)
@@ -566,12 +573,6 @@ export class PlexWatchlistService {
 	  async processRssWatchlists(): Promise<RssWatchlistResults> {
 		const config = await this.ensureRssFeeds();
 		
-		// Keep this for friend RSS items
-		const rssPendingUser = await this.dbService.getRssPendingUser();
-		if (!rssPendingUser?.id) {
-		  throw new Error('RSS pending user not found or has no ID');
-		}
-		
 		const results: RssWatchlistResults = {
 		  self: {
 			total: 0,
@@ -588,10 +589,7 @@ export class PlexWatchlistService {
 		}
 	  
 		if (config.friendsRss) {
-		  results.friends = await this.processFriendsRssWatchlist(
-			config.friendsRss,
-			rssPendingUser.id  // Keep using the pending user for friend RSS items
-		  );
+		  results.friends = await this.processFriendsRssWatchlist(config.friendsRss);
 		}
 	  
 		return results;
@@ -623,6 +621,18 @@ export class PlexWatchlistService {
 		  this.log
 		);
 	  
+		// Store items in temp_rss_items table with proper type conversion
+		await this.dbService.createTempRssItems(
+		  Array.from(selfItems as Set<TemptRssWatchlistItem>).map(item => ({
+			title: item.title,
+			type: item.type,
+			thumb: item.thumb || undefined,
+			guids: Array.isArray(item.guids) ? item.guids : item.guids ? [item.guids] : [], // Ensure array
+			genres: Array.isArray(item.genres) ? item.genres : item.genres ? [item.genres] : undefined, // Make optional
+			source: 'self' as const
+		  }))
+		);
+	  
 		const watchlistGroup: WatchlistGroup = {
 		  user: {
 			watchlistId: 'token1',
@@ -639,29 +649,32 @@ export class PlexWatchlistService {
 	  }
 	  
 	  private async processFriendsRssWatchlist(
-		rssUrl: string,
-		pendingUserId: number
+		rssUrl: string
 	  ): Promise<{ total: number; users: WatchlistGroup[] }> {
 		const friendsItems = await fetchWatchlistFromRss(
 		  rssUrl,
 		  'otherRSS',
-		  pendingUserId,
+		  1,
 		  this.log
 		);
 	  
-		// Store items with temporary keys but real GUIDs for later matching
-		const watchlistItems = this.prepareTemporaryWatchlistItems(
-		  friendsItems as Set<TemptRssWatchlistItem>,
-		  pendingUserId
+		// Store items in temp_rss_items table with proper type conversion
+		await this.dbService.createTempRssItems(
+		  Array.from(friendsItems as Set<TemptRssWatchlistItem>).map(item => ({
+			title: item.title,
+			type: item.type,
+			thumb: item.thumb || undefined,
+			guids: Array.isArray(item.guids) ? item.guids : item.guids ? [item.guids] : [], // Ensure array
+			genres: Array.isArray(item.genres) ? item.genres : item.genres ? [item.genres] : undefined, // Make optional
+			source: 'friends' as const
+		  }))
 		);
-		
-		await this.dbService.createWatchlistItems(watchlistItems);
 	  
 		const watchlistGroup: WatchlistGroup = {
 		  user: {
 			watchlistId: 'friends',
 			username: 'Friends Watchlist',
-			userId: pendingUserId
+			userId: 1
 		  },
 		  watchlist: this.mapRssItemsToWatchlist(friendsItems as Set<TemptRssWatchlistItem>)
 		};
@@ -701,21 +714,14 @@ export class PlexWatchlistService {
 	  }
 
 	  async matchRssPendingItemsSelf(userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>): Promise<void> {
-		// Get all items with rss_temp prefix key
-		const pendingItems = await this.dbService.getPendingRssItems();
+		const pendingItems = await this.dbService.getTempRssItems('self');
 		
 		this.log.info(`Found ${pendingItems.length} pending RSS items to match during self sync`);
 		let matchCount = 0;
 		let noMatchCount = 0;
+		const matchedItemIds: number[] = [];
 	  
 		for (const pendingItem of pendingItems) {
-		  if (!pendingItem.key.startsWith('rss_temp_')) continue;
-	  
-		  const pendingGuids = (typeof pendingItem.guids === 'string' 
-			? JSON.parse(pendingItem.guids) 
-			: pendingItem.guids) as string[];
-	  
-		  // Check if this item exists in the token sync
 		  let foundMatch = false;
 		  for (const [user, items] of userWatchlistMap.entries()) {
 			for (const item of items) {
@@ -723,9 +729,10 @@ export class PlexWatchlistService {
 				? JSON.parse(item.guids)
 				: item.guids) as string[];
 	  
-			  if (pendingGuids.some(guid => itemGuids.includes(guid))) {
+			  if (pendingItem.guids.some(guid => itemGuids.includes(guid))) {
 				foundMatch = true;
 				matchCount++;
+				matchedItemIds.push(pendingItem.id);
 				break;
 			  }
 			}
@@ -736,13 +743,15 @@ export class PlexWatchlistService {
 			noMatchCount++;
 			this.log.warn(`No match found for self RSS item "${pendingItem.title}"`, {
 			  itemTitle: pendingItem.title,
-			  pendingGuids
+			  pendingGuids: pendingItem.guids
 			});
 		  }
 		}
 	  
-		// Delete all rss_temp items after checking
-		await this.dbService.deletePendingRssItems();
+		// Delete matched items from temp_rss_items
+		if (matchedItemIds.length > 0) {
+		  await this.dbService.deleteTempRssItems(matchedItemIds);
+		}
 	  
 		this.log.info('Self RSS matching complete', {
 		  totalChecked: pendingItems.length,
@@ -752,54 +761,46 @@ export class PlexWatchlistService {
 	  }
 
 	  async matchRssPendingItemsFriends(userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>): Promise<void> {
-		const pendingItems = await this.dbService.getPendingRssItems();
+		const pendingItems = await this.dbService.getTempRssItems('friends');
 		
 		this.log.info(`Found ${pendingItems.length} pending RSS items to match during friend sync`);
 		let matchCount = 0;
 		let noMatchCount = 0;
+		const matchedItemIds: number[] = [];
 	  
 		for (const pendingItem of pendingItems) {
-		  const pendingGuids = (typeof pendingItem.guids === 'string' 
-			? JSON.parse(pendingItem.guids) 
-			: pendingItem.guids) as string[];
-	  
 		  let foundAnyMatch = false;
 		  
-		  // Check against each friend's items
 		  for (const [friend, items] of userWatchlistMap.entries()) {
-			let matchedWithThisFriend = false;
-			
 			for (const item of items) {
 			  const itemGuids = (typeof item.guids === 'string'
 				? JSON.parse(item.guids)
 				: item.guids) as string[];
 	  
-			  if (pendingGuids.some(guid => itemGuids.includes(guid))) {
+			  if (pendingItem.guids.some(guid => itemGuids.includes(guid))) {
 				foundAnyMatch = true;
-				matchedWithThisFriend = true;
 				matchCount++;
+				matchedItemIds.push(pendingItem.id);
 				
-				this.log.info(`Matched RSS item "${pendingItem.title}" with friend "${friend.username}"`, {
-				  itemTitle: pendingItem.title,
-				  friendUsername: friend.username,
-				  guids: pendingGuids
-				});
 				break;
 			  }
 			}
+			if (foundAnyMatch) break;
 		  }
 	  
 		  if (!foundAnyMatch) {
 			noMatchCount++;
 			this.log.warn(`No matches found for friend RSS item "${pendingItem.title}"`, {
 			  itemTitle: pendingItem.title,
-			  pendingGuids
+			  pendingGuids: pendingItem.guids
 			});
 		  }
 		}
 	  
-		// After checking against all friends, delete the pending items
-		await this.dbService.deletePendingRssItems();
+		// Delete matched items from temp_rss_items
+		if (matchedItemIds.length > 0) {
+		  await this.dbService.deleteTempRssItems(matchedItemIds);
+		}
 	  
 		this.log.info('Friend RSS matching complete', {
 		  totalChecked: pendingItems.length,

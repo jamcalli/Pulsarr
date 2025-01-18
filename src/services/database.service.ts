@@ -187,7 +187,7 @@ export class DatabaseService {
             thumb: item.thumb,
             guids: JSON.stringify(item.guids || []),
             genres: JSON.stringify(item.genres || []),
-            sync: item.status || 'pending',
+            status: item.status || 'pending',
             created_at: this.timestamp,
             updated_at: this.timestamp
           }));
@@ -240,24 +240,66 @@ export class DatabaseService {
     this.log.info('Configuration migrated from config to database.')
   }
 
-  async getRssPendingUser(): Promise<User> {
-    const user = await this.getUser('rss_pending_match');
-    if (!user) throw new Error('RSS pending user not found');
-    return user;
-  }
-
-  async getPendingRssItems(): Promise<WatchlistItem[]> {
-    return this.knex('watchlist_items')
-      .where('key', 'like', 'rss_temp_%')
-      .select('*');
-  }
-
-  async deletePendingRssItems(): Promise<void> {
-    const deleted = await this.knex('watchlist_items')
-      .where('key', 'like', 'rss_temp_%')
-      .delete();
+// Add to DatabaseService class
+async createTempRssItems(items: Array<{
+  title: string;
+  type: string;
+  thumb?: string;
+  guids: string[];
+  genres?: string[];
+  source: 'self' | 'friends';
+}>): Promise<void> {
+  await this.knex.transaction(async (trx) => {
+    const chunks = this.chunkArray(items, 250);
     
-    this.log.info(`Deleted ${deleted} pending RSS items`);
+    for (const chunk of chunks) {
+      await trx('temp_rss_items').insert(
+        chunk.map(item => ({
+          ...item,
+          guids: JSON.stringify(item.guids),
+          genres: item.genres ? JSON.stringify(item.genres) : null,
+          created_at: this.timestamp
+        }))
+      );
+    }
+  });
+}
+
+async getTempRssItems(source?: 'self' | 'friends'): Promise<Array<{
+  id: number;
+  title: string;
+  type: string;
+  thumb: string | null;
+  guids: string[];
+  genres: string[];
+  source: 'self' | 'friends';
+  created_at: string;
+}>> {
+  const query = this.knex('temp_rss_items');
+  if (source) {
+    query.where({ source });
   }
+  
+  const results = await query;
+  return results.map(row => ({
+    ...row,
+    guids: JSON.parse(row.guids),
+    genres: row.genres ? JSON.parse(row.genres) : []
+  }));
+}
+
+async deleteTempRssItems(ids: number[]): Promise<void> {
+  await this.knex('temp_rss_items')
+    .whereIn('id', ids)
+    .delete();
+}
+
+async deleteAllTempRssItems(source?: 'self' | 'friends'): Promise<void> {
+  const query = this.knex('temp_rss_items');
+  if (source) {
+    query.where({ source });
+  }
+  await query.delete();
+}
 
 }
