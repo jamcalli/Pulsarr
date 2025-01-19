@@ -3,60 +3,148 @@ import env from '@fastify/env'
 import type { FastifyInstance } from 'fastify'
 
 interface Config {
-  PORT: number
-  DB_PATH: string
-  COOKIE_SECRET: string
-  COOKIE_NAME: string
-  COOKIE_SECURED: boolean
-  INITIAL_PLEX_TOKENS: string
-  LOG_LEVEL: string
-  CLOSE_GRACE_DELAY: number
-  RATE_LIMIT_MAX: number
+  port: number
+  dbPath: string
+  cookieSecret: string
+  cookieName: string
+  cookieSecured: boolean
+  initialPlexTokens: string
+  logLevel: string
+  closeGraceDelay: number
+  rateLimitMax: number
+  syncIntervalSeconds: number
+  // Sonarr Config
+  sonarrBaseUrl: string
+  sonarrApiKey: string
+  sonarrQualityProfile: string
+  sonarrRootFolder: string
+  sonarrBypassIgnored: boolean
+  sonarrSeasonMonitoring: string
+  sonarrTags: string[]
+  // Radarr Config
+  radarrBaseUrl: string
+  radarrApiKey: string
+  radarrQualityProfile: string
+  radarrRootFolder: string
+  radarrBypassIgnored: boolean
+  radarrTags: string[]
+  // Plex Config
   plexTokens: string[]
   skipFriendSync: boolean
+  // Delete Config
+  deleteMovie: boolean
+  deleteEndedShow: boolean
+  deleteContinuingShow: boolean
+  deleteIntervalDays: number
+  deleteFiles: boolean
 }
 
 const schema = {
   type: 'object',
-  required: ['PORT'],
+  required: ['port'],
   properties: {
-    PORT: {
+    port: {
       type: 'number',
       default: 3003,
     },
-    DB_PATH: {
+    dbPath: {
       type: 'string',
       default: './data/db/plexwatchlist.db',
     },
-    COOKIE_SECRET: {
+    cookieSecret: {
       type: 'string',
       default: 'change-me-in-production',
     },
-    COOKIE_NAME: {
+    cookieName: {
       type: 'string',
       default: 'session',
     },
-    COOKIE_SECURED: {
+    cookieSecured: {
       type: 'boolean',
       default: false,
     },
-    INITIAL_PLEX_TOKENS: {
+    initialPlexTokens: {
       type: 'string',
       default: '[]',
     },
-    LOG_LEVEL: {
+    logLevel: {
       type: 'string',
       default: 'silent',
       enum: ['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'],
     },
-    CLOSE_GRACE_DELAY: {
+    closeGraceDelay: {
       type: 'number',
       default: 500,
     },
-    RATE_LIMIT_MAX: {
+    rateLimitMax: {
       type: 'number',
       default: 100,
     },
+    syncIntervalSeconds: {
+      type: 'number',
+      default: 10,
+    },
+    // Sonarr Configuration
+    sonarrBaseUrl: {
+      type: 'string',
+      default: 'localhost:8989',
+    },
+    sonarrApiKey: {
+      type: 'string',
+      default: '',
+    },
+    sonarrQualityProfile: {
+      type: 'string',
+      default: '',
+    },
+    sonarrRootFolder: {
+      type: 'string',
+      default: '',
+    },
+    sonarrBypassIgnored: {
+      type: 'boolean',
+      default: false,
+    },
+    sonarrSeasonMonitoring: {
+      type: 'string',
+      default: 'all',
+    },
+    sonarrTags: {
+      type: 'array',
+      items: {
+        type: 'string',
+      },
+      default: ['watchlistarr'],
+    },
+    // Radarr Configuration
+    radarrBaseUrl: {
+      type: 'string',
+      default: 'localhost:7878',
+    },
+    radarrApiKey: {
+      type: 'string',
+      default: '',
+    },
+    radarrQualityProfile: {
+      type: 'string',
+      default: '',
+    },
+    radarrRootFolder: {
+      type: 'string',
+      default: '',
+    },
+    radarrBypassIgnored: {
+      type: 'boolean',
+      default: false,
+    },
+    radarrTags: {
+      type: 'array',
+      items: {
+        type: 'string',
+      },
+      default: ['watchlistarr'],
+    },
+    // Plex Configuration
     plexTokens: {
       type: 'array',
       items: {
@@ -67,6 +155,27 @@ const schema = {
     skipFriendSync: {
       type: 'boolean',
       default: false,
+    },
+    // Delete Configuration
+    deleteMovie: {
+      type: 'boolean',
+      default: false,
+    },
+    deleteEndedShow: {
+      type: 'boolean',
+      default: false,
+    },
+    deleteContinuingShow: {
+      type: 'boolean',
+      default: false,
+    },
+    deleteIntervalDays: {
+      type: 'number',
+      default: 7,
+    },
+    deleteFiles: {
+      type: 'boolean',
+      default: true,
     },
   },
 }

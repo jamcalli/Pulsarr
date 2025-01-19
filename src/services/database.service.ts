@@ -10,7 +10,7 @@ export class DatabaseService {
     private readonly log: FastifyBaseLogger,
     private readonly config: FastifyInstance['config'],
   ) {
-    this.knex = knex(DatabaseService.createKnexConfig(config.DB_PATH, log))
+    this.knex = knex(DatabaseService.createKnexConfig(config.dbPath, log))
   }
 
   private static createKnexConfig(
@@ -118,7 +118,7 @@ export class DatabaseService {
   ): Promise<number> {
     const [id] = await this.knex('configs')
       .insert({
-        ...config,
+        port: config.port,
         plexTokens: JSON.stringify(config.plexTokens),
         selfRss: config.selfRss ? JSON.stringify(config.selfRss) : null,
         friendsRss: config.friendsRss
@@ -245,7 +245,7 @@ export class DatabaseService {
   }
 
   async migrateConfigFromEnv(): Promise<void> {
-    if (!this.config.INITIAL_PLEX_TOKENS || !this.config.PORT) {
+    if (!this.config.initialPlexTokens || !this.config.port) {
       this.log.error('Missing INITIAL_PLEX_TOKENS or PORT in config.')
       process.exit(1)
     }
@@ -256,9 +256,9 @@ export class DatabaseService {
       return
     }
 
-    const plexTokens = this.config.plexTokens
-    const port = this.config.PORT
-    await this.createConfig({ plexTokens, port })
+    const plex_tokens = this.config.plexTokens
+    const port = this.config.port
+    await this.createConfig({ plexTokens: plex_tokens, port: port })
     this.log.info('Configuration migrated from config to database.')
   }
 

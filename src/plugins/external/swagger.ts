@@ -17,7 +17,7 @@ const createOpenapiConfig = (fastify: FastifyInstance) => ({
     },
     servers: [
       {
-        url: `http://localhost:${fastify.config.PORT}`,
+        url: `http://localhost:${fastify.config.port}`,
       },
     ],
     /*

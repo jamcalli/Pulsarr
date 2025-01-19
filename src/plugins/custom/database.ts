@@ -22,26 +22,24 @@ export default fp(
     const dbConfig = await dbService.getConfig(1)
     if (dbConfig?.plexTokens) {
       fastify.config.plexTokens = dbConfig.plexTokens
-    } else if (fastify.config.INITIAL_PLEX_TOKENS) {
+    } else if (fastify.config.initialPlexTokens) {
       let initialTokens: string[] = []
       try {
-        const parsed = JSON.parse(fastify.config.INITIAL_PLEX_TOKENS)
+        const parsed = JSON.parse(fastify.config.initialPlexTokens)
         if (Array.isArray(parsed)) {
           initialTokens = parsed.filter(
             (token): token is string =>
               typeof token === 'string' && token.length > 0,
           )
         } else {
-          fastify.log.warn('INITIAL_PLEX_TOKENS must be an array of strings')
+          fastify.log.warn('initialPlexTokens must be an array of strings')
         }
       } catch (error) {
-        fastify.log.warn(
-          'Failed to parse INITIAL_PLEX_TOKENS, using empty array',
-        )
+        fastify.log.warn('Failed to parse initialPlexTokens, using empty array')
       }
 
       await dbService.createConfig({
-        port: fastify.config.PORT,
+        port: fastify.config.port,
         plexTokens: initialTokens,
       })
     }
