@@ -9,6 +9,7 @@ import type {
   RssWatchlistResults,
   WatchlistItem,
 } from '@root/types/plex.types.js'
+import type { Item, SonarrConfiguration } from '@root/types/sonarr.types.js'
 
 class PlexTestingWorkflow {
   private rssCheckInterval: NodeJS.Timeout | null = null
@@ -22,6 +23,8 @@ class PlexTestingWorkflow {
   constructor(
     private readonly plexService: FastifyInstance['plexWatchlist'],
     private readonly log: FastifyBaseLogger,
+    private readonly sonarrService: FastifyInstance['sonarr'],
+    private readonly config: FastifyInstance['config'],
   ) {}
 
   async startWorkflow() {
@@ -228,9 +231,16 @@ class PlexTestingWorkflow {
     let hasNewItems = false
 
     for (const item of items) {
+      // Check if it's a new item for the queue
       if (!this.changeQueue.has(item)) {
         this.changeQueue.add(item)
         hasNewItems = true
+
+        // Process shows immediately
+        if (item.type === 'SHOW') {
+          this.log.info(`Processing show ${item.title} immediately`)
+          await this.processSonarrItem(item)
+        }
       }
     }
 
@@ -239,13 +249,69 @@ class PlexTestingWorkflow {
       this.log.info(
         `Added ${items.size} changed items to queue from ${source} RSS feed`,
       )
-
       try {
         await this.plexService.storeRssWatchlistItems(items, source)
         this.log.info(`Stored ${items.size} changed ${source} RSS items`)
       } catch (error) {
         this.log.error(`Error storing ${source} RSS items:`, error)
       }
+    }
+  }
+
+  private async processSonarrItem(item: TemptRssWatchlistItem) {
+    try {
+      // More reliable TVDB ID extraction
+      const tvdbGuid = Array.isArray(item.guids)
+        ? item.guids.find((guid) => guid.startsWith('tvdb:'))
+        : undefined
+
+      if (!tvdbGuid) {
+        this.log.warn(
+          `Show ${item.title} has no TVDB ID, skipping Sonarr processing`,
+          {
+            guids: item.guids,
+          },
+        )
+        return
+      }
+
+      // Extract TVDB ID from the GUID
+      const tvdbId = Number.parseInt(tvdbGuid.replace('tvdb:', ''), 10)
+      if (isNaN(tvdbId)) {
+        throw new Error('Invalid TVDB ID format')
+      }
+
+      const sonarrConfig: SonarrConfiguration = {
+        sonarrApiKey: this.config.sonarrApiKey,
+        sonarrBaseUrl: this.config.sonarrBaseUrl,
+        sonarrQualityProfileId: this.config.sonarrQualityProfile,
+        sonarrRootFolder: this.config.sonarrRootFolder,
+        sonarrLanguageProfileId: 1, // Use from config if available
+        sonarrSeasonMonitoring: 'all', // Explicitly set to "all"
+        sonarrTagIds: this.config.sonarrTags,
+      }
+
+      const sonarrItem: Item = {
+        title: `TVDB:${tvdbId}`, // Match the working example's title format
+        guids: [tvdbGuid], // Use only the TVDB GUID
+        type: 'show',
+        ended: false,
+      }
+
+      await this.sonarrService.addToSonarr(sonarrConfig, sonarrItem)
+      this.log.info(`Successfully added show ${item.title} to Sonarr`)
+    } catch (error) {
+      this.log.error(`Error processing show ${item.title} in Sonarr:`, error)
+      // Log more details about the error for debugging
+      this.log.debug('Failed item details:', {
+        title: item.title,
+        guids: item.guids,
+        type: item.type,
+        error: error instanceof Error ? error.message : error,
+      })
+
+      // Re-throw the error to ensure it's properly propagated
+      throw error
     }
   }
 
@@ -296,7 +362,12 @@ class PlexTestingWorkflow {
 
 const plexTestingPlugin: FastifyPluginCallback = (fastify, opts, done) => {
   try {
-    const workflow = new PlexTestingWorkflow(fastify.plexWatchlist, fastify.log)
+    const workflow = new PlexTestingWorkflow(
+      fastify.plexWatchlist,
+      fastify.log,
+      fastify.sonarr,
+      fastify.config,
+    )
 
     fastify.addHook('onClose', async () => {
       await workflow.stop()
@@ -318,5 +389,5 @@ const plexTestingPlugin: FastifyPluginCallback = (fastify, opts, done) => {
 
 export default fp(plexTestingPlugin, {
   name: 'plex-testing-plugin',
-  dependencies: ['plex-watchlist'],
+  dependencies: ['plex-watchlist', 'sonarr'],
 })

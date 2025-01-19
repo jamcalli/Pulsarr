@@ -11,7 +11,6 @@ declare module 'fastify' {
 export default fp(
   async (fastify: FastifyInstance) => {
     const dbService = new DatabaseService(fastify.log, fastify.config)
-
     fastify.decorate('db', dbService)
 
     fastify.addHook('onClose', async () => {
@@ -24,15 +23,23 @@ export default fp(
       fastify.config.plexTokens = dbConfig.plexTokens
     } else if (fastify.config.initialPlexTokens) {
       let initialTokens: string[] = []
+
       try {
-        const parsed = JSON.parse(fastify.config.initialPlexTokens)
-        if (Array.isArray(parsed)) {
-          initialTokens = parsed.filter(
+        if (Array.isArray(fastify.config.initialPlexTokens)) {
+          initialTokens = fastify.config.initialPlexTokens.filter(
             (token): token is string =>
               typeof token === 'string' && token.length > 0,
           )
         } else {
-          fastify.log.warn('initialPlexTokens must be an array of strings')
+          const parsed = JSON.parse(fastify.config.initialPlexTokens as string)
+          if (Array.isArray(parsed)) {
+            initialTokens = parsed.filter(
+              (token): token is string =>
+                typeof token === 'string' && token.length > 0,
+            )
+          } else {
+            fastify.log.warn('initialPlexTokens must be an array of strings')
+          }
         }
       } catch (error) {
         fastify.log.warn('Failed to parse initialPlexTokens, using empty array')
