@@ -8,7 +8,7 @@ interface Config {
   cookieSecret: string
   cookieName: string
   cookieSecured: boolean
-  initialPlexTokens: string
+  initialPlexTokens: string[]
   logLevel: string
   closeGraceDelay: number
   rateLimitMax: number
@@ -16,7 +16,7 @@ interface Config {
   // Sonarr Config
   sonarrBaseUrl: string
   sonarrApiKey: string
-  sonarrQualityProfile: string
+  sonarrQualityProfile: number
   sonarrRootFolder: string
   sonarrBypassIgnored: boolean
   sonarrSeasonMonitoring: string
@@ -24,7 +24,7 @@ interface Config {
   // Radarr Config
   radarrBaseUrl: string
   radarrApiKey: string
-  radarrQualityProfile: string
+  radarrQualityProfile: number
   radarrRootFolder: string
   radarrBypassIgnored: boolean
   radarrTags: string[]
@@ -110,11 +110,8 @@ const schema = {
       default: 'all',
     },
     sonarrTags: {
-      type: 'array',
-      items: {
-        type: 'string',
-      },
-      default: ['watchlistarr'],
+      type: 'string',
+      default: '[]',
     },
     // Radarr Configuration
     radarrBaseUrl: {
@@ -138,19 +135,13 @@ const schema = {
       default: false,
     },
     radarrTags: {
-      type: 'array',
-      items: {
-        type: 'string',
-      },
-      default: ['watchlistarr'],
+      type: 'string',
+      default: '[]',
     },
     // Plex Configuration
     plexTokens: {
-      type: 'array',
-      items: {
-        type: 'string',
-      },
-      default: [],
+      type: 'string',
+      default: '[]',
     },
     skipFriendSync: {
       type: 'boolean',
@@ -191,10 +182,27 @@ export default fp(
   async (fastify: FastifyInstance) => {
     await fastify.register(env, {
       confKey: 'config',
-      schema,
+      schema: schema,
       dotenv: true,
       data: process.env,
     })
+
+    // Parse JSON strings to arrays after loading
+    const config = fastify.config as any
+    config.sonarrTags = JSON.parse(config.sonarrTags)
+    config.radarrTags = JSON.parse(config.radarrTags)
+    config.plexTokens = JSON.parse(config.plexTokens)
+    config.initialPlexTokens = JSON.parse(config.initialPlexTokens)
+
+    // Convert empty string to null or 0 for quality profiles
+    config.sonarrQualityProfile =
+      config.sonarrQualityProfile === ''
+        ? null
+        : Number(config.sonarrQualityProfile)
+    config.radarrQualityProfile =
+      config.radarrQualityProfile === ''
+        ? null
+        : Number(config.radarrQualityProfile)
   },
   { name: 'config' },
 )

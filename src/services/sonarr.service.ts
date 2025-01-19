@@ -6,6 +6,9 @@ import type {
   SonarrSeries,
   Item,
   SonarrConfiguration,
+  PagedResult,
+  RootFolder,
+  QualityProfile,
 } from '@root/types/sonarr.types.js'
 
 export class SonarrService {
@@ -19,11 +22,45 @@ export class SonarrService {
       title: series.title,
       guids: [
         series.imdbId,
-        series.tvdbId ? `tvdb://${series.tvdbId}` : undefined,
-        `sonarr://${series.id}`,
+        series.tvdbId ? `tvdb:${series.tvdbId}` : undefined,
+        `sonarr:${series.id}`,
       ].filter((x): x is string => !!x),
       type: 'show',
       ended: series.ended,
+    }
+  }
+
+  async fetchQualityProfiles(
+    apiKey: string,
+    baseUrl: string,
+  ): Promise<QualityProfile[]> {
+    try {
+      const profiles = await this.getFromSonarr<QualityProfile[]>(
+        baseUrl,
+        apiKey,
+        'qualityprofile',
+      )
+      return profiles
+    } catch (err) {
+      this.log.error(`Error fetching quality profiles: ${err}`)
+      throw err
+    }
+  }
+
+  async fetchRootFolders(
+    apiKey: string,
+    baseUrl: string,
+  ): Promise<RootFolder[]> {
+    try {
+      const rootFolders = await this.getFromSonarr<RootFolder[]>(
+        baseUrl,
+        apiKey,
+        'rootfolder',
+      )
+      return rootFolders
+    } catch (err) {
+      this.log.error(`Error fetching root folders: ${err}`)
+      throw err
     }
   }
 
@@ -55,6 +92,53 @@ export class SonarrService {
     }
   }
 
+  async fetchExclusions(
+    apiKey: string,
+    baseUrl: string,
+    pageSize = 1000,
+  ): Promise<Set<Item>> {
+    try {
+      let currentPage = 1
+      let totalRecords = 0
+      const allExclusions: SonarrSeries[] = []
+
+      do {
+        const url = new URL(`${baseUrl}/api/v3/importlistexclusion/paged`)
+        url.searchParams.append('page', currentPage.toString())
+        url.searchParams.append('pageSize', pageSize.toString())
+        url.searchParams.append('sortDirection', 'ascending')
+        url.searchParams.append('sortKey', 'title')
+
+        const response = await fetch(url.toString(), {
+          method: 'GET',
+          headers: {
+            'X-Api-Key': apiKey,
+            Accept: 'application/json',
+          },
+        })
+
+        if (!response.ok) {
+          throw new Error(`Sonarr API error: ${response.statusText}`)
+        }
+
+        const pagedResult = (await response.json()) as PagedResult<SonarrSeries>
+        totalRecords = pagedResult.totalRecords
+        allExclusions.push(...pagedResult.records)
+
+        this.log.debug(
+          `Fetched page ${currentPage} of exclusions (${pagedResult.records.length} records)`,
+        )
+        currentPage++
+      } while (allExclusions.length < totalRecords)
+
+      this.log.info(`Fetched all ${allExclusions.length} exclusions`)
+      return new Set(allExclusions.map((show) => this.toItem(show)))
+    } catch (err) {
+      this.log.error(`Error fetching exclusions: ${err}`)
+      throw err
+    }
+  }
+
   async addToSonarr(config: SonarrConfiguration, item: Item): Promise<void> {
     try {
       const addOptions: SonarrAddOptions = {
@@ -64,16 +148,44 @@ export class SonarrService {
       }
 
       const tvdbId = item.guids
-        .find((guid) => guid.startsWith('tvdb://'))
-        ?.replace('tvdb://', '')
+        .find((guid) => guid.startsWith('tvdb:'))
+        ?.replace('tvdb:', '')
+
+      let rootFolderPath = config.sonarrRootFolder
+      if (!rootFolderPath) {
+        const rootFolders = await this.fetchRootFolders(
+          config.sonarrApiKey,
+          config.sonarrBaseUrl,
+        )
+        if (rootFolders.length === 0) {
+          throw new Error('No root folders configured in Sonarr')
+        }
+        rootFolderPath = rootFolders[0].path
+        this.log.info(`Using root folder: ${rootFolderPath}`)
+      }
+
+      let qualityProfileId = config.sonarrQualityProfileId
+      if (!qualityProfileId) {
+        const qualityProfiles = await this.fetchQualityProfiles(
+          config.sonarrApiKey,
+          config.sonarrBaseUrl,
+        )
+        if (qualityProfiles.length === 0) {
+          throw new Error('No quality profiles configured in Sonarr')
+        }
+        qualityProfileId = qualityProfiles[0].id
+        this.log.info(
+          `Using quality profile: ${qualityProfiles[0].name} (ID: ${qualityProfileId})`,
+        )
+      }
 
       const show: SonarrPost = {
         title: item.title,
         tvdbId: tvdbId ? Number.parseInt(tvdbId, 10) : 0,
-        qualityProfileId: config.sonarrQualityProfileId,
-        rootFolderPath: config.sonarrRootFolder,
+        qualityProfileId,
+        rootFolderPath,
         addOptions,
-        languageProfileId: config.sonarrLanguageProfileId,
+        languageProfileId: null,
         monitored: true,
         tags: config.sonarrTagIds,
       }
@@ -100,21 +212,56 @@ export class SonarrService {
     deleteFiles: boolean,
   ): Promise<void> {
     try {
-      const showId = item.guids
-        .find((guid) => guid.startsWith('sonarr://'))
-        ?.replace('sonarr://', '')
+      const sonarrGuid = item.guids.find((guid) => guid.startsWith('sonarr:'))
+      const tvdbGuid = item.guids.find((guid) => guid.startsWith('tvdb:'))
 
-      if (!showId) {
+      if (!sonarrGuid && !tvdbGuid) {
         this.log.warn(
-          `Unable to extract Sonarr ID from show to delete: ${JSON.stringify(item)}`,
+          `Unable to extract ID from show to delete: ${JSON.stringify(item)}`,
         )
         return
+      }
+
+      let sonarrId: number
+      if (sonarrGuid) {
+        sonarrId = Number.parseInt(sonarrGuid.replace('sonarr:', ''), 10)
+      } else {
+        const tvdbId = tvdbGuid!.replace('tvdb:', '')
+        const allSeries = await this.fetchSeries(
+          config.sonarrApiKey,
+          config.sonarrBaseUrl,
+          true,
+        )
+
+        // Find series matching the raw TVDB ID
+        const matchingSeries = [...allSeries].find((show) =>
+          show.guids.some(
+            (guid) =>
+              guid.startsWith('tvdb:') && guid.replace('tvdb:', '') === tvdbId,
+          ),
+        )
+
+        if (!matchingSeries) {
+          throw new Error(`Could not find show with TVDB ID: ${tvdbId}`)
+        }
+
+        const matchingSonarrGuid = matchingSeries.guids.find((guid) =>
+          guid.startsWith('sonarr:'),
+        )
+        if (!matchingSonarrGuid) {
+          throw new Error('Could not find Sonarr ID for show')
+        }
+
+        sonarrId = Number.parseInt(
+          matchingSonarrGuid.replace('sonarr:', ''),
+          10,
+        )
       }
 
       await this.deleteFromSonarrById(
         config.sonarrBaseUrl,
         config.sonarrApiKey,
-        Number.parseInt(showId, 10),
+        sonarrId,
         deleteFiles,
       )
 
