@@ -39,7 +39,7 @@ async function init() {
   await app.register(fp(serviceApp))
   await app.ready()
 
-  const configLogLevel = app.config.LOG_LEVEL
+  const configLogLevel = app.config.logLevel
   if (
     configLogLevel &&
     validLogLevels.includes(configLogLevel as LevelWithSilent)
@@ -49,7 +49,7 @@ async function init() {
 
   closeWithGrace(
     {
-      delay: app.config.CLOSE_GRACE_DELAY,
+      delay: app.config.closeGraceDelay,
     },
     async ({ err }) => {
       if (err != null) {
@@ -61,7 +61,7 @@ async function init() {
 
   try {
     await app.listen({
-      port: app.config.PORT,
+      port: app.config.port,
       host: '127.0.0.1',
     })
   } catch (err) {
