@@ -271,6 +271,92 @@ class PlexTestingWorkflow {
     }
   }
 
+  private async verifySonarrItem(
+    item: TemptRssWatchlistItem,
+  ): Promise<boolean> {
+    try {
+      if (!item.guids || item.guids.length === 0) {
+        this.log.warn(`Show ${item.title} has no GUIDs to verify against`)
+        return false
+      }
+
+      const sonarrConfig: SonarrConfiguration = {
+        sonarrApiKey: this.config.sonarrApiKey,
+        sonarrBaseUrl: this.config.sonarrBaseUrl,
+        sonarrQualityProfileId: this.config.sonarrQualityProfile,
+        sonarrRootFolder: this.config.sonarrRootFolder,
+        sonarrLanguageProfileId: 1,
+        sonarrSeasonMonitoring: 'all',
+        sonarrTagIds: this.config.sonarrTags,
+      }
+
+      const existingSeries = await this.sonarrService.fetchSeries(
+        sonarrConfig.sonarrApiKey,
+        sonarrConfig.sonarrBaseUrl,
+      )
+
+      // Check if any of the item's GUIDs match existing series
+      const exists = [...existingSeries].some((series) =>
+        series.guids.some((existingGuid) => item.guids?.includes(existingGuid)),
+      )
+
+      if (exists) {
+        this.log.info(
+          `Show ${item.title} already exists in Sonarr, skipping addition`,
+        )
+        return false
+      }
+
+      return true
+    } catch (error) {
+      this.log.error(`Error verifying show ${item.title} in Sonarr:`, error)
+      throw error
+    }
+  }
+
+  private async verifyRadarrItem(
+    item: TemptRssWatchlistItem,
+  ): Promise<boolean> {
+    try {
+      if (!item.guids || item.guids.length === 0) {
+        this.log.warn(`Movie ${item.title} has no GUIDs to verify against`)
+        return false
+      }
+
+      const radarrConfig: RadarrConfiguration = {
+        radarrApiKey: this.config.radarrApiKey,
+        radarrBaseUrl: this.config.radarrBaseUrl,
+        radarrQualityProfileId: this.config.radarrQualityProfile,
+        radarrRootFolder: this.config.radarrRootFolder,
+        radarrTagIds: this.config.radarrTags
+          .map((tag) => Number(tag))
+          .filter((tag) => !Number.isNaN(tag)),
+      }
+
+      const existingMovies = await this.radarrService.fetchMovies(
+        radarrConfig.radarrApiKey,
+        radarrConfig.radarrBaseUrl,
+      )
+
+      // Check if any of the item's GUIDs match existing movies
+      const exists = [...existingMovies].some((movie) =>
+        movie.guids.some((existingGuid) => item.guids?.includes(existingGuid)),
+      )
+
+      if (exists) {
+        this.log.info(
+          `Movie ${item.title} already exists in Radarr, skipping addition`,
+        )
+        return false
+      }
+
+      return true
+    } catch (error) {
+      this.log.error(`Error verifying movie ${item.title} in Radarr:`, error)
+      throw error
+    }
+  }
+
   private async processRadarrItem(item: TemptRssWatchlistItem) {
     try {
       // Extract TMDB ID from guids
@@ -294,6 +380,12 @@ class PlexTestingWorkflow {
         throw new Error('Invalid TMDB ID format')
       }
 
+      // Verify the item doesn't already exist before proceeding
+      const shouldAdd = await this.verifyRadarrItem(item)
+      if (!shouldAdd) {
+        return
+      }
+
       const radarrConfig: RadarrConfiguration = {
         radarrApiKey: this.config.radarrApiKey,
         radarrBaseUrl: this.config.radarrBaseUrl,
@@ -314,15 +406,12 @@ class PlexTestingWorkflow {
       this.log.info(`Successfully added movie ${item.title} to Radarr`)
     } catch (error) {
       this.log.error(`Error processing movie ${item.title} in Radarr:`, error)
-      // Log more details about the error for debugging
       this.log.debug('Failed item details:', {
         title: item.title,
         guids: item.guids,
         type: item.type,
         error: error instanceof Error ? error.message : error,
       })
-
-      // Re-throw the error to ensure it's properly propagated
       throw error
     }
   }
@@ -350,6 +439,12 @@ class PlexTestingWorkflow {
         throw new Error('Invalid TVDB ID format')
       }
 
+      // Verify the item doesn't already exist before proceeding
+      const shouldAdd = await this.verifySonarrItem(item)
+      if (!shouldAdd) {
+        return
+      }
+
       const sonarrConfig: SonarrConfiguration = {
         sonarrApiKey: this.config.sonarrApiKey,
         sonarrBaseUrl: this.config.sonarrBaseUrl,
@@ -371,15 +466,12 @@ class PlexTestingWorkflow {
       this.log.info(`Successfully added show ${item.title} to Sonarr`)
     } catch (error) {
       this.log.error(`Error processing show ${item.title} in Sonarr:`, error)
-      // Log more details about the error for debugging
       this.log.debug('Failed item details:', {
         title: item.title,
         guids: item.guids,
         type: item.type,
         error: error instanceof Error ? error.message : error,
       })
-
-      // Re-throw the error to ensure it's properly propagated
       throw error
     }
   }
