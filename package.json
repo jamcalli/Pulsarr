@@ -4,8 +4,10 @@
   "main": "build/server.js",
   "type": "module",
   "scripts": {
-    "build": "tsc && tsc-alias",
-    "dev": "tsx watch src/server.ts",
+    "build": "npm run build:server && vite build",
+    "build:server": "tsc && tsc-alias",
+    "dev:server": "tsx watch src/server.ts",
+    "dev": "npm run build:server && node dist/server.js --dev",
     "start:prod": "node dist/server.js",
     "fix": "biome format --write . && biome lint --write .",
     "migrate": "tsx migrations/migrate.ts",
@@ -19,11 +21,13 @@
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.12",
     "@types/node": "^22.10.5",
+    "@vitejs/plugin-react": "^4.3.4",
     "fastify-cli": "^7.0.0",
     "fastify-tsconfig": "^2.0.0",
     "tsc-alias": "^1.8.10",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vite": "^6.0.10"
   },
   "dependencies": {
     "@biomejs/biome": "^1.9.4",
@@ -35,6 +39,7 @@
     "@fastify/one-line-logger": "^2.0.2",
     "@fastify/rate-limit": "^10.2.2",
     "@fastify/swagger": "^9.4.1",
+    "@fastify/vite": "^7.0.1",
     "@scalar/fastify-api-reference": "^1.25.102",
     "better-sqlite3": "^11.7.2",
     "dotenv": "^16.4.7",
