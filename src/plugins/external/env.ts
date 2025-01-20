@@ -194,15 +194,35 @@ export default fp(
     config.plexTokens = JSON.parse(config.plexTokens)
     config.initialPlexTokens = JSON.parse(config.initialPlexTokens)
 
-    // Convert empty string to null or 0 for quality profiles
+    // Convert empty strings to appropriate values for Sonarr
     config.sonarrQualityProfile =
       config.sonarrQualityProfile === ''
         ? null
         : Number(config.sonarrQualityProfile)
+    config.sonarrRootFolder =
+      config.sonarrRootFolder === '' ? null : config.sonarrRootFolder
+    config.sonarrApiKey =
+      config.sonarrApiKey === '' ? null : config.sonarrApiKey
+    config.sonarrBaseUrl =
+      config.sonarrBaseUrl === '' ? null : config.sonarrBaseUrl
+
+    // Convert empty strings to appropriate values for Radarr
     config.radarrQualityProfile =
       config.radarrQualityProfile === ''
         ? null
         : Number(config.radarrQualityProfile)
+    config.radarrRootFolder =
+      config.radarrRootFolder === '' ? null : config.radarrRootFolder
+    config.radarrApiKey =
+      config.radarrApiKey === '' ? null : config.radarrApiKey
+    config.radarrBaseUrl =
+      config.radarrBaseUrl === '' ? null : config.radarrBaseUrl
+
+    // Ensure arrays are initialized even if empty
+    if (!Array.isArray(config.radarrTags)) config.radarrTags = []
+    if (!Array.isArray(config.sonarrTags)) config.sonarrTags = []
+    if (!Array.isArray(config.plexTokens)) config.plexTokens = []
+    if (!Array.isArray(config.initialPlexTokens)) config.initialPlexTokens = []
   },
   { name: 'config' },
 )

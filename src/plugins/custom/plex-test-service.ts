@@ -9,7 +9,8 @@ import type {
   RssWatchlistResults,
   WatchlistItem,
 } from '@root/types/plex.types.js'
-import type { Item, SonarrConfiguration } from '@root/types/sonarr.types.js'
+import type { Item as SonarrItem, SonarrConfiguration } from '@root/types/sonarr.types.js'
+import type { Item as RadarrItem, RadarrConfiguration } from '@root/types/radarr.types.js'
 
 class PlexTestingWorkflow {
   private rssCheckInterval: NodeJS.Timeout | null = null
@@ -24,6 +25,7 @@ class PlexTestingWorkflow {
     private readonly plexService: FastifyInstance['plexWatchlist'],
     private readonly log: FastifyBaseLogger,
     private readonly sonarrService: FastifyInstance['sonarr'],
+    private readonly radarrService: FastifyInstance['radarr'],
     private readonly config: FastifyInstance['config'],
   ) {}
 
@@ -228,7 +230,7 @@ class PlexTestingWorkflow {
     items: Set<TemptRssWatchlistItem>,
     source: 'self' | 'friends',
   ) {
-    let hasNewItems = false
+    let hasNewItems = false;
 
     for (const item of items) {
       // Check if it's a new item for the queue
@@ -236,10 +238,15 @@ class PlexTestingWorkflow {
         this.changeQueue.add(item)
         hasNewItems = true
 
-        // Process shows immediately
+        // Process shows immediately with Sonarr
         if (item.type === 'SHOW') {
           this.log.info(`Processing show ${item.title} immediately`)
           await this.processSonarrItem(item)
+        }
+        // Process movies immediately with Radarr
+        else if (item.type === 'MOVIE') {
+          this.log.info(`Processing movie ${item.title} immediately`)
+          await this.processRadarrItem(item)
         }
       }
     }
@@ -255,6 +262,60 @@ class PlexTestingWorkflow {
       } catch (error) {
         this.log.error(`Error storing ${source} RSS items:`, error)
       }
+    }
+  }
+
+  private async processRadarrItem(item: TemptRssWatchlistItem) {
+    try {
+      // Extract TMDB ID from guids
+      const tmdbGuid = Array.isArray(item.guids)
+        ? item.guids.find((guid) => guid.startsWith('tmdb:'))
+        : undefined
+
+      if (!tmdbGuid) {
+        this.log.warn(
+          `Movie ${item.title} has no TMDB ID, skipping Radarr processing`,
+          {
+            guids: item.guids,
+          },
+        )
+        return
+      }
+
+      // Extract TMDB ID from the GUID
+      const tmdbId = Number.parseInt(tmdbGuid.replace('tmdb:', ''), 10)
+      if (isNaN(tmdbId)) {
+        throw new Error('Invalid TMDB ID format')
+      }
+
+      const radarrConfig: RadarrConfiguration = {
+        radarrApiKey: this.config.radarrApiKey,
+        radarrBaseUrl: this.config.radarrBaseUrl,
+        radarrQualityProfileId: this.config.radarrQualityProfile,
+        radarrRootFolder: this.config.radarrRootFolder,
+        radarrTagIds: this.config.radarrTags.map(tag => Number(tag)).filter(tag => !isNaN(tag)),
+      }
+
+      const radarrItem: RadarrItem = {
+        title: `TMDB:${tmdbId}`,
+        guids: [tmdbGuid],
+        type: 'movie' as const
+      }
+
+      await this.radarrService.addToRadarr(radarrConfig, radarrItem)
+      this.log.info(`Successfully added movie ${item.title} to Radarr`)
+    } catch (error) {
+      this.log.error(`Error processing movie ${item.title} in Radarr:`, error)
+      // Log more details about the error for debugging
+      this.log.debug('Failed item details:', {
+        title: item.title,
+        guids: item.guids,
+        type: item.type,
+        error: error instanceof Error ? error.message : error,
+      })
+
+      // Re-throw the error to ensure it's properly propagated
+      throw error
     }
   }
 
@@ -291,10 +352,10 @@ class PlexTestingWorkflow {
         sonarrTagIds: this.config.sonarrTags,
       }
 
-      const sonarrItem: Item = {
-        title: `TVDB:${tvdbId}`, // Match the working example's title format
-        guids: [tvdbGuid], // Use only the TVDB GUID
-        type: 'show',
+      const sonarrItem: SonarrItem = {
+        title: `TVDB:${tvdbId}`,
+        guids: [tvdbGuid],
+        type: 'show' as const,
         ended: false,
       }
 
@@ -366,6 +427,7 @@ const plexTestingPlugin: FastifyPluginCallback = (fastify, opts, done) => {
       fastify.plexWatchlist,
       fastify.log,
       fastify.sonarr,
+      fastify.radarr,
       fastify.config,
     )
 
@@ -389,5 +451,5 @@ const plexTestingPlugin: FastifyPluginCallback = (fastify, opts, done) => {
 
 export default fp(plexTestingPlugin, {
   name: 'plex-testing-plugin',
-  dependencies: ['plex-watchlist', 'sonarr'],
+  dependencies: ['plex-watchlist', 'sonarr', 'radarr'],
 })

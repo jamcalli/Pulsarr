@@ -76,16 +76,13 @@ export class SonarrService {
         'series',
       )
 
-      let exclusions: SonarrSeries[] = []
+      let exclusions: Set<Item> = new Set()
       if (!bypass) {
-        exclusions = await this.getFromSonarr<SonarrSeries[]>(
-          baseUrl,
-          apiKey,
-          'importlistexclusion',
-        )
+        exclusions = await this.fetchExclusions(apiKey, baseUrl)
       }
 
-      return new Set([...shows, ...exclusions].map((show) => this.toItem(show)))
+      const showItems = shows.map((show) => this.toItem(show))
+      return new Set([...showItems, ...exclusions])
     } catch (err) {
       this.log.error(`Error fetching series: ${err}`)
       throw err
@@ -233,7 +230,6 @@ export class SonarrService {
           true,
         )
 
-        // Find series matching the raw TVDB ID
         const matchingSeries = [...allSeries].find((show) =>
           show.guids.some(
             (guid) =>
