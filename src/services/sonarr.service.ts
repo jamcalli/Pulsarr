@@ -143,11 +143,11 @@ export class SonarrService {
         searchForCutoffUnmetEpisodes: true,
         searchForMissingEpisodes: true,
       }
-  
+
       const tvdbId = item.guids
         .find((guid) => guid.startsWith('tvdb:'))
         ?.replace('tvdb:', '')
-  
+
       let rootFolderPath = config.sonarrRootFolder
       if (!rootFolderPath) {
         const rootFolders = await this.fetchRootFolders(
@@ -160,23 +160,25 @@ export class SonarrService {
         rootFolderPath = rootFolders[0].path
         this.log.info(`Using root folder: ${rootFolderPath}`)
       }
-  
+
       let qualityProfileId = config.sonarrQualityProfileId
       const qualityProfiles = await this.fetchQualityProfiles(
         config.sonarrApiKey,
         config.sonarrBaseUrl,
       )
-  
+
       if (qualityProfiles.length === 0) {
         throw new Error('No quality profiles configured in Sonarr')
       }
-  
+
       if (config.sonarrQualityProfileId !== null) {
         if (typeof config.sonarrQualityProfileId === 'string') {
           const matchingProfile = qualityProfiles.find(
-            profile => profile.name.toLowerCase() === config.sonarrQualityProfileId?.toString().toLowerCase()
+            (profile) =>
+              profile.name.toLowerCase() ===
+              config.sonarrQualityProfileId?.toString().toLowerCase(),
           )
-          
+
           if (matchingProfile) {
             qualityProfileId = matchingProfile.id
             this.log.info(
@@ -184,7 +186,7 @@ export class SonarrService {
             )
           } else {
             this.log.warn(
-              `Could not find quality profile "${config.sonarrQualityProfileId}". Available profiles: ${qualityProfiles.map(p => p.name).join(', ')}`
+              `Could not find quality profile "${config.sonarrQualityProfileId}". Available profiles: ${qualityProfiles.map((p) => p.name).join(', ')}`,
             )
             qualityProfileId = qualityProfiles[0].id
             this.log.info(
@@ -195,14 +197,14 @@ export class SonarrService {
           qualityProfileId = config.sonarrQualityProfileId
         }
       }
-  
+
       if (!qualityProfileId) {
         qualityProfileId = qualityProfiles[0].id
         this.log.info(
           `Using default quality profile: ${qualityProfiles[0].name} (ID: ${qualityProfileId})`,
         )
       }
-  
+
       const show: SonarrPost = {
         title: item.title,
         tvdbId: tvdbId ? Number.parseInt(tvdbId, 10) : 0,
@@ -213,14 +215,14 @@ export class SonarrService {
         monitored: true,
         tags: config.sonarrTagIds,
       }
-  
+
       await this.postToSonarr<void>(
         config.sonarrBaseUrl,
         config.sonarrApiKey,
         'series',
         show,
       )
-  
+
       this.log.info(`Sent ${item.title} to Sonarr`)
     } catch (err) {
       this.log.debug(
@@ -246,39 +248,40 @@ export class SonarrService {
         return
       }
 
-      let sonarrId: number
+      let sonarrId: number | undefined
+
       if (sonarrGuid) {
         sonarrId = Number.parseInt(sonarrGuid.replace('sonarr:', ''), 10)
-      } else {
-        const tvdbId = tvdbGuid!.replace('tvdb:', '')
+      } else if (tvdbGuid) {
+        const tvdbId = tvdbGuid.replace('tvdb:', '')
         const allSeries = await this.fetchSeries(
           config.sonarrApiKey,
           config.sonarrBaseUrl,
           true,
         )
-
         const matchingSeries = [...allSeries].find((show) =>
           show.guids.some(
             (guid) =>
               guid.startsWith('tvdb:') && guid.replace('tvdb:', '') === tvdbId,
           ),
         )
-
         if (!matchingSeries) {
           throw new Error(`Could not find show with TVDB ID: ${tvdbId}`)
         }
-
         const matchingSonarrGuid = matchingSeries.guids.find((guid) =>
           guid.startsWith('sonarr:'),
         )
         if (!matchingSonarrGuid) {
           throw new Error('Could not find Sonarr ID for show')
         }
-
         sonarrId = Number.parseInt(
           matchingSonarrGuid.replace('sonarr:', ''),
           10,
         )
+      }
+
+      if (sonarrId === undefined || Number.isNaN(sonarrId)) {
+        throw new Error('Failed to obtain valid Sonarr ID')
       }
 
       await this.deleteFromSonarrById(
@@ -287,7 +290,6 @@ export class SonarrService {
         sonarrId,
         deleteFiles,
       )
-
       this.log.info(`Deleted ${item.title} from Sonarr`)
     } catch (err) {
       this.log.error(`Error deleting from Sonarr: ${err}`)

@@ -9,8 +9,14 @@ import type {
   RssWatchlistResults,
   WatchlistItem,
 } from '@root/types/plex.types.js'
-import type { Item as SonarrItem, SonarrConfiguration } from '@root/types/sonarr.types.js'
-import type { Item as RadarrItem, RadarrConfiguration } from '@root/types/radarr.types.js'
+import type {
+  Item as SonarrItem,
+  SonarrConfiguration,
+} from '@root/types/sonarr.types.js'
+import type {
+  Item as RadarrItem,
+  RadarrConfiguration,
+} from '@root/types/radarr.types.js'
 
 class PlexTestingWorkflow {
   private rssCheckInterval: NodeJS.Timeout | null = null
@@ -230,7 +236,7 @@ class PlexTestingWorkflow {
     items: Set<TemptRssWatchlistItem>,
     source: 'self' | 'friends',
   ) {
-    let hasNewItems = false;
+    let hasNewItems = false
 
     for (const item of items) {
       // Check if it's a new item for the queue
@@ -284,7 +290,7 @@ class PlexTestingWorkflow {
 
       // Extract TMDB ID from the GUID
       const tmdbId = Number.parseInt(tmdbGuid.replace('tmdb:', ''), 10)
-      if (isNaN(tmdbId)) {
+      if (Number.isNaN(tmdbId)) {
         throw new Error('Invalid TMDB ID format')
       }
 
@@ -293,13 +299,15 @@ class PlexTestingWorkflow {
         radarrBaseUrl: this.config.radarrBaseUrl,
         radarrQualityProfileId: this.config.radarrQualityProfile,
         radarrRootFolder: this.config.radarrRootFolder,
-        radarrTagIds: this.config.radarrTags.map(tag => Number(tag)).filter(tag => !isNaN(tag)),
+        radarrTagIds: this.config.radarrTags
+          .map((tag) => Number(tag))
+          .filter((tag) => !Number.isNaN(tag)),
       }
 
       const radarrItem: RadarrItem = {
         title: `TMDB:${tmdbId}`,
         guids: [tmdbGuid],
-        type: 'movie' as const
+        type: 'movie' as const,
       }
 
       await this.radarrService.addToRadarr(radarrConfig, radarrItem)
@@ -338,7 +346,7 @@ class PlexTestingWorkflow {
 
       // Extract TVDB ID from the GUID
       const tvdbId = Number.parseInt(tvdbGuid.replace('tvdb:', ''), 10)
-      if (isNaN(tvdbId)) {
+      if (Number.isNaN(tvdbId)) {
         throw new Error('Invalid TVDB ID format')
       }
 
@@ -347,8 +355,8 @@ class PlexTestingWorkflow {
         sonarrBaseUrl: this.config.sonarrBaseUrl,
         sonarrQualityProfileId: this.config.sonarrQualityProfile,
         sonarrRootFolder: this.config.sonarrRootFolder,
-        sonarrLanguageProfileId: 1, 
-        sonarrSeasonMonitoring: 'all', 
+        sonarrLanguageProfileId: 1,
+        sonarrSeasonMonitoring: 'all',
         sonarrTagIds: this.config.sonarrTags,
       }
 

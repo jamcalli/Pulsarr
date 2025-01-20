@@ -39,6 +39,10 @@ interface Config {
   deleteFiles: boolean
 }
 
+type RawConfig = {
+  [K in keyof Config]: Config[K] extends string[] ? string : Config[K]
+}
+
 const schema = {
   type: 'object',
   required: ['port'],
@@ -187,18 +191,34 @@ export default fp(
       data: process.env,
     })
 
-    // Parse JSON strings to arrays after loading
-    const config = fastify.config as any
-    config.sonarrTags = JSON.parse(config.sonarrTags)
-    config.radarrTags = JSON.parse(config.radarrTags)
-    config.plexTokens = JSON.parse(config.plexTokens)
-    config.initialPlexTokens = JSON.parse(config.initialPlexTokens)
+    // Get the raw config and parse JSON strings to arrays
+    const rawConfig = fastify.config as unknown as RawConfig
+    const parsedConfig = {
+      ...rawConfig,
+      sonarrTags: JSON.parse(rawConfig.sonarrTags),
+      radarrTags: JSON.parse(rawConfig.radarrTags),
+      plexTokens: JSON.parse(rawConfig.plexTokens),
+      initialPlexTokens: JSON.parse(rawConfig.initialPlexTokens),
+    }
 
     // Ensure arrays are initialized even if empty
-    if (!Array.isArray(config.radarrTags)) config.radarrTags = []
-    if (!Array.isArray(config.sonarrTags)) config.sonarrTags = []
-    if (!Array.isArray(config.plexTokens)) config.plexTokens = []
-    if (!Array.isArray(config.initialPlexTokens)) config.initialPlexTokens = []
+    parsedConfig.radarrTags = Array.isArray(parsedConfig.radarrTags)
+      ? parsedConfig.radarrTags
+      : []
+    parsedConfig.sonarrTags = Array.isArray(parsedConfig.sonarrTags)
+      ? parsedConfig.sonarrTags
+      : []
+    parsedConfig.plexTokens = Array.isArray(parsedConfig.plexTokens)
+      ? parsedConfig.plexTokens
+      : []
+    parsedConfig.initialPlexTokens = Array.isArray(
+      parsedConfig.initialPlexTokens,
+    )
+      ? parsedConfig.initialPlexTokens
+      : []
+
+    // Assign the fully parsed config back
+    fastify.config = parsedConfig as Config
   },
   { name: 'config' },
 )

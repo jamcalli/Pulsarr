@@ -75,12 +75,12 @@ export class RadarrService {
         apiKey,
         'movie',
       )
-      
+
       let exclusions: Set<Item> = new Set()
       if (!bypass) {
         exclusions = await this.fetchExclusions(apiKey, baseUrl)
       }
-      
+
       const movieItems = movies.map((movie) => this.toItem(movie))
       return new Set([...movieItems, ...exclusions])
     } catch (err) {
@@ -118,22 +118,22 @@ export class RadarrService {
           throw new Error(`Radarr API error: ${response.statusText}`)
         }
 
-        const pagedResult = await response.json() as PagedResult<{
-          id: number;
-          tmdbId: number;
-          movieTitle: string;
-          movieYear: number;
-        }>;
-        totalRecords = pagedResult.totalRecords;
-        
+        const pagedResult = (await response.json()) as PagedResult<{
+          id: number
+          tmdbId: number
+          movieTitle: string
+          movieYear: number
+        }>
+        totalRecords = pagedResult.totalRecords
+
         // Map the exclusion records to RadarrMovie format
         const exclusionMovies = pagedResult.records.map((record) => ({
           title: record.movieTitle,
           imdbId: undefined, // These might need to be added if available in the API
           tmdbId: record.tmdbId,
-          id: record.id
+          id: record.id,
         }))
-        
+
         allExclusions.push(...exclusionMovies)
 
         this.log.debug(
@@ -155,18 +155,17 @@ export class RadarrService {
       const addOptions: RadarrAddOptions = {
         searchForMovie: true,
       }
-  
-      const tmdbGuid = item.guids
-        .find((guid) => guid.startsWith('tmdb:'))
-      
+
+      const tmdbGuid = item.guids.find((guid) => guid.startsWith('tmdb:'))
+
       let tmdbId = 0
       if (tmdbGuid) {
         const parsed = Number.parseInt(tmdbGuid.replace('tmdb:', ''), 10)
-        if (!isNaN(parsed)) {
+        if (!Number.isNaN(parsed)) {
           tmdbId = parsed
         }
       }
-  
+
       let rootFolderPath = config.radarrRootFolder
       if (!rootFolderPath) {
         const rootFolders = await this.fetchRootFolders(
@@ -179,23 +178,25 @@ export class RadarrService {
         rootFolderPath = rootFolders[0].path
         this.log.info(`Using root folder: ${rootFolderPath}`)
       }
-  
+
       let qualityProfileId = config.radarrQualityProfileId
       const qualityProfiles = await this.fetchQualityProfiles(
         config.radarrApiKey,
         config.radarrBaseUrl,
       )
-  
+
       if (qualityProfiles.length === 0) {
         throw new Error('No quality profiles configured in Radarr')
       }
-  
+
       if (config.radarrQualityProfileId !== null) {
         if (typeof config.radarrQualityProfileId === 'string') {
           const matchingProfile = qualityProfiles.find(
-            profile => profile.name.toLowerCase() === config.radarrQualityProfileId?.toString().toLowerCase()
+            (profile) =>
+              profile.name.toLowerCase() ===
+              config.radarrQualityProfileId?.toString().toLowerCase(),
           )
-          
+
           if (matchingProfile) {
             qualityProfileId = matchingProfile.id
             this.log.info(
@@ -203,7 +204,7 @@ export class RadarrService {
             )
           } else {
             this.log.warn(
-              `Could not find quality profile "${config.radarrQualityProfileId}". Available profiles: ${qualityProfiles.map(p => p.name).join(', ')}`
+              `Could not find quality profile "${config.radarrQualityProfileId}". Available profiles: ${qualityProfiles.map((p) => p.name).join(', ')}`,
             )
             qualityProfileId = qualityProfiles[0].id
             this.log.info(
@@ -214,14 +215,14 @@ export class RadarrService {
           qualityProfileId = config.radarrQualityProfileId
         }
       }
-  
+
       if (!qualityProfileId) {
         qualityProfileId = qualityProfiles[0].id
         this.log.info(
           `Using default quality profile: ${qualityProfiles[0].name} (ID: ${qualityProfileId})`,
         )
       }
-  
+
       const movie: RadarrPost = {
         title: item.title,
         tmdbId,
@@ -230,14 +231,14 @@ export class RadarrService {
         addOptions,
         tags: config.radarrTagIds,
       }
-  
+
       await this.postToRadarr<void>(
         config.radarrBaseUrl,
         config.radarrApiKey,
         'movie',
         movie,
       )
-  
+
       this.log.info(`Sent ${item.title} to Radarr`)
     } catch (err) {
       this.log.debug(
@@ -255,7 +256,6 @@ export class RadarrService {
     try {
       const radarrGuid = item.guids.find((guid) => guid.startsWith('radarr:'))
       const tmdbGuid = item.guids.find((guid) => guid.startsWith('tmdb:'))
-
       if (!radarrGuid && !tmdbGuid) {
         this.log.warn(
           `Unable to extract ID from movie to delete: ${JSON.stringify(item)}`,
@@ -263,39 +263,40 @@ export class RadarrService {
         return
       }
 
-      let radarrId: number
+      let radarrId: number | undefined
+
       if (radarrGuid) {
         radarrId = Number.parseInt(radarrGuid.replace('radarr:', ''), 10)
-      } else {
-        const tmdbId = tmdbGuid!.replace('tmdb:', '')
+      } else if (tmdbGuid) {
+        const tmdbId = tmdbGuid.replace('tmdb:', '')
         const allMovies = await this.fetchMovies(
           config.radarrApiKey,
           config.radarrBaseUrl,
           true,
         )
-
         const matchingMovie = [...allMovies].find((movie) =>
           movie.guids.some(
             (guid) =>
               guid.startsWith('tmdb:') && guid.replace('tmdb:', '') === tmdbId,
           ),
         )
-
         if (!matchingMovie) {
           throw new Error(`Could not find movie with TMDB ID: ${tmdbId}`)
         }
-
         const matchingRadarrGuid = matchingMovie.guids.find((guid) =>
           guid.startsWith('radarr:'),
         )
         if (!matchingRadarrGuid) {
           throw new Error('Could not find Radarr ID for movie')
         }
-
         radarrId = Number.parseInt(
           matchingRadarrGuid.replace('radarr:', ''),
           10,
         )
+      }
+
+      if (radarrId === undefined || Number.isNaN(radarrId)) {
+        throw new Error('Failed to obtain valid Radarr ID')
       }
 
       await this.deleteFromRadarrById(
@@ -304,7 +305,6 @@ export class RadarrService {
         radarrId,
         deleteFiles,
       )
-
       this.log.info(`Deleted ${item.title} from Radarr`)
     } catch (err) {
       this.log.error(`Error deleting from Radarr: ${err}`)
