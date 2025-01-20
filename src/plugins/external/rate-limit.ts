@@ -3,7 +3,7 @@ import type { FastifyInstance } from 'fastify'
 
 export const autoConfig = (fastify: FastifyInstance) => {
   return {
-    max: fastify.config.RATE_LIMIT_MAX,
+    max: fastify.config.rateLimitMax,
     timeWindow: '1 minute',
   }
 }
