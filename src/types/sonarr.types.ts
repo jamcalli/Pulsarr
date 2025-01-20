@@ -56,7 +56,7 @@ export interface PagedResult<T> {
 export interface SonarrPost {
   title: string
   tvdbId: number
-  qualityProfileId?: number | null
+  qualityProfileId?: string | number | null
   rootFolderPath?: string
   addOptions: SonarrAddOptions
   languageProfileId?: number | null
@@ -81,7 +81,7 @@ export interface Item {
 
 export interface SonarrConfiguration {
   sonarrSeasonMonitoring: string
-  sonarrQualityProfileId: number | null
+  sonarrQualityProfileId: string | number | null
   sonarrRootFolder: string | null
   sonarrLanguageProfileId: number | null
   sonarrTagIds: string[]

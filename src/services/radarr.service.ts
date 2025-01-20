@@ -155,18 +155,18 @@ export class RadarrService {
       const addOptions: RadarrAddOptions = {
         searchForMovie: true,
       }
-
-      let tmdbId = 0;
+  
       const tmdbGuid = item.guids
-        .find((guid) => guid.startsWith('tmdb:'));
+        .find((guid) => guid.startsWith('tmdb:'))
       
+      let tmdbId = 0
       if (tmdbGuid) {
-        const parsed = Number.parseInt(tmdbGuid.replace('tmdb:', ''), 10);
+        const parsed = Number.parseInt(tmdbGuid.replace('tmdb:', ''), 10)
         if (!isNaN(parsed)) {
-          tmdbId = parsed;
+          tmdbId = parsed
         }
       }
-
+  
       let rootFolderPath = config.radarrRootFolder
       if (!rootFolderPath) {
         const rootFolders = await this.fetchRootFolders(
@@ -179,22 +179,49 @@ export class RadarrService {
         rootFolderPath = rootFolders[0].path
         this.log.info(`Using root folder: ${rootFolderPath}`)
       }
-
+  
       let qualityProfileId = config.radarrQualityProfileId
-      if (!qualityProfileId) {
-        const qualityProfiles = await this.fetchQualityProfiles(
-          config.radarrApiKey,
-          config.radarrBaseUrl,
-        )
-        if (qualityProfiles.length === 0) {
-          throw new Error('No quality profiles configured in Radarr')
+      const qualityProfiles = await this.fetchQualityProfiles(
+        config.radarrApiKey,
+        config.radarrBaseUrl,
+      )
+  
+      if (qualityProfiles.length === 0) {
+        throw new Error('No quality profiles configured in Radarr')
+      }
+  
+      if (config.radarrQualityProfileId !== null) {
+        if (typeof config.radarrQualityProfileId === 'string') {
+          const matchingProfile = qualityProfiles.find(
+            profile => profile.name.toLowerCase() === config.radarrQualityProfileId?.toString().toLowerCase()
+          )
+          
+          if (matchingProfile) {
+            qualityProfileId = matchingProfile.id
+            this.log.info(
+              `Using matched quality profile: ${matchingProfile.name} (ID: ${qualityProfileId})`,
+            )
+          } else {
+            this.log.warn(
+              `Could not find quality profile "${config.radarrQualityProfileId}". Available profiles: ${qualityProfiles.map(p => p.name).join(', ')}`
+            )
+            qualityProfileId = qualityProfiles[0].id
+            this.log.info(
+              `Falling back to first quality profile: ${qualityProfiles[0].name} (ID: ${qualityProfileId})`,
+            )
+          }
+        } else if (typeof config.radarrQualityProfileId === 'number') {
+          qualityProfileId = config.radarrQualityProfileId
         }
+      }
+  
+      if (!qualityProfileId) {
         qualityProfileId = qualityProfiles[0].id
         this.log.info(
-          `Using quality profile: ${qualityProfiles[0].name} (ID: ${qualityProfileId})`,
+          `Using default quality profile: ${qualityProfiles[0].name} (ID: ${qualityProfileId})`,
         )
       }
-
+  
       const movie: RadarrPost = {
         title: item.title,
         tmdbId,
@@ -203,14 +230,14 @@ export class RadarrService {
         addOptions,
         tags: config.radarrTagIds,
       }
-
+  
       await this.postToRadarr<void>(
         config.radarrBaseUrl,
         config.radarrApiKey,
         'movie',
         movie,
       )
-
+  
       this.log.info(`Sent ${item.title} to Radarr`)
     } catch (err) {
       this.log.debug(

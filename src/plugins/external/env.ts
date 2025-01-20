@@ -16,7 +16,7 @@ interface Config {
   // Sonarr Config
   sonarrBaseUrl: string
   sonarrApiKey: string
-  sonarrQualityProfile: number
+  sonarrQualityProfile: string
   sonarrRootFolder: string
   sonarrBypassIgnored: boolean
   sonarrSeasonMonitoring: string
@@ -24,7 +24,7 @@ interface Config {
   // Radarr Config
   radarrBaseUrl: string
   radarrApiKey: string
-  radarrQualityProfile: number
+  radarrQualityProfile: string
   radarrRootFolder: string
   radarrBypassIgnored: boolean
   radarrTags: string[]
@@ -193,30 +193,6 @@ export default fp(
     config.radarrTags = JSON.parse(config.radarrTags)
     config.plexTokens = JSON.parse(config.plexTokens)
     config.initialPlexTokens = JSON.parse(config.initialPlexTokens)
-
-    // Convert empty strings to appropriate values for Sonarr
-    config.sonarrQualityProfile =
-      config.sonarrQualityProfile === ''
-        ? null
-        : Number(config.sonarrQualityProfile)
-    config.sonarrRootFolder =
-      config.sonarrRootFolder === '' ? null : config.sonarrRootFolder
-    config.sonarrApiKey =
-      config.sonarrApiKey === '' ? null : config.sonarrApiKey
-    config.sonarrBaseUrl =
-      config.sonarrBaseUrl === '' ? null : config.sonarrBaseUrl
-
-    // Convert empty strings to appropriate values for Radarr
-    config.radarrQualityProfile =
-      config.radarrQualityProfile === ''
-        ? null
-        : Number(config.radarrQualityProfile)
-    config.radarrRootFolder =
-      config.radarrRootFolder === '' ? null : config.radarrRootFolder
-    config.radarrApiKey =
-      config.radarrApiKey === '' ? null : config.radarrApiKey
-    config.radarrBaseUrl =
-      config.radarrBaseUrl === '' ? null : config.radarrBaseUrl
 
     // Ensure arrays are initialized even if empty
     if (!Array.isArray(config.radarrTags)) config.radarrTags = []
