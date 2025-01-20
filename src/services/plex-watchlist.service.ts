@@ -188,7 +188,7 @@ export class PlexWatchlistService {
       this.config,
       this.log,
       friendsWithIds,
-      (userId: number) => this.dbService.getAllWatchlistItemsForUser(userId)
+      (userId: number) => this.dbService.getAllWatchlistItemsForUser(userId),
     )
 
     if (userWatchlistMap.size === 0) {

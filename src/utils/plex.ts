@@ -210,11 +210,11 @@ export const getWatchlistForUser = async (
   page: string | null = null,
   retryCount = 0,
   maxRetries = 3,
-  getAllWatchlistItems?: (userId: number) => Promise<Item[]>
+  getAllWatchlistItems?: (userId: number) => Promise<Item[]>,
 ): Promise<Set<TokenWatchlistItem>> => {
   const allItems = new Set<TokenWatchlistItem>()
   const url = new URL('https://community.plex.tv/api')
-  
+
   if (!user || !user.watchlistId) {
     log.error('Invalid user object provided to getWatchlistForUser')
     return allItems
@@ -258,7 +258,7 @@ export const getWatchlistForUser = async (
     }
 
     const json = (await response.json()) as PlexApiResponse
-    
+
     if (json.errors) {
       throw new Error(`GraphQL errors: ${JSON.stringify(json.errors)}`)
     }
@@ -266,7 +266,7 @@ export const getWatchlistForUser = async (
     if (json.data?.user?.watchlist) {
       const watchlist = json.data.user.watchlist
       const currentTime = new Date().toISOString()
-      
+
       for (const node of watchlist.nodes) {
         const item: TokenWatchlistItem = {
           ...node,
@@ -290,7 +290,7 @@ export const getWatchlistForUser = async (
           watchlist.pageInfo.endCursor,
           retryCount,
           maxRetries,
-          getAllWatchlistItems
+          getAllWatchlistItems,
         )
         for (const item of nextPageItems) {
           allItems.add(item)
@@ -299,11 +299,13 @@ export const getWatchlistForUser = async (
     }
   } catch (err) {
     if (retryCount < maxRetries) {
-      const retryDelay = Math.min(1000 * Math.pow(2, retryCount), 10000)
-      log.warn(`Failed to fetch watchlist for user ${user.username}. Retry ${retryCount + 1}/${maxRetries} in ${retryDelay}ms`)
-      
-      await new Promise(resolve => setTimeout(resolve, retryDelay))
-      
+      const retryDelay = Math.min(1000 * 2 ** retryCount, 10000)
+      log.warn(
+        `Failed to fetch watchlist for user ${user.username}. Retry ${retryCount + 1}/${maxRetries} in ${retryDelay}ms`,
+      )
+
+      await new Promise((resolve) => setTimeout(resolve, retryDelay))
+
       return getWatchlistForUser(
         config,
         log,
@@ -313,18 +315,20 @@ export const getWatchlistForUser = async (
         page,
         retryCount + 1,
         maxRetries,
-        getAllWatchlistItems
+        getAllWatchlistItems,
       )
     }
-    
-    log.error(`Unable to fetch watchlist for user ${user.username} after ${maxRetries} retries: ${err}`)
+
+    log.error(
+      `Unable to fetch watchlist for user ${user.username} after ${maxRetries} retries: ${err}`,
+    )
 
     // If we have the database function, try to get existing items
     if (getAllWatchlistItems) {
       try {
         log.info(`Falling back to existing database items for user ${userId}`)
         const existingItems = await getAllWatchlistItems(userId)
-        
+
         // Convert database items to TokenWatchlistItems
         for (const item of existingItems) {
           const tokenItem: TokenWatchlistItem = {
@@ -341,8 +345,10 @@ export const getWatchlistForUser = async (
           }
           allItems.add(tokenItem)
         }
-        
-        log.info(`Retrieved ${existingItems.length} existing items from database for user ${userId}`)
+
+        log.info(
+          `Retrieved ${existingItems.length} existing items from database for user ${userId}`,
+        )
       } catch (dbError) {
         log.error(`Failed to retrieve existing items from database: ${dbError}`)
       }
@@ -356,7 +362,7 @@ export const getOthersWatchlist = async (
   config: Config,
   log: FastifyBaseLogger,
   friends: Set<[Friend & { userId: number }, string]>,
-  getAllWatchlistItems?: (userId: number) => Promise<Item[]>
+  getAllWatchlistItems?: (userId: number) => Promise<Item[]>,
 ): Promise<Map<Friend, Set<TokenWatchlistItem>>> => {
   const userWatchlistMap = new Map<Friend, Set<TokenWatchlistItem>>()
   for (const [user, token] of friends) {
@@ -370,11 +376,11 @@ export const getOthersWatchlist = async (
       null,
       0,
       3,
-      getAllWatchlistItems
+      getAllWatchlistItems,
     )
     userWatchlistMap.set(user, watchlistItems)
   }
-  
+
   const totalItems = Array.from(userWatchlistMap.values()).reduce(
     (acc, items) => acc + items.size,
     0,
