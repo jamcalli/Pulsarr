@@ -347,8 +347,8 @@ class PlexTestingWorkflow {
         sonarrBaseUrl: this.config.sonarrBaseUrl,
         sonarrQualityProfileId: this.config.sonarrQualityProfile,
         sonarrRootFolder: this.config.sonarrRootFolder,
-        sonarrLanguageProfileId: 1, // Use from config if available
-        sonarrSeasonMonitoring: 'all', // Explicitly set to "all"
+        sonarrLanguageProfileId: 1, 
+        sonarrSeasonMonitoring: 'all', 
         sonarrTagIds: this.config.sonarrTags,
       }
 

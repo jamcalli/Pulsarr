@@ -11,7 +11,6 @@ declare module 'fastify' {
 export default fp(
   async (fastify: FastifyInstance) => {
     const service = new SonarrService(fastify.log, fastify.config)
-
     fastify.decorate('sonarr', service)
   },
   {

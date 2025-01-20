@@ -143,11 +143,11 @@ export class SonarrService {
         searchForCutoffUnmetEpisodes: true,
         searchForMissingEpisodes: true,
       }
-
+  
       const tvdbId = item.guids
         .find((guid) => guid.startsWith('tvdb:'))
         ?.replace('tvdb:', '')
-
+  
       let rootFolderPath = config.sonarrRootFolder
       if (!rootFolderPath) {
         const rootFolders = await this.fetchRootFolders(
@@ -160,22 +160,49 @@ export class SonarrService {
         rootFolderPath = rootFolders[0].path
         this.log.info(`Using root folder: ${rootFolderPath}`)
       }
-
+  
       let qualityProfileId = config.sonarrQualityProfileId
-      if (!qualityProfileId) {
-        const qualityProfiles = await this.fetchQualityProfiles(
-          config.sonarrApiKey,
-          config.sonarrBaseUrl,
-        )
-        if (qualityProfiles.length === 0) {
-          throw new Error('No quality profiles configured in Sonarr')
+      const qualityProfiles = await this.fetchQualityProfiles(
+        config.sonarrApiKey,
+        config.sonarrBaseUrl,
+      )
+  
+      if (qualityProfiles.length === 0) {
+        throw new Error('No quality profiles configured in Sonarr')
+      }
+  
+      if (config.sonarrQualityProfileId !== null) {
+        if (typeof config.sonarrQualityProfileId === 'string') {
+          const matchingProfile = qualityProfiles.find(
+            profile => profile.name.toLowerCase() === config.sonarrQualityProfileId?.toString().toLowerCase()
+          )
+          
+          if (matchingProfile) {
+            qualityProfileId = matchingProfile.id
+            this.log.info(
+              `Using matched quality profile: ${matchingProfile.name} (ID: ${qualityProfileId})`,
+            )
+          } else {
+            this.log.warn(
+              `Could not find quality profile "${config.sonarrQualityProfileId}". Available profiles: ${qualityProfiles.map(p => p.name).join(', ')}`
+            )
+            qualityProfileId = qualityProfiles[0].id
+            this.log.info(
+              `Falling back to first quality profile: ${qualityProfiles[0].name} (ID: ${qualityProfileId})`,
+            )
+          }
+        } else if (typeof config.sonarrQualityProfileId === 'number') {
+          qualityProfileId = config.sonarrQualityProfileId
         }
+      }
+  
+      if (!qualityProfileId) {
         qualityProfileId = qualityProfiles[0].id
         this.log.info(
-          `Using quality profile: ${qualityProfiles[0].name} (ID: ${qualityProfileId})`,
+          `Using default quality profile: ${qualityProfiles[0].name} (ID: ${qualityProfileId})`,
         )
       }
-
+  
       const show: SonarrPost = {
         title: item.title,
         tvdbId: tvdbId ? Number.parseInt(tvdbId, 10) : 0,
@@ -186,14 +213,14 @@ export class SonarrService {
         monitored: true,
         tags: config.sonarrTagIds,
       }
-
+  
       await this.postToSonarr<void>(
         config.sonarrBaseUrl,
         config.sonarrApiKey,
         'series',
         show,
       )
-
+  
       this.log.info(`Sent ${item.title} to Sonarr`)
     } catch (err) {
       this.log.debug(

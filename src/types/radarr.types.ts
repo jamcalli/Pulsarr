@@ -12,7 +12,7 @@ export interface RadarrAddOptions {
   export interface RadarrPost {
     title: string
     tmdbId: number
-    qualityProfileId: number | null
+    qualityProfileId: number | null | string
     rootFolderPath: string | null
     addOptions: RadarrAddOptions
     tags: number[]
@@ -21,7 +21,7 @@ export interface RadarrAddOptions {
   export interface RadarrConfiguration {
     radarrApiKey: string
     radarrBaseUrl: string
-    radarrQualityProfileId: number | null
+    radarrQualityProfileId: number | null | string
     radarrRootFolder: string | null
     radarrTagIds: number[]
   }
