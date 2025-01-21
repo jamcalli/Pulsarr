@@ -1,4 +1,17 @@
-const rootElement =
-	document.getElementById('root') || document.createElement('div');
+import { createRoot } from 'react-dom/client'
+import { Button } from "@/components/ui/button"
 
-rootElement.innerHTML = 'Hello World';
+function Home() {
+  return (
+    <div>
+      <Button>Click me</Button>
+    </div>
+  )
+}
+
+const rootElement = 
+  document.getElementById('root') || document.createElement('div');
+
+// Create a React root and render your component
+const root = createRoot(rootElement);
+root.render(<Home />);
