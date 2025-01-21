@@ -1,3 +1,4 @@
+import './styles/globals.css'
 import { createRoot } from 'react-dom/client'
 import { Button } from "@/components/ui/button"
 
@@ -12,6 +13,5 @@ function Home() {
 const rootElement = 
   document.getElementById('root') || document.createElement('div');
 
-// Create a React root and render your component
 const root = createRoot(rootElement);
 root.render(<Home />);
