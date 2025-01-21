@@ -95,7 +95,7 @@ export default async function serviceApp(
   });
   
   // Route must match vite "base": https://vitejs.dev/config/shared-options.html#base
-  fastify.get('/app/', (req, reply) => {
+  fastify.get('/', (req, reply) => {
     return reply.html();
   });
   
