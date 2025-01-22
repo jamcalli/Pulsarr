@@ -46,7 +46,7 @@
     "@fastify/rate-limit": "^10.2.2",
     "@fastify/react": "^0.6.0",
     "@fastify/swagger": "^9.4.1",
-    "@fastify/vite": "^7.0.1",
+    "@fastify/vite": "^8.0.0-alpha.2",
     "@radix-ui/react-alert-dialog": "^1.1.4",
     "@radix-ui/react-slot": "^1.1.1",
     "@scalar/fastify-api-reference": "^1.25.102",

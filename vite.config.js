@@ -1,11 +1,15 @@
 import { resolve } from 'node:path';
-import viteReact from '@vitejs/plugin-react';
+import { viteFastify } from '@fastify/vite/plugin'
+import viteReact from '@vitejs/plugin-react'
 
 /** @type {import('vite').UserConfig} */
 export default {
   base: '/',
   root: resolve(import.meta.dirname, 'src/client'),
-  plugins: [viteReact()],
+  plugins: [
+    viteReact(),
+    viteFastify()
+  ],
   resolve: {
     alias: {
       "@": resolve(import.meta.dirname, "src/client"),
