@@ -24,7 +24,8 @@
       "@shared/*": ["./shared/*"],
       "@data/*": ["./data/*"],
       "@schemas/*": ["./schemas/*"],
-      "@services/*": ["./services/*"]
+      "@services/*": ["./services/*"],
+      "@/*": ["./client/*"]
     }
   },
   "include": ["src/**/*"],

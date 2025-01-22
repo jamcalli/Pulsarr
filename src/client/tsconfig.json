@@ -6,6 +6,7 @@
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
+    "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
       "@root/*": ["./*"]
@@ -24,5 +25,9 @@
     "noFallthroughCasesInSwitch": true
   },
   "include": ["**/*"],
-  "exclude": ["dist"]
+  "exclude": ["dist"],
+  "paths": {
+    "@/*": ["./*"],
+    "@app/*": ["./*"]
+  }
 }

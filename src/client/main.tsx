@@ -2,7 +2,7 @@ import './styles/globals.css'
 import './styles/fonts.css'
 import { createRoot } from 'react-dom/client'
 import { ThemeProvider } from '@/components/theme-provider'
-import { Toaster } from '@/components/ui/sonner'
+import { Toaster } from '@/components/ui/toaster'
 import LoginPage from '@/components/login/login'
 
 function RootLayout() {
@@ -16,7 +16,8 @@ function RootLayout() {
   )
 }
 
-const rootElement = document.getElementById('app')!
-const root = createRoot(rootElement)
+const rootElement = document.getElementById('app')
+if (rootElement === null) throw new Error('Root element not found')
 
+const root = createRoot(rootElement)
 root.render(<RootLayout />)

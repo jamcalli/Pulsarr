@@ -7,10 +7,14 @@ export default {
   base: '/',
   root: resolve(import.meta.dirname, 'src/client'),
   plugins: [viteReact(), viteFastify()],
+  build: {
+    outDir: resolve(import.meta.dirname, 'dist/client'),
+    emptyOutDir: false,
+  },
   resolve: {
     alias: {
       '@': resolve(import.meta.dirname, 'src/client'),
-      '@root': resolve(import.meta.dirname, 'src/client'),
+      '@root': resolve(import.meta.dirname, 'src'),
     },
   },
 }
