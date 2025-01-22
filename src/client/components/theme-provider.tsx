@@ -2,23 +2,25 @@
 import * as React from 'react'
 import { createContext, useContext, useEffect, useState } from 'react'
 
+type Theme = 'light' | 'dark' | 'system'
+
 type ThemeProviderProps = {
   children: React.ReactNode
   attribute?: string
-  defaultTheme?: string
+  defaultTheme?: Theme
   enableSystem?: boolean
   storageKey?: string
   themes?: string[]
 }
 
 type ThemeProviderState = {
-  theme: string | undefined
-  setTheme: (theme: string) => void
+  theme: Theme
+  setTheme: (theme: Theme) => void
   themes: string[]
 }
 
 const initialState: ThemeProviderState = {
-  theme: undefined,
+  theme: 'system',
   setTheme: () => null,
   themes: ['light', 'dark'],
 }
@@ -34,63 +36,79 @@ export function ThemeProvider({
   themes = ['light', 'dark'],
   ...props
 }: ThemeProviderProps) {
-  const [theme, setThemeState] = useState<string>(() => {
-    if (enableSystem) {
-      return defaultTheme
+
+  const [theme, setThemeState] = useState<Theme>(() => {
+
+    const storedTheme = localStorage.getItem(storageKey) as Theme | null
+    if (storedTheme && storedTheme !== 'system') {
+      return storedTheme
     }
-    return localStorage.getItem(storageKey) || defaultTheme
+
+    if (enableSystem) {
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches
+        ? 'dark'
+        : 'light'
+      return systemTheme
+    }
+
+    return defaultTheme
   })
 
   useEffect(() => {
     const root = window.document.documentElement
-
-    if (attribute === 'class') {
+    
+    const applyTheme = (newTheme: Theme) => {
       root.classList.remove(...themes)
-
-      if (theme === 'system' && enableSystem) {
-        const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
-          .matches
+      
+      const finalTheme = newTheme === 'system' && enableSystem
+        ? window.matchMedia('(prefers-color-scheme: dark)').matches
           ? 'dark'
           : 'light'
-        root.classList.add(systemTheme)
+        : newTheme
+
+      if (attribute === 'class') {
+        root.classList.add(finalTheme)
       } else {
-        root.classList.add(theme)
+        root.setAttribute(attribute, finalTheme)
       }
-    } else {
-      root.setAttribute(attribute, theme)
     }
+
+    applyTheme(theme)
   }, [theme, attribute, themes, enableSystem])
 
   useEffect(() => {
-    if (enableSystem) {
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    if (!enableSystem) return
 
-      const handleChange = () => {
-        if (theme === 'system') {
-          const root = window.document.documentElement
-          root.classList.remove(...themes)
-          root.classList.add(mediaQuery.matches ? 'dark' : 'light')
-        }
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+
+    const handleSystemThemeChange = () => {
+      if (theme === 'system') {
+        const root = window.document.documentElement
+        root.classList.remove(...themes)
+        root.classList.add(mediaQuery.matches ? 'dark' : 'light')
       }
-
-      mediaQuery.addEventListener('change', handleChange)
-      return () => mediaQuery.removeEventListener('change', handleChange)
     }
+
+    mediaQuery.addEventListener('change', handleSystemThemeChange)
+    return () => mediaQuery.removeEventListener('change', handleSystemThemeChange)
   }, [theme, themes, enableSystem])
 
   const setTheme = React.useCallback(
-    (theme: string) => {
-      localStorage.setItem(storageKey, theme)
-      setThemeState(theme)
+    (newTheme: Theme) => {
+      localStorage.setItem(storageKey, newTheme)
+      setThemeState(newTheme)
     },
-    [storageKey],
+    [storageKey]
   )
 
-  const value = {
-    theme,
-    setTheme,
-    themes,
-  }
+  const value = React.useMemo(
+    () => ({
+      theme,
+      setTheme,
+      themes,
+    }),
+    [theme, setTheme, themes]
+  )
 
   return (
     <ThemeProviderContext.Provider {...props} value={value}>

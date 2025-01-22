@@ -17,12 +17,10 @@ import {
 } from '@/components/login/form-schema'
 import { toast } from 'sonner'
 import { Form, FormField, FormItem, FormMessage } from '@/components/ui/form'
-import { FloatingLabelInput } from '@/components/ui/floating-label-input'
+import { Input } from '@/components/ui/input'
 
 export function LoginForm() {
-  const [status, setStatus] = React.useState<'idle' | 'loading' | 'success'>(
-    'idle',
-  )
+  const [status, setStatus] = React.useState<'idle' | 'loading' | 'success'>('idle')
   const [backendError, setBackendError] = React.useState<string | null>(null)
 
   const form = useForm<LoginFormSchema>({
@@ -50,12 +48,9 @@ export function LoginForm() {
         toast.success(`Welcome back, ${responseData.username}!`, {
           description: responseData.message,
         })
-        // Handle successful login here
       } else {
         setStatus('idle')
-        setBackendError(
-          responseData.message || 'Login failed. Please try again.',
-        )
+        setBackendError(responseData.message || 'Login failed. Please try again.')
       }
     } catch (error) {
       console.error('Login error:', error)
@@ -78,19 +73,17 @@ export function LoginForm() {
           </CardHeader>
           <CardContent>
             <Form {...form}>
-              <form
-                className="grid gap-4"
-                onSubmit={form.handleSubmit(onSubmit)}
-              >
+              <form className="grid gap-4" onSubmit={form.handleSubmit(onSubmit)}>
                 <FormField
                   control={form.control}
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FloatingLabelInput
+                      <Input
                         {...field}
-                        id="username"
-                        label="Username"
+                        type="email"
+                        placeholder="Email"
+                        autoComplete="email"
                       />
                       <FormMessage />
                     </FormItem>
@@ -101,11 +94,11 @@ export function LoginForm() {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FloatingLabelInput
+                      <Input
                         {...field}
-                        id="password"
-                        label="Password"
                         type="password"
+                        placeholder="Password"
+                        autoComplete="current-password"
                       />
                       <FormMessage />
                     </FormItem>
