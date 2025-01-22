@@ -6,6 +6,10 @@ const config: Config = {
   content: ['./src/client/index.html', './src/client/**/*.{ts,tsx,js,jsx}'],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Shuttleblock', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        heading: ['Shuttleblock', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+      },
       colors: {
         main: 'var(--main)',
         overlay: 'var(--overlay)',
@@ -17,7 +21,6 @@ const config: Config = {
         border: 'var(--border)',
         ring: 'var(--ring)',
         ringOffset: 'var(--ring-offset)',
-
         secondaryBlack: '#212121',
       },
       borderRadius: {
