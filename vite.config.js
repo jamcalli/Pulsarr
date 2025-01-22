@@ -10,6 +10,7 @@ export default {
   build: {
     outDir: resolve(import.meta.dirname, 'dist/client'),
     emptyOutDir: false,
+    assetsInclude: ['**/*.woff2', '**/*.woff']
   },
   resolve: {
     alias: {
