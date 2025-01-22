@@ -25,7 +25,7 @@ export function ModeToggle() {
         <TooltipTrigger asChild>
           <Button
             type="button"
-            variant="ghost"
+            variant="noShadow"
             size="icon"
             className="h-7 w-7"
             onClick={toggleTheme}

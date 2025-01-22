@@ -36,19 +36,15 @@ export function LoginForm() {
 
   const onSubmit = async (data: LoginFormSchema) => {
     const { email, password } = data
-
     setStatus('loading')
     setBackendError(null)
-
     try {
       const response = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       })
-
       const responseData = await response.json()
-
       if (response.ok) {
         setStatus('success')
         toast.success(`Welcome back, ${responseData.username}!`, {
@@ -69,78 +65,83 @@ export function LoginForm() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen overflow-hidden">
-      <Card className="mx-auto max-w-sm">
-        <CardHeader>
-          <h1 className="text-2xl font-semibold text-center mb-2">
-            Welcome Back
-          </h1>
-          <CardDescription className="text-center">
-            Enter your credentials to login
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form className="grid gap-4" onSubmit={form.handleSubmit(onSubmit)}>
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FloatingLabelInput
-                      {...field}
-                      id="username"
-                      label="Username"
-                    />
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FloatingLabelInput
-                      {...field}
-                      id="password"
-                      label="Password"
-                      type="password"
-                    />
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              {backendError && <LoginErrorMessage message={backendError} />}
-              <Button
-                type="submit"
-                className="w-full h-12"
-                disabled={!form.formState.isValid || status !== 'idle'}
+    <div className="dark:bg-secondaryBlack inset-0 flex min-h-screen w-full flex-col items-center justify-center bg-white bg-[linear-gradient(to_right,#80808033_1px,transparent_1px),linear-gradient(to_bottom,#80808033_1px,transparent_1px)] bg-[size:70px_70px]">
+      <div className="w-full max-w-sm px-4">
+        <Card className="relative">
+          <CardHeader>
+            <h1 className="text-2xl font-heading text-center mb-2">
+              Welcome Back
+            </h1>
+            <CardDescription className="text-center">
+              Enter your credentials to login
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form
+                className="grid gap-4"
+                onSubmit={form.handleSubmit(onSubmit)}
               >
-                {status === 'loading' ? (
-                  <>
-                    <Loader2 className="animate-spin mr-2" />
-                    Logging in...
-                  </>
-                ) : status === 'success' ? (
-                  <>
-                    <Check className="animate-check mr-2" />
-                    Success!
-                  </>
-                ) : (
-                  'Login'
-                )}
-              </Button>
-              <div className="flex justify-center">
-                <ModeToggle />
-              </div>
-            </form>
-          </Form>
-          <footer className="mt-8 text-center text-sm text-muted-foreground">
-            &copy; Your Company {new Date().getFullYear()}
-          </footer>
-        </CardContent>
-      </Card>
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FloatingLabelInput
+                        {...field}
+                        id="username"
+                        label="Username"
+                      />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FloatingLabelInput
+                        {...field}
+                        id="password"
+                        label="Password"
+                        type="password"
+                      />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {backendError && <LoginErrorMessage message={backendError} />}
+                <Button
+                  type="submit"
+                  className="w-full h-12 font-heading"
+                  disabled={!form.formState.isValid || status !== 'idle'}
+                >
+                  {status === 'loading' ? (
+                    <>
+                      <Loader2 className="animate-spin mr-2" />
+                      Logging in...
+                    </>
+                  ) : status === 'success' ? (
+                    <>
+                      <Check className="animate-check mr-2" />
+                      Success!
+                    </>
+                  ) : (
+                    'Login'
+                  )}
+                </Button>
+              </form>
+            </Form>
+            <div className="mt-6 text-center">
+              <ModeToggle />
+            </div>
+            <footer className="mt-8 text-center text-sm text-muted-foreground">
+              &copy; Your Company {new Date().getFullYear()}
+            </footer>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
