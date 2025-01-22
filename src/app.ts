@@ -1,7 +1,7 @@
 import path from 'node:path'
-import { resolve } from 'node:path';
+import { resolve } from 'node:path'
 import fastifyAutoload from '@fastify/autoload'
-import FastifyVite from '@fastify/vite';
+import FastifyVite from '@fastify/vite'
 import type { FastifyInstance, FastifyPluginOptions } from 'fastify'
 import FastifyFormBody from '@fastify/formbody'
 
@@ -92,13 +92,12 @@ export default async function serviceApp(
     root: resolve(import.meta.dirname, '../'),
     dev: process.argv.includes('--dev'),
     spa: true,
-  });
-  
+  })
+
   // Route must match vite "base": https://vitejs.dev/config/shared-options.html#base
   fastify.get('/', (req, reply) => {
-    return reply.html();
-  });
-  
-  await fastify.vite.ready();
+    return reply.html()
+  })
 
+  await fastify.vite.ready()
 }

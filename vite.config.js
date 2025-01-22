@@ -1,4 +1,4 @@
-import { resolve } from 'node:path';
+import { resolve } from 'node:path'
 import { viteFastify } from '@fastify/vite/plugin'
 import viteReact from '@vitejs/plugin-react'
 
@@ -6,14 +6,11 @@ import viteReact from '@vitejs/plugin-react'
 export default {
   base: '/',
   root: resolve(import.meta.dirname, 'src/client'),
-  plugins: [
-    viteReact(),
-    viteFastify()
-  ],
+  plugins: [viteReact(), viteFastify()],
   resolve: {
     alias: {
-      "@": resolve(import.meta.dirname, "src/client"),
-      "@root": resolve(import.meta.dirname, "src/client"),
+      '@': resolve(import.meta.dirname, 'src/client'),
+      '@root': resolve(import.meta.dirname, 'src/client'),
     },
   },
-};
+}
