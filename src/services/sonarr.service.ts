@@ -18,11 +18,13 @@ export class SonarrService {
   ) {}
 
   private toItem(series: SonarrSeries): Item {
-    const hasEpisodes = series.seasons?.some(season => 
-      season.statistics?.episodeFileCount && 
-      season.statistics.episodeFileCount > 0
-    ) ?? false;
-  
+    const hasEpisodes =
+      series.seasons?.some(
+        (season) =>
+          season.statistics?.episodeFileCount &&
+          season.statistics.episodeFileCount > 0,
+      ) ?? false
+
     return {
       title: series.title,
       guids: [
@@ -34,8 +36,8 @@ export class SonarrService {
       ended: series.ended,
       added: series.added,
       status: hasEpisodes ? 'grabbed' : 'requested',
-      series_status: series.ended ? 'ended' : 'continuing'
-    };
+      series_status: series.ended ? 'ended' : 'continuing',
+    }
   }
 
   async fetchQualityProfiles(

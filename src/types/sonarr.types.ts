@@ -65,34 +65,34 @@ export interface SonarrPost {
 }
 
 export interface SonarrSeries {
-  title: string;
-  imdbId?: string;
-  tvdbId?: number;
-  id: number;
-  ended?: boolean;
-  added?: string;
+  title: string
+  imdbId?: string
+  tvdbId?: number
+  id: number
+  ended?: boolean
+  added?: string
   seasons?: Array<{
-    seasonNumber: number;
-    monitored: boolean;
+    seasonNumber: number
+    monitored: boolean
     statistics?: {
-      episodeFileCount?: number;
-      episodeCount?: number;
-      totalEpisodeCount?: number;
-      sizeOnDisk?: number;
-      releaseGroups?: string[];
-      percentOfEpisodes?: number;
-    };
-  }>;
+      episodeFileCount?: number
+      episodeCount?: number
+      totalEpisodeCount?: number
+      sizeOnDisk?: number
+      releaseGroups?: string[]
+      percentOfEpisodes?: number
+    }
+  }>
 }
 
 export interface Item {
-  title: string;
-  guids: string[];
-  type: string;
-  ended?: boolean;
-  added?: string;
-  status?: 'pending' | 'requested' | 'grabbed' | 'notified';
-  series_status?: 'continuing' | 'ended';
+  title: string
+  guids: string[]
+  type: string
+  ended?: boolean
+  added?: string
+  status?: 'pending' | 'requested' | 'grabbed' | 'notified'
+  series_status?: 'continuing' | 'ended'
 }
 
 export interface SonarrConfiguration {
