@@ -3,13 +3,14 @@ import './styles/fonts.css'
 import { createRoot } from 'react-dom/client'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/toaster'
-import LoginPage from '@/components/login/login'
+import { RouterProvider } from 'react-router-dom'
+import { router } from '@/layouts/router' // Adjust path as needed
 
 function RootLayout() {
   return (
     <ThemeProvider>
       <main className="min-h-screen">
-        <LoginPage />
+        <RouterProvider router={router} />
       </main>
       <Toaster />
     </ThemeProvider>

@@ -2,7 +2,7 @@ import * as React from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/button'
-import { LoginErrorMessage } from '@/components/login/login-error'
+import { LoginErrorMessage } from '@/pages/login/login-error'
 import { ModeToggle } from '@/components/ui/mode-toggle'
 import { Loader2, Check } from 'lucide-react'
 import {
@@ -14,12 +14,12 @@ import {
 import {
   loginFormSchema,
   type LoginFormSchema,
-} from '@/components/login/form-schema'
+} from '@/pages/login/form-schema'
 import { toast } from 'sonner'
 import { Form, FormField, FormItem, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 
-export function LoginForm() {
+export function LoginPage() {
   const [status, setStatus] = React.useState<'idle' | 'loading' | 'success'>('idle')
   const [backendError, setBackendError] = React.useState<string | null>(null)
 
@@ -139,4 +139,4 @@ export function LoginForm() {
   )
 }
 
-export default LoginForm
+export default LoginPage
