@@ -192,40 +192,40 @@ export class DatabaseService {
 
   async bulkUpdateWatchlistItems(
     updates: Array<{
-      userId: number;
-      key: string;
-      added?: string;
-      status?: 'pending' | 'requested' | 'grabbed' | 'notified';
-      series_status?: 'continuing' | 'ended';
-    }>
+      userId: number
+      key: string
+      added?: string
+      status?: 'pending' | 'requested' | 'grabbed' | 'notified'
+      series_status?: 'continuing' | 'ended'
+    }>,
   ): Promise<number> {
     let updatedCount = 0
-    
+
     try {
       await this.knex.transaction(async (trx) => {
         const chunks = this.chunkArray(updates, 100)
-        
+
         for (const chunk of chunks) {
           const results = await Promise.all(
-            chunk.map(update => 
+            chunk.map((update) =>
               trx('watchlist_items')
                 .where({
                   user_id: update.userId,
-                  key: update.key
+                  key: update.key,
                 })
                 .update({
                   added: update.added,
                   status: update.status,
                   series_status: update.series_status,
-                  updated_at: this.timestamp
-                })
-            )
+                  updated_at: this.timestamp,
+                }),
+            ),
           )
-          
+
           updatedCount += results.reduce((sum, result) => sum + result, 0)
         }
       })
-      
+
       return updatedCount
     } catch (error) {
       this.log.error('Error in bulk update of watchlist items:', error)
@@ -235,36 +235,42 @@ export class DatabaseService {
 
   async bulkUpdateShowStatuses(
     updates: Array<{
-      key: string;
-      userId: number;
-      added?: string;
-      status?: 'pending' | 'requested' | 'grabbed' | 'notified';
-      series_status?: 'continuing' | 'ended';
-    }>
+      key: string
+      userId: number
+      added?: string
+      status?: 'pending' | 'requested' | 'grabbed' | 'notified'
+      series_status?: 'continuing' | 'ended'
+    }>,
   ): Promise<number> {
     try {
-      const updatedCount = await this.bulkUpdateWatchlistItems(updates);
-      return updatedCount;
+      const updatedCount = await this.bulkUpdateWatchlistItems(updates)
+      return updatedCount
     } catch (error) {
-      this.log.error('Error updating show statuses:', error);
-      throw error;
+      this.log.error('Error updating show statuses:', error)
+      throw error
     }
   }
-  
+
   async getAllShowWatchlistItems(): Promise<WatchlistItem[]> {
     try {
       const items = await this.knex('watchlist_items')
         .where('type', 'show')
-        .select('*');
-      
-      return items.map(item => ({
+        .select('*')
+
+      return items.map((item) => ({
         ...item,
-        guids: typeof item.guids === 'string' ? JSON.parse(item.guids) : item.guids || [],
-        genres: typeof item.genres === 'string' ? JSON.parse(item.genres) : item.genres || []
-      }));
+        guids:
+          typeof item.guids === 'string'
+            ? JSON.parse(item.guids)
+            : item.guids || [],
+        genres:
+          typeof item.genres === 'string'
+            ? JSON.parse(item.genres)
+            : item.genres || [],
+      }))
     } catch (error) {
-      this.log.error('Error fetching show watchlist items:', error);
-      throw error;
+      this.log.error('Error fetching show watchlist items:', error)
+      throw error
     }
   }
 

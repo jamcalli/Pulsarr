@@ -10,7 +10,12 @@ declare module 'fastify' {
 
 export default fp(
   async (fastify: FastifyInstance) => {
-    const service = new ShowStatusService(fastify.log, fastify.db, fastify.sonarr, fastify.config)
+    const service = new ShowStatusService(
+      fastify.log,
+      fastify.db,
+      fastify.sonarr,
+      fastify.config,
+    )
     fastify.decorate('sync', service)
   },
   {

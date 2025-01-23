@@ -34,7 +34,7 @@ class PlexTestingWorkflow {
     private readonly radarrService: FastifyInstance['radarr'],
     private readonly config: FastifyInstance['config'],
     private readonly dbService: FastifyInstance['db'],
-    private readonly showStatusService: FastifyInstance['sync'], 
+    private readonly showStatusService: FastifyInstance['sync'],
   ) {}
 
   async startWorkflow() {
@@ -75,11 +75,12 @@ class PlexTestingWorkflow {
         this.plexService.getOthersWatchlists(),
       ])
       this.log.info('Watchlists refreshed successfully')
-  
+
       // Sync show statuses after watchlists are updated
-      const updatedCount = await this.showStatusService.syncSonarrStatuses();
-      this.log.info(`Updated ${updatedCount} show statuses after watchlist refresh`);
-  
+      const updatedCount = await this.showStatusService.syncSonarrStatuses()
+      this.log.info(
+        `Updated ${updatedCount} show statuses after watchlist refresh`,
+      )
     } catch (error) {
       this.log.error('Error refreshing watchlists:', error)
       throw error
@@ -466,7 +467,6 @@ class PlexTestingWorkflow {
 
       await this.sonarrService.addToSonarr(sonarrConfig, sonarrItem)
       this.log.info(`Successfully added show ${item.title} to Sonarr`)
-
     } catch (error) {
       this.log.error(`Error processing show ${item.title} in Sonarr:`, error)
       this.log.debug('Failed item details:', {
@@ -526,7 +526,6 @@ class PlexTestingWorkflow {
 
 const plexTestingPlugin: FastifyPluginCallback = (fastify, opts, done) => {
   try {
-    
     const workflow = new PlexTestingWorkflow(
       fastify.plexWatchlist,
       fastify.log,
@@ -534,7 +533,7 @@ const plexTestingPlugin: FastifyPluginCallback = (fastify, opts, done) => {
       fastify.radarr,
       fastify.config,
       fastify.db,
-      fastify.sync
+      fastify.sync,
     )
 
     fastify.addHook('onClose', async () => {
@@ -557,5 +556,5 @@ const plexTestingPlugin: FastifyPluginCallback = (fastify, opts, done) => {
 
 export default fp(plexTestingPlugin, {
   name: 'plex-testing-plugin',
-  dependencies: ['plex-watchlist', 'sonarr', 'radarr','sync'],
+  dependencies: ['plex-watchlist', 'sonarr', 'radarr', 'sync'],
 })
