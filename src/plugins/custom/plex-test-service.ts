@@ -33,6 +33,8 @@ class PlexTestingWorkflow {
     private readonly sonarrService: FastifyInstance['sonarr'],
     private readonly radarrService: FastifyInstance['radarr'],
     private readonly config: FastifyInstance['config'],
+    private readonly dbService: FastifyInstance['db'],
+    private readonly showStatusService: FastifyInstance['sync'], 
   ) {}
 
   async startWorkflow() {
@@ -73,6 +75,11 @@ class PlexTestingWorkflow {
         this.plexService.getOthersWatchlists(),
       ])
       this.log.info('Watchlists refreshed successfully')
+  
+      // Sync show statuses after watchlists are updated
+      //const updatedCount = await this.showStatusService.syncSonarrStatuses();
+      //this.log.info(`Updated ${updatedCount} show statuses after watchlist refresh`);
+  
     } catch (error) {
       this.log.error('Error refreshing watchlists:', error)
       throw error
@@ -136,14 +143,11 @@ class PlexTestingWorkflow {
     if (results.self.users[0]?.watchlist) {
       const currentItems = this.createItemMap(results.self.users[0].watchlist)
       const changes = this.detectChanges(this.previousSelfItems, currentItems)
-
       if (changes.size > 0) {
         await this.addToQueue(changes, 'self')
       }
-
       this.previousSelfItems = currentItems
     }
-
     // Process friends watchlist changes
     if (results.friends.users[0]?.watchlist) {
       const currentItems = this.createItemMap(
@@ -153,12 +157,16 @@ class PlexTestingWorkflow {
         this.previousFriendsItems,
         currentItems,
       )
-
       if (changes.size > 0) {
         await this.addToQueue(changes, 'friends')
       }
-
       this.previousFriendsItems = currentItems
+    }
+
+    // Sync Sonarr statuses after processing RSS changes
+    if (results.self.users[0]?.watchlist || results.friends.users[0]?.watchlist) {
+      //const updatedCount = await this.showStatusService.syncSonarrStatuses();
+      //this.log.info(`Updated ${updatedCount} show statuses after RSS processing`);
     }
   }
 
@@ -529,6 +537,8 @@ const plexTestingPlugin: FastifyPluginCallback = (fastify, opts, done) => {
       fastify.sonarr,
       fastify.radarr,
       fastify.config,
+      fastify.db,
+      fastify.sync
     )
 
     fastify.addHook('onClose', async () => {
