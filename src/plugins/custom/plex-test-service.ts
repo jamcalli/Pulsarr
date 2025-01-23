@@ -77,8 +77,8 @@ class PlexTestingWorkflow {
       this.log.info('Watchlists refreshed successfully')
   
       // Sync show statuses after watchlists are updated
-      //const updatedCount = await this.showStatusService.syncSonarrStatuses();
-      //this.log.info(`Updated ${updatedCount} show statuses after watchlist refresh`);
+      const updatedCount = await this.showStatusService.syncSonarrStatuses();
+      this.log.info(`Updated ${updatedCount} show statuses after watchlist refresh`);
   
     } catch (error) {
       this.log.error('Error refreshing watchlists:', error)
@@ -161,12 +161,6 @@ class PlexTestingWorkflow {
         await this.addToQueue(changes, 'friends')
       }
       this.previousFriendsItems = currentItems
-    }
-
-    // Sync Sonarr statuses after processing RSS changes
-    if (results.self.users[0]?.watchlist || results.friends.users[0]?.watchlist) {
-      //const updatedCount = await this.showStatusService.syncSonarrStatuses();
-      //this.log.info(`Updated ${updatedCount} show statuses after RSS processing`);
     }
   }
 
@@ -472,6 +466,7 @@ class PlexTestingWorkflow {
 
       await this.sonarrService.addToSonarr(sonarrConfig, sonarrItem)
       this.log.info(`Successfully added show ${item.title} to Sonarr`)
+
     } catch (error) {
       this.log.error(`Error processing show ${item.title} in Sonarr:`, error)
       this.log.debug('Failed item details:', {
@@ -531,6 +526,7 @@ class PlexTestingWorkflow {
 
 const plexTestingPlugin: FastifyPluginCallback = (fastify, opts, done) => {
   try {
+    
     const workflow = new PlexTestingWorkflow(
       fastify.plexWatchlist,
       fastify.log,
@@ -561,5 +557,5 @@ const plexTestingPlugin: FastifyPluginCallback = (fastify, opts, done) => {
 
 export default fp(plexTestingPlugin, {
   name: 'plex-testing-plugin',
-  dependencies: ['plex-watchlist', 'sonarr', 'radarr'],
+  dependencies: ['plex-watchlist', 'sonarr', 'radarr','sync'],
 })

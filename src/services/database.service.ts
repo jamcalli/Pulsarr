@@ -244,7 +244,6 @@ export class DatabaseService {
   ): Promise<number> {
     try {
       const updatedCount = await this.bulkUpdateWatchlistItems(updates);
-      this.log.info(`Updated ${updatedCount} watchlist items status`);
       return updatedCount;
     } catch (error) {
       this.log.error('Error updating show statuses:', error);
