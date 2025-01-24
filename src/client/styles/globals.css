@@ -1,40 +1,40 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-  
+
 :root {
-  --main: #88aaee;
-  --overlay: rgba(0, 0, 0, 0.8); /* background color overlay for alert dialogs, modals, etc. */
+	--main: #88aaee;
+	--overlay: rgba(0, 0, 0, 0.8); /* background color overlay for alert dialogs, modals, etc. */
 
-  --bg: #dfe5f2;
-  --bw: #fff; /* white and secondary black e.g. utility class variant would be: bg-[#fff] dark:bg-[#212121] */
-  --blank: #000; /* blank black and white */
-  --border: #000;
-  --text: #000;
-  --mtext: #000; /* text that is placed on background with main color e.g. text color of default button */
-  --ring: #000;
-  --ring-offset: #fff;
+	--bg: #dfe5f2;
+	--bw: #fff; /* white and secondary black e.g. utility class variant would be: bg-[#fff] dark:bg-[#212121] */
+	--blank: #000; /* blank black and white */
+	--border: #000;
+	--text: #000;
+	--mtext: #000; /* text that is placed on background with main color e.g. text color of default button */
+	--ring: #000;
+	--ring-offset: #fff;
 
-  --border-radius: 5px;
-  --box-shadow-x: 4px;
-  --box-shadow-y: 4px;
-  --reverse-box-shadow-x: -4px;
-  --reverse-box-shadow-y: -4px;
-  --base-font-weight: 500;
-  --heading-font-weight: 700;
+	--border-radius: 5px;
+	--box-shadow-x: 4px;
+	--box-shadow-y: 4px;
+	--reverse-box-shadow-x: -4px;
+	--reverse-box-shadow-y: -4px;
+	--base-font-weight: 500;
+	--heading-font-weight: 700;
 
-  --shadow: var(--box-shadow-x) var(--box-shadow-y) 0px 0px var(--border);
+	--shadow: var(--box-shadow-x) var(--box-shadow-y) 0px 0px var(--border);
 }
 
 .dark {
-  --bg: #272933;
-  --bw: #212121;
-  --blank: #fff;
-  --border: #000;
-  --text: #e6e6e6;
-  --mtext: #000;
-  --ring: #fff;
-  --ring-offset: #000;
+	--bg: #272933;
+	--bw: #212121;
+	--blank: #fff;
+	--border: #000;
+	--text: #e6e6e6;
+	--mtext: #000;
+	--ring: #fff;
+	--ring-offset: #000;
 
-  --shadow: var(--box-shadow-x) var(--box-shadow-y) 0px 0px var(--border);
+	--shadow: var(--box-shadow-x) var(--box-shadow-y) 0px 0px var(--border);
 }

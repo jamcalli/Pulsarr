@@ -30,10 +30,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     },
     async (request, reply) => {
       const { newPassword, currentPassword } = request.body
-      const username = request.session.user.username
+      const email = request.session.user.email
 
       try {
-        const user = await fastify.db.getAdminUser(username)
+        const user = await fastify.db.getAdminUser(email)
 
         if (!user) {
           return reply.code(401).send({ message: 'User does not exist.' })
@@ -57,7 +57,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         const hashedPassword = await fastify.hash(newPassword)
         const updated = await fastify.db.updateAdminPassword(
-          username,
+          email,
           hashedPassword,
         )
 

@@ -10,7 +10,8 @@ export const CreateAdminErrorSchema = z.object({
 })
 
 export const CreateAdminSchema = z.object({
-  username: z.string().min(1).max(255),
+  email: z.string().email(),
+  username: z.string().min(3).max(255),
   password: z
     .string()
     .min(8)

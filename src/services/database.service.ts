@@ -99,6 +99,7 @@ export class DatabaseService {
   }
 
   async createAdminUser(userData: {
+    email: string
     username: string
     password: string
     role: string
@@ -111,18 +112,18 @@ export class DatabaseService {
     return created.length > 0
   }
 
-  async getAdminUser(username: string): Promise<AdminUser | undefined> {
+  async getAdminUser(email: string): Promise<AdminUser | undefined> {
     return await this.knex('admin_users')
-      .select('id', 'username', 'password', 'role')
-      .where({ username })
+      .select('id', 'username', 'email', 'password', 'role')
+      .where({ email })
       .first()
   }
 
   async updateAdminPassword(
-    username: string,
+    email: string,
     hashedPassword: string,
   ): Promise<boolean> {
-    const updated = await this.knex('admin_users').where({ username }).update({
+    const updated = await this.knex('admin_users').where({ email }).update({
       password: hashedPassword,
       updated_at: this.timestamp,
     })

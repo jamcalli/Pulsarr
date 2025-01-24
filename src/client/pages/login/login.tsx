@@ -15,12 +15,16 @@ import {
   loginFormSchema,
   type LoginFormSchema,
 } from '@/pages/login/form-schema'
-import { toast } from 'sonner'
+import { useToast } from '@/hooks/use-toast'
 import { Form, FormField, FormItem, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 
 export function LoginPage() {
-  const [status, setStatus] = React.useState<'idle' | 'loading' | 'success'>('idle')
+  const { toast } = useToast()
+
+  const [status, setStatus] = React.useState<'idle' | 'loading' | 'success'>(
+    'idle',
+  )
   const [backendError, setBackendError] = React.useState<string | null>(null)
 
   const form = useForm<LoginFormSchema>({
@@ -37,7 +41,7 @@ export function LoginPage() {
     setStatus('loading')
     setBackendError(null)
     try {
-      const response = await fetch('/api/login', {
+      const response = await fetch('/client/users/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -45,12 +49,15 @@ export function LoginPage() {
       const responseData = await response.json()
       if (response.ok) {
         setStatus('success')
-        toast.success(`Welcome back, ${responseData.username}!`, {
-          description: responseData.message,
+        toast({
+          description: `Welcome back, ${responseData.username}!`,
+          variant: 'default',
         })
       } else {
         setStatus('idle')
-        setBackendError(responseData.message || 'Login failed. Please try again.')
+        setBackendError(
+          responseData.message || 'Login failed. Please try again.',
+        )
       }
     } catch (error) {
       console.error('Login error:', error)
@@ -73,7 +80,10 @@ export function LoginPage() {
           </CardHeader>
           <CardContent>
             <Form {...form}>
-              <form className="grid gap-4" onSubmit={form.handleSubmit(onSubmit)}>
+              <form
+                className="grid gap-4"
+                onSubmit={form.handleSubmit(onSubmit)}
+              >
                 <FormField
                   control={form.control}
                   name="email"
