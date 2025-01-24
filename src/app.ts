@@ -90,20 +90,24 @@ export default async function serviceApp(
 
   await fastify.register(FastifyVite, {
     root: resolve(import.meta.dirname, '../'),
-    dev: process.argv.includes('--dev'), 
+    dev: process.argv.includes('--dev'),
     spa: true,
   })
- 
-  fastify.get('/*', {
-    onRequest: async (request, reply) => {
-      if (request.url === '/login') return
-      if (!request.session.user) {
-        reply.unauthorized('Authentication required')
-      }
-    }
-  }, (req, reply) => {
-    return reply.html()
-  })
+
+  fastify.get(
+    '/',
+    {
+      onRequest: async (request, reply) => {
+        if (request.url === '/login') return
+        if (!request.session.user) {
+          reply.unauthorized('Authentication required')
+        }
+      },
+    },
+    (req, reply) => {
+      return reply.html()
+    },
+  )
 
   await fastify.vite.ready()
 }
