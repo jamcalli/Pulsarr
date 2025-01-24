@@ -2,6 +2,7 @@ import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import knex, { type Knex } from 'knex'
 import type { Config, User } from '@root/types/config.types.js'
 import type { Item as WatchlistItem } from '@root/types/plex.types.js'
+import type { AdminUser } from '@schemas/auth/auth.js'
 
 export class DatabaseService {
   private readonly knex: Knex
@@ -96,6 +97,37 @@ export class DatabaseService {
       })
     return updated > 0
   }
+
+  async createAdminUser(userData: { 
+    username: string, 
+    password: string, 
+    role: string 
+  }): Promise<boolean> {
+    const created = await this.knex('admin_users')
+      .insert({
+        ...userData,
+        created_at: this.timestamp,
+        updated_at: this.timestamp
+      })
+    return created.length > 0
+  }
+
+  async getAdminUser(username: string): Promise<AdminUser | undefined> {
+    return await this.knex('admin_users')
+      .select('id', 'username', 'password', 'role')
+      .where({ username })
+      .first()
+   }
+   
+   async updateAdminPassword(username: string, hashedPassword: string): Promise<boolean> {
+    const updated = await this.knex('admin_users')
+      .where({ username })
+      .update({
+        password: hashedPassword,
+        updated_at: this.timestamp
+      })
+    return updated > 0
+   }
 
   async getConfig(id: number): Promise<Config | undefined> {
     const config = await this.knex('configs').where({ id }).first()

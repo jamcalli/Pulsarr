@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "clean:client": "rm -rf dist/client",
+    "clean:server": "rm -rf dist",
     "build": "npm run build:server && npm run clean:client && vite build",
     "build:server": "tsc && tsc-alias",
     "dev:server": "tsx watch src/server.ts",
@@ -39,6 +40,7 @@
   },
   "dependencies": {
     "@fastify/autoload": "^6.0.3",
+    "@fastify/cookie": "^11.0.2",
     "@fastify/cors": "^10.0.2",
     "@fastify/env": "^5.0.2",
     "@fastify/formbody": "^8.0.2",
@@ -46,6 +48,8 @@
     "@fastify/one-line-logger": "^2.0.2",
     "@fastify/rate-limit": "^10.2.2",
     "@fastify/react": "^0.6.0",
+    "@fastify/sensible": "^6.0.2",
+    "@fastify/session": "^11.1.0",
     "@fastify/swagger": "^9.4.1",
     "@fastify/vite": "^8.0.0-alpha.2",
     "@hookform/resolvers": "^3.10.0",

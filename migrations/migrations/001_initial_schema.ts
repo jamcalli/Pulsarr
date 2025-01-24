@@ -15,6 +15,16 @@ export async function up(knex: Knex): Promise<void> {
     table.index(['notify_discord', 'discord_id'])
   })
 
+  await knex.schema.createTable('admin_users', (table) => {
+    table.increments('id').primary()
+    table.string('username').notNullable().unique()
+    table.string('password').notNullable()
+    table.string('role').notNullable()
+    table.timestamp('created_at').defaultTo(knex.fn.now())
+    table.timestamp('updated_at').defaultTo(knex.fn.now())
+    table.index('username')
+  })
+
   await knex.schema.createTable('configs', (table) => {
     table.increments('id').primary()
     table.json('plexTokens')
@@ -69,5 +79,6 @@ export async function down(knex: Knex): Promise<void> {
   await knex.schema.dropTable('temp_rss_items')
   await knex.schema.dropTable('watchlist_items')
   await knex.schema.dropTable('configs')
+  await knex.schema.dropTable('admin_users')
   await knex.schema.dropTable('users')
 }

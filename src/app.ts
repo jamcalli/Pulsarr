@@ -90,12 +90,18 @@ export default async function serviceApp(
 
   await fastify.register(FastifyVite, {
     root: resolve(import.meta.dirname, '../'),
-    dev: process.argv.includes('--dev'),
+    dev: process.argv.includes('--dev'), 
     spa: true,
   })
-
-  // Route must match vite "base": https://vitejs.dev/config/shared-options.html#base
-  fastify.get('/*', (req, reply) => {
+ 
+  fastify.get('/*', {
+    onRequest: async (request, reply) => {
+      if (request.url === '/login') return
+      if (!request.session.user) {
+        reply.unauthorized('Authentication required')
+      }
+    }
+  }, (req, reply) => {
     return reply.html()
   })
 
