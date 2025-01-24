@@ -94,20 +94,18 @@ export default async function serviceApp(
     spa: true,
   })
 
-  fastify.get(
-    '/',
-    {
-      onRequest: async (request, reply) => {
-        if (request.url === '/login') return
-        if (!request.session.user) {
-          reply.unauthorized('Authentication required')
-        }
-      },
-    },
-    (req, reply) => {
-      return reply.html()
-    },
-  )
+  fastify.get('/app/*', {
+    preHandler: async (request, reply) => {
+      if (request.url === '/app/login') return
+      if (!request.session.user) {
+        return reply.redirect('/app/login')
+      }
+    }
+  }, (req, reply) => {
+    return reply.html()
+  })
+
+
 
   await fastify.vite.ready()
 }

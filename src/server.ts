@@ -7,9 +7,14 @@ import type { LevelWithSilent } from 'pino'
 function getLoggerOptions() {
   if (process.stdout.isTTY) {
     return {
+      level: 'info',
       transport: {
-        target: '@fastify/one-line-logger',
-      },
+        target: 'pino-pretty',
+        options: {
+          translateTime: 'HH:MM:ss Z',
+          ignore: 'pid,hostname'
+        }
+      }
     }
   }
   return { level: 'silent' }

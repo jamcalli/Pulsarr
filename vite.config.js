@@ -4,7 +4,7 @@ import viteReact from '@vitejs/plugin-react'
 
 /** @type {import('vite').UserConfig} */
 export default {
-  base: '/',
+  base: '/app/',
   root: resolve(import.meta.dirname, 'src/client'),
   plugins: [viteReact(), viteFastify()],
   build: {

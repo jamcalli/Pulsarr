@@ -4,7 +4,7 @@ import { createRoot } from 'react-dom/client'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/toaster'
 import { RouterProvider } from 'react-router-dom'
-import { router } from '@/layouts/router' // Adjust path as needed
+import { router } from '@/layouts/router'
 
 function RootLayout() {
   return (
