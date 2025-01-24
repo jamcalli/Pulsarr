@@ -98,17 +98,16 @@ export class DatabaseService {
     return updated > 0
   }
 
-  async createAdminUser(userData: { 
-    username: string, 
-    password: string, 
-    role: string 
+  async createAdminUser(userData: {
+    username: string
+    password: string
+    role: string
   }): Promise<boolean> {
-    const created = await this.knex('admin_users')
-      .insert({
-        ...userData,
-        created_at: this.timestamp,
-        updated_at: this.timestamp
-      })
+    const created = await this.knex('admin_users').insert({
+      ...userData,
+      created_at: this.timestamp,
+      updated_at: this.timestamp,
+    })
     return created.length > 0
   }
 
@@ -117,17 +116,18 @@ export class DatabaseService {
       .select('id', 'username', 'password', 'role')
       .where({ username })
       .first()
-   }
-   
-   async updateAdminPassword(username: string, hashedPassword: string): Promise<boolean> {
-    const updated = await this.knex('admin_users')
-      .where({ username })
-      .update({
-        password: hashedPassword,
-        updated_at: this.timestamp
-      })
+  }
+
+  async updateAdminPassword(
+    username: string,
+    hashedPassword: string,
+  ): Promise<boolean> {
+    const updated = await this.knex('admin_users').where({ username }).update({
+      password: hashedPassword,
+      updated_at: this.timestamp,
+    })
     return updated > 0
-   }
+  }
 
   async getConfig(id: number): Promise<Config | undefined> {
     const config = await this.knex('configs').where({ id }).first()

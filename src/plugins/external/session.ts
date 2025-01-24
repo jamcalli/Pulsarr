@@ -1,6 +1,6 @@
 import fastifySession from '@fastify/session'
 import fp from 'fastify-plugin'
-import { Auth } from '@schemas/auth/auth.js'
+import type { Auth } from '@schemas/auth/auth.js'
 import fastifyCookie from '@fastify/cookie'
 
 declare module 'fastify' {
@@ -14,17 +14,20 @@ declare module 'fastify' {
  *
  * @see {@link https://github.com/fastify/session}
  */
-export default fp(async (fastify) => {
-  fastify.register(fastifyCookie)
-  fastify.register(fastifySession, {
-    secret: fastify.config.cookieSecret,
-    cookieName: fastify.config.cookieName,
-    cookie: {
-      secure: fastify.config.cookieSecured,
-      httpOnly: true,
-      maxAge: 1800000
-    }
-  })
-}, {
-  name: 'session'
-})
+export default fp(
+  async (fastify) => {
+    fastify.register(fastifyCookie)
+    fastify.register(fastifySession, {
+      secret: fastify.config.cookieSecret,
+      cookieName: fastify.config.cookieName,
+      cookie: {
+        secure: fastify.config.cookieSecured,
+        httpOnly: true,
+        maxAge: 1800000,
+      },
+    })
+  },
+  {
+    name: 'session',
+  },
+)

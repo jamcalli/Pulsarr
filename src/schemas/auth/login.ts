@@ -2,22 +2,21 @@ import { z } from 'zod'
 
 export const LoginResponseSchema = z.object({
   success: z.boolean(),
-  message: z.string().optional()
+  message: z.string().optional(),
 })
 
 export const LoginErrorSchema = z.object({
-  message: z.string()
+  message: z.string(),
 })
 
-const passwordPattern = /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).*$/
+const passwordPattern =
+  /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).*$/
 
-export const PasswordSchema = z.string()
-  .min(8)
-  .regex(passwordPattern)
+export const PasswordSchema = z.string().min(8).regex(passwordPattern)
 
 export const CredentialsSchema = z.object({
   username: z.string().min(1).max(255),
-  password: PasswordSchema
+  password: PasswordSchema,
 })
 
 export type LoginResponse = z.infer<typeof LoginResponseSchema>
