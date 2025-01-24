@@ -4,10 +4,10 @@ import { LoginPage } from '@/pages/login/login'
 export const router = createBrowserRouter([
  {
    path: "/",
-   element: <Navigate to="/login" replace />,
+   element: <Navigate to="/app/login" replace />,
  },
  {
-   path: "/login",
+   path: "/app/login",
    element: <LoginPage />,
  },
  // Other routes...
