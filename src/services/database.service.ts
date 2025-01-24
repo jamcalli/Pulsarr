@@ -128,6 +128,11 @@ export class DatabaseService {
       .first()
   }
 
+  async hasAdminUsers(): Promise<boolean> {
+    const count = await this.knex('admin_users').count('* as count').first()
+    return Boolean(count && (count.count as number) > 0)
+  }
+
   async updateAdminPassword(
     email: string,
     hashedPassword: string,
