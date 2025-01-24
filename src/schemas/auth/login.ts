@@ -3,6 +3,7 @@ import { z } from 'zod'
 export const LoginResponseSchema = z.object({
   success: z.boolean(),
   message: z.string().optional(),
+  username: z.string(),
 })
 
 export const LoginErrorSchema = z.object({
@@ -15,7 +16,7 @@ const passwordPattern =
 export const PasswordSchema = z.string().min(8).regex(passwordPattern)
 
 export const CredentialsSchema = z.object({
-  username: z.string().min(1).max(255),
+  email: z.string().email().max(255),
   password: PasswordSchema,
 })
 

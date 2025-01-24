@@ -12,9 +12,9 @@ function getLoggerOptions() {
         target: 'pino-pretty',
         options: {
           translateTime: 'HH:MM:ss Z',
-          ignore: 'pid,hostname'
-        }
-      }
+          ignore: 'pid,hostname',
+        },
+      },
     }
   }
   return { level: 'silent' }

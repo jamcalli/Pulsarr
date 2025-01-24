@@ -1,5 +1,10 @@
 import * as z from 'zod'
 
+const passwordPattern =
+  /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).*$/
+
+const PasswordSchema = z.string().min(8).regex(passwordPattern)
+
 export const loginFormSchema = z.object({
   email: z
     .string()
@@ -12,17 +17,7 @@ export const loginFormSchema = z.object({
     .refine((email) => email.includes('.'), {
       message: 'Please include a domain in the email address',
     }),
-  password: z
-    .string()
-    .trim()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-    .regex(/[0-9]/, 'Password must contain at least one number')
-    .regex(
-      /[^A-Za-z0-9]/,
-      'Password must contain at least one special character',
-    ),
+  password: PasswordSchema,
 })
 
 export type LoginFormSchema = z.infer<typeof loginFormSchema>

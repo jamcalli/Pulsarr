@@ -23,22 +23,32 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       },
     },
     async (request, reply) => {
-      const { username, password } = request.body
+      const { email, password } = request.body
 
       try {
-        const user = await fastify.db.getAdminUser(username)
+        const user = await fastify.db.getAdminUser(email)
         if (!user || !(await fastify.compare(password, user.password))) {
           reply.status(401)
-          return { success: false, message: 'Invalid username or password.' }
+          return {
+            success: false,
+            message: 'Invalid email or password.',
+            username: '',
+          }
         }
 
         request.session.user = {
           id: user.id,
-          username,
+          username: user.username,
+          email: user.email,
           role: user.role,
         }
         await request.session.save()
-        return { success: true }
+
+        return {
+          success: true,
+          message: 'Login successful',
+          username: user.username,
+        }
       } catch (error) {
         throw reply.internalServerError('Login failed.')
       }

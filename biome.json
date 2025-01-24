@@ -1,6 +1,12 @@
 {
   "files": {
-    "ignore": ["dist", "tests", "migrations", "src/client"]
+    "ignore": [
+      "dist",
+      "tests",
+      "migrations",
+      "src/client/components",
+      "src/client/hooks"
+    ]
   },
   "javascript": {
     "formatter": {
