@@ -26,11 +26,18 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       const { email, username, password } = request.body
 
       try {
-        const existingUser = await fastify.db.getAdminUser(email)
+        const existingEmail = await fastify.db.getAdminUser(email)
+        const existingUsername =
+          await fastify.db.getAdminUserByUsername(username)
 
-        if (existingUser) {
+        if (existingEmail) {
           reply.status(409)
           return { success: false, message: 'Email already exists' }
+        }
+
+        if (existingUsername) {
+          reply.status(409)
+          return { success: false, message: 'Username already exists' }
         }
 
         const hashedPassword = await fastify.hash(password)

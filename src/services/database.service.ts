@@ -119,6 +119,15 @@ export class DatabaseService {
       .first()
   }
 
+  async getAdminUserByUsername(
+    username: string,
+  ): Promise<AdminUser | undefined> {
+    return await this.knex('admin_users')
+      .select('id', 'username', 'email', 'password', 'role')
+      .where({ username })
+      .first()
+  }
+
   async updateAdminPassword(
     email: string,
     hashedPassword: string,
