@@ -1,5 +1,6 @@
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import type { SonarrConfiguration, Item } from '@root/types/sonarr.types.js'
+import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
+import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 
 interface DatabaseWatchlistItem {
   id?: number
@@ -13,50 +14,42 @@ interface DatabaseWatchlistItem {
   genres?: string[] | string
   status: 'pending' | 'requested' | 'grabbed' | 'notified'
   series_status?: 'continuing' | 'ended' | null
+  movie_status?: string | null
   created_at?: string
   updated_at?: string
 }
 
-export class ShowStatusService {
+export class StatusService {
   constructor(
     private readonly log: FastifyBaseLogger,
     private readonly dbService: FastifyInstance['db'],
     private readonly sonarrService: FastifyInstance['sonarr'],
+    private readonly radarrService: FastifyInstance['radarr'],
     private readonly config: FastifyInstance['config'],
   ) {}
 
+  async syncAllStatuses(): Promise<{ shows: number; movies: number }> {
+    const [showUpdates, movieUpdates] = await Promise.all([
+      this.syncSonarrStatuses(),
+      this.syncRadarrStatuses(),
+    ])
+    return { shows: showUpdates, movies: movieUpdates }
+  }
+
   async syncSonarrStatuses(): Promise<number> {
     try {
-      // Get all shows from Sonarr
-      const sonarrConfig: SonarrConfiguration = {
-        sonarrApiKey: this.config.sonarrApiKey,
-        sonarrBaseUrl: this.config.sonarrBaseUrl,
-        sonarrQualityProfileId: this.config.sonarrQualityProfile,
-        sonarrRootFolder: this.config.sonarrRootFolder,
-        sonarrLanguageProfileId: 1,
-        sonarrSeasonMonitoring: 'all',
-        sonarrTagIds: this.config.sonarrTags,
-      }
-
       const existingSeries = await this.sonarrService.fetchSeries(
-        sonarrConfig.sonarrApiKey,
-        sonarrConfig.sonarrBaseUrl,
+        this.config.sonarrApiKey,
+        this.config.sonarrBaseUrl,
       )
-
-      // Get all shows from database
       const watchlistItems = await this.dbService.getAllShowWatchlistItems()
-
-      // Process updates
-      const updates = this.processStatusUpdates(
+      const updates = this.processShowStatusUpdates(
         Array.from(existingSeries),
         watchlistItems,
       )
-
-      // Bulk update database
       if (updates.length > 0) {
-        return await this.dbService.bulkUpdateShowStatuses(updates)
+        return await this.dbService.bulkUpdateWatchlistItems(updates)
       }
-
       return 0
     } catch (error) {
       this.log.error('Error syncing Sonarr statuses:', error)
@@ -64,8 +57,29 @@ export class ShowStatusService {
     }
   }
 
-  private processStatusUpdates(
-    sonarrItems: Item[],
+  async syncRadarrStatuses(): Promise<number> {
+    try {
+      const existingMovies = await this.radarrService.fetchMovies(
+        this.config.radarrApiKey,
+        this.config.radarrBaseUrl,
+      )
+      const watchlistItems = await this.dbService.getAllMovieWatchlistItems()
+      const updates = this.processMovieStatusUpdates(
+        Array.from(existingMovies),
+        watchlistItems,
+      )
+      if (updates.length > 0) {
+        return await this.dbService.bulkUpdateWatchlistItems(updates)
+      }
+      return 0
+    } catch (error) {
+      this.log.error('Error syncing Radarr statuses:', error)
+      throw error
+    }
+  }
+
+  private processShowStatusUpdates(
+    sonarrItems: SonarrItem[],
     watchlistItems: DatabaseWatchlistItem[],
   ) {
     const updates: Array<{
@@ -77,11 +91,8 @@ export class ShowStatusService {
     }> = []
 
     for (const item of watchlistItems) {
-      // Use the already processed Item from Sonarr
-      const sonarrMatch = this.findSonarrMatch(sonarrItems, item.guids)
-
+      const sonarrMatch = this.findMatch(sonarrItems, item.guids)
       if (sonarrMatch) {
-        // Only update if values are different
         if (
           item.status !== sonarrMatch.status ||
           item.series_status !== sonarrMatch.series_status ||
@@ -97,23 +108,55 @@ export class ShowStatusService {
         }
       }
     }
-
     return updates
   }
 
-  private findSonarrMatch(
-    sonarrItems: Item[],
-    itemGuids: string[] | string | undefined,
-  ): Item | undefined {
-    if (!itemGuids) return undefined
+  private processMovieStatusUpdates(
+    radarrItems: RadarrItem[],
+    watchlistItems: DatabaseWatchlistItem[],
+  ) {
+    const updates: Array<{
+      userId: number
+      key: string
+      added?: string
+      status?: 'pending' | 'requested' | 'grabbed' | 'notified'
+      movie_status?: 'available' | 'unavailable' // Change string to enum type
+    }> = []
 
+    for (const item of watchlistItems) {
+      const radarrMatch = this.findMatch(radarrItems, item.guids)
+      if (radarrMatch) {
+        if (
+          item.status !== radarrMatch.status ||
+          item.movie_status !== radarrMatch.movie_status ||
+          item.added !== radarrMatch.added
+        ) {
+          updates.push({
+            userId: item.user_id,
+            key: item.key,
+            added: radarrMatch.added,
+            status: radarrMatch.status,
+            movie_status: radarrMatch.movie_status as
+              | 'available'
+              | 'unavailable',
+          })
+        }
+      }
+    }
+    return updates
+  }
+
+  private findMatch<T extends SonarrItem | RadarrItem>(
+    items: T[],
+    itemGuids: string[] | string | undefined,
+  ): T | undefined {
+    if (!itemGuids) return undefined
     const guids = Array.isArray(itemGuids)
       ? itemGuids
       : typeof itemGuids === 'string'
         ? JSON.parse(itemGuids)
         : []
-
-    return sonarrItems.find((item) =>
+    return items.find((item) =>
       guids.some((guid: string) => item.guids.includes(guid)),
     )
   }

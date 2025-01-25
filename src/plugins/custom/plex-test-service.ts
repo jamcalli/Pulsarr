@@ -48,6 +48,8 @@ class PlexTestingWorkflow {
       // Initial watchlist fetch
       await this.fetchWatchlists()
 
+      await this.initialSyncCheck()
+
       // Initial RSS setup
       const rssFeeds = await this.plexService.generateAndSaveRssFeeds()
       if ('error' in rssFeeds) {
@@ -67,7 +69,7 @@ class PlexTestingWorkflow {
     }
   }
 
-  private async fetchWatchlists() {
+  async fetchWatchlists() {
     this.log.info('Refreshing watchlists')
     try {
       await Promise.all([
@@ -76,10 +78,9 @@ class PlexTestingWorkflow {
       ])
       this.log.info('Watchlists refreshed successfully')
 
-      // Sync show statuses after watchlists are updated
-      const updatedCount = await this.showStatusService.syncSonarrStatuses()
+      const { shows, movies } = await this.showStatusService.syncAllStatuses()
       this.log.info(
-        `Updated ${updatedCount} show statuses after watchlist refresh`,
+        `Updated ${shows} show statuses and ${movies} movie statuses after watchlist refresh`,
       )
     } catch (error) {
       this.log.error('Error refreshing watchlists:', error)
@@ -475,6 +476,112 @@ class PlexTestingWorkflow {
         type: item.type,
         error: error instanceof Error ? error.message : error,
       })
+      throw error
+    }
+  }
+
+  private async initialSyncCheck() {
+    this.log.info('Performing initial sync check')
+  
+    try {
+      // Get all shows and movies
+      const [shows, movies] = await Promise.all([
+        this.dbService.getAllShowWatchlistItems(),
+        this.dbService.getAllMovieWatchlistItems(),
+      ])
+  
+      const allWatchlistItems = [...shows, ...movies]
+  
+      const [existingSeries, existingMovies] = await Promise.all([
+        this.sonarrService.fetchSeries(
+          this.config.sonarrApiKey,
+          this.config.sonarrBaseUrl,
+        ),
+        this.radarrService.fetchMovies(
+          this.config.radarrApiKey,
+          this.config.radarrBaseUrl,
+        ),
+      ])
+  
+      let showsAdded = 0
+      let moviesAdded = 0
+      let unmatchedShows = 0
+      let unmatchedMovies = 0
+      const watchlistGuids = new Set(
+        allWatchlistItems.flatMap(item => 
+          typeof item.guids === 'string' ? JSON.parse(item.guids) : item.guids || []
+        )
+      )
+  
+      // Check unmatched items in Sonarr/Radarr
+      for (const series of existingSeries) {
+        const hasMatch = series.guids.some(guid => watchlistGuids.has(guid))
+        if (!hasMatch) {
+          unmatchedShows++
+          this.log.debug('Show in Sonarr not in watchlist:', {
+            title: series.title,
+            guids: series.guids
+          })
+        }
+      }
+  
+      for (const movie of existingMovies) {
+        const hasMatch = movie.guids.some(guid => watchlistGuids.has(guid))
+        if (!hasMatch) {
+          unmatchedMovies++
+          this.log.debug('Movie in Radarr not in watchlist:', {
+            title: movie.title,
+            guids: movie.guids
+          })
+        }
+      }
+  
+      // Process missing watchlist items
+      for (const item of allWatchlistItems) {
+        const tempItem: TemptRssWatchlistItem = {
+          title: item.title,
+          type: item.type,
+          thumb: item.thumb ?? undefined,
+          guids: typeof item.guids === 'string' ? JSON.parse(item.guids) : item.guids,
+          genres: typeof item.genres === 'string' ? JSON.parse(item.genres) : item.genres,
+          key: item.key,
+        }
+  
+        if (item.type === 'show') {
+          const exists = [...existingSeries].some((series) =>
+            series.guids.some((existingGuid) => tempItem.guids?.includes(existingGuid))
+          )
+          if (!exists) {
+            await this.processSonarrItem(tempItem)
+            showsAdded++
+          }
+        } else if (item.type === 'movie') {
+          const exists = [...existingMovies].some((movie) =>
+            movie.guids.some((existingGuid) => tempItem.guids?.includes(existingGuid))
+          )
+          if (!exists) {
+            await this.processRadarrItem(tempItem)
+            moviesAdded++
+          }
+        }
+      }
+  
+      this.log.info('Initial sync completed:', {
+        added: {
+          shows: showsAdded,
+          movies: moviesAdded
+        },
+        unmatched: {
+          shows: unmatchedShows,
+          movies: unmatchedMovies
+        }
+      })
+  
+      if (unmatchedShows > 0 || unmatchedMovies > 0) {
+        this.log.warn(`Found ${unmatchedShows} shows and ${unmatchedMovies} movies in Sonarr/Radarr that are not in watchlists`)
+      }
+    } catch (error) {
+      this.log.error('Error during initial sync:', error)
       throw error
     }
   }

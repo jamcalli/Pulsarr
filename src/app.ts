@@ -97,26 +97,29 @@ export default async function serviceApp(
   fastify.get('/', async (request, reply) => {
     const hasUsers = await fastify.db.hasAdminUsers()
     return reply.redirect(hasUsers ? '/app/login' : '/app/create-user')
-   })
+  })
 
   fastify.get(
     '/app/*',
     {
       preHandler: async (request, reply) => {
-        if (request.url === '/app/login' || request.url === '/app/create-user') {
+        if (
+          request.url === '/app/login' ||
+          request.url === '/app/create-user'
+        ) {
           const hasUsers = await fastify.db.hasAdminUsers()
-          
+
           if (!hasUsers && request.url === '/app/login') {
             return reply.redirect('/app/create-user')
           }
-          
+
           if (hasUsers && request.url === '/app/create-user') {
             return reply.redirect('/app/login')
           }
-          
+
           return
         }
-  
+
         if (!request.session.user) {
           return reply.redirect('/app/login')
         }

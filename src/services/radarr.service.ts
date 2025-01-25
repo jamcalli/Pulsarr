@@ -27,6 +27,9 @@ export class RadarrService {
       ].filter((x): x is string => !!x),
       type: 'movie',
       ended: undefined,
+      added: movie.added,
+      status: movie.hasFile ? 'grabbed' : 'requested',
+      movie_status: movie.isAvailable ? 'available' : 'unavailable',
     }
   }
 
@@ -142,7 +145,7 @@ export class RadarrService {
         currentPage++
       } while (allExclusions.length < totalRecords)
 
-      this.log.info(`Fetched all ${allExclusions.length} exclusions`)
+      this.log.info(`Fetched all movie ${allExclusions.length} exclusions`)
       return new Set(allExclusions.map((movie) => this.toItem(movie)))
     } catch (err) {
       this.log.error(`Error fetching exclusions: ${err}`)

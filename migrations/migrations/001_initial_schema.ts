@@ -54,6 +54,7 @@ export async function up(knex: Knex): Promise<void> {
       .notNullable()
       .defaultTo('pending')
     table.enum('series_status', ['continuing', 'ended'])
+    table.enum('movie_status', ['available', 'unavailable'])
     table.timestamp('created_at').defaultTo(knex.fn.now())
     table.timestamp('updated_at').defaultTo(knex.fn.now())
     table.unique(['user_id', 'key'])

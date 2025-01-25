@@ -138,7 +138,7 @@ export class SonarrService {
         currentPage++
       } while (allExclusions.length < totalRecords)
 
-      this.log.info(`Fetched all ${allExclusions.length} exclusions`)
+      this.log.info(`Fetched all show ${allExclusions.length} exclusions`)
       return new Set(allExclusions.map((show) => this.toItem(show)))
     } catch (err) {
       this.log.error(`Error fetching exclusions: ${err}`)

@@ -7,6 +7,9 @@ export interface RadarrMovie {
   imdbId?: string
   tmdbId?: number
   id: number
+  isAvailable?: boolean
+  added?: string
+  hasFile?: boolean
 }
 
 export interface RadarrPost {
@@ -61,6 +64,9 @@ export interface RadarrExclusion {
 export interface Item {
   title: string
   guids: string[]
-  type: 'movie' | 'show'
+  type: 'movie'
   ended?: boolean
+  added?: string
+  status?: 'pending' | 'requested' | 'grabbed' | 'notified'
+  movie_status?: 'available' | 'unavailable'
 }
