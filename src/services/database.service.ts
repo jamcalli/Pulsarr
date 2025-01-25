@@ -244,6 +244,7 @@ export class DatabaseService {
       added?: string
       status?: 'pending' | 'requested' | 'grabbed' | 'notified'
       series_status?: 'continuing' | 'ended'
+      movie_status?: 'available' | 'unavailable'
     }>,
   ): Promise<number> {
     let updatedCount = 0
@@ -264,6 +265,7 @@ export class DatabaseService {
                   added: update.added,
                   status: update.status,
                   series_status: update.series_status,
+                  movie_status: update.movie_status,
                   updated_at: this.timestamp,
                 }),
             ),
@@ -317,6 +319,29 @@ export class DatabaseService {
       }))
     } catch (error) {
       this.log.error('Error fetching show watchlist items:', error)
+      throw error
+    }
+  }
+
+  async getAllMovieWatchlistItems(): Promise<WatchlistItem[]> {
+    try {
+      const items = await this.knex('watchlist_items')
+        .where('type', 'movie')
+        .select('*')
+
+      return items.map((item) => ({
+        ...item,
+        guids:
+          typeof item.guids === 'string'
+            ? JSON.parse(item.guids)
+            : item.guids || [],
+        genres:
+          typeof item.genres === 'string'
+            ? JSON.parse(item.genres)
+            : item.genres || [],
+      }))
+    } catch (error) {
+      this.log.error('Error fetching movie watchlist items:', error)
       throw error
     }
   }

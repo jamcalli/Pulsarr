@@ -1,25 +1,26 @@
 import fp from 'fastify-plugin'
 import type { FastifyInstance } from 'fastify'
-import { ShowStatusService } from '@services/watchlist-status.service.js'
+import { StatusService } from '@services/watchlist-status.service.js'
 
 declare module 'fastify' {
   interface FastifyInstance {
-    sync: ShowStatusService
+    sync: StatusService
   }
 }
 
 export default fp(
   async (fastify: FastifyInstance) => {
-    const service = new ShowStatusService(
+    const service = new StatusService(
       fastify.log,
       fastify.db,
       fastify.sonarr,
+      fastify.radarr,
       fastify.config,
     )
     fastify.decorate('sync', service)
   },
   {
     name: 'sync',
-    dependencies: ['database', 'sonarr', 'config'],
+    dependencies: ['database', 'sonarr', 'radarr', 'config'],
   },
 )
