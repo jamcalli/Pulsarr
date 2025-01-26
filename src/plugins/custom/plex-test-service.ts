@@ -26,6 +26,7 @@ class PlexTestingWorkflow {
   private previousSelfItems: Map<string, WatchlistItem> = new Map()
   private previousFriendsItems: Map<string, WatchlistItem> = new Map()
   private isRefreshing = false
+  private isRunning = false
 
   constructor(
     private readonly plexService: FastifyInstance['plexWatchlist'],
@@ -38,7 +39,13 @@ class PlexTestingWorkflow {
   ) {}
 
   async startWorkflow() {
+    if (this.isRunning) {
+      this.log.warn('Workflow already running, skipping start')
+      return
+    }
+
     this.log.info('Starting Plex testing workflow')
+    this.isRunning = true
 
     try {
       // Verify connection
@@ -65,8 +72,27 @@ class PlexTestingWorkflow {
 
       this.log.info('Plex testing workflow running')
     } catch (error) {
+      this.isRunning = false
       this.log.error('Error in Plex testing workflow:', error)
+      throw error
     }
+  }
+
+  async stop() {
+    this.log.info('Stopping Plex testing workflow')
+    this.isRunning = false
+
+    if (this.rssCheckInterval) {
+      clearInterval(this.rssCheckInterval)
+      this.rssCheckInterval = null
+    }
+
+    if (this.queueCheckInterval) {
+      clearInterval(this.queueCheckInterval)
+      this.queueCheckInterval = null
+    }
+
+    this.changeQueue.clear()
   }
 
   async fetchWatchlists() {
@@ -482,16 +508,16 @@ class PlexTestingWorkflow {
 
   private async initialSyncCheck() {
     this.log.info('Performing initial sync check')
-  
+
     try {
       // Get all shows and movies
       const [shows, movies] = await Promise.all([
         this.dbService.getAllShowWatchlistItems(),
         this.dbService.getAllMovieWatchlistItems(),
       ])
-  
+
       const allWatchlistItems = [...shows, ...movies]
-  
+
       const [existingSeries, existingMovies] = await Promise.all([
         this.sonarrService.fetchSeries(
           this.config.sonarrApiKey,
@@ -502,54 +528,64 @@ class PlexTestingWorkflow {
           this.config.radarrBaseUrl,
         ),
       ])
-  
+
       let showsAdded = 0
       let moviesAdded = 0
       let unmatchedShows = 0
       let unmatchedMovies = 0
       const watchlistGuids = new Set(
-        allWatchlistItems.flatMap(item => 
-          typeof item.guids === 'string' ? JSON.parse(item.guids) : item.guids || []
-        )
+        allWatchlistItems.flatMap((item) =>
+          typeof item.guids === 'string'
+            ? JSON.parse(item.guids)
+            : item.guids || [],
+        ),
       )
-  
+
       // Check unmatched items in Sonarr/Radarr
       for (const series of existingSeries) {
-        const hasMatch = series.guids.some(guid => watchlistGuids.has(guid))
+        const hasMatch = series.guids.some((guid) => watchlistGuids.has(guid))
         if (!hasMatch) {
           unmatchedShows++
           this.log.debug('Show in Sonarr not in watchlist:', {
             title: series.title,
-            guids: series.guids
+            guids: series.guids,
           })
         }
       }
-  
+
       for (const movie of existingMovies) {
-        const hasMatch = movie.guids.some(guid => watchlistGuids.has(guid))
+        const hasMatch = movie.guids.some((guid) => watchlistGuids.has(guid))
         if (!hasMatch) {
           unmatchedMovies++
           this.log.debug('Movie in Radarr not in watchlist:', {
             title: movie.title,
-            guids: movie.guids
+            guids: movie.guids,
           })
         }
       }
-  
+
       // Process missing watchlist items
       for (const item of allWatchlistItems) {
         const tempItem: TemptRssWatchlistItem = {
           title: item.title,
           type: item.type,
           thumb: item.thumb ?? undefined,
-          guids: typeof item.guids === 'string' ? JSON.parse(item.guids) : item.guids,
-          genres: typeof item.genres === 'string' ? JSON.parse(item.genres) : item.genres,
+          guids:
+            typeof item.guids === 'string'
+              ? JSON.parse(item.guids)
+              : item.guids,
+          genres:
+            typeof item.genres === 'string'
+              ? JSON.parse(item.genres)
+              : item.genres,
           key: item.key,
         }
-  
+
         if (item.type === 'show') {
           const exists = [...existingSeries].some((series) =>
-            series.guids.some((existingGuid) => tempItem.guids?.includes(existingGuid))
+            series.guids.some((existingGuid) =>
+              tempItem.guids?.includes(existingGuid),
+            ),
           )
           if (!exists) {
             await this.processSonarrItem(tempItem)
@@ -557,7 +593,9 @@ class PlexTestingWorkflow {
           }
         } else if (item.type === 'movie') {
           const exists = [...existingMovies].some((movie) =>
-            movie.guids.some((existingGuid) => tempItem.guids?.includes(existingGuid))
+            movie.guids.some((existingGuid) =>
+              tempItem.guids?.includes(existingGuid),
+            ),
           )
           if (!exists) {
             await this.processRadarrItem(tempItem)
@@ -565,20 +603,22 @@ class PlexTestingWorkflow {
           }
         }
       }
-  
+
       this.log.info('Initial sync completed:', {
         added: {
           shows: showsAdded,
-          movies: moviesAdded
+          movies: moviesAdded,
         },
         unmatched: {
           shows: unmatchedShows,
-          movies: unmatchedMovies
-        }
+          movies: unmatchedMovies,
+        },
       })
-  
+
       if (unmatchedShows > 0 || unmatchedMovies > 0) {
-        this.log.warn(`Found ${unmatchedShows} shows and ${unmatchedMovies} movies in Sonarr/Radarr that are not in watchlists`)
+        this.log.warn(
+          `Found ${unmatchedShows} shows and ${unmatchedMovies} movies in Sonarr/Radarr that are not in watchlists`,
+        )
       }
     } catch (error) {
       this.log.error('Error during initial sync:', error)
@@ -613,22 +653,6 @@ class PlexTestingWorkflow {
       }
     }, 10000) // Check every 10 seconds
   }
-
-  async stop() {
-    this.log.info('Stopping Plex testing workflow')
-
-    if (this.rssCheckInterval) {
-      clearInterval(this.rssCheckInterval)
-      this.rssCheckInterval = null
-    }
-
-    if (this.queueCheckInterval) {
-      clearInterval(this.queueCheckInterval)
-      this.queueCheckInterval = null
-    }
-
-    this.changeQueue.clear()
-  }
 }
 
 const plexTestingPlugin: FastifyPluginCallback = (fastify, opts, done) => {
@@ -649,10 +673,19 @@ const plexTestingPlugin: FastifyPluginCallback = (fastify, opts, done) => {
 
     fastify.decorate('plexTestingWorkflow', workflow)
 
-    setImmediate(() => {
-      workflow.startWorkflow().catch((err) => {
+    // Start workflow only after config is ready
+    setImmediate(async () => {
+      try {
+        fastify.log.info(
+          'Waiting for config to be ready before starting workflow...',
+        )
+        await fastify.waitForConfig()
+        fastify.log.info('Config ready, starting workflow')
+
+        await workflow.startWorkflow()
+      } catch (err) {
         fastify.log.error('Error in background workflow:', err)
-      })
+      }
     })
 
     done()
@@ -663,5 +696,5 @@ const plexTestingPlugin: FastifyPluginCallback = (fastify, opts, done) => {
 
 export default fp(plexTestingPlugin, {
   name: 'plex-testing-plugin',
-  dependencies: ['plex-watchlist', 'sonarr', 'radarr', 'sync'],
+  dependencies: ['plex-watchlist', 'sonarr', 'radarr', 'sync', 'config'],
 })

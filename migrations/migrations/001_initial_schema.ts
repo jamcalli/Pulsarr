@@ -28,13 +28,48 @@ export async function up(knex: Knex): Promise<void> {
 
   await knex.schema.createTable('configs', (table) => {
     table.increments('id').primary()
+    table.integer('port')
+    table.string('dbPath')
+    table.string('cookieSecret')
+    table.string('cookieName')
+    table.boolean('cookieSecured')
+    table.json('initialPlexTokens')
+    table.string('logLevel')
+    table.integer('closeGraceDelay')
+    table.integer('rateLimitMax')
+    table.integer('syncIntervalSeconds')
+    // Sonarr
+    table.string('sonarrBaseUrl')
+    table.string('sonarrApiKey')
+    table.string('sonarrQualityProfile')
+    table.string('sonarrRootFolder')
+    table.boolean('sonarrBypassIgnored')
+    table.string('sonarrSeasonMonitoring')
+    table.json('sonarrTags')
+    // Radarr
+    table.string('radarrBaseUrl')
+    table.string('radarrApiKey')
+    table.string('radarrQualityProfile')
+    table.string('radarrRootFolder')
+    table.boolean('radarrBypassIgnored')
+    table.json('radarrTags')
+    // Plex
     table.json('plexTokens')
-    table.integer('port').notNullable()
-    table.json('selfRss')
-    table.json('friendsRss')
+    table.boolean('skipFriendSync')
+    // Delete
+    table.boolean('deleteMovie')
+    table.boolean('deleteEndedShow')
+    table.boolean('deleteContinuingShow')
+    table.integer('deleteIntervalDays')
+    table.boolean('deleteFiles')
+    // RSS 
+    table.string('selfRss')
+    table.string('friendsRss')
+    // Ready State
+    table.boolean('_isReady').defaultTo(false)
     table.timestamp('created_at').defaultTo(knex.fn.now())
     table.timestamp('updated_at').defaultTo(knex.fn.now())
-  })
+   })
 
   await knex.schema.createTable('watchlist_items', (table) => {
     table.increments('id').primary()

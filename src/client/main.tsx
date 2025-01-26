@@ -3,7 +3,7 @@ import './styles/fonts.css'
 import { createRoot } from 'react-dom/client'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/toaster'
-import  ParallaxStarfield from '@/components/ui/starfield'
+import ParallaxStarfield from '@/components/ui/starfield'
 import { RouterProvider } from 'react-router-dom'
 import { router } from '@/layouts/router'
 
