@@ -18,10 +18,16 @@ export default fp(
       await dbService.close()
     })
 
+    // Check for existing config
     const dbConfig = await dbService.getConfig(1)
-    if (dbConfig?.plexTokens) {
-      fastify.config.plexTokens = dbConfig.plexTokens
-    } else if (fastify.config.initialPlexTokens) {
+    if (dbConfig) {
+      // If we have an existing config, update fastify.config with all values
+      await fastify.updateConfig({
+        ...dbConfig,
+        _isReady: dbConfig._isReady, // Preserve the ready state from DB
+      })
+    } else {
+      // No existing config, create one with initial values
       let initialTokens: string[] = []
 
       try {
@@ -45,9 +51,17 @@ export default fp(
         fastify.log.warn('Failed to parse initialPlexTokens, using empty array')
       }
 
+      // Create initial config with all default values from fastify.config
       await dbService.createConfig({
-        port: fastify.config.port,
+        ...fastify.config,
         plexTokens: initialTokens,
+        _isReady: false, // Always start as not ready for new configs
+      })
+
+      // Update fastify.config to ensure it reflects the saved state
+      await fastify.updateConfig({
+        plexTokens: initialTokens,
+        _isReady: false,
       })
     }
   },

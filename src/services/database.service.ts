@@ -146,18 +146,29 @@ export class DatabaseService {
 
   async getConfig(id: number): Promise<Config | undefined> {
     const config = await this.knex('configs').where({ id }).first()
+    if (!config) return undefined
 
-    if (config) {
-      return {
-        ...config,
-        plexTokens: JSON.parse(config.plexTokens),
-        selfRss: config.selfRss ? JSON.parse(config.selfRss) : undefined,
-        friendsRss: config.friendsRss
-          ? JSON.parse(config.friendsRss)
-          : undefined,
-      }
+    return {
+      ...config,
+      // Parse JSON fields
+      plexTokens: JSON.parse(config.plexTokens || '[]'),
+      initialPlexTokens: JSON.parse(config.initialPlexTokens || '[]'),
+      sonarrTags: JSON.parse(config.sonarrTags || '[]'),
+      radarrTags: JSON.parse(config.radarrTags || '[]'),
+      // Handle optional RSS fields
+      selfRss: config.selfRss || undefined,
+      friendsRss: config.friendsRss || undefined,
+      // Convert boolean fields
+      cookieSecured: Boolean(config.cookieSecured),
+      sonarrBypassIgnored: Boolean(config.sonarrBypassIgnored),
+      radarrBypassIgnored: Boolean(config.radarrBypassIgnored),
+      skipFriendSync: Boolean(config.skipFriendSync),
+      deleteMovie: Boolean(config.deleteMovie),
+      deleteEndedShow: Boolean(config.deleteEndedShow),
+      deleteContinuingShow: Boolean(config.deleteContinuingShow),
+      deleteFiles: Boolean(config.deleteFiles),
+      _isReady: Boolean(config._isReady),
     }
-    return undefined
   }
 
   async createConfig(
@@ -165,12 +176,54 @@ export class DatabaseService {
   ): Promise<number> {
     const [id] = await this.knex('configs')
       .insert({
+        // Basic fields
         port: config.port,
-        plexTokens: JSON.stringify(config.plexTokens),
-        selfRss: config.selfRss ? JSON.stringify(config.selfRss) : null,
-        friendsRss: config.friendsRss
-          ? JSON.stringify(config.friendsRss)
-          : null,
+        dbPath: config.dbPath,
+        cookieSecret: config.cookieSecret,
+        cookieName: config.cookieName,
+        cookieSecured: config.cookieSecured,
+        initialPlexTokens: JSON.stringify(config.initialPlexTokens || []),
+        logLevel: config.logLevel,
+        closeGraceDelay: config.closeGraceDelay,
+        rateLimitMax: config.rateLimitMax,
+        syncIntervalSeconds: config.syncIntervalSeconds,
+
+        // Sonarr fields
+        sonarrBaseUrl: config.sonarrBaseUrl,
+        sonarrApiKey: config.sonarrApiKey,
+        sonarrQualityProfile: config.sonarrQualityProfile,
+        sonarrRootFolder: config.sonarrRootFolder,
+        sonarrBypassIgnored: config.sonarrBypassIgnored,
+        sonarrSeasonMonitoring: config.sonarrSeasonMonitoring,
+        sonarrTags: JSON.stringify(config.sonarrTags || []),
+
+        // Radarr fields
+        radarrBaseUrl: config.radarrBaseUrl,
+        radarrApiKey: config.radarrApiKey,
+        radarrQualityProfile: config.radarrQualityProfile,
+        radarrRootFolder: config.radarrRootFolder,
+        radarrBypassIgnored: config.radarrBypassIgnored,
+        radarrTags: JSON.stringify(config.radarrTags || []),
+
+        // Plex fields
+        plexTokens: JSON.stringify(config.plexTokens || []),
+        skipFriendSync: config.skipFriendSync,
+
+        // Delete fields
+        deleteMovie: config.deleteMovie,
+        deleteEndedShow: config.deleteEndedShow,
+        deleteContinuingShow: config.deleteContinuingShow,
+        deleteIntervalDays: config.deleteIntervalDays,
+        deleteFiles: config.deleteFiles,
+
+        // RSS fields
+        selfRss: config.selfRss,
+        friendsRss: config.friendsRss,
+
+        // Ready state
+        _isReady: config._isReady || false,
+
+        // Timestamps
         created_at: this.timestamp,
         updated_at: this.timestamp,
       })
@@ -185,14 +238,24 @@ export class DatabaseService {
       updated_at: this.timestamp,
     }
 
-    if (config.plexTokens)
-      updateData.plexTokens = JSON.stringify(config.plexTokens)
-    if (config.port) updateData.port = config.port
-    if (config.selfRss) updateData.selfRss = JSON.stringify(config.selfRss)
-    if (config.friendsRss)
-      updateData.friendsRss = JSON.stringify(config.friendsRss)
+    // Handle all fields, including RSS fields
+    Object.entries(config).forEach(([key, value]) => {
+      if (value !== undefined) {
+        if (key === 'selfRss' || key === 'friendsRss') {
+          updateData[key] = value
+        } else if (
+          Array.isArray(value) ||
+          (typeof value === 'object' && value !== null)
+        ) {
+          updateData[key] = JSON.stringify(value)
+        } else {
+          updateData[key] = value
+        }
+      }
+    })
 
     const updated = await this.knex('configs').where({ id }).update(updateData)
+
     return updated > 0
   }
 
@@ -200,8 +263,14 @@ export class DatabaseService {
     userId: number,
     key: string,
   ): Promise<WatchlistItem | undefined> {
+    const numericUserId =
+      typeof userId === 'object' ? (userId as { id: number }).id : userId
+
     return await this.knex('watchlist_items')
-      .where({ user_id: userId, key })
+      .where({
+        user_id: numericUserId,
+        key,
+      })
       .first()
   }
 
@@ -215,9 +284,14 @@ export class DatabaseService {
 
     if (keys.length === 0) return []
 
+    // Ensure all userIds are numbers
+    const numericUserIds = userIds.map((id) =>
+      typeof id === 'object' ? (id as { id: number }).id : id,
+    )
+
     const query = this.knex('watchlist_items')
       .whereIn('key', keys)
-      .whereIn('user_id', userIds)
+      .whereIn('user_id', numericUserIds)
 
     const results = await query
 
@@ -225,7 +299,7 @@ export class DatabaseService {
       `Query returned ${results.length} total matches from database`,
       {
         query: query.toString(),
-        userIds,
+        userIds: numericUserIds,
         keysCount: keys.length,
       },
     )
@@ -400,24 +474,6 @@ export class DatabaseService {
     return new Date().toISOString()
   }
 
-  async migrateConfigFromEnv(): Promise<void> {
-    if (!this.config.initialPlexTokens || !this.config.port) {
-      this.log.error('Missing INITIAL_PLEX_TOKENS or PORT in config.')
-      process.exit(1)
-    }
-
-    const existingConfig = await this.getConfig(1)
-    if (existingConfig) {
-      this.log.info('Configuration already exists in the database.')
-      return
-    }
-
-    const plex_tokens = this.config.plexTokens
-    const port = this.config.port
-    await this.createConfig({ plexTokens: plex_tokens, port: port })
-    this.log.info('Configuration migrated from config to database.')
-  }
-
   async createTempRssItems(
     items: Array<{
       title: string
@@ -484,15 +540,22 @@ export class DatabaseService {
   async deleteWatchlistItems(userId: number, keys: string[]): Promise<void> {
     if (keys.length === 0) return
 
+    const numericUserId =
+      typeof userId === 'object' ? (userId as { id: number }).id : userId
+
     await this.knex('watchlist_items')
-      .where('user_id', userId)
+      .where('user_id', numericUserId)
       .whereIn('key', keys)
       .delete()
   }
 
   async getAllWatchlistItemsForUser(userId: number): Promise<WatchlistItem[]> {
+    // Ensure userId is a number
+    const numericUserId =
+      typeof userId === 'object' ? (userId as { id: number }).id : userId
+
     const items = await this.knex('watchlist_items')
-      .where('user_id', userId)
+      .where('user_id', numericUserId)
       .select('*')
 
     return items.map((item) => ({

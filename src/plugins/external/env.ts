@@ -1,47 +1,7 @@
 import fp from 'fastify-plugin'
 import env from '@fastify/env'
 import type { FastifyInstance } from 'fastify'
-
-interface Config {
-  port: number
-  dbPath: string
-  cookieSecret: string
-  cookieName: string
-  cookieSecured: boolean
-  initialPlexTokens: string[]
-  logLevel: string
-  closeGraceDelay: number
-  rateLimitMax: number
-  syncIntervalSeconds: number
-  // Sonarr Config
-  sonarrBaseUrl: string
-  sonarrApiKey: string
-  sonarrQualityProfile: string
-  sonarrRootFolder: string
-  sonarrBypassIgnored: boolean
-  sonarrSeasonMonitoring: string
-  sonarrTags: string[]
-  // Radarr Config
-  radarrBaseUrl: string
-  radarrApiKey: string
-  radarrQualityProfile: string
-  radarrRootFolder: string
-  radarrBypassIgnored: boolean
-  radarrTags: string[]
-  // Plex Config
-  plexTokens: string[]
-  skipFriendSync: boolean
-  // Delete Config
-  deleteMovie: boolean
-  deleteEndedShow: boolean
-  deleteContinuingShow: boolean
-  deleteIntervalDays: number
-  deleteFiles: boolean
-}
-
-type RawConfig = {
-  [K in keyof Config]: Config[K] extends string[] ? string : Config[K]
-}
+import type { Config, RawConfig } from '@root/types/config.types.js'
 
 const schema = {
   type: 'object',
@@ -73,8 +33,8 @@ const schema = {
     },
     logLevel: {
       type: 'string',
-      default: 'silent',
       enum: ['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'],
+      default: 'silent',
     },
     closeGraceDelay: {
       type: 'number',
@@ -88,7 +48,6 @@ const schema = {
       type: 'number',
       default: 10,
     },
-    // Sonarr Configuration
     sonarrBaseUrl: {
       type: 'string',
       default: 'localhost:8989',
@@ -117,7 +76,6 @@ const schema = {
       type: 'string',
       default: '[]',
     },
-    // Radarr Configuration
     radarrBaseUrl: {
       type: 'string',
       default: 'localhost:7878',
@@ -142,7 +100,6 @@ const schema = {
       type: 'string',
       default: '[]',
     },
-    // Plex Configuration
     plexTokens: {
       type: 'string',
       default: '[]',
@@ -151,7 +108,6 @@ const schema = {
       type: 'boolean',
       default: false,
     },
-    // Delete Configuration
     deleteMovie: {
       type: 'boolean',
       default: false,
@@ -172,36 +128,51 @@ const schema = {
       type: 'boolean',
       default: true,
     },
+    selfRss: {
+      type: 'string',
+    },
+    friendsRss: {
+      type: 'string',
+    },
   },
 }
 
 declare module 'fastify' {
-  export interface FastifyInstance {
+  interface FastifyInstance {
     config: Config
     updateConfig(config: Partial<Config>): Promise<Config>
+    waitForConfig(): Promise<void>
   }
 }
 
 export default fp(
   async (fastify: FastifyInstance) => {
+    // Initialize ready promise
+    let resolveReady: () => void
+    const readyPromise = new Promise<void>((resolve) => {
+      resolveReady = resolve
+    })
+
+    // Register env plugin with default values
     await fastify.register(env, {
       confKey: 'config',
-      schema: schema,
+      schema,
       dotenv: true,
       data: process.env,
     })
 
-    // Get the raw config and parse JSON strings to arrays
+    // Parse the raw config
     const rawConfig = fastify.config as unknown as RawConfig
     const parsedConfig = {
       ...rawConfig,
-      sonarrTags: JSON.parse(rawConfig.sonarrTags),
-      radarrTags: JSON.parse(rawConfig.radarrTags),
-      plexTokens: JSON.parse(rawConfig.plexTokens),
-      initialPlexTokens: JSON.parse(rawConfig.initialPlexTokens),
+      sonarrTags: JSON.parse(rawConfig.sonarrTags || '[]'),
+      radarrTags: JSON.parse(rawConfig.radarrTags || '[]'),
+      plexTokens: JSON.parse(rawConfig.plexTokens || '[]'),
+      initialPlexTokens: JSON.parse(rawConfig.initialPlexTokens || '[]'),
+      _isReady: false, // Start with not ready
     }
 
-    // Ensure arrays are initialized even if empty
+    // Initialize arrays
     parsedConfig.radarrTags = Array.isArray(parsedConfig.radarrTags)
       ? parsedConfig.radarrTags
       : []
@@ -217,8 +188,27 @@ export default fp(
       ? parsedConfig.initialPlexTokens
       : []
 
-    // Assign the fully parsed config back
+    // Assign parsed config
     fastify.config = parsedConfig as Config
+
+    // Add update method
+    fastify.decorate('updateConfig', async (newConfig: Partial<Config>) => {
+      const updatedConfig = { ...fastify.config, ...newConfig }
+      fastify.config = updatedConfig
+
+      // If this is the first configuration and _isReady is true, resolve the promise
+      if (!fastify.config._isReady && newConfig._isReady) {
+        fastify.config._isReady = true
+        resolveReady()
+      }
+
+      return updatedConfig
+    })
+
+    // Add wait method
+    fastify.decorate('waitForConfig', () => readyPromise)
   },
-  { name: 'config' },
+  {
+    name: 'config',
+  },
 )

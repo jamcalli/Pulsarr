@@ -10,12 +10,57 @@ export interface User {
   updated_at?: string
 }
 
+export type LogLevel =
+  | 'fatal'
+  | 'error'
+  | 'warn'
+  | 'info'
+  | 'debug'
+  | 'trace'
+  | 'silent'
+
 export interface Config {
-  id?: number
+  port: number
+  dbPath: string
+  cookieSecret: string
+  cookieName: string
+  cookieSecured: boolean
+  initialPlexTokens: string[]
+  logLevel: LogLevel
+  closeGraceDelay: number
+  rateLimitMax: number
+  syncIntervalSeconds: number
+  // Sonarr Config
+  sonarrBaseUrl: string
+  sonarrApiKey: string
+  sonarrQualityProfile: string
+  sonarrRootFolder: string
+  sonarrBypassIgnored: boolean
+  sonarrSeasonMonitoring: string
+  sonarrTags: string[]
+  // Radarr Config
+  radarrBaseUrl: string
+  radarrApiKey: string
+  radarrQualityProfile: string
+  radarrRootFolder: string
+  radarrBypassIgnored: boolean
+  radarrTags: string[]
+  // Plex Config
   plexTokens: string[]
-  port?: number
+  skipFriendSync: boolean
+  // Delete Config
+  deleteMovie: boolean
+  deleteEndedShow: boolean
+  deleteContinuingShow: boolean
+  deleteIntervalDays: number
+  deleteFiles: boolean
+  // RSS Config
   selfRss?: string
   friendsRss?: string
-  created_at?: string
-  updated_at?: string
+  // Ready state
+  _isReady: boolean
+}
+
+export type RawConfig = {
+  [K in keyof Config]: Config[K] extends string[] ? string : Config[K]
 }
