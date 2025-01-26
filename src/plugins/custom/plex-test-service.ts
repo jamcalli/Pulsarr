@@ -673,20 +673,20 @@ const plexTestingPlugin: FastifyPluginCallback = (fastify, opts, done) => {
 
     fastify.decorate('plexTestingWorkflow', workflow)
 
-    // Start workflow only after config is ready
-    setImmediate(async () => {
+    // Start workflow with proper error handling
+    const startWorkflow = async () => {
       try {
-        fastify.log.info(
-          'Waiting for config to be ready before starting workflow...',
-        )
+        fastify.log.info('Waiting for config to be ready...')
         await fastify.waitForConfig()
         fastify.log.info('Config ready, starting workflow')
-
         await workflow.startWorkflow()
       } catch (err) {
-        fastify.log.error('Error in background workflow:', err)
+        fastify.log.error('Error in workflow startup:', err)
+        throw err
       }
-    })
+    }
+
+    setImmediate(startWorkflow)
 
     done()
   } catch (err) {

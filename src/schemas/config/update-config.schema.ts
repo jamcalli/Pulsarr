@@ -1,7 +1,15 @@
 import { z } from 'zod'
 import type { Config } from '@root/types/config.types.js'
 
-const LogLevelEnum = z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
+const LogLevelEnum = z.enum([
+  'fatal',
+  'error',
+  'warn',
+  'info',
+  'debug',
+  'trace',
+  'silent',
+])
 
 export const ConfigUpdateSchema = z.object({
   port: z.number().optional(),
@@ -47,11 +55,11 @@ export const ConfigUpdateSchema = z.object({
 
 export const ConfigUpdateResponseSchema = z.object({
   success: z.boolean(),
-  config: z.object(ConfigUpdateSchema.shape)
+  config: z.object(ConfigUpdateSchema.shape),
 })
 
 export const ConfigUpdateErrorSchema = z.object({
-  error: z.string()
+  error: z.string(),
 })
 
 export type ConfigUpdate = z.infer<typeof ConfigUpdateSchema>

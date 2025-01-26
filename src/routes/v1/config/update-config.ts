@@ -1,9 +1,9 @@
 import type { FastifyPluginAsync } from 'fastify'
 import type { z } from 'zod'
-import { 
+import {
   ConfigUpdateSchema,
   ConfigUpdateResponseSchema,
-  ConfigUpdateErrorSchema 
+  ConfigUpdateErrorSchema,
 } from '@schemas/config/update-config.schema.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
@@ -26,11 +26,11 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       try {
         const configUpdate = request.body
         const updatedConfig = await fastify.updateConfig(configUpdate)
-        
+
         reply.status(200)
         return {
           success: true,
-          config: updatedConfig
+          config: updatedConfig,
         }
       } catch (error) {
         throw reply.internalServerError('Unable to update configuration')

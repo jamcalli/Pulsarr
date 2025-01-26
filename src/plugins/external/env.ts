@@ -147,13 +147,11 @@ declare module 'fastify' {
 
 export default fp(
   async (fastify: FastifyInstance) => {
-    // Initialize ready promise
-    let resolveReady: () => void
+    let resolveReady: (() => void) | null = null
     const readyPromise = new Promise<void>((resolve) => {
       resolveReady = resolve
     })
 
-    // Register env plugin with default values
     await fastify.register(env, {
       confKey: 'config',
       schema,
@@ -161,7 +159,6 @@ export default fp(
       data: process.env,
     })
 
-    // Parse the raw config
     const rawConfig = fastify.config as unknown as RawConfig
     const parsedConfig = {
       ...rawConfig,
@@ -169,10 +166,9 @@ export default fp(
       radarrTags: JSON.parse(rawConfig.radarrTags || '[]'),
       plexTokens: JSON.parse(rawConfig.plexTokens || '[]'),
       initialPlexTokens: JSON.parse(rawConfig.initialPlexTokens || '[]'),
-      _isReady: false, // Start with not ready
+      _isReady: false,
     }
 
-    // Initialize arrays
     parsedConfig.radarrTags = Array.isArray(parsedConfig.radarrTags)
       ? parsedConfig.radarrTags
       : []
@@ -188,25 +184,27 @@ export default fp(
       ? parsedConfig.initialPlexTokens
       : []
 
-    // Assign parsed config
     fastify.config = parsedConfig as Config
 
-    // Add update method
     fastify.decorate('updateConfig', async (newConfig: Partial<Config>) => {
       const updatedConfig = { ...fastify.config, ...newConfig }
       fastify.config = updatedConfig
 
-      // If this is the first configuration and _isReady is true, resolve the promise
-      if (!fastify.config._isReady && newConfig._isReady) {
-        fastify.config._isReady = true
+      if (newConfig._isReady === true && resolveReady) {
+        fastify.log.info('Config is now ready, resolving waitForConfig promise')
         resolveReady()
+        resolveReady = null
       }
 
       return updatedConfig
     })
 
-    // Add wait method
-    fastify.decorate('waitForConfig', () => readyPromise)
+    fastify.decorate('waitForConfig', () => {
+      if (fastify.config._isReady) {
+        return Promise.resolve()
+      }
+      return readyPromise
+    })
   },
   {
     name: 'config',
