@@ -238,8 +238,7 @@ export class DatabaseService {
       updated_at: this.timestamp,
     }
 
-    // Handle all fields, including RSS fields
-    Object.entries(config).forEach(([key, value]) => {
+    for (const [key, value] of Object.entries(config)) {
       if (value !== undefined) {
         if (key === 'selfRss' || key === 'friendsRss') {
           updateData[key] = value
@@ -252,10 +251,9 @@ export class DatabaseService {
           updateData[key] = value
         }
       }
-    })
+    }
 
     const updated = await this.knex('configs').where({ id }).update(updateData)
-
     return updated > 0
   }
 
