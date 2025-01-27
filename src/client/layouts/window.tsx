@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import Nav from '@/components/nav'
 
 interface WindowedLayoutProps {
