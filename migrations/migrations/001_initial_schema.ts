@@ -33,7 +33,6 @@ export async function up(knex: Knex): Promise<void> {
     table.string('cookieSecret')
     table.string('cookieName')
     table.boolean('cookieSecured')
-    table.json('initialPlexTokens')
     table.string('logLevel')
     table.integer('closeGraceDelay')
     table.integer('rateLimitMax')

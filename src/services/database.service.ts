@@ -152,7 +152,6 @@ export class DatabaseService {
       ...config,
       // Parse JSON fields
       plexTokens: JSON.parse(config.plexTokens || '[]'),
-      initialPlexTokens: JSON.parse(config.initialPlexTokens || '[]'),
       sonarrTags: JSON.parse(config.sonarrTags || '[]'),
       radarrTags: JSON.parse(config.radarrTags || '[]'),
       // Handle optional RSS fields
@@ -182,7 +181,6 @@ export class DatabaseService {
         cookieSecret: config.cookieSecret,
         cookieName: config.cookieName,
         cookieSecured: config.cookieSecured,
-        initialPlexTokens: JSON.stringify(config.initialPlexTokens || []),
         logLevel: config.logLevel,
         closeGraceDelay: config.closeGraceDelay,
         rateLimitMax: config.rateLimitMax,

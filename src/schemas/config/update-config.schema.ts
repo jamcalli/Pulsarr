@@ -17,7 +17,6 @@ export const ConfigUpdateSchema = z.object({
   cookieSecret: z.string().optional(),
   cookieName: z.string().optional(),
   cookieSecured: z.boolean().optional(),
-  initialPlexTokens: z.array(z.string()).optional(),
   logLevel: LogLevelEnum.optional(),
   closeGraceDelay: z.number().optional(),
   rateLimitMax: z.number().optional(),

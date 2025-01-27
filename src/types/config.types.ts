@@ -25,7 +25,6 @@ export interface Config {
   cookieSecret: string
   cookieName: string
   cookieSecured: boolean
-  initialPlexTokens: string[]
   logLevel: LogLevel
   closeGraceDelay: number
   rateLimitMax: number
