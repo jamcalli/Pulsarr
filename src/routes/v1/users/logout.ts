@@ -1,9 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify'
 import type { z } from 'zod'
-import { 
-  LogoutBodySchema, 
-  LogoutResponseSchema 
-} from '@schemas/auth/logout.js'
+import { LogoutBodySchema, LogoutResponseSchema } from '@schemas/auth/logout.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.post<{

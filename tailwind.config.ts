@@ -42,11 +42,26 @@ const config: Config = {
       keyframes: {
         starPulse: {
           '0%, 100%': { opacity: '1', transform: 'scale(1)' },
-          '50%': { opacity: '0.5', transform: 'scale(0.95)' },
+          '50%': { opacity: '0.3', transform: 'scale(0.95)' },
+        },
+        hardFlicker: {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0.85' },
+          '25%, 75%': { opacity: '0.95' },
+        },
+        softFlicker: {
+          '0%, 100%': { opacity: '0.1' },
+          '50%': { opacity: '0.15' },
+        },
+        spin: {
+          from: { transform: 'rotate(0deg)' },
+          to: { transform: 'rotate(360deg)' },
         },
       },
       animation: {
-        starPulse: 'starPulse 8s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        starPulse: 'starPulse 16s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        hardFlicker: 'hardFlicker 0.16s infinite',
+        softFlicker: 'softFlicker 2s infinite',
       },
     },
   },

@@ -2,7 +2,7 @@ import fp from 'fastify-plugin'
 import env from '@fastify/env'
 import type { FastifyInstance } from 'fastify'
 import type { Config, RawConfig } from '@root/types/config.types.js'
-import crypto from 'crypto'
+import crypto from 'node:crypto'
 
 const generateSecret = () => crypto.randomBytes(32).toString('hex')
 
@@ -180,11 +180,9 @@ export default fp(
       ? parsedConfig.plexTokens
       : []
 
-
     fastify.config = parsedConfig as Config
 
     fastify.decorate('updateConfig', async (newConfig: Partial<Config>) => {
-
       const updatedConfig = { ...fastify.config, ...newConfig }
 
       if (newConfig._isReady === true && resolveReady) {

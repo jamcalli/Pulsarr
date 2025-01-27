@@ -32,6 +32,7 @@ export default function PlexConfigPage() {
             className="font-bold underline"
             target="_blank"
             href="https://github.com/neobrutalism-templates/windowed-portfolio"
+            rel="noreferrer"
           >
             github repo
           </a>{' '}
@@ -41,7 +42,7 @@ export default function PlexConfigPage() {
         <div className="mr-auto mt-10 flex w-full flex-wrap items-center gap-10">
           {links.map((link, id) => {
             return (
-              <a target="_blank" key={id} href={link.href}>
+              <a target="_blank" key={id} href={link.href} rel="noreferrer">
                 Link {id + 1}
               </a>
             )

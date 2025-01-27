@@ -35,8 +35,8 @@ const ParallaxStarfield = ({ children }: { children: React.ReactNode }) => {
       if (!containerRef.current) return;
       const rect = containerRef.current.getBoundingClientRect();
       setMousePos({
-        x: ((e.clientX - rect.left) / rect.width - 0.5) * 2,
-        y: ((e.clientY - rect.top) / rect.height - 0.5) * 2
+        x: ((e.clientX - rect.left) / rect.width - 0.5) * 0.5,
+        y: ((e.clientY - rect.top) / rect.height - 0.5) * 0.5
       });
     };
 
@@ -47,12 +47,12 @@ const ParallaxStarfield = ({ children }: { children: React.ReactNode }) => {
   return (
     <div 
       ref={containerRef}
-      className="relative min-h-screen w-full overflow-hidden bg-white transition-colors duration-300 dark:bg-secondaryBlack"
+      className="relative min-h-screen w-full overflow-hidden bg-secondaryBlack"
     >
       {stars.map((star, i) => (
         <div
           key={i}
-          className={`absolute rounded-full transition-transform duration-700 ease-out dark:bg-white bg-gray-800 ${
+          className={`absolute rounded-full transition-transform duration-700 ease-out bg-white ${
             star.parallax ? 'animate-starPulse' : ''
           }`}
           style={{
