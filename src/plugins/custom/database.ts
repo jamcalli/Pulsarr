@@ -18,52 +18,46 @@ export default fp(
       await dbService.close()
     })
 
-    // Check for existing config
-    const dbConfig = await dbService.getConfig(1)
-    if (dbConfig) {
-      // If we have an existing config, update fastify.config with all values
-      await fastify.updateConfig({
-        ...dbConfig,
-        _isReady: dbConfig._isReady, // Preserve the ready state from DB
-      })
-    } else {
-      // No existing config, create one with initial values
-      let initialTokens: string[] = []
-
+    const initializeConfig = async () => {
       try {
-        if (Array.isArray(fastify.config.initialPlexTokens)) {
-          initialTokens = fastify.config.initialPlexTokens.filter(
-            (token): token is string =>
-              typeof token === 'string' && token.length > 0,
-          )
-        } else {
-          const parsed = JSON.parse(fastify.config.initialPlexTokens as string)
-          if (Array.isArray(parsed)) {
-            initialTokens = parsed.filter(
-              (token): token is string =>
-                typeof token === 'string' && token.length > 0,
-            )
-          } else {
-            fastify.log.warn('initialPlexTokens must be an array of strings')
+        const dbConfig = await dbService.getConfig(1)
+
+        if (dbConfig) {
+          fastify.config = {
+            ...fastify.config,
+            ...dbConfig,
           }
+
+          if (dbConfig._isReady) {
+            fastify.log.info('DB config was ready, updating ready state')
+            await fastify.updateConfig({ _isReady: true })
+          } else {
+            fastify.log.info('DB config was not ready')
+          }
+        } else {
+          fastify.log.info('No existing config found, creating initial config')
+          const initialConfig = {
+            ...fastify.config,
+            _isReady: false,
+          }
+
+          fastify.log.info('Creating initial config in database')
+          await dbService.createConfig(initialConfig)
+          await fastify.updateConfig({ _isReady: false })
         }
       } catch (error) {
-        fastify.log.warn('Failed to parse initialPlexTokens, using empty array')
+        fastify.log.error('Error initializing config:', error)
+        throw error
       }
-
-      // Create initial config with all default values from fastify.config
-      await dbService.createConfig({
-        ...fastify.config,
-        plexTokens: initialTokens,
-        _isReady: false, // Always start as not ready for new configs
-      })
-
-      // Update fastify.config to ensure it reflects the saved state
-      await fastify.updateConfig({
-        plexTokens: initialTokens,
-        _isReady: false,
-      })
     }
+
+    setImmediate(async () => {
+      try {
+        await initializeConfig()
+      } catch (error) {
+        fastify.log.error('Failed to initialize config:', error)
+      }
+    })
   },
   {
     name: 'database',

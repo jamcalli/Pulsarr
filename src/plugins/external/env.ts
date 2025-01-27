@@ -27,10 +27,6 @@ const schema = {
       type: 'boolean',
       default: false,
     },
-    initialPlexTokens: {
-      type: 'string',
-      default: '[]',
-    },
     logLevel: {
       type: 'string',
       enum: ['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'],
@@ -152,23 +148,28 @@ export default fp(
       resolveReady = resolve
     })
 
+    // First load env variables as defaults
     await fastify.register(env, {
       confKey: 'config',
       schema,
-      dotenv: true,
+      dotenv: {
+        path: './.env',
+        debug: process.env.NODE_ENV === 'development',
+      },
       data: process.env,
     })
 
+    // Parse the initial env config
     const rawConfig = fastify.config as unknown as RawConfig
     const parsedConfig = {
       ...rawConfig,
       sonarrTags: JSON.parse(rawConfig.sonarrTags || '[]'),
       radarrTags: JSON.parse(rawConfig.radarrTags || '[]'),
       plexTokens: JSON.parse(rawConfig.plexTokens || '[]'),
-      initialPlexTokens: JSON.parse(rawConfig.initialPlexTokens || '[]'),
       _isReady: false,
     }
 
+    // Initialize arrays
     parsedConfig.radarrTags = Array.isArray(parsedConfig.radarrTags)
       ? parsedConfig.radarrTags
       : []
@@ -178,23 +179,23 @@ export default fp(
     parsedConfig.plexTokens = Array.isArray(parsedConfig.plexTokens)
       ? parsedConfig.plexTokens
       : []
-    parsedConfig.initialPlexTokens = Array.isArray(
-      parsedConfig.initialPlexTokens,
-    )
-      ? parsedConfig.initialPlexTokens
-      : []
 
+    // Set the initial config
     fastify.config = parsedConfig as Config
 
     fastify.decorate('updateConfig', async (newConfig: Partial<Config>) => {
+      // Merge new config with existing, preferring new values
       const updatedConfig = { ...fastify.config, ...newConfig }
-      fastify.config = updatedConfig
 
+      // Special handling for _isReady
       if (newConfig._isReady === true && resolveReady) {
         fastify.log.info('Config is now ready, resolving waitForConfig promise')
         resolveReady()
         resolveReady = null
       }
+
+      // Update the instance config
+      fastify.config = updatedConfig
 
       return updatedConfig
     })
