@@ -4,14 +4,15 @@
 
 :root {
 	--main: #88aaee;
-	--overlay: rgba(0, 0, 0, 0.8); /* background color overlay for alert dialogs, modals, etc. */
+	--overlay: rgba(0, 0, 0, 0.8);
+	--static-text: #e6e6e6; 
 
 	--bg: #dfe5f2;
-	--bw: #fff; /* white and secondary black e.g. utility class variant would be: bg-[#fff] dark:bg-[#212121] */
-	--blank: #000; /* blank black and white */
+	--bw: #fff; 
+	--blank: #000;
 	--border: #000;
 	--text: #000;
-	--mtext: #000; /* text that is placed on background with main color e.g. text color of default button */
+	--mtext: #000; 
 	--ring: #000;
 	--ring-offset: #fff;
 
@@ -24,6 +25,10 @@
 	--heading-font-weight: 700;
 
 	--shadow: var(--box-shadow-x) var(--box-shadow-y) 0px 0px var(--border);
+
+	/* Static asteroid variables */
+	--static-asteroid-fill: #948d89;
+	--static-asteroid-border: #dedede;
 }
 
 .dark {
