@@ -3,8 +3,8 @@ import type { FastifyInstance } from 'fastify'
 export default async function (fastify: FastifyInstance) {
   fastify.addHook('onRequest', async (request, reply) => {
     if (
-      request.url.startsWith('/client/users/login') ||
-      request.url.startsWith('/client/users/create-admin')
+      request.url.startsWith('/v1/users/login') ||
+      request.url.startsWith('/v1/users/create-admin')
     ) {
       return
     }
