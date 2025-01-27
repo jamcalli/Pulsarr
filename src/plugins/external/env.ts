@@ -2,6 +2,9 @@ import fp from 'fastify-plugin'
 import env from '@fastify/env'
 import type { FastifyInstance } from 'fastify'
 import type { Config, RawConfig } from '@root/types/config.types.js'
+import crypto from 'crypto'
+
+const generateSecret = () => crypto.randomBytes(32).toString('hex')
 
 const schema = {
   type: 'object',
@@ -17,7 +20,7 @@ const schema = {
     },
     cookieSecret: {
       type: 'string',
-      default: 'change-me-in-production',
+      default: generateSecret(),
     },
     cookieName: {
       type: 'string',
@@ -30,11 +33,11 @@ const schema = {
     logLevel: {
       type: 'string',
       enum: ['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'],
-      default: 'silent',
+      default: 'error',
     },
     closeGraceDelay: {
       type: 'number',
-      default: 500,
+      default: 1000,
     },
     rateLimitMax: {
       type: 'number',
@@ -148,7 +151,6 @@ export default fp(
       resolveReady = resolve
     })
 
-    // First load env variables as defaults
     await fastify.register(env, {
       confKey: 'config',
       schema,
@@ -159,7 +161,6 @@ export default fp(
       data: process.env,
     })
 
-    // Parse the initial env config
     const rawConfig = fastify.config as unknown as RawConfig
     const parsedConfig = {
       ...rawConfig,
@@ -169,7 +170,6 @@ export default fp(
       _isReady: false,
     }
 
-    // Initialize arrays
     parsedConfig.radarrTags = Array.isArray(parsedConfig.radarrTags)
       ? parsedConfig.radarrTags
       : []
@@ -180,21 +180,19 @@ export default fp(
       ? parsedConfig.plexTokens
       : []
 
-    // Set the initial config
+
     fastify.config = parsedConfig as Config
 
     fastify.decorate('updateConfig', async (newConfig: Partial<Config>) => {
-      // Merge new config with existing, preferring new values
+
       const updatedConfig = { ...fastify.config, ...newConfig }
 
-      // Special handling for _isReady
       if (newConfig._isReady === true && resolveReady) {
         fastify.log.info('Config is now ready, resolving waitForConfig promise')
         resolveReady()
         resolveReady = null
       }
 
-      // Update the instance config
       fastify.config = updatedConfig
 
       return updatedConfig
