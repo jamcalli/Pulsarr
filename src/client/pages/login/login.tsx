@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { useForm } from 'react-hook-form'
+import { useNavigate } from 'react-router-dom'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/button'
 import { LoginErrorMessage } from '@/pages/login/login-error'
@@ -20,6 +21,7 @@ import { Form, FormField, FormItem, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 
 export function LoginPage() {
+  const navigate = useNavigate()
   const { toast } = useToast()
 
   const [status, setStatus] = React.useState<'idle' | 'loading' | 'success'>(
@@ -41,7 +43,7 @@ export function LoginPage() {
     setStatus('loading')
     setBackendError(null)
     try {
-      const response = await fetch('/client/users/login', {
+      const response = await fetch('/v1/users/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -53,6 +55,9 @@ export function LoginPage() {
           description: `Welcome back, ${responseData.username}!`,
           variant: 'default',
         })
+        setTimeout(() => {
+          navigate('/app/dashboard/plex')
+        }, 1000)
       } else {
         setStatus('idle')
         setBackendError(

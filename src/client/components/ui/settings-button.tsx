@@ -13,11 +13,6 @@ export function SettingsButton() {
   const { theme, setTheme } = useTheme()
   const [showLogoutAlert, setShowLogoutAlert] = useState(false)
 
-  const handleLogout = () => {
-    // Handle the actual logout logic here
-    console.log('Logging out...')
-  }
-
   return (
     <>
       <DropdownMenu>
@@ -46,7 +41,6 @@ export function SettingsButton() {
       <LogoutAlert 
         open={showLogoutAlert}
         onOpenChange={setShowLogoutAlert}
-        onContinue={handleLogout}
       />
     </>
   )
