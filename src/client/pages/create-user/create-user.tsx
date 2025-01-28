@@ -60,7 +60,7 @@ export function CreateUserPage() {
           description: 'User created successfully!',
           variant: 'default',
         })
-        
+
         setTimeout(() => {
           navigate('/app/login')
         }, 1000)
