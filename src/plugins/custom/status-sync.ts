@@ -15,12 +15,11 @@ export default fp(
       fastify.db,
       fastify.sonarr,
       fastify.radarr,
-      fastify.config,
     )
     fastify.decorate('sync', service)
   },
   {
     name: 'sync',
-    dependencies: ['database', 'sonarr', 'radarr', 'config'],
+    dependencies: ['database', 'sonarr', 'radarr'],
   },
 )

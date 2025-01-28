@@ -14,8 +14,20 @@ import type {
 export class SonarrService {
   constructor(
     private readonly log: FastifyBaseLogger,
-    private readonly config: FastifyInstance['config'],
+    private readonly fastify: FastifyInstance,
   ) {}
+
+  private get sonarrConfig(): SonarrConfiguration {
+    return {
+      sonarrBaseUrl: this.fastify.config.sonarrBaseUrl,
+      sonarrApiKey: this.fastify.config.sonarrApiKey,
+      sonarrQualityProfileId: this.fastify.config.sonarrQualityProfile,
+      sonarrLanguageProfileId: 1,
+      sonarrRootFolder: this.fastify.config.sonarrRootFolder,
+      sonarrTagIds: this.fastify.config.sonarrTags,
+      sonarrSeasonMonitoring: this.fastify.config.sonarrSeasonMonitoring,
+    }
+  }
 
   private toItem(series: SonarrSeries): Item {
     const hasEpisodes =
@@ -24,7 +36,6 @@ export class SonarrService {
           season.statistics?.episodeFileCount &&
           season.statistics.episodeFileCount > 0,
       ) ?? false
-
     return {
       title: series.title,
       guids: [
@@ -40,16 +51,10 @@ export class SonarrService {
     }
   }
 
-  async fetchQualityProfiles(
-    apiKey: string,
-    baseUrl: string,
-  ): Promise<QualityProfile[]> {
+  async fetchQualityProfiles(): Promise<QualityProfile[]> {
     try {
-      const profiles = await this.getFromSonarr<QualityProfile[]>(
-        baseUrl,
-        apiKey,
-        'qualityprofile',
-      )
+      const profiles =
+        await this.getFromSonarr<QualityProfile[]>('qualityprofile')
       return profiles
     } catch (err) {
       this.log.error(`Error fetching quality profiles: ${err}`)
@@ -57,16 +62,9 @@ export class SonarrService {
     }
   }
 
-  async fetchRootFolders(
-    apiKey: string,
-    baseUrl: string,
-  ): Promise<RootFolder[]> {
+  async fetchRootFolders(): Promise<RootFolder[]> {
     try {
-      const rootFolders = await this.getFromSonarr<RootFolder[]>(
-        baseUrl,
-        apiKey,
-        'rootfolder',
-      )
+      const rootFolders = await this.getFromSonarr<RootFolder[]>('rootfolder')
       return rootFolders
     } catch (err) {
       this.log.error(`Error fetching root folders: ${err}`)
@@ -74,21 +72,13 @@ export class SonarrService {
     }
   }
 
-  async fetchSeries(
-    apiKey: string,
-    baseUrl: string,
-    bypass = false,
-  ): Promise<Set<Item>> {
+  async fetchSeries(bypass = false): Promise<Set<Item>> {
     try {
-      const shows = await this.getFromSonarr<SonarrSeries[]>(
-        baseUrl,
-        apiKey,
-        'series',
-      )
+      const shows = await this.getFromSonarr<SonarrSeries[]>('series')
 
       let exclusions: Set<Item> = new Set()
       if (!bypass) {
-        exclusions = await this.fetchExclusions(apiKey, baseUrl)
+        exclusions = await this.fetchExclusions()
       }
 
       const showItems = shows.map((show) => this.toItem(show))
@@ -99,18 +89,17 @@ export class SonarrService {
     }
   }
 
-  async fetchExclusions(
-    apiKey: string,
-    baseUrl: string,
-    pageSize = 1000,
-  ): Promise<Set<Item>> {
+  async fetchExclusions(pageSize = 1000): Promise<Set<Item>> {
+    const config = this.sonarrConfig
     try {
       let currentPage = 1
       let totalRecords = 0
       const allExclusions: SonarrSeries[] = []
 
       do {
-        const url = new URL(`${baseUrl}/api/v3/importlistexclusion/paged`)
+        const url = new URL(
+          `${config.sonarrBaseUrl}/api/v3/importlistexclusion/paged`,
+        )
         url.searchParams.append('page', currentPage.toString())
         url.searchParams.append('pageSize', pageSize.toString())
         url.searchParams.append('sortDirection', 'ascending')
@@ -119,7 +108,7 @@ export class SonarrService {
         const response = await fetch(url.toString(), {
           method: 'GET',
           headers: {
-            'X-Api-Key': apiKey,
+            'X-Api-Key': config.sonarrApiKey,
             Accept: 'application/json',
           },
         })
@@ -146,7 +135,8 @@ export class SonarrService {
     }
   }
 
-  async addToSonarr(config: SonarrConfiguration, item: Item): Promise<void> {
+  async addToSonarr(item: Item): Promise<void> {
+    const config = this.sonarrConfig
     try {
       const addOptions: SonarrAddOptions = {
         monitor: config.sonarrSeasonMonitoring,
@@ -160,10 +150,7 @@ export class SonarrService {
 
       let rootFolderPath = config.sonarrRootFolder
       if (!rootFolderPath) {
-        const rootFolders = await this.fetchRootFolders(
-          config.sonarrApiKey,
-          config.sonarrBaseUrl,
-        )
+        const rootFolders = await this.fetchRootFolders()
         if (rootFolders.length === 0) {
           throw new Error('No root folders configured in Sonarr')
         }
@@ -172,10 +159,7 @@ export class SonarrService {
       }
 
       let qualityProfileId = config.sonarrQualityProfileId
-      const qualityProfiles = await this.fetchQualityProfiles(
-        config.sonarrApiKey,
-        config.sonarrBaseUrl,
-      )
+      const qualityProfiles = await this.fetchQualityProfiles()
 
       if (qualityProfiles.length === 0) {
         throw new Error('No quality profiles configured in Sonarr')
@@ -226,13 +210,7 @@ export class SonarrService {
         tags: config.sonarrTagIds,
       }
 
-      await this.postToSonarr<void>(
-        config.sonarrBaseUrl,
-        config.sonarrApiKey,
-        'series',
-        show,
-      )
-
+      await this.postToSonarr<void>('series', show)
       this.log.info(`Sent ${item.title} to Sonarr`)
     } catch (err) {
       this.log.debug(
@@ -242,11 +220,8 @@ export class SonarrService {
     }
   }
 
-  async deleteFromSonarr(
-    config: SonarrConfiguration,
-    item: Item,
-    deleteFiles: boolean,
-  ): Promise<void> {
+  async deleteFromSonarr(item: Item, deleteFiles: boolean): Promise<void> {
+    const config = this.sonarrConfig
     try {
       const sonarrGuid = item.guids.find((guid) => guid.startsWith('sonarr:'))
       const tvdbGuid = item.guids.find((guid) => guid.startsWith('tvdb:'))
@@ -264,11 +239,7 @@ export class SonarrService {
         sonarrId = Number.parseInt(sonarrGuid.replace('sonarr:', ''), 10)
       } else if (tvdbGuid) {
         const tvdbId = tvdbGuid.replace('tvdb:', '')
-        const allSeries = await this.fetchSeries(
-          config.sonarrApiKey,
-          config.sonarrBaseUrl,
-          true,
-        )
+        const allSeries = await this.fetchSeries(true)
         const matchingSeries = [...allSeries].find((show) =>
           show.guids.some(
             (guid) =>
@@ -294,12 +265,7 @@ export class SonarrService {
         throw new Error('Failed to obtain valid Sonarr ID')
       }
 
-      await this.deleteFromSonarrById(
-        config.sonarrBaseUrl,
-        config.sonarrApiKey,
-        sonarrId,
-        deleteFiles,
-      )
+      await this.deleteFromSonarrById(sonarrId, deleteFiles)
       this.log.info(`Deleted ${item.title} from Sonarr`)
     } catch (err) {
       this.log.error(`Error deleting from Sonarr: ${err}`)
@@ -307,16 +273,13 @@ export class SonarrService {
     }
   }
 
-  private async getFromSonarr<T>(
-    baseUrl: string,
-    apiKey: string,
-    endpoint: string,
-  ): Promise<T> {
-    const url = new URL(`${baseUrl}/api/v3/${endpoint}`)
+  private async getFromSonarr<T>(endpoint: string): Promise<T> {
+    const config = this.sonarrConfig
+    const url = new URL(`${config.sonarrBaseUrl}/api/v3/${endpoint}`)
     const response = await fetch(url.toString(), {
       method: 'GET',
       headers: {
-        'X-Api-Key': apiKey,
+        'X-Api-Key': config.sonarrApiKey,
         Accept: 'application/json',
       },
     })
@@ -329,16 +292,15 @@ export class SonarrService {
   }
 
   private async postToSonarr<T>(
-    baseUrl: string,
-    apiKey: string,
     endpoint: string,
     payload: unknown,
   ): Promise<T> {
-    const url = new URL(`${baseUrl}/api/v3/${endpoint}`)
+    const config = this.sonarrConfig
+    const url = new URL(`${config.sonarrBaseUrl}/api/v3/${endpoint}`)
     const response = await fetch(url.toString(), {
       method: 'POST',
       headers: {
-        'X-Api-Key': apiKey,
+        'X-Api-Key': config.sonarrApiKey,
         'Content-Type': 'application/json',
         Accept: 'application/json',
       },
@@ -353,19 +315,18 @@ export class SonarrService {
   }
 
   private async deleteFromSonarrById(
-    baseUrl: string,
-    apiKey: string,
     id: number,
     deleteFiles: boolean,
   ): Promise<void> {
-    const url = new URL(`${baseUrl}/api/v3/series/${id}`)
+    const config = this.sonarrConfig
+    const url = new URL(`${config.sonarrBaseUrl}/api/v3/series/${id}`)
     url.searchParams.append('deleteFiles', deleteFiles.toString())
     url.searchParams.append('addImportListExclusion', 'false')
 
     const response = await fetch(url.toString(), {
       method: 'DELETE',
       headers: {
-        'X-Api-Key': apiKey,
+        'X-Api-Key': config.sonarrApiKey,
       },
     })
 

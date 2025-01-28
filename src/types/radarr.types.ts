@@ -18,7 +18,7 @@ export interface RadarrPost {
   qualityProfileId: number | null | string
   rootFolderPath: string | null
   addOptions: RadarrAddOptions
-  tags: number[]
+  tags: string[]
 }
 
 export interface RadarrConfiguration {
@@ -26,7 +26,7 @@ export interface RadarrConfiguration {
   radarrBaseUrl: string
   radarrQualityProfileId: number | null | string
   radarrRootFolder: string | null
-  radarrTagIds: number[]
+  radarrTagIds: string[]
 }
 
 export interface RootFolder {

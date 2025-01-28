@@ -18,8 +18,10 @@ function RootLayout() {
           {/* Title text container */}
           <div className="absolute top-8 left-0 right-0 z-10">
             <div className="relative">
-              <h1 className="text-5xl font-bold tracking-tighter text-center" 
-                  style={{ color: 'var(--static-text)' }}>
+              <h1
+                className="text-5xl font-bold tracking-tighter text-center"
+                style={{ color: 'var(--static-text)' }}
+              >
                 Pulsarr
               </h1>
               {/* Pulsar with lower z-index */}
@@ -31,8 +33,10 @@ function RootLayout() {
 
           {/* Footer text positioned at the bottom center */}
           <div className="absolute bottom-8 left-0 right-0 z-10">
-            <p className="text-xl tracking-tighter text-center"
-               style={{ color: 'var(--static-text)' }}>
+            <p
+              className="text-xl tracking-tighter text-center"
+              style={{ color: 'var(--static-text)' }}
+            >
               Plex watchlist tracker and notification center.
             </p>
           </div>

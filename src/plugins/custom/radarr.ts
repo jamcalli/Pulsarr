@@ -10,11 +10,10 @@ declare module 'fastify' {
 
 export default fp(
   async (fastify: FastifyInstance) => {
-    const service = new RadarrService(fastify.log, fastify.config)
+    const service = new RadarrService(fastify.log, fastify)
     fastify.decorate('radarr', service)
   },
   {
     name: 'radarr',
-    dependencies: ['config'],
   },
 )

@@ -24,6 +24,7 @@ const config: Config = {
         secondaryBlack: '#212121',
         error: 'var(--error)',
         fun: 'var(--fun)',
+        orange: 'var(--orange)',
       },
       borderRadius: {
         base: '5px',

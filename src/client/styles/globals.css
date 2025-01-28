@@ -8,16 +8,17 @@
 	--static-text: #c1666b;
 	--error: #c1666b;
 	--fun: #d4b483;
+	--orange: #f6723a;
 	/* Static asteroid variables */
 	--static-asteroid-fill: #948d89;
-	--static-asteroid-border: #dedede; 
+	--static-asteroid-border: #dedede;
 
 	--bg: #dfe5f2;
-	--bw: #e4dfda; 
+	--bw: #e4dfda;
 	--blank: #000;
 	--border: #000;
 	--text: #000;
-	--mtext: #000; 
+	--mtext: #000;
 	--ring: #000;
 	--ring-offset: #e4dfda;
 

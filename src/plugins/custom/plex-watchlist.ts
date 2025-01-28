@@ -10,11 +10,7 @@ declare module 'fastify' {
 
 export default fp(
   async (fastify: FastifyInstance) => {
-    const service = new PlexWatchlistService(
-      fastify.log,
-      fastify.config,
-      fastify.db,
-    )
+    const service = new PlexWatchlistService(fastify.log, fastify, fastify.db)
 
     fastify.decorate('plexWatchlist', service)
   },

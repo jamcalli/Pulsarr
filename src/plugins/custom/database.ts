@@ -23,10 +23,22 @@ export default fp(
         const dbConfig = await dbService.getConfig(1)
 
         if (dbConfig) {
-          fastify.config = {
-            ...fastify.config,
+          // Parse any JSON string arrays from DB
+          const parsedDbConfig = {
             ...dbConfig,
+            plexTokens: Array.isArray(dbConfig.plexTokens)
+              ? dbConfig.plexTokens
+              : JSON.parse(dbConfig.plexTokens || '[]'),
+            sonarrTags: Array.isArray(dbConfig.sonarrTags)
+              ? dbConfig.sonarrTags
+              : JSON.parse(dbConfig.sonarrTags || '[]'),
+            radarrTags: Array.isArray(dbConfig.radarrTags)
+              ? dbConfig.radarrTags
+              : JSON.parse(dbConfig.radarrTags || '[]'),
           }
+
+          // Update the config
+          await fastify.updateConfig(parsedDbConfig)
 
           if (dbConfig._isReady) {
             fastify.log.info('DB config was ready, updating ready state')

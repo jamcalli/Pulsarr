@@ -25,7 +25,6 @@ export class StatusService {
     private readonly dbService: FastifyInstance['db'],
     private readonly sonarrService: FastifyInstance['sonarr'],
     private readonly radarrService: FastifyInstance['radarr'],
-    private readonly config: FastifyInstance['config'],
   ) {}
 
   async syncAllStatuses(): Promise<{ shows: number; movies: number }> {
@@ -38,10 +37,7 @@ export class StatusService {
 
   async syncSonarrStatuses(): Promise<number> {
     try {
-      const existingSeries = await this.sonarrService.fetchSeries(
-        this.config.sonarrApiKey,
-        this.config.sonarrBaseUrl,
-      )
+      const existingSeries = await this.sonarrService.fetchSeries()
       const watchlistItems = await this.dbService.getAllShowWatchlistItems()
       const updates = this.processShowStatusUpdates(
         Array.from(existingSeries),
@@ -59,10 +55,7 @@ export class StatusService {
 
   async syncRadarrStatuses(): Promise<number> {
     try {
-      const existingMovies = await this.radarrService.fetchMovies(
-        this.config.radarrApiKey,
-        this.config.radarrBaseUrl,
-      )
+      const existingMovies = await this.radarrService.fetchMovies()
       const watchlistItems = await this.dbService.getAllMovieWatchlistItems()
       const updates = this.processMovieStatusUpdates(
         Array.from(existingMovies),
@@ -120,7 +113,7 @@ export class StatusService {
       key: string
       added?: string
       status?: 'pending' | 'requested' | 'grabbed' | 'notified'
-      movie_status?: 'available' | 'unavailable' // Change string to enum type
+      movie_status?: 'available' | 'unavailable'
     }> = []
 
     for (const item of watchlistItems) {

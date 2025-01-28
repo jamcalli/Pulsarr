@@ -14,8 +14,18 @@ import type {
 export class RadarrService {
   constructor(
     private readonly log: FastifyBaseLogger,
-    private readonly config: FastifyInstance['config'],
+    private readonly fastify: FastifyInstance,
   ) {}
+
+  private get radarrConfig(): RadarrConfiguration {
+    return {
+      radarrBaseUrl: this.fastify.config.radarrBaseUrl,
+      radarrApiKey: this.fastify.config.radarrApiKey,
+      radarrQualityProfileId: this.fastify.config.radarrQualityProfile,
+      radarrRootFolder: this.fastify.config.radarrRootFolder,
+      radarrTagIds: this.fastify.config.radarrTags,
+    }
+  }
 
   private toItem(movie: RadarrMovie): Item {
     return {
@@ -33,16 +43,10 @@ export class RadarrService {
     }
   }
 
-  async fetchQualityProfiles(
-    apiKey: string,
-    baseUrl: string,
-  ): Promise<QualityProfile[]> {
+  async fetchQualityProfiles(): Promise<QualityProfile[]> {
     try {
-      const profiles = await this.getFromRadarr<QualityProfile[]>(
-        baseUrl,
-        apiKey,
-        'qualityprofile',
-      )
+      const profiles =
+        await this.getFromRadarr<QualityProfile[]>('qualityprofile')
       return profiles
     } catch (err) {
       this.log.error(`Error fetching quality profiles: ${err}`)
@@ -50,16 +54,9 @@ export class RadarrService {
     }
   }
 
-  async fetchRootFolders(
-    apiKey: string,
-    baseUrl: string,
-  ): Promise<RootFolder[]> {
+  async fetchRootFolders(): Promise<RootFolder[]> {
     try {
-      const rootFolders = await this.getFromRadarr<RootFolder[]>(
-        baseUrl,
-        apiKey,
-        'rootfolder',
-      )
+      const rootFolders = await this.getFromRadarr<RootFolder[]>('rootfolder')
       return rootFolders
     } catch (err) {
       this.log.error(`Error fetching root folders: ${err}`)
@@ -67,21 +64,13 @@ export class RadarrService {
     }
   }
 
-  async fetchMovies(
-    apiKey: string,
-    baseUrl: string,
-    bypass = false,
-  ): Promise<Set<Item>> {
+  async fetchMovies(bypass = false): Promise<Set<Item>> {
     try {
-      const movies = await this.getFromRadarr<RadarrMovie[]>(
-        baseUrl,
-        apiKey,
-        'movie',
-      )
+      const movies = await this.getFromRadarr<RadarrMovie[]>('movie')
 
       let exclusions: Set<Item> = new Set()
       if (!bypass) {
-        exclusions = await this.fetchExclusions(apiKey, baseUrl)
+        exclusions = await this.fetchExclusions()
       }
 
       const movieItems = movies.map((movie) => this.toItem(movie))
@@ -92,18 +81,15 @@ export class RadarrService {
     }
   }
 
-  async fetchExclusions(
-    apiKey: string,
-    baseUrl: string,
-    pageSize = 1000,
-  ): Promise<Set<Item>> {
+  async fetchExclusions(pageSize = 1000): Promise<Set<Item>> {
+    const config = this.radarrConfig
     try {
       let currentPage = 1
       let totalRecords = 0
       const allExclusions: RadarrMovie[] = []
 
       do {
-        const url = new URL(`${baseUrl}/api/v3/exclusions/paged`)
+        const url = new URL(`${config.radarrBaseUrl}/api/v3/exclusions/paged`)
         url.searchParams.append('page', currentPage.toString())
         url.searchParams.append('pageSize', pageSize.toString())
         url.searchParams.append('sortDirection', 'ascending')
@@ -112,7 +98,7 @@ export class RadarrService {
         const response = await fetch(url.toString(), {
           method: 'GET',
           headers: {
-            'X-Api-Key': apiKey,
+            'X-Api-Key': config.radarrApiKey,
             Accept: 'application/json',
           },
         })
@@ -153,7 +139,8 @@ export class RadarrService {
     }
   }
 
-  async addToRadarr(config: RadarrConfiguration, item: Item): Promise<void> {
+  async addToRadarr(item: Item): Promise<void> {
+    const config = this.radarrConfig
     try {
       const addOptions: RadarrAddOptions = {
         searchForMovie: true,
@@ -171,10 +158,7 @@ export class RadarrService {
 
       let rootFolderPath = config.radarrRootFolder
       if (!rootFolderPath) {
-        const rootFolders = await this.fetchRootFolders(
-          config.radarrApiKey,
-          config.radarrBaseUrl,
-        )
+        const rootFolders = await this.fetchRootFolders()
         if (rootFolders.length === 0) {
           throw new Error('No root folders configured in Radarr')
         }
@@ -183,10 +167,7 @@ export class RadarrService {
       }
 
       let qualityProfileId = config.radarrQualityProfileId
-      const qualityProfiles = await this.fetchQualityProfiles(
-        config.radarrApiKey,
-        config.radarrBaseUrl,
-      )
+      const qualityProfiles = await this.fetchQualityProfiles()
 
       if (qualityProfiles.length === 0) {
         throw new Error('No quality profiles configured in Radarr')
@@ -235,12 +216,7 @@ export class RadarrService {
         tags: config.radarrTagIds,
       }
 
-      await this.postToRadarr<void>(
-        config.radarrBaseUrl,
-        config.radarrApiKey,
-        'movie',
-        movie,
-      )
+      await this.postToRadarr<void>('movie', movie)
 
       this.log.info(`Sent ${item.title} to Radarr`)
     } catch (err) {
@@ -251,11 +227,8 @@ export class RadarrService {
     }
   }
 
-  async deleteFromRadarr(
-    config: RadarrConfiguration,
-    item: Item,
-    deleteFiles: boolean,
-  ): Promise<void> {
+  async deleteFromRadarr(item: Item, deleteFiles: boolean): Promise<void> {
+    const config = this.radarrConfig
     try {
       const radarrGuid = item.guids.find((guid) => guid.startsWith('radarr:'))
       const tmdbGuid = item.guids.find((guid) => guid.startsWith('tmdb:'))
@@ -272,11 +245,7 @@ export class RadarrService {
         radarrId = Number.parseInt(radarrGuid.replace('radarr:', ''), 10)
       } else if (tmdbGuid) {
         const tmdbId = tmdbGuid.replace('tmdb:', '')
-        const allMovies = await this.fetchMovies(
-          config.radarrApiKey,
-          config.radarrBaseUrl,
-          true,
-        )
+        const allMovies = await this.fetchMovies(true)
         const matchingMovie = [...allMovies].find((movie) =>
           movie.guids.some(
             (guid) =>
@@ -302,12 +271,7 @@ export class RadarrService {
         throw new Error('Failed to obtain valid Radarr ID')
       }
 
-      await this.deleteFromRadarrById(
-        config.radarrBaseUrl,
-        config.radarrApiKey,
-        radarrId,
-        deleteFiles,
-      )
+      await this.deleteFromRadarrById(radarrId, deleteFiles)
       this.log.info(`Deleted ${item.title} from Radarr`)
     } catch (err) {
       this.log.error(`Error deleting from Radarr: ${err}`)
@@ -315,16 +279,13 @@ export class RadarrService {
     }
   }
 
-  private async getFromRadarr<T>(
-    baseUrl: string,
-    apiKey: string,
-    endpoint: string,
-  ): Promise<T> {
-    const url = new URL(`${baseUrl}/api/v3/${endpoint}`)
+  private async getFromRadarr<T>(endpoint: string): Promise<T> {
+    const config = this.radarrConfig
+    const url = new URL(`${config.radarrBaseUrl}/api/v3/${endpoint}`)
     const response = await fetch(url.toString(), {
       method: 'GET',
       headers: {
-        'X-Api-Key': apiKey,
+        'X-Api-Key': config.radarrApiKey,
         Accept: 'application/json',
       },
     })
@@ -337,16 +298,15 @@ export class RadarrService {
   }
 
   private async postToRadarr<T>(
-    baseUrl: string,
-    apiKey: string,
     endpoint: string,
     payload: unknown,
   ): Promise<T> {
-    const url = new URL(`${baseUrl}/api/v3/${endpoint}`)
+    const config = this.radarrConfig
+    const url = new URL(`${config.radarrBaseUrl}/api/v3/${endpoint}`)
     const response = await fetch(url.toString(), {
       method: 'POST',
       headers: {
-        'X-Api-Key': apiKey,
+        'X-Api-Key': config.radarrApiKey,
         'Content-Type': 'application/json',
         Accept: 'application/json',
       },
@@ -361,19 +321,18 @@ export class RadarrService {
   }
 
   private async deleteFromRadarrById(
-    baseUrl: string,
-    apiKey: string,
     id: number,
     deleteFiles: boolean,
   ): Promise<void> {
-    const url = new URL(`${baseUrl}/api/v3/movie/${id}`)
+    const config = this.radarrConfig
+    const url = new URL(`${config.radarrBaseUrl}/api/v3/movie/${id}`)
     url.searchParams.append('deleteFiles', deleteFiles.toString())
     url.searchParams.append('addImportExclusion', 'false')
 
     const response = await fetch(url.toString(), {
       method: 'DELETE',
       headers: {
-        'X-Api-Key': apiKey,
+        'X-Api-Key': config.radarrApiKey,
       },
     })
 
