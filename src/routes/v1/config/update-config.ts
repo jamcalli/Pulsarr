@@ -11,7 +11,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     Body: z.infer<typeof ConfigUpdateSchema>
     Reply: z.infer<typeof ConfigUpdateResponseSchema>
   }>(
-    '/config',
+    '/updateconfig',
     {
       schema: {
         body: ConfigUpdateSchema,
