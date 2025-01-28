@@ -8,7 +8,7 @@ interface LoginErrorMessageProps {
 
 export function LoginErrorMessage({ message }: LoginErrorMessageProps) {
   return (
-    <Alert variant="destructive">
+    <Alert variant="error">
       <AlertCircle className="h-4 w-4" />
       <AlertTitle>Error</AlertTitle>
       <AlertDescription>{message}</AlertDescription>

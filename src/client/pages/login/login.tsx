@@ -120,6 +120,7 @@ export function LoginPage() {
                 type="submit"
                 className="w-full h-12 font-heading"
                 disabled={!form.formState.isValid || status !== 'idle'}
+                variant="fun"
               >
                 {status === 'loading' ? (
                   <>
@@ -140,9 +141,6 @@ export function LoginPage() {
           <div className="mt-6 text-center">
             <ModeToggle />
           </div>
-          <footer className="mt-8 text-center text-sm text-muted-foreground">
-            &copy; Your Company {new Date().getFullYear()}
-          </footer>
         </CardContent>
       </Card>
     </div>

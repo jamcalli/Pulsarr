@@ -3,18 +3,23 @@
 @tailwind utilities;
 
 :root {
-	--main: #88aaee;
+	--main: #48a9a6;
 	--overlay: rgba(0, 0, 0, 0.8);
-	--static-text: #e6e6e6; 
+	--static-text: #c1666b;
+	--error: #c1666b;
+	--fun: #d4b483;
+	/* Static asteroid variables */
+	--static-asteroid-fill: #948d89;
+	--static-asteroid-border: #dedede; 
 
 	--bg: #dfe5f2;
-	--bw: #fff; 
+	--bw: #e4dfda; 
 	--blank: #000;
 	--border: #000;
 	--text: #000;
 	--mtext: #000; 
 	--ring: #000;
-	--ring-offset: #fff;
+	--ring-offset: #e4dfda;
 
 	--border-radius: 5px;
 	--box-shadow-x: 4px;
@@ -25,20 +30,16 @@
 	--heading-font-weight: 700;
 
 	--shadow: var(--box-shadow-x) var(--box-shadow-y) 0px 0px var(--border);
-
-	/* Static asteroid variables */
-	--static-asteroid-fill: #948d89;
-	--static-asteroid-border: #dedede;
 }
 
 .dark {
 	--bg: #272933;
 	--bw: #212121;
-	--blank: #fff;
+	--blank: #e4dfda;
 	--border: #000;
 	--text: #e6e6e6;
 	--mtext: #000;
-	--ring: #fff;
+	--ring: #e4dfda;
 	--ring-offset: #000;
 
 	--shadow: var(--box-shadow-x) var(--box-shadow-y) 0px 0px var(--border);
