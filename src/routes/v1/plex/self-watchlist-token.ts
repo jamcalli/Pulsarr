@@ -9,10 +9,28 @@ export const selfWatchlistTokenRoute: FastifyPluginAsyncZod = async (
     method: 'GET',
     url: '/self-watchlist-token',
     schema: selfWatchlistSchema,
-    handler: async (_request, reply) => {
+    handler: async (request, reply) => {
       try {
+        const wantsProgress =
+          request.headers.accept?.includes('text/event-stream')
+
+        if (wantsProgress) {
+          reply.raw.writeHead(200, {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            Connection: 'keep-alive',
+          })
+
+          reply.raw.write('event: connect\ndata: connected\n\n')
+        }
+
         const response = await fastify.plexWatchlist.getSelfWatchlist()
-        reply.send(response)
+
+        if (wantsProgress) {
+          reply.raw.end()
+        } else {
+          reply.send(response)
+        }
       } catch (err) {
         fastify.log.error(err)
         reply.code(500).send({ error: 'Unable to fetch watchlist items' })

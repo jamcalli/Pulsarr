@@ -5,14 +5,15 @@ import { z } from 'zod'
 import { Loader2, Check, Trash2, RefreshCw } from 'lucide-react'
 import WindowedLayout from '@/layouts/window'
 import { Button } from '@/components/ui/button'
-import { 
-  Form, 
-  FormField, 
-  FormItem, 
+import {
+  Form,
+  FormField,
+  FormItem,
   FormLabel,
   FormControl,
-  FormMessage 
+  FormMessage,
 } from '@/components/ui/form'
+import { Progress } from '@/components/ui/progress'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 
@@ -27,21 +28,63 @@ export default function PlexConfigPage() {
   const [status, setStatus] = React.useState<
     'idle' | 'loading' | 'success' | 'error'
   >('idle')
-  
+
   const [rssStatus, setRssStatus] = React.useState<
     'idle' | 'loading' | 'success' | 'error'
   >('idle')
-  
+
   const [watchlistStatus, setWatchlistStatus] = React.useState<
     'idle' | 'loading' | 'success' | 'error'
   >('idle')
-  
+
   const [rssFeeds, setRssFeeds] = React.useState<{
-    self: string;
-    friends: string;
+    self: string
+    friends: string
   }>({ self: '', friends: '' })
 
-  const [watchlistCount, setWatchlistCount] = React.useState<number | null>(null)
+  const [progress, setProgress] = React.useState<number>(0)
+  const [progressMessage, setProgressMessage] = React.useState<string>('')
+  const [eventSource, setEventSource] = React.useState<EventSource | null>(null)
+
+  React.useEffect(() => {
+    let eventSource: EventSource | null = null
+
+    const connectToProgress = () => {
+      eventSource = new EventSource('/api/progress')
+
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data)
+        if (data.phase === 'complete') {
+          setProgress(100)
+          setProgressMessage('Complete')
+          eventSource?.close()
+        } else {
+          setProgress(data.progress)
+          setProgressMessage(data.message)
+        }
+      }
+
+      eventSource.onerror = () => {
+        eventSource?.close()
+      }
+    }
+
+    connectToProgress()
+
+    return () => {
+      eventSource?.close()
+    }
+  }, [])
+
+  React.useEffect(() => {
+    return () => {
+      eventSource?.close()
+    }
+  }, [eventSource])
+
+  const [watchlistCount, setWatchlistCount] = React.useState<number | null>(
+    null,
+  )
 
   const form = useForm<PlexTokenFormSchema>({
     resolver: zodResolver(plexTokenFormSchema),
@@ -54,14 +97,14 @@ export default function PlexConfigPage() {
     setRssStatus('loading')
     try {
       const response = await fetch('/v1/plex/generate-rss-feeds', {
-        method: 'GET'
+        method: 'GET',
       })
       const result = await response.json()
-      
+
       if (response.ok && result.self && result.friends) {
         setRssFeeds({
           self: result.self,
-          friends: result.friends
+          friends: result.friends,
         })
         setRssStatus('success')
         toast({
@@ -73,7 +116,8 @@ export default function PlexConfigPage() {
         setRssStatus('error')
         toast({
           title: 'Generation Failed',
-          description: 'Unable to generate RSS feeds. Are you an active Plex Pass user?',
+          description:
+            'Unable to generate RSS feeds. Are you an active Plex Pass user?',
           variant: 'destructive',
         })
       }
@@ -90,13 +134,47 @@ export default function PlexConfigPage() {
 
   const fetchWatchlistCount = async () => {
     setWatchlistStatus('loading')
+    setProgress(0)
+    setProgressMessage('Starting sync...')
+
+    eventSource?.close()
+
+    const newEventSource = new EventSource('/api/progress')
+    setEventSource(newEventSource)
+
+    newEventSource.onmessage = (event) => {
+      const data = JSON.parse(event.data)
+      if (data.phase === 'complete') {
+        setProgress(100)
+        setProgressMessage('Complete')
+        newEventSource.close()
+        setEventSource(null)
+      } else {
+        setProgress(data.progress)
+        setProgressMessage(data.message)
+      }
+    }
+
+    newEventSource.onerror = () => {
+      newEventSource.close()
+      setEventSource(null)
+    }
+
     try {
       const response = await fetch('/v1/plex/self-watchlist-token', {
-        method: 'GET'
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+        },
       })
+
+      if (!response.ok) {
+        throw new Error('Failed to sync watchlist')
+      }
+
       const result = await response.json()
-      
-      if (response.ok && result.total != null && result.users?.length > 0) {
+
+      if (result.total != null && result.users?.length > 0) {
         setWatchlistCount(result.total)
         setWatchlistStatus('success')
         toast({
@@ -105,12 +183,7 @@ export default function PlexConfigPage() {
           variant: 'default',
         })
       } else {
-        setWatchlistStatus('error')
-        toast({
-          title: 'Sync Failed',
-          description: 'Unable to sync watchlist data',
-          variant: 'destructive',
-        })
+        throw new Error('Invalid response format')
       }
     } catch (error) {
       console.error('Watchlist sync error:', error)
@@ -120,6 +193,8 @@ export default function PlexConfigPage() {
         description: 'Failed to sync watchlist data',
         variant: 'destructive',
       })
+      newEventSource.close()
+      setEventSource(null)
     }
   }
 
@@ -143,7 +218,7 @@ export default function PlexConfigPage() {
         })
         return
       }
-      
+
       const plexPingResponse = await fetch('/v1/plex/ping', {
         method: 'GET',
       })
@@ -185,7 +260,9 @@ export default function PlexConfigPage() {
                 name="plexToken"
                 render={({ field }) => (
                   <FormItem className="flex-grow">
-                    <FormLabel className="text-text">Primary Plex Token</FormLabel>
+                    <FormLabel className="text-text">
+                      Primary Plex Token
+                    </FormLabel>
                     <FormControl>
                       <Input
                         {...field}
@@ -269,7 +346,7 @@ export default function PlexConfigPage() {
                 </FormControl>
               </FormItem>
             </div>
-            
+
             <div className="flex items-end space-x-2">
               <FormItem className="flex-grow">
                 <FormLabel className="text-text">Friends RSS Feed</FormLabel>
@@ -283,7 +360,7 @@ export default function PlexConfigPage() {
                   />
                 </FormControl>
               </FormItem>
-              
+
               <Button
                 type="button"
                 size="icon"
@@ -301,21 +378,34 @@ export default function PlexConfigPage() {
                 )}
               </Button>
             </div>
-
             <div className="flex items-end space-x-2">
               <FormItem className="flex-grow">
                 <FormLabel className="text-text">Watchlist Status</FormLabel>
-                <FormControl>
-                  <Input
-                    value={watchlistCount !== null ? `You have ${watchlistCount} items in your watchlist!` : ''}
-                    placeholder="Sync watchlist to view count"
-                    type="text"
-                    readOnly
-                    className="w-full"
-                  />
-                </FormControl>
+                {watchlistStatus === 'loading' ? (
+                  <div className="space-y-1">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">{progressMessage}</span>
+                      <span className="text-sm">{progress}%</span>
+                    </div>
+                    <Progress value={progress} />
+                  </div>
+                ) : (
+                  <FormControl>
+                    <Input
+                      value={
+                        watchlistCount !== null
+                          ? `You have ${watchlistCount} items in your watchlist!`
+                          : ''
+                      }
+                      placeholder="Sync watchlist to view count"
+                      type="text"
+                      readOnly
+                      className="w-full"
+                    />
+                  </FormControl>
+                )}
               </FormItem>
-              
+
               <Button
                 type="button"
                 size="icon"
