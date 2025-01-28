@@ -1,12 +1,13 @@
 import { z } from 'zod'
 
-export const pingSchema = {
-  tags: ['Plex'],
-  response: {
-    200: z.object({
-      success: z.boolean(),
-    }),
-  },
-}
+export const PingSuccessSchema = z.object({
+  success: z.boolean(),
+})
 
-export type PingResponse = z.infer<(typeof pingSchema.response)[200]>
+export const PingErrorSchema = z.object({
+  success: z.literal(false),
+  message: z.string(),
+})
+
+export type PingSuccess = z.infer<typeof PingSuccessSchema>
+export type PingError = z.infer<typeof PingErrorSchema>
