@@ -1,53 +1,132 @@
+import * as React from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import { Loader2, Check } from 'lucide-react'
 import WindowedLayout from '@/layouts/window'
+import { Button } from '@/components/ui/button'
+import { Form, FormField, FormItem, FormMessage } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { useToast } from '@/hooks/use-toast'
+
+// Create a Zod schema for the form
+const plexTokenFormSchema = z.object({
+  plexToken: z.string().min(1, { message: "Plex Token is required" })
+})
+
+type PlexTokenFormSchema = z.infer<typeof plexTokenFormSchema>
 
 export default function PlexConfigPage() {
-  const links = [
-    {
-      href: 'mailto:johndoe@gmail.com',
+  const { toast } = useToast()
+  const [status, setStatus] = React.useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+
+  const form = useForm<PlexTokenFormSchema>({
+    resolver: zodResolver(plexTokenFormSchema),
+    defaultValues: {
+      plexToken: '',
     },
-    {
-      href: 'https://github.com/johndoe',
-    },
-    {
-      href: 'https://www.linkedin.com/in/johndoe/',
-    },
-    {
-      href: 'https://medium.com/@johndoe',
-    },
-  ]
+  })
+
+  const onSubmit = async (data: PlexTokenFormSchema) => {
+    setStatus('loading')
+    try {
+      // First, update config with the Plex token
+      const configResponse = await fetch('/v1/config/updateconfig', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          plexTokens: [data.plexToken]
+        }),
+      })
+
+      const configResult = await configResponse.json()
+
+      if (!configResponse.ok) {
+        setStatus('error')
+        toast({
+          title: 'Configuration Update Failed',
+          description: configResult.message || 'Unable to update Plex token',
+          variant: 'destructive'
+        })
+        return
+      }
+
+      // If config update successful, ping Plex
+      const plexPingResponse = await fetch('/v1/plex/ping', {
+        method: 'GET',
+      })
+
+      const plexPingResult = await plexPingResponse.json()
+
+      if (plexPingResult.success) {
+        setStatus('success')
+        toast({
+          title: 'Plex Token Configured',
+          description: 'Plex token successfully added and verified',
+          variant: 'default'
+        })
+      } else {
+        setStatus('error')
+        toast({
+          title: 'Plex Verification Failed',
+          description: 'Unable to verify Plex connection',
+          variant: 'destructive'
+        })
+      }
+    } catch (error) {
+      console.error('Token submission error:', error)
+      setStatus('error')
+      toast({
+        title: 'Connection Error',
+        description: 'An unexpected error occurred',
+        variant: 'destructive'
+      })
+    }
+  }
 
   return (
     <WindowedLayout>
       <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 text-xl leading-[1.7]">
-        <p>
-          Lorem ipsum dolor, sit amet consectetur adipisicing elit. Laudantium
-          doloremque dolores accusamus rerum hic unde!
-        </p>
-
-        <br />
-
-        <p>
-          This is the windowed portfolio neobrutalism template. Check the{' '}
-          <a
-            className="font-bold underline"
-            target="_blank"
-            href="https://github.com/neobrutalism-templates/windowed-portfolio"
-            rel="noreferrer"
+        <Form {...form}>
+          <form 
+            onSubmit={form.handleSubmit(onSubmit)} 
+            className="space-y-1"
           >
-            github repo
-          </a>{' '}
-          for more info.
-        </p>
-
-        <div className="mr-auto mt-10 flex w-full flex-wrap items-center gap-10">
-          {links.map((link, id) => {
-            return (
-              <a target="_blank" key={id} href={link.href} rel="noreferrer">
-                Link {id + 1}
-              </a>
-            )
-          })}
-        </div>
+            <div className="flex items-start space-x-2">
+              <FormField
+                control={form.control}
+                name="plexToken"
+                render={({ field }) => (
+                  <FormItem className="flex-grow">
+                    <Input
+                      {...field}
+                      placeholder="Enter Plex Token"
+                      type="text"
+                      disabled={status === 'loading'}
+                      className="w-full"
+                    />
+                    <FormMessage className="text-xs mt-1" />
+                  </FormItem>
+                )}
+              />
+              <Button 
+                type="submit" 
+                size="icon" 
+                variant="default"
+                disabled={status === 'loading'}
+                className="shrink-0"
+              >
+                {status === 'loading' ? (
+                  <Loader2 className="animate-spin" />
+                ) : status === 'success' ? (
+                  <Check className="text-green-500" />
+                ) : (
+                  <Check />
+                )}
+              </Button>
+            </div>
+          </form>
+        </Form>
       </div>
     </WindowedLayout>
   )
