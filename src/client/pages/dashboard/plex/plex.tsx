@@ -16,7 +16,6 @@ import {
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 
-// Create a Zod schema for the form
 const plexTokenFormSchema = z.object({
   plexToken: z.string().min(5, { message: 'Plex Token is required' }),
 })
@@ -33,10 +32,16 @@ export default function PlexConfigPage() {
     'idle' | 'loading' | 'success' | 'error'
   >('idle')
   
+  const [watchlistStatus, setWatchlistStatus] = React.useState<
+    'idle' | 'loading' | 'success' | 'error'
+  >('idle')
+  
   const [rssFeeds, setRssFeeds] = React.useState<{
     self: string;
     friends: string;
   }>({ self: '', friends: '' })
+
+  const [watchlistCount, setWatchlistCount] = React.useState<number | null>(null)
 
   const form = useForm<PlexTokenFormSchema>({
     resolver: zodResolver(plexTokenFormSchema),
@@ -71,7 +76,6 @@ export default function PlexConfigPage() {
           description: 'Unable to generate RSS feeds. Are you an active Plex Pass user?',
           variant: 'destructive',
         })
-        throw new Error('Failed to generate RSS feeds')
       }
     } catch (error) {
       console.error('RSS generation error:', error)
@@ -84,10 +88,44 @@ export default function PlexConfigPage() {
     }
   }
 
+  const fetchWatchlistCount = async () => {
+    setWatchlistStatus('loading')
+    try {
+      const response = await fetch('/v1/plex/self-watchlist-token', {
+        method: 'GET'
+      })
+      const result = await response.json()
+      
+      if (response.ok && result.total != null && result.users?.length > 0) {
+        setWatchlistCount(result.total)
+        setWatchlistStatus('success')
+        toast({
+          title: 'Watchlist Synced',
+          description: 'Your watchlist has been successfully synced',
+          variant: 'default',
+        })
+      } else {
+        setWatchlistStatus('error')
+        toast({
+          title: 'Sync Failed',
+          description: 'Unable to sync watchlist data',
+          variant: 'destructive',
+        })
+      }
+    } catch (error) {
+      console.error('Watchlist sync error:', error)
+      setWatchlistStatus('error')
+      toast({
+        title: 'Sync Failed',
+        description: 'Failed to sync watchlist data',
+        variant: 'destructive',
+      })
+    }
+  }
+
   const onSubmit = async (data: PlexTokenFormSchema) => {
     setStatus('loading')
     try {
-      // First, update config with the Plex token
       const configResponse = await fetch('/v1/config/updateconfig', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -105,7 +143,7 @@ export default function PlexConfigPage() {
         })
         return
       }
-      // If config update successful, ping Plex
+      
       const plexPingResponse = await fetch('/v1/plex/ping', {
         method: 'GET',
       })
@@ -216,7 +254,7 @@ export default function PlexConfigPage() {
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>
-            
+
             <div className="flex items-end space-x-2">
               <FormItem className="flex-grow">
                 <FormLabel className="text-text">Self RSS Feed</FormLabel>
@@ -257,6 +295,38 @@ export default function PlexConfigPage() {
                 {rssStatus === 'loading' ? (
                   <Loader2 className="animate-spin" />
                 ) : rssStatus === 'success' ? (
+                  <Check className="text-black" />
+                ) : (
+                  <RefreshCw />
+                )}
+              </Button>
+            </div>
+
+            <div className="flex items-end space-x-2">
+              <FormItem className="flex-grow">
+                <FormLabel className="text-text">Watchlist Status</FormLabel>
+                <FormControl>
+                  <Input
+                    value={watchlistCount !== null ? `You have ${watchlistCount} items in your watchlist!` : ''}
+                    placeholder="Sync watchlist to view count"
+                    type="text"
+                    readOnly
+                    className="w-full"
+                  />
+                </FormControl>
+              </FormItem>
+              
+              <Button
+                type="button"
+                size="icon"
+                variant="noShadow"
+                onClick={fetchWatchlistCount}
+                disabled={watchlistStatus === 'loading'}
+                className="shrink-0"
+              >
+                {watchlistStatus === 'loading' ? (
+                  <Loader2 className="animate-spin" />
+                ) : watchlistStatus === 'success' ? (
                   <Check className="text-black" />
                 ) : (
                   <RefreshCw />
