@@ -11,6 +11,7 @@ const alertVariants = cva(
       variant: {
         default: 'bg-main text-mtext',
         destructive: 'bg-black text-white',
+        error: 'bg-error text-white',
       },
     },
     defaultVariants: {

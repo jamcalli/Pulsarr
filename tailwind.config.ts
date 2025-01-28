@@ -22,6 +22,8 @@ const config: Config = {
         ring: 'var(--ring)',
         ringOffset: 'var(--ring-offset)',
         secondaryBlack: '#212121',
+        error: 'var(--error)',
+        fun: 'var(--fun)',
       },
       borderRadius: {
         base: '5px',
