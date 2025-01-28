@@ -385,18 +385,51 @@ export class PlexWatchlistService {
 
     this.log.debug(`Processing ${brandNewItems.size} new items`)
 
+    const operationId = `process-${Date.now()}`
+    const emitProgress = this.fastify.progress.hasActiveConnections()
+
+    if (emitProgress) {
+      this.fastify.progress.emit({
+        operationId,
+        phase: 'start',
+        progress: 0,
+        message: 'Starting item processing',
+      })
+    }
+
     const processedItems = await processWatchlistItems(
       this.config,
       this.log,
       brandNewItems,
+      emitProgress
+        ? { progress: this.fastify.progress, operationId }
+        : undefined,
     )
 
     if (processedItems instanceof Map) {
       const itemsToInsert = this.prepareItemsForInsertion(processedItems)
 
       if (itemsToInsert.length > 0) {
+        if (emitProgress) {
+          this.fastify.progress.emit({
+            operationId,
+            phase: 'saving',
+            progress: 95,
+            message: `Saving ${itemsToInsert.length} items to database`,
+          })
+        }
+
         await this.dbService.createWatchlistItems(itemsToInsert)
         this.log.info(`Processed ${itemsToInsert.length} new items`)
+
+        if (emitProgress) {
+          this.fastify.progress.emit({
+            operationId,
+            phase: 'complete',
+            progress: 100,
+            message: 'All items processed and saved',
+          })
+        }
       }
 
       return processedItems

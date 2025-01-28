@@ -9,6 +9,7 @@ import type {
   RssResponse,
 } from '@root/types/plex.types.js'
 import type { Config } from '@root/types/config.types.js'
+import type { ProgressOptions } from '@root/types/progress.types.js'
 
 export const pingPlex = async (
   token: string,
@@ -409,13 +410,31 @@ export async function processWatchlistItems(
   config: Config,
   log: FastifyBaseLogger,
   input: Map<Friend, Set<TokenWatchlistItem>> | Set<TokenWatchlistItem>,
+  progressOptions?: ProgressOptions,
 ): Promise<Map<Friend, Set<Item>> | Set<Item>> {
   if (input instanceof Map) {
     const userDetailedWatchlistMap = new Map<Friend, Set<Item>>()
-
+    const totalUsers = input.size
+    let userCount = 0
     for (const [user, watchlistItems] of input) {
+      userCount++
       const detailedItems = new Set<Item>()
+      const totalItems = watchlistItems.size
+      let itemCount = 0
       for (const item of watchlistItems) {
+        itemCount++
+        if (progressOptions) {
+          const totalProgress =
+            ((userCount - 1) / totalUsers) * 100 +
+            (itemCount / totalItems) * (100 / totalUsers)
+
+          progressOptions.progress.emit({
+            operationId: progressOptions.operationId,
+            phase: 'processing',
+            progress: Math.round(totalProgress),
+            message: `Processing ${user.username}'s items (${itemCount}/${totalItems})`,
+          })
+        }
         const items = await toItems(config, log, item)
         for (const detailedItem of items) {
           detailedItems.add(detailedItem)
@@ -423,16 +442,34 @@ export async function processWatchlistItems(
       }
       userDetailedWatchlistMap.set(user, detailedItems)
     }
-
     return userDetailedWatchlistMap
   }
 
   const detailedItems = new Set<Item>()
+  const totalItems = input.size
+  let itemCount = 0
   for (const item of input) {
+    itemCount++
+    if (progressOptions) {
+      progressOptions.progress.emit({
+        operationId: progressOptions.operationId,
+        phase: 'processing',
+        progress: Math.round((itemCount / totalItems) * 100),
+        message: `Processing item ${itemCount}/${totalItems}`,
+      })
+    }
     const items = await toItems(config, log, item)
     for (const detailedItem of items) {
       detailedItems.add(detailedItem)
     }
+  }
+  if (progressOptions) {
+    progressOptions.progress.emit({
+      operationId: progressOptions.operationId,
+      phase: 'complete',
+      progress: 100,
+      message: 'Processing complete',
+    })
   }
   return detailedItems
 }
