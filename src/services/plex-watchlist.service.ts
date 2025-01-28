@@ -23,9 +23,13 @@ import type { RssFeedsResponse } from '@schemas/plex/generate-rss-feeds.schema.j
 export class PlexWatchlistService {
   constructor(
     private readonly log: FastifyBaseLogger,
-    private readonly config: FastifyInstance['config'],
+    private readonly fastify: FastifyInstance,
     private readonly dbService: FastifyInstance['db'],
   ) {}
+
+  private get config() {
+    return this.fastify.config
+  }
 
   async pingPlex(): Promise<boolean> {
     const tokens = this.config.plexTokens
@@ -34,8 +38,13 @@ export class PlexWatchlistService {
       throw new Error('No Plex tokens configured')
     }
 
-    await Promise.all(tokens.map((token) => pingPlex(token, this.log)))
-    return true
+    const results = await Promise.all(
+      tokens.map((token, index) => {
+        return pingPlex(token, this.log)
+      }),
+    )
+
+    return results.every((result) => result === true)
   }
 
   async getSelfWatchlist() {

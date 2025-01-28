@@ -13,16 +13,30 @@ import type { Config } from '@root/types/config.types.js'
 export const pingPlex = async (
   token: string,
   log: FastifyBaseLogger,
-): Promise<void> => {
+): Promise<boolean> => {
   try {
     const url = new URL('https://plex.tv/api/v2/ping')
     url.searchParams.append('X-Plex-Token', token)
     url.searchParams.append('X-Plex-Client-Identifier', 'watchlistarr')
 
-    await fetch(url.toString())
-    log.info('Pinged plex.tv to update access token expiry')
+    const response = await fetch(url.toString(), {
+      headers: {
+        Accept: 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      log.error(
+        `Plex ping failed with status ${response.status}: ${response.statusText}`,
+      )
+      return false
+    }
+
+    log.info('Successfully validated Plex token')
+    return true
   } catch (err) {
-    log.warn(`Unable to ping plex.tv: ${err}`)
+    log.error(`Failed to validate Plex token: ${err}`)
+    return false
   }
 }
 

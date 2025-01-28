@@ -9,14 +9,8 @@ import type {
   RssWatchlistResults,
   WatchlistItem,
 } from '@root/types/plex.types.js'
-import type {
-  Item as SonarrItem,
-  SonarrConfiguration,
-} from '@root/types/sonarr.types.js'
-import type {
-  Item as RadarrItem,
-  RadarrConfiguration,
-} from '@root/types/radarr.types.js'
+import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
+import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 
 class PlexTestingWorkflow {
   private rssCheckInterval: NodeJS.Timeout | null = null
@@ -33,7 +27,7 @@ class PlexTestingWorkflow {
     private readonly log: FastifyBaseLogger,
     private readonly sonarrService: FastifyInstance['sonarr'],
     private readonly radarrService: FastifyInstance['radarr'],
-    private readonly config: FastifyInstance['config'],
+    private readonly fastify: FastifyInstance,
     private readonly dbService: FastifyInstance['db'],
     private readonly showStatusService: FastifyInstance['sync'],
   ) {}
@@ -48,25 +42,19 @@ class PlexTestingWorkflow {
     this.isRunning = true
 
     try {
-      // Verify connection
       await this.plexService.pingPlex()
       this.log.info('Plex connection verified')
 
-      // Initial watchlist fetch
       await this.fetchWatchlists()
-
       await this.initialSyncCheck()
 
-      // Initial RSS setup
       const rssFeeds = await this.plexService.generateAndSaveRssFeeds()
       if ('error' in rssFeeds) {
         throw new Error(`Failed to generate RSS feeds: ${rssFeeds.error}`)
       }
 
-      // Initialize RSS snapshots
       await this.initializeRssSnapshots()
 
-      // Start monitoring
       this.startRssCheck()
       this.startQueueProcessor()
 
@@ -118,7 +106,6 @@ class PlexTestingWorkflow {
     this.log.info('Initializing RSS snapshots')
     const results = await this.plexService.processRssWatchlists()
 
-    // Initialize self items snapshot
     if (results.self.users[0]?.watchlist) {
       this.previousSelfItems = this.createItemMap(
         results.self.users[0].watchlist,
@@ -128,7 +115,6 @@ class PlexTestingWorkflow {
       })
     }
 
-    // Initialize friends items snapshot
     if (results.friends.users[0]?.watchlist) {
       this.previousFriendsItems = this.createItemMap(
         results.friends.users[0].watchlist,
@@ -141,13 +127,11 @@ class PlexTestingWorkflow {
 
   private createItemMap(items: WatchlistItem[]): Map<string, WatchlistItem> {
     const itemMap = new Map<string, WatchlistItem>()
-
     for (const item of items) {
       if (item.guids && item.guids.length > 0) {
         itemMap.set(item.guids[0], item)
       }
     }
-
     return itemMap
   }
 
@@ -163,11 +147,10 @@ class PlexTestingWorkflow {
       } catch (error) {
         this.log.error('Error checking RSS feeds:', error)
       }
-    }, 10000) // Check every 10 seconds
+    }, 10000)
   }
 
   private async processRssResults(results: RssWatchlistResults) {
-    // Process self watchlist changes
     if (results.self.users[0]?.watchlist) {
       const currentItems = this.createItemMap(results.self.users[0].watchlist)
       const changes = this.detectChanges(this.previousSelfItems, currentItems)
@@ -176,7 +159,7 @@ class PlexTestingWorkflow {
       }
       this.previousSelfItems = currentItems
     }
-    // Process friends watchlist changes
+
     if (results.friends.users[0]?.watchlist) {
       const currentItems = this.createItemMap(
         results.friends.users[0].watchlist,
@@ -198,16 +181,13 @@ class PlexTestingWorkflow {
   ): Set<TemptRssWatchlistItem> {
     const changes = new Set<TemptRssWatchlistItem>()
 
-    // Check for new or modified items
     currentItems.forEach((currentItem, guid) => {
       const previousItem = previousItems.get(guid)
 
       if (!previousItem) {
-        // New item
         this.log.debug('New item detected', { guid, title: currentItem.title })
         changes.add(this.convertToTempItem(currentItem))
       } else {
-        // Check if item has changed
         const hasChanged =
           previousItem.title !== currentItem.title ||
           previousItem.type !== currentItem.type ||
@@ -233,7 +213,6 @@ class PlexTestingWorkflow {
       }
     })
 
-    // Log removed items
     previousItems.forEach((item, guid) => {
       if (!currentItems.has(guid)) {
         this.log.debug('Removed item detected', { guid, title: item.title })
@@ -269,18 +248,14 @@ class PlexTestingWorkflow {
     let hasNewItems = false
 
     for (const item of items) {
-      // Check if it's a new item for the queue
       if (!this.changeQueue.has(item)) {
         this.changeQueue.add(item)
         hasNewItems = true
 
-        // Process shows immediately with Sonarr
         if (item.type === 'SHOW') {
           this.log.info(`Processing show ${item.title} immediately`)
           await this.processSonarrItem(item)
-        }
-        // Process movies immediately with Radarr
-        else if (item.type === 'MOVIE') {
+        } else if (item.type === 'MOVIE') {
           this.log.info(`Processing movie ${item.title} immediately`)
           await this.processRadarrItem(item)
         }
@@ -310,22 +285,8 @@ class PlexTestingWorkflow {
         return false
       }
 
-      const sonarrConfig: SonarrConfiguration = {
-        sonarrApiKey: this.config.sonarrApiKey,
-        sonarrBaseUrl: this.config.sonarrBaseUrl,
-        sonarrQualityProfileId: this.config.sonarrQualityProfile,
-        sonarrRootFolder: this.config.sonarrRootFolder,
-        sonarrLanguageProfileId: 1,
-        sonarrSeasonMonitoring: 'all',
-        sonarrTagIds: this.config.sonarrTags,
-      }
+      const existingSeries = await this.sonarrService.fetchSeries()
 
-      const existingSeries = await this.sonarrService.fetchSeries(
-        sonarrConfig.sonarrApiKey,
-        sonarrConfig.sonarrBaseUrl,
-      )
-
-      // Check if any of the item's GUIDs match existing series
       const exists = [...existingSeries].some((series) =>
         series.guids.some((existingGuid) => item.guids?.includes(existingGuid)),
       )
@@ -353,22 +314,8 @@ class PlexTestingWorkflow {
         return false
       }
 
-      const radarrConfig: RadarrConfiguration = {
-        radarrApiKey: this.config.radarrApiKey,
-        radarrBaseUrl: this.config.radarrBaseUrl,
-        radarrQualityProfileId: this.config.radarrQualityProfile,
-        radarrRootFolder: this.config.radarrRootFolder,
-        radarrTagIds: this.config.radarrTags
-          .map((tag) => Number(tag))
-          .filter((tag) => !Number.isNaN(tag)),
-      }
+      const existingMovies = await this.radarrService.fetchMovies()
 
-      const existingMovies = await this.radarrService.fetchMovies(
-        radarrConfig.radarrApiKey,
-        radarrConfig.radarrBaseUrl,
-      )
-
-      // Check if any of the item's GUIDs match existing movies
       const exists = [...existingMovies].some((movie) =>
         movie.guids.some((existingGuid) => item.guids?.includes(existingGuid)),
       )
@@ -389,7 +336,6 @@ class PlexTestingWorkflow {
 
   private async processRadarrItem(item: TemptRssWatchlistItem) {
     try {
-      // Extract TMDB ID from guids
       const tmdbGuid = Array.isArray(item.guids)
         ? item.guids.find((guid) => guid.startsWith('tmdb:'))
         : undefined
@@ -404,35 +350,23 @@ class PlexTestingWorkflow {
         return
       }
 
-      // Extract TMDB ID from the GUID
       const tmdbId = Number.parseInt(tmdbGuid.replace('tmdb:', ''), 10)
       if (Number.isNaN(tmdbId)) {
         throw new Error('Invalid TMDB ID format')
       }
 
-      // Verify the item doesn't already exist before proceeding
       const shouldAdd = await this.verifyRadarrItem(item)
       if (!shouldAdd) {
         return
       }
 
-      const radarrConfig: RadarrConfiguration = {
-        radarrApiKey: this.config.radarrApiKey,
-        radarrBaseUrl: this.config.radarrBaseUrl,
-        radarrQualityProfileId: this.config.radarrQualityProfile,
-        radarrRootFolder: this.config.radarrRootFolder,
-        radarrTagIds: this.config.radarrTags
-          .map((tag) => Number(tag))
-          .filter((tag) => !Number.isNaN(tag)),
-      }
-
       const radarrItem: RadarrItem = {
         title: `TMDB:${tmdbId}`,
         guids: [tmdbGuid],
-        type: 'movie' as const,
+        type: 'movie',
       }
 
-      await this.radarrService.addToRadarr(radarrConfig, radarrItem)
+      await this.radarrService.addToRadarr(radarrItem)
       this.log.info(`Successfully added movie ${item.title} to Radarr`)
     } catch (error) {
       this.log.error(`Error processing movie ${item.title} in Radarr:`, error)
@@ -448,7 +382,6 @@ class PlexTestingWorkflow {
 
   private async processSonarrItem(item: TemptRssWatchlistItem) {
     try {
-      // More reliable TVDB ID extraction
       const tvdbGuid = Array.isArray(item.guids)
         ? item.guids.find((guid) => guid.startsWith('tvdb:'))
         : undefined
@@ -463,36 +396,24 @@ class PlexTestingWorkflow {
         return
       }
 
-      // Extract TVDB ID from the GUID
       const tvdbId = Number.parseInt(tvdbGuid.replace('tvdb:', ''), 10)
       if (Number.isNaN(tvdbId)) {
         throw new Error('Invalid TVDB ID format')
       }
 
-      // Verify the item doesn't already exist before proceeding
       const shouldAdd = await this.verifySonarrItem(item)
       if (!shouldAdd) {
         return
       }
 
-      const sonarrConfig: SonarrConfiguration = {
-        sonarrApiKey: this.config.sonarrApiKey,
-        sonarrBaseUrl: this.config.sonarrBaseUrl,
-        sonarrQualityProfileId: this.config.sonarrQualityProfile,
-        sonarrRootFolder: this.config.sonarrRootFolder,
-        sonarrLanguageProfileId: 1,
-        sonarrSeasonMonitoring: 'all',
-        sonarrTagIds: this.config.sonarrTags,
-      }
-
       const sonarrItem: SonarrItem = {
         title: `TVDB:${tvdbId}`,
         guids: [tvdbGuid],
-        type: 'show' as const,
+        type: 'show',
         ended: false,
       }
 
-      await this.sonarrService.addToSonarr(sonarrConfig, sonarrItem)
+      await this.sonarrService.addToSonarr(sonarrItem)
       this.log.info(`Successfully added show ${item.title} to Sonarr`)
     } catch (error) {
       this.log.error(`Error processing show ${item.title} in Sonarr:`, error)
@@ -519,14 +440,8 @@ class PlexTestingWorkflow {
       const allWatchlistItems = [...shows, ...movies]
 
       const [existingSeries, existingMovies] = await Promise.all([
-        this.sonarrService.fetchSeries(
-          this.config.sonarrApiKey,
-          this.config.sonarrBaseUrl,
-        ),
-        this.radarrService.fetchMovies(
-          this.config.radarrApiKey,
-          this.config.radarrBaseUrl,
-        ),
+        this.sonarrService.fetchSeries(),
+        this.radarrService.fetchMovies(),
       ])
 
       let showsAdded = 0
@@ -662,7 +577,7 @@ const plexTestingPlugin: FastifyPluginCallback = (fastify, opts, done) => {
       fastify.log,
       fastify.sonarr,
       fastify.radarr,
-      fastify.config,
+      fastify,
       fastify.db,
       fastify.sync,
     )

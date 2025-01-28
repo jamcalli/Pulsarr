@@ -31,8 +31,8 @@ export function LoginPage() {
 
   const form = useForm<LoginFormSchema>({
     resolver: zodResolver(loginFormSchema),
-    mode: 'onSubmit', 
-    reValidateMode: 'onBlur', 
+    mode: 'onSubmit',
+    reValidateMode: 'onBlur',
     defaultValues: {
       email: '',
       password: '',
@@ -120,7 +120,7 @@ export function LoginPage() {
               <Button
                 type="submit"
                 className="w-full h-12 font-heading"
-                disabled={status !== 'idle'} 
+                disabled={status !== 'idle'}
                 variant="fun"
               >
                 {status === 'loading' ? (
