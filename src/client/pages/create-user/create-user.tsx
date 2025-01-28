@@ -18,8 +18,10 @@ import { useToast } from '@/hooks/use-toast'
 import { Form, FormField, FormItem, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { ModeToggle } from '@/components/ui/mode-toggle'
+import { useNavigate } from 'react-router-dom'
 
 export function CreateUserPage() {
+  const navigate = useNavigate()
   const { toast } = useToast()
   const [status, setStatus] = React.useState<'idle' | 'loading' | 'success'>(
     'idle',
@@ -44,7 +46,7 @@ export function CreateUserPage() {
     const { confirmPassword, ...submitData } = data
 
     try {
-      const response = await fetch('/client/users/create-admin', {
+      const response = await fetch('/v1/users/create-admin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(submitData),
@@ -58,6 +60,10 @@ export function CreateUserPage() {
           description: 'User created successfully!',
           variant: 'default',
         })
+        
+        setTimeout(() => {
+          navigate('/app/login')
+        }, 1000)
       } else {
         setStatus('idle')
         setBackendError(responseData.message || 'Failed to create user.')
