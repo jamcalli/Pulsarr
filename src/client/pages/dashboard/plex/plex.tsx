@@ -3,7 +3,6 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Loader2, Check, Trash2, RefreshCw } from 'lucide-react'
-import WindowedLayout from '@/layouts/window'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -16,6 +15,7 @@ import {
 import { Progress } from '@/components/ui/progress'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
+import { useConfig } from '@/context/context'
 
 const plexTokenFormSchema = z.object({
   plexToken: z.string().min(5, { message: 'Plex Token is required' }),
@@ -25,6 +25,7 @@ type PlexTokenFormSchema = z.infer<typeof plexTokenFormSchema>
 
 export default function PlexConfigPage() {
   const { toast } = useToast()
+  const { config, updateConfig } = useConfig()
   const [status, setStatus] = React.useState<
     'idle' | 'loading' | 'success' | 'error'
   >('idle')
@@ -93,13 +94,20 @@ export default function PlexConfigPage() {
       eventSource?.close()
     }
   }, [eventSource])
+  
 
   const form = useForm<PlexTokenFormSchema>({
     resolver: zodResolver(plexTokenFormSchema),
     defaultValues: {
-      plexToken: '',
+      plexToken: config?.plexTokens[0] || '',
     },
   })
+
+  React.useEffect(() => {
+    if (config?.plexTokens[0]) {
+      form.setValue('plexToken', config.plexTokens[0])
+    }
+  }, [config, form])
 
   const generateRssFeeds = async () => {
     setRssStatus('loading')
@@ -209,23 +217,9 @@ export default function PlexConfigPage() {
   const onSubmit = async (data: PlexTokenFormSchema) => {
     setStatus('loading')
     try {
-      const configResponse = await fetch('/v1/config/updateconfig', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          plexTokens: [data.plexToken],
-        }),
+      await updateConfig({
+        plexTokens: [data.plexToken],
       })
-      const configResult = await configResponse.json()
-      if (!configResponse.ok) {
-        setStatus('error')
-        toast({
-          title: 'Configuration Update Failed',
-          description: configResult.message || 'Unable to update Plex token',
-          variant: 'destructive',
-        })
-        return
-      }
 
       const plexPingResponse = await fetch('/v1/plex/ping', {
         method: 'GET',
@@ -252,6 +246,29 @@ export default function PlexConfigPage() {
       toast({
         title: 'Connection Error',
         description: 'An unexpected error occurred',
+        variant: 'destructive',
+      })
+    }
+  }
+
+  const handleRemoveToken = async () => {
+    setStatus('loading')
+    try {
+      await updateConfig({
+        plexTokens: [],
+      })
+      form.reset()
+      setStatus('idle')
+      toast({
+        title: 'Token Removed',
+        description: 'Plex token has been removed',
+        variant: 'default',
+      })
+    } catch (error) {
+      setStatus('error')
+      toast({
+        title: 'Error',
+        description: 'Failed to remove token',
         variant: 'destructive',
       })
     }
@@ -325,7 +342,6 @@ export default function PlexConfigPage() {
   }
 
   return (
-    <WindowedLayout>
       <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -374,42 +390,8 @@ export default function PlexConfigPage() {
                       type="button"
                       size="icon"
                       variant="error"
-                      onClick={async () => {
-                        setStatus('loading')
-                        try {
-                          const response = await fetch(
-                            '/v1/config/updateconfig',
-                            {
-                              method: 'PUT',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({
-                                plexTokens: [],
-                              }),
-                            },
-                          )
-                          if (response.ok) {
-                            form.reset()
-                            setStatus('idle')
-                            toast({
-                              title: 'Token Removed',
-                              description: 'Plex token has been removed',
-                              variant: 'default',
-                            })
-                          } else {
-                            throw new Error('Failed to remove token')
-                          }
-                        } catch (error) {
-                          setStatus('error')
-                          toast({
-                            title: 'Error',
-                            description: 'Failed to remove token',
-                            variant: 'destructive',
-                          })
-                        }
-                      }}
-                      disabled={
-                        status === 'loading' || !form.getValues('plexToken')
-                      }
+                      onClick={handleRemoveToken}
+                      disabled={status === 'loading' || !form.getValues('plexToken')}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -567,6 +549,5 @@ export default function PlexConfigPage() {
           </form>
         </Form>
       </div>
-    </WindowedLayout>
   )
 }

@@ -8,7 +8,7 @@ import CRTOverlay from '@/components/ui/crt-overlay'
 import AsteroidsBackground from '@/components/ui/asteroids'
 import Pulsar from '@/components/ui/pulsar'
 import { RouterProvider } from 'react-router-dom'
-import { router } from '@/layouts/router'
+import { router } from '@/router/router'
 
 function RootLayout() {
   return (
