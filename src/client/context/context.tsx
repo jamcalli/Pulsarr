@@ -7,6 +7,39 @@ export type LogLevel =
   | 'trace'
   | 'silent'
 
+  export type SonarrMonitoringType = 
+  | 'unknown'
+  | 'all'
+  | 'future'
+  | 'missing'
+  | 'existing'
+  | 'firstSeason'
+  | 'lastSeason'
+  | 'latestSeason'
+  | 'pilot'
+  | 'recent'
+  | 'monitorSpecials'
+  | 'unmonitorSpecials'
+  | 'none'
+  | 'skip'
+
+export const SONARR_MONITORING_OPTIONS: Record<SonarrMonitoringType, string> = {
+  unknown: 'Unknown',
+  all: 'All Seasons',
+  future: 'Future Seasons',
+  missing: 'Missing Episodes',
+  existing: 'Existing Episodes',
+  firstSeason: 'First Season',
+  lastSeason: 'Last Season',
+  latestSeason: 'Latest Season',
+  pilot: 'Pilot Only',
+  recent: 'Recent Episodes',
+  monitorSpecials: 'Monitor Specials',
+  unmonitorSpecials: 'Unmonitor Specials',
+  none: 'None',
+  skip: 'Skip'
+}
+
 export interface Config {
   port: number
   dbPath: string
@@ -23,7 +56,7 @@ export interface Config {
   sonarrQualityProfile: string
   sonarrRootFolder: string
   sonarrBypassIgnored: boolean
-  sonarrSeasonMonitoring: string
+  sonarrSeasonMonitoring: SonarrMonitoringType
   sonarrTags: string[]
   // Radarr Config
   radarrBaseUrl: string
@@ -58,12 +91,26 @@ interface ConfigResponse {
 }
 
 import React, { createContext, useContext, useEffect, useState } from 'react'
+import type { RootFolder, QualityProfile } from '@root/types/sonarr.types'
+
+interface SonarrRootFoldersResponse {
+  success: boolean
+  rootFolders: RootFolder[]
+}
+
+interface SonarrQualityProfilesResponse {
+  success: boolean
+  qualityProfiles: QualityProfile[]
+}
 
 interface ConfigContextType {
   config: Config | null
   loading: boolean
   error: string | null
+  rootFolders: RootFolder[]
+  qualityProfiles: QualityProfile[]
   updateConfig: (updates: Partial<Config>) => Promise<void>
+  fetchSonarrData: () => Promise<void>
 }
 
 const ConfigContext = createContext<ConfigContextType | undefined>(undefined)
@@ -72,6 +119,8 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
   const [config, setConfig] = useState<Config | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [rootFolders, setRootFolders] = useState<RootFolder[]>([])
+  const [qualityProfiles, setQualityProfiles] = useState<QualityProfile[]>([])
 
   useEffect(() => {
     const fetchConfig = async () => {
@@ -120,13 +169,45 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const fetchSonarrData = async () => {
+    try {
+      setLoading(true)
+      // Fetch root folders
+      const foldersResponse = await fetch('/v1/sonarr/root-folders')
+      const foldersData: SonarrRootFoldersResponse = await foldersResponse.json()
+      
+      if (!foldersData.success) {
+        throw new Error('Failed to fetch root folders')
+      }
+      setRootFolders(foldersData.rootFolders)
+
+      // Fetch quality profiles
+      const profilesResponse = await fetch('/v1/sonarr/quality-profiles')
+      const profilesData: SonarrQualityProfilesResponse = await profilesResponse.json()
+      
+      if (!profilesData.success) {
+        throw new Error('Failed to fetch quality profiles')
+      }
+      setQualityProfiles(profilesData.qualityProfiles)
+    } catch (err) {
+      setError('Failed to fetch Sonarr data')
+      console.error('Sonarr data fetch error:', err)
+      throw err
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <ConfigContext.Provider
       value={{
         config,
         loading,
         error,
+        rootFolders,
+        qualityProfiles,
         updateConfig,
+        fetchSonarrData,
       }}
     >
       {children}

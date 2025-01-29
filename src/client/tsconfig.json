@@ -9,7 +9,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
-      "@root/*": ["./*"]
+      "@app/*": ["./*"],
+      "@root/*": ["../../src/*"]
     },
 
     /* Bundler mode */
@@ -24,10 +25,9 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["**/*"],
-  "exclude": ["dist"],
-  "paths": {
-    "@/*": ["./*"],
-    "@app/*": ["./*"]
-  }
+  "include": [
+    "**/*",
+    "../../src/types/**/*"
+  ],
+  "exclude": ["dist"]
 }
