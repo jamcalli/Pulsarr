@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
-import { useConfig } from '@/context/context'
+import { useConfig, SonarrMonitoringType, SONARR_MONITORING_OPTIONS } from '@/context/context'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 const sonarrConfigSchema = z.object({
@@ -22,7 +22,9 @@ const sonarrConfigSchema = z.object({
   sonarrQualityProfile: z.string().min(1, { message: 'Quality Profile is required' }),
   sonarrRootFolder: z.string().min(1, { message: 'Root Folder is required' }),
   sonarrBypassIgnored: z.boolean().optional(),
-  sonarrSeasonMonitoring: z.string().min(1, { message: 'Season Monitoring is required' }),
+  sonarrSeasonMonitoring: z.custom<SonarrMonitoringType>(
+    (val) => Object.keys(SONARR_MONITORING_OPTIONS).includes(val as string)
+  ),
   sonarrTags: z.array(z.string()).optional()
 })
 
@@ -30,10 +32,17 @@ type SonarrConfigSchema = z.infer<typeof sonarrConfigSchema>
 
 export default function SonarrConfigPage() {
   const { toast } = useToast()
-  const { config, updateConfig } = useConfig()
-  const [status, setStatus] = React.useState<'idle' | 'loading' | 'success' | 'error'>('idle')
-  const [qualityProfiles, setQualityProfiles] = React.useState([])
-  const [rootFolders, setRootFolders] = React.useState([])
+  const { 
+    config, 
+    updateConfig, 
+    rootFolders, 
+    qualityProfiles, 
+    fetchSonarrData
+  } = useConfig()
+  
+  const [testStatus, setTestStatus] = React.useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const [saveStatus, setSaveStatus] = React.useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const [clearStatus, setClearStatus] = React.useState<'idle' | 'loading' | 'success' | 'error'>('idle')
 
   const form = useForm<SonarrConfigSchema>({
     defaultValues: {
@@ -42,7 +51,7 @@ export default function SonarrConfigPage() {
       sonarrQualityProfile: config?.sonarrQualityProfile || '',
       sonarrRootFolder: config?.sonarrRootFolder || '',
       sonarrBypassIgnored: config?.sonarrBypassIgnored || false,
-      sonarrSeasonMonitoring: config?.sonarrSeasonMonitoring || 'future',
+      sonarrSeasonMonitoring: config?.sonarrSeasonMonitoring || 'all',
       sonarrTags: config?.sonarrTags || []
     }
   })
@@ -61,30 +70,30 @@ export default function SonarrConfigPage() {
     }
   }, [config, form])
 
+  const handleDropdownFocus = async () => {
+    if (config?.sonarrBaseUrl && config?.sonarrApiKey) {
+      await fetchSonarrData()
+    }
+  }
+
   const testConnection = async () => {
-    setStatus('loading')
+    setTestStatus('loading')
     try {
-      const response = await fetch('/v1/sonarr/test', {
-        method: 'GET'
-      })
+      const response = await fetch('/v1/sonarr/root-folders')
       const result = await response.json()
       
       if (result.success) {
-        setStatus('success')
+        setTestStatus('success')
         toast({
           title: 'Connection Successful',
           description: 'Successfully connected to Sonarr',
           variant: 'default'
         })
-        
-        // Fetch quality profiles and root folders
-        await fetchQualityProfiles()
-        await fetchRootFolders()
       } else {
         throw new Error('Connection test failed')
       }
     } catch (error) {
-      setStatus('error')
+      setTestStatus('error')
       toast({
         title: 'Connection Failed',
         description: 'Failed to connect to Sonarr',
@@ -93,38 +102,18 @@ export default function SonarrConfigPage() {
     }
   }
 
-  const fetchQualityProfiles = async () => {
-    try {
-      const response = await fetch('/v1/sonarr/profiles')
-      const data = await response.json()
-      setQualityProfiles(data)
-    } catch (error) {
-      console.error('Failed to fetch quality profiles:', error)
-    }
-  }
-
-  const fetchRootFolders = async () => {
-    try {
-      const response = await fetch('/v1/sonarr/folders')
-      const data = await response.json()
-      setRootFolders(data)
-    } catch (error) {
-      console.error('Failed to fetch root folders:', error)
-    }
-  }
-
   const onSubmit = async (data: SonarrConfigSchema) => {
-    setStatus('loading')
+    setSaveStatus('loading')
     try {
       await updateConfig(data)
-      setStatus('success')
+      setSaveStatus('success')
       toast({
         title: 'Configuration Updated',
         description: 'Sonarr configuration has been updated successfully',
         variant: 'default'
       })
     } catch (error) {
-      setStatus('error')
+      setSaveStatus('error')
       toast({
         title: 'Update Failed',
         description: 'Failed to update Sonarr configuration',
@@ -134,7 +123,7 @@ export default function SonarrConfigPage() {
   }
 
   const clearConfig = async () => {
-    setStatus('loading')
+    setClearStatus('loading')
     try {
       await updateConfig({
         sonarrBaseUrl: '',
@@ -146,14 +135,14 @@ export default function SonarrConfigPage() {
         sonarrTags: []
       })
       form.reset()
-      setStatus('idle')
+      setClearStatus('idle')
       toast({
         title: 'Configuration Cleared',
         description: 'Sonarr configuration has been cleared',
         variant: 'default'
       })
     } catch (error) {
-      setStatus('error')
+      setClearStatus('error')
       toast({
         title: 'Error',
         description: 'Failed to clear configuration',
@@ -204,11 +193,11 @@ export default function SonarrConfigPage() {
               type="button"
               variant="noShadow"
               onClick={testConnection}
-              disabled={status === 'loading'}
+              disabled={testStatus === 'loading'}
             >
-              {status === 'loading' ? (
+              {testStatus === 'loading' ? (
                 <Loader2 className="animate-spin mr-2" />
-              ) : status === 'success' ? (
+              ) : testStatus === 'success' ? (
                 <Check className="text-black mr-2" />
               ) : (
                 <RefreshCw className="mr-2" />
@@ -219,7 +208,7 @@ export default function SonarrConfigPage() {
               type="button"
               variant="error"
               onClick={clearConfig}
-              disabled={status === 'loading'}
+              disabled={clearStatus === 'loading'}
             >
               <Trash2 className="mr-2" />
               Clear Config
@@ -237,6 +226,9 @@ export default function SonarrConfigPage() {
                     <Select
                       onValueChange={field.onChange}
                       value={field.value}
+                      onOpenChange={(open) => {
+                        if (open) handleDropdownFocus()
+                      }}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -244,7 +236,7 @@ export default function SonarrConfigPage() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {qualityProfiles.map((profile: any) => (
+                        {qualityProfiles?.map((profile) => (
                           <SelectItem key={profile.id} value={profile.id.toString()}>
                             {profile.name}
                           </SelectItem>
@@ -266,6 +258,9 @@ export default function SonarrConfigPage() {
                     <Select
                       onValueChange={field.onChange}
                       value={field.value}
+                      onOpenChange={(open) => {
+                        if (open) handleDropdownFocus()
+                      }}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -273,7 +268,7 @@ export default function SonarrConfigPage() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {rootFolders.map((folder: any) => (
+                        {rootFolders?.map((folder) => (
                           <SelectItem key={folder.id} value={folder.path}>
                             {folder.path}
                           </SelectItem>
@@ -305,12 +300,11 @@ export default function SonarrConfigPage() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="all">All Seasons</SelectItem>
-                        <SelectItem value="future">Future Seasons</SelectItem>
-                        <SelectItem value="missing">Missing Episodes</SelectItem>
-                        <SelectItem value="existing">Existing Episodes</SelectItem>
-                        <SelectItem value="pilot">Pilot Only</SelectItem>
-                        <SelectItem value="none">None</SelectItem>
+                        {Object.entries(SONARR_MONITORING_OPTIONS).map(([value, label]) => (
+                          <SelectItem key={value} value={value}>
+                            {label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -322,9 +316,9 @@ export default function SonarrConfigPage() {
 
           <Button
             type="submit"
-            disabled={status === 'loading' || !form.formState.isValid}
+            disabled={saveStatus === 'loading' || !form.formState.isValid}
           >
-            {status === 'loading' ? (
+            {saveStatus === 'loading' ? (
               <Loader2 className="animate-spin mr-2" />
             ) : (
               'Save Configuration'
