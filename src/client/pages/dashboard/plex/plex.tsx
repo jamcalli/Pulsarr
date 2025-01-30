@@ -94,7 +94,6 @@ export default function PlexConfigPage() {
       eventSource?.close()
     }
   }, [eventSource])
-  
 
   const form = useForm<PlexTokenFormSchema>({
     resolver: zodResolver(plexTokenFormSchema),
@@ -342,212 +341,212 @@ export default function PlexConfigPage() {
   }
 
   return (
-      <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            {/* Top Row - Plex Token and Self Watchlist */}
-            <div className="flex portrait:flex-col gap-4">
-              {/* Plex Token Section */}
-              <div className="flex-1">
-                <div className="flex items-end space-x-2">
-                  <FormField
-                    control={form.control}
-                    name="plexToken"
-                    render={({ field }) => (
-                      <FormItem className="flex-grow">
-                        <FormLabel className="text-text">
-                          Primary Plex Token
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            placeholder="Enter Plex Token"
-                            type="text"
-                            disabled={status === 'loading'}
-                            className="w-full"
-                          />
-                        </FormControl>
-                        <FormMessage className="text-xs mt-1" />
-                      </FormItem>
-                    )}
-                  />
-                  <div className="flex space-x-2 shrink-0">
-                    <Button
-                      type="submit"
-                      size="icon"
-                      variant="noShadow"
-                      disabled={status === 'loading' || !form.formState.isValid}
-                    >
-                      {status === 'loading' ? (
-                        <Loader2 className="animate-spin" />
-                      ) : status === 'success' ? (
-                        <Check className="text-black" />
-                      ) : (
-                        <Check />
-                      )}
-                    </Button>
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="error"
-                      onClick={handleRemoveToken}
-                      disabled={status === 'loading' || !form.getValues('plexToken')}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Self Watchlist Section */}
-              <div className="flex-1">
-                <div className="flex items-end space-x-2">
-                  <FormItem className="flex-grow">
-                    <FormLabel className="text-text">Self Watchlist</FormLabel>
-                    {watchlistStatus === 'loading' ? (
-                      <div className="space-y-1">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm text-text">
-                            {progressMessage}
-                          </span>
-                          <span className="text-sm text-text">{progress}%</span>
-                        </div>
-                        <Progress value={progress} />
-                      </div>
-                    ) : (
+    <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          {/* Top Row - Plex Token and Self Watchlist */}
+          <div className="flex portrait:flex-col gap-4">
+            {/* Plex Token Section */}
+            <div className="flex-1">
+              <div className="flex items-end space-x-2">
+                <FormField
+                  control={form.control}
+                  name="plexToken"
+                  render={({ field }) => (
+                    <FormItem className="flex-grow">
+                      <FormLabel className="text-text">
+                        Primary Plex Token
+                      </FormLabel>
                       <FormControl>
                         <Input
-                          value={
-                            watchlistCount !== null
-                              ? `You have ${watchlistCount} items in your watchlist!`
-                              : ''
-                          }
-                          placeholder="Sync watchlist to view count"
+                          {...field}
+                          placeholder="Enter Plex Token"
                           type="text"
-                          readOnly
+                          disabled={status === 'loading'}
                           className="w-full"
                         />
                       </FormControl>
+                      <FormMessage className="text-xs mt-1" />
+                    </FormItem>
+                  )}
+                />
+                <div className="flex space-x-2 shrink-0">
+                  <Button
+                    type="submit"
+                    size="icon"
+                    variant="noShadow"
+                    disabled={status === 'loading' || !form.formState.isValid}
+                  >
+                    {status === 'loading' ? (
+                      <Loader2 className="animate-spin" />
+                    ) : status === 'success' ? (
+                      <Check className="text-black" />
+                    ) : (
+                      <Check />
                     )}
-                  </FormItem>
+                  </Button>
                   <Button
                     type="button"
                     size="icon"
-                    variant="noShadow"
-                    onClick={fetchWatchlistCount}
-                    disabled={watchlistStatus === 'loading'}
-                    className="shrink-0"
+                    variant="error"
+                    onClick={handleRemoveToken}
+                    disabled={
+                      status === 'loading' || !form.getValues('plexToken')
+                    }
                   >
-                    {watchlistStatus === 'loading' ? (
-                      <Loader2 className="animate-spin" />
-                    ) : watchlistStatus === 'success' ? (
-                      <Check className="text-black" />
-                    ) : (
-                      <RefreshCw />
-                    )}
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
             </div>
 
-            {/* Others Watchlist Row */}
-            <div className="flex items-end space-x-2">
-              <FormItem className="flex-grow">
-                <FormLabel className="text-text">Others Watchlist</FormLabel>
-                {othersWatchlistStatus === 'loading' ? (
-                  <div className="space-y-1">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-text">
-                        {progressMessage}
-                      </span>
-                      <span className="text-sm text-text">{progress}%</span>
+            {/* Self Watchlist Section */}
+            <div className="flex-1">
+              <div className="flex items-end space-x-2">
+                <FormItem className="flex-grow">
+                  <FormLabel className="text-text">Self Watchlist</FormLabel>
+                  {watchlistStatus === 'loading' ? (
+                    <div className="space-y-1">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-text">
+                          {progressMessage}
+                        </span>
+                        <span className="text-sm text-text">{progress}%</span>
+                      </div>
+                      <Progress value={progress} />
                     </div>
-                    <Progress value={progress} />
-                  </div>
-                ) : (
-                  <FormControl>
-                    <Input
-                      value={
-                        othersWatchlistInfo
-                          ? `${othersWatchlistInfo.userCount} users with ${othersWatchlistInfo.totalItems} items total`
-                          : ''
-                      }
-                      placeholder="Sync to view others' watchlists"
-                      type="text"
-                      readOnly
-                      className="w-full"
-                    />
-                  </FormControl>
-                )}
-              </FormItem>
-              <Button
-                type="button"
-                size="icon"
-                variant="noShadow"
-                onClick={fetchOthersWatchlist}
-                disabled={othersWatchlistStatus === 'loading'}
-                className="shrink-0"
-              >
-                {othersWatchlistStatus === 'loading' ? (
-                  <Loader2 className="animate-spin" />
-                ) : othersWatchlistStatus === 'success' ? (
-                  <Check className="text-black" />
-                ) : (
-                  <RefreshCw />
-                )}
-              </Button>
-            </div>
-
-            {/* RSS Feeds Section */}
-            <div className="space-y-4">
-              <Button
-                type="button"
-                variant="noShadow"
-                onClick={generateRssFeeds}
-                disabled={rssStatus === 'loading'}
-                className="shrink-0"
-              >
-                {rssStatus === 'loading' ? (
-                  <Loader2 className="animate-spin mr-2" />
-                ) : rssStatus === 'success' ? (
-                  <Check className="text-black mr-2" />
-                ) : (
-                  <RefreshCw className="mr-2" />
-                )}
-                Generate RSS Feeds
-              </Button>
-
-              <div className="flex portrait:flex-col gap-4">
-                <FormItem className="flex-1">
-                  <FormLabel className="text-text text-sm">Self Feed</FormLabel>
-                  <FormControl>
-                    <Input
-                      value={rssFeeds.self}
-                      placeholder="Generate RSS feeds to view URL"
-                      type="text"
-                      readOnly
-                      className="w-full"
-                    />
-                  </FormControl>
+                  ) : (
+                    <FormControl>
+                      <Input
+                        value={
+                          watchlistCount !== null
+                            ? `You have ${watchlistCount} items in your watchlist!`
+                            : ''
+                        }
+                        placeholder="Sync watchlist to view count"
+                        type="text"
+                        readOnly
+                        className="w-full"
+                      />
+                    </FormControl>
+                  )}
                 </FormItem>
-                <FormItem className="flex-1">
-                  <FormLabel className="text-text text-sm">
-                    Friends Feed
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      value={rssFeeds.friends}
-                      placeholder="Generate RSS feeds to view URL"
-                      type="text"
-                      readOnly
-                      className="w-full"
-                    />
-                  </FormControl>
-                </FormItem>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="noShadow"
+                  onClick={fetchWatchlistCount}
+                  disabled={watchlistStatus === 'loading'}
+                  className="shrink-0"
+                >
+                  {watchlistStatus === 'loading' ? (
+                    <Loader2 className="animate-spin" />
+                  ) : watchlistStatus === 'success' ? (
+                    <Check className="text-black" />
+                  ) : (
+                    <RefreshCw />
+                  )}
+                </Button>
               </div>
             </div>
-          </form>
-        </Form>
-      </div>
+          </div>
+
+          {/* Others Watchlist Row */}
+          <div className="flex items-end space-x-2">
+            <FormItem className="flex-grow">
+              <FormLabel className="text-text">Others Watchlist</FormLabel>
+              {othersWatchlistStatus === 'loading' ? (
+                <div className="space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-text">{progressMessage}</span>
+                    <span className="text-sm text-text">{progress}%</span>
+                  </div>
+                  <Progress value={progress} />
+                </div>
+              ) : (
+                <FormControl>
+                  <Input
+                    value={
+                      othersWatchlistInfo
+                        ? `${othersWatchlistInfo.userCount} users with ${othersWatchlistInfo.totalItems} items total`
+                        : ''
+                    }
+                    placeholder="Sync to view others' watchlists"
+                    type="text"
+                    readOnly
+                    className="w-full"
+                  />
+                </FormControl>
+              )}
+            </FormItem>
+            <Button
+              type="button"
+              size="icon"
+              variant="noShadow"
+              onClick={fetchOthersWatchlist}
+              disabled={othersWatchlistStatus === 'loading'}
+              className="shrink-0"
+            >
+              {othersWatchlistStatus === 'loading' ? (
+                <Loader2 className="animate-spin" />
+              ) : othersWatchlistStatus === 'success' ? (
+                <Check className="text-black" />
+              ) : (
+                <RefreshCw />
+              )}
+            </Button>
+          </div>
+
+          {/* RSS Feeds Section */}
+          <div className="space-y-4">
+            <Button
+              type="button"
+              variant="noShadow"
+              onClick={generateRssFeeds}
+              disabled={rssStatus === 'loading'}
+              className="shrink-0"
+            >
+              {rssStatus === 'loading' ? (
+                <Loader2 className="animate-spin mr-2" />
+              ) : rssStatus === 'success' ? (
+                <Check className="text-black mr-2" />
+              ) : (
+                <RefreshCw className="mr-2" />
+              )}
+              Generate RSS Feeds
+            </Button>
+
+            <div className="flex portrait:flex-col gap-4">
+              <FormItem className="flex-1">
+                <FormLabel className="text-text text-sm">Self Feed</FormLabel>
+                <FormControl>
+                  <Input
+                    value={rssFeeds.self}
+                    placeholder="Generate RSS feeds to view URL"
+                    type="text"
+                    readOnly
+                    className="w-full"
+                  />
+                </FormControl>
+              </FormItem>
+              <FormItem className="flex-1">
+                <FormLabel className="text-text text-sm">
+                  Friends Feed
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    value={rssFeeds.friends}
+                    placeholder="Generate RSS feeds to view URL"
+                    type="text"
+                    readOnly
+                    className="w-full"
+                  />
+                </FormControl>
+              </FormItem>
+            </div>
+          </div>
+        </form>
+      </Form>
+    </div>
   )
 }

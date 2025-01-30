@@ -119,7 +119,7 @@ const FallingAsteroids = () => {
   }, []);
 
   return (
-    <div className="fixed inset-0 pointer-events-none">
+    <div className="fixed inset-0 pointer-events-none z-[1]">
       {asteroids.map(asteroid => (
         <div
           key={asteroid.id}
@@ -130,8 +130,7 @@ const FallingAsteroids = () => {
             width: asteroid.radius * 2,
             height: asteroid.radius * 2,
             animation: `spin ${asteroid.rotationDuration} linear infinite`,
-            animationDirection: asteroid.rotationDirection,
-            zIndex: 20
+            animationDirection: asteroid.rotationDirection
           }}
         >
           <svg

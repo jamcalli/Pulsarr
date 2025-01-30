@@ -23,7 +23,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         const config = await fastify.db.getConfig(1)
-        
+
         if (!config) {
           throw new Error('Config not found in database')
         }
