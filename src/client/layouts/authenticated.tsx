@@ -6,12 +6,12 @@ interface AuthenticatedLayoutProps {
   children: ReactNode
 }
 
-export default function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
+export default function AuthenticatedLayout({
+  children,
+}: AuthenticatedLayoutProps) {
   return (
     <ConfigProvider>
-      <WindowedLayout>
-        {children}
-      </WindowedLayout>
+      <WindowedLayout>{children}</WindowedLayout>
     </ConfigProvider>
   )
 }

@@ -7,7 +7,7 @@ export type LogLevel =
   | 'trace'
   | 'silent'
 
-  export type SonarrMonitoringType = 
+export type SonarrMonitoringType =
   | 'unknown'
   | 'all'
   | 'future'
@@ -37,7 +37,7 @@ export const SONARR_MONITORING_OPTIONS: Record<SonarrMonitoringType, string> = {
   monitorSpecials: 'Monitor Specials',
   unmonitorSpecials: 'Unmonitor Specials',
   none: 'None',
-  skip: 'Skip'
+  skip: 'Skip',
 }
 
 export interface Config {
@@ -90,7 +90,8 @@ interface ConfigResponse {
   config: Config
 }
 
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import type React from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 import type { RootFolder, QualityProfile } from '@root/types/sonarr.types'
 
 interface SonarrRootFoldersResponse {
@@ -127,7 +128,7 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
       try {
         const response = await fetch('/v1/config/config')
         const data: ConfigResponse = await response.json()
-        
+
         if (data.success) {
           setConfig(data.config)
         } else {
@@ -154,7 +155,7 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
       })
 
       const data: ConfigResponse = await response.json()
-      
+
       if (data.success) {
         setConfig(data.config)
       } else {
@@ -174,8 +175,9 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
       setLoading(true)
       // Fetch root folders
       const foldersResponse = await fetch('/v1/sonarr/root-folders')
-      const foldersData: SonarrRootFoldersResponse = await foldersResponse.json()
-      
+      const foldersData: SonarrRootFoldersResponse =
+        await foldersResponse.json()
+
       if (!foldersData.success) {
         throw new Error('Failed to fetch root folders')
       }
@@ -183,8 +185,9 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
 
       // Fetch quality profiles
       const profilesResponse = await fetch('/v1/sonarr/quality-profiles')
-      const profilesData: SonarrQualityProfilesResponse = await profilesResponse.json()
-      
+      const profilesData: SonarrQualityProfilesResponse =
+        await profilesResponse.json()
+
       if (!profilesData.success) {
         throw new Error('Failed to fetch quality profiles')
       }

@@ -25,9 +25,6 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": [
-    "**/*",
-    "../../src/types/**/*"
-  ],
+  "include": ["**/*", "../../src/types/**/*"],
   "exclude": ["dist"]
 }
