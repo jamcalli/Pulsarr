@@ -14,6 +14,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/config',
     {
       schema: {
+        body: ConfigSchema,
         response: {
           200: ConfigResponseSchema,
           400: ConfigErrorSchema,
@@ -25,15 +26,15 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         const configUpdate = request.body
-        
+
         const dbUpdated = await fastify.db.updateConfig(1, configUpdate)
-        
+
         if (!dbUpdated) {
           throw reply.badRequest('Failed to update configuration')
         }
-        
+
         const updatedConfig = await fastify.db.getConfig(1)
-        
+
         if (!updatedConfig) {
           throw reply.notFound('No configuration found after update')
         }

@@ -26,12 +26,12 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         if (!config) {
           throw reply.notFound('Config not found in database')
         }
-        
+
         const response: z.infer<typeof ConfigResponseSchema> = {
           success: true,
           config,
         }
-        
+
         reply.status(200)
         return response
       } catch (err) {

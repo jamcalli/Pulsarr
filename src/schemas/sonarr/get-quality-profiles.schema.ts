@@ -1,5 +1,8 @@
 import { z } from 'zod'
-import type { QualityProfile } from '@root/types/sonarr.types.js'
+
+export const QuerystringSchema = z.object({
+  instanceId: z.string(),
+})
 
 export const InstanceInfoSchema = z.object({
   id: z.number(),
@@ -10,25 +13,16 @@ export const InstanceInfoSchema = z.object({
 export const QualityProfilesResponseSchema = z.object({
   success: z.boolean(),
   instance: InstanceInfoSchema,
-  qualityProfiles: z.array(z.custom<QualityProfile>()),
+  qualityProfiles: z.array(z.any()),
 })
 
-export const QualityProfilesErrorSchema = z.object({
-  statusCode: z.number(),
-  error: z.string(),
+export const ErrorSchema = z.object({
   message: z.string(),
-  code: z.string().optional(),
-  instanceId: z.number().optional(),
 })
 
-export const ValidationErrorSchema = z.object({
-  statusCode: z.number(),
-  error: z.string(),
-  message: z.string(),
-  validation: z.array(
-    z.object({
-      field: z.string(),
-      message: z.string(),
-    }),
-  ),
-})
+export type Querystring = z.infer<typeof QuerystringSchema>
+export type InstanceInfo = z.infer<typeof InstanceInfoSchema>
+export type QualityProfilesResponse = z.infer<
+  typeof QualityProfilesResponseSchema
+>
+export type Error = z.infer<typeof ErrorSchema>

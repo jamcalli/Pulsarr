@@ -1,31 +1,25 @@
 import type { FastifyPluginAsync } from 'fastify'
 import type { z } from 'zod'
 import {
+  QuerystringSchema,
   QualityProfilesResponseSchema,
-  QualityProfilesErrorSchema,
-  ValidationErrorSchema,
+  ErrorSchema,
 } from '@schemas/sonarr/get-quality-profiles.schema.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.get<{
-    Querystring: { instanceId: string }
+    Querystring: z.infer<typeof QuerystringSchema>
     Reply: z.infer<typeof QualityProfilesResponseSchema>
   }>(
     '/quality-profiles',
     {
       schema: {
-        querystring: {
-          type: 'object',
-          required: ['instanceId'],
-          properties: {
-            instanceId: { type: 'string' },
-          },
-        },
+        querystring: QuerystringSchema,
         response: {
           200: QualityProfilesResponseSchema,
-          400: ValidationErrorSchema,
-          404: QualityProfilesErrorSchema,
-          500: QualityProfilesErrorSchema,
+          400: ErrorSchema,
+          404: ErrorSchema,
+          500: ErrorSchema,
         },
         tags: ['Sonarr'],
       },
@@ -39,7 +33,6 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         const instance =
           await fastify.sonarrManager.getSonarrInstance(instanceId)
-
         if (!instance) {
           throw reply.notFound('Sonarr instance not found')
         }
