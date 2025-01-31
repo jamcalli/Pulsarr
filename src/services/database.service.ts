@@ -3,6 +3,14 @@ import knex, { type Knex } from 'knex'
 import type { Config, User } from '@root/types/config.types.js'
 import type { Item as WatchlistItem } from '@root/types/plex.types.js'
 import type { AdminUser } from '@schemas/auth/auth.js'
+import type {
+  SonarrInstance,
+  SonarrGenreRoute,
+} from '@root/types/sonarr.types.js'
+import type {
+  RadarrInstance,
+  RadarrGenreRoute,
+} from '@root/types/radarr.types.js'
 
 export class DatabaseService {
   private readonly knex: Knex
@@ -186,23 +194,6 @@ export class DatabaseService {
         rateLimitMax: config.rateLimitMax,
         syncIntervalSeconds: config.syncIntervalSeconds,
 
-        // Sonarr fields
-        sonarrBaseUrl: config.sonarrBaseUrl,
-        sonarrApiKey: config.sonarrApiKey,
-        sonarrQualityProfile: config.sonarrQualityProfile,
-        sonarrRootFolder: config.sonarrRootFolder,
-        sonarrBypassIgnored: config.sonarrBypassIgnored,
-        sonarrSeasonMonitoring: config.sonarrSeasonMonitoring,
-        sonarrTags: JSON.stringify(config.sonarrTags || []),
-
-        // Radarr fields
-        radarrBaseUrl: config.radarrBaseUrl,
-        radarrApiKey: config.radarrApiKey,
-        radarrQualityProfile: config.radarrQualityProfile,
-        radarrRootFolder: config.radarrRootFolder,
-        radarrBypassIgnored: config.radarrBypassIgnored,
-        radarrTags: JSON.stringify(config.radarrTags || []),
-
         // Plex fields
         plexTokens: JSON.stringify(config.plexTokens || []),
         skipFriendSync: config.skipFriendSync,
@@ -253,6 +244,363 @@ export class DatabaseService {
 
     const updated = await this.knex('configs').where({ id }).update(updateData)
     return updated > 0
+  }
+
+  async getAllSonarrInstances(): Promise<SonarrInstance[]> {
+    const instances = await this.knex('sonarr_instances')
+      .where('is_enabled', true)
+      .select('*')
+
+    return instances.map((instance) => ({
+      id: instance.id,
+      name: instance.name,
+      baseUrl: instance.base_url,
+      apiKey: instance.api_key,
+      qualityProfile: instance.quality_profile,
+      rootFolder: instance.root_folder,
+      bypassIgnored: Boolean(instance.bypass_ignored),
+      seasonMonitoring: instance.season_monitoring,
+      tags: JSON.parse(instance.tags || '[]'),
+      isDefault: Boolean(instance.is_default),
+    }))
+  }
+
+  async getDefaultSonarrInstance(): Promise<SonarrInstance | null> {
+    const instance = await this.knex('sonarr_instances')
+      .where({
+        is_default: true,
+        is_enabled: true,
+      })
+      .first()
+
+    if (!instance) return null
+
+    return {
+      id: instance.id,
+      name: instance.name,
+      baseUrl: instance.base_url,
+      apiKey: instance.api_key,
+      qualityProfile: instance.quality_profile,
+      rootFolder: instance.root_folder,
+      bypassIgnored: Boolean(instance.bypass_ignored),
+      seasonMonitoring: instance.season_monitoring,
+      tags: JSON.parse(instance.tags || '[]'),
+      isDefault: true,
+    }
+  }
+
+  async getSonarrInstance(id: number): Promise<SonarrInstance | null> {
+    const instance = await this.knex('sonarr_instances').where('id', id).first()
+
+    if (!instance) return null
+
+    return {
+      id: instance.id,
+      name: instance.name,
+      baseUrl: instance.base_url,
+      apiKey: instance.api_key,
+      qualityProfile: instance.quality_profile,
+      rootFolder: instance.root_folder,
+      bypassIgnored: Boolean(instance.bypass_ignored),
+      seasonMonitoring: instance.season_monitoring,
+      tags: JSON.parse(instance.tags || '[]'),
+      isDefault: Boolean(instance.is_default),
+    }
+  }
+
+  async createSonarrInstance(
+    instance: Omit<SonarrInstance, 'id'>,
+  ): Promise<number> {
+    // If this is marked as default, clear any existing defaults
+    if (instance.isDefault) {
+      await this.knex('sonarr_instances')
+        .where('is_default', true)
+        .update('is_default', false)
+    }
+
+    const [id] = await this.knex('sonarr_instances')
+      .insert({
+        name: instance.name || 'Default Sonarr Instance',
+        base_url: instance.baseUrl,
+        api_key: instance.apiKey,
+        quality_profile: instance.qualityProfile,
+        root_folder: instance.rootFolder,
+        bypass_ignored: instance.bypassIgnored,
+        season_monitoring: instance.seasonMonitoring,
+        tags: JSON.stringify(instance.tags || []),
+        is_default: instance.isDefault || true,
+        is_enabled: true,
+        created_at: this.timestamp,
+        updated_at: this.timestamp,
+      })
+      .returning('id')
+
+    return id
+  }
+
+  async updateSonarrInstance(
+    id: number,
+    updates: Partial<SonarrInstance>,
+  ): Promise<void> {
+    if (updates.isDefault) {
+      await this.knex('sonarr_instances')
+        .whereNot('id', id)
+        .where('is_default', true)
+        .update('is_default', false)
+    }
+
+    await this.knex('sonarr_instances')
+      .where('id', id)
+      .update({
+        ...(updates.name && { name: updates.name }),
+        ...(updates.baseUrl && { base_url: updates.baseUrl }),
+        ...(updates.apiKey && { api_key: updates.apiKey }),
+        ...(updates.qualityProfile && {
+          quality_profile: updates.qualityProfile,
+        }),
+        ...(updates.rootFolder && { root_folder: updates.rootFolder }),
+        ...(typeof updates.bypassIgnored !== 'undefined' && {
+          bypass_ignored: updates.bypassIgnored,
+        }),
+        ...(updates.seasonMonitoring && {
+          season_monitoring: updates.seasonMonitoring,
+        }),
+        ...(updates.tags && { tags: JSON.stringify(updates.tags) }),
+        ...(typeof updates.isDefault !== 'undefined' && {
+          is_default: updates.isDefault,
+        }),
+        updated_at: this.timestamp,
+      })
+  }
+
+  async deleteSonarrInstance(id: number): Promise<void> {
+    await this.knex('sonarr_instances').where('id', id).delete()
+  }
+
+  async getSonarrGenreRoutes(): Promise<SonarrGenreRoute[]> {
+    const routes = await this.knex('sonarr_genre_routing').select('*')
+
+    return routes.map((route) => ({
+      id: route.id,
+      sonarrInstanceId: route.sonarr_instance_id,
+      genre: route.genre,
+      rootFolder: route.root_folder,
+    }))
+  }
+
+  async createSonarrGenreRoute(
+    route: Omit<SonarrGenreRoute, 'id'>,
+  ): Promise<number> {
+    const [id] = await this.knex('sonarr_genre_routing')
+      .insert({
+        sonarr_instance_id: route.sonarrInstanceId,
+        genre: route.genre,
+        root_folder: route.rootFolder,
+        created_at: this.timestamp,
+        updated_at: this.timestamp,
+      })
+      .returning('id')
+
+    return id
+  }
+
+  async updateSonarrGenreRoute(
+    id: number,
+    updates: Partial<SonarrGenreRoute>,
+  ): Promise<void> {
+    await this.knex('sonarr_genre_routing')
+      .where('id', id)
+      .update({
+        ...(updates.genre && { genre: updates.genre }),
+        ...(updates.rootFolder && { root_folder: updates.rootFolder }),
+        updated_at: this.timestamp,
+      })
+  }
+
+  async deleteSonarrGenreRoute(id: number): Promise<void> {
+    await this.knex('sonarr_genre_routing').where('id', id).delete()
+  }
+
+  async getAllRadarrInstances(): Promise<RadarrInstance[]> {
+    const instances = await this.knex('radarr_instances')
+      .where('is_enabled', true)
+      .select('*')
+
+    return instances.map((instance) => ({
+      id: instance.id,
+      name: instance.name,
+      baseUrl: instance.base_url,
+      apiKey: instance.api_key,
+      qualityProfile: instance.quality_profile,
+      rootFolder: instance.root_folder,
+      bypassIgnored: Boolean(instance.bypass_ignored),
+      tags: JSON.parse(instance.tags || '[]'),
+      isDefault: Boolean(instance.is_default),
+    }))
+  }
+
+  async getDefaultRadarrInstance(): Promise<RadarrInstance | null> {
+    const instance = await this.knex('radarr_instances')
+      .where({
+        is_default: true,
+        is_enabled: true,
+      })
+      .first()
+
+    if (!instance) return null
+
+    return {
+      id: instance.id,
+      name: instance.name,
+      baseUrl: instance.base_url,
+      apiKey: instance.api_key,
+      qualityProfile: instance.quality_profile,
+      rootFolder: instance.root_folder,
+      bypassIgnored: Boolean(instance.bypass_ignored),
+      tags: JSON.parse(instance.tags || '[]'),
+      isDefault: true,
+    }
+  }
+
+  async getRadarrInstance(id: number): Promise<RadarrInstance | null> {
+    const instance = await this.knex('radarr_instances').where('id', id).first()
+
+    if (!instance) return null
+
+    return {
+      id: instance.id,
+      name: instance.name,
+      baseUrl: instance.base_url,
+      apiKey: instance.api_key,
+      qualityProfile: instance.quality_profile,
+      rootFolder: instance.root_folder,
+      bypassIgnored: Boolean(instance.bypass_ignored),
+      tags: JSON.parse(instance.tags || '[]'),
+      isDefault: Boolean(instance.is_default),
+    }
+  }
+
+  async createRadarrInstance(
+    instance: Omit<RadarrInstance, 'id'>,
+  ): Promise<number> {
+    if (instance.isDefault) {
+      await this.knex('radarr_instances')
+        .where('is_default', true)
+        .update('is_default', false)
+    }
+
+    const [id] = await this.knex('radarr_instances')
+      .insert({
+        name: instance.name || 'Default Radarr Instance',
+        base_url: instance.baseUrl,
+        api_key: instance.apiKey,
+        quality_profile: instance.qualityProfile,
+        root_folder: instance.rootFolder,
+        bypass_ignored: instance.bypassIgnored,
+        tags: JSON.stringify(instance.tags || []),
+        is_default: instance.isDefault || true,
+        is_enabled: true,
+        created_at: this.timestamp,
+        updated_at: this.timestamp,
+      })
+      .returning('id')
+
+    return id
+  }
+
+  async updateRadarrInstance(
+    id: number,
+    updates: Partial<RadarrInstance>,
+  ): Promise<void> {
+    if (updates.isDefault) {
+      await this.knex('radarr_instances')
+        .whereNot('id', id)
+        .where('is_default', true)
+        .update('is_default', false)
+    }
+
+    await this.knex('radarr_instances')
+      .where('id', id)
+      .update({
+        ...(updates.name && { name: updates.name }),
+        ...(updates.baseUrl && { base_url: updates.baseUrl }),
+        ...(updates.apiKey && { api_key: updates.apiKey }),
+        ...(updates.qualityProfile && {
+          quality_profile: updates.qualityProfile,
+        }),
+        ...(updates.rootFolder && { root_folder: updates.rootFolder }),
+        ...(typeof updates.bypassIgnored !== 'undefined' && {
+          bypass_ignored: updates.bypassIgnored,
+        }),
+        ...(updates.tags && { tags: JSON.stringify(updates.tags) }),
+        ...(typeof updates.isDefault !== 'undefined' && {
+          is_default: updates.isDefault,
+        }),
+        updated_at: this.timestamp,
+      })
+  }
+
+  async deleteRadarrInstance(id: number): Promise<void> {
+    await this.knex('radarr_instances').where('id', id).delete()
+  }
+
+  async getRadarrGenreRoutes(): Promise<RadarrGenreRoute[]> {
+    const routes = await this.knex('radarr_genre_routing').select('*')
+
+    return routes.map((route) => ({
+      id: route.id,
+      radarrInstanceId: route.radarr_instance_id,
+      genre: route.genre,
+      rootFolder: route.root_folder,
+    }))
+  }
+
+  async createRadarrGenreRoute(
+    route: Omit<RadarrGenreRoute, 'id'>,
+  ): Promise<number> {
+    const [id] = await this.knex('radarr_genre_routing')
+      .insert({
+        radarr_instance_id: route.radarrInstanceId,
+        genre: route.genre,
+        root_folder: route.rootFolder,
+        created_at: this.timestamp,
+        updated_at: this.timestamp,
+      })
+      .returning('id')
+
+    return id
+  }
+
+  async updateRadarrGenreRoute(
+    id: number,
+    updates: Partial<RadarrGenreRoute>,
+  ): Promise<void> {
+    await this.knex('radarr_genre_routing')
+      .where('id', id)
+      .update({
+        ...(updates.genre && { genre: updates.genre }),
+        ...(updates.rootFolder && { root_folder: updates.rootFolder }),
+        updated_at: this.timestamp,
+      })
+  }
+
+  async deleteRadarrGenreRoute(id: number): Promise<void> {
+    await this.knex('radarr_genre_routing').where('id', id).delete()
+  }
+
+  async updateWatchlistItem(
+    key: string,
+    updates: {
+      sonarr_instance_id?: number | null
+      radarr_instance_id?: number | null
+    },
+  ): Promise<void> {
+    await this.knex('watchlist_items')
+      .where('key', key)
+      .update({
+        ...updates,
+        updated_at: this.timestamp,
+      })
   }
 
   async getWatchlistItem(

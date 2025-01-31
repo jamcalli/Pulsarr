@@ -69,4 +69,24 @@ export interface Item {
   added?: string
   status?: 'pending' | 'requested' | 'grabbed' | 'notified'
   movie_status?: 'available' | 'unavailable'
+  genres?: string[]
+}
+
+export interface RadarrInstance {
+  id: number
+  name: string
+  baseUrl: string
+  apiKey: string
+  qualityProfile: string | null
+  rootFolder: string | null
+  bypassIgnored: boolean
+  tags: string[]
+  isDefault: boolean
+}
+
+export interface RadarrGenreRoute {
+  id: number
+  radarrInstanceId: number
+  genre: string
+  rootFolder: string
 }

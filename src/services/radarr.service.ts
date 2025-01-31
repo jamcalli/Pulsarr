@@ -9,22 +9,66 @@ import type {
   RootFolder,
   QualityProfile,
   PagedResult,
+  RadarrInstance,
 } from '@root/types/radarr.types.js'
 
 export class RadarrService {
-  constructor(
-    private readonly log: FastifyBaseLogger,
-    private readonly fastify: FastifyInstance,
-  ) {}
+  private config: RadarrConfiguration | null = null
+
+  constructor(private readonly log: FastifyBaseLogger) {}
 
   private get radarrConfig(): RadarrConfiguration {
-    return {
-      radarrBaseUrl: this.fastify.config.radarrBaseUrl,
-      radarrApiKey: this.fastify.config.radarrApiKey,
-      radarrQualityProfileId: this.fastify.config.radarrQualityProfile,
-      radarrRootFolder: this.fastify.config.radarrRootFolder,
-      radarrTagIds: this.fastify.config.radarrTags,
+    if (!this.config) {
+      throw new Error('Radarr service not initialized')
     }
+    return this.config
+  }
+
+  async initialize(instance: RadarrInstance): Promise<void> {
+    try {
+      if (!instance.baseUrl || !instance.apiKey) {
+        throw new Error(
+          'Invalid Radarr configuration: baseUrl and apiKey are required',
+        )
+      }
+
+      await this.verifyConnection(instance)
+
+      this.config = {
+        radarrBaseUrl: instance.baseUrl,
+        radarrApiKey: instance.apiKey,
+        radarrQualityProfileId: instance.qualityProfile || null,
+        radarrRootFolder: instance.rootFolder || null,
+        radarrTagIds: instance.tags,
+      }
+
+      this.log.info(
+        `Successfully initialized Radarr service for ${instance.name}`,
+      )
+    } catch (error) {
+      this.log.error(
+        `Failed to initialize Radarr service for instance ${instance.name}:`,
+        error,
+      )
+      throw error
+    }
+  }
+
+  private async verifyConnection(instance: RadarrInstance): Promise<unknown> {
+    const url = new URL(`${instance.baseUrl}/api/v3/system/status`)
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: {
+        'X-Api-Key': instance.apiKey,
+        Accept: 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`Connection verification failed: ${response.statusText}`)
+    }
+
+    return response.json()
   }
 
   private toItem(movie: RadarrMovie): Item {
@@ -139,7 +183,7 @@ export class RadarrService {
     }
   }
 
-  async addToRadarr(item: Item): Promise<void> {
+  async addToRadarr(item: Item, overrideRootFolder?: string): Promise<void> {
     const config = this.radarrConfig
     try {
       const addOptions: RadarrAddOptions = {
@@ -147,7 +191,6 @@ export class RadarrService {
       }
 
       const tmdbGuid = item.guids.find((guid) => guid.startsWith('tmdb:'))
-
       let tmdbId = 0
       if (tmdbGuid) {
         const parsed = Number.parseInt(tmdbGuid.replace('tmdb:', ''), 10)
@@ -156,7 +199,7 @@ export class RadarrService {
         }
       }
 
-      let rootFolderPath = config.radarrRootFolder
+      let rootFolderPath = overrideRootFolder || config.radarrRootFolder
       if (!rootFolderPath) {
         const rootFolders = await this.fetchRootFolders()
         if (rootFolders.length === 0) {

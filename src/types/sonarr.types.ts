@@ -93,14 +93,46 @@ export interface Item {
   added?: string
   status?: 'pending' | 'requested' | 'grabbed' | 'notified'
   series_status?: 'continuing' | 'ended'
+  genres?: string[]
 }
 
 export interface SonarrConfiguration {
-  sonarrSeasonMonitoring: string
-  sonarrQualityProfileId: string | number | null
-  sonarrRootFolder: string | null
-  sonarrLanguageProfileId: number | null
-  sonarrTagIds: string[]
   sonarrBaseUrl: string
   sonarrApiKey: string
+  sonarrQualityProfileId: string | number | null
+  sonarrLanguageProfileId: number
+  sonarrRootFolder: string | null
+  sonarrTagIds: string[]
+  sonarrSeasonMonitoring: string
+}
+
+export interface SonarrInstance {
+  id: number
+  name: string
+  baseUrl: string
+  apiKey: string
+  qualityProfile?: string
+  rootFolder?: string
+  bypassIgnored: boolean
+  seasonMonitoring: string
+  tags: string[]
+  isDefault: boolean
+}
+
+export interface SonarrGenreRoute {
+  id: number
+  sonarrInstanceId: number
+  genre: string
+  rootFolder: string
+}
+
+export interface SonarrItem {
+  title: string
+  guids: string[]
+  type: string
+  ended?: boolean
+  added?: string
+  status?: 'pending' | 'requested' | 'grabbed' | 'notified'
+  series_status?: 'continuing' | 'ended'
+  genres?: string[]
 }

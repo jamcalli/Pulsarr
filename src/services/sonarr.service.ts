@@ -1,32 +1,74 @@
 import type { FastifyBaseLogger } from 'fastify'
-import type { FastifyInstance } from 'fastify'
 import type {
   SonarrAddOptions,
   SonarrPost,
   SonarrSeries,
-  Item,
+  SonarrItem as Item,
   SonarrConfiguration,
   PagedResult,
   RootFolder,
   QualityProfile,
+  SonarrInstance,
 } from '@root/types/sonarr.types.js'
 
 export class SonarrService {
-  constructor(
-    private readonly log: FastifyBaseLogger,
-    private readonly fastify: FastifyInstance,
-  ) {}
+  private config: SonarrConfiguration | null = null
+  constructor(private readonly log: FastifyBaseLogger) {}
 
   private get sonarrConfig(): SonarrConfiguration {
-    return {
-      sonarrBaseUrl: this.fastify.config.sonarrBaseUrl,
-      sonarrApiKey: this.fastify.config.sonarrApiKey,
-      sonarrQualityProfileId: this.fastify.config.sonarrQualityProfile,
-      sonarrLanguageProfileId: 1,
-      sonarrRootFolder: this.fastify.config.sonarrRootFolder,
-      sonarrTagIds: this.fastify.config.sonarrTags,
-      sonarrSeasonMonitoring: this.fastify.config.sonarrSeasonMonitoring,
+    if (!this.config) {
+      throw new Error('Sonarr service not initialized')
     }
+    return this.config
+  }
+
+  async initialize(instance: SonarrInstance): Promise<void> {
+    try {
+      if (!instance.baseUrl || !instance.apiKey) {
+        throw new Error(
+          'Invalid Sonarr configuration: baseUrl and apiKey are required',
+        )
+      }
+
+      await this.verifyConnection(instance)
+
+      this.config = {
+        sonarrBaseUrl: instance.baseUrl,
+        sonarrApiKey: instance.apiKey,
+        sonarrQualityProfileId: instance.qualityProfile || null,
+        sonarrLanguageProfileId: 1,
+        sonarrRootFolder: instance.rootFolder || null,
+        sonarrTagIds: instance.tags,
+        sonarrSeasonMonitoring: instance.seasonMonitoring,
+      }
+
+      this.log.info(
+        `Successfully initialized Sonarr service for ${instance.name}`,
+      )
+    } catch (error) {
+      this.log.error(
+        `Failed to initialize Sonarr service for instance ${instance.name}:`,
+        error,
+      )
+      throw error
+    }
+  }
+
+  private async verifyConnection(instance: SonarrInstance): Promise<unknown> {
+    const url = new URL(`${instance.baseUrl}/api/v3/system/status`)
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: {
+        'X-Api-Key': instance.apiKey,
+        Accept: 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`Connection verification failed: ${response.statusText}`)
+    }
+
+    return response.json()
   }
 
   private toItem(series: SonarrSeries): Item {
@@ -135,7 +177,7 @@ export class SonarrService {
     }
   }
 
-  async addToSonarr(item: Item): Promise<void> {
+  async addToSonarr(item: Item, overrideRootFolder?: string): Promise<void> {
     const config = this.sonarrConfig
     try {
       const addOptions: SonarrAddOptions = {
@@ -148,7 +190,7 @@ export class SonarrService {
         .find((guid) => guid.startsWith('tvdb:'))
         ?.replace('tvdb:', '')
 
-      let rootFolderPath = config.sonarrRootFolder
+      let rootFolderPath = overrideRootFolder || config.sonarrRootFolder
       if (!rootFolderPath) {
         const rootFolders = await this.fetchRootFolders()
         if (rootFolders.length === 0) {

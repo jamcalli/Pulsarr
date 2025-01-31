@@ -85,10 +85,15 @@ export default function SonarrConfigPage() {
         }
       }
     }
-  
+
     loadInitialData()
-  }, [config?.sonarrBaseUrl, config?.sonarrApiKey, fetchSonarrData, isConnectionValid])
-  
+  }, [
+    config?.sonarrBaseUrl,
+    config?.sonarrApiKey,
+    fetchSonarrData,
+    isConnectionValid,
+  ])
+
   React.useEffect(() => {
     if (config) {
       form.reset({
@@ -100,8 +105,12 @@ export default function SonarrConfigPage() {
         sonarrSeasonMonitoring: config.sonarrSeasonMonitoring,
         sonarrTags: config.sonarrTags,
       })
-      
-      if (config.sonarrBaseUrl && config.sonarrApiKey && config.sonarrQualityProfile) {
+
+      if (
+        config.sonarrBaseUrl &&
+        config.sonarrApiKey &&
+        config.sonarrQualityProfile
+      ) {
         setIsConnectionValid(true)
       }
     }
@@ -209,18 +218,30 @@ export default function SonarrConfigPage() {
     }
   }
 
-  const [sonarrBaseUrl, sonarrApiKey, sonarrQualityProfile, sonarrRootFolder, sonarrSeasonMonitoring] = 
-  form.watch(['sonarrBaseUrl', 'sonarrApiKey', 'sonarrQualityProfile', 'sonarrRootFolder', 'sonarrSeasonMonitoring'])
+  const [
+    sonarrBaseUrl,
+    sonarrApiKey,
+    sonarrQualityProfile,
+    sonarrRootFolder,
+    sonarrSeasonMonitoring,
+  ] = form.watch([
+    'sonarrBaseUrl',
+    'sonarrApiKey',
+    'sonarrQualityProfile',
+    'sonarrRootFolder',
+    'sonarrSeasonMonitoring',
+  ])
 
-const hasValidUrlAndKey = Boolean(sonarrBaseUrl && sonarrApiKey)
-const hasRequiredFields = Boolean(sonarrQualityProfile && sonarrRootFolder && sonarrSeasonMonitoring)
+  const hasValidUrlAndKey = Boolean(sonarrBaseUrl && sonarrApiKey)
+  const hasRequiredFields = Boolean(
+    sonarrQualityProfile && sonarrRootFolder && sonarrSeasonMonitoring,
+  )
 
-const canSave = (
-  saveStatus !== 'loading' &&
-  form.formState.isValid && 
-  hasRequiredFields &&
-  (hasValidUrlAndKey ? isConnectionValid : true)
-)
+  const canSave =
+    saveStatus !== 'loading' &&
+    form.formState.isValid &&
+    hasRequiredFields &&
+    (hasValidUrlAndKey ? isConnectionValid : true)
 
   return (
     <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
@@ -376,7 +397,9 @@ const canSave = (
                 name="sonarrSeasonMonitoring"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-text">Season Monitoring</FormLabel>
+                    <FormLabel className="text-text">
+                      Season Monitoring
+                    </FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       value={field.value}
@@ -404,10 +427,7 @@ const canSave = (
             </div>
           </div>
 
-          <Button
-            type="submit"
-            disabled={!canSave}
-          >
+          <Button type="submit" disabled={!canSave}>
             {saveStatus === 'loading' ? (
               <Loader2 className="animate-spin mr-2" />
             ) : (

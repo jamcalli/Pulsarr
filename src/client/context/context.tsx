@@ -50,21 +50,7 @@ export interface Config {
   closeGraceDelay: number
   rateLimitMax: number
   syncIntervalSeconds: number
-  // Sonarr Config
-  sonarrBaseUrl: string
-  sonarrApiKey: string
-  sonarrQualityProfile: string
-  sonarrRootFolder: string
-  sonarrBypassIgnored: boolean
-  sonarrSeasonMonitoring: SonarrMonitoringType
-  sonarrTags: string[]
-  // Radarr Config
-  radarrBaseUrl: string
-  radarrApiKey: string
-  radarrQualityProfile: string
-  radarrRootFolder: string
-  radarrBypassIgnored: boolean
-  radarrTags: string[]
+
   // Plex Config
   plexTokens: string[]
   skipFriendSync: boolean
