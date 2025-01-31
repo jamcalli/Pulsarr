@@ -28,6 +28,6 @@
       "@/*": ["./client/*"]
     }
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "config"],
   "exclude": ["src/client/**/*"]
 }

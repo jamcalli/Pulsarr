@@ -1,31 +1,25 @@
 import type { FastifyPluginAsync } from 'fastify'
 import type { z } from 'zod'
 import {
+  QuerystringSchema,
   RootFoldersResponseSchema,
-  RootFoldersErrorSchema,
-  ValidationErrorSchema,
+  ErrorSchema,
 } from '@schemas/sonarr/get-root-folders.schema.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.get<{
-    Querystring: { instanceId: string }
+    Querystring: z.infer<typeof QuerystringSchema>
     Reply: z.infer<typeof RootFoldersResponseSchema>
   }>(
     '/root-folders',
     {
       schema: {
-        querystring: {
-          type: 'object',
-          required: ['instanceId'],
-          properties: {
-            instanceId: { type: 'string' },
-          },
-        },
+        querystring: QuerystringSchema,
         response: {
           200: RootFoldersResponseSchema,
-          400: ValidationErrorSchema,
-          404: RootFoldersErrorSchema,
-          500: RootFoldersErrorSchema,
+          400: ErrorSchema,
+          404: ErrorSchema,
+          500: ErrorSchema,
         },
         tags: ['Sonarr'],
       },

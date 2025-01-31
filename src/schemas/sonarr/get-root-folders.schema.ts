@@ -1,5 +1,8 @@
 import { z } from 'zod'
-import type { RootFolder } from '@root/types/sonarr.types.js'
+
+export const QuerystringSchema = z.object({
+  instanceId: z.string(),
+})
 
 export const InstanceInfoSchema = z.object({
   id: z.number(),
@@ -10,25 +13,14 @@ export const InstanceInfoSchema = z.object({
 export const RootFoldersResponseSchema = z.object({
   success: z.boolean(),
   instance: InstanceInfoSchema,
-  rootFolders: z.array(z.custom<RootFolder>()),
+  rootFolders: z.array(z.any()),
 })
 
-export const RootFoldersErrorSchema = z.object({
-  statusCode: z.number(),
-  error: z.string(),
+export const ErrorSchema = z.object({
   message: z.string(),
-  code: z.string().optional(),
-  instanceId: z.number().optional(),
 })
 
-export const ValidationErrorSchema = z.object({
-  statusCode: z.number(),
-  error: z.string(),
-  message: z.string(),
-  validation: z.array(
-    z.object({
-      field: z.string(),
-      message: z.string(),
-    }),
-  ),
-})
+export type Querystring = z.infer<typeof QuerystringSchema>
+export type InstanceInfo = z.infer<typeof InstanceInfoSchema>
+export type RootFoldersResponse = z.infer<typeof RootFoldersResponseSchema>
+export type Error = z.infer<typeof ErrorSchema>
