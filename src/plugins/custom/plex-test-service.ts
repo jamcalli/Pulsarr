@@ -25,8 +25,8 @@ class PlexTestingWorkflow {
   constructor(
     private readonly plexService: FastifyInstance['plexWatchlist'],
     private readonly log: FastifyBaseLogger,
-    private readonly sonarrService: FastifyInstance['sonarr'],
-    private readonly radarrService: FastifyInstance['radarr'],
+    private readonly sonarrManager: FastifyInstance['sonarrManager'],
+    private readonly radarrManager: FastifyInstance['radarrManager'],
     private readonly fastify: FastifyInstance,
     private readonly dbService: FastifyInstance['db'],
     private readonly showStatusService: FastifyInstance['sync'],
@@ -285,17 +285,21 @@ class PlexTestingWorkflow {
         return false
       }
 
-      const existingSeries = await this.sonarrService.fetchSeries()
+      // Get all instances from the manager service
+      const instances = await this.sonarrManager.getAllInstances()
 
-      const exists = [...existingSeries].some((series) =>
-        series.guids.some((existingGuid) => item.guids?.includes(existingGuid)),
-      )
-
-      if (exists) {
-        this.log.info(
-          `Show ${item.title} already exists in Sonarr, skipping addition`,
+      // Check each instance for the show
+      for (const instance of instances) {
+        const exists = await this.sonarrManager.verifyItemExists(
+          instance.id,
+          item,
         )
-        return false
+        if (exists) {
+          this.log.info(
+            `Show ${item.title} already exists in Sonarr instance ${instance.name}, skipping addition`,
+          )
+          return false
+        }
       }
 
       return true
@@ -314,17 +318,21 @@ class PlexTestingWorkflow {
         return false
       }
 
-      const existingMovies = await this.radarrService.fetchMovies()
+      // Get all instances from the manager service
+      const instances = await this.radarrManager.getAllInstances()
 
-      const exists = [...existingMovies].some((movie) =>
-        movie.guids.some((existingGuid) => item.guids?.includes(existingGuid)),
-      )
-
-      if (exists) {
-        this.log.info(
-          `Movie ${item.title} already exists in Radarr, skipping addition`,
+      // Check each instance for the movie
+      for (const instance of instances) {
+        const exists = await this.radarrManager.verifyItemExists(
+          instance.id,
+          item,
         )
-        return false
+        if (exists) {
+          this.log.info(
+            `Movie ${item.title} already exists in Radarr instance ${instance.name}, skipping addition`,
+          )
+          return false
+        }
       }
 
       return true
@@ -364,10 +372,17 @@ class PlexTestingWorkflow {
         title: `TMDB:${tmdbId}`,
         guids: [tmdbGuid],
         type: 'movie',
+        genres: Array.isArray(item.genres)
+          ? item.genres
+          : typeof item.genres === 'string'
+            ? [item.genres]
+            : [],
       }
 
-      await this.radarrService.addToRadarr(radarrItem)
-      this.log.info(`Successfully added movie ${item.title} to Radarr`)
+      await this.radarrManager.routeItemToRadarr(radarrItem, item.key)
+      this.log.info(
+        `Successfully added movie ${item.title} to appropriate Radarr instance`,
+      )
     } catch (error) {
       this.log.error(`Error processing movie ${item.title} in Radarr:`, error)
       this.log.debug('Failed item details:', {
@@ -385,7 +400,6 @@ class PlexTestingWorkflow {
       const tvdbGuid = Array.isArray(item.guids)
         ? item.guids.find((guid) => guid.startsWith('tvdb:'))
         : undefined
-
       if (!tvdbGuid) {
         this.log.warn(
           `Show ${item.title} has no TVDB ID, skipping Sonarr processing`,
@@ -411,10 +425,21 @@ class PlexTestingWorkflow {
         guids: [tvdbGuid],
         type: 'show',
         ended: false,
+        genres: Array.isArray(item.genres)
+          ? item.genres
+          : typeof item.genres === 'string'
+            ? [item.genres]
+            : [],
+        status: 'pending',
+        series_status: 'continuing', // Default to continuing since we don't know yet
+        // added will be set by Sonarr
       }
 
-      await this.sonarrService.addToSonarr(sonarrItem)
-      this.log.info(`Successfully added show ${item.title} to Sonarr`)
+      await this.sonarrManager.routeItemToSonarr(sonarrItem, item.key)
+
+      this.log.info(
+        `Successfully added show ${item.title} to appropriate Sonarr instance`,
+      )
     } catch (error) {
       this.log.error(`Error processing show ${item.title} in Sonarr:`, error)
       this.log.debug('Failed item details:', {
@@ -426,7 +451,6 @@ class PlexTestingWorkflow {
       throw error
     }
   }
-
   private async initialSyncCheck() {
     this.log.info('Performing initial sync check')
 
@@ -440,8 +464,8 @@ class PlexTestingWorkflow {
       const allWatchlistItems = [...shows, ...movies]
 
       const [existingSeries, existingMovies] = await Promise.all([
-        this.sonarrService.fetchSeries(),
-        this.radarrService.fetchMovies(),
+        this.sonarrManager.fetchAllSeries(),
+        this.radarrManager.fetchAllMovies(),
       ])
 
       let showsAdded = 0
@@ -575,8 +599,8 @@ const plexTestingPlugin: FastifyPluginCallback = (fastify, opts, done) => {
     const workflow = new PlexTestingWorkflow(
       fastify.plexWatchlist,
       fastify.log,
-      fastify.sonarr,
-      fastify.radarr,
+      fastify.sonarrManager,
+      fastify.radarrManager,
       fastify,
       fastify.db,
       fastify.sync,
@@ -611,5 +635,11 @@ const plexTestingPlugin: FastifyPluginCallback = (fastify, opts, done) => {
 
 export default fp(plexTestingPlugin, {
   name: 'plex-testing-plugin',
-  dependencies: ['plex-watchlist', 'sonarr', 'radarr', 'sync', 'config'],
+  dependencies: [
+    'plex-watchlist',
+    'sonarr-manager',
+    'radarr-manager',
+    'sync',
+    'config',
+  ],
 })

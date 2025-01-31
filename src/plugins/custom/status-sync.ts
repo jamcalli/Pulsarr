@@ -13,13 +13,13 @@ export default fp(
     const service = new StatusService(
       fastify.log,
       fastify.db,
-      fastify.sonarr,
-      fastify.radarr,
+      fastify.sonarrManager,
+      fastify.radarrManager,
     )
     fastify.decorate('sync', service)
   },
   {
     name: 'sync',
-    dependencies: ['database', 'sonarr', 'radarr'],
+    dependencies: ['database', 'sonarr-manager', 'radarr-manager'],
   },
 )

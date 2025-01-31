@@ -1,23 +1,23 @@
 import type { FastifyPluginAsync } from 'fastify'
 import type { z } from 'zod'
 import {
-  ConfigUpdateSchema,
-  ConfigUpdateResponseSchema,
-  ConfigUpdateErrorSchema,
-} from '@schemas/config/update-config.schema.js'
+  ConfigSchema,
+  ConfigResponseSchema,
+  ConfigErrorSchema,
+} from '@root/schemas/config/config.schema.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.put<{
-    Body: z.infer<typeof ConfigUpdateSchema>
-    Reply: z.infer<typeof ConfigUpdateResponseSchema>
+    Body: z.infer<typeof ConfigSchema>
+    Reply: z.infer<typeof ConfigResponseSchema>
   }>(
-    '/updateconfig',
+    '/config',
     {
       schema: {
-        body: ConfigUpdateSchema,
         response: {
-          200: ConfigUpdateResponseSchema,
-          500: ConfigUpdateErrorSchema,
+          200: ConfigResponseSchema,
+          400: ConfigErrorSchema,
+          500: ConfigErrorSchema,
         },
         tags: ['Config'],
       },
@@ -25,20 +25,32 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         const configUpdate = request.body
-
+        
         const dbUpdated = await fastify.db.updateConfig(1, configUpdate)
+        
         if (!dbUpdated) {
-          throw new Error('Failed to update config in database')
+          throw reply.badRequest('Failed to update configuration')
         }
-        const updatedConfig = await fastify.updateConfig(configUpdate)
+        
+        const updatedConfig = await fastify.db.getConfig(1)
+        
+        if (!updatedConfig) {
+          throw reply.notFound('No configuration found after update')
+        }
 
-        reply.status(200)
-        return {
+        const response: z.infer<typeof ConfigResponseSchema> = {
           success: true,
           config: updatedConfig,
         }
-      } catch (error) {
-        fastify.log.error('Error updating config:', error)
+
+        reply.status(200)
+        return response
+      } catch (err) {
+        if (err instanceof Error && 'statusCode' in err) {
+          throw err
+        }
+
+        fastify.log.error('Error updating config:', err)
         throw reply.internalServerError('Unable to update configuration')
       }
     },

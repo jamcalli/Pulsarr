@@ -1,30 +1,14 @@
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
-
-interface DatabaseWatchlistItem {
-  id?: number
-  user_id: number
-  title: string
-  key: string
-  type: string
-  thumb?: string | null
-  added?: string | null
-  guids?: string[] | string
-  genres?: string[] | string
-  status: 'pending' | 'requested' | 'grabbed' | 'notified'
-  series_status?: 'continuing' | 'ended' | null
-  movie_status?: string | null
-  created_at?: string
-  updated_at?: string
-}
+import type { DatabaseWatchlistItem } from '@root/types/watchlist-status.types.js'
 
 export class StatusService {
   constructor(
     private readonly log: FastifyBaseLogger,
     private readonly dbService: FastifyInstance['db'],
-    private readonly sonarrService: FastifyInstance['sonarr'],
-    private readonly radarrService: FastifyInstance['radarr'],
+    private readonly sonarrManager: FastifyInstance['sonarrManager'],
+    private readonly radarrManager: FastifyInstance['radarrManager'],
   ) {}
 
   async syncAllStatuses(): Promise<{ shows: number; movies: number }> {
@@ -37,12 +21,13 @@ export class StatusService {
 
   async syncSonarrStatuses(): Promise<number> {
     try {
-      const existingSeries = await this.sonarrService.fetchSeries()
+      const existingSeries = await this.sonarrManager.fetchAllSeries()
       const watchlistItems = await this.dbService.getAllShowWatchlistItems()
       const updates = this.processShowStatusUpdates(
-        Array.from(existingSeries),
+        existingSeries,
         watchlistItems,
       )
+
       if (updates.length > 0) {
         return await this.dbService.bulkUpdateWatchlistItems(updates)
       }
@@ -55,10 +40,10 @@ export class StatusService {
 
   async syncRadarrStatuses(): Promise<number> {
     try {
-      const existingMovies = await this.radarrService.fetchMovies()
+      const existingMovies = await this.radarrManager.fetchAllMovies()
       const watchlistItems = await this.dbService.getAllMovieWatchlistItems()
       const updates = this.processMovieStatusUpdates(
-        Array.from(existingMovies),
+        existingMovies,
         watchlistItems,
       )
       if (updates.length > 0) {
