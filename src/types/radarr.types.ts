@@ -82,6 +82,7 @@ export interface RadarrInstance {
   bypassIgnored: boolean
   tags: string[]
   isDefault: boolean
+  syncedInstances?: number[]
 }
 
 export interface RadarrGenreRoute {

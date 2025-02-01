@@ -69,7 +69,7 @@ interface SonarrInstanceData {
   qualityProfiles: QualityProfile[]
 }
 
-interface SonarrInstance {
+export interface SonarrInstance {
   id: number
   name: string
   baseUrl: string
@@ -80,6 +80,7 @@ interface SonarrInstance {
   seasonMonitoring: string
   tags: string[]
   isDefault: boolean
+  syncedInstances?: number[]
   data?: SonarrInstanceData
 }
 
@@ -178,25 +179,29 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
 
   const fetchInstanceData = async (instanceId: string) => {
     try {
-      setLoading(true)
+      setLoading(true);
       
-      const targetInstance = instances.find(i => i.id === Number(instanceId))
+      const targetInstance = instances.find(i => i.id === Number(instanceId));
       if (!targetInstance) {
-        throw new Error('Instance not found')
+        throw new Error('Instance not found');
+      }
+
+      if (targetInstance.data?.rootFolders && targetInstance.data?.qualityProfiles) {
+        return;
       }
 
       const [foldersResponse, profilesResponse] = await Promise.all([
-        fetch(`/api/root-folders?instanceId=${instanceId}`),
-        fetch(`/api/quality-profiles?instanceId=${instanceId}`)
-      ])
+        fetch(`/v1/sonarr/root-folders?instanceId=${instanceId}`),
+        fetch(`/v1/sonarr/quality-profiles?instanceId=${instanceId}`)
+      ]);
 
       const [foldersData, profilesData] = await Promise.all([
         foldersResponse.json(),
         profilesResponse.json()
-      ])
+      ]);
 
       if (!foldersData.success || !profilesData.success) {
-        throw new Error('Failed to fetch instance data')
+        throw new Error('Failed to fetch instance data');
       }
 
       setInstances(prev => prev.map(instance => 
@@ -209,15 +214,15 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
               }
             }
           : instance
-      ))
+      ));
     } catch (err) {
-      setError('Failed to fetch Sonarr instance data')
-      console.error('Sonarr data fetch error:', err)
-      throw err
+      setError('Failed to fetch Sonarr instance data');
+      console.error('Sonarr data fetch error:', err);
+      throw err;
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <ConfigContext.Provider

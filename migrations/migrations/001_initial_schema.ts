@@ -36,6 +36,7 @@ export async function up(knex: Knex): Promise<void> {
     table.boolean('bypass_ignored').defaultTo(false)
     table.string('season_monitoring').defaultTo('all')
     table.json('tags').defaultTo('[]')
+    table.json('synced_instances').defaultTo('[]')
     table.boolean('is_default').defaultTo(false)
     table.boolean('is_enabled').defaultTo(true)
     table.timestamp('created_at').defaultTo(knex.fn.now())
@@ -44,7 +45,7 @@ export async function up(knex: Knex): Promise<void> {
     table.index('is_default')
     table.index('is_enabled')
   })
-
+  
   await knex.schema.createTable('radarr_instances', (table) => {
     table.increments('id').primary()
     table.string('name').notNullable().unique()
@@ -54,6 +55,7 @@ export async function up(knex: Knex): Promise<void> {
     table.string('root_folder')
     table.boolean('bypass_ignored').defaultTo(false)
     table.json('tags').defaultTo('[]')
+    table.json('synced_instances').defaultTo('[]')
     table.boolean('is_default').defaultTo(false)
     table.boolean('is_enabled').defaultTo(true)
     table.timestamp('created_at').defaultTo(knex.fn.now())

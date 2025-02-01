@@ -12,6 +12,7 @@ const SonarrInstanceSchema = z.object({
   seasonMonitoring: z.string().optional().default('all'),
   tags: z.array(z.string()).optional().default([]),
   isDefault: z.boolean().optional().default(false),
+  syncedInstances: z.array(z.number()).optional(),
 })
 
 // Zod schema for Genre Route
@@ -60,6 +61,45 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       const id = await fastify.db.createSonarrInstance(instanceData)
       reply.status(201)
       return { id }
+    },
+  )
+
+  // Add a new PUT endpoint to update a Sonarr instance
+  fastify.put<{
+    Params: { id: number }
+    Body: Partial<z.infer<typeof SonarrInstanceSchema>>
+  }>(
+    '/instances/:id',
+    {
+      schema: {
+        params: z.object({ id: z.coerce.number() }),
+        body: SonarrInstanceSchema.partial(),
+        tags: ['Sonarr Configuration'],
+      },
+    },
+    async (request, reply) => {
+      const { id } = request.params
+      const updates = request.body
+      await fastify.db.updateSonarrInstance(id, updates)
+      reply.status(204)
+    },
+  )
+
+  // Add a DELETE endpoint for Sonarr instances
+  fastify.delete<{
+    Params: { id: number }
+  }>(
+    '/instances/:id',
+    {
+      schema: {
+        params: z.object({ id: z.coerce.number() }),
+        tags: ['Sonarr Configuration'],
+      },
+    },
+    async (request, reply) => {
+      const { id } = request.params
+      await fastify.db.deleteSonarrInstance(id)
+      reply.status(204)
     },
   )
 

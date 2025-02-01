@@ -5,6 +5,7 @@ import type {
   SonarrInstance,
   SonarrGenreRoute,
   SonarrItem,
+  ConnectionTestResult
 } from '@root/types/sonarr.types.js'
 import type { TemptRssWatchlistItem } from '@root/types/plex.types.js'
 
@@ -63,6 +64,20 @@ export class SonarrManagerService {
     }
   }
 
+  async testConnection(baseUrl: string, apiKey: string): Promise<ConnectionTestResult> {
+    try {
+      // Create a temporary service instance for testing
+      const tempService = new SonarrService(this.log)
+      return await tempService.testConnection(baseUrl, apiKey)
+    } catch (error) {
+      this.log.error('Error testing Sonarr connection:', error)
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Unknown error testing connection'
+      }
+    }
+  }
+
   async fetchAllSeries(): Promise<SonarrItem[]> {
     const allSeries: SonarrItem[] = []
 
@@ -106,43 +121,101 @@ export class SonarrManagerService {
           : [],
     )
 
-    let targetSonarrId = 0
-    let targetRootFolder: string | null = null
-
+    // Get all genre routes and instances
     const genreRoutes = await this.fastify.db.getSonarrGenreRoutes()
-    for (const route of genreRoutes) {
-      if (itemGenres.has(route.genre)) {
-        targetSonarrId = route.sonarrInstanceId
-        targetRootFolder = route.rootFolder
-        break
-      }
-    }
+    const instances = await this.fastify.db.getAllSonarrInstances()
 
-    if (targetSonarrId === 0) {
+    // First, check for genre-specific routing
+    const genreMatches = genreRoutes.filter((route) =>
+      itemGenres.has(route.genre),
+    )
+
+    if (genreMatches.length > 0) {
+      // Genre routing takes priority - only route to these specific instances
+      for (const match of genreMatches) {
+        const sonarrService = this.sonarrServices.get(match.sonarrInstanceId)
+        if (!sonarrService) {
+          this.log.warn(
+            `Sonarr service ${match.sonarrInstanceId} not found for genre route`,
+          )
+          continue
+        }
+
+        const sonarrItem = this.prepareSonarrItem(item)
+
+        try {
+          await sonarrService.addToSonarr(sonarrItem, match.rootFolder)
+          await this.fastify.db.updateWatchlistItem(key, {
+            sonarr_instance_id: match.sonarrInstanceId,
+          })
+          this.log.info(
+            `Successfully routed item to genre-specific instance ${match.sonarrInstanceId}`,
+          )
+        } catch (error) {
+          this.log.error(
+            `Failed to add item to genre-specific instance ${match.sonarrInstanceId}:`,
+            error,
+          )
+        }
+      }
+    } else {
+      // If no genre matches, find target instance and check for syncs
       const defaultInstance = await this.fastify.db.getDefaultSonarrInstance()
       if (!defaultInstance) {
         throw new Error('No default Sonarr instance configured')
       }
-      targetSonarrId = defaultInstance.id
-      targetRootFolder = defaultInstance.rootFolder || null
+
+      // Get all synced instances including the default instance
+      const syncedInstanceIds = new Set([
+        defaultInstance.id,
+        ...(defaultInstance.syncedInstances || []),
+      ])
+
+      const syncedInstances = instances.filter((instance) =>
+        syncedInstanceIds.has(instance.id),
+      )
+
+      // If no synced instances, just use the default instance
+      const targetInstances =
+        syncedInstances.length > 0 ? syncedInstances : [defaultInstance]
+
+      // Route to all target instances
+      for (const instance of targetInstances) {
+        const sonarrService = this.sonarrServices.get(instance.id)
+        if (!sonarrService) {
+          this.log.warn(`Sonarr service ${instance.id} not found`)
+          continue
+        }
+
+        const sonarrItem = this.prepareSonarrItem(item)
+
+        try {
+          // Check if there's a matching root folder for this instance
+          const matchingRoute = genreRoutes.find(
+            (route) =>
+              route.sonarrInstanceId === instance.id &&
+              itemGenres.has(route.genre),
+          )
+
+          const targetRootFolder =
+            matchingRoute?.rootFolder || instance.rootFolder
+
+          await sonarrService.addToSonarr(
+            sonarrItem,
+            targetRootFolder || undefined,
+          )
+          await this.fastify.db.updateWatchlistItem(key, {
+            sonarr_instance_id: instance.id,
+          })
+          this.log.info(`Successfully routed item to instance ${instance.id}`)
+        } catch (error) {
+          this.log.error(
+            `Failed to add item to instance ${instance.id}:`,
+            error,
+          )
+        }
+      }
     }
-
-    const sonarrService = this.sonarrServices.get(targetSonarrId)
-    if (!sonarrService) {
-      throw new Error(`Sonarr instance ${targetSonarrId} not found`)
-    }
-
-    const sonarrItem = this.prepareSonarrItem(item)
-
-    if (targetRootFolder) {
-      await sonarrService.addToSonarr(sonarrItem, targetRootFolder)
-    } else {
-      await sonarrService.addToSonarr(sonarrItem)
-    }
-
-    await this.fastify.db.updateWatchlistItem(key, {
-      sonarr_instance_id: targetSonarrId,
-    })
   }
 
   private prepareSonarrItem(sonarrItem: SonarrItem): SonarrItem {
@@ -183,14 +256,6 @@ export class SonarrManagerService {
       ),
     )
   }
-
-  // Remove this method since we don't need sync functionality yet
-  /* async syncAllInstances(): Promise<void> {
-    const syncPromises = Array.from(this.sonarrServices.values()).map(
-      (service) => service.syncLibrary()
-    )
-    await Promise.all(syncPromises)
-  } */
 
   async addInstance(instance: Omit<SonarrInstance, 'id'>): Promise<number> {
     const id = await this.fastify.db.createSonarrInstance(instance)

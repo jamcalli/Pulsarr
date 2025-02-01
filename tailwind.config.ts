@@ -25,6 +25,7 @@ const config: Config = {
         error: 'var(--error)',
         fun: 'var(--fun)',
         orange: 'var(--orange)',
+        blue: 'var(--blue)',
       },
       borderRadius: {
         base: '5px',
