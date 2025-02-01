@@ -20,23 +20,22 @@ export class SonarrManagerService {
   async initialize(): Promise<void> {
     try {
       this.log.info('Starting Sonarr manager initialization')
-
+  
       const instances = await this.fastify.db.getAllSonarrInstances()
-
       this.log.info(`Found ${instances.length} Sonarr instances`, { instances })
-
+  
       if (instances.length === 0) {
         this.log.warn('No Sonarr instances found')
         return
       }
-
+  
       for (const instance of instances) {
         this.log.info('Attempting to initialize instance:', {
           id: instance.id,
           name: instance.name,
           baseUrl: instance.baseUrl,
         })
-
+  
         try {
           const sonarrService = new SonarrService(this.log)
           await sonarrService.initialize(instance)
@@ -46,20 +45,32 @@ export class SonarrManagerService {
           )
         } catch (instanceError) {
           this.log.error(
-            `Detailed error initializing Sonarr service for instance ${instance.name}:`,
-            {
-              error: instanceError,
-              instanceDetails: instance,
-            },
+            `Failed to initialize Sonarr service for instance ${instance.name}, will retry:`,
+            instanceError
           )
+          
+          await new Promise(resolve => setTimeout(resolve, 1000))
+          try {
+            const sonarrService = new SonarrService(this.log)
+            await sonarrService.initialize(instance)
+            this.sonarrServices.set(instance.id, sonarrService)
+            this.log.info(
+              `Successfully initialized Sonarr service on retry for instance: ${instance.name}`,
+            )
+          } catch (retryError) {
+            this.log.error(
+              `Failed to initialize Sonarr service after retry for instance ${instance.name}:`,
+              retryError
+            )
+          }
         }
       }
-
+  
       if (this.sonarrServices.size === 0) {
         throw new Error('Unable to initialize any Sonarr services')
       }
     } catch (error) {
-      this.log.error('Comprehensive error initializing Sonarr manager:', error)
+      this.log.error('Error initializing Sonarr manager:', error)
       throw error
     }
   }

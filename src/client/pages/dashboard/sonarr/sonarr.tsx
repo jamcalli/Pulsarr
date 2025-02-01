@@ -108,9 +108,9 @@ export default function SonarrConfigPage() {
             {field.value ? (() => {
               const currentInstance = instances.find(i => i.id === selectedInstance);
               const profile = currentInstance?.data?.qualityProfiles?.find(
-                p => p.id.toString() === field.value
+                p => p.id.toString() === field.value?.toString()
               );
-              return profile?.name || "Loading...";
+              return profile?.name || "Select quality profile";
             })() : "Select quality profile"}
           </SelectValue>
         </SelectTrigger>
