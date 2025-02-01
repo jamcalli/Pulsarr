@@ -28,16 +28,16 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const configUpdate = request.body
 
         const dbUpdated = await fastify.db.updateConfig(1, configUpdate)
-
         if (!dbUpdated) {
           throw reply.badRequest('Failed to update configuration')
         }
 
-        const updatedConfig = await fastify.db.getConfig(1)
-
-        if (!updatedConfig) {
+        const savedConfig = await fastify.db.getConfig(1)
+        if (!savedConfig) {
           throw reply.notFound('No configuration found after update')
         }
+
+        const updatedConfig = await fastify.updateConfig(savedConfig)
 
         const response: z.infer<typeof ConfigResponseSchema> = {
           success: true,
@@ -50,7 +50,6 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         if (err instanceof Error && 'statusCode' in err) {
           throw err
         }
-
         fastify.log.error('Error updating config:', err)
         throw reply.internalServerError('Unable to update configuration')
       }

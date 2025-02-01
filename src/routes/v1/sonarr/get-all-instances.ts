@@ -22,7 +22,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         const instances = await fastify.sonarrManager.getAllInstances()
-        
+
         const response: z.infer<typeof InstancesResponseSchema> = {
           success: true,
           instances,

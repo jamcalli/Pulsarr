@@ -96,43 +96,101 @@ export class RadarrManagerService {
           : [],
     )
 
-    let targetRadarrId = 0
-    let targetRootFolder: string | null = null
-
+    // Get all genre routes and instances
     const genreRoutes = await this.fastify.db.getRadarrGenreRoutes()
-    for (const route of genreRoutes) {
-      if (itemGenres.has(route.genre)) {
-        targetRadarrId = route.radarrInstanceId
-        targetRootFolder = route.rootFolder
-        break
-      }
-    }
+    const instances = await this.fastify.db.getAllRadarrInstances()
 
-    if (targetRadarrId === 0) {
+    // First, check for genre-specific routing
+    const genreMatches = genreRoutes.filter((route) =>
+      itemGenres.has(route.genre),
+    )
+
+    if (genreMatches.length > 0) {
+      // Genre routing takes priority - only route to these specific instances
+      for (const match of genreMatches) {
+        const radarrService = this.radarrServices.get(match.radarrInstanceId)
+        if (!radarrService) {
+          this.log.warn(
+            `Radarr service ${match.radarrInstanceId} not found for genre route`,
+          )
+          continue
+        }
+
+        const radarrItem = this.prepareRadarrItem(item)
+
+        try {
+          await radarrService.addToRadarr(radarrItem, match.rootFolder)
+          await this.fastify.db.updateWatchlistItem(key, {
+            radarr_instance_id: match.radarrInstanceId,
+          })
+          this.log.info(
+            `Successfully routed item to genre-specific instance ${match.radarrInstanceId}`,
+          )
+        } catch (error) {
+          this.log.error(
+            `Failed to add item to genre-specific instance ${match.radarrInstanceId}:`,
+            error,
+          )
+        }
+      }
+    } else {
+      // If no genre matches, find target instance and check for syncs
       const defaultInstance = await this.fastify.db.getDefaultRadarrInstance()
       if (!defaultInstance) {
         throw new Error('No default Radarr instance configured')
       }
-      targetRadarrId = defaultInstance.id
-      targetRootFolder = defaultInstance.rootFolder || null
+
+      // Get all synced instances including the default instance
+      const syncedInstanceIds = new Set([
+        defaultInstance.id,
+        ...(defaultInstance.syncedInstances || []),
+      ])
+
+      const syncedInstances = instances.filter((instance) =>
+        syncedInstanceIds.has(instance.id),
+      )
+
+      // If no synced instances, just use the default instance
+      const targetInstances =
+        syncedInstances.length > 0 ? syncedInstances : [defaultInstance]
+
+      // Route to all target instances
+      for (const instance of targetInstances) {
+        const radarrService = this.radarrServices.get(instance.id)
+        if (!radarrService) {
+          this.log.warn(`Radarr service ${instance.id} not found`)
+          continue
+        }
+
+        const radarrItem = this.prepareRadarrItem(item)
+
+        try {
+          // Check if there's a matching root folder for this instance
+          const matchingRoute = genreRoutes.find(
+            (route) =>
+              route.radarrInstanceId === instance.id &&
+              itemGenres.has(route.genre),
+          )
+
+          const targetRootFolder =
+            matchingRoute?.rootFolder || instance.rootFolder
+
+          await radarrService.addToRadarr(
+            radarrItem,
+            targetRootFolder || undefined,
+          )
+          await this.fastify.db.updateWatchlistItem(key, {
+            radarr_instance_id: instance.id,
+          })
+          this.log.info(`Successfully routed item to instance ${instance.id}`)
+        } catch (error) {
+          this.log.error(
+            `Failed to add item to instance ${instance.id}:`,
+            error,
+          )
+        }
+      }
     }
-
-    const radarrService = this.radarrServices.get(targetRadarrId)
-    if (!radarrService) {
-      throw new Error(`Radarr instance ${targetRadarrId} not found`)
-    }
-
-    const radarrItem = this.prepareRadarrItem(item)
-
-    if (targetRootFolder) {
-      await radarrService.addToRadarr(radarrItem, targetRootFolder)
-    } else {
-      await radarrService.addToRadarr(radarrItem)
-    }
-
-    await this.fastify.db.updateWatchlistItem(key, {
-      radarr_instance_id: targetRadarrId,
-    })
   }
 
   private prepareRadarrItem(radarrItem: RadarrItem): RadarrItem {

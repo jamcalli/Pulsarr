@@ -10,12 +10,13 @@ export const InstanceSchema = z.object({
   bypassIgnored: z.boolean(),
   seasonMonitoring: z.string(),
   tags: z.array(z.string()),
-  isDefault: z.boolean()
+  isDefault: z.boolean(),
+  syncedInstances: z.array(z.number()).optional(),
 })
 
 export const InstancesResponseSchema = z.object({
   success: z.boolean(),
-  instances: z.array(InstanceSchema)
+  instances: z.array(InstanceSchema),
 })
 
 export const ErrorSchema = z.object({

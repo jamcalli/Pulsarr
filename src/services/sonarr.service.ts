@@ -9,6 +9,8 @@ import type {
   RootFolder,
   QualityProfile,
   SonarrInstance,
+  ConnectionTestResult,
+  SonarrHealthCheck,
 } from '@root/types/sonarr.types.js'
 
 export class SonarrService {
@@ -51,6 +53,56 @@ export class SonarrService {
         error,
       )
       throw error
+    }
+  }
+
+  async testConnection(baseUrl: string, apiKey: string): Promise<ConnectionTestResult> {
+    try {
+      if (!baseUrl || !apiKey) {
+        return {
+          success: false,
+          message: 'Base URL and API key are required'
+        };
+      }
+
+      const url = new URL(`${baseUrl}/api/v3/health`);
+      const response = await fetch(url.toString(), {
+        method: 'GET',
+        headers: {
+          'X-Api-Key': apiKey,
+          Accept: 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        return {
+          success: false,
+          message: `Connection failed: ${response.statusText}`
+        };
+      }
+
+      const healthChecks = await response.json() as SonarrHealthCheck[];
+      
+      const errors = healthChecks.filter(check => check.type === 'error');
+      if (errors.length > 0) {
+        return {
+          success: false,
+          message: errors[0].message,
+          checks: healthChecks
+        };
+      }
+
+      return {
+        success: true,
+        message: 'Connection successful',
+        checks: healthChecks
+      };
+    } catch (error) {
+      this.log.error('Connection test error:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Unknown connection error'
+      };
     }
   }
 

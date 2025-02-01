@@ -262,6 +262,7 @@ export class DatabaseService {
       seasonMonitoring: instance.season_monitoring,
       tags: JSON.parse(instance.tags || '[]'),
       isDefault: Boolean(instance.is_default),
+      syncedInstances: JSON.parse(instance.synced_instances || '[]'),
     }))
   }
 
@@ -286,6 +287,7 @@ export class DatabaseService {
       seasonMonitoring: instance.season_monitoring,
       tags: JSON.parse(instance.tags || '[]'),
       isDefault: true,
+      syncedInstances: JSON.parse(instance.synced_instances || '[]'),
     }
   }
 
@@ -305,6 +307,7 @@ export class DatabaseService {
       seasonMonitoring: instance.season_monitoring,
       tags: JSON.parse(instance.tags || '[]'),
       isDefault: Boolean(instance.is_default),
+      syncedInstances: JSON.parse(instance.synced_instances || '[]'),
     }
   }
 
@@ -330,6 +333,7 @@ export class DatabaseService {
         tags: JSON.stringify(instance.tags || []),
         is_default: instance.isDefault || true,
         is_enabled: true,
+        synced_instances: JSON.stringify(instance.syncedInstances || []),
         created_at: this.timestamp,
         updated_at: this.timestamp,
       })
@@ -368,6 +372,9 @@ export class DatabaseService {
         ...(updates.tags && { tags: JSON.stringify(updates.tags) }),
         ...(typeof updates.isDefault !== 'undefined' && {
           is_default: updates.isDefault,
+        }),
+        ...(updates.syncedInstances && {
+          synced_instances: JSON.stringify(updates.syncedInstances),
         }),
         updated_at: this.timestamp,
       })
@@ -436,6 +443,7 @@ export class DatabaseService {
       bypassIgnored: Boolean(instance.bypass_ignored),
       tags: JSON.parse(instance.tags || '[]'),
       isDefault: Boolean(instance.is_default),
+      syncedInstances: JSON.parse(instance.synced_instances || '[]'),
     }))
   }
 
@@ -459,6 +467,7 @@ export class DatabaseService {
       bypassIgnored: Boolean(instance.bypass_ignored),
       tags: JSON.parse(instance.tags || '[]'),
       isDefault: true,
+      syncedInstances: JSON.parse(instance.synced_instances || '[]'),
     }
   }
 
@@ -477,6 +486,7 @@ export class DatabaseService {
       bypassIgnored: Boolean(instance.bypass_ignored),
       tags: JSON.parse(instance.tags || '[]'),
       isDefault: Boolean(instance.is_default),
+      syncedInstances: JSON.parse(instance.synced_instances || '[]'),
     }
   }
 
@@ -500,6 +510,7 @@ export class DatabaseService {
         tags: JSON.stringify(instance.tags || []),
         is_default: instance.isDefault || true,
         is_enabled: true,
+        synced_instances: JSON.stringify(instance.syncedInstances || []),
         created_at: this.timestamp,
         updated_at: this.timestamp,
       })
@@ -535,6 +546,9 @@ export class DatabaseService {
         ...(updates.tags && { tags: JSON.stringify(updates.tags) }),
         ...(typeof updates.isDefault !== 'undefined' && {
           is_default: updates.isDefault,
+        }),
+        ...(updates.syncedInstances && {
+          synced_instances: JSON.stringify(updates.syncedInstances),
         }),
         updated_at: this.timestamp,
       })
