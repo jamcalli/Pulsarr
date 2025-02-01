@@ -1,6 +1,7 @@
 import type React from 'react'
 import { createContext, useContext, useEffect, useState } from 'react'
 import type { RootFolder, QualityProfile } from '@root/types/sonarr.types'
+import type { Config } from '@root/types/config.types'
 
 export type LogLevel = 'fatal' | 'error' | 'warn' | 'info' | 'debug' | 'trace' | 'silent'
 
@@ -35,28 +36,6 @@ export const SONARR_MONITORING_OPTIONS: Record<SonarrMonitoringType, string> = {
   unmonitorSpecials: 'Unmonitor Specials',
   none: 'None',
   skip: 'Skip',
-}
-
-export interface Config {
-  port: number
-  dbPath: string
-  cookieSecret: string
-  cookieName: string
-  cookieSecured: boolean
-  logLevel: LogLevel
-  closeGraceDelay: number
-  rateLimitMax: number
-  syncIntervalSeconds: number
-  plexTokens: string[]
-  skipFriendSync: boolean
-  deleteMovie: boolean
-  deleteEndedShow: boolean
-  deleteContinuingShow: boolean
-  deleteIntervalDays: number
-  deleteFiles: boolean
-  selfRss?: string
-  friendsRss?: string
-  _isReady: boolean
 }
 
 interface ConfigResponse {

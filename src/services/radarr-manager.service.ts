@@ -21,19 +21,19 @@ export class RadarrManagerService {
       this.log.info('Starting Radarr manager initialization')
       const instances = await this.fastify.db.getAllRadarrInstances()
       this.log.info(`Found ${instances.length} Radarr instances`, { instances })
-
+  
       if (instances.length === 0) {
         this.log.warn('No Radarr instances found')
         return
       }
-
+  
       for (const instance of instances) {
         this.log.info('Attempting to initialize instance:', {
           id: instance.id,
           name: instance.name,
           baseUrl: instance.baseUrl,
         })
-
+  
         try {
           const radarrService = new RadarrService(this.log)
           await radarrService.initialize(instance)
@@ -43,20 +43,32 @@ export class RadarrManagerService {
           )
         } catch (instanceError) {
           this.log.error(
-            `Detailed error initializing Radarr service for instance ${instance.name}:`,
-            {
-              error: instanceError,
-              instanceDetails: instance,
-            },
+            `Failed to initialize Radarr service for instance ${instance.name}, will retry:`,
+            instanceError
           )
+          
+          await new Promise(resolve => setTimeout(resolve, 1000))
+          try {
+            const radarrService = new RadarrService(this.log)
+            await radarrService.initialize(instance)
+            this.radarrServices.set(instance.id, radarrService)
+            this.log.info(
+              `Successfully initialized Radarr service on retry for instance: ${instance.name}`,
+            )
+          } catch (retryError) {
+            this.log.error(
+              `Failed to initialize Radarr service after retry for instance ${instance.name}:`,
+              retryError
+            )
+          }
         }
       }
-
+  
       if (this.radarrServices.size === 0) {
         throw new Error('Unable to initialize any Radarr services')
       }
     } catch (error) {
-      this.log.error('Comprehensive error initializing Radarr manager:', error)
+      this.log.error('Error initializing Radarr manager:', error)
       throw error
     }
   }

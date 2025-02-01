@@ -140,14 +140,12 @@ export default fp(
       }
     }
 
-    setImmediate(async () => {
-      try {
-        await initializeConfig()
-      } catch (error) {
-        console.log('Error initializing config:', error)
-        fastify.log.error('Failed to initialize config:', error)
-      }
-    })
+    try {
+      await initializeConfig()
+    } catch (error) {
+      console.log('Error initializing config:', error)
+      fastify.log.error('Failed to initialize config:', error)
+    }
   },
   {
     name: 'database',
