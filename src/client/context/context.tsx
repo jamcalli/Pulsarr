@@ -1,11 +1,8 @@
-export type LogLevel =
-  | 'fatal'
-  | 'error'
-  | 'warn'
-  | 'info'
-  | 'debug'
-  | 'trace'
-  | 'silent'
+import type React from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
+import type { RootFolder, QualityProfile } from '@root/types/sonarr.types'
+
+export type LogLevel = 'fatal' | 'error' | 'warn' | 'info' | 'debug' | 'trace' | 'silent'
 
 export type SonarrMonitoringType =
   | 'unknown'
@@ -50,25 +47,16 @@ export interface Config {
   closeGraceDelay: number
   rateLimitMax: number
   syncIntervalSeconds: number
-
-  // Plex Config
   plexTokens: string[]
   skipFriendSync: boolean
-  // Delete Config
   deleteMovie: boolean
   deleteEndedShow: boolean
   deleteContinuingShow: boolean
   deleteIntervalDays: number
   deleteFiles: boolean
-  // RSS Config
   selfRss?: string
   friendsRss?: string
-  // Ready state
   _isReady: boolean
-}
-
-export type RawConfig = {
-  [K in keyof Config]: Config[K] extends string[] ? string : Config[K]
 }
 
 interface ConfigResponse {
@@ -76,28 +64,38 @@ interface ConfigResponse {
   config: Config
 }
 
-import type React from 'react'
-import { createContext, useContext, useEffect, useState } from 'react'
-import type { RootFolder, QualityProfile } from '@root/types/sonarr.types'
-
-interface SonarrRootFoldersResponse {
-  success: boolean
+interface SonarrInstanceData {
   rootFolders: RootFolder[]
+  qualityProfiles: QualityProfile[]
 }
 
-interface SonarrQualityProfilesResponse {
+interface SonarrInstance {
+  id: number
+  name: string
+  baseUrl: string
+  apiKey: string
+  qualityProfile?: string
+  rootFolder?: string
+  bypassIgnored: boolean
+  seasonMonitoring: string
+  tags: string[]
+  isDefault: boolean
+  data?: SonarrInstanceData
+}
+
+interface InstancesResponse {
   success: boolean
-  qualityProfiles: QualityProfile[]
+  instances: SonarrInstance[]
 }
 
 interface ConfigContextType {
   config: Config | null
   loading: boolean
   error: string | null
-  rootFolders: RootFolder[]
-  qualityProfiles: QualityProfile[]
+  instances: SonarrInstance[]
   updateConfig: (updates: Partial<Config>) => Promise<void>
-  fetchSonarrData: () => Promise<void>
+  fetchInstances: () => Promise<void>
+  fetchInstanceData: (instanceId: string) => Promise<void>
 }
 
 const ConfigContext = createContext<ConfigContextType | undefined>(undefined)
@@ -106,42 +104,48 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
   const [config, setConfig] = useState<Config | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [rootFolders, setRootFolders] = useState<RootFolder[]>([])
-  const [qualityProfiles, setQualityProfiles] = useState<QualityProfile[]>([])
+  const [instances, setInstances] = useState<SonarrInstance[]>([])
 
   useEffect(() => {
-    const fetchConfig = async () => {
+    const initialize = async () => {
       try {
-        const response = await fetch('/v1/config/config')
-        const data: ConfigResponse = await response.json()
-
-        if (data.success) {
-          setConfig(data.config)
-        } else {
-          throw new Error('Failed to fetch config')
-        }
+        await Promise.all([
+          fetchConfig(),
+          fetchInstances()
+        ])
       } catch (err) {
-        setError('Failed to load configuration')
-        console.error('Config fetch error:', err)
+        console.error('Initialization error:', err)
       } finally {
         setLoading(false)
       }
     }
-
-    fetchConfig()
+    initialize()
   }, [])
+
+  const fetchConfig = async () => {
+    try {
+      const response = await fetch('/v1/config/config')
+      const data: ConfigResponse = await response.json()
+      if (data.success) {
+        setConfig(data.config)
+      } else {
+        throw new Error('Failed to fetch config')
+      }
+    } catch (err) {
+      setError('Failed to load configuration')
+      console.error('Config fetch error:', err)
+    }
+  }
 
   const updateConfig = async (updates: Partial<Config>) => {
     try {
       setLoading(true)
-      const response = await fetch('/v1/config/updateconfig', {
+      const response = await fetch('/v1/config/config', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates),
       })
-
       const data: ConfigResponse = await response.json()
-
       if (data.success) {
         setConfig(data.config)
       } else {
@@ -156,30 +160,58 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const fetchSonarrData = async () => {
+  const fetchInstances = async () => {
+    try {
+      const response = await fetch('/v1/sonarr/all-instances')
+      const data: InstancesResponse = await response.json()
+      if (data.success) {
+        setInstances(data.instances)
+      } else {
+        throw new Error('Failed to fetch instances')
+      }
+    } catch (err) {
+      setError('Failed to fetch Sonarr instances')
+      console.error('Instances fetch error:', err)
+      throw err
+    }
+  }
+
+  const fetchInstanceData = async (instanceId: string) => {
     try {
       setLoading(true)
-      // Fetch root folders
-      const foldersResponse = await fetch('/v1/sonarr/root-folders')
-      const foldersData: SonarrRootFoldersResponse =
-        await foldersResponse.json()
-
-      if (!foldersData.success) {
-        throw new Error('Failed to fetch root folders')
+      
+      const targetInstance = instances.find(i => i.id === Number(instanceId))
+      if (!targetInstance) {
+        throw new Error('Instance not found')
       }
-      setRootFolders(foldersData.rootFolders)
 
-      // Fetch quality profiles
-      const profilesResponse = await fetch('/v1/sonarr/quality-profiles')
-      const profilesData: SonarrQualityProfilesResponse =
-        await profilesResponse.json()
+      const [foldersResponse, profilesResponse] = await Promise.all([
+        fetch(`/api/root-folders?instanceId=${instanceId}`),
+        fetch(`/api/quality-profiles?instanceId=${instanceId}`)
+      ])
 
-      if (!profilesData.success) {
-        throw new Error('Failed to fetch quality profiles')
+      const [foldersData, profilesData] = await Promise.all([
+        foldersResponse.json(),
+        profilesResponse.json()
+      ])
+
+      if (!foldersData.success || !profilesData.success) {
+        throw new Error('Failed to fetch instance data')
       }
-      setQualityProfiles(profilesData.qualityProfiles)
+
+      setInstances(prev => prev.map(instance => 
+        instance.id === Number(instanceId)
+          ? {
+              ...instance,
+              data: {
+                rootFolders: foldersData.rootFolders,
+                qualityProfiles: profilesData.qualityProfiles
+              }
+            }
+          : instance
+      ))
     } catch (err) {
-      setError('Failed to fetch Sonarr data')
+      setError('Failed to fetch Sonarr instance data')
       console.error('Sonarr data fetch error:', err)
       throw err
     } finally {
@@ -193,10 +225,10 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
         config,
         loading,
         error,
-        rootFolders,
-        qualityProfiles,
+        instances,
         updateConfig,
-        fetchSonarrData,
+        fetchInstances,
+        fetchInstanceData,
       }}
     >
       {children}
