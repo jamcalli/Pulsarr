@@ -4,6 +4,7 @@ import { othersWatchlistTokenRoute } from '@routes/v1/plex/others-watchlist-toke
 import { pingRoute } from '@routes/v1/plex/ping.js'
 import { generateRssFeedsRoute } from '@routes/v1/plex/generate-rss-feeds.js'
 import { rssWatchlistRoute } from '@routes/v1/plex/parse-rss.js'
+import { getGenresRoute } from '@routes/v1/plex/get-genres.js'
 
 const plexPlugin: FastifyPluginAsyncZod = async (fastify) => {
   await fastify.register(selfWatchlistTokenRoute)
@@ -11,6 +12,7 @@ const plexPlugin: FastifyPluginAsyncZod = async (fastify) => {
   await fastify.register(pingRoute)
   await fastify.register(generateRssFeedsRoute)
   await fastify.register(rssWatchlistRoute)
+  await fastify.register(getGenresRoute)
 }
 
 export default plexPlugin
