@@ -714,6 +714,38 @@ export class DatabaseService {
     }
   }
 
+  async getAllUniqueWatchlistGenres(): Promise<Array<{ genre: string, count: number }>> {
+    try {
+      const items = await this.knex('watchlist_items')
+        .whereNotNull('genres')
+        .where('genres', '!=', '[]')
+        .select('genres');
+  
+      const genreCounts = new Map<string, number>()
+      
+      items.forEach((row) => {
+        try {
+          const parsedGenres = JSON.parse(row.genres || '[]');
+          parsedGenres.forEach((genre: string) => {
+            if (genre && typeof genre === 'string') {
+              const trimmedGenre = genre.trim();
+              genreCounts.set(trimmedGenre, (genreCounts.get(trimmedGenre) || 0) + 1)
+            }
+          })
+        } catch (parseError) {
+          this.log.error('Error parsing genres:', parseError)
+        }
+      })
+  
+      return Array.from(genreCounts)
+        .map(([genre, count]) => ({ genre, count }))
+        .sort((a, b) => b.count - a.count || a.genre.localeCompare(b.genre))
+    } catch (error) {
+      this.log.error('Error fetching unique genres:', error)
+      return []
+    }
+  }
+
   async bulkUpdateShowStatuses(
     updates: Array<{
       key: string
