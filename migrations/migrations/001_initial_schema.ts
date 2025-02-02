@@ -71,12 +71,14 @@ export async function up(knex: Knex): Promise<void> {
       .references('id')
       .inTable('sonarr_instances')
       .onDelete('CASCADE')
+    table.string('name').notNullable()
     table.string('genre').notNullable()
     table.string('root_folder').notNullable()
     table.timestamp('created_at').defaultTo(knex.fn.now())
     table.timestamp('updated_at').defaultTo(knex.fn.now())
     table.unique(['sonarr_instance_id', 'genre'])
     table.index(['sonarr_instance_id', 'genre'])
+    table.index('name')
   })
 
   await knex.schema.createTable('radarr_genre_routing', (table) => {
@@ -85,12 +87,14 @@ export async function up(knex: Knex): Promise<void> {
       .references('id')
       .inTable('radarr_instances')
       .onDelete('CASCADE')
+    table.string('name').notNullable()
     table.string('genre').notNullable()
     table.string('root_folder').notNullable()
     table.timestamp('created_at').defaultTo(knex.fn.now())
     table.timestamp('updated_at').defaultTo(knex.fn.now())
     table.unique(['radarr_instance_id', 'genre'])
     table.index(['radarr_instance_id', 'genre'])
+    table.index('name')
   })
 
   await knex.schema.createTable('configs', (table) => {

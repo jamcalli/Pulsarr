@@ -1,8 +1,8 @@
 import type { FastifyPluginAsync } from 'fastify'
 import type { z } from 'zod'
-import { 
-  WatchlistGenresResponseSchema, 
-  WatchlistGenresErrorSchema 
+import {
+  WatchlistGenresResponseSchema,
+  WatchlistGenresErrorSchema,
 } from '@schemas/plex/get-genres.schema.js'
 
 export const getGenresRoute: FastifyPluginAsync = async (fastify) => {
@@ -23,12 +23,12 @@ export const getGenresRoute: FastifyPluginAsync = async (fastify) => {
       try {
         await fastify.db.syncGenresFromWatchlist()
         const genres = await fastify.db.getAllGenres()
-        
+
         const response: z.infer<typeof WatchlistGenresResponseSchema> = {
           success: true,
-          genres: genres.map(genre => genre.name)
+          genres: genres.map((genre) => genre.name),
         }
-        
+
         reply.status(200)
         return response
       } catch (err) {

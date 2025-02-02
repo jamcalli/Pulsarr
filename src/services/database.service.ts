@@ -390,6 +390,7 @@ export class DatabaseService {
     return routes.map((route) => ({
       id: route.id,
       sonarrInstanceId: route.sonarr_instance_id,
+      name: route.name,
       genre: route.genre,
       rootFolder: route.root_folder,
     }))
@@ -397,18 +398,25 @@ export class DatabaseService {
 
   async createSonarrGenreRoute(
     route: Omit<SonarrGenreRoute, 'id'>,
-  ): Promise<number> {
-    const [id] = await this.knex('sonarr_genre_routing')
+  ): Promise<SonarrGenreRoute> {
+    const [createdRoute] = await this.knex('sonarr_genre_routing')
       .insert({
         sonarr_instance_id: route.sonarrInstanceId,
+        name: route.name,
         genre: route.genre,
         root_folder: route.rootFolder,
         created_at: this.timestamp,
         updated_at: this.timestamp,
       })
-      .returning('id')
+      .returning([
+        'id',
+        'name',
+        'sonarr_instance_id as sonarrInstanceId',
+        'genre',
+        'root_folder as rootFolder',
+      ])
 
-    return id
+    return createdRoute
   }
 
   async updateSonarrGenreRoute(
@@ -418,6 +426,7 @@ export class DatabaseService {
     await this.knex('sonarr_genre_routing')
       .where('id', id)
       .update({
+        ...(updates.name && { name: updates.name }),
         ...(updates.genre && { genre: updates.genre }),
         ...(updates.rootFolder && { root_folder: updates.rootFolder }),
         updated_at: this.timestamp,
@@ -564,6 +573,7 @@ export class DatabaseService {
     return routes.map((route) => ({
       id: route.id,
       radarrInstanceId: route.radarr_instance_id,
+      name: route.name,
       genre: route.genre,
       rootFolder: route.root_folder,
     }))
@@ -571,18 +581,25 @@ export class DatabaseService {
 
   async createRadarrGenreRoute(
     route: Omit<RadarrGenreRoute, 'id'>,
-  ): Promise<number> {
-    const [id] = await this.knex('radarr_genre_routing')
+  ): Promise<RadarrGenreRoute> {
+    const [createdRoute] = await this.knex('radarr_genre_routing')
       .insert({
         radarr_instance_id: route.radarrInstanceId,
+        name: route.name,
         genre: route.genre,
         root_folder: route.rootFolder,
         created_at: this.timestamp,
         updated_at: this.timestamp,
       })
-      .returning('id')
+      .returning([
+        'id',
+        'name',
+        'radarr_instance_id as radarrInstanceId',
+        'genre',
+        'root_folder as rootFolder',
+      ])
 
-    return id
+    return createdRoute
   }
 
   async updateRadarrGenreRoute(
@@ -592,6 +609,7 @@ export class DatabaseService {
     await this.knex('radarr_genre_routing')
       .where('id', id)
       .update({
+        ...(updates.name && { name: updates.name }),
         ...(updates.genre && { genre: updates.genre }),
         ...(updates.rootFolder && { root_folder: updates.rootFolder }),
         updated_at: this.timestamp,
@@ -720,9 +738,9 @@ export class DatabaseService {
         .whereNotNull('genres')
         .where('genres', '!=', '[]')
         .select('genres')
-  
+
       const uniqueGenres = new Set<string>()
-      
+
       items.forEach((row) => {
         try {
           const parsedGenres = JSON.parse(row.genres || '[]')
@@ -735,57 +753,55 @@ export class DatabaseService {
           this.log.error('Error parsing genres:', parseError)
         }
       })
-  
-      const existingGenres = await this.knex('genres')
-        .select('name')
-      const existingGenreNames = new Set(existingGenres.map(g => g.name))
-  
+
+      const existingGenres = await this.knex('genres').select('name')
+      const existingGenreNames = new Set(existingGenres.map((g) => g.name))
+
       const newGenres = Array.from(uniqueGenres)
-        .filter(genre => !existingGenreNames.has(genre))
-        .map(genre => ({
+        .filter((genre) => !existingGenreNames.has(genre))
+        .map((genre) => ({
           name: genre,
           is_custom: false,
           created_at: this.timestamp,
-          updated_at: this.timestamp
+          updated_at: this.timestamp,
         }))
-  
+
       if (newGenres.length > 0) {
-        await this.knex('genres')
-          .insert(newGenres)
-          .onConflict('name')
-          .ignore()
+        await this.knex('genres').insert(newGenres).onConflict('name').ignore()
       }
     } catch (error) {
       this.log.error('Error syncing genres:', error)
       throw error
     }
   }
-  
+
   async addCustomGenre(name: string): Promise<number> {
     const [id] = await this.knex('genres')
       .insert({
         name: name.trim(),
         is_custom: true,
         created_at: this.timestamp,
-        updated_at: this.timestamp
+        updated_at: this.timestamp,
       })
       .onConflict('name')
       .ignore()
       .returning('id')
-  
+
     if (!id) {
       throw new Error('Genre already exists')
     }
-  
+
     return id
   }
-  
-  async getAllGenres(): Promise<Array<{ id: number, name: string, is_custom: boolean }>> {
+
+  async getAllGenres(): Promise<
+    Array<{ id: number; name: string; is_custom: boolean }>
+  > {
     return await this.knex('genres')
       .select('id', 'name', 'is_custom')
       .orderBy('name', 'asc')
   }
-  
+
   async deleteCustomGenre(id: number): Promise<boolean> {
     const deleted = await this.knex('genres')
       .where({ id, is_custom: true })

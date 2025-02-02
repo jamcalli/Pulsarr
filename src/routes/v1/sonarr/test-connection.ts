@@ -25,11 +25,14 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         const { baseUrl, apiKey } = request.query
-        const result = await fastify.sonarrManager.testConnection(baseUrl, apiKey)
-        
+        const result = await fastify.sonarrManager.testConnection(
+          baseUrl,
+          apiKey,
+        )
+
         return {
           success: result.success,
-          message: result.message
+          message: result.message,
         }
       } catch (err) {
         if (err instanceof Error && 'statusCode' in err) {

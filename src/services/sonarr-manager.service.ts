@@ -5,7 +5,7 @@ import type {
   SonarrInstance,
   SonarrGenreRoute,
   SonarrItem,
-  ConnectionTestResult
+  ConnectionTestResult,
 } from '@root/types/sonarr.types.js'
 import type { TemptRssWatchlistItem } from '@root/types/plex.types.js'
 
@@ -20,22 +20,22 @@ export class SonarrManagerService {
   async initialize(): Promise<void> {
     try {
       this.log.info('Starting Sonarr manager initialization')
-  
+
       const instances = await this.fastify.db.getAllSonarrInstances()
       this.log.info(`Found ${instances.length} Sonarr instances`, { instances })
-  
+
       if (instances.length === 0) {
         this.log.warn('No Sonarr instances found')
         return
       }
-  
+
       for (const instance of instances) {
         this.log.info('Attempting to initialize instance:', {
           id: instance.id,
           name: instance.name,
           baseUrl: instance.baseUrl,
         })
-  
+
         try {
           const sonarrService = new SonarrService(this.log)
           await sonarrService.initialize(instance)
@@ -46,10 +46,10 @@ export class SonarrManagerService {
         } catch (instanceError) {
           this.log.error(
             `Failed to initialize Sonarr service for instance ${instance.name}, will retry:`,
-            instanceError
+            instanceError,
           )
-          
-          await new Promise(resolve => setTimeout(resolve, 1000))
+
+          await new Promise((resolve) => setTimeout(resolve, 1000))
           try {
             const sonarrService = new SonarrService(this.log)
             await sonarrService.initialize(instance)
@@ -60,12 +60,12 @@ export class SonarrManagerService {
           } catch (retryError) {
             this.log.error(
               `Failed to initialize Sonarr service after retry for instance ${instance.name}:`,
-              retryError
+              retryError,
             )
           }
         }
       }
-  
+
       if (this.sonarrServices.size === 0) {
         throw new Error('Unable to initialize any Sonarr services')
       }
@@ -75,7 +75,10 @@ export class SonarrManagerService {
     }
   }
 
-  async testConnection(baseUrl: string, apiKey: string): Promise<ConnectionTestResult> {
+  async testConnection(
+    baseUrl: string,
+    apiKey: string,
+  ): Promise<ConnectionTestResult> {
     try {
       // Create a temporary service instance for testing
       const tempService = new SonarrService(this.log)
@@ -84,7 +87,10 @@ export class SonarrManagerService {
       this.log.error('Error testing Sonarr connection:', error)
       return {
         success: false,
-        message: error instanceof Error ? error.message : 'Unknown error testing connection'
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Unknown error testing connection',
       }
     }
   }
@@ -142,12 +148,15 @@ export class SonarrManagerService {
     )
 
     if (genreMatches.length > 0) {
-      // Genre routing takes priority - only route to these specific instances
+      // Genre routing takes priority - route to these specific instances
       for (const match of genreMatches) {
+        this.log.info(
+          `Processing genre route "${match.name}" for genre "${match.genre}"`,
+        )
         const sonarrService = this.sonarrServices.get(match.sonarrInstanceId)
         if (!sonarrService) {
           this.log.warn(
-            `Sonarr service ${match.sonarrInstanceId} not found for genre route`,
+            `Sonarr service ${match.sonarrInstanceId} not found for genre route "${match.name}"`,
           )
           continue
         }
@@ -160,11 +169,11 @@ export class SonarrManagerService {
             sonarr_instance_id: match.sonarrInstanceId,
           })
           this.log.info(
-            `Successfully routed item to genre-specific instance ${match.sonarrInstanceId}`,
+            `Successfully routed item to genre-specific instance ${match.sonarrInstanceId} using route "${match.name}"`,
           )
         } catch (error) {
           this.log.error(
-            `Failed to add item to genre-specific instance ${match.sonarrInstanceId}:`,
+            `Failed to add item to genre-specific instance ${match.sonarrInstanceId} using route "${match.name}":`,
             error,
           )
         }
@@ -294,11 +303,15 @@ export class SonarrManagerService {
     }
   }
 
-  async addGenreRoute(route: Omit<SonarrGenreRoute, 'id'>): Promise<number> {
+  async addGenreRoute(route: SonarrGenreRoute): Promise<SonarrGenreRoute> {
+    this.log.info(
+      `Adding new genre route "${route.name}" for genre "${route.genre}"`,
+    )
     return this.fastify.db.createSonarrGenreRoute(route)
   }
 
   async removeGenreRoute(id: number): Promise<void> {
+    this.log.info(`Removing genre route ${id}`)
     await this.fastify.db.deleteSonarrGenreRoute(id)
   }
 
@@ -306,6 +319,9 @@ export class SonarrManagerService {
     id: number,
     updates: Partial<SonarrGenreRoute>,
   ): Promise<void> {
+    this.log.info(
+      `Updating genre route ${id}${updates.name ? ` to name "${updates.name}"` : ''}`,
+    )
     await this.fastify.db.updateSonarrGenreRoute(id, updates)
   }
 

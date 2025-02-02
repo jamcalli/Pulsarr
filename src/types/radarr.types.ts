@@ -88,6 +88,7 @@ export interface RadarrInstance {
 export interface RadarrGenreRoute {
   id: number
   radarrInstanceId: number
+  name: string
   genre: string
   rootFolder: string
 }
