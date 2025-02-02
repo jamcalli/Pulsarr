@@ -123,6 +123,7 @@ export interface SonarrInstance {
 export interface SonarrGenreRoute {
   id: number
   sonarrInstanceId: number
+  name: string
   genre: string
   rootFolder: string
 }
@@ -139,23 +140,23 @@ export interface SonarrItem {
 }
 
 export interface SonarrHealthCheck {
-  id: number;
-  source: string;
-  type: 'ok' | 'warning' | 'error';
-  message: string;
+  id: number
+  source: string
+  type: 'ok' | 'warning' | 'error'
+  message: string
   wikiUrl?: {
-    fullUri: string;
-    scheme: string;
-    host: string;
-    port: number;
-    path: string;
-    query: string;
-    fragment: string;
-  };
+    fullUri: string
+    scheme: string
+    host: string
+    port: number
+    path: string
+    query: string
+    fragment: string
+  }
 }
 
 export interface ConnectionTestResult {
-  success: boolean;
-  message: string;
-  checks?: SonarrHealthCheck[];
+  success: boolean
+  message: string
+  checks?: SonarrHealthCheck[]
 }

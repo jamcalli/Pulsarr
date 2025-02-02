@@ -21,19 +21,19 @@ export class RadarrManagerService {
       this.log.info('Starting Radarr manager initialization')
       const instances = await this.fastify.db.getAllRadarrInstances()
       this.log.info(`Found ${instances.length} Radarr instances`, { instances })
-  
+
       if (instances.length === 0) {
         this.log.warn('No Radarr instances found')
         return
       }
-  
+
       for (const instance of instances) {
         this.log.info('Attempting to initialize instance:', {
           id: instance.id,
           name: instance.name,
           baseUrl: instance.baseUrl,
         })
-  
+
         try {
           const radarrService = new RadarrService(this.log)
           await radarrService.initialize(instance)
@@ -44,10 +44,10 @@ export class RadarrManagerService {
         } catch (instanceError) {
           this.log.error(
             `Failed to initialize Radarr service for instance ${instance.name}, will retry:`,
-            instanceError
+            instanceError,
           )
-          
-          await new Promise(resolve => setTimeout(resolve, 1000))
+
+          await new Promise((resolve) => setTimeout(resolve, 1000))
           try {
             const radarrService = new RadarrService(this.log)
             await radarrService.initialize(instance)
@@ -58,12 +58,12 @@ export class RadarrManagerService {
           } catch (retryError) {
             this.log.error(
               `Failed to initialize Radarr service after retry for instance ${instance.name}:`,
-              retryError
+              retryError,
             )
           }
         }
       }
-  
+
       if (this.radarrServices.size === 0) {
         throw new Error('Unable to initialize any Radarr services')
       }
@@ -120,10 +120,13 @@ export class RadarrManagerService {
     if (genreMatches.length > 0) {
       // Genre routing takes priority - only route to these specific instances
       for (const match of genreMatches) {
+        this.log.info(
+          `Processing genre route "${match.name}" for genre "${match.genre}"`,
+        )
         const radarrService = this.radarrServices.get(match.radarrInstanceId)
         if (!radarrService) {
           this.log.warn(
-            `Radarr service ${match.radarrInstanceId} not found for genre route`,
+            `Radarr service ${match.radarrInstanceId} not found for genre route "${match.name}"`,
           )
           continue
         }
@@ -136,11 +139,11 @@ export class RadarrManagerService {
             radarr_instance_id: match.radarrInstanceId,
           })
           this.log.info(
-            `Successfully routed item to genre-specific instance ${match.radarrInstanceId}`,
+            `Successfully routed item to genre-specific instance ${match.radarrInstanceId} using route "${match.name}"`,
           )
         } catch (error) {
           this.log.error(
-            `Failed to add item to genre-specific instance ${match.radarrInstanceId}:`,
+            `Failed to add item to genre-specific instance ${match.radarrInstanceId} using route "${match.name}":`,
             error,
           )
         }
@@ -183,6 +186,12 @@ export class RadarrManagerService {
               route.radarrInstanceId === instance.id &&
               itemGenres.has(route.genre),
           )
+
+          if (matchingRoute) {
+            this.log.info(
+              `Using genre route "${matchingRoute.name}" for default instance routing`,
+            )
+          }
 
           const targetRootFolder =
             matchingRoute?.rootFolder || instance.rootFolder
@@ -270,11 +279,15 @@ export class RadarrManagerService {
     }
   }
 
-  async addGenreRoute(route: Omit<RadarrGenreRoute, 'id'>): Promise<number> {
+  async addGenreRoute(route: RadarrGenreRoute): Promise<RadarrGenreRoute> {
+    this.log.info(
+      `Adding new genre route "${route.name}" for genre "${route.genre}"`,
+    )
     return this.fastify.db.createRadarrGenreRoute(route)
   }
 
   async removeGenreRoute(id: number): Promise<void> {
+    this.log.info(`Removing genre route ${id}`)
     await this.fastify.db.deleteRadarrGenreRoute(id)
   }
 
@@ -282,6 +295,9 @@ export class RadarrManagerService {
     id: number,
     updates: Partial<RadarrGenreRoute>,
   ): Promise<void> {
+    this.log.info(
+      `Updating genre route ${id}${updates.name ? ` to name "${updates.name}"` : ''}`,
+    )
     await this.fastify.db.updateRadarrGenreRoute(id, updates)
   }
 

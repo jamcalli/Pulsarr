@@ -382,12 +382,12 @@ export class PlexWatchlistService {
     if (brandNewItems.size === 0) {
       return new Map<Friend, Set<WatchlistItem>>()
     }
-  
+
     this.log.debug(`Processing ${brandNewItems.size} new items`)
-  
+
     const operationId = `process-${Date.now()}`
     const emitProgress = this.fastify.progress.hasActiveConnections()
-  
+
     if (emitProgress) {
       this.fastify.progress.emit({
         operationId,
@@ -396,7 +396,7 @@ export class PlexWatchlistService {
         message: 'Starting item processing',
       })
     }
-  
+
     const processedItems = await processWatchlistItems(
       this.config,
       this.log,
@@ -405,10 +405,10 @@ export class PlexWatchlistService {
         ? { progress: this.fastify.progress, operationId }
         : undefined,
     )
-  
+
     if (processedItems instanceof Map) {
       const itemsToInsert = this.prepareItemsForInsertion(processedItems)
-  
+
       if (itemsToInsert.length > 0) {
         if (emitProgress) {
           this.fastify.progress.emit({
@@ -418,13 +418,13 @@ export class PlexWatchlistService {
             message: `Saving ${itemsToInsert.length} items to database`,
           })
         }
-  
+
         await this.dbService.createWatchlistItems(itemsToInsert)
-        
+
         await this.dbService.syncGenresFromWatchlist()
-        
+
         this.log.info(`Processed ${itemsToInsert.length} new items`)
-  
+
         if (emitProgress) {
           this.fastify.progress.emit({
             operationId,
@@ -434,10 +434,10 @@ export class PlexWatchlistService {
           })
         }
       }
-  
+
       return processedItems
     }
-  
+
     throw new Error(
       'Expected Map<Friend, Set<WatchlistItem>> from processWatchlistItems',
     )
@@ -449,7 +449,7 @@ export class PlexWatchlistService {
     const linkItems = Array.from(existingItemsToLink.values()).flatMap(
       (items) => Array.from(items),
     )
-  
+
     if (linkItems.length > 0) {
       await this.dbService.createWatchlistItems(linkItems, {
         onConflict: 'merge',
@@ -705,7 +705,7 @@ export class PlexWatchlistService {
           : undefined,
       source: source,
     }))
-  
+
     if (formattedItems.length > 0) {
       await this.dbService.createTempRssItems(formattedItems)
       await this.dbService.syncGenresFromWatchlist()

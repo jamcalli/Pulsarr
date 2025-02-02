@@ -15,4 +15,6 @@ export const ErrorSchema = z.object({
 })
 
 export type TestConnectionQuery = z.infer<typeof TestConnectionQuerySchema>
-export type TestConnectionResponse = z.infer<typeof TestConnectionResponseSchema>
+export type TestConnectionResponse = z.infer<
+  typeof TestConnectionResponseSchema
+>

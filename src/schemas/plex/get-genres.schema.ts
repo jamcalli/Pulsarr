@@ -9,5 +9,7 @@ export const WatchlistGenresErrorSchema = z.object({
   error: z.string(),
 })
 
-export type WatchlistGenresResponse = z.infer<typeof WatchlistGenresResponseSchema>
+export type WatchlistGenresResponse = z.infer<
+  typeof WatchlistGenresResponseSchema
+>
 export type WatchlistGenresError = z.infer<typeof WatchlistGenresErrorSchema>
