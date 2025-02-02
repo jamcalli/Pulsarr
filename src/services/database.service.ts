@@ -714,22 +714,21 @@ export class DatabaseService {
     }
   }
 
-  async getAllUniqueWatchlistGenres(): Promise<Array<{ genre: string, count: number }>> {
+  async syncGenresFromWatchlist(): Promise<void> {
     try {
       const items = await this.knex('watchlist_items')
         .whereNotNull('genres')
         .where('genres', '!=', '[]')
-        .select('genres');
+        .select('genres')
   
-      const genreCounts = new Map<string, number>()
+      const uniqueGenres = new Set<string>()
       
       items.forEach((row) => {
         try {
-          const parsedGenres = JSON.parse(row.genres || '[]');
+          const parsedGenres = JSON.parse(row.genres || '[]')
           parsedGenres.forEach((genre: string) => {
             if (genre && typeof genre === 'string') {
-              const trimmedGenre = genre.trim();
-              genreCounts.set(trimmedGenre, (genreCounts.get(trimmedGenre) || 0) + 1)
+              uniqueGenres.add(genre.trim())
             }
           })
         } catch (parseError) {
@@ -737,13 +736,61 @@ export class DatabaseService {
         }
       })
   
-      return Array.from(genreCounts)
-        .map(([genre, count]) => ({ genre, count }))
-        .sort((a, b) => b.count - a.count || a.genre.localeCompare(b.genre))
+      const existingGenres = await this.knex('genres')
+        .select('name')
+      const existingGenreNames = new Set(existingGenres.map(g => g.name))
+  
+      const newGenres = Array.from(uniqueGenres)
+        .filter(genre => !existingGenreNames.has(genre))
+        .map(genre => ({
+          name: genre,
+          is_custom: false,
+          created_at: this.timestamp,
+          updated_at: this.timestamp
+        }))
+  
+      if (newGenres.length > 0) {
+        await this.knex('genres')
+          .insert(newGenres)
+          .onConflict('name')
+          .ignore()
+      }
     } catch (error) {
-      this.log.error('Error fetching unique genres:', error)
-      return []
+      this.log.error('Error syncing genres:', error)
+      throw error
     }
+  }
+  
+  async addCustomGenre(name: string): Promise<number> {
+    const [id] = await this.knex('genres')
+      .insert({
+        name: name.trim(),
+        is_custom: true,
+        created_at: this.timestamp,
+        updated_at: this.timestamp
+      })
+      .onConflict('name')
+      .ignore()
+      .returning('id')
+  
+    if (!id) {
+      throw new Error('Genre already exists')
+    }
+  
+    return id
+  }
+  
+  async getAllGenres(): Promise<Array<{ id: number, name: string, is_custom: boolean }>> {
+    return await this.knex('genres')
+      .select('id', 'name', 'is_custom')
+      .orderBy('name', 'asc')
+  }
+  
+  async deleteCustomGenre(id: number): Promise<boolean> {
+    const deleted = await this.knex('genres')
+      .where({ id, is_custom: true })
+      .delete()
+    return deleted > 0
   }
 
   async bulkUpdateShowStatuses(
