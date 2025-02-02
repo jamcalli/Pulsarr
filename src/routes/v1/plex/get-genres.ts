@@ -21,13 +21,14 @@ export const getGenresRoute: FastifyPluginAsync = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const genres = await fastify.db.getAllUniqueWatchlistGenres()
-
+        await fastify.db.syncGenresFromWatchlist()
+        const genres = await fastify.db.getAllGenres()
+        
         const response: z.infer<typeof WatchlistGenresResponseSchema> = {
-            success: true,
-            genres: genres,
-          }
-
+          success: true,
+          genres: genres.map(genre => genre.name)
+        }
+        
         reply.status(200)
         return response
       } catch (err) {

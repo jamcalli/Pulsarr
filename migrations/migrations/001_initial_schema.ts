@@ -159,6 +159,15 @@ export async function up(knex: Knex): Promise<void> {
     table.index('radarr_instance_id')
   })
 
+  await knex.schema.createTable('genres', (table) => {
+    table.increments('id').primary()
+    table.string('name').notNullable().unique()
+    table.boolean('is_custom').defaultTo(false)
+    table.timestamp('created_at').defaultTo(knex.fn.now())
+    table.timestamp('updated_at').defaultTo(knex.fn.now())
+    table.index('name')
+  })
+
   await knex.schema.createTable('temp_rss_items', (table) => {
     table.increments('id').primary()
     table.string('title').notNullable()
@@ -182,4 +191,5 @@ export async function down(knex: Knex): Promise<void> {
   await knex.schema.dropTable('configs')
   await knex.schema.dropTable('admin_users')
   await knex.schema.dropTable('users')
+  await knex.schema.dropTable('genres')
 }
