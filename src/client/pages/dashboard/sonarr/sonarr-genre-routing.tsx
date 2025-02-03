@@ -59,7 +59,7 @@ const EditableCardHeader = ({
 
   return (
     <CardHeader>
-      <CardTitle className="flex justify-between items-center">
+      <CardTitle className="flex justify-between items-center text-text">
         <div className="group/name inline-flex items-center gap-2 w-1/2">
           {isEditing ? (
             <div className="flex-grow">

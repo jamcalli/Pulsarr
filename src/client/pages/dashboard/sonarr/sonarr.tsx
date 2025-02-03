@@ -391,7 +391,7 @@ export default function SonarrConfigPage() {
 
     return (
       <CardHeader className="relative">
-        <CardTitle>
+        <CardTitle className="text-text">
           <div className="flex portrait:flex-col gap-4">
             <div className="flex-1">
               {isEditing ? (
