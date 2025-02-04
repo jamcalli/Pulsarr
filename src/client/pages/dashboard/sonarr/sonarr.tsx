@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useForm, type UseFormReturn } from 'react-hook-form'
 import { z } from 'zod'
 import { Loader2, Check, Trash2, Pen } from 'lucide-react'
@@ -55,6 +55,7 @@ export default function SonarrConfigPage() {
   >('idle')
   const [isConnectionValid, setIsConnectionValid] = useState(false)
   const [selectedInstance, setSelectedInstance] = useState<number | null>(null)
+  const [isInitialized, setIsInitialized] = useState(false)
 
   const form = useForm<SonarrInstanceSchema>({
     defaultValues: {
@@ -71,24 +72,42 @@ export default function SonarrConfigPage() {
   })
 
   // Initial setup - fetch instances and setup first instance if available
+  const API_KEY_PLACEHOLDER = 'placeholder'
+
+  // Add this helper function outside the component
+  const testConnectionWithoutLoading = useCallback(async (
+    baseUrl: string,
+    apiKey: string,
+  ) => {
+    const response = await fetch(
+      `/v1/sonarr/test-connection?baseUrl=${encodeURIComponent(baseUrl)}&apiKey=${encodeURIComponent(apiKey)}`,
+    )
+  
+    if (!response.ok) {
+      throw new Error('Failed to test connection')
+    }
+  
+    return await response.json()
+  }, [])
+
+  // Then in your initialization effect:
   useEffect(() => {
     const initializeComponent = async () => {
-      if (!instances.length) return
+      if (!instances.length || isInitialized) return
 
       const firstInstance = instances[0]
       setSelectedInstance(firstInstance.id)
 
-      // If instance has URL and API key, mark as valid and fetch fresh data
-      if (firstInstance.baseUrl && firstInstance.apiKey) {
-        setIsConnectionValid(true)
-        await fetchInstanceData(firstInstance.id.toString())
-      }
+      // Check if instance already has its data
+      const hasInstanceData =
+        firstInstance.data?.rootFolders && firstInstance.data?.qualityProfiles
+      const isPlaceholderKey = firstInstance.apiKey === API_KEY_PLACEHOLDER
 
-      // Set form values with saved data
+      // Set initial form values
       form.reset({
         name: firstInstance.name || 'Default Instance',
         baseUrl: firstInstance.baseUrl || '',
-        apiKey: firstInstance.apiKey || '',
+        apiKey: isPlaceholderKey ? '' : firstInstance.apiKey || '',
         qualityProfile: firstInstance.qualityProfile || '',
         rootFolder: firstInstance.rootFolder || '',
         bypassIgnored: firstInstance.bypassIgnored || false,
@@ -97,15 +116,57 @@ export default function SonarrConfigPage() {
         tags: firstInstance.tags || [],
         isDefault: firstInstance.isDefault || false,
       })
+
+      // If we have data, mark as valid immediately
+      if (hasInstanceData) {
+        setIsConnectionValid(true)
+        setTestStatus('success')
+      }
+      // If we don't have data but have valid credentials, fetch them silently
+      else if (
+        firstInstance.baseUrl &&
+        firstInstance.apiKey &&
+        !isPlaceholderKey
+      ) {
+        try {
+          const result = await testConnectionWithoutLoading(
+            firstInstance.baseUrl,
+            firstInstance.apiKey,
+          )
+          if (result.success) {
+            setIsConnectionValid(true)
+            setTestStatus('success')
+            await fetchInstanceData(firstInstance.id.toString())
+          }
+        } catch (error) {
+          console.error('Silent connection test failed:', error)
+        }
+      }
+
+      setIsInitialized(true)
     }
 
     initializeComponent()
-  }, [instances, form.reset, fetchInstanceData])
+  }, [
+    instances,
+    isInitialized,
+    form.reset,
+    fetchInstanceData,
+    testConnectionWithoutLoading,
+  ])
 
-  const QualityProfileSelect = ({ field }: { field: any }) => (
+  const QualityProfileSelect = ({
+    field,
+  }: {
+    field: {
+      onChange: (value: string) => void
+      value?: string
+      ref: React.Ref<HTMLSelectElement>
+    }
+  }) => (
     <Select
       onValueChange={field.onChange}
-      value={field.value || undefined}
+      value={field.value || ''}
       disabled={!isConnectionValid}
     >
       <FormControl>
@@ -137,34 +198,48 @@ export default function SonarrConfigPage() {
     </Select>
   )
 
-  const RootFolderSelect = ({ field }: { field: any }) => {
-    const { instances } = useConfig()
-    const [selectedInstance] = useState<number | null>(instances[0]?.id || null)
-
-    return (
-      <Select
-        onValueChange={field.onChange}
-        value={field.value || undefined}
-        disabled={!isConnectionValid}
-      >
-        <FormControl>
-          <SelectTrigger>
-            <SelectValue placeholder="Select root folder" />
-          </SelectTrigger>
-        </FormControl>
-        <SelectContent>
-          {instances
-            .find((i) => i.id === selectedInstance)
-            ?.data?.rootFolders?.map((folder) => (
-              <SelectItem key={folder.path} value={folder.path}>
-                {folder.path}
-              </SelectItem>
-            ))}
-        </SelectContent>
-      </Select>
-    )
-  }
-
+  const RootFolderSelect = ({
+    field,
+  }: {
+    field: {
+      onChange: (value: string) => void
+      value?: string
+      ref: React.Ref<HTMLSelectElement>
+    }
+  }) => (
+    <Select
+      onValueChange={field.onChange}
+      value={field.value || ''}
+      disabled={!isConnectionValid}
+    >
+      <FormControl>
+        <SelectTrigger>
+          <SelectValue placeholder="Select root folder">
+            {field.value
+              ? (() => {
+                  const currentInstance = instances.find(
+                    (i) => i.id === selectedInstance,
+                  )
+                  const folder = currentInstance?.data?.rootFolders?.find(
+                    (f) => f.path === field.value,
+                  )
+                  return folder?.path || 'Select root folder'
+                })()
+              : 'Select root folder'}
+          </SelectValue>
+        </SelectTrigger>
+      </FormControl>
+      <SelectContent>
+        {instances
+          .find((i) => i.id === selectedInstance)
+          ?.data?.rootFolders?.map((folder) => (
+            <SelectItem key={folder.path} value={folder.path}>
+              {folder.path}
+            </SelectItem>
+          ))}
+      </SelectContent>
+    </Select>
+  )
   const testConnection = async () => {
     const values = form.getValues()
     if (!values.name?.trim()) {
@@ -179,7 +254,7 @@ export default function SonarrConfigPage() {
 
     setTestStatus('loading')
     try {
-      const values = form.getValues()
+      // First test the connection
       const response = await fetch(
         `/v1/sonarr/test-connection?baseUrl=${encodeURIComponent(values.baseUrl)}&apiKey=${encodeURIComponent(values.apiKey)}`,
       )
@@ -191,35 +266,35 @@ export default function SonarrConfigPage() {
       const result = await response.json()
 
       if (result.success) {
-        setTestStatus('success')
-        setIsConnectionValid(true)
-
-        // Fetch instance data after successful connection test
         if (selectedInstance) {
-          await fetchInstanceData(selectedInstance.toString())
+          // Store current form values
+          const currentFormValues = form.getValues()
 
-          const instanceResponse = await fetch(
+          // Update instance with new credentials
+          const updateResponse = await fetch(
             `/v1/sonarr/instances/${selectedInstance}`,
             {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                name: values.name,
+                name: values.name.trim(),
                 baseUrl: values.baseUrl,
                 apiKey: values.apiKey,
-                qualityProfile: values.qualityProfile,
-                rootFolder: values.rootFolder,
-                bypassIgnored: values.bypassIgnored,
-                seasonMonitoring: values.seasonMonitoring,
-                tags: values.tags,
-                isDefault: values.isDefault,
               }),
             },
           )
 
-          if (!instanceResponse.ok) {
-            throw new Error('Failed to update instance')
+          if (!updateResponse.ok) {
+            throw new Error('Failed to update instance credentials')
           }
+
+          // Now that the service is reinitialized, set status and fetch data
+          setTestStatus('success')
+          setIsConnectionValid(true)
+          await fetchInstanceData(selectedInstance.toString())
+
+          // Restore form values
+          form.reset(currentFormValues)
         }
 
         toast({
@@ -254,8 +329,8 @@ export default function SonarrConfigPage() {
     setSaveStatus('loading')
     try {
       form.reset({
-        name: '',
-        baseUrl: '',
+        name: 'Change Me Sonarr Instance',
+        baseUrl: 'http://localhost:8989',
         apiKey: '',
         qualityProfile: '',
         rootFolder: '',

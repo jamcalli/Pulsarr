@@ -49,11 +49,11 @@ const schema = {
     },
     sonarrBaseUrl: {
       type: 'string',
-      default: 'localhost:8989',
+      default: 'http://localhost:8989',
     },
     sonarrApiKey: {
       type: 'string',
-      default: '',
+      default: 'placeholder',
     },
     sonarrQualityProfile: {
       type: 'string',
@@ -77,11 +77,11 @@ const schema = {
     },
     radarrBaseUrl: {
       type: 'string',
-      default: 'localhost:7878',
+      default: 'http://localhost:7878',
     },
     radarrApiKey: {
       type: 'string',
-      default: '',
+      default: 'placeholder',
     },
     radarrQualityProfile: {
       type: 'string',

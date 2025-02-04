@@ -32,7 +32,7 @@ export class SonarrService {
         )
       }
 
-      await this.verifyConnection(instance)
+      //await this.verifyConnection(instance)
 
       this.config = {
         sonarrBaseUrl: instance.baseUrl,

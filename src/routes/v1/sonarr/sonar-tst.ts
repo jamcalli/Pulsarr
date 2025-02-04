@@ -79,7 +79,13 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const { id } = request.params
       const updates = request.body
+
       await fastify.db.updateSonarrInstance(id, updates)
+
+      if (updates.baseUrl || updates.apiKey) {
+        await fastify.sonarrManager.updateInstance(id, updates)
+      }
+
       reply.status(204)
     },
   )

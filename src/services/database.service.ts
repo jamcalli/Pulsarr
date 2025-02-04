@@ -741,22 +741,21 @@ export class DatabaseService {
 
       const uniqueGenres = new Set<string>()
 
-      items.forEach((row) => {
+      for (const row of items) {
         try {
           const parsedGenres = JSON.parse(row.genres || '[]')
-          parsedGenres.forEach((genre: string) => {
+          for (const genre of parsedGenres) {
             if (genre && typeof genre === 'string') {
               uniqueGenres.add(genre.trim())
             }
-          })
+          }
         } catch (parseError) {
           this.log.error('Error parsing genres:', parseError)
         }
-      })
+      }
 
       const existingGenres = await this.knex('genres').select('name')
       const existingGenreNames = new Set(existingGenres.map((g) => g.name))
-
       const newGenres = Array.from(uniqueGenres)
         .filter((genre) => !existingGenreNames.has(genre))
         .map((genre) => ({
