@@ -32,7 +32,7 @@ export class RadarrService {
         )
       }
 
-      await this.verifyConnection(instance)
+      //await this.verifyConnection(instance)
 
       this.config = {
         radarrBaseUrl: instance.baseUrl,
