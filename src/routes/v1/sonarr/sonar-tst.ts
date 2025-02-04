@@ -46,7 +46,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     Body: z.infer<typeof SonarrInstanceSchema>
     Reply: { id: number }
   }>(
-    '/instances',
+    '/instances', 
     {
       schema: {
         body: SonarrInstanceSchema,

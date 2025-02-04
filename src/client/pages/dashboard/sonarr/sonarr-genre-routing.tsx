@@ -497,7 +497,7 @@ const GenreRoutingSection = () => {
           ))}
 
         {!localRoutes.length && !genreRoutes.length && !isLoading && (
-          <div className="text-center py-8">
+          <div className="text-center py-8 text-text">
             <p>No genre routes configured</p>
             <Button onClick={handleAddRoute} className="mt-4">
               Add Your First Route
