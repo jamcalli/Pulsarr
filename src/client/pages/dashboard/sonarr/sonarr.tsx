@@ -46,7 +46,7 @@ type SonarrInstanceSchema = z.infer<typeof sonarrInstanceSchema>
 
 export default function SonarrConfigPage() {
   const { toast } = useToast()
-  const { instances, fetchInstanceData } = useConfig()
+  const { instances, fetchInstanceData, fetchInstances } = useConfig()
   const [testStatus, setTestStatus] = useState<
     'idle' | 'loading' | 'success' | 'error'
   >('idle')
@@ -56,6 +56,7 @@ export default function SonarrConfigPage() {
   const [isConnectionValid, setIsConnectionValid] = useState(false)
   const [selectedInstance, setSelectedInstance] = useState<number | null>(null)
   const [isInitialized, setIsInitialized] = useState(false)
+  const [showInstanceCard, setShowInstanceCard] = useState(false)
 
   const form = useForm<SonarrInstanceSchema>({
     defaultValues: {
@@ -71,8 +72,22 @@ export default function SonarrConfigPage() {
     },
   })
 
-  // Initial setup - fetch instances and setup first instance if available
   const API_KEY_PLACEHOLDER = 'placeholder'
+
+  const addInstance = () => {
+    setShowInstanceCard(true)
+    form.reset({
+      name: 'New Sonarr Instance',
+      baseUrl: 'http://localhost:8989',
+      apiKey: '',
+      qualityProfile: '',
+      rootFolder: '',
+      bypassIgnored: false,
+      seasonMonitoring: 'all',
+      tags: [],
+      isDefault: instances.length === 0,
+    })
+  }
 
   // Add this helper function outside the component
   const testConnectionWithoutLoading = useCallback(async (
@@ -245,32 +260,28 @@ export default function SonarrConfigPage() {
     if (!values.name?.trim()) {
       toast({
         title: 'Name Required',
-        description:
-          'Please provide an instance name before testing connection',
+        description: 'Please provide an instance name before testing connection',
         variant: 'destructive',
       })
       return
     }
-
+  
     setTestStatus('loading')
     try {
       // First test the connection
       const response = await fetch(
-        `/v1/sonarr/test-connection?baseUrl=${encodeURIComponent(values.baseUrl)}&apiKey=${encodeURIComponent(values.apiKey)}`,
+        `/v1/sonarr/test-connection?baseUrl=${encodeURIComponent(
+          values.baseUrl,
+        )}&apiKey=${encodeURIComponent(values.apiKey)}`,
       )
-
       if (!response.ok) {
         throw new Error('Failed to test connection')
       }
-
       const result = await response.json()
-
+  
       if (result.success) {
         if (selectedInstance) {
-          // Store current form values
-          const currentFormValues = form.getValues()
-
-          // Update instance with new credentials
+          // Update existing instance
           const updateResponse = await fetch(
             `/v1/sonarr/instances/${selectedInstance}`,
             {
@@ -283,20 +294,39 @@ export default function SonarrConfigPage() {
               }),
             },
           )
-
           if (!updateResponse.ok) {
             throw new Error('Failed to update instance credentials')
           }
-
-          // Now that the service is reinitialized, set status and fetch data
-          setTestStatus('success')
-          setIsConnectionValid(true)
+          // Fetch data for existing instance
           await fetchInstanceData(selectedInstance.toString())
-
-          // Restore form values
-          form.reset(currentFormValues)
+        } else {
+          // Create new instance
+          const createResponse = await fetch('/v1/sonarr/instances', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: values.name.trim(),
+              baseUrl: values.baseUrl,
+              apiKey: values.apiKey,
+              isDefault: instances.length === 0,
+            }),
+          })
+          
+          if (!createResponse.ok) {
+            throw new Error('Failed to create new instance')
+          }
+          
+          const newInstance = await createResponse.json()
+          
+          // Update selected instance and fetch its data
+          setSelectedInstance(newInstance.id)
+          await fetchInstances() // Refresh the instances list
+          await fetchInstanceData(newInstance.id.toString())
         }
-
+  
+        setTestStatus('success')
+        setIsConnectionValid(true)
+        
         toast({
           title: 'Connection Successful',
           description: result.message || 'Successfully connected to Sonarr',
@@ -317,9 +347,7 @@ export default function SonarrConfigPage() {
       toast({
         title: 'Connection Failed',
         description:
-          error instanceof Error
-            ? error.message
-            : 'Failed to connect to Sonarr',
+          error instanceof Error ? error.message : 'Failed to connect to Sonarr',
         variant: 'destructive',
       })
     }
@@ -328,25 +356,52 @@ export default function SonarrConfigPage() {
   const clearConfig = async () => {
     setSaveStatus('loading')
     try {
-      form.reset({
-        name: 'Change Me Sonarr Instance',
-        baseUrl: 'http://localhost:8989',
-        apiKey: '',
-        qualityProfile: '',
-        rootFolder: '',
-        bypassIgnored: false,
-        seasonMonitoring: 'all',
-        tags: [],
-        isDefault: false,
-      })
-      setIsConnectionValid(false)
-      setTestStatus('idle')
-      setSaveStatus('idle')
-      toast({
-        title: 'Configuration Cleared',
-        description: 'Sonarr configuration has been cleared',
-        variant: 'default',
-      })
+      if (selectedInstance) {
+        // Update instance with placeholder API key
+        const response = await fetch(
+          `/v1/sonarr/instances/${selectedInstance}`,
+          {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: 'Change Me Sonarr Instance',
+              baseUrl: 'http://localhost:8989',
+              apiKey: API_KEY_PLACEHOLDER,
+            }),
+          },
+        )
+
+        if (!response.ok) {
+          throw new Error('Failed to clear configuration')
+        }
+
+        // Reset form with placeholder values
+        form.reset({
+          name: 'Change Me Sonarr Instance',
+          baseUrl: 'http://localhost:8989',
+          apiKey: API_KEY_PLACEHOLDER,
+          qualityProfile: '',
+          rootFolder: '',
+          bypassIgnored: false,
+          seasonMonitoring: 'all',
+          tags: [],
+          isDefault: false,
+        })
+        
+        setIsConnectionValid(false)
+        setTestStatus('idle')
+        setSaveStatus('idle')
+        
+        // Refresh the instances data to trigger the empty state
+        await fetchInstances()
+        setShowInstanceCard(false)
+        
+        toast({
+          title: 'Configuration Cleared',
+          description: 'Sonarr configuration has been cleared',
+          variant: 'default',
+        })
+      }
     } catch (error) {
       setSaveStatus('error')
       toast({
@@ -354,6 +409,8 @@ export default function SonarrConfigPage() {
         description: 'Failed to clear configuration',
         variant: 'destructive',
       })
+    } finally {
+      setSaveStatus('idle')
     }
   }
 
@@ -425,17 +482,7 @@ export default function SonarrConfigPage() {
   )
 
   const hasValidUrlAndKey = Boolean(baseUrl && apiKey)
-  const canSave =
-    saveStatus !== 'loading' && form.formState.isValid && hasRequiredFields
-
-  if (!instances?.length) {
-    return (
-      <div className="text-center py-8">
-        <p>No Sonarr instances configured</p>
-        <Button className="mt-4">Add Your First Instance</Button>
-      </div>
-    )
-  }
+  const canSave = saveStatus !== 'loading' && form.formState.isValid && hasRequiredFields
 
   const EditableCardHeader = ({
     instance,
@@ -446,7 +493,7 @@ export default function SonarrConfigPage() {
   }) => {
     const [isEditing, setIsEditing] = useState(false)
     const [localName, setLocalName] = useState(form.getValues('name'))
-
+  
     const handleNameSubmit = (e: React.FormEvent) => {
       e.preventDefault()
       if (localName?.trim()) {
@@ -454,7 +501,7 @@ export default function SonarrConfigPage() {
         setIsEditing(false)
       }
     }
-
+  
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === 'Enter') {
         handleNameSubmit(e)
@@ -463,7 +510,7 @@ export default function SonarrConfigPage() {
         setLocalName(form.getValues('name'))
       }
     }
-
+  
     return (
       <CardHeader className="relative">
         <CardTitle className="text-text">
@@ -509,24 +556,48 @@ export default function SonarrConfigPage() {
     )
   }
 
+  const isPlaceholderInstance = instances.length === 1 && 
+  instances[0].apiKey === API_KEY_PLACEHOLDER
+
+if (isPlaceholderInstance && !showInstanceCard) {
   return (
     <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
       <div className="grid gap-6">
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold text-text">Sonarr Instances</h2>
-          <Button>Add Instance</Button>
         </div>
-        <div className="grid gap-4">
-          {instances.map((instance) => (
+        <div className="text-center py-8 text-text">
+          <p>No Sonarr instances configured</p>
+          <Button onClick={addInstance} className="mt-4">
+            Add Your First Instance
+          </Button>
+        </div>
+        <GenreRouting />
+      </div>
+    </div>
+  )
+}
+
+return (
+  <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
+    <div className="grid gap-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-text">Sonarr Instances</h2>
+        <Button onClick={addInstance}>Add Instance</Button>
+      </div>
+      
+      <div className="grid gap-4">
+        {/* Existing Instances */}
+        {instances.map((instance) => (
+          !instance.apiKey || instance.apiKey !== API_KEY_PLACEHOLDER ? (
             <Card key={instance.id} className="bg-bg">
-              <EditableCardHeader instance={instance} form={form} />
+              <EditableCardHeader 
+                instance={instance}
+                form={form} 
+              />
               <CardContent>
                 <Form {...form}>
-                  <form
-                    onSubmit={form.handleSubmit(onSubmit)}
-                    className="space-y-8"
-                  >
-                    {/* Form fields here */}
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                     <div className="flex portrait:flex-col gap-4">
                       <div className="flex-1">
                         <FormField
@@ -534,9 +605,7 @@ export default function SonarrConfigPage() {
                           name="baseUrl"
                           render={({ field }) => (
                             <FormItem className="flex-grow">
-                              <FormLabel className="text-text">
-                                Sonarr URL
-                              </FormLabel>
+                              <FormLabel className="text-text">Sonarr URL</FormLabel>
                               <FormControl>
                                 <Input
                                   {...field}
@@ -556,9 +625,7 @@ export default function SonarrConfigPage() {
                             name="apiKey"
                             render={({ field }) => (
                               <FormItem className="flex-grow">
-                                <FormLabel className="text-text">
-                                  API Key
-                                </FormLabel>
+                                <FormLabel className="text-text">API Key</FormLabel>
                                 <FormControl>
                                   <Input
                                     {...field}
@@ -576,9 +643,7 @@ export default function SonarrConfigPage() {
                               size="icon"
                               variant="noShadow"
                               onClick={testConnection}
-                              disabled={
-                                testStatus === 'loading' || !hasValidUrlAndKey
-                              }
+                              disabled={testStatus === 'loading' || !hasValidUrlAndKey}
                             >
                               {testStatus === 'loading' ? (
                                 <Loader2 className="animate-spin" />
@@ -593,9 +658,7 @@ export default function SonarrConfigPage() {
                               size="icon"
                               variant="error"
                               onClick={clearConfig}
-                              disabled={
-                                saveStatus === 'loading' || !hasValidUrlAndKey
-                              }
+                              disabled={saveStatus === 'loading' || !hasValidUrlAndKey}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -604,7 +667,6 @@ export default function SonarrConfigPage() {
                       </div>
                     </div>
 
-                    {/* Quality Profile and Root Folder dropdowns */}
                     <div className="flex portrait:flex-col gap-4">
                       <div className="flex-1">
                         <FormField
@@ -612,9 +674,7 @@ export default function SonarrConfigPage() {
                           name="qualityProfile"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-text">
-                                Quality Profile
-                              </FormLabel>
+                              <FormLabel className="text-text">Quality Profile</FormLabel>
                               <QualityProfileSelect field={field} />
                               <FormMessage />
                             </FormItem>
@@ -627,9 +687,7 @@ export default function SonarrConfigPage() {
                           name="rootFolder"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-text">
-                                Root Folder
-                              </FormLabel>
+                              <FormLabel className="text-text">Root Folder</FormLabel>
                               <RootFolderSelect field={field} />
                               <FormMessage />
                             </FormItem>
@@ -645,9 +703,7 @@ export default function SonarrConfigPage() {
                           name="seasonMonitoring"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-text">
-                                Season Monitoring
-                              </FormLabel>
+                              <FormLabel className="text-text">Season Monitoring</FormLabel>
                               <Select
                                 onValueChange={field.onChange}
                                 value={field.value}
@@ -659,9 +715,7 @@ export default function SonarrConfigPage() {
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
-                                  {Object.entries(
-                                    SONARR_MONITORING_OPTIONS,
-                                  ).map(([value, label]) => (
+                                  {Object.entries(SONARR_MONITORING_OPTIONS).map(([value, label]) => (
                                     <SelectItem key={value} value={value}>
                                       {label}
                                     </SelectItem>
@@ -686,10 +740,178 @@ export default function SonarrConfigPage() {
                 </Form>
               </CardContent>
             </Card>
-          ))}
-        </div>
-        <GenreRouting />
+          ) : null
+        ))}
+
+        {/* New Instance Card */}
+        {showInstanceCard && (
+  <Card className="bg-bg">
+    <EditableCardHeader 
+      instance={{ 
+        id: -1, 
+        name: form.getValues('name'),
+        baseUrl: form.getValues('baseUrl'),
+        apiKey: form.getValues('apiKey'),
+        bypassIgnored: form.getValues('bypassIgnored'),
+        seasonMonitoring: form.getValues('seasonMonitoring'),
+        tags: form.getValues('tags'),
+        isDefault: instances.length === 0,
+        qualityProfile: form.getValues('qualityProfile'),
+        rootFolder: form.getValues('rootFolder')
+      }}
+      form={form} 
+    />
+    <CardContent>
+      <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                    <div className="flex portrait:flex-col gap-4">
+                      <div className="flex-1">
+                        <FormField
+                          control={form.control}
+                          name="baseUrl"
+                          render={({ field }) => (
+                            <FormItem className="flex-grow">
+                              <FormLabel className="text-text">Sonarr URL</FormLabel>
+                              <FormControl>
+                                <Input
+                                  {...field}
+                                  placeholder="http://localhost:8989"
+                                  disabled={testStatus === 'loading'}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-end space-x-2">
+                          <FormField
+                            control={form.control}
+                            name="apiKey"
+                            render={({ field }) => (
+                              <FormItem className="flex-grow">
+                                <FormLabel className="text-text">API Key</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    {...field}
+                                    type="password"
+                                    disabled={testStatus === 'loading'}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <div className="flex space-x-2 shrink-0">
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="noShadow"
+                              onClick={testConnection}
+                              disabled={testStatus === 'loading' || !hasValidUrlAndKey}
+                            >
+                              {testStatus === 'loading' ? (
+                                <Loader2 className="animate-spin" />
+                              ) : testStatus === 'success' ? (
+                                <Check className="text-black" />
+                              ) : (
+                                <Check />
+                              )}
+                            </Button>
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="error"
+                              onClick={clearConfig}
+                              disabled={saveStatus === 'loading' || !hasValidUrlAndKey}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex portrait:flex-col gap-4">
+                      <div className="flex-1">
+                        <FormField
+                          control={form.control}
+                          name="qualityProfile"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-text">Quality Profile</FormLabel>
+                              <QualityProfileSelect field={field} />
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <FormField
+                          control={form.control}
+                          name="rootFolder"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-text">Root Folder</FormLabel>
+                              <RootFolderSelect field={field} />
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex portrait:flex-col gap-4">
+                      <div className="flex-1">
+                        <FormField
+                          control={form.control}
+                          name="seasonMonitoring"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-text">Season Monitoring</FormLabel>
+                              <Select
+                                onValueChange={field.onChange}
+                                value={field.value}
+                                disabled={!isConnectionValid}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select monitoring type" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {Object.entries(SONARR_MONITORING_OPTIONS).map(([value, label]) => (
+                                    <SelectItem key={value} value={value}>
+                                      {label}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </div>
+
+                    <Button type="submit" disabled={!canSave}>
+                      {saveStatus === 'loading' ? (
+                        <Loader2 className="animate-spin mr-2" />
+                      ) : (
+                        'Save Configuration'
+                      )}
+                    </Button>
+                  </form>
+                </Form>
+ 
+            </CardContent>
+          </Card>
+        )}
       </div>
+      <GenreRouting />
     </div>
-  )
+  </div>
+)
+
 }
