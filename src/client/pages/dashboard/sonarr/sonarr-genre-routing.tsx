@@ -132,7 +132,6 @@ const GenreRoutingSection = () => {
     [key: number]: Partial<GenreRoute>
   }>({})
 
-  // Fetch initial routes
   useEffect(() => {
     if (!hasAttemptedFetch) {
       const loadRoutes = async () => {

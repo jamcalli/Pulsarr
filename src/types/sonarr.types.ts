@@ -111,13 +111,17 @@ export interface SonarrInstance {
   name: string
   baseUrl: string
   apiKey: string
-  qualityProfile?: string
-  rootFolder?: string
+  qualityProfile?: string | null | undefined
+  rootFolder?: string | null | undefined
   bypassIgnored: boolean
   seasonMonitoring: string
   tags: string[]
   isDefault: boolean
   syncedInstances?: number[]
+  data?: {
+    qualityProfiles?: Array<{ id: number; name: string }>
+    rootFolders?: Array<{ path: string }>
+  }
 }
 
 export interface SonarrGenreRoute {
