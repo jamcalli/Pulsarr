@@ -57,8 +57,9 @@ interface ConfigResponse {
 }
 
 interface SonarrInstanceData {
-  rootFolders: RootFolder[]
-  qualityProfiles: QualityProfile[]
+  rootFolders?: RootFolder[]
+  qualityProfiles?: QualityProfile[]
+  fetching?: boolean
 }
 
 export interface SonarrInstance {
@@ -74,11 +75,6 @@ export interface SonarrInstance {
   isDefault: boolean
   syncedInstances?: number[]
   data?: SonarrInstanceData
-}
-
-interface InstancesResponse {
-  success: boolean
-  instances: SonarrInstance[]
 }
 
 interface GenresResponse {
@@ -177,13 +173,9 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
 
   const fetchInstances = async () => {
     try {
-      const response = await fetch('/v1/sonarr/all-instances')
-      const data: InstancesResponse = await response.json()
-      if (data.success) {
-        setInstances(data.instances)
-      } else {
-        throw new Error('Failed to fetch instances')
-      }
+      const response = await fetch('/v1/sonarr/instances')
+      const instances: SonarrInstance[] = await response.json()
+      setInstances(instances)
     } catch (err) {
       setError('Failed to fetch Sonarr instances')
       console.error('Instances fetch error:', err)
@@ -194,33 +186,45 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
   const fetchInstanceData = async (instanceId: string) => {
     try {
       setLoading(true)
-
       const targetInstance = instances.find((i) => i.id === Number(instanceId))
       if (!targetInstance) {
         throw new Error('Instance not found')
       }
-
+  
+      // If we already have the data or are currently fetching, return
       if (
-        targetInstance.data?.rootFolders &&
-        targetInstance.data?.qualityProfiles
+        (targetInstance.data?.rootFolders && targetInstance.data?.qualityProfiles) ||
+        targetInstance.data?.fetching
       ) {
         return
       }
-
+  
+      // Mark instance as fetching
+      setInstances((prev) =>
+        prev.map((instance) =>
+          instance.id === Number(instanceId)
+            ? {
+                ...instance,
+                data: { ...instance.data, fetching: true },
+              }
+            : instance,
+        ),
+      )
+  
       const [foldersResponse, profilesResponse] = await Promise.all([
         fetch(`/v1/sonarr/root-folders?instanceId=${instanceId}`),
         fetch(`/v1/sonarr/quality-profiles?instanceId=${instanceId}`),
       ])
-
+  
       const [foldersData, profilesData] = await Promise.all([
         foldersResponse.json(),
         profilesResponse.json(),
       ])
-
+  
       if (!foldersData.success || !profilesData.success) {
         throw new Error('Failed to fetch instance data')
       }
-
+  
       setInstances((prev) =>
         prev.map((instance) =>
           instance.id === Number(instanceId)
@@ -229,12 +233,24 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
                 data: {
                   rootFolders: foldersData.rootFolders,
                   qualityProfiles: profilesData.qualityProfiles,
+                  fetching: false,
                 },
               }
             : instance,
         ),
       )
     } catch (err) {
+      // Reset fetching state on error
+      setInstances((prev) =>
+        prev.map((instance) =>
+          instance.id === Number(instanceId)
+            ? {
+                ...instance,
+                data: { ...instance.data, fetching: false },
+              }
+            : instance,
+        ),
+      )
       setError('Failed to fetch Sonarr instance data')
       console.error('Sonarr data fetch error:', err)
       throw err

@@ -321,7 +321,7 @@ export class DatabaseService {
         .update('is_default', false)
     }
 
-    const [id] = await this.knex('sonarr_instances')
+    const result = await this.knex('sonarr_instances')
       .insert({
         name: instance.name || 'Default Sonarr Instance',
         base_url: instance.baseUrl,
@@ -339,7 +339,16 @@ export class DatabaseService {
       })
       .returning('id')
 
-    return id
+    if (!result || !Array.isArray(result) || result.length === 0) {
+      throw new Error('No ID returned from database')
+    }
+
+    const row = result[0]
+    if (typeof row !== 'object' || !('id' in row)) {
+      throw new Error('Invalid ID returned from database')
+    }
+
+    return row.id
   }
 
   async updateSonarrInstance(

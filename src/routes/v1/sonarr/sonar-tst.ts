@@ -4,10 +4,10 @@ import { z } from 'zod'
 // Zod schema for Sonarr instance configuration
 const SonarrInstanceSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  baseUrl: z.string().url('Invalid base URL'),
-  apiKey: z.string().min(1, 'API Key is required'),
-  qualityProfile: z.string().optional(),
-  rootFolder: z.string().optional(),
+  baseUrl: z.string().url({ message: 'Invalid base URL' }),
+  apiKey: z.string().min(1, { message: 'API Key is required' }),
+  qualityProfile: z.string().nullish(),
+  rootFolder: z.string().nullish(),
   bypassIgnored: z.boolean().optional().default(false),
   seasonMonitoring: z.string().optional().default('all'),
   tags: z.array(z.string()).optional().default([]),
@@ -46,12 +46,12 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     Body: z.infer<typeof SonarrInstanceSchema>
     Reply: { id: number }
   }>(
-    '/instances', 
+    '/instances',
     {
       schema: {
         body: SonarrInstanceSchema,
         response: {
-          201: z.object({ id: z.number() }),
+          201: z.object({ id: z.number().int().positive() }),
         },
         tags: ['Sonarr Configuration'],
       },
@@ -59,6 +59,11 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const instanceData = request.body
       const id = await fastify.db.createSonarrInstance(instanceData)
+
+      if (!Number.isInteger(id)) {
+        throw new Error('Invalid ID returned from database')
+      }
+
       reply.status(201)
       return { id }
     },
