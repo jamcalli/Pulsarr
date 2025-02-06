@@ -1,5 +1,4 @@
 import type * as React from 'react'
-import { useEffect } from 'react'
 import {
   Select,
   SelectContent,
@@ -15,7 +14,7 @@ type SelectFieldProps = {
   ref?: React.Ref<HTMLSelectElement>
 }
 
-interface SelectsSharedProps {
+interface SelectsProps {
   isConnectionValid: boolean
   selectedInstance: number
   instances: Array<{
@@ -23,10 +22,8 @@ interface SelectsSharedProps {
     data?: {
       qualityProfiles?: Array<{ id: number; name: string }>
       rootFolders?: Array<{ path: string }>
-      fetching?: boolean
     }
   }>
-  onInstanceDataRequest?: (instanceId: number) => Promise<void>
 }
 
 export function QualityProfileSelect({
@@ -34,24 +31,9 @@ export function QualityProfileSelect({
   isConnectionValid,
   selectedInstance,
   instances,
-  onInstanceDataRequest,
 }: {
   field: SelectFieldProps
-} & SelectsSharedProps) {
-  useEffect(() => {
-    // Only fetch if we don't have the data and haven't attempted to fetch yet
-    if (isConnectionValid && selectedInstance && onInstanceDataRequest) {
-      const instance = instances.find((i) => i.id === selectedInstance)
-      if (
-        instance &&
-        !instance.data?.qualityProfiles &&
-        !instance.data?.fetching
-      ) {
-        onInstanceDataRequest(selectedInstance)
-      }
-    }
-  }, [selectedInstance])
-
+} & SelectsProps) {
   const currentInstance = instances.find((i) => i.id === selectedInstance)
   const selectedProfile = currentInstance?.data?.qualityProfiles?.find(
     (p) => p.id.toString() === field.value?.toString(),
@@ -90,20 +72,9 @@ export function RootFolderSelect({
   isConnectionValid,
   selectedInstance,
   instances,
-  onInstanceDataRequest,
 }: {
   field: SelectFieldProps
-} & SelectsSharedProps) {
-  useEffect(() => {
-    // Only fetch if we don't have the data and haven't attempted to fetch yet
-    if (isConnectionValid && selectedInstance && onInstanceDataRequest) {
-      const instance = instances.find((i) => i.id === selectedInstance)
-      if (instance && !instance.data?.rootFolders && !instance.data?.fetching) {
-        onInstanceDataRequest(selectedInstance)
-      }
-    }
-  }, [selectedInstance])
-
+} & SelectsProps) {
   const currentInstance = instances.find((i) => i.id === selectedInstance)
   const selectedFolder = currentInstance?.data?.rootFolders?.find(
     (f) => f.path === field.value,

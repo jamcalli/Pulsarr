@@ -41,7 +41,7 @@ const schema = {
     },
     rateLimitMax: {
       type: 'number',
-      default: 100,
+      default: 500,
     },
     syncIntervalSeconds: {
       type: 'number',

@@ -95,9 +95,11 @@ interface ConfigContextType {
   loading: boolean
   error: string | null
   instances: SonarrInstance[]
+  isInitialized: boolean
   updateConfig: (updates: Partial<Config>) => Promise<void>
   fetchInstances: () => Promise<void>
   fetchInstanceData: (instanceId: string) => Promise<void>
+  fetchAllInstanceData: () => Promise<void> 
   genres: string[]
   fetchGenres: () => Promise<void>
   genreRoutes: GenreRoute[]
@@ -119,13 +121,21 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
   const [instances, setInstances] = useState<SonarrInstance[]>([])
   const [genres, setGenres] = useState<string[]>([])
   const [genreRoutes, setGenreRoutes] = useState<GenreRoute[]>([])
+  const [isInitialized, setIsInitialized] = useState(false)
 
   useEffect(() => {
     const initialize = async () => {
+      if (isInitialized) return
+      
+      setLoading(true)
       try {
-        await Promise.all([fetchConfig(), fetchInstances()])
+        await fetchConfig()
+        await fetchInstances()
+        await fetchGenreRoutes()
+        setIsInitialized(true)
       } catch (err) {
         console.error('Initialization error:', err)
+        setError('Failed to initialize application')
       } finally {
         setLoading(false)
       }
@@ -173,9 +183,26 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
 
   const fetchInstances = async () => {
     try {
+      // Store current instances and their data
+      const currentInstances = [...instances]
+      
       const response = await fetch('/v1/sonarr/instances')
-      const instances: SonarrInstance[] = await response.json()
-      setInstances(instances)
+      const newInstances: SonarrInstance[] = await response.json()
+      
+      // Merge new instances with existing data
+      const mergedInstances = newInstances.map(newInst => {
+        const existingInstance = currentInstances.find(curr => curr.id === newInst.id)
+        if (existingInstance) {
+          // Preserve existing instance data
+          return {
+            ...newInst,
+            data: existingInstance.data
+          }
+        }
+        return newInst
+      })
+      
+      setInstances(mergedInstances)
     } catch (err) {
       setError('Failed to fetch Sonarr instances')
       console.error('Instances fetch error:', err)
@@ -185,77 +212,61 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
 
   const fetchInstanceData = async (instanceId: string) => {
     try {
-      setLoading(true)
-      const targetInstance = instances.find((i) => i.id === Number(instanceId))
-      if (!targetInstance) {
-        throw new Error('Instance not found')
-      }
-  
-      // If we already have the data or are currently fetching, return
-      if (
-        (targetInstance.data?.rootFolders && targetInstance.data?.qualityProfiles) ||
-        targetInstance.data?.fetching
-      ) {
-        return
-      }
-  
-      // Mark instance as fetching
-      setInstances((prev) =>
-        prev.map((instance) =>
-          instance.id === Number(instanceId)
-            ? {
-                ...instance,
-                data: { ...instance.data, fetching: true },
-              }
-            : instance,
-        ),
-      )
-  
+      // Get the current state first
+      const currentInstances = [...instances];
+      
       const [foldersResponse, profilesResponse] = await Promise.all([
         fetch(`/v1/sonarr/root-folders?instanceId=${instanceId}`),
-        fetch(`/v1/sonarr/quality-profiles?instanceId=${instanceId}`),
-      ])
+        fetch(`/v1/sonarr/quality-profiles?instanceId=${instanceId}`)
+      ]);
   
       const [foldersData, profilesData] = await Promise.all([
         foldersResponse.json(),
-        profilesResponse.json(),
-      ])
+        profilesResponse.json()
+      ]);
   
       if (!foldersData.success || !profilesData.success) {
-        throw new Error('Failed to fetch instance data')
+        throw new Error('Failed to fetch instance data');
       }
   
-      setInstances((prev) =>
-        prev.map((instance) =>
-          instance.id === Number(instanceId)
-            ? {
-                ...instance,
-                data: {
-                  rootFolders: foldersData.rootFolders,
-                  qualityProfiles: profilesData.qualityProfiles,
-                  fetching: false,
-                },
-              }
-            : instance,
-        ),
+      // Update instances while preserving existing data
+      setInstances(currentInstances.map(instance => {
+        if (instance.id === Number(instanceId)) {
+          return {
+            ...instance,
+            data: {
+              rootFolders: foldersData.rootFolders,
+              qualityProfiles: profilesData.qualityProfiles
+            }
+          };
+        }
+        return instance;
+      }));
+      
+    } catch (err) {
+      console.error('Failed to fetch instance data:', err);
+      throw err;
+    }
+  };
+  
+  // Modify your fetchAllInstanceData to be more robust
+  const fetchAllInstanceData = async () => {
+    try {
+      // Get fresh instances first
+      await fetchInstances()
+      
+      const validInstances = instances.filter(
+        (inst) => inst.apiKey && inst.apiKey !== 'placeholder'
+      )
+  
+      // Fetch all instance data in parallel while preserving existing data
+      await Promise.all(
+        validInstances.map((instance) => fetchInstanceData(instance.id.toString()))
       )
     } catch (err) {
-      // Reset fetching state on error
-      setInstances((prev) =>
-        prev.map((instance) =>
-          instance.id === Number(instanceId)
-            ? {
-                ...instance,
-                data: { ...instance.data, fetching: false },
-              }
-            : instance,
-        ),
-      )
-      setError('Failed to fetch Sonarr instance data')
-      console.error('Sonarr data fetch error:', err)
+      setError('Failed to fetch all Sonarr instance data')
+      console.error('Failed to fetch all instance data:', err)
       throw err
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -351,12 +362,14 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
     updateConfig,
     fetchInstances,
     fetchInstanceData,
+    fetchAllInstanceData,
     fetchGenres,
     genreRoutes,
     fetchGenreRoutes,
     createGenreRoute,
     updateGenreRoute,
     deleteGenreRoute,
+    isInitialized
   }
 
   return (

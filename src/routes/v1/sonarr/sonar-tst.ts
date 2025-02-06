@@ -24,7 +24,7 @@ const GenreRouteSchema = z.object({
 })
 
 const plugin: FastifyPluginAsync = async (fastify) => {
-  // Instance endpoints remain the same
+  // Get all instances
   fastify.get<{
     Reply: Array<z.infer<typeof SonarrInstanceSchema> & { id: number }>
   }>(
@@ -38,10 +38,11 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       },
     },
     async () => {
-      return await fastify.db.getAllSonarrInstances()
+      return await fastify.sonarrManager.getAllInstances()
     },
   )
 
+  // Create instance
   fastify.post<{
     Body: z.infer<typeof SonarrInstanceSchema>
     Reply: { id: number }
@@ -58,17 +59,14 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     },
     async (request, reply) => {
       const instanceData = request.body
-      const id = await fastify.db.createSonarrInstance(instanceData)
-
-      if (!Number.isInteger(id)) {
-        throw new Error('Invalid ID returned from database')
-      }
+      const id = await fastify.sonarrManager.addInstance(instanceData)
 
       reply.status(201)
       return { id }
     },
   )
 
+  // Update instance
   fastify.put<{
     Params: { id: number }
     Body: Partial<z.infer<typeof SonarrInstanceSchema>>
@@ -85,16 +83,12 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       const { id } = request.params
       const updates = request.body
 
-      await fastify.db.updateSonarrInstance(id, updates)
-
-      if (updates.baseUrl || updates.apiKey) {
-        await fastify.sonarrManager.updateInstance(id, updates)
-      }
-
+      await fastify.sonarrManager.updateInstance(id, updates)
       reply.status(204)
     },
   )
 
+  // Delete instance
   fastify.delete<{
     Params: { id: number }
   }>(
@@ -107,12 +101,12 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     },
     async (request, reply) => {
       const { id } = request.params
-      await fastify.db.deleteSonarrInstance(id)
+      await fastify.sonarrManager.removeInstance(id)
       reply.status(204)
     },
   )
 
-  // Updated Genre Route endpoints
+  // Genre Routes
   fastify.get<{
     Reply: Array<z.infer<typeof GenreRouteSchema> & { id: number }>
   }>(
@@ -139,16 +133,14 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       schema: {
         body: GenreRouteSchema,
         response: {
-          201: GenreRouteSchema.extend({
-            id: z.number(),
-          }),
+          201: GenreRouteSchema.extend({ id: z.number() }),
         },
         tags: ['Sonarr Configuration'],
       },
     },
     async (request, reply) => {
       const routeData = request.body
-      const createdRoute = await fastify.db.createSonarrGenreRoute(routeData)
+      const createdRoute = await fastify.sonarrManager.addGenreRoute(routeData)
       reply.status(201)
       return createdRoute
     },
@@ -169,7 +161,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const { id } = request.params
       const updates = request.body
-      await fastify.db.updateSonarrGenreRoute(id, updates)
+      await fastify.sonarrManager.updateGenreRoute(id, updates)
       reply.status(204)
     },
   )
@@ -186,7 +178,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     },
     async (request, reply) => {
       const { id } = request.params
-      await fastify.db.deleteSonarrGenreRoute(id)
+      await fastify.sonarrManager.removeGenreRoute(id)
       reply.status(204)
     },
   )
