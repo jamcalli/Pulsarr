@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useForm, type UseFormReturn } from 'react-hook-form'
 import { z } from 'zod'
 import { Loader2, Check, Trash2, Pen } from 'lucide-react'
@@ -49,7 +49,6 @@ export default function InstanceCard({
   instances,
   fetchInstanceData,
   fetchInstances,
-  fetchAllInstanceData,
   setShowInstanceCard,
 }: {
   instance: SonarrInstance
@@ -67,7 +66,7 @@ export default function InstanceCard({
     'idle' | 'loading' | 'success' | 'error'
   >('idle')
   const [isConnectionValid, setIsConnectionValid] = useState(false)
-  const [isInitialized, setIsInitialized] = useState(false)
+  const hasInitialized = useRef(false)
 
   const form = useForm<SonarrInstanceSchema>({
     defaultValues: {
@@ -102,8 +101,10 @@ export default function InstanceCard({
 
   useEffect(() => {
     const initializeComponent = async () => {
-      if (isInitialized) return
-  
+      // Use ref to prevent multiple initializations of the same instance
+      if (hasInitialized.current) return
+      hasInitialized.current = true
+
       const hasInstanceData =
         instance.data?.rootFolders && instance.data?.qualityProfiles
       const isPlaceholderKey = instance.apiKey === API_KEY_PLACEHOLDER
@@ -129,14 +130,10 @@ export default function InstanceCard({
           console.error('Silent connection test failed:', error)
         }
       }
-  
-      setIsInitialized(true)
     }
   
-    if (!isInitialized) {
-      initializeComponent()
-    }
-  }, [instance, isInitialized, testConnectionWithoutLoading, fetchInstanceData])
+    initializeComponent()
+  }, [instance.id])
 
   const testConnection = async () => {
     const values = form.getValues()
@@ -346,16 +343,6 @@ export default function InstanceCard({
       })
     } finally {
       setSaveStatus('idle')
-    }
-  }
-
-  const handleInstanceDataRequest = async (instanceId: number) => {
-    if (isConnectionValid) {
-      try {
-        await fetchInstanceData(instanceId.toString())
-      } catch (error) {
-        console.error('Failed to fetch instance data:', error)
-      }
     }
   }
 
