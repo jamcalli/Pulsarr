@@ -49,12 +49,14 @@ export default function InstanceCard({
   instances,
   fetchInstanceData,
   fetchInstances,
+  fetchAllInstanceData,
   setShowInstanceCard,
 }: {
   instance: SonarrInstance
   instances: SonarrInstance[]
   fetchInstanceData: (id: string) => Promise<void>
   fetchInstances: () => Promise<void>
+  fetchAllInstanceData: () => Promise<void>
   setShowInstanceCard?: (show: boolean) => void
 }) {
   const { toast } = useToast()
@@ -101,24 +103,11 @@ export default function InstanceCard({
   useEffect(() => {
     const initializeComponent = async () => {
       if (isInitialized) return
-
+  
       const hasInstanceData =
         instance.data?.rootFolders && instance.data?.qualityProfiles
       const isPlaceholderKey = instance.apiKey === API_KEY_PLACEHOLDER
-
-      form.reset({
-        name: instance.name || 'Default Instance',
-        baseUrl: instance.baseUrl || '',
-        apiKey: isPlaceholderKey ? '' : instance.apiKey || '',
-        qualityProfile: instance.qualityProfile || '',
-        rootFolder: instance.rootFolder || '',
-        bypassIgnored: instance.bypassIgnored || false,
-        seasonMonitoring:
-          (instance.seasonMonitoring as SonarrMonitoringType) || 'all',
-        tags: instance.tags || [],
-        isDefault: instance.isDefault || false,
-      })
-
+  
       if (hasInstanceData) {
         setIsConnectionValid(true)
         setTestStatus('success')
@@ -131,161 +120,123 @@ export default function InstanceCard({
           if (result.success) {
             setIsConnectionValid(true)
             setTestStatus('success')
-            await fetchInstanceData(instance.id.toString())
+            // Only fetch instance data if we don't already have it
+            if (!instance.data?.rootFolders || !instance.data?.qualityProfiles) {
+              await fetchInstanceData(instance.id.toString())
+            }
           }
         } catch (error) {
           console.error('Silent connection test failed:', error)
         }
       }
-
+  
       setIsInitialized(true)
     }
-
-    initializeComponent()
-  }, [
-    instance,
-    isInitialized,
-    form.reset,
-    fetchInstanceData,
-    testConnectionWithoutLoading,
-  ])
-
   
+    if (!isInitialized) {
+      initializeComponent()
+    }
+  }, [instance, isInitialized, testConnectionWithoutLoading, fetchInstanceData])
 
   const testConnection = async () => {
-    const values = form.getValues();
+    const values = form.getValues()
     if (!values.name?.trim()) {
       toast({
         title: 'Name Required',
         description: 'Please provide an instance name before testing connection',
         variant: 'destructive',
-      });
-      return;
+      })
+      return
     }
   
-    setTestStatus('loading');
+    setTestStatus('loading')
   
-    // Step 1: Test the connection first
     try {
+      // Test connection first
       const testResponse = await fetch(
         `/v1/sonarr/test-connection?baseUrl=${encodeURIComponent(
           values.baseUrl,
         )}&apiKey=${encodeURIComponent(values.apiKey)}`,
-      );
-      
+      )
+  
       if (!testResponse.ok) {
-        throw new Error('Failed to test connection');
+        throw new Error('Failed to test connection')
       }
-      
-      const testResult = await testResponse.json();
+  
+      const testResult = await testResponse.json()
       if (!testResult.success) {
-        throw new Error(testResult.message || 'Failed to connect to Sonarr');
+        throw new Error(testResult.message || 'Failed to connect to Sonarr')
       }
   
-      // Step 2: Create/Update the instance
-      try {
-        const isOnlyPlaceholder =
-          instances.length === 1 && instances[0].apiKey === API_KEY_PLACEHOLDER;
+      // Create/Update instance
+      let instanceId: string
   
-        if (instance.id === -1) {
-          setShowInstanceCard?.(false);
+      if (instance.id === -1) {
+        // Creating new instance
+        const createResponse = await fetch('/v1/sonarr/instances', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: values.name.trim(),
+            baseUrl: values.baseUrl,
+            apiKey: values.apiKey,
+            isDefault: false,
+          }),
+        })
+  
+        if (!createResponse.ok) {
+          throw new Error('Failed to create instance')
         }
   
-        let instanceId: string;
-        let response;
+        const newInstance = await createResponse.json()
+        instanceId = newInstance.id.toString()
   
-        if (instance.id === -1 && isOnlyPlaceholder) {
-          // Update placeholder instance
-          response = await fetch(
-            `/v1/sonarr/instances/${instances[0].id}`,
-            {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                name: values.name.trim(),
-                baseUrl: values.baseUrl,
-                apiKey: values.apiKey,
-                isDefault: true
-              }),
-            },
-          );
-          instanceId = instances[0].id.toString();
-        } else if (instance.id === -1) {
-          // Create new instance
-          response = await fetch('/v1/sonarr/instances', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              name: values.name.trim(),
-              baseUrl: values.baseUrl,
-              apiKey: values.apiKey,
-              isDefault: false
-            }),
-          });
-  
-          const newInstance = await response.json();
-          instanceId = newInstance.id.toString();
-        } else {
-          // Update existing instance
-          response = await fetch(
-            `/v1/sonarr/instances/${instance.id}`,
-            {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                name: values.name.trim(),
-                baseUrl: values.baseUrl,
-                apiKey: values.apiKey,
-              }),
-            },
-          );
-          instanceId = instance.id.toString();
-        }
-  
-        if (!response.ok) {
-          throw new Error('Failed to update instance configuration');
-        }
-  
-        // Step 3: Update instances list to get latest data
-        await fetchInstances();
-  
-        // Step 4: Set success state early to update UI
-        setTestStatus('success');
-        setIsConnectionValid(true);
+        // Update instances list first to include the new instance
+        await fetchInstances()
         
-        toast({
-          title: 'Connection Successful',
-          description: 'Successfully connected to Sonarr',
-          variant: 'default',
-        });
+        // Then fetch the new instance's data
+        await fetchInstanceData(instanceId)
+        
+        setShowInstanceCard?.(false)
+      } else {
+        // Updating existing instance
+        const updateResponse = await fetch(`/v1/sonarr/instances/${instance.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: values.name.trim(),
+            baseUrl: values.baseUrl,
+            apiKey: values.apiKey,
+          }),
+        })
   
-        // Step 5: Try to fetch instance data in a separate try-catch
-        try {
-          await fetchInstanceData(instanceId);
-        } catch (error) {
-          // Log the error but don't show it to the user since the connection is already successful
-          console.warn('Failed to fetch initial instance data:', error);
+        if (!updateResponse.ok) {
+          throw new Error('Failed to update instance')
         }
   
-      } catch (error) {
-        setTestStatus('error');
-        setIsConnectionValid(false);
-        toast({
-          title: 'Instance Update Failed',
-          description: error instanceof Error ? error.message : 'Failed to update Sonarr instance',
-          variant: 'destructive',
-        });
+        // For existing instance, just fetch its data
+        await fetchInstanceData(instance.id.toString())
       }
+  
+      setTestStatus('success')
+      setIsConnectionValid(true)
+  
+      toast({
+        title: 'Connection Successful',
+        description: 'Successfully connected to Sonarr',
+        variant: 'default',
+      })
     } catch (error) {
-      setTestStatus('error');
-      setIsConnectionValid(false);
+      setTestStatus('error')
+      setIsConnectionValid(false)
       toast({
         title: 'Connection Failed',
-        description: error instanceof Error ? error.message : 'Failed to connect to Sonarr',
+        description:
+          error instanceof Error ? error.message : 'Failed to connect to Sonarr',
         variant: 'destructive',
-      });
+      })
     }
-  };
+  }
 
   const clearConfig = async () => {
     setSaveStatus('loading')
@@ -587,8 +538,7 @@ export default function InstanceCard({
                         field={field}
                         isConnectionValid={isConnectionValid}
                         selectedInstance={instance.id}
-                        instances={[instance]}
-                        onInstanceDataRequest={handleInstanceDataRequest}
+                        instances={instances}
                       />
                       <FormMessage />
                     </FormItem>
@@ -606,8 +556,7 @@ export default function InstanceCard({
                         field={field}
                         isConnectionValid={isConnectionValid}
                         selectedInstance={instance.id}
-                        instances={[instance]}
-                        onInstanceDataRequest={handleInstanceDataRequest}
+                        instances={instances}
                       />
                       <FormMessage />
                     </FormItem>

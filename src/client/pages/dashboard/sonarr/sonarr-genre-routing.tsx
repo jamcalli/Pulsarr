@@ -1,5 +1,5 @@
 import type React from 'react'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import {
@@ -121,41 +121,47 @@ const GenreRoutingSection = () => {
     createGenreRoute,
     updateGenreRoute,
     deleteGenreRoute,
+    isInitialized
   } = useConfig()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(true)
-  const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false)
   const [localRoutes, setLocalRoutes] = useState<
     (Omit<GenreRoute, 'id'> & { tempId: string })[]
   >([])
+  const [savingRoutes, setSavingRoutes] = useState<{[key: string]: boolean}>({})
   const [modifiedRoutes, setModifiedRoutes] = useState<{
     [key: number]: Partial<GenreRoute>
   }>({})
 
   useEffect(() => {
-    if (!hasAttemptedFetch) {
-      const loadRoutes = async () => {
+    const loadInitialData = async () => {
+      if (!isInitialized) {
         setIsLoading(true)
         try {
-          await fetchGenreRoutes()
+          // Fetch both in parallel since they don't depend on each other
+          await Promise.all([
+            fetchGenreRoutes(),
+            fetchGenres() // Pre-fetch genres to avoid additional request later
+          ])
         } catch (error) {
           toast({
             title: 'Error',
-            description: 'Failed to fetch genre routes',
+            description: 'Failed to load genre routing data',
             variant: 'destructive',
           })
         } finally {
           setIsLoading(false)
-          setHasAttemptedFetch(true)
         }
+      } else {
+        setIsLoading(false)
       }
-
-      loadRoutes()
     }
-  }, [fetchGenreRoutes, toast, hasAttemptedFetch])
+
+    loadInitialData()
+  }, [isInitialized, fetchGenreRoutes, fetchGenres, toast])
 
   const handleGenreDropdownOpen = async () => {
-    if (!genres?.length) {
+    if (!genres?.length && !isLoading) {
       try {
         await fetchGenres()
       } catch (error) {
@@ -220,6 +226,8 @@ const GenreRoutingSection = () => {
   const handleSaveRoute = async (tempId: string) => {
     const route = localRoutes.find((r) => r.tempId === tempId)
     if (!route) return
+    
+    setSavingRoutes(prev => ({ ...prev, [tempId]: true }))
     try {
       await createGenreRoute({
         name: route.name,
@@ -228,8 +236,7 @@ const GenreRoutingSection = () => {
         rootFolder: route.rootFolder,
       })
 
-      setLocalRoutes(localRoutes.filter((r) => r.tempId !== tempId))
-
+      setLocalRoutes(prev => prev.filter((r) => r.tempId !== tempId))
       toast({
         title: 'Success',
         description: 'Genre route created',
@@ -239,6 +246,12 @@ const GenreRoutingSection = () => {
         title: 'Error',
         description: 'Failed to create genre route',
         variant: 'destructive',
+      })
+    } finally {
+      setSavingRoutes(prev => {
+        const updated = { ...prev }
+        delete updated[tempId]
+        return updated
       })
     }
   }
@@ -263,30 +276,51 @@ const GenreRoutingSection = () => {
     }
   }
 
-  const handleRouteChange = async (
+  const handleRouteChange = useCallback(async (
     id: number,
     field: keyof GenreRoute,
     value: string | number,
   ) => {
+    // Update local state immediately for better UX
+    setModifiedRoutes((prev) => ({
+      ...prev,
+      [id]: {
+        ...prev[id],
+        [field]: value,
+      },
+    }))
+
     try {
-      setModifiedRoutes((prev) => ({
-        ...prev,
-        [id]: {
-          ...prev[id],
-          [field]: value,
-        },
-      }))
       await updateGenreRoute(id, {
         [field]: value,
       })
+      
+      // Only clear modified state for this field after successful update
+      setModifiedRoutes((prev) => {
+        const updated = { ...prev }
+        if (updated[id]) {
+          delete updated[id][field as keyof GenreRoute]
+          if (Object.keys(updated[id]).length === 0) {
+            delete updated[id]
+          }
+        }
+        return updated
+      })
     } catch (error) {
+      // Revert local state on error
+      setModifiedRoutes((prev) => {
+        const updated = { ...prev }
+        delete updated[id]
+        return updated
+      })
+      
       toast({
         title: 'Error',
         description: 'Failed to update genre route',
         variant: 'destructive',
       })
     }
-  }
+  }, [updateGenreRoute, toast])
 
   if (isLoading) {
     return (
