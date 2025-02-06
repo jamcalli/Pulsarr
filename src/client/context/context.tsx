@@ -211,43 +211,46 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
   }
 
   const fetchInstanceData = async (instanceId: string) => {
+    // If we already have the data for this instance, don't fetch again
+    const existingInstance = instances.find(inst => inst.id === Number(instanceId))
+    if (existingInstance?.data?.rootFolders && existingInstance?.data?.qualityProfiles) {
+      return
+    }
+  
     try {
-      // Get the current state first
-      const currentInstances = [...instances];
-      
       const [foldersResponse, profilesResponse] = await Promise.all([
         fetch(`/v1/sonarr/root-folders?instanceId=${instanceId}`),
         fetch(`/v1/sonarr/quality-profiles?instanceId=${instanceId}`)
-      ]);
+      ])
   
       const [foldersData, profilesData] = await Promise.all([
         foldersResponse.json(),
         profilesResponse.json()
-      ]);
+      ])
   
       if (!foldersData.success || !profilesData.success) {
-        throw new Error('Failed to fetch instance data');
+        throw new Error('Failed to fetch instance data')
       }
   
-      // Update instances while preserving existing data
-      setInstances(currentInstances.map(instance => {
-        if (instance.id === Number(instanceId)) {
-          return {
-            ...instance,
-            data: {
-              rootFolders: foldersData.rootFolders,
-              qualityProfiles: profilesData.qualityProfiles
+      setInstances(currentInstances => 
+        currentInstances.map(instance => {
+          if (instance.id === Number(instanceId)) {
+            return {
+              ...instance,
+              data: {
+                rootFolders: foldersData.rootFolders,
+                qualityProfiles: profilesData.qualityProfiles
+              }
             }
-          };
-        }
-        return instance;
-      }));
-      
-    } catch (err) {
-      console.error('Failed to fetch instance data:', err);
-      throw err;
+          }
+          return instance
+        })
+      )
+    } catch (error) {
+      console.error('Failed to fetch instance data:', error)
+      throw error
     }
-  };
+  }
   
   // Modify your fetchAllInstanceData to be more robust
   const fetchAllInstanceData = async () => {
