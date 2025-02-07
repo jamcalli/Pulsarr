@@ -108,7 +108,7 @@ export default function InstanceCard({
       const hasInstanceData =
         instance.data?.rootFolders && instance.data?.qualityProfiles
       const isPlaceholderKey = instance.apiKey === API_KEY_PLACEHOLDER
-  
+
       if (hasInstanceData) {
         setIsConnectionValid(true)
         setTestStatus('success')
@@ -122,7 +122,10 @@ export default function InstanceCard({
             setIsConnectionValid(true)
             setTestStatus('success')
             // Only fetch instance data if we don't already have it
-            if (!instance.data?.rootFolders || !instance.data?.qualityProfiles) {
+            if (
+              !instance.data?.rootFolders ||
+              !instance.data?.qualityProfiles
+            ) {
               await fetchInstanceData(instance.id.toString())
             }
           }
@@ -131,7 +134,7 @@ export default function InstanceCard({
         }
       }
     }
-  
+
     initializeComponent()
   }, [instance.id])
 
@@ -140,14 +143,15 @@ export default function InstanceCard({
     if (!values.name?.trim()) {
       toast({
         title: 'Name Required',
-        description: 'Please provide an instance name before testing connection',
+        description:
+          'Please provide an instance name before testing connection',
         variant: 'destructive',
       })
       return
     }
-  
+
     setTestStatus('loading')
-  
+
     try {
       // Test connection first
       const testResponse = await fetch(
@@ -155,19 +159,19 @@ export default function InstanceCard({
           values.baseUrl,
         )}&apiKey=${encodeURIComponent(values.apiKey)}`,
       )
-  
+
       if (!testResponse.ok) {
         throw new Error('Failed to test connection')
       }
-  
+
       const testResult = await testResponse.json()
       if (!testResult.success) {
         throw new Error(testResult.message || 'Failed to connect to Sonarr')
       }
-  
+
       // Create/Update instance
       let instanceId: string
-  
+
       if (instance.id === -1) {
         // Creating new instance
         const createResponse = await fetch('/v1/sonarr/instances', {
@@ -180,44 +184,47 @@ export default function InstanceCard({
             isDefault: false,
           }),
         })
-  
+
         if (!createResponse.ok) {
           throw new Error('Failed to create instance')
         }
-  
+
         const newInstance = await createResponse.json()
         instanceId = newInstance.id.toString()
-  
+
         // Update instances list first to include the new instance
         await fetchInstances()
-        
+
         // Then fetch the new instance's data
         await fetchInstanceData(instanceId)
-        
+
         setShowInstanceCard?.(false)
       } else {
         // Updating existing instance
-        const updateResponse = await fetch(`/v1/sonarr/instances/${instance.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: values.name.trim(),
-            baseUrl: values.baseUrl,
-            apiKey: values.apiKey,
-          }),
-        })
-  
+        const updateResponse = await fetch(
+          `/v1/sonarr/instances/${instance.id}`,
+          {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: values.name.trim(),
+              baseUrl: values.baseUrl,
+              apiKey: values.apiKey,
+            }),
+          },
+        )
+
         if (!updateResponse.ok) {
           throw new Error('Failed to update instance')
         }
-  
+
         // For existing instance, just fetch its data
         await fetchInstanceData(instance.id.toString())
       }
-  
+
       setTestStatus('success')
       setIsConnectionValid(true)
-  
+
       toast({
         title: 'Connection Successful',
         description: 'Successfully connected to Sonarr',
@@ -229,7 +236,9 @@ export default function InstanceCard({
       toast({
         title: 'Connection Failed',
         description:
-          error instanceof Error ? error.message : 'Failed to connect to Sonarr',
+          error instanceof Error
+            ? error.message
+            : 'Failed to connect to Sonarr',
         variant: 'destructive',
       })
     }

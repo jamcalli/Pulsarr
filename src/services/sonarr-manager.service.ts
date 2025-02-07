@@ -303,7 +303,9 @@ export class SonarrManagerService {
     }
   }
 
-  async addGenreRoute(route: Omit<SonarrGenreRoute, 'id'>): Promise<SonarrGenreRoute> {
+  async addGenreRoute(
+    route: Omit<SonarrGenreRoute, 'id'>,
+  ): Promise<SonarrGenreRoute> {
     this.log.info(
       `Adding new genre route "${route.name}" for genre "${route.genre}"`,
     )

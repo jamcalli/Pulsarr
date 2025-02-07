@@ -20,6 +20,10 @@ const buttonVariants = cva(
         fun:
             'text-mtext bg-fun border-2 border-border shadow-shadow hover:translate-x-boxShadowX hover:translate-y-boxShadowY hover:shadow-none',
         error: 'text-mtext bg-error border-2 border-border',
+        blue:
+            'text-mtext bg-blue border-2 border-border',
+            cancel:
+            'text-mtext bg-fun border-2 border-border',
       },
       size: {
         default: 'h-10 px-4 py-2',
