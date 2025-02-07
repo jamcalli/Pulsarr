@@ -57,7 +57,7 @@ export function LogoutAlert({ open, onOpenChange }: LogoutAlertProps) {
     <Credenza open={open} onOpenChange={onOpenChange}>
       <CredenzaContent>
         <CredenzaHeader>
-          <CredenzaTitle>Are you sure you want to log out?</CredenzaTitle>
+        <CredenzaTitle className="text-text">Are you sure you want to log out?</CredenzaTitle>
           <CredenzaDescription>
             You will be redirected to the login screen. Your current session will be lost.
           </CredenzaDescription>
