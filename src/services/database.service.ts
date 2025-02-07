@@ -314,7 +314,7 @@ export class DatabaseService {
   async createSonarrInstance(
     instance: Omit<SonarrInstance, 'id'>,
   ): Promise<number> {
-    // If this is marked as default, clear any existing defaults
+
     if (instance.isDefault) {
       await this.knex('sonarr_instances')
         .where('is_default', true)
@@ -361,28 +361,32 @@ export class DatabaseService {
         .where('is_default', true)
         .update('is_default', false)
     }
-
+  
     await this.knex('sonarr_instances')
       .where('id', id)
       .update({
-        ...(updates.name && { name: updates.name }),
-        ...(updates.baseUrl && { base_url: updates.baseUrl }),
-        ...(updates.apiKey && { api_key: updates.apiKey }),
-        ...(updates.qualityProfile && {
+        ...(typeof updates.name !== 'undefined' && { name: updates.name }),
+        ...(typeof updates.baseUrl !== 'undefined' && { base_url: updates.baseUrl }),
+        ...(typeof updates.apiKey !== 'undefined' && { api_key: updates.apiKey }),
+        ...(typeof updates.qualityProfile !== 'undefined' && {
           quality_profile: updates.qualityProfile,
         }),
-        ...(updates.rootFolder && { root_folder: updates.rootFolder }),
+        ...(typeof updates.rootFolder !== 'undefined' && {
+          root_folder: updates.rootFolder,
+        }),
         ...(typeof updates.bypassIgnored !== 'undefined' && {
           bypass_ignored: updates.bypassIgnored,
         }),
-        ...(updates.seasonMonitoring && {
+        ...(typeof updates.seasonMonitoring !== 'undefined' && {
           season_monitoring: updates.seasonMonitoring,
         }),
-        ...(updates.tags && { tags: JSON.stringify(updates.tags) }),
+        ...(typeof updates.tags !== 'undefined' && {
+          tags: JSON.stringify(updates.tags),
+        }),
         ...(typeof updates.isDefault !== 'undefined' && {
           is_default: updates.isDefault,
         }),
-        ...(updates.syncedInstances && {
+        ...(typeof updates.syncedInstances !== 'undefined' && {
           synced_instances: JSON.stringify(updates.syncedInstances),
         }),
         updated_at: this.timestamp,
