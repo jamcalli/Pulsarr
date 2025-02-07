@@ -514,6 +514,7 @@ export function InstanceCard({
                       field={field}
                       instances={instances}
                       currentInstanceId={instance.id}
+                      isDefault={instance.isDefault}
                     />
                     <FormMessage />
                   </FormItem>

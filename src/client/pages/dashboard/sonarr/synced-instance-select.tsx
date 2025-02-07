@@ -1,64 +1,50 @@
 import type { ControllerRenderProps } from 'react-hook-form'
-import { Check } from 'lucide-react'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { FormControl } from '@/components/ui/form'
 import type { SonarrInstance } from '@/context/context'
 import type { SonarrInstanceSchema } from './sonarr-instance-card'
+import { MultiSelect } from '@/components/multi-select'
+import { Computer } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 
 function SyncedInstancesSelect({
   field,
   instances,
   currentInstanceId,
+  isDefault,
 }: {
   field: ControllerRenderProps<SonarrInstanceSchema, 'syncedInstances'>
   instances: SonarrInstance[]
   currentInstanceId: number
+  isDefault: boolean
 }) {
-  const availableInstances = instances.filter(
-    (inst) => inst.id !== currentInstanceId && inst.apiKey !== 'placeholder',
-  )
+  if (!isDefault) {
+    return (
+      <Badge variant={'warn'} className="h-10 text">
+        Syncing is only available for the default instance
+      </Badge>
+    )
+  }
+
+  const availableInstances = instances
+    .filter(
+      (inst) => inst.id !== currentInstanceId && inst.apiKey !== 'placeholder',
+    )
+    .map((instance) => ({
+      value: instance.id.toString(),
+      label: instance.name,
+      icon: Computer,
+    }))
 
   return (
-    <Select
-      onValueChange={(value) => {
-        const currentSyncs = field.value || []
-        const valueNum = Number.parseInt(value)
-        if (currentSyncs.includes(valueNum)) {
-          field.onChange(currentSyncs.filter((id: number) => id !== valueNum))
-        } else {
-          field.onChange([...currentSyncs, valueNum])
-        }
+    <MultiSelect
+      options={availableInstances}
+      onValueChange={(values) => {
+        field.onChange(values.map((v) => Number.parseInt(v)))
       }}
-      value={field.value?.[0]?.toString() || ''}
-    >
-      <FormControl>
-        <SelectTrigger>
-          <SelectValue placeholder="Select instances to sync with" />
-        </SelectTrigger>
-      </FormControl>
-      <SelectContent>
-        {availableInstances.map((instance) => (
-          <SelectItem
-            key={instance.id}
-            value={instance.id.toString()}
-            className="cursor-pointer"
-          >
-            <div className="flex items-center gap-2">
-              <div className="flex-1">{instance.name}</div>
-              {field.value?.includes(instance.id) && (
-                <Check className="h-4 w-4" />
-              )}
-            </div>
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+      defaultValue={field.value?.map((id) => id.toString()) || []}
+      placeholder="Select instances to sync with"
+      variant="default"
+      maxCount={1}
+    />
   )
 }
 
