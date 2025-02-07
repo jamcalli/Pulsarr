@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
+import { zodResolver } from '@hookform/resolvers/zod'
 import {
   Form,
   FormField,
@@ -29,12 +30,10 @@ import {
 import SyncedInstancesSelect from './synced-instance-select'
 import ConnectionSettings from './sonarr-connection-settings'
 
-const sonarrInstanceSchema = z.object({
+const baseInstanceSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   baseUrl: z.string().url({ message: 'Please enter a valid URL' }),
   apiKey: z.string().min(1, { message: 'API Key is required' }),
-  qualityProfile: z.string().min(1, 'Quality Profile is required'),
-  rootFolder: z.string().min(1, 'Root Folder is required'),
   bypassIgnored: z.boolean(),
   seasonMonitoring: z.custom<SonarrMonitoringType>((val) =>
     Object.keys(SONARR_MONITORING_OPTIONS).includes(val as string),
@@ -44,7 +43,17 @@ const sonarrInstanceSchema = z.object({
   syncedInstances: z.array(z.number()).optional(),
 })
 
-export type SonarrInstanceSchema = z.infer<typeof sonarrInstanceSchema>
+const initialInstanceSchema = baseInstanceSchema.extend({
+  qualityProfile: z.string(),
+  rootFolder: z.string(),
+})
+
+const fullInstanceSchema = baseInstanceSchema.extend({
+  qualityProfile: z.string().min(1, 'Quality Profile is required'),
+  rootFolder: z.string().min(1, 'Root Folder is required'),
+})
+
+export type SonarrInstanceSchema = z.infer<typeof fullInstanceSchema>
 
 const API_KEY_PLACEHOLDER = 'placeholder'
 
@@ -73,6 +82,9 @@ export function InstanceCard({
   const hasInitialized = useRef(false)
 
   const form = useForm<SonarrInstanceSchema>({
+    resolver: zodResolver(
+      instance.id === -1 ? initialInstanceSchema : fullInstanceSchema,
+    ),
     defaultValues: {
       name: instance.name,
       baseUrl: instance.baseUrl,
@@ -82,11 +94,18 @@ export function InstanceCard({
       bypassIgnored: instance.bypassIgnored,
       seasonMonitoring: instance.seasonMonitoring as SonarrMonitoringType,
       tags: instance.tags,
-      isDefault: instance.isDefault,
+      isDefault:
+        instances.length === 1 && instances[0].apiKey === API_KEY_PLACEHOLDER,
       syncedInstances: instance.syncedInstances || [],
     },
-    mode: 'onChange',
+    mode: 'all',
   })
+
+  useEffect(() => {
+    if (instance.id === -1) {
+      form.trigger(['baseUrl', 'apiKey'])
+    }
+  }, [instance.id, form])
 
   const testConnectionWithoutLoading = useCallback(
     async (baseUrl: string, apiKey: string) => {
@@ -152,40 +171,67 @@ export function InstanceCard({
     fetchInstanceData,
   ])
 
+  useEffect(() => {
+    if (isConnectionValid) {
+      const values = form.getValues()
+      const hasPlaceholderValues =
+        !values.qualityProfile ||
+        !values.rootFolder ||
+        values.qualityProfile === '' ||
+        values.rootFolder === ''
+
+      if (hasPlaceholderValues) {
+        form.clearErrors()
+
+        form.trigger(['qualityProfile', 'rootFolder'])
+
+        form.setValue('qualityProfile', values.qualityProfile || '', {
+          shouldTouch: true,
+          shouldValidate: true,
+        })
+        form.setValue('rootFolder', values.rootFolder || '', {
+          shouldTouch: true,
+          shouldValidate: true,
+        })
+      }
+    }
+  }, [isConnectionValid, form])
+
   const onSubmit = async (data: SonarrInstanceSchema) => {
     if (!isConnectionValid) {
       toast({
         title: 'Connection Required',
-        description: 'Please test the connection before saving the configuration',
+        description:
+          'Please test the connection before saving the configuration',
         variant: 'destructive',
       })
       return
     }
-  
+
     setSaveStatus('loading')
     try {
-      const minimumLoadingTime = new Promise((resolve) => setTimeout(resolve, 500))
-  
-      // If this instance is being set as default and wasn't default before
+      const minimumLoadingTime = new Promise((resolve) =>
+        setTimeout(resolve, 500),
+      )
+
       if (data.isDefault && !instance.isDefault) {
-        // First, update all other instances to not be default
         const updatePromises = instances
-          .filter(inst => inst.id !== instance.id && inst.isDefault)
-          .map(inst => 
+          .filter((inst) => inst.id !== instance.id && inst.isDefault)
+          .map((inst) =>
             fetch(`/v1/sonarr/instances/${inst.id}`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 ...inst,
                 isDefault: false,
-                syncedInstances: []
+                syncedInstances: [],
               }),
-            })
+            }),
           )
-        
+
         await Promise.all(updatePromises)
       }
-  
+
       await Promise.all([
         fetch(`/v1/sonarr/instances/${instance.id}`, {
           method: 'PUT',
@@ -203,14 +249,14 @@ export function InstanceCard({
         }),
         minimumLoadingTime,
       ])
-  
+
       setSaveStatus('success')
       toast({
         title: 'Configuration Updated',
         description: 'Sonarr configuration has been updated successfully',
         variant: 'default',
       })
-  
+
       form.reset(data)
       await fetchInstances()
     } catch (error) {
@@ -238,7 +284,14 @@ export function InstanceCard({
       isDefault: instance.isDefault,
       syncedInstances: instance.syncedInstances || [],
     })
-  }, [instance, form])
+
+    if (
+      isConnectionValid &&
+      (!instance.qualityProfile || !instance.rootFolder)
+    ) {
+      form.trigger(['qualityProfile', 'rootFolder'])
+    }
+  }, [instance, form, isConnectionValid])
 
   const testConnection = async () => {
     const values = form.getValues()
@@ -296,6 +349,16 @@ export function InstanceCard({
             await fetchInstanceData(instances[0].id.toString())
             setShowInstanceCard?.(false)
           } else if (instance.id === -1) {
+            setIsConnectionValid(true)
+            setTestStatus('success')
+
+            form.clearErrors()
+            const isValid = await form.trigger(['qualityProfile', 'rootFolder'])
+
+            if (!isValid) {
+              return
+            }
+
             const createResponse = await fetch('/v1/sonarr/instances', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -303,6 +366,8 @@ export function InstanceCard({
                 name: values.name.trim(),
                 baseUrl: values.baseUrl,
                 apiKey: values.apiKey,
+                qualityProfile: values.qualityProfile,
+                rootFolder: values.rootFolder,
                 isDefault: false,
               }),
             })
@@ -322,13 +387,15 @@ export function InstanceCard({
         minimumLoadingTime,
       ])
 
-      setTestStatus('success')
-      setIsConnectionValid(true)
-      toast({
-        title: 'Connection Successful',
-        description: 'Successfully connected to Sonarr',
-        variant: 'default',
-      })
+      if (!instance.id || instance.id !== -1) {
+        setTestStatus('success')
+        setIsConnectionValid(true)
+        toast({
+          title: 'Connection Successful',
+          description: 'Successfully connected to Sonarr',
+          variant: 'default',
+        })
+      }
     } catch (error) {
       setTestStatus('error')
       setIsConnectionValid(false)
@@ -455,7 +522,6 @@ export function InstanceCard({
               saveStatus={saveStatus}
               hasValidUrlAndKey={hasValidUrlAndKey}
             />
-
             {/* Profile Settings */}
             <div className="flex portrait:flex-col gap-4">
               <div className="flex-1">
@@ -556,8 +622,11 @@ export function InstanceCard({
                 control={form.control}
                 name="isDefault"
                 render={({ field }) => (
-                  <FormItem className="flex flex-col justify-end h-full">
-                    <div className="flex items-center gap-2">
+                  <FormItem>
+                    <FormLabel className="text-text">
+                      Default Instance
+                    </FormLabel>
+                    <div className="flex h-10 items-center gap-2 px-3 py-2">
                       <FormControl>
                         <Switch
                           checked={field.value}
@@ -565,11 +634,10 @@ export function InstanceCard({
                           disabled={!isConnectionValid}
                         />
                       </FormControl>
-                      <FormLabel className="text-text">
-                        Set as Default Instance
-                      </FormLabel>
+                      <span className="text-sm text-text text-muted-foreground">
+                        Set as default instance
+                      </span>
                     </div>
-                    <FormMessage />
                   </FormItem>
                 )}
               />
