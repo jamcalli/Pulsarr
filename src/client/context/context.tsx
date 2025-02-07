@@ -99,7 +99,7 @@ interface ConfigContextType {
   updateConfig: (updates: Partial<Config>) => Promise<void>
   fetchInstances: () => Promise<void>
   fetchInstanceData: (instanceId: string) => Promise<void>
-  fetchAllInstanceData: () => Promise<void> 
+  fetchAllInstanceData: () => Promise<void>
   genres: string[]
   fetchGenres: () => Promise<void>
   genreRoutes: GenreRoute[]
@@ -126,7 +126,7 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const initialize = async () => {
       if (isInitialized) return
-      
+
       setLoading(true)
       try {
         await fetchConfig()
@@ -185,23 +185,25 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
     try {
       // Store current instances and their data
       const currentInstances = [...instances]
-      
+
       const response = await fetch('/v1/sonarr/instances')
       const newInstances: SonarrInstance[] = await response.json()
-      
+
       // Merge new instances with existing data
-      const mergedInstances = newInstances.map(newInst => {
-        const existingInstance = currentInstances.find(curr => curr.id === newInst.id)
+      const mergedInstances = newInstances.map((newInst) => {
+        const existingInstance = currentInstances.find(
+          (curr) => curr.id === newInst.id,
+        )
         if (existingInstance) {
           // Preserve existing instance data
           return {
             ...newInst,
-            data: existingInstance.data
+            data: existingInstance.data,
           }
         }
         return newInst
       })
-      
+
       setInstances(mergedInstances)
     } catch (err) {
       setError('Failed to fetch Sonarr instances')
@@ -212,59 +214,66 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
 
   const fetchInstanceData = async (instanceId: string) => {
     // If we already have the data for this instance, don't fetch again
-    const existingInstance = instances.find(inst => inst.id === Number(instanceId))
-    if (existingInstance?.data?.rootFolders && existingInstance?.data?.qualityProfiles) {
+    const existingInstance = instances.find(
+      (inst) => inst.id === Number(instanceId),
+    )
+    if (
+      existingInstance?.data?.rootFolders &&
+      existingInstance?.data?.qualityProfiles
+    ) {
       return
     }
-  
+
     try {
       const [foldersResponse, profilesResponse] = await Promise.all([
         fetch(`/v1/sonarr/root-folders?instanceId=${instanceId}`),
-        fetch(`/v1/sonarr/quality-profiles?instanceId=${instanceId}`)
+        fetch(`/v1/sonarr/quality-profiles?instanceId=${instanceId}`),
       ])
-  
+
       const [foldersData, profilesData] = await Promise.all([
         foldersResponse.json(),
-        profilesResponse.json()
+        profilesResponse.json(),
       ])
-  
+
       if (!foldersData.success || !profilesData.success) {
         throw new Error('Failed to fetch instance data')
       }
-  
-      setInstances(currentInstances => 
-        currentInstances.map(instance => {
+
+      setInstances((currentInstances) =>
+        currentInstances.map((instance) => {
           if (instance.id === Number(instanceId)) {
             return {
               ...instance,
               data: {
                 rootFolders: foldersData.rootFolders,
-                qualityProfiles: profilesData.qualityProfiles
-              }
+                qualityProfiles: profilesData.qualityProfiles,
+              },
             }
           }
           return instance
-        })
+        }),
       )
     } catch (error) {
       console.error('Failed to fetch instance data:', error)
       throw error
     }
   }
-  
+
   // Modify your fetchAllInstanceData to be more robust
   const fetchAllInstanceData = async () => {
     try {
       // Get fresh instances first
       await fetchInstances()
-      
+
       const validInstances = instances.filter(
-        (inst) => inst.apiKey && inst.apiKey !== 'placeholder'
+        (inst) => inst.apiKey && inst.apiKey !== 'placeholder',
       )
-  
+
       // Fetch all instance data in parallel while preserving existing data
       await Promise.all(
-        validInstances.map((instance) => fetchInstanceData(instance.id.toString()))
+        validInstances.map((instance) =>
+          fetchInstanceData(instance.id.toString()),
+        ),
       )
     } catch (err) {
       setError('Failed to fetch all Sonarr instance data')
@@ -372,7 +381,7 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
     createGenreRoute,
     updateGenreRoute,
     deleteGenreRoute,
-    isInitialized
+    isInitialized,
   }
 
   return (
