@@ -3,8 +3,8 @@ import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-react'
 import { useConfig } from '@/context/context'
 import { useToast } from '@/hooks/use-toast'
-import GenreRouteCard from './genre-route-card'
-import type { GenreRouteFormValues } from './genre-route-card'
+import GenreRouteCard from './sonarr-genre-route-card'
+import type { GenreRouteFormValues } from './sonarr-genre-route-card'
 
 const GenreRoutingSection = () => {
   const {
