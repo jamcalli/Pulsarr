@@ -156,19 +156,36 @@ export function InstanceCard({
     if (!isConnectionValid) {
       toast({
         title: 'Connection Required',
-        description:
-          'Please test the connection before saving the configuration',
+        description: 'Please test the connection before saving the configuration',
         variant: 'destructive',
       })
       return
     }
-
+  
     setSaveStatus('loading')
     try {
-      const minimumLoadingTime = new Promise((resolve) =>
-        setTimeout(resolve, 500),
-      )
-
+      const minimumLoadingTime = new Promise((resolve) => setTimeout(resolve, 500))
+  
+      // If this instance is being set as default and wasn't default before
+      if (data.isDefault && !instance.isDefault) {
+        // First, update all other instances to not be default
+        const updatePromises = instances
+          .filter(inst => inst.id !== instance.id && inst.isDefault)
+          .map(inst => 
+            fetch(`/v1/sonarr/instances/${inst.id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                ...inst,
+                isDefault: false,
+                syncedInstances: []
+              }),
+            })
+          )
+        
+        await Promise.all(updatePromises)
+      }
+  
       await Promise.all([
         fetch(`/v1/sonarr/instances/${instance.id}`, {
           method: 'PUT',
@@ -186,16 +203,15 @@ export function InstanceCard({
         }),
         minimumLoadingTime,
       ])
-
+  
       setSaveStatus('success')
       toast({
         title: 'Configuration Updated',
         description: 'Sonarr configuration has been updated successfully',
         variant: 'default',
       })
-
+  
       form.reset(data)
-
       await fetchInstances()
     } catch (error) {
       setSaveStatus('error')
@@ -208,6 +224,21 @@ export function InstanceCard({
       setSaveStatus('idle')
     }
   }
+
+  useEffect(() => {
+    form.reset({
+      name: instance.name,
+      baseUrl: instance.baseUrl,
+      apiKey: instance.apiKey,
+      qualityProfile: instance.qualityProfile || '',
+      rootFolder: instance.rootFolder || '',
+      bypassIgnored: instance.bypassIgnored,
+      seasonMonitoring: instance.seasonMonitoring as SonarrMonitoringType,
+      tags: instance.tags,
+      isDefault: instance.isDefault,
+      syncedInstances: instance.syncedInstances || [],
+    })
+  }, [instance, form])
 
   const testConnection = async () => {
     const values = form.getValues()
