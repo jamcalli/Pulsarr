@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
-import { useConfig } from '@/context/context';
-import { useToast } from '@/hooks/use-toast';
-import GenreRouteCard from './genre-route-card';
-import type { GenreRouteFormValues } from './genre-route-card';
+import { useState, useEffect } from 'react'
+import { Button } from '@/components/ui/button'
+import { Loader2 } from 'lucide-react'
+import { useConfig } from '@/context/context'
+import { useToast } from '@/hooks/use-toast'
+import GenreRouteCard from './genre-route-card'
+import type { GenreRouteFormValues } from './genre-route-card'
 
 const GenreRoutingSection = () => {
   const {
@@ -17,47 +17,48 @@ const GenreRoutingSection = () => {
     updateGenreRoute,
     deleteGenreRoute,
     isInitialized,
-  } = useConfig();
-  
-  const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(true);
-  const [localRoutes, setLocalRoutes] = useState<Array<{
-    tempId: string;
-    name: string;
-    genre: string;
-    sonarrInstanceId: number;
-    rootFolder: string;
-  }>>([]);
-  const [savingRoutes, setSavingRoutes] = useState<{ [key: string]: boolean }>({});
+  } = useConfig()
+
+  const { toast } = useToast()
+  const [isLoading, setIsLoading] = useState(true)
+  const [localRoutes, setLocalRoutes] = useState<
+    Array<{
+      tempId: string
+      name: string
+      genre: string
+      sonarrInstanceId: number
+      rootFolder: string
+    }>
+  >([])
+  const [savingRoutes, setSavingRoutes] = useState<{ [key: string]: boolean }>(
+    {},
+  )
 
   useEffect(() => {
     const loadInitialData = async () => {
       if (!isInitialized) {
-        setIsLoading(true);
+        setIsLoading(true)
         try {
-          await Promise.all([
-            fetchGenreRoutes(),
-            fetchGenres(),
-          ]);
+          await Promise.all([fetchGenreRoutes(), fetchGenres()])
         } catch (error) {
           toast({
             title: 'Error',
             description: 'Failed to load genre routing data',
             variant: 'destructive',
-          });
+          })
         } finally {
-          setIsLoading(false);
+          setIsLoading(false)
         }
       } else {
-        setIsLoading(false);
+        setIsLoading(false)
       }
-    };
+    }
 
-    loadInitialData();
-  }, [isInitialized, fetchGenreRoutes, fetchGenres, toast]);
+    loadInitialData()
+  }, [isInitialized, fetchGenreRoutes, fetchGenres, toast])
 
   const handleAddRoute = () => {
-    const defaultInstance = instances[0];
+    const defaultInstance = instances[0]
     setLocalRoutes([
       ...localRoutes,
       {
@@ -67,102 +68,103 @@ const GenreRoutingSection = () => {
         genre: '',
         rootFolder: '',
       },
-    ]);
-  };
+    ])
+  }
 
-  const handleSaveNewRoute = async (tempId: string, data: GenreRouteFormValues) => {
-    setSavingRoutes((prev) => ({ ...prev, [tempId]: true }));
+  const handleSaveNewRoute = async (
+    tempId: string,
+    data: GenreRouteFormValues,
+  ) => {
+    setSavingRoutes((prev) => ({ ...prev, [tempId]: true }))
     try {
-      const minimumLoadingTime = new Promise((resolve) => setTimeout(resolve, 500));
-      await Promise.all([
-        createGenreRoute(data),
-        minimumLoadingTime,
-      ]);
+      const minimumLoadingTime = new Promise((resolve) =>
+        setTimeout(resolve, 500),
+      )
+      await Promise.all([createGenreRoute(data), minimumLoadingTime])
 
-      setLocalRoutes((prev) => prev.filter((r) => r.tempId !== tempId));
+      setLocalRoutes((prev) => prev.filter((r) => r.tempId !== tempId))
       toast({
         title: 'Success',
         description: 'Genre route created',
-      });
+      })
     } catch (error) {
       toast({
         title: 'Error',
         description: 'Failed to create genre route',
         variant: 'destructive',
-      });
+      })
     } finally {
       setSavingRoutes((prev) => {
-        const updated = { ...prev };
-        delete updated[tempId];
-        return updated;
-      });
+        const updated = { ...prev }
+        delete updated[tempId]
+        return updated
+      })
     }
-  };
+  }
 
   const handleUpdateRoute = async (id: number, data: GenreRouteFormValues) => {
-    setSavingRoutes((prev) => ({ ...prev, [id]: true }));
+    setSavingRoutes((prev) => ({ ...prev, [id]: true }))
     try {
-      const minimumLoadingTime = new Promise((resolve) => setTimeout(resolve, 500));
-      await Promise.all([
-        updateGenreRoute(id, data),
-        minimumLoadingTime,
-      ]);
+      const minimumLoadingTime = new Promise((resolve) =>
+        setTimeout(resolve, 500),
+      )
+      await Promise.all([updateGenreRoute(id, data), minimumLoadingTime])
 
       toast({
         title: 'Success',
         description: 'Genre route updated',
-      });
+      })
     } catch (error) {
       toast({
         title: 'Error',
         description: 'Failed to update genre route',
         variant: 'destructive',
-      });
+      })
     } finally {
       setSavingRoutes((prev) => {
-        const updated = { ...prev };
-        delete updated[id];
-        return updated;
-      });
+        const updated = { ...prev }
+        delete updated[id]
+        return updated
+      })
     }
-  };
+  }
 
   const handleGenreDropdownOpen = async () => {
     if (!genres?.length && !isLoading) {
       try {
-        await fetchGenres();
+        await fetchGenres()
       } catch (error) {
         toast({
           title: 'Error',
           description: 'Failed to fetch genres',
           variant: 'destructive',
-        });
+        })
       }
     }
-  };
+  }
 
   const handleRemoveRoute = async (id: number) => {
     try {
-      await deleteGenreRoute(id);
+      await deleteGenreRoute(id)
       toast({
         title: 'Success',
         description: 'Genre route removed',
-      });
+      })
     } catch (error) {
       toast({
         title: 'Error',
         description: 'Failed to remove genre route',
         variant: 'destructive',
-      });
+      })
     }
-  };
+  }
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
-    );
+    )
   }
 
   return (
@@ -175,12 +177,16 @@ const GenreRoutingSection = () => {
       <div className="grid gap-4">
         {/* Local (unsaved) routes */}
         {localRoutes.map((route) => (
-                      <GenreRouteCard
+          <GenreRouteCard
             key={route.tempId}
             route={route}
             isNew={true}
             onSave={(data) => handleSaveNewRoute(route.tempId, data)}
-            onCancel={() => setLocalRoutes((prev) => prev.filter((r) => r.tempId !== route.tempId))}
+            onCancel={() =>
+              setLocalRoutes((prev) =>
+                prev.filter((r) => r.tempId !== route.tempId),
+              )
+            }
             onGenreDropdownOpen={handleGenreDropdownOpen}
             instances={instances}
             genres={genres}
@@ -190,7 +196,7 @@ const GenreRoutingSection = () => {
 
         {/* Saved routes */}
         {genreRoutes.map((route) => (
-                      <GenreRouteCard
+          <GenreRouteCard
             key={route.id}
             route={route}
             onSave={(data) => handleUpdateRoute(route.id, data)}
@@ -213,7 +219,7 @@ const GenreRoutingSection = () => {
         )}
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default GenreRoutingSection;
+export default GenreRoutingSection

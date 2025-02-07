@@ -6,9 +6,7 @@ import {
   SelectValue,
   SelectItem,
 } from '@/components/ui/select'
-import {
-  FormControl,
-} from '@/components/ui/form'
+import { FormControl } from '@/components/ui/form'
 
 type SelectFieldProps = {
   onChange: (value: string) => void

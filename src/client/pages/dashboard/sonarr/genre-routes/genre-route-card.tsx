@@ -1,25 +1,25 @@
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { useState, useEffect } from 'react'
+import { Button } from '@/components/ui/button'
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Trash2, Loader2, Pen, Save } from 'lucide-react';
-import * as z from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+} from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
+import { Trash2, Loader2, Pen, Save } from 'lucide-react'
+import * as z from 'zod'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import {
   Form,
   FormControl,
   FormField,
   FormItem,
   FormMessage,
-} from '@/components/ui/form';
+} from '@/components/ui/form'
 
 const genreRouteSchema = z.object({
   name: z.string().min(2, {
@@ -34,26 +34,30 @@ const genreRouteSchema = z.object({
   rootFolder: z.string().min(1, {
     message: 'Root folder is required.',
   }),
-});
+})
 
-export type GenreRouteFormValues = z.infer<typeof genreRouteSchema>;
+export type GenreRouteFormValues = z.infer<typeof genreRouteSchema>
 
 interface GenreRouteCardProps {
   route: {
-    id?: number;
-    name: string;
-    genre: string;
-    sonarrInstanceId: number;
-    rootFolder: string;
-  };
-  isNew?: boolean;
-  onSave: (data: GenreRouteFormValues) => Promise<void>;
-  onCancel: () => void;
-  onRemove?: () => void;
-  onGenreDropdownOpen: () => Promise<void>;
-  instances: Array<{ id: number; name: string; data?: { rootFolders?: Array<{ path: string }> } }>;
-  genres: string[];
-  isSaving: boolean;
+    id?: number
+    name: string
+    genre: string
+    sonarrInstanceId: number
+    rootFolder: string
+  }
+  isNew?: boolean
+  onSave: (data: GenreRouteFormValues) => Promise<void>
+  onCancel: () => void
+  onRemove?: () => void
+  onGenreDropdownOpen: () => Promise<void>
+  instances: Array<{
+    id: number
+    name: string
+    data?: { rootFolders?: Array<{ path: string }> }
+  }>
+  genres: string[]
+  isSaving: boolean
 }
 
 const GenreRouteCard = ({
@@ -67,8 +71,8 @@ const GenreRouteCard = ({
   genres,
   isSaving,
 }: GenreRouteCardProps) => {
-  const [isEditing, setIsEditing] = useState(false);
-  
+  const [isEditing, setIsEditing] = useState(false)
+
   const form = useForm<GenreRouteFormValues>({
     resolver: zodResolver(genreRouteSchema),
     defaultValues: {
@@ -77,8 +81,8 @@ const GenreRouteCard = ({
       sonarrInstanceId: route.sonarrInstanceId,
       rootFolder: route.rootFolder,
     },
-    mode: "all"
-  });
+    mode: 'all',
+  })
 
   useEffect(() => {
     form.reset({
@@ -86,15 +90,15 @@ const GenreRouteCard = ({
       genre: route.genre,
       sonarrInstanceId: route.sonarrInstanceId,
       rootFolder: route.rootFolder,
-    });
-  }, [route, form]);
+    })
+  }, [route, form])
 
   useEffect(() => {
     if (isNew) {
-      form.trigger();
+      form.trigger()
     }
-    onGenreDropdownOpen();
-  }, [form, isNew, onGenreDropdownOpen]);
+    onGenreDropdownOpen()
+  }, [form, isNew, onGenreDropdownOpen])
 
   const handleCancel = () => {
     form.reset({
@@ -102,27 +106,25 @@ const GenreRouteCard = ({
       genre: route.genre,
       sonarrInstanceId: route.sonarrInstanceId,
       rootFolder: route.rootFolder,
-    });
-    setIsEditing(false);
-    onCancel();
-  };
+    })
+    setIsEditing(false)
+    onCancel()
+  }
 
   const onSubmit = async (data: GenreRouteFormValues) => {
     try {
-      await onSave(data);
-      form.reset(data);
-      setIsEditing(false);
-    } catch (error) {
-
-    }
-  };
+      await onSave(data)
+      form.reset(data)
+      setIsEditing(false)
+    } catch (error) {}
+  }
 
   const selectedInstance = instances.find(
-    (inst) => inst.id === form.watch('sonarrInstanceId')
-  );
+    (inst) => inst.id === form.watch('sonarrInstanceId'),
+  )
 
-  const isDirty = form.formState.isDirty;
-  const isValid = form.formState.isValid;
+  const isDirty = form.formState.isDirty
+  const isValid = form.formState.isValid
 
   return (
     <Card className="bg-bg">
@@ -146,10 +148,10 @@ const GenreRouteCard = ({
                             onBlur={() => setIsEditing(false)}
                             onKeyDown={(e) => {
                               if (e.key === 'Enter') {
-                                setIsEditing(false);
+                                setIsEditing(false)
                               } else if (e.key === 'Escape') {
-                                form.setValue('name', route.name);
-                                setIsEditing(false);
+                                form.setValue('name', route.name)
+                                setIsEditing(false)
                               }
                             }}
                           />
@@ -187,7 +189,7 @@ const GenreRouteCard = ({
                     <span>Cancel</span>
                   </Button>
                 )}
-                
+
                 <Button
                   variant="blue"
                   type="submit"
@@ -232,7 +234,7 @@ const GenreRouteCard = ({
                       value={field.value}
                       onValueChange={field.onChange}
                       onOpenChange={(open) => {
-                        if (open) onGenreDropdownOpen();
+                        if (open) onGenreDropdownOpen()
                       }}
                     >
                       <FormControl>
@@ -260,8 +262,8 @@ const GenreRouteCard = ({
                     <Select
                       value={field.value.toString()}
                       onValueChange={(value) => {
-                        field.onChange(parseInt(value));
-                        form.setValue('rootFolder', '', { shouldDirty: true });
+                        field.onChange(Number.parseInt(value))
+                        form.setValue('rootFolder', '', { shouldDirty: true })
                       }}
                     >
                       <FormControl>
@@ -271,7 +273,10 @@ const GenreRouteCard = ({
                       </FormControl>
                       <SelectContent>
                         {instances.map((instance) => (
-                          <SelectItem key={instance.id} value={instance.id.toString()}>
+                          <SelectItem
+                            key={instance.id}
+                            value={instance.id.toString()}
+                          >
                             {instance.name}
                           </SelectItem>
                         ))}
@@ -286,10 +291,7 @@ const GenreRouteCard = ({
                 name="rootFolder"
                 render={({ field }) => (
                   <FormItem>
-                    <Select
-                      value={field.value}
-                      onValueChange={field.onChange}
-                    >
+                    <Select value={field.value} onValueChange={field.onChange}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select root folder" />
@@ -312,7 +314,7 @@ const GenreRouteCard = ({
         </form>
       </Form>
     </Card>
-  );
-};
+  )
+}
 
-export default GenreRouteCard;
+export default GenreRouteCard

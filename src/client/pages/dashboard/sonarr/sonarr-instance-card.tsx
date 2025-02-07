@@ -34,7 +34,7 @@ const sonarrInstanceSchema = z.object({
   baseUrl: z.string().url({ message: 'Please enter a valid URL' }),
   apiKey: z.string().min(1, { message: 'API Key is required' }),
   qualityProfile: z.string().min(1, 'Quality Profile is required'),
-  rootFolder: z.string().min(1, 'Root Folder is required'),       
+  rootFolder: z.string().min(1, 'Root Folder is required'),
   bypassIgnored: z.boolean(),
   seasonMonitoring: z.custom<SonarrMonitoringType>((val) =>
     Object.keys(SONARR_MONITORING_OPTIONS).includes(val as string),
@@ -137,7 +137,7 @@ function EditableCardHeader({
               <span>Cancel</span>
             </Button>
           )}
-          
+
           <Button
             variant="blue"
             onClick={onSave}
@@ -260,14 +260,14 @@ function SyncedInstancesSelect({
   currentInstanceId: number
 }) {
   const availableInstances = instances.filter(
-    (inst) => inst.id !== currentInstanceId && inst.apiKey !== 'placeholder'
+    (inst) => inst.id !== currentInstanceId && inst.apiKey !== 'placeholder',
   )
 
   return (
     <Select
       onValueChange={(value) => {
         const currentSyncs = field.value || []
-        const valueNum = parseInt(value)
+        const valueNum = Number.parseInt(value)
         if (currentSyncs.includes(valueNum)) {
           field.onChange(currentSyncs.filter((id: number) => id !== valueNum))
         } else {
@@ -316,8 +316,12 @@ export function InstanceCard({
   setShowInstanceCard?: (show: boolean) => void
 }) {
   const { toast } = useToast()
-  const [testStatus, setTestStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const [testStatus, setTestStatus] = useState<
+    'idle' | 'loading' | 'success' | 'error'
+  >('idle')
+  const [saveStatus, setSaveStatus] = useState<
+    'idle' | 'loading' | 'success' | 'error'
+  >('idle')
   const [isConnectionValid, setIsConnectionValid] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const hasInitialized = useRef(false)
@@ -328,32 +332,34 @@ export function InstanceCard({
       baseUrl: instance.baseUrl,
       apiKey: instance.apiKey,
       qualityProfile: instance.qualityProfile || '',
-      rootFolder: instance.rootFolder || '',       
+      rootFolder: instance.rootFolder || '',
       bypassIgnored: instance.bypassIgnored,
       seasonMonitoring: instance.seasonMonitoring as SonarrMonitoringType,
       tags: instance.tags,
       isDefault: instance.isDefault,
       syncedInstances: instance.syncedInstances || [],
     },
-    mode: "onChange" 
-  });
+    mode: 'onChange',
+  })
 
   // Test connection without loading UI
   const testConnectionWithoutLoading = useCallback(
     async (baseUrl: string, apiKey: string) => {
-      const minimumLoadingTime = new Promise((resolve) => setTimeout(resolve, 500))
-      
+      const minimumLoadingTime = new Promise((resolve) =>
+        setTimeout(resolve, 500),
+      )
+
       const [response] = await Promise.all([
         fetch(
           `/v1/sonarr/test-connection?baseUrl=${encodeURIComponent(baseUrl)}&apiKey=${encodeURIComponent(apiKey)}`,
         ),
-        minimumLoadingTime
+        minimumLoadingTime,
       ])
-  
+
       if (!response.ok) {
         throw new Error('Failed to test connection')
       }
-  
+
       return await response.json()
     },
     [],
@@ -381,7 +387,10 @@ export function InstanceCard({
           if (result.success) {
             setIsConnectionValid(true)
             setTestStatus('success')
-            if (!instance.data?.rootFolders || !instance.data?.qualityProfiles) {
+            if (
+              !instance.data?.rootFolders ||
+              !instance.data?.qualityProfiles
+            ) {
               await fetchInstanceData(instance.id.toString())
             }
           }
@@ -398,16 +407,19 @@ export function InstanceCard({
     if (!isConnectionValid) {
       toast({
         title: 'Connection Required',
-        description: 'Please test the connection before saving the configuration',
+        description:
+          'Please test the connection before saving the configuration',
         variant: 'destructive',
       })
       return
     }
-  
+
     setSaveStatus('loading')
     try {
-      const minimumLoadingTime = new Promise((resolve) => setTimeout(resolve, 500))
-      
+      const minimumLoadingTime = new Promise((resolve) =>
+        setTimeout(resolve, 500),
+      )
+
       await Promise.all([
         fetch(`/v1/sonarr/instances/${instance.id}`, {
           method: 'PUT',
@@ -423,18 +435,18 @@ export function InstanceCard({
           }
           return response
         }),
-        minimumLoadingTime
+        minimumLoadingTime,
       ])
-  
+
       setSaveStatus('success')
       toast({
         title: 'Configuration Updated',
         description: 'Sonarr configuration has been updated successfully',
         variant: 'default',
       })
-  
+
       form.reset(data)
-  
+
       await fetchInstances()
     } catch (error) {
       setSaveStatus('error')
@@ -454,48 +466,53 @@ export function InstanceCard({
     if (!values.name?.trim()) {
       toast({
         title: 'Name Required',
-        description: 'Please provide an instance name before testing connection',
+        description:
+          'Please provide an instance name before testing connection',
         variant: 'destructive',
       })
       return
     }
-  
+
     setTestStatus('loading')
     try {
-      const minimumLoadingTime = new Promise((resolve) => setTimeout(resolve, 500))
-  
+      const minimumLoadingTime = new Promise((resolve) =>
+        setTimeout(resolve, 500),
+      )
+
       await Promise.all([
         (async () => {
           const testResult = await testConnectionWithoutLoading(
             values.baseUrl,
             values.apiKey,
           )
-          
+
           if (!testResult.success) {
             throw new Error(testResult.message || 'Failed to connect to Sonarr')
           }
-  
-          const isOnlyPlaceholderInstance = 
-            instances.length === 1 && 
-            instances[0].apiKey === API_KEY_PLACEHOLDER;
-  
-          if (isOnlyPlaceholderInstance) {
 
-            const updateResponse = await fetch(`/v1/sonarr/instances/${instances[0].id}`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                name: values.name.trim(),
-                baseUrl: values.baseUrl,
-                apiKey: values.apiKey,
-                isDefault: true, 
-              }),
-            })
-  
+          const isOnlyPlaceholderInstance =
+            instances.length === 1 &&
+            instances[0].apiKey === API_KEY_PLACEHOLDER
+
+          if (isOnlyPlaceholderInstance) {
+            const updateResponse = await fetch(
+              `/v1/sonarr/instances/${instances[0].id}`,
+              {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  name: values.name.trim(),
+                  baseUrl: values.baseUrl,
+                  apiKey: values.apiKey,
+                  isDefault: true,
+                }),
+              },
+            )
+
             if (!updateResponse.ok) {
               throw new Error('Failed to update instance')
             }
-  
+
             await fetchInstances()
             await fetchInstanceData(instances[0].id.toString())
             setShowInstanceCard?.(false)
@@ -511,11 +528,11 @@ export function InstanceCard({
                 isDefault: false,
               }),
             })
-  
+
             if (!createResponse.ok) {
               throw new Error('Failed to create instance')
             }
-  
+
             const newInstance = await createResponse.json()
             await fetchInstances()
             await fetchInstanceData(newInstance.id.toString())
@@ -524,9 +541,9 @@ export function InstanceCard({
             await fetchInstanceData(instance.id.toString())
           }
         })(),
-        minimumLoadingTime
+        minimumLoadingTime,
       ])
-  
+
       setTestStatus('success')
       setIsConnectionValid(true)
       toast({
@@ -551,89 +568,89 @@ export function InstanceCard({
   const clearConfig = async () => {
     try {
       const isLastRealInstance =
-        instances.filter((i) => i.apiKey !== API_KEY_PLACEHOLDER).length === 1;
-  
+        instances.filter((i) => i.apiKey !== API_KEY_PLACEHOLDER).length === 1
+
       if (isLastRealInstance) {
         // When it's the last instance, reset it to default state
         const defaultInstance: SonarrInstanceSchema = {
           name: 'Default Sonarr Instance',
           baseUrl: 'http://localhost:8989',
           apiKey: API_KEY_PLACEHOLDER,
-          qualityProfile: '', 
-          rootFolder: '',    
+          qualityProfile: '',
+          rootFolder: '',
           bypassIgnored: false,
           seasonMonitoring: 'all' as SonarrMonitoringType,
           tags: [],
           isDefault: false,
           syncedInstances: [],
-        };
-  
+        }
+
         const updatePayload = {
           ...defaultInstance,
           qualityProfile: null,
           rootFolder: null,
-        };
-  
+        }
+
         const response = await fetch(`/v1/sonarr/instances/${instance.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updatePayload),
-        });
-  
+        })
+
         if (!response.ok) {
-          throw new Error('Failed to clear configuration');
+          throw new Error('Failed to clear configuration')
         }
-  
+
         form.reset(defaultInstance, {
           keepDirty: false,
           keepIsSubmitted: false,
           keepTouched: false,
           keepIsValid: false,
           keepErrors: false,
-        });
+        })
       } else {
-
         const response = await fetch(`/v1/sonarr/instances/${instance.id}`, {
           method: 'DELETE',
-        });
-  
+        })
+
         if (!response.ok) {
-          throw new Error('Failed to delete instance');
+          throw new Error('Failed to delete instance')
         }
       }
-  
-      setIsConnectionValid(false);
-      setTestStatus('idle');
-  
-      await fetchInstances();
+
+      setIsConnectionValid(false)
+      setTestStatus('idle')
+
+      await fetchInstances()
       toast({
-        title: isLastRealInstance ? 'Configuration Cleared' : 'Instance Deleted',
+        title: isLastRealInstance
+          ? 'Configuration Cleared'
+          : 'Instance Deleted',
         description: isLastRealInstance
           ? 'Sonarr configuration has been cleared'
           : 'Sonarr instance has been deleted',
         variant: 'default',
-      });
+      })
     } catch (error) {
       toast({
         title: 'Error',
         description: 'Failed to clear configuration',
         variant: 'destructive',
-      });
+      })
     }
-  };
+  }
 
   const handleSave = form.handleSubmit(onSubmit)
   const handleCancel = () => {
     if (instance.id === -1) {
       setShowInstanceCard?.(false)
     } else {
-
       form.reset()
     }
   }
 
-  const values = form.watch();
-  const hasValidUrlAndKey = Boolean(values.baseUrl && values.apiKey);
+  const values = form.watch()
+  const hasValidUrlAndKey = Boolean(values.baseUrl && values.apiKey)
 
   return (
     <Card className="bg-bg">
@@ -668,7 +685,9 @@ export function InstanceCard({
                   name="qualityProfile"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-text">Quality Profile</FormLabel>
+                      <FormLabel className="text-text">
+                        Quality Profile
+                      </FormLabel>
                       <QualityProfileSelect
                         field={field}
                         isConnectionValid={isConnectionValid}
@@ -707,7 +726,9 @@ export function InstanceCard({
                 name="seasonMonitoring"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-text">Season Monitoring</FormLabel>
+                    <FormLabel className="text-text">
+                      Season Monitoring
+                    </FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       value={field.value}
@@ -738,7 +759,9 @@ export function InstanceCard({
                 name="syncedInstances"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-text">Sync With Instances</FormLabel>
+                    <FormLabel className="text-text">
+                      Sync With Instances
+                    </FormLabel>
                     <SyncedInstancesSelect
                       field={field}
                       instances={instances}
