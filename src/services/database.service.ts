@@ -314,7 +314,6 @@ export class DatabaseService {
   async createSonarrInstance(
     instance: Omit<SonarrInstance, 'id'>,
   ): Promise<number> {
-
     if (instance.isDefault) {
       await this.knex('sonarr_instances')
         .where('is_default', true)
@@ -361,13 +360,17 @@ export class DatabaseService {
         .where('is_default', true)
         .update('is_default', false)
     }
-  
+
     await this.knex('sonarr_instances')
       .where('id', id)
       .update({
         ...(typeof updates.name !== 'undefined' && { name: updates.name }),
-        ...(typeof updates.baseUrl !== 'undefined' && { base_url: updates.baseUrl }),
-        ...(typeof updates.apiKey !== 'undefined' && { api_key: updates.apiKey }),
+        ...(typeof updates.baseUrl !== 'undefined' && {
+          base_url: updates.baseUrl,
+        }),
+        ...(typeof updates.apiKey !== 'undefined' && {
+          api_key: updates.apiKey,
+        }),
         ...(typeof updates.qualityProfile !== 'undefined' && {
           quality_profile: updates.qualityProfile,
         }),
