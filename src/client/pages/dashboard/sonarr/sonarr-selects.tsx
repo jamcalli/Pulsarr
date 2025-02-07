@@ -46,9 +46,18 @@ export function QualityProfileSelect({
       disabled={!isConnectionValid}
     >
       <FormControl>
-        <SelectTrigger>
-          <SelectValue placeholder="Select quality profile">
-            {selectedProfile?.name || 'Select quality profile'}
+        <SelectTrigger className={!field.value ? 'text-muted-foreground' : ''}>
+          <SelectValue
+            placeholder={
+              isConnectionValid
+                ? 'Select quality profile'
+                : 'Connect instance first'
+            }
+          >
+            {selectedProfile?.name ||
+              (isConnectionValid
+                ? 'Select quality profile'
+                : 'Connect instance first')}
           </SelectValue>
         </SelectTrigger>
       </FormControl>
@@ -87,9 +96,18 @@ export function RootFolderSelect({
       disabled={!isConnectionValid}
     >
       <FormControl>
-        <SelectTrigger>
-          <SelectValue placeholder="Select root folder">
-            {selectedFolder?.path || 'Select root folder'}
+        <SelectTrigger className={!field.value ? 'text-muted-foreground' : ''}>
+          <SelectValue
+            placeholder={
+              isConnectionValid
+                ? 'Select root folder'
+                : 'Connect instance first'
+            }
+          >
+            {selectedFolder?.path ||
+              (isConnectionValid
+                ? 'Select root folder'
+                : 'Connect instance first')}
           </SelectValue>
         </SelectTrigger>
       </FormControl>

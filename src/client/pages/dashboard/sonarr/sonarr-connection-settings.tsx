@@ -49,42 +49,43 @@ export default function ConnectionSettings({
         />
       </div>
       <div className="flex-1">
-        <div className="flex items-end space-x-2">
-          <FormField
-            control={form.control}
-            name="apiKey"
-            render={({ field }) => (
-              <FormItem className="flex-grow">
-                <FormLabel className="text-text">API Key</FormLabel>
-                <FormControl>
-                  <Input
-                    {...field}
-                    type="password"
-                    disabled={testStatus === 'loading'}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <div className="flex shrink-0">
-            <Button
-              type="button"
-              size="icon"
-              variant="noShadow"
-              onClick={onTest}
-              disabled={testStatus === 'loading' || !hasValidUrlAndKey}
-            >
-              {testStatus === 'loading' ? (
-                <Loader2 className="animate-spin" />
-              ) : testStatus === 'success' ? (
-                <Check className="text-black" />
-              ) : (
-                <Check />
-              )}
-            </Button>
-          </div>
-        </div>
+        <FormField
+          control={form.control}
+          name="apiKey"
+          render={({ field }) => (
+            <FormItem className="flex-grow">
+              <FormLabel className="text-text">API Key</FormLabel>
+              <div className="flex gap-2">
+                <div className="flex-grow">
+                  <FormControl>
+                    <Input
+                      {...field}
+                      type="password"
+                      disabled={testStatus === 'loading'}
+                    />
+                  </FormControl>
+                </div>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="noShadow"
+                  onClick={onTest}
+                  disabled={testStatus === 'loading' || !hasValidUrlAndKey}
+                  className="mt-0"
+                >
+                  {testStatus === 'loading' ? (
+                    <Loader2 className="animate-spin" />
+                  ) : testStatus === 'success' ? (
+                    <Check className="text-black" />
+                  ) : (
+                    <Check />
+                  )}
+                </Button>
+              </div>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
       </div>
     </div>
   )

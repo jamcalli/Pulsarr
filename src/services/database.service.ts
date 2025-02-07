@@ -330,7 +330,7 @@ export class DatabaseService {
         bypass_ignored: instance.bypassIgnored,
         season_monitoring: instance.seasonMonitoring,
         tags: JSON.stringify(instance.tags || []),
-        is_default: instance.isDefault || true,
+        is_default: instance.isDefault ?? false,
         is_enabled: true,
         synced_instances: JSON.stringify(instance.syncedInstances || []),
         created_at: this.timestamp,
