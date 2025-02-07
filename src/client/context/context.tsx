@@ -123,27 +123,7 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
   const [genreRoutes, setGenreRoutes] = useState<GenreRoute[]>([])
   const [isInitialized, setIsInitialized] = useState(false)
 
-  useEffect(() => {
-    const initialize = async () => {
-      if (isInitialized) return
-
-      setLoading(true)
-      try {
-        await fetchConfig()
-        await fetchInstances()
-        await fetchGenreRoutes()
-        setIsInitialized(true)
-      } catch (err) {
-        console.error('Initialization error:', err)
-        setError('Failed to initialize application')
-      } finally {
-        setLoading(false)
-      }
-    }
-    initialize()
-  }, [])
-
-  const fetchConfig = async () => {
+  const fetchConfig = useCallback(async () => {
     try {
       const response = await fetch('/v1/config/config')
       const data: ConfigResponse = await response.json()
@@ -156,7 +136,7 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
       setError('Failed to load configuration')
       console.error('Config fetch error:', err)
     }
-  }
+  }, [])
 
   const updateConfig = async (updates: Partial<Config>) => {
     try {
@@ -181,21 +161,18 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const fetchInstances = async () => {
+  const fetchInstances = useCallback(async () => {
     try {
-      // Store current instances and their data
       const currentInstances = [...instances]
 
       const response = await fetch('/v1/sonarr/instances')
       const newInstances: SonarrInstance[] = await response.json()
 
-      // Merge new instances with existing data
       const mergedInstances = newInstances.map((newInst) => {
         const existingInstance = currentInstances.find(
           (curr) => curr.id === newInst.id,
         )
         if (existingInstance) {
-          // Preserve existing instance data
           return {
             ...newInst,
             data: existingInstance.data,
@@ -210,10 +187,9 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
       console.error('Instances fetch error:', err)
       throw err
     }
-  }
+  }, [instances])
 
   const fetchInstanceData = async (instanceId: string) => {
-    // If we already have the data for this instance, don't fetch again
     const existingInstance = instances.find(
       (inst) => inst.id === Number(instanceId),
     )
@@ -259,17 +235,14 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  // Modify your fetchAllInstanceData to be more robust
   const fetchAllInstanceData = async () => {
     try {
-      // Get fresh instances first
       await fetchInstances()
 
       const validInstances = instances.filter(
         (inst) => inst.apiKey && inst.apiKey !== 'placeholder',
       )
 
-      // Fetch all instance data in parallel while preserving existing data
       await Promise.all(
         validInstances.map((instance) =>
           fetchInstanceData(instance.id.toString()),
@@ -364,6 +337,24 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
 
     await fetchGenreRoutes()
   }
+
+  useEffect(() => {
+    const initialize = async () => {
+      if (isInitialized) return
+
+      setLoading(true)
+      try {
+        await Promise.all([fetchConfig(), fetchInstances(), fetchGenreRoutes()])
+        setIsInitialized(true)
+      } catch (err) {
+        console.error('Initialization error:', err)
+        setError('Failed to initialize application')
+      } finally {
+        setLoading(false)
+      }
+    }
+    initialize()
+  }, [fetchConfig, fetchInstances, fetchGenreRoutes, isInitialized])
 
   const value = {
     config,

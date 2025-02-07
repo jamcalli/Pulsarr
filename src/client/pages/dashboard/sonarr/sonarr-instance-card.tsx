@@ -1,8 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import * as z from 'zod'
-import { Loader2, Check, Trash2, Pen, Save } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import {
   Form,
   FormField,
@@ -12,8 +10,8 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Switch } from '@/components/ui/switch'
-import { Input } from '@/components/ui/input'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
+import EditableCardHeader from '@/components/ui/editable-card-header'
 import { useToast } from '@/hooks/use-toast'
 import {
   type SonarrMonitoringType,
@@ -28,6 +26,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import SyncedInstancesSelect from './synced-instance-select'
+import ConnectionSettings from './sonarr-connection-settings'
 
 const sonarrInstanceSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -44,262 +44,9 @@ const sonarrInstanceSchema = z.object({
   syncedInstances: z.array(z.number()).optional(),
 })
 
-type SonarrInstanceSchema = z.infer<typeof sonarrInstanceSchema>
+export type SonarrInstanceSchema = z.infer<typeof sonarrInstanceSchema>
 
 const API_KEY_PLACEHOLDER = 'placeholder'
-
-function EditableCardHeader({
-  instance,
-  form,
-  isEditing,
-  setIsEditing,
-  onSave,
-  onCancel,
-  onDelete,
-  isSaving,
-  isDirty,
-  isValid,
-}: {
-  instance: SonarrInstance
-  form: any
-  isEditing: boolean
-  setIsEditing: (editing: boolean) => void
-  onSave: () => void
-  onCancel: () => void
-  onDelete?: () => void
-  isSaving: boolean
-  isDirty: boolean
-  isValid: boolean
-}) {
-  const [localName, setLocalName] = useState(form.getValues('name'))
-
-  const handleNameSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (localName?.trim()) {
-      form.setValue('name', localName.trim(), { shouldDirty: true })
-      setIsEditing(false)
-    }
-  }
-
-  return (
-    <CardHeader>
-      <CardTitle className="flex justify-between items-center text-text">
-        <div className="group/name inline-flex items-center gap-2 w-1/2">
-          {isEditing ? (
-            <Input
-              value={localName}
-              onChange={(e) => setLocalName(e.target.value)}
-              autoFocus
-              className="w-full"
-              onBlur={handleNameSubmit}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleNameSubmit(e)
-                } else if (e.key === 'Escape') {
-                  setLocalName(form.getValues('name'))
-                  setIsEditing(false)
-                }
-              }}
-            />
-          ) : (
-            <div className="flex items-center gap-2">
-              <span>{form.watch('name') || 'Unnamed Instance'}</span>
-              {!isSaving && (
-                <Button
-                  variant="noShadow"
-                  size="icon"
-                  className="h-8 w-8 opacity-0 group-hover/name:opacity-100 transition-opacity"
-                  onClick={() => {
-                    setLocalName(form.getValues('name'))
-                    setIsEditing(true)
-                  }}
-                >
-                  <Pen className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-          )}
-          {instance.isDefault && (
-            <span className="text-sm bg-primary/10 text-primary px-2 py-1 rounded">
-              Default
-            </span>
-          )}
-        </div>
-        <div className="flex gap-2">
-          {(instance.id === -1 || isDirty) && (
-            <Button
-              variant="cancel"
-              onClick={onCancel}
-              className="flex items-center gap-2"
-              disabled={isSaving}
-              type="button"
-            >
-              <span>Cancel</span>
-            </Button>
-          )}
-
-          <Button
-            variant="blue"
-            onClick={onSave}
-            className="flex items-center gap-2"
-            disabled={!isDirty || !isValid || isSaving}
-          >
-            {isSaving ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Saving...</span>
-              </>
-            ) : (
-              <>
-                <Save className="h-4 w-4" />
-                <span>Save Changes</span>
-              </>
-            )}
-          </Button>
-          {onDelete && instance.id !== -1 && (
-            <Button
-              variant="error"
-              size="icon"
-              onClick={onDelete}
-              disabled={isSaving}
-              className="transition-opacity"
-              type="button"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
-      </CardTitle>
-    </CardHeader>
-  )
-}
-
-// Connection settings section with test and clear buttons
-function ConnectionSettings({
-  form,
-  testStatus,
-  onTest,
-  hasValidUrlAndKey,
-}: {
-  form: any
-  testStatus: string
-  onTest: () => void
-  saveStatus: string
-  hasValidUrlAndKey: boolean
-}) {
-  return (
-    <div className="flex portrait:flex-col gap-4">
-      <div className="flex-1">
-        <FormField
-          control={form.control}
-          name="baseUrl"
-          render={({ field }) => (
-            <FormItem className="flex-grow">
-              <FormLabel className="text-text">Sonarr URL</FormLabel>
-              <FormControl>
-                <Input
-                  {...field}
-                  placeholder="http://localhost:8989"
-                  disabled={testStatus === 'loading'}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
-      <div className="flex-1">
-        <div className="flex items-end space-x-2">
-          <FormField
-            control={form.control}
-            name="apiKey"
-            render={({ field }) => (
-              <FormItem className="flex-grow">
-                <FormLabel className="text-text">API Key</FormLabel>
-                <FormControl>
-                  <Input
-                    {...field}
-                    type="password"
-                    disabled={testStatus === 'loading'}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <div className="flex shrink-0">
-            <Button
-              type="button"
-              size="icon"
-              variant="noShadow"
-              onClick={onTest}
-              disabled={testStatus === 'loading' || !hasValidUrlAndKey}
-            >
-              {testStatus === 'loading' ? (
-                <Loader2 className="animate-spin" />
-              ) : testStatus === 'success' ? (
-                <Check className="text-black" />
-              ) : (
-                <Check />
-              )}
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function SyncedInstancesSelect({
-  field,
-  instances,
-  currentInstanceId,
-}: {
-  field: any
-  instances: SonarrInstance[]
-  currentInstanceId: number
-}) {
-  const availableInstances = instances.filter(
-    (inst) => inst.id !== currentInstanceId && inst.apiKey !== 'placeholder',
-  )
-
-  return (
-    <Select
-      onValueChange={(value) => {
-        const currentSyncs = field.value || []
-        const valueNum = Number.parseInt(value)
-        if (currentSyncs.includes(valueNum)) {
-          field.onChange(currentSyncs.filter((id: number) => id !== valueNum))
-        } else {
-          field.onChange([...currentSyncs, valueNum])
-        }
-      }}
-      value={field.value?.[0]?.toString() || ''}
-    >
-      <FormControl>
-        <SelectTrigger>
-          <SelectValue placeholder="Select instances to sync with" />
-        </SelectTrigger>
-      </FormControl>
-      <SelectContent>
-        {availableInstances.map((instance) => (
-          <SelectItem
-            key={instance.id}
-            value={instance.id.toString()}
-            className="cursor-pointer"
-          >
-            <div className="flex items-center gap-2">
-              <div className="flex-1">{instance.name}</div>
-              {field.value?.includes(instance.id) && (
-                <Check className="h-4 w-4" />
-              )}
-            </div>
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  )
-}
 
 export function InstanceCard({
   instance,
@@ -323,7 +70,6 @@ export function InstanceCard({
     'idle' | 'loading' | 'success' | 'error'
   >('idle')
   const [isConnectionValid, setIsConnectionValid] = useState(false)
-  const [isEditing, setIsEditing] = useState(false)
   const hasInitialized = useRef(false)
 
   const form = useForm<SonarrInstanceSchema>({
@@ -342,7 +88,6 @@ export function InstanceCard({
     mode: 'onChange',
   })
 
-  // Test connection without loading UI
   const testConnectionWithoutLoading = useCallback(
     async (baseUrl: string, apiKey: string) => {
       const minimumLoadingTime = new Promise((resolve) =>
@@ -365,16 +110,13 @@ export function InstanceCard({
     [],
   )
 
-  // Initialize component
   useEffect(() => {
     const initializeComponent = async () => {
       if (hasInitialized.current) return
       hasInitialized.current = true
-
       const hasInstanceData =
         instance.data?.rootFolders && instance.data?.qualityProfiles
       const isPlaceholderKey = instance.apiKey === API_KEY_PLACEHOLDER
-
       if (hasInstanceData) {
         setIsConnectionValid(true)
         setTestStatus('success')
@@ -399,9 +141,16 @@ export function InstanceCard({
         }
       }
     }
-
     initializeComponent()
-  }, [instance.id])
+  }, [
+    instance.id,
+    instance.data?.rootFolders,
+    instance.data?.qualityProfiles,
+    instance.baseUrl,
+    instance.apiKey,
+    testConnectionWithoutLoading,
+    fetchInstanceData,
+  ])
 
   const onSubmit = async (data: SonarrInstanceSchema) => {
     if (!isConnectionValid) {
@@ -460,7 +209,6 @@ export function InstanceCard({
     }
   }
 
-  // Test connection handler
   const testConnection = async () => {
     const values = form.getValues()
     if (!values.name?.trim()) {
@@ -517,7 +265,6 @@ export function InstanceCard({
             await fetchInstanceData(instances[0].id.toString())
             setShowInstanceCard?.(false)
           } else if (instance.id === -1) {
-            // Create new instance only if not updating placeholder
             const createResponse = await fetch('/v1/sonarr/instances', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -571,7 +318,6 @@ export function InstanceCard({
         instances.filter((i) => i.apiKey !== API_KEY_PLACEHOLDER).length === 1
 
       if (isLastRealInstance) {
-        // When it's the last instance, reset it to default state
         const defaultInstance: SonarrInstanceSchema = {
           name: 'Default Sonarr Instance',
           baseUrl: 'http://localhost:8989',
@@ -655,16 +401,18 @@ export function InstanceCard({
   return (
     <Card className="bg-bg">
       <EditableCardHeader
-        instance={instance}
-        form={form}
-        isEditing={isEditing}
-        setIsEditing={setIsEditing}
-        onSave={handleSave}
-        onCancel={handleCancel}
-        onDelete={clearConfig}
+        title={form.watch('name')}
+        isNew={instance.id === -1}
         isSaving={saveStatus === 'loading'}
         isDirty={form.formState.isDirty}
         isValid={form.formState.isValid && isConnectionValid}
+        badge={instance.isDefault ? { text: 'Default' } : undefined}
+        onSave={handleSave}
+        onCancel={handleCancel}
+        onDelete={clearConfig}
+        onTitleChange={(newTitle) =>
+          form.setValue('name', newTitle, { shouldDirty: true })
+        }
       />
       <CardContent>
         <Form {...form}>
