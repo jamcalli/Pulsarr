@@ -4,7 +4,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { useConfig } from '@/context/context'
 import { Loader2 } from 'lucide-react'
 import GenreRouting from './genre-routes/sonarr-genre-routing'
-import InstanceCard from './sonarr-instance-card'
+import { InstanceCard } from './sonarr-instance-card'
 
 export default function SonarrConfigPage() {
   const {
