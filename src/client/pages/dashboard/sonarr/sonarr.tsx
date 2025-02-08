@@ -1,8 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useConfig } from '@/context/context'
-import { Loader2 } from 'lucide-react'
 import GenreRouting from './sonarr-genre-routing'
 import { InstanceCard } from './sonarr-instance-card'
 
@@ -12,9 +11,13 @@ export default function SonarrConfigPage() {
     fetchInstanceData,
     fetchInstances,
     fetchAllInstanceData,
-    isInitialized,
-    loading,
+    initialize,
   } = useConfig()
+
+  useEffect(() => {
+    initialize(true)
+  }, [])
+
   const [showInstanceCard, setShowInstanceCard] = useState(false)
   const API_KEY_PLACEHOLDER = 'placeholder'
 
@@ -24,14 +27,6 @@ export default function SonarrConfigPage() {
 
   const isPlaceholderInstance =
     instances.length === 1 && instances[0].apiKey === API_KEY_PLACEHOLDER
-
-  if (loading || !isInitialized) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    )
-  }
 
   const pageContent =
     isPlaceholderInstance && !showInstanceCard ? (

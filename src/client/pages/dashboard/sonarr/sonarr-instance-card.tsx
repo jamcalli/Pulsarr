@@ -31,6 +31,7 @@ import SyncedInstancesSelect from './synced-instance-select'
 import ConnectionSettings from './sonarr-connection-settings'
 import InstanceCardSkeleton from './instance-card-skeleton'
 import DeleteInstanceAlert from './delete-instance-alert'
+import { useConfig } from '@/context/context'
 
 const baseInstanceSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -74,6 +75,7 @@ export function InstanceCard({
   setShowInstanceCard?: (show: boolean) => void
 }) {
   const { toast } = useToast()
+  const { instancesLoading } = useConfig()
   const [testStatus, setTestStatus] = useState<
     'idle' | 'loading' | 'success' | 'error'
   >('idle')
@@ -82,7 +84,6 @@ export function InstanceCard({
   >('idle')
   const [isConnectionValid, setIsConnectionValid] = useState(false)
   const hasInitialized = useRef(false)
-  const [isLoading, setIsLoading] = useState(true)
   const [showDeleteAlert, setShowDeleteAlert] = useState(false)
 
   const form = useForm<SonarrInstanceSchema>({
@@ -138,55 +139,38 @@ export function InstanceCard({
       if (hasInitialized.current) return
       hasInitialized.current = true
 
-      const hasInstanceData =
-        instance.data?.rootFolders && instance.data?.qualityProfiles
+      const hasInstanceData = instance.data?.rootFolders && instance.data?.qualityProfiles
       const isPlaceholderKey = instance.apiKey === API_KEY_PLACEHOLDER
 
       if (instance.id === -1) {
-        setIsLoading(false)
         return
       }
 
       if (hasInstanceData) {
         setIsConnectionValid(true)
         setTestStatus('success')
-        setIsLoading(false)
       } else if (instance.baseUrl && instance.apiKey && !isPlaceholderKey) {
         try {
           const result = await testConnectionWithoutLoading(
             instance.baseUrl,
-            instance.apiKey,
+            instance.apiKey
           )
           if (result.success) {
             setIsConnectionValid(true)
             setTestStatus('success')
-            if (
-              !instance.data?.rootFolders ||
-              !instance.data?.qualityProfiles
-            ) {
+            if (!instance.data?.rootFolders || !instance.data?.qualityProfiles) {
               await fetchInstanceData(instance.id.toString())
             }
           }
-          setIsLoading(false)
         } catch (error) {
           console.error('Silent connection test failed:', error)
-          setIsLoading(false)
         }
-      } else {
-        setIsLoading(false)
       }
     }
 
     initializeComponent()
-  }, [
-    instance.id,
-    instance.data?.rootFolders,
-    instance.data?.qualityProfiles,
-    instance.baseUrl,
-    instance.apiKey,
-    testConnectionWithoutLoading,
-    fetchInstanceData,
-  ])
+  }, [instance.id, instance.data?.rootFolders, instance.data?.qualityProfiles,
+      instance.baseUrl, instance.apiKey, testConnectionWithoutLoading, fetchInstanceData])
 
   useEffect(() => {
     if (isConnectionValid) {
@@ -517,7 +501,7 @@ export function InstanceCard({
   const values = form.watch()
   const hasValidUrlAndKey = Boolean(values.baseUrl && values.apiKey)
 
-  if (isLoading) {
+  if (instancesLoading && instance.id !== -1) {
     return <InstanceCardSkeleton />
   }
 

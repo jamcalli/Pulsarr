@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Pen, Save, Trash2 } from 'lucide-react';
+import { Loader2, Pen, Save, Trash2, X } from 'lucide-react';
 
 interface EditableCardHeaderProps {
   title: string;
@@ -101,7 +101,8 @@ const EditableCardHeader = ({
               disabled={isSaving}
               type="button"
             >
-              <span>Cancel</span>
+              <X className="h-4 w-4 portrait:block hidden" />
+              <span className="portrait:hidden">Cancel</span>
             </Button>
           )}
           <Button
@@ -113,12 +114,12 @@ const EditableCardHeader = ({
             {isSaving ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Saving...</span>
+                <span className="portrait:hidden">Saving...</span>
               </>
             ) : (
               <>
                 <Save className="h-4 w-4" />
-                <span>Save Changes</span>
+                <span className="portrait:hidden">Save Changes</span>
               </>
             )}
           </Button>
