@@ -5,6 +5,7 @@ import {
   useEffect,
   useState,
   useCallback,
+  useRef,
 } from 'react'
 import type { RootFolder, QualityProfile } from '@root/types/sonarr.types'
 import type { Config } from '@root/types/config.types'
@@ -96,6 +97,7 @@ interface ConfigContextType {
   error: string | null
   instances: SonarrInstance[]
   isInitialized: boolean
+  instancesLoading: boolean
   updateConfig: (updates: Partial<Config>) => Promise<void>
   fetchInstances: () => Promise<void>
   fetchInstanceData: (instanceId: string) => Promise<void>
@@ -105,11 +107,9 @@ interface ConfigContextType {
   genreRoutes: GenreRoute[]
   fetchGenreRoutes: () => Promise<void>
   createGenreRoute: (route: Omit<GenreRoute, 'id'>) => Promise<GenreRoute>
-  updateGenreRoute: (
-    id: number,
-    updates: Partial<Omit<GenreRoute, 'id'>>,
-  ) => Promise<void>
+  updateGenreRoute: (id: number, updates: Partial<Omit<GenreRoute, 'id'>>) => Promise<void>
   deleteGenreRoute: (id: number) => Promise<void>
+  initialize: (force?: boolean) => Promise<void>
 }
 
 const ConfigContext = createContext<ConfigContextType | undefined>(undefined)
@@ -117,11 +117,41 @@ const ConfigContext = createContext<ConfigContextType | undefined>(undefined)
 export function ConfigProvider({ children }: { children: React.ReactNode }) {
   const [config, setConfig] = useState<Config | null>(null)
   const [loading, setLoading] = useState(true)
+  const [instancesLoading, setInstancesLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [instances, setInstances] = useState<SonarrInstance[]>([])
   const [genres, setGenres] = useState<string[]>([])
   const [genreRoutes, setGenreRoutes] = useState<GenreRoute[]>([])
   const [isInitialized, setIsInitialized] = useState(false)
+  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const isLoadingRef = useRef(false)
+
+  const setLoadingWithMinDuration = (loading: boolean) => {
+    if (loading) {
+      if (!isLoadingRef.current) {
+        isLoadingRef.current = true
+        setInstancesLoading(true)
+      }
+    } else {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current)
+      }
+      
+      loadingTimeoutRef.current = setTimeout(() => {
+        setInstancesLoading(false)
+        isLoadingRef.current = false
+        loadingTimeoutRef.current = null
+      }, 500)
+    }
+  }
+
+  useEffect(() => {
+    return () => {
+      if (loadingTimeoutRef.current) {
+        clearTimeout(loadingTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const fetchConfig = useCallback(async () => {
     try {
@@ -200,6 +230,7 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
       return
     }
 
+    setLoadingWithMinDuration(true)
     try {
       const [foldersResponse, profilesResponse] = await Promise.all([
         fetch(`/v1/sonarr/root-folders?instanceId=${instanceId}`),
@@ -232,17 +263,18 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('Failed to fetch instance data:', error)
       throw error
+    } finally {
+      setLoadingWithMinDuration(false)
     }
   }
 
   const fetchAllInstanceData = async () => {
+    setLoadingWithMinDuration(true)
     try {
       await fetchInstances()
-
       const validInstances = instances.filter(
         (inst) => inst.apiKey && inst.apiKey !== 'placeholder',
       )
-
       await Promise.all(
         validInstances.map((instance) =>
           fetchInstanceData(instance.id.toString()),
@@ -252,6 +284,8 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
       setError('Failed to fetch all Sonarr instance data')
       console.error('Failed to fetch all instance data:', err)
       throw err
+    } finally {
+      setLoadingWithMinDuration(false)
     }
   }
 
@@ -338,11 +372,9 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
     await fetchGenreRoutes()
   }
 
-  useEffect(() => {
-    const initialize = async () => {
-      if (isInitialized) return
-
-      setLoading(true)
+  const initialize = useCallback(async (force = false) => {
+    if (!isInitialized || force) {
+      setLoadingWithMinDuration(true)
       try {
         await Promise.all([fetchConfig(), fetchInstances(), fetchGenreRoutes()])
         setIsInitialized(true)
@@ -350,11 +382,16 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
         console.error('Initialization error:', err)
         setError('Failed to initialize application')
       } finally {
-        setLoading(false)
+        setLoadingWithMinDuration(false)
       }
     }
-    initialize()
-  }, [fetchConfig, fetchInstances, fetchGenreRoutes, isInitialized])
+  }, [fetchConfig, fetchInstances, fetchGenreRoutes])
+
+  useEffect(() => {
+    if (!isInitialized) {
+      initialize()
+    }
+  }, [initialize, isInitialized])
 
   const value = {
     config,
@@ -362,17 +399,20 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
     error,
     instances,
     genres,
+    instancesLoading,
     updateConfig,
     fetchInstances,
     fetchInstanceData,
     fetchAllInstanceData,
     fetchGenres,
     genreRoutes,
+    initialize,
     fetchGenreRoutes,
     createGenreRoute,
     updateGenreRoute,
     deleteGenreRoute,
     isInitialized,
+    setInstancesLoading
   }
 
   return (

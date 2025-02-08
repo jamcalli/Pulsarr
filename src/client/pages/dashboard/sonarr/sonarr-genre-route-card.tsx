@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import {
   Select,
@@ -18,6 +18,8 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import EditableCardHeader from '@/components/ui/editable-card-header'
+import GenreRouteCardSkeleton from './sonarr-genre-route-skeleton'
+import { useConfig } from '@/context/context'
 
 const genreRouteSchema = z.object({
   name: z.string().min(2, {
@@ -69,6 +71,9 @@ const GenreRouteCard = ({
   genres,
   isSaving,
 }: GenreRouteCardProps) => {
+  const { instancesLoading } = useConfig()
+  const hasInitialized = useRef(false)
+
   const form = useForm<GenreRouteFormValues>({
     resolver: zodResolver(genreRouteSchema),
     defaultValues: {
@@ -79,6 +84,19 @@ const GenreRouteCard = ({
     },
     mode: 'all',
   })
+
+  useEffect(() => {
+    const initializeComponent = async () => {
+      if (hasInitialized.current) return
+      hasInitialized.current = true
+
+      if (!isNew) {
+        await onGenreDropdownOpen()
+      }
+    }
+
+    initializeComponent()
+  }, [isNew, onGenreDropdownOpen])
 
   useEffect(() => {
     form.reset({
@@ -93,8 +111,7 @@ const GenreRouteCard = ({
     if (isNew) {
       form.trigger()
     }
-    onGenreDropdownOpen()
-  }, [form, isNew, onGenreDropdownOpen])
+  }, [form, isNew])
 
   const handleCancel = () => {
     form.reset({
@@ -116,6 +133,10 @@ const GenreRouteCard = ({
   const selectedInstance = instances.find(
     (inst) => inst.id === form.watch('sonarrInstanceId'),
   )
+
+  if (instancesLoading && !isNew) {
+    return <GenreRouteCardSkeleton />
+  }
 
   return (
     <Card className="bg-bg">

@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Loader2 } from 'lucide-react'
 import { useConfig } from '@/context/context'
 import { useToast } from '@/hooks/use-toast'
 import GenreRouteCard from './sonarr-genre-route-card'
@@ -13,15 +12,15 @@ const GenreRoutingSection = () => {
     genres = [],
     genreRoutes = [],
     fetchGenres,
-    fetchGenreRoutes,
     createGenreRoute,
     updateGenreRoute,
     deleteGenreRoute,
-    isInitialized,
   } = useConfig()
 
   const { toast } = useToast()
-  const [isLoading, setIsLoading] = useState(true)
+  const [savingRoutes, setSavingRoutes] = useState<{ [key: string]: boolean }>(
+    {},
+  )
   const [localRoutes, setLocalRoutes] = useState<
     Array<{
       tempId: string
@@ -31,35 +30,9 @@ const GenreRoutingSection = () => {
       rootFolder: string
     }>
   >([])
-  const [savingRoutes, setSavingRoutes] = useState<{ [key: string]: boolean }>(
-    {},
-  )
   const [deleteConfirmationRouteId, setDeleteConfirmationRouteId] = useState<
     number | null
   >(null)
-
-  useEffect(() => {
-    const loadInitialData = async () => {
-      if (!isInitialized) {
-        setIsLoading(true)
-        try {
-          await Promise.all([fetchGenreRoutes(), fetchGenres()])
-        } catch (error) {
-          toast({
-            title: 'Error',
-            description: 'Failed to load genre routing data',
-            variant: 'destructive',
-          })
-        } finally {
-          setIsLoading(false)
-        }
-      } else {
-        setIsLoading(false)
-      }
-    }
-
-    loadInitialData()
-  }, [isInitialized, fetchGenreRoutes, fetchGenres, toast])
 
   const handleAddRoute = () => {
     const defaultInstance = instances[0]
@@ -134,7 +107,7 @@ const GenreRoutingSection = () => {
   }
 
   const handleGenreDropdownOpen = async () => {
-    if (!genres?.length && !isLoading) {
+    if (!genres?.length) {
       try {
         await fetchGenres()
       } catch (error) {
@@ -164,14 +137,6 @@ const GenreRoutingSection = () => {
         })
       }
     }
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    )
   }
 
   return (
@@ -216,7 +181,7 @@ const GenreRoutingSection = () => {
           />
         ))}
 
-        {!localRoutes.length && !genreRoutes.length && !isLoading && (
+        {!localRoutes.length && !genreRoutes.length && (
           <div className="text-center py-8 text-text">
             <p>No genre routes configured</p>
             <Button onClick={handleAddRoute} className="mt-4">

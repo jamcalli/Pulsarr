@@ -1,20 +1,7 @@
-import { useEffect, useState } from 'react'
 import { Card, CardHeader, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 
-export const InstanceCardSkeleton = ({ minLoadTime = 500 }) => {
-  const [isVisible, setIsVisible] = useState(true)
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsVisible(false)
-    }, minLoadTime)
-
-    return () => clearTimeout(timer)
-  }, [minLoadTime])
-
-  if (!isVisible) return null
-
+export const InstanceCardSkeleton = () => {
   return (
     <Card className="bg-bg">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-7">
