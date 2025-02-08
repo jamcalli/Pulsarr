@@ -98,6 +98,7 @@ interface ConfigContextType {
   instances: SonarrInstance[]
   isInitialized: boolean
   instancesLoading: boolean
+  setInstancesLoading: (loading: boolean) => void
   updateConfig: (updates: Partial<Config>) => Promise<void>
   fetchInstances: () => Promise<void>
   fetchInstanceData: (instanceId: string) => Promise<void>
@@ -128,8 +129,13 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
   const [isInitialized, setIsInitialized] = useState(false)
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const isLoadingRef = useRef(false)
+  const isInitialMount = useRef(true)
 
   const setLoadingWithMinDuration = useCallback((loading: boolean) => {
+    if (loading && !isInitialMount.current && !isLoadingRef.current) {
+      return
+    }
+
     if (loading) {
       if (!isLoadingRef.current) {
         isLoadingRef.current = true
@@ -144,7 +150,10 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
         setInstancesLoading(false)
         isLoadingRef.current = false
         loadingTimeoutRef.current = null
-      }, 500)
+        if (isInitialMount.current) {
+          isInitialMount.current = false
+        }
+      }, 250)
     }
   }, [])
 
@@ -378,7 +387,10 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
   const initialize = useCallback(
     async (force = false) => {
       if (!isInitialized || force) {
-        setLoadingWithMinDuration(true)
+        if (isInitialMount.current) {
+          setLoadingWithMinDuration(true)
+        }
+
         try {
           await Promise.all([
             fetchConfig(),
@@ -390,7 +402,9 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
           console.error('Initialization error:', err)
           setError('Failed to initialize application')
         } finally {
-          setLoadingWithMinDuration(false)
+          if (isInitialMount.current) {
+            setLoadingWithMinDuration(false)
+          }
         }
       }
     },

@@ -78,7 +78,7 @@ export function InstanceCard({
   setShowInstanceCard?: (show: boolean) => void
 }) {
   const { toast } = useToast()
-  const { instancesLoading } = useConfig()
+  const { instancesLoading, setInstancesLoading } = useConfig()
   const [testStatus, setTestStatus] = useState<
     'idle' | 'loading' | 'success' | 'error'
   >('idle')
@@ -88,6 +88,7 @@ export function InstanceCard({
   const [isConnectionValid, setIsConnectionValid] = useState(false)
   const hasInitialized = useRef(false)
   const [showDeleteAlert, setShowDeleteAlert] = useState(false)
+  const isNavigationTest = useRef(false)
 
   const form = useForm<SonarrInstanceSchema>({
     resolver: zodResolver(
@@ -154,6 +155,8 @@ export function InstanceCard({
         setIsConnectionValid(true)
         setTestStatus('success')
       } else if (instance.baseUrl && instance.apiKey && !isPlaceholderKey) {
+        isNavigationTest.current = true
+        setInstancesLoading(true)
         try {
           const result = await testConnectionWithoutLoading(
             instance.baseUrl,
@@ -171,6 +174,9 @@ export function InstanceCard({
           }
         } catch (error) {
           console.error('Silent connection test failed:', error)
+        } finally {
+          setInstancesLoading(false)
+          isNavigationTest.current = false
         }
       }
     }
@@ -184,6 +190,7 @@ export function InstanceCard({
     instance.apiKey,
     testConnectionWithoutLoading,
     fetchInstanceData,
+    setInstancesLoading,
   ])
 
   useEffect(() => {
@@ -515,7 +522,7 @@ export function InstanceCard({
   const values = form.watch()
   const hasValidUrlAndKey = Boolean(values.baseUrl && values.apiKey)
 
-  if (instancesLoading && instance.id !== -1) {
+  if (instancesLoading && instance.id !== -1 && isNavigationTest.current) {
     return <InstanceCardSkeleton />
   }
 
