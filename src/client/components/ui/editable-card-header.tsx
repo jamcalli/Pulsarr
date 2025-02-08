@@ -53,6 +53,14 @@ const EditableCardHeader = ({
     <CardHeader>
       <CardTitle className="flex justify-between items-center text-text">
         <div className="group/name inline-flex items-center gap-2 w-1/2">
+          {badge && (
+            <Badge className={badge.className || "text-sm bg-blue"}>
+              <span className="portrait:hidden">{badge.text}</span>
+              <span className="hidden portrait:block">
+                {badge.text === "Default" ? "D" : badge.text}
+              </span>
+            </Badge>
+          )}
           {isEditing ? (
             <Input
               value={localTitle}
@@ -86,11 +94,6 @@ const EditableCardHeader = ({
                 </Button>
               )}
             </div>
-          )}
-          {badge && (
-            <Badge className={badge.className || "text-sm bg-blue"}>
-              {badge.text}
-            </Badge>
           )}
         </div>
         <div className="flex gap-2">
