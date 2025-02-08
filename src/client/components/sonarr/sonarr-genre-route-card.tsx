@@ -18,7 +18,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import EditableCardHeader from '@/components/ui/editable-card-header'
-import GenreRouteCardSkeleton from './sonarr-genre-route-skeleton'
+import GenreRouteCardSkeleton from '@/components/sonarr/sonarr-genre-route-skeleton'
 import { useConfig } from '@/context/context'
 
 const genreRouteSchema = z.object({

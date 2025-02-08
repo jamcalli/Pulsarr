@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { useConfig } from '@/context/context'
 import { useToast } from '@/hooks/use-toast'
-import GenreRouteCard from './sonarr-genre-route-card'
-import type { GenreRouteFormValues } from './sonarr-genre-route-card'
-import DeleteGenreRouteAlert from './delete-genre-route-alert'
+import GenreRouteCard from '@/components/sonarr/sonarr-genre-route-card'
+import type { GenreRouteFormValues } from '@/components/sonarr/sonarr-genre-route-card'
+import DeleteGenreRouteAlert from '@/components/sonarr/delete-genre-route-alert'
 
 const GenreRoutingSection = () => {
   const {

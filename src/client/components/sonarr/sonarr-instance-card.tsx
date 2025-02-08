@@ -19,7 +19,10 @@ import {
   SONARR_MONITORING_OPTIONS,
   type SonarrInstance,
 } from '@/context/context'
-import { QualityProfileSelect, RootFolderSelect } from './sonarr-selects'
+import {
+  QualityProfileSelect,
+  RootFolderSelect,
+} from '@/components/sonarr/sonarr-selects'
 import {
   Select,
   SelectContent,
@@ -139,7 +142,8 @@ export function InstanceCard({
       if (hasInitialized.current) return
       hasInitialized.current = true
 
-      const hasInstanceData = instance.data?.rootFolders && instance.data?.qualityProfiles
+      const hasInstanceData =
+        instance.data?.rootFolders && instance.data?.qualityProfiles
       const isPlaceholderKey = instance.apiKey === API_KEY_PLACEHOLDER
 
       if (instance.id === -1) {
@@ -153,12 +157,15 @@ export function InstanceCard({
         try {
           const result = await testConnectionWithoutLoading(
             instance.baseUrl,
-            instance.apiKey
+            instance.apiKey,
           )
           if (result.success) {
             setIsConnectionValid(true)
             setTestStatus('success')
-            if (!instance.data?.rootFolders || !instance.data?.qualityProfiles) {
+            if (
+              !instance.data?.rootFolders ||
+              !instance.data?.qualityProfiles
+            ) {
               await fetchInstanceData(instance.id.toString())
             }
           }
@@ -169,8 +176,15 @@ export function InstanceCard({
     }
 
     initializeComponent()
-  }, [instance.id, instance.data?.rootFolders, instance.data?.qualityProfiles,
-      instance.baseUrl, instance.apiKey, testConnectionWithoutLoading, fetchInstanceData])
+  }, [
+    instance.id,
+    instance.data?.rootFolders,
+    instance.data?.qualityProfiles,
+    instance.baseUrl,
+    instance.apiKey,
+    testConnectionWithoutLoading,
+    fetchInstanceData,
+  ])
 
   useEffect(() => {
     if (isConnectionValid) {

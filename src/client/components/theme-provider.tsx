@@ -36,16 +36,15 @@ export function ThemeProvider({
   themes = ['light', 'dark'],
   ...props
 }: ThemeProviderProps) {
-
   const [theme, setThemeState] = useState<Theme>(() => {
-
     const storedTheme = localStorage.getItem(storageKey) as Theme | null
     if (storedTheme && storedTheme !== 'system') {
       return storedTheme
     }
 
     if (enableSystem) {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
+        .matches
         ? 'dark'
         : 'light'
       return systemTheme
@@ -56,15 +55,16 @@ export function ThemeProvider({
 
   useEffect(() => {
     const root = window.document.documentElement
-    
+
     const applyTheme = (newTheme: Theme) => {
       root.classList.remove(...themes)
-      
-      const finalTheme = newTheme === 'system' && enableSystem
-        ? window.matchMedia('(prefers-color-scheme: dark)').matches
-          ? 'dark'
-          : 'light'
-        : newTheme
+
+      const finalTheme =
+        newTheme === 'system' && enableSystem
+          ? window.matchMedia('(prefers-color-scheme: dark)').matches
+            ? 'dark'
+            : 'light'
+          : newTheme
 
       if (attribute === 'class') {
         root.classList.add(finalTheme)
@@ -90,7 +90,8 @@ export function ThemeProvider({
     }
 
     mediaQuery.addEventListener('change', handleSystemThemeChange)
-    return () => mediaQuery.removeEventListener('change', handleSystemThemeChange)
+    return () =>
+      mediaQuery.removeEventListener('change', handleSystemThemeChange)
   }, [theme, themes, enableSystem])
 
   const setTheme = React.useCallback(
@@ -98,7 +99,7 @@ export function ThemeProvider({
       localStorage.setItem(storageKey, newTheme)
       setThemeState(newTheme)
     },
-    [storageKey]
+    [storageKey],
   )
 
   const value = React.useMemo(
@@ -107,7 +108,7 @@ export function ThemeProvider({
       setTheme,
       themes,
     }),
-    [theme, setTheme, themes]
+    [theme, setTheme, themes],
   )
 
   return (
