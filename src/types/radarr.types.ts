@@ -92,3 +92,25 @@ export interface RadarrGenreRoute {
   genre: string
   rootFolder: string
 }
+
+export interface RadarrHealthCheck {
+  id: number
+  source: string
+  type: 'ok' | 'warning' | 'error'
+  message: string
+  wikiUrl?: {
+    fullUri: string
+    scheme: string
+    host: string
+    port: number
+    path: string
+    query: string
+    fragment: string
+  }
+}
+
+export interface ConnectionTestResult {
+  success: boolean
+  message: string
+  checks?: RadarrHealthCheck[]
+}

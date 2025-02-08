@@ -1,5 +1,4 @@
 import type { FastifyBaseLogger } from 'fastify'
-import type { FastifyInstance } from 'fastify'
 import type {
   RadarrAddOptions,
   RadarrPost,
@@ -10,6 +9,8 @@ import type {
   QualityProfile,
   PagedResult,
   RadarrInstance,
+  RadarrHealthCheck,
+  ConnectionTestResult
 } from '@root/types/radarr.types.js'
 
 export class RadarrService {
@@ -383,4 +384,59 @@ export class RadarrService {
       throw new Error(`Radarr API error: ${response.statusText}`)
     }
   }
+
+  async testConnection(
+    baseUrl: string,
+    apiKey: string,
+  ): Promise<ConnectionTestResult> {
+    try {
+      if (!baseUrl || !apiKey) {
+        return {
+          success: false,
+          message: 'Base URL and API key are required',
+        }
+      }
+  
+      const url = new URL(`${baseUrl}/api/v3/health`)
+      const response = await fetch(url.toString(), {
+        method: 'GET',
+        headers: {
+          'X-Api-Key': apiKey,
+          Accept: 'application/json',
+        },
+      })
+  
+      if (!response.ok) {
+        return {
+          success: false,
+          message: `Connection failed: ${response.statusText}`,
+        }
+      }
+  
+      const healthChecks = (await response.json()) as RadarrHealthCheck[]
+      const errors = healthChecks.filter((check) => check.type === 'error')
+      
+      if (errors.length > 0) {
+        return {
+          success: false,
+          message: errors[0].message,
+          checks: healthChecks,
+        }
+      }
+  
+      return {
+        success: true,
+        message: 'Connection successful',
+        checks: healthChecks,
+      }
+    } catch (error) {
+      this.log.error('Connection test error:', error)
+      return {
+        success: false,
+        message:
+          error instanceof Error ? error.message : 'Unknown connection error',
+      }
+    }
+  }
+
 }
