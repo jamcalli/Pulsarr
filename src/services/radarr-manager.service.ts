@@ -4,6 +4,7 @@ import { RadarrService } from '@services/radarr.service.js'
 import type {
   RadarrInstance,
   RadarrGenreRoute,
+  ConnectionTestResult,
 } from '@root/types/radarr.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { TemptRssWatchlistItem } from '@root/types/plex.types.js'
@@ -308,4 +309,25 @@ export class RadarrManagerService {
   getRadarrService(id: number): RadarrService | undefined {
     return this.radarrServices.get(id)
   }
+
+  async testConnection(
+    baseUrl: string,
+    apiKey: string,
+  ): Promise<ConnectionTestResult> {
+    try {
+      // Create a temporary service instance for testing
+      const tempService = new RadarrService(this.log)
+      return await tempService.testConnection(baseUrl, apiKey)
+    } catch (error) {
+      this.log.error('Error testing Radarr connection:', error)
+      return {
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Unknown error testing connection',
+      }
+    }
+  }
+
 }
