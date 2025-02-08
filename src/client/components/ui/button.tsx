@@ -12,6 +12,8 @@ const buttonVariants = cva(
       variant: {
         default:
           'text-mtext bg-main border-2 border-border shadow-shadow hover:translate-x-boxShadowX hover:translate-y-boxShadowY hover:shadow-none',
+        clear:
+          'text-mtext bg-error border-2 border-border shadow-shadow hover:translate-x-boxShadowX hover:translate-y-boxShadowY hover:shadow-none',
         noShadow: 'text-mtext bg-main border-2 border-border',
         neutral:
           'bg-bw text-text border-2 border-border shadow-shadow hover:translate-x-boxShadowX hover:translate-y-boxShadowY hover:shadow-none',
@@ -22,7 +24,7 @@ const buttonVariants = cva(
         error: 'text-mtext bg-error border-2 border-border',
         blue:
             'text-mtext bg-blue border-2 border-border',
-            cancel:
+        cancel:
             'text-mtext bg-fun border-2 border-border',
       },
       size: {

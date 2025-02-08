@@ -41,11 +41,31 @@ interface CredenzaProps extends BaseProps {
 
 const desktop = "(min-width: 768px)"
 
-const Credenza = ({ children, ...props }: RootCredenzaProps) => {
+const Credenza = ({ children, open, onOpenChange, ...props }: RootCredenzaProps) => {
   const isDesktop = useMediaQuery(desktop)
-  const Credenza = isDesktop ? Dialog : Drawer
+  const CredenzaComponent = isDesktop ? Dialog : Drawer
 
-  return <Credenza {...props}>{children}</Credenza>
+  React.useEffect(() => {
+    if (!open) {
+      document.body.style.pointerEvents = '';
+    }
+    return () => {
+      document.body.style.pointerEvents = '';
+    };
+  }, [open]);
+
+  return <CredenzaComponent 
+    open={open} 
+    onOpenChange={(newOpen) => {
+      if (!newOpen) {
+        document.body.style.pointerEvents = '';
+      }
+      onOpenChange?.(newOpen);
+    }}
+    {...props}
+  >
+    {children}
+  </CredenzaComponent>
 }
 
 const CredenzaTrigger = ({ className, children, ...props }: CredenzaProps) => {
