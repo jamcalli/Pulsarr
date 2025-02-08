@@ -5,6 +5,7 @@ import { useConfig } from '@/context/context'
 import { useToast } from '@/hooks/use-toast'
 import GenreRouteCard from './sonarr-genre-route-card'
 import type { GenreRouteFormValues } from './sonarr-genre-route-card'
+import DeleteGenreRouteAlert from './delete-genre-route-alert'
 
 const GenreRoutingSection = () => {
   const {
@@ -33,6 +34,9 @@ const GenreRoutingSection = () => {
   const [savingRoutes, setSavingRoutes] = useState<{ [key: string]: boolean }>(
     {},
   )
+  const [deleteConfirmationRouteId, setDeleteConfirmationRouteId] = useState<
+    number | null
+  >(null)
 
   useEffect(() => {
     const loadInitialData = async () => {
@@ -143,19 +147,22 @@ const GenreRoutingSection = () => {
     }
   }
 
-  const handleRemoveRoute = async (id: number) => {
-    try {
-      await deleteGenreRoute(id)
-      toast({
-        title: 'Success',
-        description: 'Genre route removed',
-      })
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to remove genre route',
-        variant: 'destructive',
-      })
+  const handleRemoveRoute = async () => {
+    if (deleteConfirmationRouteId !== null) {
+      try {
+        await deleteGenreRoute(deleteConfirmationRouteId)
+        setDeleteConfirmationRouteId(null)
+        toast({
+          title: 'Success',
+          description: 'Genre route removed',
+        })
+      } catch (error) {
+        toast({
+          title: 'Error',
+          description: 'Failed to remove genre route',
+          variant: 'destructive',
+        })
+      }
     }
   }
 
@@ -201,7 +208,7 @@ const GenreRoutingSection = () => {
             route={route}
             onSave={(data) => handleUpdateRoute(route.id, data)}
             onCancel={() => null}
-            onRemove={() => handleRemoveRoute(route.id)}
+            onRemove={() => setDeleteConfirmationRouteId(route.id)}
             onGenreDropdownOpen={handleGenreDropdownOpen}
             instances={instances}
             genres={genres}
@@ -218,6 +225,16 @@ const GenreRoutingSection = () => {
           </div>
         )}
       </div>
+
+      <DeleteGenreRouteAlert
+        open={deleteConfirmationRouteId !== null}
+        onOpenChange={() => setDeleteConfirmationRouteId(null)}
+        onConfirm={handleRemoveRoute}
+        routeName={
+          genreRoutes.find((r) => r.id === deleteConfirmationRouteId)?.name ||
+          ''
+        }
+      />
     </div>
   )
 }

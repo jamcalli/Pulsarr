@@ -29,6 +29,8 @@ import {
 } from '@/components/ui/select'
 import SyncedInstancesSelect from './synced-instance-select'
 import ConnectionSettings from './sonarr-connection-settings'
+import InstanceCardSkeleton from './instance-card-skeleton'
+import DeleteInstanceAlert from './delete-instance-alert'
 
 const baseInstanceSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -80,6 +82,8 @@ export function InstanceCard({
   >('idle')
   const [isConnectionValid, setIsConnectionValid] = useState(false)
   const hasInitialized = useRef(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [showDeleteAlert, setShowDeleteAlert] = useState(false)
 
   const form = useForm<SonarrInstanceSchema>({
     resolver: zodResolver(
@@ -133,12 +137,20 @@ export function InstanceCard({
     const initializeComponent = async () => {
       if (hasInitialized.current) return
       hasInitialized.current = true
+
       const hasInstanceData =
         instance.data?.rootFolders && instance.data?.qualityProfiles
       const isPlaceholderKey = instance.apiKey === API_KEY_PLACEHOLDER
+
+      if (instance.id === -1) {
+        setIsLoading(false)
+        return
+      }
+
       if (hasInstanceData) {
         setIsConnectionValid(true)
         setTestStatus('success')
+        setIsLoading(false)
       } else if (instance.baseUrl && instance.apiKey && !isPlaceholderKey) {
         try {
           const result = await testConnectionWithoutLoading(
@@ -155,11 +167,16 @@ export function InstanceCard({
               await fetchInstanceData(instance.id.toString())
             }
           }
+          setIsLoading(false)
         } catch (error) {
           console.error('Silent connection test failed:', error)
+          setIsLoading(false)
         }
+      } else {
+        setIsLoading(false)
       }
     }
+
     initializeComponent()
   }, [
     instance.id,
@@ -411,6 +428,10 @@ export function InstanceCard({
   }
 
   const clearConfig = async () => {
+    setShowDeleteAlert(true)
+  }
+
+  const handleConfirmDelete = async () => {
     try {
       const isLastRealInstance =
         instances.filter((i) => i.apiKey !== API_KEY_PLACEHOLDER).length === 1
@@ -496,155 +517,170 @@ export function InstanceCard({
   const values = form.watch()
   const hasValidUrlAndKey = Boolean(values.baseUrl && values.apiKey)
 
+  if (isLoading) {
+    return <InstanceCardSkeleton />
+  }
+
   return (
-    <Card className="bg-bg">
-      <EditableCardHeader
-        title={form.watch('name')}
-        isNew={instance.id === -1}
-        isSaving={saveStatus === 'loading'}
-        isDirty={form.formState.isDirty}
-        isValid={form.formState.isValid && isConnectionValid}
-        badge={instance.isDefault ? { text: 'Default' } : undefined}
-        onSave={handleSave}
-        onCancel={handleCancel}
-        onDelete={clearConfig}
-        onTitleChange={(newTitle) =>
-          form.setValue('name', newTitle, { shouldDirty: true })
+    <>
+      <DeleteInstanceAlert
+        open={showDeleteAlert}
+        onOpenChange={setShowDeleteAlert}
+        onConfirm={handleConfirmDelete}
+        instanceName={instance.name}
+        isLastInstance={
+          instances.filter((i) => i.apiKey !== API_KEY_PLACEHOLDER).length === 1
         }
       />
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={handleSave} className="space-y-8">
-            <ConnectionSettings
-              form={form}
-              testStatus={testStatus}
-              onTest={testConnection}
-              saveStatus={saveStatus}
-              hasValidUrlAndKey={hasValidUrlAndKey}
-            />
-            {/* Profile Settings */}
-            <div className="flex portrait:flex-col gap-4">
-              <div className="flex-1">
+      <Card className="bg-bg">
+        <EditableCardHeader
+          title={form.watch('name')}
+          isNew={instance.id === -1}
+          isSaving={saveStatus === 'loading'}
+          isDirty={form.formState.isDirty}
+          isValid={form.formState.isValid && isConnectionValid}
+          badge={instance.isDefault ? { text: 'Default' } : undefined}
+          onSave={handleSave}
+          onCancel={handleCancel}
+          onDelete={clearConfig}
+          onTitleChange={(newTitle) =>
+            form.setValue('name', newTitle, { shouldDirty: true })
+          }
+        />
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={handleSave} className="space-y-8">
+              <ConnectionSettings
+                form={form}
+                testStatus={testStatus}
+                onTest={testConnection}
+                saveStatus={saveStatus}
+                hasValidUrlAndKey={hasValidUrlAndKey}
+              />
+              {/* Profile Settings */}
+              <div className="flex portrait:flex-col gap-4">
+                <div className="flex-1">
+                  <FormField
+                    control={form.control}
+                    name="qualityProfile"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-text">
+                          Quality Profile
+                        </FormLabel>
+                        <QualityProfileSelect
+                          field={field}
+                          isConnectionValid={isConnectionValid}
+                          selectedInstance={instance.id}
+                          instances={instances}
+                        />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="flex-1">
+                  <FormField
+                    control={form.control}
+                    name="rootFolder"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-text">Root Folder</FormLabel>
+                        <RootFolderSelect
+                          field={field}
+                          isConnectionValid={isConnectionValid}
+                          selectedInstance={instance.id}
+                          instances={instances}
+                        />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              {/* Instance Configuration */}
+              <div className="grid lg:grid-cols-3 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="qualityProfile"
+                  name="seasonMonitoring"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-text">
-                        Quality Profile
+                        Season Monitoring
                       </FormLabel>
-                      <QualityProfileSelect
-                        field={field}
-                        isConnectionValid={isConnectionValid}
-                        selectedInstance={instance.id}
-                        instances={instances}
-                      />
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                        disabled={!isConnectionValid}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select monitoring type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {Object.entries(SONARR_MONITORING_OPTIONS).map(
+                            ([value, label]) => (
+                              <SelectItem key={value} value={value}>
+                                {label}
+                              </SelectItem>
+                            ),
+                          )}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              </div>
-              <div className="flex-1">
+
                 <FormField
                   control={form.control}
-                  name="rootFolder"
+                  name="syncedInstances"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-text">Root Folder</FormLabel>
-                      <RootFolderSelect
+                      <FormLabel className="text-text">
+                        Sync With Instances
+                      </FormLabel>
+                      <SyncedInstancesSelect
                         field={field}
-                        isConnectionValid={isConnectionValid}
-                        selectedInstance={instance.id}
                         instances={instances}
+                        currentInstanceId={instance.id}
+                        isDefault={instance.isDefault}
                       />
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+
+                <FormField
+                  control={form.control}
+                  name="isDefault"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-text">
+                        Default Instance
+                      </FormLabel>
+                      <div className="flex h-10 items-center gap-2 px-3 py-2">
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            disabled={!isConnectionValid}
+                          />
+                        </FormControl>
+                        <span className="text-sm text-text text-muted-foreground">
+                          Set as default instance
+                        </span>
+                      </div>
+                    </FormItem>
+                  )}
+                />
               </div>
-            </div>
-
-            {/* Instance Configuration */}
-            <div className="grid lg:grid-cols-3 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="seasonMonitoring"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-text">
-                      Season Monitoring
-                    </FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value}
-                      disabled={!isConnectionValid}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select monitoring type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {Object.entries(SONARR_MONITORING_OPTIONS).map(
-                          ([value, label]) => (
-                            <SelectItem key={value} value={value}>
-                              {label}
-                            </SelectItem>
-                          ),
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="syncedInstances"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-text">
-                      Sync With Instances
-                    </FormLabel>
-                    <SyncedInstancesSelect
-                      field={field}
-                      instances={instances}
-                      currentInstanceId={instance.id}
-                      isDefault={instance.isDefault}
-                    />
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="isDefault"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-text">
-                      Default Instance
-                    </FormLabel>
-                    <div className="flex h-10 items-center gap-2 px-3 py-2">
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                          disabled={!isConnectionValid}
-                        />
-                      </FormControl>
-                      <span className="text-sm text-text text-muted-foreground">
-                        Set as default instance
-                      </span>
-                    </div>
-                  </FormItem>
-                )}
-              />
-            </div>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+    </>
   )
 }
