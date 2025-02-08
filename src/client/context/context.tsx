@@ -107,7 +107,10 @@ interface ConfigContextType {
   genreRoutes: GenreRoute[]
   fetchGenreRoutes: () => Promise<void>
   createGenreRoute: (route: Omit<GenreRoute, 'id'>) => Promise<GenreRoute>
-  updateGenreRoute: (id: number, updates: Partial<Omit<GenreRoute, 'id'>>) => Promise<void>
+  updateGenreRoute: (
+    id: number,
+    updates: Partial<Omit<GenreRoute, 'id'>>,
+  ) => Promise<void>
   deleteGenreRoute: (id: number) => Promise<void>
   initialize: (force?: boolean) => Promise<void>
 }
@@ -126,7 +129,7 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const isLoadingRef = useRef(false)
 
-  const setLoadingWithMinDuration = (loading: boolean) => {
+  const setLoadingWithMinDuration = useCallback((loading: boolean) => {
     if (loading) {
       if (!isLoadingRef.current) {
         isLoadingRef.current = true
@@ -136,14 +139,14 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
       if (loadingTimeoutRef.current) {
         clearTimeout(loadingTimeoutRef.current)
       }
-      
+
       loadingTimeoutRef.current = setTimeout(() => {
         setInstancesLoading(false)
         isLoadingRef.current = false
         loadingTimeoutRef.current = null
       }, 500)
     }
-  }
+  }, [])
 
   useEffect(() => {
     return () => {
@@ -372,20 +375,33 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
     await fetchGenreRoutes()
   }
 
-  const initialize = useCallback(async (force = false) => {
-    if (!isInitialized || force) {
-      setLoadingWithMinDuration(true)
-      try {
-        await Promise.all([fetchConfig(), fetchInstances(), fetchGenreRoutes()])
-        setIsInitialized(true)
-      } catch (err) {
-        console.error('Initialization error:', err)
-        setError('Failed to initialize application')
-      } finally {
-        setLoadingWithMinDuration(false)
+  const initialize = useCallback(
+    async (force = false) => {
+      if (!isInitialized || force) {
+        setLoadingWithMinDuration(true)
+        try {
+          await Promise.all([
+            fetchConfig(),
+            fetchInstances(),
+            fetchGenreRoutes(),
+          ])
+          setIsInitialized(true)
+        } catch (err) {
+          console.error('Initialization error:', err)
+          setError('Failed to initialize application')
+        } finally {
+          setLoadingWithMinDuration(false)
+        }
       }
-    }
-  }, [fetchConfig, fetchInstances, fetchGenreRoutes])
+    },
+    [
+      fetchConfig,
+      fetchInstances,
+      fetchGenreRoutes,
+      isInitialized,
+      setLoadingWithMinDuration,
+    ],
+  )
 
   useEffect(() => {
     if (!isInitialized) {
@@ -412,7 +428,7 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
     updateGenreRoute,
     deleteGenreRoute,
     isInitialized,
-    setInstancesLoading
+    setInstancesLoading,
   }
 
   return (

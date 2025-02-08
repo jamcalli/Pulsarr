@@ -1,6 +1,6 @@
 import type { ControllerRenderProps } from 'react-hook-form'
 import type { SonarrInstance } from '@/context/context'
-import type { SonarrInstanceSchema } from './sonarr-instance-card'
+import type { SonarrInstanceSchema } from '@/components/sonarr/sonarr-instance-card'
 import { MultiSelect } from '@/components/multi-select'
 import { Computer } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'

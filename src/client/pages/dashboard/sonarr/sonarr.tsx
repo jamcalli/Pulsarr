@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useConfig } from '@/context/context'
-import GenreRouting from './sonarr-genre-routing'
-import { InstanceCard } from './sonarr-instance-card'
+import GenreRouting from '@/components/sonarr/sonarr-genre-routing'
+import { InstanceCard } from '@/components/sonarr/sonarr-instance-card'
 
 export default function SonarrConfigPage() {
   const {
@@ -14,9 +14,14 @@ export default function SonarrConfigPage() {
     initialize,
   } = useConfig()
 
+  const hasInitializedRef = useRef(false)
+
   useEffect(() => {
-    initialize(true)
-  }, [])
+    if (!hasInitializedRef.current) {
+      initialize(true)
+      hasInitializedRef.current = true
+    }
+  }, [initialize])
 
   const [showInstanceCard, setShowInstanceCard] = useState(false)
   const API_KEY_PLACEHOLDER = 'placeholder'

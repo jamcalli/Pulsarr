@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Loader2, Pen, Save, Trash2, X } from 'lucide-react';
 
 interface EditableCardHeaderProps {
@@ -87,9 +88,9 @@ const EditableCardHeader = ({
             </div>
           )}
           {badge && (
-            <span className={badge.className || "text-sm bg-primary/10 text-primary px-2 py-1 rounded"}>
+            <Badge className={badge.className || "text-sm bg-blue"}>
               {badge.text}
-            </span>
+            </Badge>
           )}
         </div>
         <div className="flex gap-2">
