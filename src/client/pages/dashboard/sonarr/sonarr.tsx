@@ -2,16 +2,16 @@ import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useConfig } from '@/context/context'
-import GenreRouting from '@/components/sonarr/sonarr-genre-routing'
+import SonarrGenreRouting from '@/components/sonarr/sonarr-genre-routing'
 import { InstanceCard } from '@/components/sonarr/sonarr-instance-card'
 import InstanceCardSkeleton from '@/components/sonarr/instance-card-skeleton'
 
 export default function SonarrConfigPage() {
   const {
-    instances,
-    fetchInstanceData,
-    fetchInstances,
-    fetchAllInstanceData,
+    sonarrInstances: instances,
+    fetchSonarrInstanceData: fetchInstanceData,
+    fetchSonarrInstances: fetchInstances,
+    fetchAllSonarrInstanceData: fetchAllInstanceData,
     initialize,
     instancesLoading,
     isInitialized,
@@ -56,7 +56,7 @@ export default function SonarrConfigPage() {
             <div className="grid gap-4">
               <InstanceCardSkeleton />
             </div>
-            <GenreRouting />
+            <SonarrGenreRouting />
           </div>
         </div>
       </ScrollArea>
@@ -77,7 +77,7 @@ export default function SonarrConfigPage() {
                 Add Your First Instance
               </Button>
             </div>
-            <GenreRouting />
+            <SonarrGenreRouting />
           </div>
         ) : (
           <div className="grid gap-6">
@@ -123,7 +123,7 @@ export default function SonarrConfigPage() {
                 />
               )}
             </div>
-            <GenreRouting />
+            <SonarrGenreRouting />
           </div>
         )}
       </div>

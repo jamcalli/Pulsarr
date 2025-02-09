@@ -6,15 +6,15 @@ import GenreRouteCard from '@/components/sonarr/sonarr-genre-route-card'
 import type { GenreRouteFormValues } from '@/components/sonarr/sonarr-genre-route-card'
 import DeleteGenreRouteAlert from '@/components/sonarr/delete-genre-route-alert'
 
-const GenreRoutingSection = () => {
+const SonarrGenreRoutingSection = () => {
   const {
-    instances = [],
+    sonarrInstances = [],
     genres = [],
-    genreRoutes = [],
+    sonarrGenreRoutes = [],
     fetchGenres,
-    createGenreRoute,
-    updateGenreRoute,
-    deleteGenreRoute,
+    createSonarrGenreRoute,
+    updateSonarrGenreRoute,
+    deleteSonarrGenreRoute,
   } = useConfig()
 
   const { toast } = useToast()
@@ -35,7 +35,7 @@ const GenreRoutingSection = () => {
   >(null)
 
   const handleAddRoute = () => {
-    const defaultInstance = instances[0]
+    const defaultInstance = sonarrInstances[0]
     setLocalRoutes([
       ...localRoutes,
       {
@@ -57,7 +57,7 @@ const GenreRoutingSection = () => {
       const minimumLoadingTime = new Promise((resolve) =>
         setTimeout(resolve, 500),
       )
-      await Promise.all([createGenreRoute(data), minimumLoadingTime])
+      await Promise.all([createSonarrGenreRoute(data), minimumLoadingTime])
 
       setLocalRoutes((prev) => prev.filter((r) => r.tempId !== tempId))
       toast({
@@ -85,7 +85,7 @@ const GenreRoutingSection = () => {
       const minimumLoadingTime = new Promise((resolve) =>
         setTimeout(resolve, 500),
       )
-      await Promise.all([updateGenreRoute(id, data), minimumLoadingTime])
+      await Promise.all([updateSonarrGenreRoute(id, data), minimumLoadingTime])
 
       toast({
         title: 'Success',
@@ -123,7 +123,7 @@ const GenreRoutingSection = () => {
   const handleRemoveRoute = async () => {
     if (deleteConfirmationRouteId !== null) {
       try {
-        await deleteGenreRoute(deleteConfirmationRouteId)
+        await deleteSonarrGenreRoute(deleteConfirmationRouteId)
         setDeleteConfirmationRouteId(null)
         toast({
           title: 'Success',
@@ -142,7 +142,7 @@ const GenreRoutingSection = () => {
   return (
     <div className="grid gap-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-text">Genre Routes</h2>
+        <h2 className="text-2xl font-bold text-text">Sonarr Genre Routes</h2>
         <Button onClick={handleAddRoute}>Add Route</Button>
       </div>
 
@@ -160,14 +160,14 @@ const GenreRoutingSection = () => {
               )
             }
             onGenreDropdownOpen={handleGenreDropdownOpen}
-            instances={instances}
+            instances={sonarrInstances}
             genres={genres}
             isSaving={!!savingRoutes[route.tempId]}
           />
         ))}
 
         {/* Saved routes */}
-        {genreRoutes.map((route) => (
+        {sonarrGenreRoutes.map((route) => (
           <GenreRouteCard
             key={route.id}
             route={route}
@@ -175,13 +175,13 @@ const GenreRoutingSection = () => {
             onCancel={() => null}
             onRemove={() => setDeleteConfirmationRouteId(route.id)}
             onGenreDropdownOpen={handleGenreDropdownOpen}
-            instances={instances}
+            instances={sonarrInstances}
             genres={genres}
             isSaving={!!savingRoutes[route.id]}
           />
         ))}
 
-        {!localRoutes.length && !genreRoutes.length && (
+        {!localRoutes.length && !sonarrGenreRoutes.length && (
           <div className="text-center py-8 text-text">
             <p>No genre routes configured</p>
             <Button onClick={handleAddRoute} className="mt-4">
@@ -196,7 +196,7 @@ const GenreRoutingSection = () => {
         onOpenChange={() => setDeleteConfirmationRouteId(null)}
         onConfirm={handleRemoveRoute}
         routeName={
-          genreRoutes.find((r) => r.id === deleteConfirmationRouteId)?.name ||
+          sonarrGenreRoutes.find((r) => r.id === deleteConfirmationRouteId)?.name ||
           ''
         }
       />
@@ -204,4 +204,4 @@ const GenreRoutingSection = () => {
   )
 }
 
-export default GenreRoutingSection
+export default SonarrGenreRoutingSection
