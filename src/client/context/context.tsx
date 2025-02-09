@@ -8,6 +8,7 @@ import {
   useRef,
 } from 'react'
 import type { RootFolder, QualityProfile } from '@root/types/sonarr.types'
+import type { RootFolder as RadarrRootFolder, QualityProfile as RadarrQualityProfile } from '@root/types/radarr.types'
 import type { Config } from '@root/types/config.types'
 
 export type LogLevel =
@@ -63,6 +64,12 @@ interface SonarrInstanceData {
   fetching?: boolean
 }
 
+interface RadarrInstanceData {
+  rootFolders?: RadarrRootFolder[]
+  qualityProfiles?: RadarrQualityProfile[]
+  fetching?: boolean
+}
+
 export interface SonarrInstance {
   id: number
   name: string
@@ -78,15 +85,37 @@ export interface SonarrInstance {
   data?: SonarrInstanceData
 }
 
+export interface RadarrInstance {
+  id: number
+  name: string
+  baseUrl: string
+  apiKey: string
+  qualityProfile?: string
+  rootFolder?: string
+  bypassIgnored: boolean
+  tags: string[]
+  isDefault: boolean
+  syncedInstances?: number[]
+  data?: RadarrInstanceData
+}
+
 interface GenresResponse {
   success: boolean
   genres: string[]
 }
 
-interface GenreRoute {
+interface SonarrGenreRoute {
   id: number
   name: string
   sonarrInstanceId: number
+  genre: string
+  rootFolder: string
+}
+
+interface RadarrGenreRoute {
+  id: number
+  name: string
+  radarrInstanceId: number
   genre: string
   rootFolder: string
 }
@@ -95,24 +124,30 @@ interface ConfigContextType {
   config: Config | null
   loading: boolean
   error: string | null
-  instances: SonarrInstance[]
+  sonarrInstances: SonarrInstance[]
+  radarrInstances: RadarrInstance[]
   isInitialized: boolean
   instancesLoading: boolean
   setInstancesLoading: (loading: boolean) => void
   updateConfig: (updates: Partial<Config>) => Promise<void>
-  fetchInstances: () => Promise<void>
-  fetchInstanceData: (instanceId: string) => Promise<void>
-  fetchAllInstanceData: () => Promise<void>
+  fetchSonarrInstances: () => Promise<void>
+  fetchRadarrInstances: () => Promise<void>
+  fetchSonarrInstanceData: (instanceId: string) => Promise<void>
+  fetchRadarrInstanceData: (instanceId: string) => Promise<void>
+  fetchAllSonarrInstanceData: () => Promise<void>
+  fetchAllRadarrInstanceData: () => Promise<void>
   genres: string[]
   fetchGenres: () => Promise<void>
-  genreRoutes: GenreRoute[]
-  fetchGenreRoutes: () => Promise<void>
-  createGenreRoute: (route: Omit<GenreRoute, 'id'>) => Promise<GenreRoute>
-  updateGenreRoute: (
-    id: number,
-    updates: Partial<Omit<GenreRoute, 'id'>>,
-  ) => Promise<void>
-  deleteGenreRoute: (id: number) => Promise<void>
+  sonarrGenreRoutes: SonarrGenreRoute[]
+  radarrGenreRoutes: RadarrGenreRoute[]
+  fetchSonarrGenreRoutes: () => Promise<void>
+  fetchRadarrGenreRoutes: () => Promise<void>
+  createSonarrGenreRoute: (route: Omit<SonarrGenreRoute, 'id'>) => Promise<SonarrGenreRoute>
+  updateSonarrGenreRoute: (id: number, updates: Partial<Omit<SonarrGenreRoute, 'id'>>) => Promise<void>
+  deleteSonarrGenreRoute: (id: number) => Promise<void>
+  createRadarrGenreRoute: (route: Omit<RadarrGenreRoute, 'id'>) => Promise<RadarrGenreRoute>
+  updateRadarrGenreRoute: (id: number, updates: Partial<Omit<RadarrGenreRoute, 'id'>>) => Promise<void>
+  deleteRadarrGenreRoute: (id: number) => Promise<void>
   initialize: (force?: boolean) => Promise<void>
 }
 
@@ -123,9 +158,11 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [instancesLoading, setInstancesLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [instances, setInstances] = useState<SonarrInstance[]>([])
+  const [sonarrInstances, setSonarrInstances] = useState<SonarrInstance[]>([])
+  const [radarrInstances, setRadarrInstances] = useState<RadarrInstance[]>([])
   const [genres, setGenres] = useState<string[]>([])
-  const [genreRoutes, setGenreRoutes] = useState<GenreRoute[]>([])
+  const [sonarrGenreRoutes, setSonarrGenreRoutes] = useState<SonarrGenreRoute[]>([])
+  const [radarrGenreRoutes, setRadarrGenreRoutes] = useState<RadarrGenreRoute[]>([])
   const [isInitialized, setIsInitialized] = useState(false)
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const isLoadingRef = useRef(false)
@@ -203,10 +240,9 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const fetchInstances = useCallback(async () => {
+  const fetchSonarrInstances = useCallback(async () => {
     try {
-      const currentInstances = [...instances]
-
+      const currentInstances = [...sonarrInstances]
       const response = await fetch('/v1/sonarr/instances')
       const newInstances: SonarrInstance[] = await response.json()
 
@@ -223,16 +259,43 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
         return newInst
       })
 
-      setInstances(mergedInstances)
+      setSonarrInstances(mergedInstances)
     } catch (err) {
       setError('Failed to fetch Sonarr instances')
       console.error('Instances fetch error:', err)
       throw err
     }
-  }, [instances])
+  }, [sonarrInstances])
 
-  const fetchInstanceData = async (instanceId: string) => {
-    const existingInstance = instances.find(
+  const fetchRadarrInstances = useCallback(async () => {
+    try {
+      const currentInstances = [...radarrInstances]
+      const response = await fetch('/v1/radarr/instances')
+      const newInstances: RadarrInstance[] = await response.json()
+
+      const mergedInstances = newInstances.map((newInst) => {
+        const existingInstance = currentInstances.find(
+          (curr) => curr.id === newInst.id,
+        )
+        if (existingInstance) {
+          return {
+            ...newInst,
+            data: existingInstance.data,
+          }
+        }
+        return newInst
+      })
+
+      setRadarrInstances(mergedInstances)
+    } catch (err) {
+      setError('Failed to fetch Radarr instances')
+      console.error('Instances fetch error:', err)
+      throw err
+    }
+  }, [radarrInstances])
+
+  const fetchSonarrInstanceData = async (instanceId: string) => {
+    const existingInstance = sonarrInstances.find(
       (inst) => inst.id === Number(instanceId),
     )
     if (
@@ -258,7 +321,7 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
         throw new Error('Failed to fetch instance data')
       }
 
-      setInstances((currentInstances) =>
+      setSonarrInstances((currentInstances) =>
         currentInstances.map((instance) => {
           if (instance.id === Number(instanceId)) {
             return {
@@ -280,20 +343,90 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const fetchAllInstanceData = async () => {
+  const fetchRadarrInstanceData = async (instanceId: string) => {
+    const existingInstance = radarrInstances.find(
+      (inst) => inst.id === Number(instanceId),
+    )
+    if (
+      existingInstance?.data?.rootFolders &&
+      existingInstance?.data?.qualityProfiles
+    ) {
+      return
+    }
+
     setLoadingWithMinDuration(true)
     try {
-      await fetchInstances()
-      const validInstances = instances.filter(
+      const [foldersResponse, profilesResponse] = await Promise.all([
+        fetch(`/v1/radarr/root-folders?instanceId=${instanceId}`),
+        fetch(`/v1/radarr/quality-profiles?instanceId=${instanceId}`),
+      ])
+
+      const [foldersData, profilesData] = await Promise.all([
+        foldersResponse.json(),
+        profilesResponse.json(),
+      ])
+
+      if (!foldersData.success || !profilesData.success) {
+        throw new Error('Failed to fetch instance data')
+      }
+
+      setRadarrInstances((currentInstances) =>
+        currentInstances.map((instance) => {
+          if (instance.id === Number(instanceId)) {
+            return {
+              ...instance,
+              data: {
+                rootFolders: foldersData.rootFolders,
+                qualityProfiles: profilesData.qualityProfiles,
+              },
+            }
+          }
+          return instance
+        }),
+      )
+    } catch (error) {
+      console.error('Failed to fetch instance data:', error)
+      throw error
+    } finally {
+      setLoadingWithMinDuration(false)
+    }
+  }
+
+  const fetchAllSonarrInstanceData = async () => {
+    setLoadingWithMinDuration(true)
+    try {
+      await fetchSonarrInstances()
+      const validInstances = sonarrInstances.filter(
         (inst) => inst.apiKey && inst.apiKey !== 'placeholder',
       )
       await Promise.all(
         validInstances.map((instance) =>
-          fetchInstanceData(instance.id.toString()),
+          fetchSonarrInstanceData(instance.id.toString()),
         ),
       )
     } catch (err) {
       setError('Failed to fetch all Sonarr instance data')
+      console.error('Failed to fetch all instance data:', err)
+      throw err
+    } finally {
+      setLoadingWithMinDuration(false)
+    }
+  }
+
+  const fetchAllRadarrInstanceData = async () => {
+    setLoadingWithMinDuration(true)
+    try {
+      await fetchRadarrInstances()
+      const validInstances = radarrInstances.filter(
+        (inst) => inst.apiKey && inst.apiKey !== 'placeholder',
+      )
+      await Promise.all(
+        validInstances.map((instance) =>
+          fetchRadarrInstanceData(instance.id.toString()),
+        ),
+      )
+    } catch (err) {
+      setError('Failed to fetch all Radarr instance data')
       console.error('Failed to fetch all instance data:', err)
       throw err
     } finally {
@@ -316,24 +449,39 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const fetchGenreRoutes = useCallback(async () => {
+  const fetchSonarrGenreRoutes = useCallback(async () => {
     try {
       const response = await fetch('/v1/sonarr/genre-routes')
       if (!response.ok) {
-        throw new Error('Failed to fetch genre routes')
+        throw new Error('Failed to fetch Sonarr genre routes')
       }
       const routes = await response.json()
-      setGenreRoutes(Array.isArray(routes) ? routes : [])
+      setSonarrGenreRoutes(Array.isArray(routes) ? routes : [])
     } catch (error) {
-      console.error('Error fetching genre routes:', error)
-      setGenreRoutes([])
+      console.error('Error fetching Sonarr genre routes:', error)
+      setSonarrGenreRoutes([])
       throw error
     }
   }, [])
 
-  const createGenreRoute = async (
-    route: Omit<GenreRoute, 'id'>,
-  ): Promise<GenreRoute> => {
+  const fetchRadarrGenreRoutes = useCallback(async () => {
+    try {
+      const response = await fetch('/v1/radarr/genre-routes')
+      if (!response.ok) {
+        throw new Error('Failed to fetch Radarr genre routes')
+      }
+      const routes = await response.json()
+      setRadarrGenreRoutes(Array.isArray(routes) ? routes : [])
+    } catch (error) {
+      console.error('Error fetching Radarr genre routes:', error)
+      setRadarrGenreRoutes([])
+      throw error
+    }
+  }, [])
+
+  const createSonarrGenreRoute = async (
+    route: Omit<SonarrGenreRoute, 'id'>,
+  ): Promise<SonarrGenreRoute> => {
     const response = await fetch('/v1/sonarr/genre-routes', {
       method: 'POST',
       headers: {
@@ -343,19 +491,37 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
     })
 
     if (!response.ok) {
-      throw new Error('Failed to create genre route')
+      throw new Error('Failed to create Sonarr genre route')
     }
 
     const createdRoute = await response.json()
-
-    setGenreRoutes((currentRoutes) => [...currentRoutes, createdRoute])
-
+    setSonarrGenreRoutes((currentRoutes) => [...currentRoutes, createdRoute])
     return createdRoute
   }
 
-  const updateGenreRoute = async (
+  const createRadarrGenreRoute = async (
+    route: Omit<RadarrGenreRoute, 'id'>,
+  ): Promise<RadarrGenreRoute> => {
+    const response = await fetch('/v1/radarr/genre-routes', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(route),
+    })
+
+    if (!response.ok) {
+      throw new Error('Failed to create Radarr genre route')
+    }
+
+    const createdRoute = await response.json()
+    setRadarrGenreRoutes((currentRoutes) => [...currentRoutes, createdRoute])
+    return createdRoute
+  }
+
+  const updateSonarrGenreRoute = async (
     id: number,
-    updates: Partial<Omit<GenreRoute, 'id'>>,
+    updates: Partial<Omit<SonarrGenreRoute, 'id'>>,
   ) => {
     const response = await fetch(`/v1/sonarr/genre-routes/${id}`, {
       method: 'PUT',
@@ -366,22 +532,53 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
     })
 
     if (!response.ok) {
-      throw new Error('Failed to update genre route')
+      throw new Error('Failed to update Sonarr genre route')
     }
 
-    await fetchGenreRoutes()
+    await fetchSonarrGenreRoutes()
   }
 
-  const deleteGenreRoute = async (id: number) => {
+  const updateRadarrGenreRoute = async (
+    id: number,
+    updates: Partial<Omit<RadarrGenreRoute, 'id'>>,
+  ) => {
+    const response = await fetch(`/v1/radarr/genre-routes/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updates),
+    })
+
+    if (!response.ok) {
+      throw new Error('Failed to update Radarr genre route')
+    }
+
+    await fetchRadarrGenreRoutes()
+  }
+
+  const deleteSonarrGenreRoute = async (id: number) => {
     const response = await fetch(`/v1/sonarr/genre-routes/${id}`, {
       method: 'DELETE',
     })
 
     if (!response.ok) {
-      throw new Error('Failed to delete genre route')
+      throw new Error('Failed to delete Sonarr genre route')
     }
 
-    await fetchGenreRoutes()
+    await fetchSonarrGenreRoutes()
+  }
+
+  const deleteRadarrGenreRoute = async (id: number) => {
+    const response = await fetch(`/v1/radarr/genre-routes/${id}`, {
+      method: 'DELETE',
+    })
+
+    if (!response.ok) {
+      throw new Error('Failed to delete Radarr genre route')
+    }
+
+    await fetchRadarrGenreRoutes()
   }
 
   const initialize = useCallback(
@@ -394,8 +591,10 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
         try {
           await Promise.all([
             fetchConfig(),
-            fetchInstances(),
-            fetchGenreRoutes(),
+            fetchSonarrInstances(),
+            fetchRadarrInstances(),
+            fetchSonarrGenreRoutes(),
+            fetchRadarrGenreRoutes(),
           ])
           setIsInitialized(true)
         } catch (err) {
@@ -410,8 +609,10 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
     },
     [
       fetchConfig,
-      fetchInstances,
-      fetchGenreRoutes,
+      fetchSonarrInstances,
+      fetchRadarrInstances,
+      fetchSonarrGenreRoutes,
+      fetchRadarrGenreRoutes,
       isInitialized,
       setLoadingWithMinDuration,
     ],
@@ -427,20 +628,29 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
     config,
     loading,
     error,
-    instances,
+    sonarrInstances,
+    radarrInstances,
     genres,
     instancesLoading,
     updateConfig,
-    fetchInstances,
-    fetchInstanceData,
-    fetchAllInstanceData,
+    fetchSonarrInstances,
+    fetchRadarrInstances,
+    fetchSonarrInstanceData,
+    fetchRadarrInstanceData,
+    fetchAllSonarrInstanceData,
+    fetchAllRadarrInstanceData,
     fetchGenres,
-    genreRoutes,
+    sonarrGenreRoutes,
+    radarrGenreRoutes,
     initialize,
-    fetchGenreRoutes,
-    createGenreRoute,
-    updateGenreRoute,
-    deleteGenreRoute,
+    fetchSonarrGenreRoutes,
+    fetchRadarrGenreRoutes,
+    createSonarrGenreRoute,
+    createRadarrGenreRoute,
+    updateSonarrGenreRoute,
+    updateRadarrGenreRoute,
+    deleteSonarrGenreRoute,
+    deleteRadarrGenreRoute,
     isInitialized,
     setInstancesLoading,
   }
@@ -449,6 +659,7 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
     <ConfigContext.Provider value={value}>{children}</ConfigContext.Provider>
   )
 }
+
 export function useConfig() {
   const context = useContext(ConfigContext)
   if (context === undefined) {
