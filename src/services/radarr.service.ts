@@ -9,7 +9,7 @@ import type {
   QualityProfile,
   PagedResult,
   RadarrInstance,
-  RadarrHealthCheck,
+  PingResponse,
   ConnectionTestResult
 } from '@root/types/radarr.types.js'
 
@@ -397,7 +397,7 @@ export class RadarrService {
         }
       }
   
-      const url = new URL(`${baseUrl}/api/v3/health`)
+      const url = new URL(`${baseUrl}/ping`)
       const response = await fetch(url.toString(), {
         method: 'GET',
         headers: {
@@ -413,21 +413,17 @@ export class RadarrService {
         }
       }
   
-      const healthChecks = (await response.json()) as RadarrHealthCheck[]
-      const errors = healthChecks.filter((check) => check.type === 'error')
-      
-      if (errors.length > 0) {
+      const pingResponse = (await response.json()) as PingResponse
+      if (pingResponse.status !== 'OK') {
         return {
           success: false,
-          message: errors[0].message,
-          checks: healthChecks,
+          message: 'Invalid ping response from server',
         }
       }
   
       return {
         success: true,
         message: 'Connection successful',
-        checks: healthChecks,
       }
     } catch (error) {
       this.log.error('Connection test error:', error)

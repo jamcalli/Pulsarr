@@ -77,12 +77,16 @@ export interface RadarrInstance {
   name: string
   baseUrl: string
   apiKey: string
-  qualityProfile: string | null
-  rootFolder: string | null
+  qualityProfile?: string | null | undefined
+  rootFolder?: string | null | undefined
   bypassIgnored: boolean
   tags: string[]
   isDefault: boolean
   syncedInstances?: number[]
+  data?: {
+    qualityProfiles?: Array<{ id: number; name: string }>
+    rootFolders?: Array<{ path: string }>
+  }
 }
 
 export interface RadarrGenreRoute {
@@ -112,5 +116,8 @@ export interface RadarrHealthCheck {
 export interface ConnectionTestResult {
   success: boolean
   message: string
-  checks?: RadarrHealthCheck[]
+}
+
+export interface PingResponse {
+  status: string
 }
