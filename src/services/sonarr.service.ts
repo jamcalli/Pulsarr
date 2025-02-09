@@ -10,7 +10,7 @@ import type {
   QualityProfile,
   SonarrInstance,
   ConnectionTestResult,
-  SonarrHealthCheck,
+  PingResponse,
 } from '@root/types/sonarr.types.js'
 
 export class SonarrService {
@@ -67,8 +67,8 @@ export class SonarrService {
           message: 'Base URL and API key are required',
         }
       }
-
-      const url = new URL(`${baseUrl}/api/v3/health`)
+  
+      const url = new URL(`${baseUrl}/ping`)
       const response = await fetch(url.toString(), {
         method: 'GET',
         headers: {
@@ -76,29 +76,25 @@ export class SonarrService {
           Accept: 'application/json',
         },
       })
-
+  
       if (!response.ok) {
         return {
           success: false,
           message: `Connection failed: ${response.statusText}`,
         }
       }
-
-      const healthChecks = (await response.json()) as SonarrHealthCheck[]
-
-      const errors = healthChecks.filter((check) => check.type === 'error')
-      if (errors.length > 0) {
+  
+      const pingResponse = (await response.json()) as PingResponse
+      if (pingResponse.status !== 'OK') {
         return {
           success: false,
-          message: errors[0].message,
-          checks: healthChecks,
+          message: 'Invalid ping response from server',
         }
       }
-
+  
       return {
         success: true,
         message: 'Connection successful',
-        checks: healthChecks,
       }
     } catch (error) {
       this.log.error('Connection test error:', error)

@@ -457,7 +457,6 @@ export class DatabaseService {
     const instances = await this.knex('radarr_instances')
       .where('is_enabled', true)
       .select('*')
-
     return instances.map((instance) => ({
       id: instance.id,
       name: instance.name,
@@ -471,7 +470,7 @@ export class DatabaseService {
       syncedInstances: JSON.parse(instance.synced_instances || '[]'),
     }))
   }
-
+  
   async getDefaultRadarrInstance(): Promise<RadarrInstance | null> {
     const instance = await this.knex('radarr_instances')
       .where({
@@ -479,9 +478,7 @@ export class DatabaseService {
         is_enabled: true,
       })
       .first()
-
     if (!instance) return null
-
     return {
       id: instance.id,
       name: instance.name,
@@ -495,12 +492,10 @@ export class DatabaseService {
       syncedInstances: JSON.parse(instance.synced_instances || '[]'),
     }
   }
-
+  
   async getRadarrInstance(id: number): Promise<RadarrInstance | null> {
     const instance = await this.knex('radarr_instances').where('id', id).first()
-
     if (!instance) return null
-
     return {
       id: instance.id,
       name: instance.name,
@@ -514,7 +509,7 @@ export class DatabaseService {
       syncedInstances: JSON.parse(instance.synced_instances || '[]'),
     }
   }
-
+  
   async createRadarrInstance(
     instance: Omit<RadarrInstance, 'id'>,
   ): Promise<number> {
@@ -523,8 +518,8 @@ export class DatabaseService {
         .where('is_default', true)
         .update('is_default', false)
     }
-
-    const [id] = await this.knex('radarr_instances')
+    
+    const result = await this.knex('radarr_instances')
       .insert({
         name: instance.name || 'Default Radarr Instance',
         base_url: instance.baseUrl,
@@ -533,17 +528,24 @@ export class DatabaseService {
         root_folder: instance.rootFolder,
         bypass_ignored: instance.bypassIgnored,
         tags: JSON.stringify(instance.tags || []),
-        is_default: instance.isDefault || true,
+        is_default: instance.isDefault ?? false,
         is_enabled: true,
         synced_instances: JSON.stringify(instance.syncedInstances || []),
         created_at: this.timestamp,
         updated_at: this.timestamp,
       })
       .returning('id')
-
-    return id
+  
+    if (!result || !Array.isArray(result) || result.length === 0) {
+      throw new Error('No ID returned from database')
+    }
+    const row = result[0]
+    if (typeof row !== 'object' || !('id' in row)) {
+      throw new Error('Invalid ID returned from database')
+    }
+    return row.id
   }
-
+  
   async updateRadarrInstance(
     id: number,
     updates: Partial<RadarrInstance>,
@@ -554,38 +556,40 @@ export class DatabaseService {
         .where('is_default', true)
         .update('is_default', false)
     }
-
     await this.knex('radarr_instances')
       .where('id', id)
       .update({
-        ...(updates.name && { name: updates.name }),
-        ...(updates.baseUrl && { base_url: updates.baseUrl }),
-        ...(updates.apiKey && { api_key: updates.apiKey }),
-        ...(updates.qualityProfile && {
+        ...(typeof updates.name !== 'undefined' && { name: updates.name }),
+        ...(typeof updates.baseUrl !== 'undefined' && { base_url: updates.baseUrl }),
+        ...(typeof updates.apiKey !== 'undefined' && { api_key: updates.apiKey }),
+        ...(typeof updates.qualityProfile !== 'undefined' && {
           quality_profile: updates.qualityProfile,
         }),
-        ...(updates.rootFolder && { root_folder: updates.rootFolder }),
+        ...(typeof updates.rootFolder !== 'undefined' && {
+          root_folder: updates.rootFolder,
+        }),
         ...(typeof updates.bypassIgnored !== 'undefined' && {
           bypass_ignored: updates.bypassIgnored,
         }),
-        ...(updates.tags && { tags: JSON.stringify(updates.tags) }),
+        ...(typeof updates.tags !== 'undefined' && {
+          tags: JSON.stringify(updates.tags),
+        }),
         ...(typeof updates.isDefault !== 'undefined' && {
           is_default: updates.isDefault,
         }),
-        ...(updates.syncedInstances && {
+        ...(typeof updates.syncedInstances !== 'undefined' && {
           synced_instances: JSON.stringify(updates.syncedInstances),
         }),
         updated_at: this.timestamp,
       })
   }
-
+  
   async deleteRadarrInstance(id: number): Promise<void> {
     await this.knex('radarr_instances').where('id', id).delete()
   }
-
+  
   async getRadarrGenreRoutes(): Promise<RadarrGenreRoute[]> {
     const routes = await this.knex('radarr_genre_routing').select('*')
-
     return routes.map((route) => ({
       id: route.id,
       radarrInstanceId: route.radarr_instance_id,
@@ -594,7 +598,7 @@ export class DatabaseService {
       rootFolder: route.root_folder,
     }))
   }
-
+  
   async createRadarrGenreRoute(
     route: Omit<RadarrGenreRoute, 'id'>,
   ): Promise<RadarrGenreRoute> {
@@ -614,10 +618,9 @@ export class DatabaseService {
         'genre',
         'root_folder as rootFolder',
       ])
-
     return createdRoute
   }
-
+  
   async updateRadarrGenreRoute(
     id: number,
     updates: Partial<RadarrGenreRoute>,
@@ -631,7 +634,7 @@ export class DatabaseService {
         updated_at: this.timestamp,
       })
   }
-
+  
   async deleteRadarrGenreRoute(id: number): Promise<void> {
     await this.knex('radarr_genre_routing').where('id', id).delete()
   }
