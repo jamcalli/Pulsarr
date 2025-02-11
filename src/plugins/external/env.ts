@@ -51,6 +51,10 @@ const schema = {
       type: 'number',
       default: 60,
     },
+    discordWebhookUrl: {
+      type: 'string',
+      default: '',
+    },
     sonarrBaseUrl: {
       type: 'string',
       default: 'http://localhost:8989',

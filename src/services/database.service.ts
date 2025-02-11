@@ -155,7 +155,6 @@ export class DatabaseService {
   async getConfig(id: number): Promise<Config | undefined> {
     const config = await this.knex('configs').where({ id }).first()
     if (!config) return undefined
-
     return {
       ...config,
       // Parse JSON fields
@@ -165,6 +164,11 @@ export class DatabaseService {
       // Handle optional RSS fields
       selfRss: config.selfRss || undefined,
       friendsRss: config.friendsRss || undefined,
+      // Handle optional Discord webhook
+      discordWebhookUrl: config.discordWebhookUrl || undefined,
+      // Handle timing defaults
+      syncIntervalSeconds: config.syncIntervalSeconds || 10,
+      queueProcessDelaySeconds: config.queueProcessDelaySeconds || 60,
       // Convert boolean fields
       cookieSecured: Boolean(config.cookieSecured),
       sonarrBypassIgnored: Boolean(config.sonarrBypassIgnored),
@@ -177,7 +181,7 @@ export class DatabaseService {
       _isReady: Boolean(config._isReady),
     }
   }
-
+  
   async createConfig(
     config: Omit<Config, 'created_at' | 'updated_at'>,
   ): Promise<number> {
@@ -192,32 +196,30 @@ export class DatabaseService {
         logLevel: config.logLevel,
         closeGraceDelay: config.closeGraceDelay,
         rateLimitMax: config.rateLimitMax,
-        syncIntervalSeconds: config.syncIntervalSeconds,
-
+        // Timing fields
+        syncIntervalSeconds: config.syncIntervalSeconds || 10,
+        queueProcessDelaySeconds: config.queueProcessDelaySeconds || 60,
         // Plex fields
         plexTokens: JSON.stringify(config.plexTokens || []),
         skipFriendSync: config.skipFriendSync,
-
         // Delete fields
         deleteMovie: config.deleteMovie,
         deleteEndedShow: config.deleteEndedShow,
         deleteContinuingShow: config.deleteContinuingShow,
         deleteIntervalDays: config.deleteIntervalDays,
         deleteFiles: config.deleteFiles,
-
         // RSS fields
         selfRss: config.selfRss,
         friendsRss: config.friendsRss,
-
+        // Discord fields
+        discordWebhookUrl: config.discordWebhookUrl,
         // Ready state
         _isReady: config._isReady || false,
-
         // Timestamps
         created_at: this.timestamp,
         updated_at: this.timestamp,
       })
       .returning('id')
-
     this.log.info(`Config created with ID: ${id}`)
     return id
   }
