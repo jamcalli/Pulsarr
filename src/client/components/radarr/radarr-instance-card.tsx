@@ -15,7 +15,7 @@ import {
   QualityProfileSelect,
   RootFolderSelect,
 } from '@/components/radarr/radarr-selects'
-import { useRadarrStore } from '@/stores/radarr/radarrStore'
+import { useRadarrStore } from '@/stores/radarrStore'
 import { useRadarrConnection } from '@/hooks/radarr/useRadarrConnection'
 import { useRadarrInstanceForm } from '@/hooks/radarr/useRadarrForms'
 import { useRadarrInstance } from '@/hooks/radarr/useRadarrInstance'

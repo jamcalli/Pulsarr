@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { useSonarrStore } from '@/stores/sonarr/sonarrStore'
+import { useSonarrStore } from '@/stores/sonarrStore'
 import { useToast } from '@/hooks/use-toast'
 import type { SonarrInstance, SonarrConnectionValues } from '@/types/sonarr/types'
 

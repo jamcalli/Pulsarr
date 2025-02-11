@@ -1,7 +1,7 @@
 import { useCallback, useRef, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import type { SonarrInstance } from '@/stores/sonarr/sonarrStore'
+import type { SonarrInstance } from '@/stores/sonarrStore'
 import type { GenreRoute } from '@/types/sonarr/types'
 import { genreRouteSchema, GenreRouteFormValues } from '@/types/sonarr/schemas'
 

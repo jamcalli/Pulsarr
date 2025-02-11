@@ -15,7 +15,8 @@ import {
 import { Progress } from '@/components/ui/progress'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
-import { useConfig } from '@/context/context'
+import { useConfigStore } from '@/stores/configStore'
+import { useProgress } from '@/hooks/useProgress'
 
 const plexTokenFormSchema = z.object({
   plexToken: z.string().min(5, { message: 'Plex Token is required' }),
@@ -25,75 +26,35 @@ type PlexTokenFormSchema = z.infer<typeof plexTokenFormSchema>
 
 export default function PlexConfigPage() {
   const { toast } = useToast()
-  const { config, updateConfig } = useConfig()
-  const [status, setStatus] = React.useState<
-    'idle' | 'loading' | 'success' | 'error'
-  >('idle')
+  const config = useConfigStore((state) => state.config)
+  const updateConfig = useConfigStore((state) => state.updateConfig)
+  const initialize = useConfigStore((state) => state.initialize)
 
-  const [rssStatus, setRssStatus] = React.useState<
-    'idle' | 'loading' | 'success' | 'error'
-  >('idle')
+  // Status states
+  const [status, setStatus] = React.useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const [rssStatus, setRssStatus] = React.useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const [watchlistStatus, setWatchlistStatus] = React.useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const [othersWatchlistStatus, setOthersWatchlistStatus] = React.useState<'idle' | 'loading' | 'success' | 'error'>('idle')
 
-  const [watchlistStatus, setWatchlistStatus] = React.useState<
-    'idle' | 'loading' | 'success' | 'error'
-  >('idle')
-
-  const [othersWatchlistStatus, setOthersWatchlistStatus] = React.useState<
-    'idle' | 'loading' | 'success' | 'error'
-  >('idle')
-
+  // Progress tracking using the store
+  const selfWatchlistProgress = useProgress('self-watchlist')
+  const othersWatchlistProgress = useProgress('others-watchlist')
+  
+  // Data states
   const [rssFeeds, setRssFeeds] = React.useState<{
     self: string
     friends: string
   }>({ self: '', friends: '' })
-
-  const [progress, setProgress] = React.useState<number>(0)
-  const [progressMessage, setProgressMessage] = React.useState<string>('')
-  const [eventSource, setEventSource] = React.useState<EventSource | null>(null)
-
-  const [watchlistCount, setWatchlistCount] = React.useState<number | null>(
-    null,
-  )
+  
+  const [watchlistCount, setWatchlistCount] = React.useState<number | null>(null)
   const [othersWatchlistInfo, setOthersWatchlistInfo] = React.useState<{
     userCount: number
     totalItems: number
   } | null>(null)
 
   React.useEffect(() => {
-    let eventSource: EventSource | null = null
-
-    const connectToProgress = () => {
-      eventSource = new EventSource('/api/progress')
-
-      eventSource.onmessage = (event) => {
-        const data = JSON.parse(event.data)
-        if (data.phase === 'complete') {
-          setProgress(100)
-          setProgressMessage('Complete')
-          eventSource?.close()
-        } else {
-          setProgress(data.progress)
-          setProgressMessage(data.message)
-        }
-      }
-
-      eventSource.onerror = () => {
-        eventSource?.close()
-      }
-    }
-
-    connectToProgress()
-
-    return () => {
-      eventSource?.close()
-    }
-  }, [])
-
-  React.useEffect(() => {
-    return () => {
-      eventSource?.close()
-    }
-  }, [eventSource])
+    initialize()
+  }, [initialize])
 
   const form = useForm<PlexTokenFormSchema>({
     resolver: zodResolver(plexTokenFormSchema),
@@ -149,31 +110,6 @@ export default function PlexConfigPage() {
 
   const fetchWatchlistCount = async () => {
     setWatchlistStatus('loading')
-    setProgress(0)
-    setProgressMessage('Starting sync...')
-
-    eventSource?.close()
-
-    const newEventSource = new EventSource('/api/progress')
-    setEventSource(newEventSource)
-
-    newEventSource.onmessage = (event) => {
-      const data = JSON.parse(event.data)
-      if (data.phase === 'complete') {
-        setProgress(100)
-        setProgressMessage('Complete')
-        newEventSource.close()
-        setEventSource(null)
-      } else {
-        setProgress(data.progress)
-        setProgressMessage(data.message)
-      }
-    }
-
-    newEventSource.onerror = () => {
-      newEventSource.close()
-      setEventSource(null)
-    }
 
     try {
       const response = await fetch('/v1/plex/self-watchlist-token', {
@@ -208,8 +144,6 @@ export default function PlexConfigPage() {
         description: 'Failed to sync watchlist data',
         variant: 'destructive',
       })
-      newEventSource.close()
-      setEventSource(null)
     }
   }
 
@@ -275,30 +209,6 @@ export default function PlexConfigPage() {
 
   const fetchOthersWatchlist = async () => {
     setOthersWatchlistStatus('loading')
-    setProgress(0)
-    setProgressMessage('Starting others watchlist sync...')
-    eventSource?.close()
-
-    const newEventSource = new EventSource('/api/progress')
-    setEventSource(newEventSource)
-
-    newEventSource.onmessage = (event) => {
-      const data = JSON.parse(event.data)
-      if (data.phase === 'complete') {
-        setProgress(100)
-        setProgressMessage('Complete')
-        newEventSource.close()
-        setEventSource(null)
-      } else {
-        setProgress(data.progress)
-        setProgressMessage(data.message)
-      }
-    }
-
-    newEventSource.onerror = () => {
-      newEventSource.close()
-      setEventSource(null)
-    }
 
     try {
       const response = await fetch('/v1/plex/others-watchlist-token', {
@@ -335,8 +245,6 @@ export default function PlexConfigPage() {
         description: 'Failed to sync others watchlist data',
         variant: 'destructive',
       })
-      newEventSource.close()
-      setEventSource(null)
     }
   }
 
@@ -409,11 +317,13 @@ export default function PlexConfigPage() {
                     <div className="space-y-1">
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-text">
-                          {progressMessage}
+                          {selfWatchlistProgress.message}
                         </span>
-                        <span className="text-sm text-text">{progress}%</span>
+                        <span className="text-sm text-text">
+                          {selfWatchlistProgress.progress}%
+                        </span>
                       </div>
-                      <Progress value={progress} />
+                      <Progress value={selfWatchlistProgress.progress} />
                     </div>
                   ) : (
                     <FormControl>
@@ -458,10 +368,14 @@ export default function PlexConfigPage() {
               {othersWatchlistStatus === 'loading' ? (
                 <div className="space-y-1">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-text">{progressMessage}</span>
-                    <span className="text-sm text-text">{progress}%</span>
+                    <span className="text-sm text-text">
+                      {othersWatchlistProgress.message}
+                    </span>
+                    <span className="text-sm text-text">
+                      {othersWatchlistProgress.progress}%
+                    </span>
                   </div>
-                  <Progress value={progress} />
+                  <Progress value={othersWatchlistProgress.progress} />
                 </div>
               ) : (
                 <FormControl>
@@ -530,9 +444,7 @@ export default function PlexConfigPage() {
                 </FormControl>
               </FormItem>
               <FormItem className="flex-1">
-                <FormLabel className="text-text text-sm">
-                  Friends Feed
-                </FormLabel>
+                <FormLabel className="text-text text-sm">Friends Feed</FormLabel>
                 <FormControl>
                   <Input
                     value={rssFeeds.friends}

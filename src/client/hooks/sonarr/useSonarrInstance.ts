@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { useSonarrStore } from '@/stores/sonarr/sonarrStore'
+import { useSonarrStore } from '@/stores/sonarrStore'
 import { useToast } from '@/hooks/use-toast'
 import type { SonarrInstanceSchema } from '@/types/sonarr/schemas'
 

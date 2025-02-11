@@ -1,4 +1,4 @@
-import { useRadarrStore } from '@/stores/radarr/radarrStore'
+import { useRadarrStore } from '@/stores/radarrStore'
 
 export function useRadarrGenreRouting() {
   const genreRoutes = useRadarrStore(state => state.genreRoutes)

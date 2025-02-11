@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/form'
 import EditableCardHeader from '@/components/ui/editable-card-header'
 import GenreRouteCardSkeleton from '@/components/radarr/radarr-genre-route-skeleton'
-import { useRadarrStore } from '@/stores/radarr/radarrStore'
+import { useRadarrStore } from '@/stores/radarrStore'
 import useRadarrGenreForm from '@/hooks/radarr/useRadarrGenreForm'
 import type { GenreRouteFormValues } from '@/types/radarr/schemas'
 import type { GenreRoute } from '@/types/radarr/types'

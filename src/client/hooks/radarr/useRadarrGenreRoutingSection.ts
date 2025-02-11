@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useToast } from '@/hooks/use-toast'
-import { useRadarrStore } from '@/stores/radarr/radarrStore'
+import { useRadarrStore } from '@/stores/radarrStore'
 import { useRadarrGenreRouting } from './useRadarrGenreRouting'
 import type { GenreRouteFormValues } from '@/types/radarr/schemas'
 import type { TempRoute } from '@/types/radarr/types'

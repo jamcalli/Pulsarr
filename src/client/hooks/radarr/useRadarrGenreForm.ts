@@ -1,7 +1,7 @@
 import { useCallback, useRef, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import type { RadarrInstance } from '@/stores/radarr/radarrStore'
+import type { RadarrInstance } from '@/stores/radarrStore'
 import type { GenreRoute } from '@/types/radarr/types'
 import { genreRouteSchema, GenreRouteFormValues } from '@/types/radarr/schemas'
 

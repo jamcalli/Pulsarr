@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import type { RadarrInstance } from '@/stores/radarr/radarrStore'
+import type { RadarrInstance } from '@/stores/radarrStore'
 import { Computer } from 'lucide-react'
 
 export function useRadarrSync(currentInstanceId: number, instances: RadarrInstance[]) {

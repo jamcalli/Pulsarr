@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { SONARR_MONITORING_OPTIONS } from '@/types/sonarr/constants'
-import { useSonarrStore } from '@/stores/sonarr/sonarrStore'
+import { useSonarrStore } from '@/stores/sonarrStore'
 import { useSonarrConnection } from '@/hooks/sonarr/useSonarrConnection'
 import { useSonarrInstanceForm } from '@/hooks/sonarr/useSonarrForms'
 import { useSonarrInstance } from '@/hooks/sonarr/useSonarrInstance'

@@ -1,14 +1,5 @@
 import type { RootFolder, QualityProfile } from '@root/types/sonarr.types'
 
-export type LogLevel =
-  | 'fatal'
-  | 'error'
-  | 'warn'
-  | 'info'
-  | 'debug'
-  | 'trace'
-  | 'silent'
-
 export type SonarrMonitoringType =
   | 'unknown'
   | 'all'

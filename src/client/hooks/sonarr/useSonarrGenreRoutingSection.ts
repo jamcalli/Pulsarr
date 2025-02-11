@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useToast } from '@/hooks/use-toast'
-import { useSonarrStore } from '@/stores/sonarr/sonarrStore'
+import { useSonarrStore } from '@/stores/sonarrStore'
 import { useSonarrGenreRouting } from '@/hooks/sonarr/useSonarrGenreRouting'
 import type { GenreRouteFormValues } from '@/types/sonarr/schemas'
 import type { TempRoute } from '@/types/sonarr/types'

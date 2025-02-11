@@ -1,4 +1,4 @@
-import { useSonarrStore } from '@/stores/sonarr/sonarrStore'
+import { useSonarrStore } from '@/stores/sonarrStore'
 
 export function useSonarrGenreRouting() {
   const genreRoutes = useSonarrStore(state => state.genreRoutes)
