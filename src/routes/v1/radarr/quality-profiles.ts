@@ -31,7 +31,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw reply.badRequest('Invalid instance ID')
         }
 
-        const instance = await fastify.radarrManager.getRadarrInstance(instanceId)
+        const instance =
+          await fastify.radarrManager.getRadarrInstance(instanceId)
         if (!instance) {
           throw reply.notFound('Radarr instance not found')
         }

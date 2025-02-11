@@ -1,25 +1,20 @@
 import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { useConfig } from '@/context/context'
+import { useSonarrStore } from '@/stores/sonarr/sonarrStore'
 import SonarrGenreRouting from '@/components/sonarr/sonarr-genre-routing'
 import { InstanceCard } from '@/components/sonarr/sonarr-instance-card'
-import InstanceCardSkeleton from '@/components/sonarr/instance-card-skeleton'
+import InstanceCardSkeleton from '@/components/sonarr/radarr-card-skeleton'
+import { API_KEY_PLACEHOLDER } from '@/types/sonarr/constants'
 
 export default function SonarrConfigPage() {
-  const {
-    sonarrInstances: instances,
-    fetchSonarrInstanceData: fetchInstanceData,
-    fetchSonarrInstances: fetchInstances,
-    fetchAllSonarrInstanceData: fetchAllInstanceData,
-    initialize,
-    instancesLoading,
-    isInitialized,
-  } = useConfig()
+  const instances = useSonarrStore((state) => state.instances)
+  const instancesLoading = useSonarrStore((state) => state.instancesLoading)
+  const isInitialized = useSonarrStore((state) => state.isInitialized)
+  const initialize = useSonarrStore((state) => state.initialize)
 
   const hasInitializedRef = useRef(false)
   const [showInstanceCard, setShowInstanceCard] = useState(false)
-  const API_KEY_PLACEHOLDER = 'placeholder'
 
   useEffect(() => {
     if (!hasInitializedRef.current) {
@@ -35,7 +30,6 @@ export default function SonarrConfigPage() {
   const isPlaceholderInstance =
     instances.length === 1 && instances[0].apiKey === API_KEY_PLACEHOLDER
 
-  // Wait for initialization before showing anything
   if (!isInitialized) {
     return null
   }
@@ -44,7 +38,6 @@ export default function SonarrConfigPage() {
     (instance) => instance.apiKey !== API_KEY_PLACEHOLDER,
   )
 
-  // Only show loading state if we know we have real instances
   if (instancesLoading && hasRealInstances) {
     return (
       <ScrollArea className="h-full">
@@ -88,14 +81,7 @@ export default function SonarrConfigPage() {
             <div className="grid gap-4">
               {instances.map((instance) =>
                 instance.apiKey !== API_KEY_PLACEHOLDER ? (
-                  <InstanceCard
-                    key={instance.id}
-                    instance={instance}
-                    instances={instances}
-                    fetchInstanceData={fetchInstanceData}
-                    fetchInstances={fetchInstances}
-                    fetchAllInstanceData={fetchAllInstanceData}
-                  />
+                  <InstanceCard key={instance.id} instance={instance} />
                 ) : null,
               )}
               {showInstanceCard && (
@@ -115,11 +101,7 @@ export default function SonarrConfigPage() {
                     qualityProfile: '',
                     rootFolder: '',
                   }}
-                  instances={instances}
-                  fetchInstanceData={fetchInstanceData}
-                  fetchInstances={fetchInstances}
                   setShowInstanceCard={setShowInstanceCard}
-                  fetchAllInstanceData={fetchAllInstanceData}
                 />
               )}
             </div>

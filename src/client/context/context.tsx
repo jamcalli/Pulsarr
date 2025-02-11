@@ -8,7 +8,10 @@ import {
   useRef,
 } from 'react'
 import type { RootFolder, QualityProfile } from '@root/types/sonarr.types'
-import type { RootFolder as RadarrRootFolder, QualityProfile as RadarrQualityProfile } from '@root/types/radarr.types'
+import type {
+  RootFolder as RadarrRootFolder,
+  QualityProfile as RadarrQualityProfile,
+} from '@root/types/radarr.types'
 import type { Config } from '@root/types/config.types'
 
 export type LogLevel =
@@ -142,11 +145,21 @@ interface ConfigContextType {
   radarrGenreRoutes: RadarrGenreRoute[]
   fetchSonarrGenreRoutes: () => Promise<void>
   fetchRadarrGenreRoutes: () => Promise<void>
-  createSonarrGenreRoute: (route: Omit<SonarrGenreRoute, 'id'>) => Promise<SonarrGenreRoute>
-  updateSonarrGenreRoute: (id: number, updates: Partial<Omit<SonarrGenreRoute, 'id'>>) => Promise<void>
+  createSonarrGenreRoute: (
+    route: Omit<SonarrGenreRoute, 'id'>,
+  ) => Promise<SonarrGenreRoute>
+  updateSonarrGenreRoute: (
+    id: number,
+    updates: Partial<Omit<SonarrGenreRoute, 'id'>>,
+  ) => Promise<void>
   deleteSonarrGenreRoute: (id: number) => Promise<void>
-  createRadarrGenreRoute: (route: Omit<RadarrGenreRoute, 'id'>) => Promise<RadarrGenreRoute>
-  updateRadarrGenreRoute: (id: number, updates: Partial<Omit<RadarrGenreRoute, 'id'>>) => Promise<void>
+  createRadarrGenreRoute: (
+    route: Omit<RadarrGenreRoute, 'id'>,
+  ) => Promise<RadarrGenreRoute>
+  updateRadarrGenreRoute: (
+    id: number,
+    updates: Partial<Omit<RadarrGenreRoute, 'id'>>,
+  ) => Promise<void>
   deleteRadarrGenreRoute: (id: number) => Promise<void>
   initialize: (force?: boolean) => Promise<void>
 }
@@ -161,8 +174,12 @@ export function ConfigProvider({ children }: { children: React.ReactNode }) {
   const [sonarrInstances, setSonarrInstances] = useState<SonarrInstance[]>([])
   const [radarrInstances, setRadarrInstances] = useState<RadarrInstance[]>([])
   const [genres, setGenres] = useState<string[]>([])
-  const [sonarrGenreRoutes, setSonarrGenreRoutes] = useState<SonarrGenreRoute[]>([])
-  const [radarrGenreRoutes, setRadarrGenreRoutes] = useState<RadarrGenreRoute[]>([])
+  const [sonarrGenreRoutes, setSonarrGenreRoutes] = useState<
+    SonarrGenreRoute[]
+  >([])
+  const [radarrGenreRoutes, setRadarrGenreRoutes] = useState<
+    RadarrGenreRoute[]
+  >([])
   const [isInitialized, setIsInitialized] = useState(false)
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const isLoadingRef = useRef(false)

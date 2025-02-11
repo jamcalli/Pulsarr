@@ -26,24 +26,21 @@ import {
   CommandSeparator,
 } from '@/components/ui/command'
 
-const multiSelectVariants = cva(
-  'm-1 transition ease-in-out delay-150 hover:-translate-y-1 hover:scale-110 duration-300',
-  {
-    variants: {
-      variant: {
-        default: 'border-border text-foreground bg-background hover:bg-accent',
-        secondary:
-          'border-foreground/10 bg-secondary text-secondary-foreground hover:bg-secondary/80',
-        destructive:
-          'border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80',
-        inverted: 'inverted',
-      },
-    },
-    defaultVariants: {
-      variant: 'default',
+const multiSelectVariants = cva('m-1', {
+  variants: {
+    variant: {
+      default: 'border-border text-foreground bg-background hover:bg-accent',
+      secondary:
+        'border-foreground/10 bg-secondary text-secondary-foreground hover:bg-secondary/80',
+      destructive:
+        'border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80',
+      inverted: 'inverted',
     },
   },
-)
+  defaultVariants: {
+    variant: 'default',
+  },
+})
 
 interface MultiSelectProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
