@@ -20,6 +20,7 @@ export type LogLevel =
   | 'silent'
 
 export interface Config {
+  // System Config
   port: number
   dbPath: string
   cookieSecret: string
@@ -30,6 +31,8 @@ export interface Config {
   rateLimitMax: number
   syncIntervalSeconds: number
   queueProcessDelaySeconds: number
+  // Discord Config
+  discordWebhookUrl: string
   // Sonarr Config
   sonarrBaseUrl: string
   sonarrApiKey: string

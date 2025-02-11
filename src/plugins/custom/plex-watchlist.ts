@@ -16,6 +16,6 @@ export default fp(
   },
   {
     name: 'plex-watchlist',
-    dependencies: ['config', 'database'],
+    dependencies: ['config', 'database', 'discord-notification-service'],
   },
 )

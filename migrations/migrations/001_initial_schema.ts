@@ -107,7 +107,10 @@ export async function up(knex: Knex): Promise<void> {
     table.string('logLevel')
     table.integer('closeGraceDelay')
     table.integer('rateLimitMax')
-    table.integer('syncIntervalSeconds')
+    table.integer('syncIntervalSeconds').defaultTo(10)
+    table.integer('queueProcessDelaySeconds').defaultTo(60)
+    // Discord
+    table.string('discordWebhookUrl')
     // Plex
     table.json('plexTokens')
     table.boolean('skipFriendSync')
