@@ -416,11 +416,13 @@ export async function processWatchlistItems(
     const userDetailedWatchlistMap = new Map<Friend, Set<Item>>()
     const totalUsers = input.size
     let userCount = 0
+
     for (const [user, watchlistItems] of input) {
       userCount++
       const detailedItems = new Set<Item>()
       const totalItems = watchlistItems.size
       let itemCount = 0
+
       for (const item of watchlistItems) {
         itemCount++
         if (progressOptions) {
@@ -430,6 +432,7 @@ export async function processWatchlistItems(
 
           progressOptions.progress.emit({
             operationId: progressOptions.operationId,
+            type: progressOptions.type,
             phase: 'processing',
             progress: Math.round(totalProgress),
             message: `Processing ${user.username}'s items (${itemCount}/${totalItems})`,
@@ -448,11 +451,13 @@ export async function processWatchlistItems(
   const detailedItems = new Set<Item>()
   const totalItems = input.size
   let itemCount = 0
+
   for (const item of input) {
     itemCount++
     if (progressOptions) {
       progressOptions.progress.emit({
         operationId: progressOptions.operationId,
+        type: progressOptions.type,
         phase: 'processing',
         progress: Math.round((itemCount / totalItems) * 100),
         message: `Processing item ${itemCount}/${totalItems}`,
@@ -463,14 +468,17 @@ export async function processWatchlistItems(
       detailedItems.add(detailedItem)
     }
   }
+
   if (progressOptions) {
     progressOptions.progress.emit({
       operationId: progressOptions.operationId,
+      type: progressOptions.type,
       phase: 'complete',
       progress: 100,
       message: 'Processing complete',
     })
   }
+
   return detailedItems
 }
 
