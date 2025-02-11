@@ -9,16 +9,16 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import type { SonarrInstanceSchema } from './sonarr-instance-card'
-
-export type ConnectionSettingsStatus = 'idle' | 'loading' | 'success' | 'error'
+import type { SonarrInstanceSchema } from '@/types/sonarr/schemas'
+import type { ConnectionStatus } from '@/types/sonarr/types'
 
 interface ConnectionSettingsProps {
   form: UseFormReturn<SonarrInstanceSchema>
-  testStatus: ConnectionSettingsStatus
-  onTest: () => void
-  saveStatus: ConnectionSettingsStatus
+  testStatus: ConnectionStatus
+  onTest: () => Promise<void>
+  saveStatus: ConnectionStatus
   hasValidUrlAndKey: boolean
+  disabled?: boolean
 }
 
 export default function ConnectionSettings({
@@ -26,7 +26,10 @@ export default function ConnectionSettings({
   testStatus,
   onTest,
   hasValidUrlAndKey,
+  disabled = false,
 }: ConnectionSettingsProps) {
+  const isDisabled = disabled || testStatus === 'loading'
+
   return (
     <div className="flex portrait:flex-col gap-4">
       <div className="flex-1">
@@ -40,7 +43,11 @@ export default function ConnectionSettings({
                 <Input
                   {...field}
                   placeholder="http://localhost:8989"
-                  disabled={testStatus === 'loading'}
+                  disabled={isDisabled}
+                  onChange={(e) => {
+                    field.onChange(e)
+                    form.clearErrors('baseUrl')
+                  }}
                 />
               </FormControl>
               <FormMessage />
@@ -61,7 +68,11 @@ export default function ConnectionSettings({
                     <Input
                       {...field}
                       type="password"
-                      disabled={testStatus === 'loading'}
+                      disabled={isDisabled}
+                      onChange={(e) => {
+                        field.onChange(e)
+                        form.clearErrors('apiKey')
+                      }}
                     />
                   </FormControl>
                 </div>
@@ -69,8 +80,10 @@ export default function ConnectionSettings({
                   type="button"
                   size="icon"
                   variant="noShadow"
-                  onClick={onTest}
-                  disabled={testStatus === 'loading' || !hasValidUrlAndKey}
+                  onClick={() => {
+                    onTest().catch(() => {})
+                  }}
+                  disabled={isDisabled || !hasValidUrlAndKey}
                   className="mt-0"
                 >
                   {testStatus === 'loading' ? (

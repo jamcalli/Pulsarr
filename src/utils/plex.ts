@@ -18,7 +18,7 @@ export const pingPlex = async (
   try {
     const url = new URL('https://plex.tv/api/v2/ping')
     url.searchParams.append('X-Plex-Token', token)
-    url.searchParams.append('X-Plex-Client-Identifier', 'watchlistarr')
+    url.searchParams.append('X-Plex-Client-Identifier', 'pulsarr')
 
     const response = await fetch(url.toString(), {
       headers: {
@@ -562,7 +562,7 @@ export const getRssFromPlexToken = async (
 ): Promise<string | null> => {
   const url = new URL('https://discover.provider.plex.tv/rss')
   url.searchParams.append('X-Plex-Token', token)
-  url.searchParams.append('X-Plex-Client-Identifier', 'watchlistarr')
+  url.searchParams.append('X-Plex-Client-Identifier', 'pulsarr')
   url.searchParams.append('format', 'json')
 
   const body = JSON.stringify({ feedType: rssType })

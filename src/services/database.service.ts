@@ -470,7 +470,7 @@ export class DatabaseService {
       syncedInstances: JSON.parse(instance.synced_instances || '[]'),
     }))
   }
-  
+
   async getDefaultRadarrInstance(): Promise<RadarrInstance | null> {
     const instance = await this.knex('radarr_instances')
       .where({
@@ -492,7 +492,7 @@ export class DatabaseService {
       syncedInstances: JSON.parse(instance.synced_instances || '[]'),
     }
   }
-  
+
   async getRadarrInstance(id: number): Promise<RadarrInstance | null> {
     const instance = await this.knex('radarr_instances').where('id', id).first()
     if (!instance) return null
@@ -509,7 +509,7 @@ export class DatabaseService {
       syncedInstances: JSON.parse(instance.synced_instances || '[]'),
     }
   }
-  
+
   async createRadarrInstance(
     instance: Omit<RadarrInstance, 'id'>,
   ): Promise<number> {
@@ -518,7 +518,7 @@ export class DatabaseService {
         .where('is_default', true)
         .update('is_default', false)
     }
-    
+
     const result = await this.knex('radarr_instances')
       .insert({
         name: instance.name || 'Default Radarr Instance',
@@ -535,7 +535,7 @@ export class DatabaseService {
         updated_at: this.timestamp,
       })
       .returning('id')
-  
+
     if (!result || !Array.isArray(result) || result.length === 0) {
       throw new Error('No ID returned from database')
     }
@@ -545,7 +545,7 @@ export class DatabaseService {
     }
     return row.id
   }
-  
+
   async updateRadarrInstance(
     id: number,
     updates: Partial<RadarrInstance>,
@@ -560,8 +560,12 @@ export class DatabaseService {
       .where('id', id)
       .update({
         ...(typeof updates.name !== 'undefined' && { name: updates.name }),
-        ...(typeof updates.baseUrl !== 'undefined' && { base_url: updates.baseUrl }),
-        ...(typeof updates.apiKey !== 'undefined' && { api_key: updates.apiKey }),
+        ...(typeof updates.baseUrl !== 'undefined' && {
+          base_url: updates.baseUrl,
+        }),
+        ...(typeof updates.apiKey !== 'undefined' && {
+          api_key: updates.apiKey,
+        }),
         ...(typeof updates.qualityProfile !== 'undefined' && {
           quality_profile: updates.qualityProfile,
         }),
@@ -583,11 +587,11 @@ export class DatabaseService {
         updated_at: this.timestamp,
       })
   }
-  
+
   async deleteRadarrInstance(id: number): Promise<void> {
     await this.knex('radarr_instances').where('id', id).delete()
   }
-  
+
   async getRadarrGenreRoutes(): Promise<RadarrGenreRoute[]> {
     const routes = await this.knex('radarr_genre_routing').select('*')
     return routes.map((route) => ({
@@ -598,7 +602,7 @@ export class DatabaseService {
       rootFolder: route.root_folder,
     }))
   }
-  
+
   async createRadarrGenreRoute(
     route: Omit<RadarrGenreRoute, 'id'>,
   ): Promise<RadarrGenreRoute> {
@@ -620,7 +624,7 @@ export class DatabaseService {
       ])
     return createdRoute
   }
-  
+
   async updateRadarrGenreRoute(
     id: number,
     updates: Partial<RadarrGenreRoute>,
@@ -634,7 +638,7 @@ export class DatabaseService {
         updated_at: this.timestamp,
       })
   }
-  
+
   async deleteRadarrGenreRoute(id: number): Promise<void> {
     await this.knex('radarr_genre_routing').where('id', id).delete()
   }

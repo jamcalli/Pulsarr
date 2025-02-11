@@ -67,7 +67,7 @@ export class SonarrService {
           message: 'Base URL and API key are required',
         }
       }
-  
+
       const url = new URL(`${baseUrl}/ping`)
       const response = await fetch(url.toString(), {
         method: 'GET',
@@ -76,14 +76,14 @@ export class SonarrService {
           Accept: 'application/json',
         },
       })
-  
+
       if (!response.ok) {
         return {
           success: false,
           message: `Connection failed: ${response.statusText}`,
         }
       }
-  
+
       const pingResponse = (await response.json()) as PingResponse
       if (pingResponse.status !== 'OK') {
         return {
@@ -91,7 +91,7 @@ export class SonarrService {
           message: 'Invalid ping response from server',
         }
       }
-  
+
       return {
         success: true,
         message: 'Connection successful',

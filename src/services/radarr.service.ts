@@ -10,7 +10,7 @@ import type {
   PagedResult,
   RadarrInstance,
   PingResponse,
-  ConnectionTestResult
+  ConnectionTestResult,
 } from '@root/types/radarr.types.js'
 
 export class RadarrService {
@@ -396,7 +396,7 @@ export class RadarrService {
           message: 'Base URL and API key are required',
         }
       }
-  
+
       const url = new URL(`${baseUrl}/ping`)
       const response = await fetch(url.toString(), {
         method: 'GET',
@@ -405,14 +405,14 @@ export class RadarrService {
           Accept: 'application/json',
         },
       })
-  
+
       if (!response.ok) {
         return {
           success: false,
           message: `Connection failed: ${response.statusText}`,
         }
       }
-  
+
       const pingResponse = (await response.json()) as PingResponse
       if (pingResponse.status !== 'OK') {
         return {
@@ -420,7 +420,7 @@ export class RadarrService {
           message: 'Invalid ping response from server',
         }
       }
-  
+
       return {
         success: true,
         message: 'Connection successful',
@@ -434,5 +434,4 @@ export class RadarrService {
       }
     }
   }
-
 }

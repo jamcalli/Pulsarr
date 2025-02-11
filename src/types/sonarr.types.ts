@@ -143,7 +143,6 @@ export interface SonarrItem {
   genres?: string[]
 }
 
-
 export interface PingResponse {
   status: string
 }

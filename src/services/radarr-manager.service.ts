@@ -280,7 +280,9 @@ export class RadarrManagerService {
     }
   }
 
-  async addGenreRoute(route: Omit<RadarrGenreRoute, 'id'>): Promise<RadarrGenreRoute> {
+  async addGenreRoute(
+    route: Omit<RadarrGenreRoute, 'id'>,
+  ): Promise<RadarrGenreRoute> {
     this.log.info(
       `Adding new genre route "${route.name}" for genre "${route.genre}"`,
     )
@@ -329,5 +331,4 @@ export class RadarrManagerService {
       }
     }
   }
-
 }

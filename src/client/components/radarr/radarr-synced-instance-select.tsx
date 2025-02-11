@@ -1,6 +1,6 @@
 import type { ControllerRenderProps } from 'react-hook-form'
-import type { SonarrInstance } from '@/context/context'
-import type { SonarrInstanceSchema } from '@/components/sonarr/sonarr-instance-card'
+import type { RadarrInstance } from '@/context/context'
+import type { RadarrInstanceSchema } from '@/types/radarr/schemas'
 import { MultiSelect } from '@/components/multi-select'
 import { Computer } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -11,14 +11,14 @@ function SyncedInstancesSelect({
   currentInstanceId,
   isDefault,
 }: {
-  field: ControllerRenderProps<SonarrInstanceSchema, 'syncedInstances'>
-  instances: SonarrInstance[]
+  field: ControllerRenderProps<RadarrInstanceSchema, 'syncedInstances'>
+  instances: RadarrInstance[]
   currentInstanceId: number
   isDefault: boolean
 }) {
   if (!isDefault) {
     return (
-      <Badge variant={'warn'} className="h-10 text">
+      <Badge variant={'warn'} className="h-10 text w-full flex items-center">
         Syncing is only available for the default instance
       </Badge>
     )
@@ -33,6 +33,14 @@ function SyncedInstancesSelect({
       label: instance.name,
       icon: Computer,
     }))
+
+  if (availableInstances.length < 1) {
+    return (
+      <Badge variant={'warn'} className="h-10 text w-full flex items-center">
+        Syncing requires multiple instances
+      </Badge>
+    )
+  }
 
   return (
     <MultiSelect
