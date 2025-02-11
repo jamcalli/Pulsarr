@@ -8,7 +8,5 @@ interface AuthenticatedLayoutProps {
 export default function AuthenticatedLayout({
   children,
 }: AuthenticatedLayoutProps) {
-  return (
-    <WindowedLayout>{children}</WindowedLayout>
-  )
+  return <WindowedLayout>{children}</WindowedLayout>
 }

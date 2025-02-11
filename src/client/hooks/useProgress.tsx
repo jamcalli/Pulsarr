@@ -1,8 +1,17 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { eventSourceManager } from '@/lib/eventSourceManager'
-import type { ProgressEvent } from '@/lib/eventSourceManager'
+import type { ProgressEvent } from '@root/types/progress.types'
 
-export const useProgress = (operationId: string) => {
+type ProgressType = ProgressEvent['type']
+
+interface ProgressState {
+  progress: number
+  message: string
+  phase: string
+  isConnected: boolean
+}
+
+export const useProgress = (type: ProgressType): ProgressState => {
   const [progress, setProgress] = useState(0)
   const [message, setMessage] = useState('')
   const [phase, setPhase] = useState('')
@@ -10,30 +19,99 @@ export const useProgress = (operationId: string) => {
   const mountedRef = useRef(true)
 
   const handleProgress = useCallback((event: ProgressEvent) => {
-    console.log(`[useProgress] Received update for ${operationId}:`, event)
+    console.log(`[useProgress] Received update for ${type}:`, event)
     if (mountedRef.current) {
       setProgress(event.progress)
       setMessage(event.message)
       setPhase(event.phase)
-      console.log(`[useProgress] State updated for ${operationId}`, {
+      console.log(`[useProgress] State updated for ${type}`, {
         progress: event.progress,
         message: event.message,
         phase: event.phase
       })
     }
-  }, [operationId])
+  }, [type])
 
   useEffect(() => {
-    console.log(`[useProgress] Setting up subscription for ${operationId}`)
-    const unsubscribe = eventSourceManager.subscribe(operationId, handleProgress)
+    console.log(`[useProgress] Setting up subscription for ${type}`)
+    const unsubscribe = eventSourceManager.subscribeToType(type, handleProgress)
     setIsConnected(eventSourceManager.isConnected())
 
     return () => {
-      console.log(`[useProgress] Cleaning up subscription for ${operationId}`)
+      console.log(`[useProgress] Cleaning up subscription for ${type}`)
+      mountedRef.current = false
+      unsubscribe()
+    }
+  }, [type, handleProgress])
+
+  useEffect(() => {
+    return () => {
+      if (mountedRef.current) {
+        setProgress(0)
+        setMessage('')
+        setPhase('')
+      }
+    }
+  }, [])
+
+  return {
+    progress,
+    message,
+    phase,
+    isConnected
+  }
+}
+
+export const useWatchlistProgress = (type: ProgressType): ProgressState & {
+  isProcessing: boolean
+  isComplete: boolean
+} => {
+  const progress = useProgress(type)
+  
+  const isProcessing = progress.phase === 'processing'
+  const isComplete = progress.phase === 'complete'
+
+  return {
+    ...progress,
+    isProcessing,
+    isComplete
+  }
+}
+
+export const useOperationProgress = (operationId: string): ProgressState => {
+  const [progress, setProgress] = useState(0)
+  const [message, setMessage] = useState('')
+  const [phase, setPhase] = useState('')
+  const [isConnected, setIsConnected] = useState(false)
+  const mountedRef = useRef(true)
+
+  const handleProgress = useCallback((event: ProgressEvent) => {
+    if (mountedRef.current) {
+      setProgress(event.progress)
+      setMessage(event.message)
+      setPhase(event.phase)
+    }
+  }, [])
+
+  useEffect(() => {
+    const unsubscribe = eventSourceManager.subscribeToOperation(operationId, handleProgress)
+    setIsConnected(eventSourceManager.isConnected())
+
+    return () => {
       mountedRef.current = false
       unsubscribe()
     }
   }, [operationId, handleProgress])
+
+  useEffect(() => {
+    return () => {
+      if (mountedRef.current) {
+        setProgress(0)
+        setMessage('')
+        setPhase('')
+      }
+    }
+  }, [])
 
   return {
     progress,

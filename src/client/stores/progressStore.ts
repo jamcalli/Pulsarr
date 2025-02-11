@@ -1,48 +1,67 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-
-export interface ProgressEvent {
-  operationId: string
-  phase: string
-  progress: number
-  message: string
-}
+import type { ProgressEvent } from '@root/types/progress.types.js'
 
 interface ProgressState {
   eventSource: EventSource | null
   isConnected: boolean
-  subscribers: Map<string, Set<(event: ProgressEvent) => void>>
-  
+  operationSubscribers: Map<string, Set<(event: ProgressEvent) => void>>
+  typeSubscribers: Map<string, Set<(event: ProgressEvent) => void>>
+
   // Actions
   connect: () => void
   disconnect: () => void
-  subscribe: (operationId: string, callback: (event: ProgressEvent) => void) => () => void
+  subscribeToOperation: (
+    operationId: string,
+    callback: (event: ProgressEvent) => void,
+  ) => () => void
+  subscribeToType: (
+    type: ProgressEvent['type'],
+    callback: (event: ProgressEvent) => void,
+  ) => () => void
 }
 
 export const useProgressStore = create<ProgressState>()(
   devtools((set, get) => ({
     eventSource: null,
     isConnected: false,
-    subscribers: new Map(),
+    operationSubscribers: new Map(),
+    typeSubscribers: new Map(),
 
     connect: () => {
       const state = get()
       if (state.eventSource) return
 
       const eventSource = new EventSource('/api/progress')
-      
+
       eventSource.onmessage = (event) => {
         const data: ProgressEvent = JSON.parse(event.data)
         const state = get()
-        const callbacks = state.subscribers.get(data.operationId)
-        
-        if (callbacks) {
-          callbacks.forEach(callback => callback(data))
+
+        const operationCallbacks = state.operationSubscribers.get(
+          data.operationId,
+        )
+        if (operationCallbacks) {
+          for (const callback of operationCallbacks) {
+            callback(data)
+          }
         }
-        
+
+        const typeCallbacks = state.typeSubscribers.get(data.type)
+        if (typeCallbacks) {
+          for (const callback of typeCallbacks) {
+            callback(data)
+          }
+        }
+
         if (data.phase === 'complete') {
           setTimeout(() => {
-            state.disconnect()
+            if (
+              state.operationSubscribers.size === 0 &&
+              state.typeSubscribers.size === 0
+            ) {
+              state.disconnect()
+            }
           }, 1000)
         }
       }
@@ -62,35 +81,80 @@ export const useProgressStore = create<ProgressState>()(
       set({ eventSource: null, isConnected: false })
     },
 
-    subscribe: (operationId, callback) => {
+    subscribeToOperation: (operationId, callback) => {
       const state = get()
-      
-      if (!state.subscribers.has(operationId)) {
-        state.subscribers.set(operationId, new Set())
+
+      if (!state.operationSubscribers.has(operationId)) {
+        state.operationSubscribers.set(operationId, new Set())
       }
-      
-      const callbacks = state.subscribers.get(operationId)!
+
+      const callbacks = state.operationSubscribers.get(operationId)
+      if (!callbacks) {
+        throw new Error('Unexpected: callbacks set should exist')
+      }
+
       callbacks.add(callback)
-      
+
       if (!state.eventSource) {
         state.connect()
       }
 
       return () => {
         const state = get()
-        const callbacks = state.subscribers.get(operationId)
-        
+        const callbacks = state.operationSubscribers.get(operationId)
+
         if (callbacks) {
           callbacks.delete(callback)
           if (callbacks.size === 0) {
-            state.subscribers.delete(operationId)
+            state.operationSubscribers.delete(operationId)
           }
         }
 
-        if (state.subscribers.size === 0) {
+        if (
+          state.operationSubscribers.size === 0 &&
+          state.typeSubscribers.size === 0
+        ) {
           state.disconnect()
         }
       }
-    }
-  }))
+    },
+
+    subscribeToType: (type, callback) => {
+      const state = get()
+
+      if (!state.typeSubscribers.has(type)) {
+        state.typeSubscribers.set(type, new Set())
+      }
+
+      const callbacks = state.typeSubscribers.get(type)
+      if (!callbacks) {
+        throw new Error('Unexpected: callbacks set should exist')
+      }
+
+      callbacks.add(callback)
+
+      if (!state.eventSource) {
+        state.connect()
+      }
+
+      return () => {
+        const state = get()
+        const callbacks = state.typeSubscribers.get(type)
+
+        if (callbacks) {
+          callbacks.delete(callback)
+          if (callbacks.size === 0) {
+            state.typeSubscribers.delete(type)
+          }
+        }
+
+        if (
+          state.operationSubscribers.size === 0 &&
+          state.typeSubscribers.size === 0
+        ) {
+          state.disconnect()
+        }
+      }
+    },
+  })),
 )

@@ -16,7 +16,7 @@ import { Progress } from '@/components/ui/progress'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import { useConfigStore } from '@/stores/configStore'
-import { useProgress } from '@/hooks/useProgress'
+import { useWatchlistProgress } from '@/hooks/useProgress'
 
 const plexTokenFormSchema = z.object({
   plexToken: z.string().min(5, { message: 'Plex Token is required' }),
@@ -31,22 +31,32 @@ export default function PlexConfigPage() {
   const initialize = useConfigStore((state) => state.initialize)
 
   // Status states
-  const [status, setStatus] = React.useState<'idle' | 'loading' | 'success' | 'error'>('idle')
-  const [rssStatus, setRssStatus] = React.useState<'idle' | 'loading' | 'success' | 'error'>('idle')
-  const [watchlistStatus, setWatchlistStatus] = React.useState<'idle' | 'loading' | 'success' | 'error'>('idle')
-  const [othersWatchlistStatus, setOthersWatchlistStatus] = React.useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const [status, setStatus] = React.useState<
+    'idle' | 'loading' | 'success' | 'error'
+  >('idle')
+  const [rssStatus, setRssStatus] = React.useState<
+    'idle' | 'loading' | 'success' | 'error'
+  >('idle')
+  const [watchlistStatus, setWatchlistStatus] = React.useState<
+    'idle' | 'loading' | 'success' | 'error'
+  >('idle')
+  const [othersWatchlistStatus, setOthersWatchlistStatus] = React.useState<
+    'idle' | 'loading' | 'success' | 'error'
+  >('idle')
 
   // Progress tracking using the store
-  const selfWatchlistProgress = useProgress('self-watchlist')
-  const othersWatchlistProgress = useProgress('others-watchlist')
-  
+  const selfWatchlistProgress = useWatchlistProgress('self-watchlist')
+  const othersWatchlistProgress = useWatchlistProgress('others-watchlist')
+
   // Data states
   const [rssFeeds, setRssFeeds] = React.useState<{
     self: string
     friends: string
   }>({ self: '', friends: '' })
-  
-  const [watchlistCount, setWatchlistCount] = React.useState<number | null>(null)
+
+  const [watchlistCount, setWatchlistCount] = React.useState<number | null>(
+    null,
+  )
   const [othersWatchlistInfo, setOthersWatchlistInfo] = React.useState<{
     userCount: number
     totalItems: number
@@ -127,7 +137,7 @@ export default function PlexConfigPage() {
 
       if (result.total != null && result.users?.length > 0) {
         setWatchlistCount(result.total)
-        setWatchlistStatus('success')
+        setWatchlistStatus('success') // Set success when API call completes
         toast({
           title: 'Watchlist Synced',
           description: 'Your watchlist has been successfully synced',
@@ -317,13 +327,18 @@ export default function PlexConfigPage() {
                     <div className="space-y-1">
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-text">
-                          {selfWatchlistProgress.message}
+                          {selfWatchlistProgress.message || 'Processing...'}
                         </span>
                         <span className="text-sm text-text">
                           {selfWatchlistProgress.progress}%
                         </span>
                       </div>
-                      <Progress value={selfWatchlistProgress.progress} />
+                      <Progress
+                        value={selfWatchlistProgress.progress}
+                        className={
+                          selfWatchlistProgress.isComplete ? 'bg-green-500' : ''
+                        }
+                      />
                     </div>
                   ) : (
                     <FormControl>
@@ -369,13 +384,18 @@ export default function PlexConfigPage() {
                 <div className="space-y-1">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-text">
-                      {othersWatchlistProgress.message}
+                      {othersWatchlistProgress.message || 'Processing...'}
                     </span>
                     <span className="text-sm text-text">
                       {othersWatchlistProgress.progress}%
                     </span>
                   </div>
-                  <Progress value={othersWatchlistProgress.progress} />
+                  <Progress
+                    value={othersWatchlistProgress.progress}
+                    className={
+                      othersWatchlistProgress.isComplete ? 'bg-green-500' : ''
+                    }
+                  />
                 </div>
               ) : (
                 <FormControl>
@@ -444,7 +464,9 @@ export default function PlexConfigPage() {
                 </FormControl>
               </FormItem>
               <FormItem className="flex-1">
-                <FormLabel className="text-text text-sm">Friends Feed</FormLabel>
+                <FormLabel className="text-text text-sm">
+                  Friends Feed
+                </FormLabel>
                 <FormControl>
                   <Input
                     value={rssFeeds.friends}

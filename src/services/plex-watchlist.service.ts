@@ -388,12 +388,18 @@ export class PlexWatchlistService {
     const operationId = `process-${Date.now()}`
     const emitProgress = this.fastify.progress.hasActiveConnections()
 
+    const firstUser = Array.from(brandNewItems.keys())[0]
+    const type = firstUser.username.startsWith('token')
+      ? 'self-watchlist'
+      : 'others-watchlist'
+
     if (emitProgress) {
       this.fastify.progress.emit({
         operationId,
+        type,
         phase: 'start',
         progress: 0,
-        message: 'Starting item processing',
+        message: `Starting ${type === 'self-watchlist' ? 'self' : 'others'} watchlist processing`,
       })
     }
 
@@ -402,7 +408,11 @@ export class PlexWatchlistService {
       this.log,
       brandNewItems,
       emitProgress
-        ? { progress: this.fastify.progress, operationId }
+        ? {
+            progress: this.fastify.progress,
+            operationId,
+            type,
+          }
         : undefined,
     )
 
@@ -413,6 +423,7 @@ export class PlexWatchlistService {
         if (emitProgress) {
           this.fastify.progress.emit({
             operationId,
+            type,
             phase: 'saving',
             progress: 95,
             message: `Saving ${itemsToInsert.length} items to database`,
@@ -420,7 +431,6 @@ export class PlexWatchlistService {
         }
 
         await this.dbService.createWatchlistItems(itemsToInsert)
-
         await this.dbService.syncGenresFromWatchlist()
 
         this.log.info(`Processed ${itemsToInsert.length} new items`)
@@ -428,6 +438,7 @@ export class PlexWatchlistService {
         if (emitProgress) {
           this.fastify.progress.emit({
             operationId,
+            type,
             phase: 'complete',
             progress: 100,
             message: 'All items processed and saved',
