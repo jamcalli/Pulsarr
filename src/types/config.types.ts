@@ -29,6 +29,7 @@ export interface Config {
   closeGraceDelay: number
   rateLimitMax: number
   syncIntervalSeconds: number
+  queueProcessDelaySeconds: number
   // Sonarr Config
   sonarrBaseUrl: string
   sonarrApiKey: string

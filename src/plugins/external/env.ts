@@ -47,6 +47,10 @@ const schema = {
       type: 'number',
       default: 10,
     },
+    queueProcessDelaySeconds: {
+      type: 'number',
+      default: 60,
+    },
     sonarrBaseUrl: {
       type: 'string',
       default: 'http://localhost:8989',

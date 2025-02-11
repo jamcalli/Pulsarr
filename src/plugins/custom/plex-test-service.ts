@@ -30,6 +30,8 @@ class PlexTestingWorkflow {
     private readonly fastify: FastifyInstance,
     private readonly dbService: FastifyInstance['db'],
     private readonly showStatusService: FastifyInstance['sync'],
+    private readonly rssCheckIntervalMs: number = 10000,
+    private readonly queueProcessDelayMs: number = 60000,
   ) {}
 
   async startWorkflow() {
@@ -147,7 +149,7 @@ class PlexTestingWorkflow {
       } catch (error) {
         this.log.error('Error checking RSS feeds:', error)
       }
-    }, 10000)
+    }, this.rssCheckIntervalMs)
   }
 
   private async processRssResults(results: RssWatchlistResults) {
@@ -576,11 +578,10 @@ class PlexTestingWorkflow {
       }
 
       const timeSinceLastItem = Date.now() - this.lastQueueItemTime
-
-      if (timeSinceLastItem >= 60000 && this.changeQueue.size > 0) {
+      if (timeSinceLastItem >= this.queueProcessDelayMs && this.changeQueue.size > 0) {
         this.isRefreshing = true
         try {
-          this.log.info('One minute since last new item, refreshing watchlists')
+          this.log.info('Queue process delay reached, refreshing watchlists')
           this.changeQueue.clear()
           await this.fetchWatchlists()
           this.log.info('Watchlist refresh completed')
@@ -590,12 +591,14 @@ class PlexTestingWorkflow {
           this.isRefreshing = false
         }
       }
-    }, 10000) // Check every 10 seconds
+    }, 10000)
   }
 }
 
 const plexTestingPlugin: FastifyPluginCallback = (fastify, opts, done) => {
   try {
+    const rssCheckIntervalMs = (fastify.config.syncIntervalSeconds || 10) * 1000
+    const queueProcessDelayMs = (fastify.config.queueProcessDelaySeconds || 60) * 1000
     const workflow = new PlexTestingWorkflow(
       fastify.plexWatchlist,
       fastify.log,
@@ -604,6 +607,8 @@ const plexTestingPlugin: FastifyPluginCallback = (fastify, opts, done) => {
       fastify,
       fastify.db,
       fastify.sync,
+      rssCheckIntervalMs,
+      queueProcessDelayMs
     )
 
     fastify.addHook('onClose', async () => {
