@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/form'
 import EditableCardHeader from '@/components/ui/editable-card-header'
 import GenreRouteCardSkeleton from '@/components/sonarr/sonarr-genre-route-skeleton'
-import { useSonarrStore } from '@/stores/sonarr/sonarrStore'
+import { useSonarrStore } from '@/stores/sonarrStore'
 import useSonarrGenreForm from '@/hooks/sonarr/useSonarrGenreForm'
 import type { GenreRouteFormValues } from '@/types/sonarr/schemas'
 import type { GenreRoute } from '@/types/sonarr/types'

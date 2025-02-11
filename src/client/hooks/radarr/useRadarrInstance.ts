@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { useRadarrStore } from '@/stores/radarr/radarrStore'
+import { useRadarrStore } from '@/stores/radarrStore'
 import { useToast } from '@/hooks/use-toast'
 import type { RadarrInstanceSchema } from '@/types/radarr/schemas'
 

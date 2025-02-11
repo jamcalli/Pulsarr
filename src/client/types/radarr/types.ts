@@ -1,14 +1,5 @@
 import type { RootFolder, QualityProfile } from '@root/types/radarr.types'
 
-export type LogLevel =
-  | 'fatal'
-  | 'error'
-  | 'warn'
-  | 'info'
-  | 'debug'
-  | 'trace'
-  | 'silent'
-
 export interface RadarrInstanceData {
   rootFolders?: RootFolder[]
   qualityProfiles?: QualityProfile[]

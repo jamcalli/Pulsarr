@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { useSonarrStore } from '@/stores/sonarr/sonarrStore'
+import { useSonarrStore } from '@/stores/sonarrStore'
 import SonarrGenreRouting from '@/components/sonarr/sonarr-genre-routing'
 import { InstanceCard } from '@/components/sonarr/sonarr-instance-card'
 import InstanceCardSkeleton from '@/components/sonarr/radarr-card-skeleton'

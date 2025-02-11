@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { useRadarrStore } from '@/stores/radarr/radarrStore'
+import { useRadarrStore } from '@/stores/radarrStore'
 import RadarrGenreRouting from '@/components/radarr/radarr-genre-routing'
 import { InstanceCard } from '@/components/radarr/radarr-instance-card'
 import InstanceCardSkeleton from '@/components/radarr/radarr-card-skeleton'

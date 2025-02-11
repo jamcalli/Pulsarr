@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react'
-import { ConfigProvider } from '@/context/context'
 import WindowedLayout from './window'
 
 interface AuthenticatedLayoutProps {
@@ -10,8 +9,6 @@ export default function AuthenticatedLayout({
   children,
 }: AuthenticatedLayoutProps) {
   return (
-    <ConfigProvider>
-      <WindowedLayout>{children}</WindowedLayout>
-    </ConfigProvider>
+    <WindowedLayout>{children}</WindowedLayout>
   )
 }
