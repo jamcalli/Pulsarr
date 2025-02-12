@@ -6,7 +6,7 @@ const RadarrInstanceSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   baseUrl: z.string().url({ message: 'Invalid base URL' }),
   apiKey: z.string().min(1, { message: 'API Key is required' }),
-  qualityProfile: z.string().nullish(),
+  qualityProfile: z.union([z.string(), z.number()]).nullish(),
   rootFolder: z.string().nullish(),
   bypassIgnored: z.boolean().optional().default(false),
   tags: z.array(z.string()).optional().default([]),

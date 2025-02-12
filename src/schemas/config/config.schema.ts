@@ -20,6 +20,7 @@ export const ConfigSchema = z.object({
   closeGraceDelay: z.number().optional(),
   rateLimitMax: z.number().optional(),
   syncIntervalSeconds: z.number().optional(),
+  queueProcessDelaySeconds: z.number().optional(),
   plexTokens: z.array(z.string()).optional(),
   skipFriendSync: z.boolean().optional(),
   deleteMovie: z.boolean().optional(),
@@ -29,6 +30,7 @@ export const ConfigSchema = z.object({
   deleteFiles: z.boolean().optional(),
   selfRss: z.string().optional(),
   friendsRss: z.string().optional(),
+  discordWebhookUrl: z.string().url().optional(),
   _isReady: z.boolean().optional(),
 })
 

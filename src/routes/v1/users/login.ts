@@ -42,6 +42,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           email: user.email,
           role: user.role,
         }
+
         await request.session.save()
 
         return {
