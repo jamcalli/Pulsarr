@@ -10,6 +10,7 @@ export interface DiscordEmbed {
   description?: string
   url?: string
   color?: number
+  timestamp?: string
   footer?: {
     text: string
     icon_url?: string

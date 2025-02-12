@@ -59,6 +59,7 @@ export class DiscordNotificationService {
       title: notification.title,
       description: `${emoji} New ${mediaType} Added`,
       color: this.COLOR,
+      timestamp: new Date().toISOString(),
       footer: {
         text: `Added by ${notification.username}`,
       },
