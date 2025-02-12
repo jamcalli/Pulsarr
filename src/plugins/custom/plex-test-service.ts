@@ -578,7 +578,10 @@ class PlexTestingWorkflow {
       }
 
       const timeSinceLastItem = Date.now() - this.lastQueueItemTime
-      if (timeSinceLastItem >= this.queueProcessDelayMs && this.changeQueue.size > 0) {
+      if (
+        timeSinceLastItem >= this.queueProcessDelayMs &&
+        this.changeQueue.size > 0
+      ) {
         this.isRefreshing = true
         try {
           this.log.info('Queue process delay reached, refreshing watchlists')
@@ -598,7 +601,8 @@ class PlexTestingWorkflow {
 const plexTestingPlugin: FastifyPluginCallback = (fastify, opts, done) => {
   try {
     const rssCheckIntervalMs = (fastify.config.syncIntervalSeconds || 10) * 1000
-    const queueProcessDelayMs = (fastify.config.queueProcessDelaySeconds || 60) * 1000
+    const queueProcessDelayMs =
+      (fastify.config.queueProcessDelaySeconds || 60) * 1000
     const workflow = new PlexTestingWorkflow(
       fastify.plexWatchlist,
       fastify.log,
@@ -608,7 +612,7 @@ const plexTestingPlugin: FastifyPluginCallback = (fastify, opts, done) => {
       fastify.db,
       fastify.sync,
       rssCheckIntervalMs,
-      queueProcessDelayMs
+      queueProcessDelayMs,
     )
 
     fastify.addHook('onClose', async () => {

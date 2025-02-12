@@ -1,15 +1,14 @@
-import type { FastifyBaseLogger } from 'fastify'
-import type { FastifyInstance } from 'fastify'
-
-interface MediaNotification {
-  username: string
-  title: string
-  type: 'movie' | 'show'
-  posterUrl?: string
-  timestamp: string
-}
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
+import type {
+  MediaNotification,
+  DiscordEmbed,
+  DiscordWebhookPayload,
+} from '@root/types/discord.types.js'
 
 export class DiscordNotificationService {
+
+  private readonly COLOR = 0x48a9a6
+
   constructor(
     private readonly log: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
@@ -19,10 +18,10 @@ export class DiscordNotificationService {
     return this.fastify.db
   }
 
-  async sendNotification(content: string): Promise<boolean> {
+  async sendNotification(payload: DiscordWebhookPayload): Promise<boolean> {
     try {
       const config = await this.dbService.getConfig(1)
-      
+
       if (!config?.discordWebhookUrl) {
         this.log.warn('Discord webhook URL not configured')
         return false
@@ -33,7 +32,7 @@ export class DiscordNotificationService {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify(payload),
       })
 
       if (!response.ok) {
@@ -53,33 +52,59 @@ export class DiscordNotificationService {
     }
   }
 
-  async sendMediaNotification(notification: MediaNotification): Promise<boolean> {
-    const { username, title, type, posterUrl, timestamp } = notification
-    
-    const content = this.formatMediaMessage({
-      username,
-      title,
-      type,
-      posterUrl,
-      timestamp,
-    })
-
-    return this.sendNotification(content)
+  async sendMediaNotification(
+    notification: MediaNotification,
+  ): Promise<boolean> {
+    const payload = this.createMediaEmbed(notification)
+    return this.sendNotification(payload)
   }
 
-  private formatMediaMessage(notification: MediaNotification): string {
+  private createMediaEmbed(
+    notification: MediaNotification,
+  ): DiscordWebhookPayload {
     const { username, title, type, posterUrl, timestamp } = notification
-    
+
     const emoji = type === 'movie' ? '🎬' : '📺'
     const mediaType = type.charAt(0).toUpperCase() + type.slice(1)
-    
-    let message = `${emoji} **${username}** added ${mediaType}: "${title}"\n`
-    message += `🕒 Added at: ${timestamp}\n`
-    
-    if (posterUrl) {
-      message += posterUrl
+
+    const embed: DiscordEmbed = {
+      title: `${emoji} New ${mediaType} Added`,
+      description: `**${title}**`,
+      color: this.COLOR,
+      timestamp: new Date(timestamp).toISOString(),
+      footer: {
+        text: `Added by ${username}`,
+      },
+      fields: [
+        {
+          name: 'Type',
+          value: mediaType,
+          inline: true,
+        },
+        {
+          name: 'Added',
+                    value: new Date(timestamp).toLocaleString([], { 
+            year: 'numeric',
+            month: 'numeric',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          }),
+          inline: true,
+        },
+      ],
     }
-    
-    return message
+
+    if (posterUrl) {
+      embed.image = {
+        url: posterUrl,
+      }
+    }
+
+    return {
+      embeds: [embed],
+      username: 'Pulsarr',
+      avatar_url: 'https://your-bot-avatar-url.png',
+    }
   }
 }

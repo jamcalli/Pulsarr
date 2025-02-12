@@ -181,7 +181,7 @@ export class DatabaseService {
       _isReady: Boolean(config._isReady),
     }
   }
-  
+
   async createConfig(
     config: Omit<Config, 'created_at' | 'updated_at'>,
   ): Promise<number> {

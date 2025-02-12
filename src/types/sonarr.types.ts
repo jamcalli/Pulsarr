@@ -111,7 +111,7 @@ export interface SonarrInstance {
   name: string
   baseUrl: string
   apiKey: string
-  qualityProfile?: string | null | undefined
+  qualityProfile?: string | number | null
   rootFolder?: string | null | undefined
   bypassIgnored: boolean
   seasonMonitoring: string

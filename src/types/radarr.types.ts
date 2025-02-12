@@ -77,7 +77,7 @@ export interface RadarrInstance {
   name: string
   baseUrl: string
   apiKey: string
-  qualityProfile?: string | null | undefined
+  qualityProfile?: string | number | null
   rootFolder?: string | null | undefined
   bypassIgnored: boolean
   tags: string[]
