@@ -252,12 +252,10 @@ export class SonarrService {
   private async resolveQualityProfileId(profiles: QualityProfile[]): Promise<number> {
     const configProfile = this.sonarrConfig.sonarrQualityProfileId
   
-    // If no profiles available, throw error
     if (profiles.length === 0) {
       throw new Error('No quality profiles configured in Sonarr')
     }
   
-    // If no profile configured, use first available
     if (configProfile === null) {
       const defaultId = profiles[0].id
       this.log.info(
@@ -266,12 +264,10 @@ export class SonarrService {
       return defaultId
     }
   
-    // If profile is numeric (either number or numeric string), use it directly
     if (this.isNumericQualityProfile(configProfile)) {
       return Number(configProfile)
     }
   
-    // Try to match by name
     const matchingProfile = profiles.find(
       (profile) => 
         profile.name.toLowerCase() === configProfile.toString().toLowerCase()
@@ -284,7 +280,6 @@ export class SonarrService {
       return matchingProfile.id
     }
   
-    // Fallback to first profile if no match found
     this.log.warn(
       `Could not find quality profile "${configProfile}". Available profiles: ${profiles.map(p => p.name).join(', ')}`
     )
@@ -298,26 +293,22 @@ export class SonarrService {
   async addToSonarr(item: Item, overrideRootFolder?: string): Promise<void> {
     const config = this.sonarrConfig
     try {
-      // Prepare add options
+
       const addOptions: SonarrAddOptions = {
         monitor: config.sonarrSeasonMonitoring,
         searchForCutoffUnmetEpisodes: true,
         searchForMissingEpisodes: true,
       }
   
-      // Extract TVDB ID
       const tvdbId = item.guids
         .find((guid) => guid.startsWith('tvdb:'))
         ?.replace('tvdb:', '')
   
-      // Resolve root folder
       const rootFolderPath = await this.resolveRootFolder(overrideRootFolder)
   
-      // Fetch and resolve quality profile
       const qualityProfiles = await this.fetchQualityProfiles()
       const qualityProfileId = await this.resolveQualityProfileId(qualityProfiles)
   
-      // Prepare and send show to Sonarr
       const show: SonarrPost = {
         title: item.title,
         tvdbId: tvdbId ? Number.parseInt(tvdbId, 10) : 0,

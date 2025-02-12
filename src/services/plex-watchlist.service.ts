@@ -829,7 +829,6 @@ export class PlexWatchlistService {
               title: item.title,
               type: item.type as 'movie' | 'show',
               posterUrl: item.thumb,
-              timestamp: new Date().toISOString(),
             })
 
             break
@@ -893,7 +892,6 @@ export class PlexWatchlistService {
               title: item.title,
               type: item.type as 'movie' | 'show',
               posterUrl: item.thumb,
-              timestamp: new Date().toISOString(),
             })
 
             break

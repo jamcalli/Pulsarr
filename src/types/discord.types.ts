@@ -3,7 +3,6 @@ export interface MediaNotification {
   title: string
   type: 'movie' | 'show'
   posterUrl?: string
-  timestamp: string
 }
 
 export interface DiscordEmbed {
@@ -11,7 +10,6 @@ export interface DiscordEmbed {
   description?: string
   url?: string
   color?: number
-  timestamp?: string
   footer?: {
     text: string
     icon_url?: string
