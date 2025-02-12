@@ -104,7 +104,7 @@ export class DiscordNotificationService {
     return {
       embeds: [embed],
       username: 'Pulsarr',
-      avatar_url: 'https://your-bot-avatar-url.png',
+      avatar_url: 'https://raw.githubusercontent.com/jamcalli/Pulsarr/master/src/client/assets/images/pulsarr.png',
     }
   }
 }

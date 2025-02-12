@@ -1,5 +1,5 @@
 import type { ControllerRenderProps } from 'react-hook-form'
-import type { SonarrInstance } from '@/context/context'
+import type { SonarrInstance } from '@/stores/sonarrStore'
 import type { SonarrInstanceSchema } from '@/types/sonarr/schemas'
 import { MultiSelect } from '@/components/multi-select'
 import { Computer } from 'lucide-react'

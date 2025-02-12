@@ -1,5 +1,5 @@
 import type { ControllerRenderProps } from 'react-hook-form'
-import type { RadarrInstance } from '@/context/context'
+import type { RadarrInstance } from '@/stores/radarrStore'
 import type { RadarrInstanceSchema } from '@/types/radarr/schemas'
 import { MultiSelect } from '@/components/multi-select'
 import { Computer } from 'lucide-react'
