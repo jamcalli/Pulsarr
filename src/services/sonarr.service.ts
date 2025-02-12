@@ -229,70 +229,95 @@ export class SonarrService {
     }
   }
 
+  private isNumericQualityProfile(value: string | number | null): value is number {
+    if (value === null) return false;
+    if (typeof value === 'number') return true;
+    return /^\d+$/.test(value);
+  }
+
+  private async resolveRootFolder(overrideRootFolder?: string): Promise<string> {
+    const rootFolderPath = overrideRootFolder || this.sonarrConfig.sonarrRootFolder
+    if (rootFolderPath) return rootFolderPath;
+  
+    const rootFolders = await this.fetchRootFolders()
+    if (rootFolders.length === 0) {
+      throw new Error('No root folders configured in Sonarr')
+    }
+  
+    const defaultPath = rootFolders[0].path
+    this.log.info(`Using root folder: ${defaultPath}`)
+    return defaultPath
+  }
+  
+  private async resolveQualityProfileId(profiles: QualityProfile[]): Promise<number> {
+    const configProfile = this.sonarrConfig.sonarrQualityProfileId
+  
+    // If no profiles available, throw error
+    if (profiles.length === 0) {
+      throw new Error('No quality profiles configured in Sonarr')
+    }
+  
+    // If no profile configured, use first available
+    if (configProfile === null) {
+      const defaultId = profiles[0].id
+      this.log.info(
+        `Using default quality profile: ${profiles[0].name} (ID: ${defaultId})`
+      )
+      return defaultId
+    }
+  
+    // If profile is numeric (either number or numeric string), use it directly
+    if (this.isNumericQualityProfile(configProfile)) {
+      return Number(configProfile)
+    }
+  
+    // Try to match by name
+    const matchingProfile = profiles.find(
+      (profile) => 
+        profile.name.toLowerCase() === configProfile.toString().toLowerCase()
+    )
+  
+    if (matchingProfile) {
+      this.log.info(
+        `Using matched quality profile: ${matchingProfile.name} (ID: ${matchingProfile.id})`
+      )
+      return matchingProfile.id
+    }
+  
+    // Fallback to first profile if no match found
+    this.log.warn(
+      `Could not find quality profile "${configProfile}". Available profiles: ${profiles.map(p => p.name).join(', ')}`
+    )
+    const fallbackId = profiles[0].id
+    this.log.info(
+      `Falling back to first quality profile: ${profiles[0].name} (ID: ${fallbackId})`
+    )
+    return fallbackId
+  }
+  
   async addToSonarr(item: Item, overrideRootFolder?: string): Promise<void> {
     const config = this.sonarrConfig
     try {
+      // Prepare add options
       const addOptions: SonarrAddOptions = {
         monitor: config.sonarrSeasonMonitoring,
         searchForCutoffUnmetEpisodes: true,
         searchForMissingEpisodes: true,
       }
-
+  
+      // Extract TVDB ID
       const tvdbId = item.guids
         .find((guid) => guid.startsWith('tvdb:'))
         ?.replace('tvdb:', '')
-
-      let rootFolderPath = overrideRootFolder || config.sonarrRootFolder
-      if (!rootFolderPath) {
-        const rootFolders = await this.fetchRootFolders()
-        if (rootFolders.length === 0) {
-          throw new Error('No root folders configured in Sonarr')
-        }
-        rootFolderPath = rootFolders[0].path
-        this.log.info(`Using root folder: ${rootFolderPath}`)
-      }
-
-      let qualityProfileId = config.sonarrQualityProfileId
+  
+      // Resolve root folder
+      const rootFolderPath = await this.resolveRootFolder(overrideRootFolder)
+  
+      // Fetch and resolve quality profile
       const qualityProfiles = await this.fetchQualityProfiles()
-
-      if (qualityProfiles.length === 0) {
-        throw new Error('No quality profiles configured in Sonarr')
-      }
-
-      if (config.sonarrQualityProfileId !== null) {
-        if (typeof config.sonarrQualityProfileId === 'string') {
-          const matchingProfile = qualityProfiles.find(
-            (profile) =>
-              profile.name.toLowerCase() ===
-              config.sonarrQualityProfileId?.toString().toLowerCase(),
-          )
-
-          if (matchingProfile) {
-            qualityProfileId = matchingProfile.id
-            this.log.info(
-              `Using matched quality profile: ${matchingProfile.name} (ID: ${qualityProfileId})`,
-            )
-          } else {
-            this.log.warn(
-              `Could not find quality profile "${config.sonarrQualityProfileId}". Available profiles: ${qualityProfiles.map((p) => p.name).join(', ')}`,
-            )
-            qualityProfileId = qualityProfiles[0].id
-            this.log.info(
-              `Falling back to first quality profile: ${qualityProfiles[0].name} (ID: ${qualityProfileId})`,
-            )
-          }
-        } else if (typeof config.sonarrQualityProfileId === 'number') {
-          qualityProfileId = config.sonarrQualityProfileId
-        }
-      }
-
-      if (!qualityProfileId) {
-        qualityProfileId = qualityProfiles[0].id
-        this.log.info(
-          `Using default quality profile: ${qualityProfiles[0].name} (ID: ${qualityProfileId})`,
-        )
-      }
-
+      const qualityProfileId = await this.resolveQualityProfileId(qualityProfiles)
+  
+      // Prepare and send show to Sonarr
       const show: SonarrPost = {
         title: item.title,
         tvdbId: tvdbId ? Number.parseInt(tvdbId, 10) : 0,
@@ -303,12 +328,12 @@ export class SonarrService {
         monitored: true,
         tags: config.sonarrTagIds,
       }
-
+  
       await this.postToSonarr<void>('series', show)
       this.log.info(`Sent ${item.title} to Sonarr`)
     } catch (err) {
       this.log.debug(
-        `Received warning for sending ${item.title} to Sonarr: ${err}`,
+        `Received warning for sending ${item.title} to Sonarr: ${err}`
       )
       throw err
     }
