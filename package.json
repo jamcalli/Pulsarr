@@ -71,6 +71,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
+    "discord.js": "^14.18.0",
     "fastify": "^5.2.1",
     "fastify-sse-v2": "^4.2.1",
     "fastify-type-provider-zod": "^4.0.2",

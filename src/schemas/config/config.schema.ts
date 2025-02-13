@@ -31,6 +31,9 @@ export const ConfigSchema = z.object({
   selfRss: z.string().optional(),
   friendsRss: z.string().optional(),
   discordWebhookUrl: z.string().url().optional(),
+  discordBotToken: z.string().optional(),
+  discordClientId: z.string().optional(),
+  discordGuildId: z.string().optional(),
   _isReady: z.boolean().optional(),
 })
 
