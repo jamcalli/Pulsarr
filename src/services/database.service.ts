@@ -67,6 +67,8 @@ export class DatabaseService {
     const user: User = {
       ...userData,
       id,
+      created_at: this.timestamp,
+      updated_at: this.timestamp,
     }
 
     return user
@@ -87,9 +89,13 @@ export class DatabaseService {
       id: row.id,
       name: row.name,
       email: row.email,
+      alias: row.alias,
+      discord_id: row.discord_id,
       notify_email: Boolean(row.notify_email),
       notify_discord: Boolean(row.notify_discord),
       can_sync: Boolean(row.can_sync),
+      created_at: row.created_at,
+      updated_at: row.updated_at,
     } satisfies User
   }
 
@@ -104,6 +110,50 @@ export class DatabaseService {
         updated_at: this.timestamp,
       })
     return updated > 0
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    const rows = await this.knex('users').select('*').orderBy('name', 'asc')
+
+    return rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      email: row.email,
+      alias: row.alias,
+      discord_id: row.discord_id,
+      notify_email: Boolean(row.notify_email),
+      notify_discord: Boolean(row.notify_discord),
+      can_sync: Boolean(row.can_sync),
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    })) satisfies User[]
+  }
+
+  async getUsersWithWatchlistCount(): Promise<
+    (User & { watchlist_count: number })[]
+  > {
+    const rows = await this.knex('users')
+      .select([
+        'users.*',
+        this.knex.raw('COUNT(watchlist_items.id) as watchlist_count'),
+      ])
+      .leftJoin('watchlist_items', 'users.id', 'watchlist_items.user_id')
+      .groupBy('users.id')
+      .orderBy('users.name', 'asc')
+
+    return rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      email: row.email,
+      alias: row.alias,
+      discord_id: row.discord_id,
+      notify_email: Boolean(row.notify_email),
+      notify_discord: Boolean(row.notify_discord),
+      can_sync: Boolean(row.can_sync),
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+      watchlist_count: Number(row.watchlist_count),
+    })) satisfies (User & { watchlist_count: number })[]
   }
 
   async createAdminUser(userData: {

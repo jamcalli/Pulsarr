@@ -1,8 +1,9 @@
 export interface User {
-  id?: number
+  id: number
   name: string
-  email: string
-  discord_id?: string
+  email: string | null
+  alias: string | null
+  discord_id: string | null
   notify_email: boolean
   notify_discord: boolean
   can_sync: boolean

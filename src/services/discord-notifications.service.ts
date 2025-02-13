@@ -46,14 +46,19 @@ export class DiscordNotificationService {
     }
   }
 
-  async sendMediaNotification(notification: MediaNotification): Promise<boolean> {
+  async sendMediaNotification(
+    notification: MediaNotification,
+  ): Promise<boolean> {
     const payload = this.createMediaEmbed(notification)
     return this.sendNotification(payload)
   }
 
-  private createMediaEmbed(notification: MediaNotification): DiscordWebhookPayload {
+  private createMediaEmbed(
+    notification: MediaNotification,
+  ): DiscordWebhookPayload {
     const emoji = notification.type === 'movie' ? '🎬' : '📺'
-    const mediaType = notification.type.charAt(0).toUpperCase() + notification.type.slice(1)
+    const mediaType =
+      notification.type.charAt(0).toUpperCase() + notification.type.slice(1)
 
     const embed: DiscordEmbed = {
       title: notification.title,
@@ -68,7 +73,7 @@ export class DiscordNotificationService {
           name: 'Type',
           value: mediaType,
           inline: true,
-        }
+        },
       ],
     }
 
@@ -81,7 +86,8 @@ export class DiscordNotificationService {
     return {
       embeds: [embed],
       username: 'Pulsarr',
-      avatar_url: 'https://raw.githubusercontent.com/jamcalli/Pulsarr/master/src/client/assets/images/pulsarr.png',
+      avatar_url:
+        'https://raw.githubusercontent.com/jamcalli/Pulsarr/master/src/client/assets/images/pulsarr.png',
     }
   }
 }

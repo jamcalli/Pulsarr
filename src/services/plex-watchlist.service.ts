@@ -259,6 +259,8 @@ export class PlexWatchlistService {
           user = await this.dbService.createUser({
             name: username,
             email: `${username}@placeholder.com`,
+            alias: null,
+            discord_id: null,
             notify_email: false,
             notify_discord: false,
             can_sync: true,
@@ -286,6 +288,8 @@ export class PlexWatchlistService {
           user = await this.dbService.createUser({
             name: friend.username,
             email: `${friend.username}@placeholder.com`,
+            alias: null,
+            discord_id: null,
             notify_email: false,
             notify_discord: false,
             can_sync: true,
