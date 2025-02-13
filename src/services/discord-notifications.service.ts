@@ -1,4 +1,11 @@
-import { Client, GatewayIntentBits } from 'discord.js'
+import { 
+  Client, 
+  GatewayIntentBits, 
+  REST, 
+  Routes, 
+  SlashCommandBuilder,
+  ChatInputCommandInteraction
+} from 'discord.js'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type {
   MediaNotification,
@@ -6,15 +13,25 @@ import type {
   DiscordWebhookPayload,
 } from '@root/types/discord.types.js'
 
+type CommandHandler = (interaction: ChatInputCommandInteraction) => Promise<void>
+
+interface Command {
+  data: SlashCommandBuilder
+  execute: CommandHandler
+}
+
 export class DiscordNotificationService {
   private readonly COLOR = 0x48a9a6
   private botClient: Client | null = null
   private botStatus: 'stopped' | 'starting' | 'running' | 'stopping' = 'stopped'
+  private readonly commands: Map<string, Command> = new Map()
 
   constructor(
     private readonly log: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
-  ) {}
+  ) {
+    this.initializeCommands()
+  }
 
   private get config() {
     return this.fastify.config
@@ -41,6 +58,60 @@ export class DiscordNotificationService {
     }
   }
 
+  private initializeCommands() {
+    // Status command
+    this.commands.set('status', {
+      data: new SlashCommandBuilder()
+        .setName('status')
+        .setDescription('Get the current status of the bot'),
+      execute: async (interaction) => {
+        await interaction.reply({
+          content: `Bot Status: ${this.botStatus}`,
+          ephemeral: true,
+        })
+      }
+    })
+
+    // Help command
+    this.commands.set('help', {
+      data: new SlashCommandBuilder()
+        .setName('help')
+        .setDescription('Show available commands and their usage'),
+      execute: async (interaction) => {
+        const commandList = Array.from(this.commands.values())
+          .map(cmd => `/${cmd.data.name} - ${cmd.data.description}`)
+          .join('\n')
+        
+        await interaction.reply({
+          content: `Available commands:\n${commandList}`,
+          ephemeral: true,
+        })
+      }
+    })
+  }
+
+  private async registerCommands(): Promise<boolean> {
+    try {
+      const config = this.botConfig
+      const rest = new REST().setToken(config.token)
+      
+      this.log.info('Started refreshing application (/) commands.')
+      
+      const commandsData = Array.from(this.commands.values()).map(cmd => cmd.data.toJSON())
+      
+      await rest.put(
+        Routes.applicationGuildCommands(config.clientId, config.guildId),
+        { body: commandsData },
+      )
+      
+      this.log.info('Successfully reloaded application (/) commands.')
+      return true
+    } catch (error) {
+      this.log.error('Error registering commands:', error)
+      return false
+    }
+  }
+
   // Bot Control Methods
   async startBot(): Promise<boolean> {
     if (this.botStatus !== 'stopped') {
@@ -49,8 +120,14 @@ export class DiscordNotificationService {
     }
 
     try {
-      // Validate all required bot config is present
+      // Validate all required bot config is present and register commands
       const config = this.botConfig
+      const commandsRegistered = await this.registerCommands()
+      
+      if (!commandsRegistered) {
+        this.log.error('Failed to register commands')
+        return false
+      }
     } catch (error) {
       this.log.error('Cannot start bot:', error)
       return false
@@ -76,7 +153,6 @@ export class DiscordNotificationService {
         this.log.error('Discord bot error:', error)
       })
 
-      // Add your bot event handlers here
       this.setupBotEventHandlers()
 
       // Login to Discord
@@ -107,7 +183,7 @@ export class DiscordNotificationService {
       return true
     } catch (error) {
       this.log.error('Error stopping Discord bot:', error)
-      this.botStatus = 'stopped' // Force status to stopped even if there was an error
+      this.botStatus = 'stopped'
       this.botClient = null
       return false
     }
@@ -123,21 +199,27 @@ export class DiscordNotificationService {
     this.botClient.on('interactionCreate', async (interaction) => {
       if (!interaction.isChatInputCommand()) return
 
-      switch (interaction.commandName) {
-        case 'status':
-          await interaction.reply({
-            content: `Bot Status: ${this.botStatus}`,
-            ephemeral: true,
-          })
-          break
-        // Add more command handlers here
+      const command = this.commands.get(interaction.commandName)
+      if (!command) {
+        await interaction.reply({
+          content: 'Unknown command',
+          ephemeral: true,
+        })
+        return
+      }
+
+      try {
+        await command.execute(interaction)
+      } catch (error) {
+        this.log.error('Error executing command:', error)
+        await interaction.reply({
+          content: 'There was an error executing this command',
+          ephemeral: true,
+        })
       }
     })
-
-    // Add more event handlers as needed
   }
 
-  // Existing Webhook Methods
   async sendNotification(payload: DiscordWebhookPayload): Promise<boolean> {
     if (!this.config.discordWebhookUrl) {
       return false
@@ -209,6 +291,13 @@ export class DiscordNotificationService {
       username: 'Pulsarr',
       avatar_url:
         'https://raw.githubusercontent.com/jamcalli/Pulsarr/master/src/client/assets/images/pulsarr.png',
+    }
+  }
+
+  addCommand(command: Command) {
+    this.commands.set(command.data.name, command)
+    if (this.botStatus === 'running') {
+      void this.registerCommands()
     }
   }
 }
