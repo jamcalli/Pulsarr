@@ -5,6 +5,7 @@ export async function up(knex: Knex): Promise<void> {
     table.increments('id').primary()
     table.string('name').notNullable()
     table.string('email').nullable()
+    table.string('alias').nullable()
     table.string('discord_id')
     table.boolean('notify_email').defaultTo(false)
     table.boolean('notify_discord').defaultTo(false)

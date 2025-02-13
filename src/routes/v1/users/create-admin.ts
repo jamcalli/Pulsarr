@@ -26,6 +26,15 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       const { email, username, password } = request.body
 
       try {
+        const hasAdmin = await fastify.db.hasAdminUsers()
+        if (hasAdmin) {
+          reply.status(409)
+          return {
+            success: false,
+            message: 'An admin user already exists in the system',
+          }
+        }
+
         const existingEmail = await fastify.db.getAdminUser(email)
         const existingUsername =
           await fastify.db.getAdminUserByUsername(username)
