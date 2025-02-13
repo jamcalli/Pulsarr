@@ -10,6 +10,17 @@ import Pulsar from '@/components/ui/pulsar'
 import { RouterProvider } from 'react-router-dom'
 import { router } from '@/router/router'
 import Planet from '@/assets/images/planet.webp'
+import PulsarrIcon from '@/assets/images/pulsarr.svg'
+
+const setFavicon = () => {
+  const link = document.querySelector<HTMLLinkElement>("link[rel*='icon']") || document.createElement('link');
+  link.type = 'image/svg+xml';
+  link.rel = 'icon';
+  link.href = PulsarrIcon;
+  document.head.appendChild(link);
+};
+
+setFavicon();
 
 function RootLayout() {
   return (
