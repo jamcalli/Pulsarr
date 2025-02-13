@@ -34,6 +34,9 @@ export interface Config {
   queueProcessDelaySeconds: number
   // Discord Config
   discordWebhookUrl: string
+  discordBotToken: string
+  discordClientId: string
+  discordGuildId: string
   // Sonarr Config
   sonarrBaseUrl: string
   sonarrApiKey: string

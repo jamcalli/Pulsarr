@@ -112,6 +112,9 @@ export async function up(knex: Knex): Promise<void> {
     table.integer('queueProcessDelaySeconds').defaultTo(60)
     // Discord
     table.string('discordWebhookUrl')
+    table.string('discordBotToken')
+    table.string('discordClientId')
+    table.string('discordGuildId')
     // Plex
     table.json('plexTokens')
     table.boolean('skipFriendSync')

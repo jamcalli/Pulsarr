@@ -214,8 +214,11 @@ export class DatabaseService {
       // Handle optional RSS fields
       selfRss: config.selfRss || undefined,
       friendsRss: config.friendsRss || undefined,
-      // Handle optional Discord webhook
+      // Handle optional Discord fields
       discordWebhookUrl: config.discordWebhookUrl || undefined,
+      discordBotToken: config.discordBotToken || undefined,
+      discordClientId: config.discordClientId || undefined,
+      discordGuildId: config.discordGuildId || undefined,
       // Handle timing defaults
       syncIntervalSeconds: config.syncIntervalSeconds || 10,
       queueProcessDelaySeconds: config.queueProcessDelaySeconds || 60,
@@ -263,6 +266,9 @@ export class DatabaseService {
         friendsRss: config.friendsRss,
         // Discord fields
         discordWebhookUrl: config.discordWebhookUrl,
+        discordBotToken: config.discordBotToken,
+        discordClientId: config.discordClientId,
+        discordGuildId: config.discordGuildId,
         // Ready state
         _isReady: config._isReady || false,
         // Timestamps
@@ -281,7 +287,14 @@ export class DatabaseService {
 
     for (const [key, value] of Object.entries(config)) {
       if (value !== undefined) {
-        if (key === 'selfRss' || key === 'friendsRss') {
+        if (
+          key === 'selfRss' ||
+          key === 'friendsRss' ||
+          key === 'discordWebhookUrl' ||
+          key === 'discordBotToken' ||
+          key === 'discordClientId' ||
+          key === 'discordGuildId'
+        ) {
           updateData[key] = value
         } else if (
           Array.isArray(value) ||

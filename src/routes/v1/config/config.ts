@@ -7,6 +7,45 @@ import {
 } from '@root/schemas/config/config.schema.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
+  fastify.get<{
+    Reply: z.infer<typeof ConfigResponseSchema>
+  }>(
+    '/config',
+    {
+      schema: {
+        response: {
+          200: ConfigResponseSchema,
+          404: ConfigErrorSchema,
+          500: ConfigErrorSchema,
+        },
+        tags: ['Config'],
+      },
+    },
+    async (request, reply) => {
+      try {
+        const config = await fastify.db.getConfig(1)
+        if (!config) {
+          throw reply.notFound('Config not found in database')
+        }
+
+        const response: z.infer<typeof ConfigResponseSchema> = {
+          success: true,
+          config,
+        }
+
+        reply.status(200)
+        return response
+      } catch (err) {
+        if (err instanceof Error && 'statusCode' in err) {
+          throw err
+        }
+
+        fastify.log.error('Error fetching config:', err)
+        throw reply.internalServerError('Unable to fetch configuration')
+      }
+    },
+  )
+
   fastify.put<{
     Body: z.infer<typeof ConfigSchema>
     Reply: z.infer<typeof ConfigResponseSchema>
@@ -26,24 +65,19 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         const configUpdate = request.body
-
         const dbUpdated = await fastify.db.updateConfig(1, configUpdate)
         if (!dbUpdated) {
           throw reply.badRequest('Failed to update configuration')
         }
-
         const savedConfig = await fastify.db.getConfig(1)
         if (!savedConfig) {
           throw reply.notFound('No configuration found after update')
         }
-
         const updatedConfig = await fastify.updateConfig(savedConfig)
-
         const response: z.infer<typeof ConfigResponseSchema> = {
           success: true,
           config: updatedConfig,
         }
-
         reply.status(200)
         return response
       } catch (err) {

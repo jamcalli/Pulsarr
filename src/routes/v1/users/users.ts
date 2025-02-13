@@ -139,7 +139,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const user = await fastify.db.getUser(Number.parseInt(request.params.id, 10))
+        const user = await fastify.db.getUser(
+          Number.parseInt(request.params.id, 10),
+        )
         if (!user) {
           reply.status(404)
           return {

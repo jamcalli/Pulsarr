@@ -55,6 +55,18 @@ const schema = {
       type: 'string',
       default: '',
     },
+    discordBotToken: {
+      type: 'string',
+      default: '',
+    },
+    discordClientId: {
+      type: 'string',
+      default: '',
+    },
+    discordGuildId: {
+      type: 'string',
+      default: '',
+    },
     sonarrBaseUrl: {
       type: 'string',
       default: 'http://localhost:8989',
