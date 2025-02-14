@@ -6,7 +6,7 @@ WORKDIR /app
 COPY package*.json ./
 COPY .nvmrc ./
 
-# Install dependencies
+# Install ALL dependencies (including dev deps needed for build)
 RUN npm ci
 
 # Copy source code
@@ -14,6 +14,8 @@ COPY . .
 
 # Build application
 RUN npm run build
+# Verify build output
+RUN ls -la dist && ls -la dist/client
 
 FROM node:23.6.0-alpine
 
@@ -22,29 +24,27 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install production dependencies only
-RUN npm ci --production
+# Install ALL dependencies (since Vite is needed in prod)
+RUN npm ci
 
-# Copy built application from builder stage
+# Copy the entire dist directory structure
 COPY --from=builder /app/dist ./dist
-# Add this line to copy vite config
+# Copy vite config from root
 COPY --from=builder /app/vite.config.js ./
 
 # Copy migrations
 COPY migrations ./migrations
 
-# Copy data directory structure (will be mounted over)
+# Copy data directory structure
 COPY data ./data
 
 # Copy and set up startup script
 COPY docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
 
-# Declare volume
+# Verify final structure
+RUN ls -la && ls -la dist && ls -la dist/client
+
 VOLUME /app/data
-
-# Expose port
 EXPOSE 3003
-
-# Use the startup script as entrypoint
 CMD ["./docker-entrypoint.sh"]
