@@ -68,6 +68,7 @@
     "@scalar/fastify-api-reference": "^1.25.118",
     "better-sqlite3": "^11.8.1",
     "class-variance-authority": "^0.7.1",
+    "close-with-grace": "^2.2.0",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.4",
     "discord.js": "^14.18.0",
