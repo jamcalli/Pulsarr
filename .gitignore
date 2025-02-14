@@ -27,3 +27,6 @@ config.json
 
 # databases
 *.db*
+
+# vscode
+.vscode/
