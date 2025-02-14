@@ -27,6 +27,8 @@ RUN npm ci --production
 
 # Copy built application from builder stage
 COPY --from=builder /app/dist ./dist
+# Add this line to copy vite config
+COPY --from=builder /app/vite.config.js ./
 
 # Copy migrations
 COPY migrations ./migrations
