@@ -1,0 +1,48 @@
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# Node.js
+node_modules
+npm-debug.log*
+.npm
+*.tsbuildinfo
+
+# Environment & configs
+.env*
+*.env
+config.json
+.nvmrc
+
+# Build outputs
+dist
+build
+*.db*
+
+# Development & test files
+tests
+**/tests
+backend/tests
+__tests__
+*.test.js
+*.spec.js
+
+# IDE & Editor files
+.idea
+.vscode
+*.swp
+*.swo
+.DS_Store
+
+# Docker specific
+Dockerfile
+.dockerignore
+docker-compose*
+*.md
+.docker
+
+# Temporary files
+*.tmp
+*.temp
+.cache
