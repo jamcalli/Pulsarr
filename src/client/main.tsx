@@ -13,14 +13,16 @@ import Planet from '@/assets/images/planet.webp'
 import PulsarrIcon from '@/assets/images/pulsarr.svg'
 
 const setFavicon = () => {
-  const link = document.querySelector<HTMLLinkElement>("link[rel*='icon']") || document.createElement('link');
-  link.type = 'image/svg+xml';
-  link.rel = 'icon';
-  link.href = PulsarrIcon;
-  document.head.appendChild(link);
-};
+  const link =
+    document.querySelector<HTMLLinkElement>("link[rel*='icon']") ||
+    document.createElement('link')
+  link.type = 'image/svg+xml'
+  link.rel = 'icon'
+  link.href = PulsarrIcon
+  document.head.appendChild(link)
+}
 
-setFavicon();
+setFavicon()
 
 function RootLayout() {
   return (
