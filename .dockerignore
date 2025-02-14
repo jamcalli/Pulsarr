@@ -13,7 +13,6 @@ npm-debug.log*
 .env*
 *.env
 config.json
-.nvmrc
 
 # Build outputs
 dist
