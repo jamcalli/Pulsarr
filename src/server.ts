@@ -67,7 +67,7 @@ async function init() {
   try {
     await app.listen({
       port: app.config.port,
-      host: '127.0.0.1',
+      host: '0.0.0.0',
     })
   } catch (err) {
     app.log.error(err)

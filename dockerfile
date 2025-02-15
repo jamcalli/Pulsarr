@@ -2,49 +2,48 @@ FROM node:23.6.0-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
+# Copy build essentials
 COPY package*.json ./
-COPY .nvmrc ./
+COPY src ./src
+COPY vite.config.js ./
+COPY tsconfig.json ./
+COPY tailwind.config.ts ./
+COPY postcss.config.mjs ./
 
-# Install ALL dependencies (including dev deps needed for build)
+# Install dependencies
 RUN npm ci
 
-# Copy source code
-COPY . .
-
-# Build application
+# Build
 RUN npm run build
-# Verify build output
-RUN ls -la dist && ls -la dist/client
+
+# Ensure cache directory exists for build
+RUN mkdir -p node_modules/.cache/@fastify/vite
 
 FROM node:23.6.0-alpine
 
 WORKDIR /app
 
-# Copy package files
+# Copy package files and install dependencies
 COPY package*.json ./
-
-# Install ALL dependencies (since Vite is needed in prod)
 RUN npm ci
 
-# Copy the entire dist directory structure
+# Create necessary directories
+RUN mkdir -p /app/data/db && \
+    mkdir -p /app/data/log && \
+    mkdir -p node_modules/.cache/@fastify/vite
+
+# Copy build artifacts, config, and cache
 COPY --from=builder /app/dist ./dist
-# Copy vite config from root
-COPY --from=builder /app/vite.config.js ./
-
-# Copy migrations
+COPY --from=builder /app/node_modules/.cache/@fastify/vite/vite.config.dist.json ./node_modules/.cache/@fastify/vite/
+COPY vite.config.js ./
 COPY migrations ./migrations
-
-# Copy data directory structure
-COPY data ./data
-
-# Copy and set up startup script
 COPY docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
 
-# Verify final structure
-RUN ls -la && ls -la dist && ls -la dist/client
+# Set production environment
+ENV NODE_ENV=production
 
 VOLUME /app/data
 EXPOSE 3003
+
 CMD ["./docker-entrypoint.sh"]
