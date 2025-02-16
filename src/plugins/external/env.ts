@@ -10,6 +10,10 @@ const schema = {
   type: 'object',
   required: ['port'],
   properties: {
+    baseUrl: {
+      type: 'string',
+      default: 'http://localhost',
+    },
     port: {
       type: 'number',
       default: 3003,
@@ -24,7 +28,7 @@ const schema = {
     },
     cookieName: {
       type: 'string',
-      default: 'session',
+      default: 'pulsarr',
     },
     cookieSecured: {
       type: 'boolean',

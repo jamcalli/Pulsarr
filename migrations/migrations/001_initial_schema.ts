@@ -100,8 +100,10 @@ export async function up(knex: Knex): Promise<void> {
 
   await knex.schema.createTable('configs', (table) => {
     table.increments('id').primary()
+    // App
     table.integer('port')
     table.string('dbPath')
+    table.string('baseUrl')
     table.string('cookieSecret')
     table.string('cookieName')
     table.boolean('cookieSecured')
