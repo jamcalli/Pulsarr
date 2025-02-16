@@ -15,11 +15,11 @@ import type {
   DiscordWebhookPayload,
 } from '@root/types/discord.types.js'
 import {
-  settingsCommand,
-  handleSettingsButtons,
+  notificationsCommand,
+  handleNotificationButtons,
   handlePlexUsernameModal,
   handleProfileEditModal,
-} from '@root/utils/discord-commands/settings-command.js'
+} from '@root/utils/discord-commands/notifications-command.js'
 
 type BotStatus = 'stopped' | 'starting' | 'running' | 'stopping'
 type CommandHandler = (
@@ -72,21 +72,24 @@ export class DiscordNotificationService {
   }
 
   private initializeCommands() {
-    this.log.info('Initializing Discord bot commands')
+    this.log.debug('Initializing Discord bot commands')
     try {
-      this.commands.set('settings', {
-        data: settingsCommand.data,
+      this.commands.set('notifications', {
+        data: notificationsCommand.data,
         execute: async (interaction) => {
           this.log.debug(
             { userId: interaction.user.id },
-            'Executing settings command',
+            'Executing notifications command',
           )
-          await settingsCommand.execute(interaction, { fastify: this.fastify })
+          await notificationsCommand.execute(interaction, {
+            fastify: this.fastify,
+            log: this.log,
+          })
         },
       })
-      this.log.info('Commands initialized successfully')
+      this.log.info('Notification commands initialized')
     } catch (error) {
-      this.log.error({ error }, 'Failed to initialize commands')
+      this.log.error({ error }, 'Failed to initialize notification commands')
       throw error
     }
   }
@@ -225,9 +228,12 @@ export class DiscordNotificationService {
         } else if (interaction.isButton()) {
           this.log.debug(
             { buttonId: interaction.customId },
-            'Handling button interaction',
+            'Handling notification button interaction',
           )
-          await handleSettingsButtons(interaction, { fastify: this.fastify })
+          await handleNotificationButtons(interaction, {
+            fastify: this.fastify,
+            log: this.log,
+          })
         } else if (interaction.isModalSubmit()) {
           this.log.debug(
             { modalId: interaction.customId },
@@ -237,11 +243,13 @@ export class DiscordNotificationService {
             case 'plexUsernameModal':
               await handlePlexUsernameModal(interaction, {
                 fastify: this.fastify,
+                log: this.log,
               })
               break
             case 'editProfileModal':
               await handleProfileEditModal(interaction, {
                 fastify: this.fastify,
+                log: this.log,
               })
               break
             default:
@@ -253,13 +261,11 @@ export class DiscordNotificationService {
         }
       } catch (error) {
         this.log.error({ error }, 'Error handling interaction')
-
         if (interaction.isRepliable()) {
           const errorMessage: InteractionReplyOptions = {
             content: 'An error occurred while processing your request.',
             flags: MessageFlags.Ephemeral,
           }
-
           try {
             if (interaction.replied || interaction.deferred) {
               await interaction.followUp(errorMessage)
