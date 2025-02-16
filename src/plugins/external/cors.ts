@@ -5,15 +5,15 @@ import type { FastifyCorsOptions } from '@fastify/cors'
 
 const createCorsConfig = (fastify: FastifyInstance): FastifyCorsOptions => {
   const urlObject = new URL(fastify.config.baseUrl)
-  const isLocal =
-    urlObject.hostname === 'localhost' || urlObject.hostname === '127.0.0.1'
+  const isLocal = urlObject.hostname === 'localhost' || urlObject.hostname === '127.0.0.1'
   const protocol = urlObject.protocol
   const domain = urlObject.hostname
 
+  // Generate origins based on config
   const origins = (
     isLocal
       ? [
-          // Local development origins
+          // Local development origins with ports
           `http://localhost:${fastify.config.port}`,
           `https://localhost:${fastify.config.port}`,
           `http://127.0.0.1:${fastify.config.port}`,
@@ -23,11 +23,12 @@ const createCorsConfig = (fastify: FastifyInstance): FastifyCorsOptions => {
           'http://127.0.0.1:3003',
         ]
       : [
-          // Production origin
-          `${protocol}//${domain}`,
-          fastify.config.port
-            ? `${protocol}//${domain}:${fastify.config.port}`
-            : undefined,
+          // Production origins - both with and without port
+          `${protocol}//${domain}`,  // For Nginx/domain access
+          `${protocol}//${domain}:${fastify.config.port}`,  // For direct IP:port access
+          // Include both HTTP and HTTPS for flexibility
+          `http://${domain}:${fastify.config.port}`,
+          `https://${domain}:${fastify.config.port}`
         ]
   ).filter(
     (origin): origin is string => origin !== null && origin !== undefined,
@@ -35,9 +36,8 @@ const createCorsConfig = (fastify: FastifyInstance): FastifyCorsOptions => {
 
   return {
     origin: origins,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     credentials: true,
-    maxAge: 86400,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: [
       'Origin',
       'X-Requested-With',
@@ -45,15 +45,11 @@ const createCorsConfig = (fastify: FastifyInstance): FastifyCorsOptions => {
       'Accept',
       'Authorization',
     ],
-    exposedHeaders: ['Content-Range', 'X-Content-Range'],
   }
 }
 
-export default fp(
-  async (fastify: FastifyInstance) => {
-    await fastify.register(cors, createCorsConfig(fastify))
-  },
-  {
-    dependencies: ['config'],
-  },
-)
+export default fp(async (fastify: FastifyInstance) => {
+  await fastify.register(cors, createCorsConfig(fastify))
+}, {
+  dependencies: ['config']
+})
