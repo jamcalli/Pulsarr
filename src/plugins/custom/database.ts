@@ -24,7 +24,6 @@ export default fp(
         const envConfig = { ...fastify.config }
 
         if (dbConfig) {
-
           const parsedDbConfig = {
             ...dbConfig,
             plexTokens: Array.isArray(dbConfig.plexTokens)

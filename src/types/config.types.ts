@@ -22,7 +22,7 @@ export type LogLevel =
 
 export interface Config {
   // System Config
-  baseUrl:string
+  baseUrl: string
   port: number
   dbPath: string
   cookieSecret: string

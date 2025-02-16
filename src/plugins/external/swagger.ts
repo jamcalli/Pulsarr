@@ -10,10 +10,11 @@ import type { FastifyInstance } from 'fastify'
 
 const createOpenapiConfig = (fastify: FastifyInstance) => {
   const urlObject = new URL(fastify.config.baseUrl)
-  const isLocal = urlObject.hostname === 'localhost' || urlObject.hostname === '127.0.0.1'
-  const baseUrl = isLocal 
+  const isLocal =
+    urlObject.hostname === 'localhost' || urlObject.hostname === '127.0.0.1'
+  const baseUrl = isLocal
     ? `${urlObject.protocol}//${urlObject.hostname}:${fastify.config.port}`
-    : fastify.config.baseUrl 
+    : fastify.config.baseUrl
 
   return {
     openapi: {
@@ -25,14 +26,16 @@ const createOpenapiConfig = (fastify: FastifyInstance) => {
       servers: [
         {
           url: baseUrl,
-          description: isLocal ? 'Development Server' : 'Production Server'
+          description: isLocal ? 'Development Server' : 'Production Server',
         },
-        ...(isLocal ? [
-          {
-            url: baseUrl.replace('localhost', '127.0.0.1'),
-            description: 'Development Server (IP)'
-          }
-        ] : [])
+        ...(isLocal
+          ? [
+              {
+                url: baseUrl.replace('localhost', '127.0.0.1'),
+                description: 'Development Server (IP)',
+              },
+            ]
+          : []),
       ],
       tags: [
         {
