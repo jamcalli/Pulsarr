@@ -209,8 +209,6 @@ export class DatabaseService {
       ...config,
       // Parse JSON fields
       plexTokens: JSON.parse(config.plexTokens || '[]'),
-      sonarrTags: JSON.parse(config.sonarrTags || '[]'),
-      radarrTags: JSON.parse(config.radarrTags || '[]'),
       // Handle optional RSS fields
       selfRss: config.selfRss || undefined,
       friendsRss: config.friendsRss || undefined,
@@ -219,13 +217,13 @@ export class DatabaseService {
       discordBotToken: config.discordBotToken || undefined,
       discordClientId: config.discordClientId || undefined,
       discordGuildId: config.discordGuildId || undefined,
+      // Handle app configuration
+      baseUrl: config.baseUrl || undefined,
       // Handle timing defaults
       syncIntervalSeconds: config.syncIntervalSeconds || 10,
       queueProcessDelaySeconds: config.queueProcessDelaySeconds || 60,
       // Convert boolean fields
       cookieSecured: Boolean(config.cookieSecured),
-      sonarrBypassIgnored: Boolean(config.sonarrBypassIgnored),
-      radarrBypassIgnored: Boolean(config.radarrBypassIgnored),
       skipFriendSync: Boolean(config.skipFriendSync),
       deleteMovie: Boolean(config.deleteMovie),
       deleteEndedShow: Boolean(config.deleteEndedShow),
@@ -234,7 +232,7 @@ export class DatabaseService {
       _isReady: Boolean(config._isReady),
     }
   }
-
+  
   async createConfig(
     config: Omit<Config, 'created_at' | 'updated_at'>,
   ): Promise<number> {
@@ -243,6 +241,7 @@ export class DatabaseService {
         // Basic fields
         port: config.port,
         dbPath: config.dbPath,
+        baseUrl: config.baseUrl,
         cookieSecret: config.cookieSecret,
         cookieName: config.cookieName,
         cookieSecured: config.cookieSecured,

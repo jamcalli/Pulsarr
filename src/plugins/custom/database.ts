@@ -21,9 +21,10 @@ export default fp(
     const initializeConfig = async () => {
       try {
         const dbConfig = await dbService.getConfig(1)
+        const envConfig = { ...fastify.config }
 
         if (dbConfig) {
-          // Parse any JSON string arrays from DB
+
           const parsedDbConfig = {
             ...dbConfig,
             plexTokens: Array.isArray(dbConfig.plexTokens)
@@ -37,7 +38,12 @@ export default fp(
               : JSON.parse(dbConfig.sonarrTags || '[]'),
           }
 
-          await fastify.updateConfig(parsedDbConfig)
+          const mergedConfig = {
+            ...parsedDbConfig,
+            ...envConfig,
+          }
+
+          await fastify.updateConfig(mergedConfig)
 
           if (dbConfig._isReady) {
             fastify.log.info('DB config was ready, updating ready state')
@@ -46,55 +52,52 @@ export default fp(
             fastify.log.info('DB config was not ready')
           }
 
-          // Check and create instances if needed
           const [existingSonarrInstances, existingRadarrInstances] =
             await Promise.all([
               dbService.getAllSonarrInstances(),
               dbService.getAllRadarrInstances(),
             ])
 
-          // Handle Sonarr instance creation
           if (
             existingSonarrInstances.length === 0 &&
-            fastify.config.sonarrBaseUrl
+            mergedConfig.sonarrBaseUrl
           ) {
             fastify.log.info('Creating default Sonarr instance from .env')
 
             await dbService.createSonarrInstance({
               name: 'Default Sonarr Instance',
-              baseUrl: fastify.config.sonarrBaseUrl,
-              apiKey: fastify.config.sonarrApiKey,
-              qualityProfile: fastify.config.sonarrQualityProfile,
-              rootFolder: fastify.config.sonarrRootFolder,
-              bypassIgnored: fastify.config.sonarrBypassIgnored,
-              seasonMonitoring: fastify.config.sonarrSeasonMonitoring,
-              tags: fastify.config.sonarrTags || [],
+              baseUrl: mergedConfig.sonarrBaseUrl,
+              apiKey: mergedConfig.sonarrApiKey,
+              qualityProfile: mergedConfig.sonarrQualityProfile,
+              rootFolder: mergedConfig.sonarrRootFolder,
+              bypassIgnored: mergedConfig.sonarrBypassIgnored,
+              seasonMonitoring: mergedConfig.sonarrSeasonMonitoring,
+              tags: mergedConfig.sonarrTags || [],
               isDefault: true,
             })
           }
 
-          // Handle Radarr instance creation
           if (
             existingRadarrInstances.length === 0 &&
-            fastify.config.radarrBaseUrl
+            mergedConfig.radarrBaseUrl
           ) {
             fastify.log.info('Creating default Radarr instance from .env')
 
             await dbService.createRadarrInstance({
               name: 'Default Radarr Instance',
-              baseUrl: fastify.config.radarrBaseUrl,
-              apiKey: fastify.config.radarrApiKey,
-              qualityProfile: fastify.config.radarrQualityProfile,
-              rootFolder: fastify.config.radarrRootFolder,
-              bypassIgnored: fastify.config.radarrBypassIgnored,
-              tags: fastify.config.radarrTags || [],
+              baseUrl: mergedConfig.radarrBaseUrl,
+              apiKey: mergedConfig.radarrApiKey,
+              qualityProfile: mergedConfig.radarrQualityProfile,
+              rootFolder: mergedConfig.radarrRootFolder,
+              bypassIgnored: mergedConfig.radarrBypassIgnored,
+              tags: mergedConfig.radarrTags || [],
               isDefault: true,
             })
           }
         } else {
           fastify.log.info('No existing config found, creating initial config')
           const initialConfig = {
-            ...fastify.config,
+            ...envConfig,
             _isReady: false,
           }
 
@@ -102,34 +105,33 @@ export default fp(
           await dbService.createConfig(initialConfig)
           await fastify.updateConfig({ _isReady: false })
 
-          // Create default instances if configs are present
-          if (fastify.config.sonarrBaseUrl) {
+          if (initialConfig.sonarrBaseUrl) {
             fastify.log.info('Creating default Sonarr instance from .env')
 
             await dbService.createSonarrInstance({
               name: 'Default Sonarr Instance',
-              baseUrl: fastify.config.sonarrBaseUrl,
-              apiKey: fastify.config.sonarrApiKey,
-              qualityProfile: fastify.config.sonarrQualityProfile,
-              rootFolder: fastify.config.sonarrRootFolder,
-              bypassIgnored: fastify.config.sonarrBypassIgnored,
-              seasonMonitoring: fastify.config.sonarrSeasonMonitoring,
-              tags: fastify.config.sonarrTags || [],
+              baseUrl: initialConfig.sonarrBaseUrl,
+              apiKey: initialConfig.sonarrApiKey,
+              qualityProfile: initialConfig.sonarrQualityProfile,
+              rootFolder: initialConfig.sonarrRootFolder,
+              bypassIgnored: initialConfig.sonarrBypassIgnored,
+              seasonMonitoring: initialConfig.sonarrSeasonMonitoring,
+              tags: initialConfig.sonarrTags || [],
               isDefault: true,
             })
           }
 
-          if (fastify.config.radarrBaseUrl) {
+          if (initialConfig.radarrBaseUrl) {
             fastify.log.info('Creating default Radarr instance from .env')
 
             await dbService.createRadarrInstance({
               name: 'Default Radarr Instance',
-              baseUrl: fastify.config.radarrBaseUrl,
-              apiKey: fastify.config.radarrApiKey,
-              qualityProfile: fastify.config.radarrQualityProfile,
-              rootFolder: fastify.config.radarrRootFolder,
-              bypassIgnored: fastify.config.radarrBypassIgnored,
-              tags: fastify.config.radarrTags || [],
+              baseUrl: initialConfig.radarrBaseUrl,
+              apiKey: initialConfig.radarrApiKey,
+              qualityProfile: initialConfig.radarrQualityProfile,
+              rootFolder: initialConfig.radarrRootFolder,
+              bypassIgnored: initialConfig.radarrBypassIgnored,
+              tags: initialConfig.radarrTags || [],
               isDefault: true,
             })
           }
