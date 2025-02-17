@@ -46,3 +46,17 @@
 
 	--shadow: var(--box-shadow-x) var(--box-shadow-y) 0px 0px var(--border);
 }
+
+body {
+	overflow: hidden;
+	position: fixed;
+	width: 100%;
+	height: 100%;
+  }
+  
+  #app {
+	position: fixed;
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+  }

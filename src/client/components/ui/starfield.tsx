@@ -47,7 +47,7 @@ const ParallaxStarfield = ({ children }: { children: React.ReactNode }) => {
   return (
     <div 
       ref={containerRef}
-      className="relative min-h-screen w-full overflow-hidden bg-secondaryBlack"
+      className="fixed inset-0 overflow-hidden bg-secondaryBlack pointer-events-none"
     >
       {stars.map((star, i) => (
         <div
@@ -66,7 +66,9 @@ const ParallaxStarfield = ({ children }: { children: React.ReactNode }) => {
           }}
         />
       ))}
-      {children}
+      <div className="relative z-10 pointer-events-auto">
+        {children}
+      </div>
     </div>
   );
 };
