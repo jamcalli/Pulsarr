@@ -53,7 +53,7 @@ function RootLayout() {
               </div>
             </div>
             {/* Other background elements */}
-            <div className="fixed top-32 left-1/2 -translate-x-1/2 -translate-y-32 ml-24 z-[1] pointer-events-none">
+            <div className="fixed top-32 left-1/2 -translate-x-1/2 -translate-y-32 ml-24 z-[-1] pointer-events-none">
               <Pulsar className="w-24 h-24" />
             </div>
             <AsteroidsBackground />

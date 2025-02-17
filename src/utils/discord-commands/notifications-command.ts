@@ -300,19 +300,28 @@ export async function handleNotificationButtons(
 
   if (interaction.customId === 'retryPlexLink') {
     try {
-      await interaction.update({
-        content: null,
-        embeds: [],
-        components: [],
-      })
-      context.log.debug({ userId: interaction.user.id }, 'Cleanup before retry')
-    } catch (error) {
-      context.log.warn(
-        { error, userId: interaction.user.id },
-        'Could not cleanup previous error message',
+      await interaction.showModal(createPlexLinkModal())
+      context.log.debug(
+        { userId: interaction.user.id },
+        'Showing Plex link modal for retry attempt'
       )
+    } catch (error) {
+      context.log.error(
+        { error, userId: interaction.user.id },
+        'Failed to show Plex link modal on retry'
+      )
+      try {
+        await interaction.reply({
+          content: 'An error occurred. Please try the /notifications command again.',
+          flags: DiscordMessageFlags.Ephemeral,
+        })
+      } catch (replyError) {
+        context.log.error(
+          { error: replyError, userId: interaction.user.id },
+          'Failed to send error message after modal failure'
+        )
+      }
     }
-    await interaction.showModal(createPlexLinkModal())
     return
   }
 
