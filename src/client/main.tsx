@@ -41,13 +41,14 @@ function RootLayout() {
           </div>
           <ParallaxStarfield>
             {/* Planet Image */}
-            <div className="fixed bottom-0 right-0 z-0 translate-x-1/4 translate-y-1/4 pointer-events-none">
+            <div className="fixed bottom-0 right-0 z-0 translate-x-1/4 translate-y-1/4">
               <div className="relative">
                 <img
                   src={Planet}
                   alt="Planet"
                   loading="lazy"
-                  className="w-[120vh] h-[120vh] -rotate-180 object-contain transition-all duration-500"
+                  className="-rotate-180 w-[1000px] h-[1056px]"
+                  style={{ maxWidth: 'none' }}
                 />
               </div>
             </div>
@@ -72,7 +73,7 @@ function RootLayout() {
       </main>
       <Toaster />
     </ThemeProvider>
-  );
+  )
 }
 
 const rootElement = document.getElementById('app')
