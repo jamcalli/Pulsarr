@@ -9,16 +9,16 @@ const createHelmetConfig = (): FastifyHelmetOptions => ({
   crossOriginEmbedderPolicy: false,
   crossOriginResourcePolicy: false,
   crossOriginOpenerPolicy: false,
-  hsts: false, 
-  
+  hsts: false,
+
   hidePoweredBy: true,
   noSniff: true,
   dnsPrefetchControl: {
-    allow: false
+    allow: false,
   },
   frameguard: {
-    action: 'sameorigin'
-  }
+    action: 'sameorigin',
+  },
 })
 
 export default fp(
@@ -27,6 +27,6 @@ export default fp(
   },
   {
     name: 'helmet-plugin',
-    dependencies: ['config']
-  }
+    dependencies: ['config'],
+  },
 )

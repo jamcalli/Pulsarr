@@ -67,7 +67,7 @@ async function init() {
   try {
     await app.listen({
       port: app.config.port,
-      host: '0.0.0.0',
+      host: process.argv.includes('--dev') ? 'localhost' : '0.0.0.0',
     })
   } catch (err) {
     app.log.error(err)

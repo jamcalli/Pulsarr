@@ -15,10 +15,8 @@ export default function WindowedLayout({ children }: WindowedLayoutProps) {
       </header>
       <main className="dark:bg-darkBg relative flex flex-col rounded-br-base rounded-tr-base bg-bg font-semibold portrait:rounded-none h-full">
         <Nav />
-        <div className="flex-1 overflow-y-auto">
-          {children}
-        </div>
+        <div className="flex-1 overflow-y-auto">{children}</div>
       </main>
     </div>
-  );
+  )
 }

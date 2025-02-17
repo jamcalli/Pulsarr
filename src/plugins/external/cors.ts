@@ -5,7 +5,8 @@ import type { FastifyCorsOptions } from '@fastify/cors'
 
 const createCorsConfig = (fastify: FastifyInstance): FastifyCorsOptions => {
   const urlObject = new URL(fastify.config.baseUrl)
-  const isLocal = urlObject.hostname === 'localhost' || urlObject.hostname === '127.0.0.1'
+  const isLocal =
+    urlObject.hostname === 'localhost' || urlObject.hostname === '127.0.0.1'
   const protocol = urlObject.protocol
   const domain = urlObject.hostname
 
@@ -24,11 +25,11 @@ const createCorsConfig = (fastify: FastifyInstance): FastifyCorsOptions => {
         ]
       : [
           // Production origins - both with and without port
-          `${protocol}//${domain}`,  // For Nginx/domain access
-          `${protocol}//${domain}:${fastify.config.port}`,  // For direct IP:port access
+          `${protocol}//${domain}`, // For Nginx/domain access
+          `${protocol}//${domain}:${fastify.config.port}`, // For direct IP:port access
           // Include both HTTP and HTTPS for flexibility
           `http://${domain}:${fastify.config.port}`,
-          `https://${domain}:${fastify.config.port}`
+          `https://${domain}:${fastify.config.port}`,
         ]
   ).filter(
     (origin): origin is string => origin !== null && origin !== undefined,
@@ -48,8 +49,11 @@ const createCorsConfig = (fastify: FastifyInstance): FastifyCorsOptions => {
   }
 }
 
-export default fp(async (fastify: FastifyInstance) => {
-  await fastify.register(cors, createCorsConfig(fastify))
-}, {
-  dependencies: ['config']
-})
+export default fp(
+  async (fastify: FastifyInstance) => {
+    await fastify.register(cors, createCorsConfig(fastify))
+  },
+  {
+    dependencies: ['config'],
+  },
+)
