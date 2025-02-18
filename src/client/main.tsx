@@ -9,7 +9,9 @@ import AsteroidsBackground from '@/components/ui/asteroids'
 import Pulsar from '@/components/ui/pulsar'
 import { RouterProvider } from 'react-router-dom'
 import { router } from '@/router/router'
-import Planet from '@/assets/images/planet.webp'
+import { AspectRatio } from '@/components/ui/aspect-ratio'
+import planetDesktop from '@/assets/images/planet.webp'
+import planetMobile from '@/assets/images/planet-m.webp'
 import PulsarrIcon from '@/assets/images/pulsarr.svg'
 
 const setFavicon = () => {
@@ -42,14 +44,33 @@ function RootLayout() {
           <ParallaxStarfield>
             {/* Planet Image */}
             <div className="fixed bottom-0 right-0 z-0 translate-x-1/4 translate-y-1/4">
-              <div className="relative">
-                <img
-                  src={Planet}
-                  alt="Planet"
-                  loading="lazy"
-                  className="-rotate-180 w-[1000px] h-[1056px]"
-                  style={{ maxWidth: 'none' }}
-                />
+              <div className="relative w-[1000px] portrait:w-[600px]">
+                <AspectRatio ratio={1522 / 1608}>
+                  <picture>
+                    <source
+                      media="(orientation: portrait)"
+                      srcSet={planetMobile}
+                      type="image/webp"
+                      width="600"
+                      height="634"
+                    />
+                    <source
+                      media="(orientation: landscape)"
+                      srcSet={planetDesktop}
+                      type="image/webp"
+                      width="1522"
+                      height="1608"
+                    />
+                    <img
+                      src={planetDesktop}
+                      alt="Planet"
+                      fetchPriority="high"
+                      width="1522"
+                      height="1608"
+                      className="h-full w-full object-cover"
+                    />
+                  </picture>
+                </AspectRatio>
               </div>
             </div>
             {/* Other background elements */}
