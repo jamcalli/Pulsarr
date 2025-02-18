@@ -103,8 +103,6 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                 //   userName: user.name
                 // })
               }
-
-              await fastify.db.updateLastNotified(user.id, item.key)
             }
           }
         }

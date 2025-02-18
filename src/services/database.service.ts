@@ -1134,19 +1134,16 @@ export class DatabaseService {
       return false
     }
 
-    return true
-  }
+    await this.bulkUpdateWatchlistItems([
+      {
+        userId: watchlistItem.user_id,
+        key: watchlistItem.key,
+        status: 'notified',
+        last_notified_at: new Date().toISOString(),
+      },
+    ])
 
-  async updateLastNotified(userId: number, key: string): Promise<void> {
-    await this.knex('watchlist_items')
-      .where({
-        user_id: userId,
-        key: key,
-      })
-      .update({
-        last_notified_at: this.timestamp,
-        updated_at: this.timestamp,
-      })
+    return true
   }
 
   async getWatchlistItemsByGuid(guid: string): Promise<WatchlistItem[]> {
