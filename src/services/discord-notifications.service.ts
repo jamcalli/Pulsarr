@@ -358,6 +358,49 @@ export class DiscordNotificationService {
     }
   }
 
+  async sendDirectMessage(
+    discordId: string,
+    notification: MediaNotification,
+  ): Promise<boolean> {
+    if (!this.botClient || this.botStatus !== 'running') {
+      this.log.warn('Bot client not available for sending direct message')
+      return false
+    }
+  
+    try {
+      const emoji = notification.type === 'movie' ? '🎬' : '📺'
+  
+      const embed: DiscordEmbed = {
+        title: notification.title,
+        description: `Your ${notification.type} is available to watch! ${emoji}`,
+        color: this.COLOR,
+        timestamp: new Date().toISOString(),
+      }
+  
+      if (notification.posterUrl) {
+        embed.image = {
+          url: notification.posterUrl,
+        }
+      }
+  
+      const user = await this.botClient.users.fetch(discordId)
+      if (!user) {
+        this.log.warn({ discordId }, 'Could not find Discord user')
+        return false
+      }
+  
+      await user.send({
+        content: `Hey ${user}! 👋`,
+        embeds: [embed]
+      })
+  
+      return true
+    } catch (error) {
+      this.log.error({ error, discordId }, 'Failed to send direct message')
+      return false
+    }
+  }
+
   addCommand(command: Command) {
     this.log.info({ command: command.data.name }, 'Adding new command')
     this.commands.set(command.data.name, command)

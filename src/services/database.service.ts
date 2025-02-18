@@ -782,6 +782,7 @@ export class DatabaseService {
       status?: 'pending' | 'requested' | 'grabbed' | 'notified'
       series_status?: 'continuing' | 'ended'
       movie_status?: 'available' | 'unavailable'
+      last_notified_at?: string
     }>,
   ): Promise<number> {
     let updatedCount = 0
@@ -803,6 +804,7 @@ export class DatabaseService {
                   status: update.status,
                   series_status: update.series_status,
                   movie_status: update.movie_status,
+                  last_notified_at: update.last_notified_at,
                   updated_at: this.timestamp,
                 }),
             ),
@@ -1089,7 +1091,6 @@ export class DatabaseService {
   }
 
   async getAllWatchlistItemsForUser(userId: number): Promise<WatchlistItem[]> {
-    // Ensure userId is a number
     const numericUserId =
       typeof userId === 'object' ? (userId as { id: number }).id : userId
 
@@ -1103,4 +1104,61 @@ export class DatabaseService {
       genres: JSON.parse(item.genres || '[]'),
     }))
   }
+
+  async shouldSendNotification(watchlistItem: WatchlistItem): Promise<boolean> {
+
+    if (!watchlistItem.last_notified_at) {
+      return true;
+    }
+  
+    if (watchlistItem.type === 'movie') {
+      return false; 
+    }
+  
+    if (watchlistItem.type === 'show' && watchlistItem.series_status === 'continuing') {
+      const ONE_HOUR = 60 * 60 * 1000;
+      const now = new Date();
+      const lastNotified = new Date(watchlistItem.last_notified_at);
+  
+      if ((now.getTime() - lastNotified.getTime()) < ONE_HOUR) {
+        return false;
+      }
+    }
+  
+    if (watchlistItem.type === 'show' && watchlistItem.series_status === 'ended') {
+      return false;
+    }
+  
+    return true;
+  }
+
+  async updateLastNotified(userId: number, key: string): Promise<void> {
+    await this.knex('watchlist_items')
+      .where({
+        user_id: userId,
+        key: key
+      })
+      .update({
+        last_notified_at: this.timestamp,
+        updated_at: this.timestamp
+      });
+  }
+
+  async getWatchlistItemsByGuid(guid: string): Promise<WatchlistItem[]> {
+    const items = await this.knex('watchlist_items')
+      .whereRaw('json_array_length(guids) > 0')
+      .select('*');
+  
+    return items
+      .filter(item => {
+        const guids = JSON.parse(item.guids || '[]');
+        return guids.includes(guid);
+      })
+      .map(item => ({
+        ...item,
+        guids: JSON.parse(item.guids || '[]'),
+        genres: JSON.parse(item.genres || '[]')
+      }));
+  }
+
 }
