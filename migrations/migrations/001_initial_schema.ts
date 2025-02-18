@@ -152,6 +152,7 @@ export async function up(knex: Knex): Promise<void> {
     table.enum('status', ['pending', 'requested', 'grabbed', 'notified'])
       .notNullable()
       .defaultTo('pending')
+    table.timestamp('last_notified_at').nullable()
     table.enum('series_status', ['continuing', 'ended'])
     table.enum('movie_status', ['available', 'unavailable'])
     table.integer('sonarr_instance_id')
