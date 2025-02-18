@@ -46,37 +46,38 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     },
     async (request, reply) => {
       const { body } = request
-      
+
       try {
-        const mediaInfo = body.instanceName === 'Radarr' 
-          ? {
-              type: 'movie' as const,
-              guids: [
-                body.movie.imdbId ? `imdb:${body.movie.imdbId}` : null,
-                `tmdb:${body.movie.tmdbId}`
-              ].filter((guid): guid is string => guid !== null),
-              title: body.movie.title,
-            }
-          : {
-              type: 'show' as const,
-              guids: [
-                body.series.imdbId ? `imdb:${body.series.imdbId}` : null,
-                `tvdb:${body.series.tvdbId}`
-              ].filter((guid): guid is string => guid !== null),
-              title: body.series.title,
-            }
+        const mediaInfo =
+          body.instanceName === 'Radarr'
+            ? {
+                type: 'movie' as const,
+                guids: [
+                  body.movie.imdbId ? `imdb:${body.movie.imdbId}` : null,
+                  `tmdb:${body.movie.tmdbId}`,
+                ].filter((guid): guid is string => guid !== null),
+                title: body.movie.title,
+              }
+            : {
+                type: 'show' as const,
+                guids: [
+                  body.series.imdbId ? `imdb:${body.series.imdbId}` : null,
+                  `tvdb:${body.series.tvdbId}`,
+                ].filter((guid): guid is string => guid !== null),
+                title: body.series.title,
+              }
 
         fastify.log.info({ mediaInfo }, 'Processing media webhook')
 
         for (const guid of mediaInfo.guids) {
           const watchlistItems = await fastify.db.getWatchlistItemsByGuid(guid)
-          
+
           for (const item of watchlistItems) {
             const user = await fastify.db.getUser(item.user_id)
-            if (!user) continue;
+            if (!user) continue
 
             const shouldNotify = await fastify.db.shouldSendNotification(item)
-            
+
             if (shouldNotify) {
               // Handle Discord notification
               if (user.notify_discord && user.discord_id) {
@@ -84,9 +85,12 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                   type: mediaInfo.type,
                   title: mediaInfo.title,
                   username: user.name,
-                  posterUrl: item.thumb || undefined
+                  posterUrl: item.thumb || undefined,
                 }
-                await fastify.discord.sendDirectMessage(user.discord_id, notification)
+                await fastify.discord.sendDirectMessage(
+                  user.discord_id,
+                  notification,
+                )
               }
 
               // Handle Email notification (placeholder)
