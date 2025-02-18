@@ -800,8 +800,6 @@ export class PlexWatchlistService {
     }))
   }
 
-  // Inside PlexWatchlistService class
-
   async matchRssPendingItemsSelf(
     userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>,
   ): Promise<void> {
@@ -813,6 +811,29 @@ export class PlexWatchlistService {
     let matchCount = 0
     let noMatchCount = 0
     const matchedItemIds: number[] = []
+
+    const userIds = Array.from(userWatchlistMap.keys()).map(
+      (user) => user.userId,
+    )
+    const existingItems = await this.dbService.getBulkWatchlistItems(
+      userIds,
+      [],
+    )
+    const existingGuidsMap = new Map<number, Set<string>>()
+
+    for (const item of existingItems) {
+      if (!item.user_id) continue
+      const guids =
+        typeof item.guids === 'string'
+          ? JSON.parse(item.guids)
+          : item.guids || []
+      if (!existingGuidsMap.has(item.user_id)) {
+        existingGuidsMap.set(item.user_id, new Set())
+      }
+      for (const guid of guids) {
+        existingGuidsMap.get(item.user_id)?.add(guid)
+      }
+    }
 
     for (const pendingItem of pendingItems) {
       let foundMatch = false
@@ -827,13 +848,27 @@ export class PlexWatchlistService {
             matchCount++
             matchedItemIds.push(pendingItem.id)
 
-            // Send notification for matched item
-            await this.fastify.discord.sendMediaNotification({
-              username: user.username,
-              title: item.title,
-              type: item.type as 'movie' | 'show',
-              posterUrl: item.thumb,
-            })
+            const userExistingGuids =
+              existingGuidsMap.get(user.userId) || new Set()
+            const isNewItem = !itemGuids.some((guid) =>
+              userExistingGuids.has(guid),
+            )
+
+            if (isNewItem) {
+              await this.fastify.discord.sendMediaNotification({
+                username: user.username,
+                title: item.title,
+                type: item.type as 'movie' | 'show',
+                posterUrl: item.thumb,
+              })
+              this.log.info(
+                `Sent notification for new item "${item.title}" for user ${user.username}`,
+              )
+            } else {
+              this.log.debug(
+                `Skipped notification for existing item "${item.title}" for user ${user.username}`,
+              )
+            }
 
             break
           }
@@ -876,6 +911,29 @@ export class PlexWatchlistService {
     let noMatchCount = 0
     const matchedItemIds: number[] = []
 
+    const userIds = Array.from(userWatchlistMap.keys()).map(
+      (user) => user.userId,
+    )
+    const existingItems = await this.dbService.getBulkWatchlistItems(
+      userIds,
+      [],
+    )
+    const existingGuidsMap = new Map<number, Set<string>>()
+
+    for (const item of existingItems) {
+      if (!item.user_id) continue
+      const guids =
+        typeof item.guids === 'string'
+          ? JSON.parse(item.guids)
+          : item.guids || []
+      if (!existingGuidsMap.has(item.user_id)) {
+        existingGuidsMap.set(item.user_id, new Set())
+      }
+      for (const guid of guids) {
+        existingGuidsMap.get(item.user_id)?.add(guid)
+      }
+    }
+
     for (const pendingItem of pendingItems) {
       let foundAnyMatch = false
 
@@ -890,13 +948,27 @@ export class PlexWatchlistService {
             matchCount++
             matchedItemIds.push(pendingItem.id)
 
-            // Send notification for matched item
-            await this.fastify.discord.sendMediaNotification({
-              username: friend.username,
-              title: item.title,
-              type: item.type as 'movie' | 'show',
-              posterUrl: item.thumb,
-            })
+            const userExistingGuids =
+              existingGuidsMap.get(friend.userId) || new Set()
+            const isNewItem = !itemGuids.some((guid) =>
+              userExistingGuids.has(guid),
+            )
+
+            if (isNewItem) {
+              await this.fastify.discord.sendMediaNotification({
+                username: friend.username,
+                title: item.title,
+                type: item.type as 'movie' | 'show',
+                posterUrl: item.thumb,
+              })
+              this.log.info(
+                `Sent notification for new item "${item.title}" for user ${friend.username}`,
+              )
+            } else {
+              this.log.debug(
+                `Skipped notification for existing item "${item.title}" for user ${friend.username}`,
+              )
+            }
 
             break
           }

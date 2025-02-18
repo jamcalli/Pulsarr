@@ -1106,59 +1106,63 @@ export class DatabaseService {
   }
 
   async shouldSendNotification(watchlistItem: WatchlistItem): Promise<boolean> {
-
     if (!watchlistItem.last_notified_at) {
-      return true;
+      return true
     }
-  
+
     if (watchlistItem.type === 'movie') {
-      return false; 
+      return false
     }
-  
-    if (watchlistItem.type === 'show' && watchlistItem.series_status === 'continuing') {
-      const ONE_HOUR = 60 * 60 * 1000;
-      const now = new Date();
-      const lastNotified = new Date(watchlistItem.last_notified_at);
-  
-      if ((now.getTime() - lastNotified.getTime()) < ONE_HOUR) {
-        return false;
+
+    if (
+      watchlistItem.type === 'show' &&
+      watchlistItem.series_status === 'continuing'
+    ) {
+      const ONE_HOUR = 60 * 60 * 1000
+      const now = new Date()
+      const lastNotified = new Date(watchlistItem.last_notified_at)
+
+      if (now.getTime() - lastNotified.getTime() < ONE_HOUR) {
+        return false
       }
     }
-  
-    if (watchlistItem.type === 'show' && watchlistItem.series_status === 'ended') {
-      return false;
+
+    if (
+      watchlistItem.type === 'show' &&
+      watchlistItem.series_status === 'ended'
+    ) {
+      return false
     }
-  
-    return true;
+
+    return true
   }
 
   async updateLastNotified(userId: number, key: string): Promise<void> {
     await this.knex('watchlist_items')
       .where({
         user_id: userId,
-        key: key
+        key: key,
       })
       .update({
         last_notified_at: this.timestamp,
-        updated_at: this.timestamp
-      });
+        updated_at: this.timestamp,
+      })
   }
 
   async getWatchlistItemsByGuid(guid: string): Promise<WatchlistItem[]> {
     const items = await this.knex('watchlist_items')
       .whereRaw('json_array_length(guids) > 0')
-      .select('*');
-  
+      .select('*')
+
     return items
-      .filter(item => {
-        const guids = JSON.parse(item.guids || '[]');
-        return guids.includes(guid);
+      .filter((item) => {
+        const guids = JSON.parse(item.guids || '[]')
+        return guids.includes(guid)
       })
-      .map(item => ({
+      .map((item) => ({
         ...item,
         guids: JSON.parse(item.guids || '[]'),
-        genres: JSON.parse(item.genres || '[]')
-      }));
+        genres: JSON.parse(item.genres || '[]'),
+      }))
   }
-
 }

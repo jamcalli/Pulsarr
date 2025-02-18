@@ -5,10 +5,10 @@ export default async function (fastify: FastifyInstance) {
     const publicPaths = [
       '/v1/users/login',
       '/v1/users/create-admin',
-      '/v1/notifications/webhook'
+      '/v1/notifications/webhook',
     ]
 
-    if (publicPaths.some(path => request.url.startsWith(path))) {
+    if (publicPaths.some((path) => request.url.startsWith(path))) {
       return
     }
 
