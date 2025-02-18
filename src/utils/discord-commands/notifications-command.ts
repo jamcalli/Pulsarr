@@ -303,22 +303,23 @@ export async function handleNotificationButtons(
       await interaction.showModal(createPlexLinkModal())
       context.log.debug(
         { userId: interaction.user.id },
-        'Showing Plex link modal for retry attempt'
+        'Showing Plex link modal for retry attempt',
       )
     } catch (error) {
       context.log.error(
         { error, userId: interaction.user.id },
-        'Failed to show Plex link modal on retry'
+        'Failed to show Plex link modal on retry',
       )
       try {
         await interaction.reply({
-          content: 'An error occurred. Please try the /notifications command again.',
+          content:
+            'An error occurred. Please try the /notifications command again.',
           flags: DiscordMessageFlags.Ephemeral,
         })
       } catch (replyError) {
         context.log.error(
           { error: replyError, userId: interaction.user.id },
-          'Failed to send error message after modal failure'
+          'Failed to send error message after modal failure',
         )
       }
     }
