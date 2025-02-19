@@ -34,7 +34,8 @@ export const GenreRouteCardSkeleton = () => {
             </div>
             <div className="space-y-2">
               <Skeleton className="h-4 w-28" /> {/* Quality Profile Label */}
-              <Skeleton className="h-10 w-full" /> {/* Quality Profile Select */}
+              <Skeleton className="h-10 w-full" />{' '}
+              {/* Quality Profile Select */}
             </div>
           </div>
         </div>

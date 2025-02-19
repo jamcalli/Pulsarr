@@ -9,6 +9,15 @@ const RadarrMovieSchema = z.object({
   tmdbId: z.number(),
 })
 
+const SonarrEpisodeSchema = z.object({
+  episodeNumber: z.number(),
+  seasonNumber: z.number(),
+  title: z.string(),
+  overview: z.string(),
+  airDate: z.string(),
+  airDateUtc: z.string(),
+})
+
 const SonarrSeriesSchema = z.object({
   id: z.number(),
   title: z.string(),
@@ -24,6 +33,7 @@ const WebhookPayloadSchema = z.discriminatedUnion('instanceName', [
   z.object({
     instanceName: z.literal('Sonarr'),
     series: SonarrSeriesSchema,
+    episodes: z.array(SonarrEpisodeSchema),
   }),
 ])
 
@@ -32,6 +42,13 @@ interface MediaNotification {
   title: string
   username: string
   posterUrl?: string
+  episodeDetails?: {
+    title?: string
+    overview?: string
+    seasonNumber?: number
+    episodeNumber?: number
+    airDate?: string
+  }
 }
 
 const plugin: FastifyPluginAsync = async (fastify) => {
@@ -45,7 +62,20 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       },
     },
     async (request, reply) => {
-      const { body } = request
+      const { body } = request as { body: z.infer<typeof WebhookPayloadSchema> }
+
+      console.log(
+        'Webhook Payload:',
+        JSON.stringify(
+          body,
+          (key, value) => {
+            if (value === undefined) return 'undefined'
+            return value
+          },
+          2,
+        ),
+      )
+
       try {
         const mediaInfo =
           body.instanceName === 'Radarr'
@@ -58,6 +88,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                 type: 'show' as const,
                 guid: `tvdb:${body.series.tvdbId}`,
                 title: body.series.title,
+                episodes: body.episodes,
               }
 
         fastify.log.info({ mediaInfo }, 'Processing media webhook')
@@ -78,6 +109,17 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                 title: mediaInfo.title,
                 username: user.name,
                 posterUrl: item.thumb || undefined,
+                ...(body.instanceName === 'Sonarr' && body.episodes.length > 0
+                  ? {
+                      episodeDetails: {
+                        title: body.episodes[0].title,
+                        overview: body.episodes[0].overview,
+                        seasonNumber: body.episodes[0].seasonNumber,
+                        episodeNumber: body.episodes[0].episodeNumber,
+                        airDate: body.episodes[0].airDate,
+                      },
+                    }
+                  : {}),
               }
               await fastify.discord.sendDirectMessage(
                 user.discord_id,

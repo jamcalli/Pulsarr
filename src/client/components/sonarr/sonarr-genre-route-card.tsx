@@ -140,7 +140,9 @@ const GenreRouteCard = ({
                     name="sonarrInstanceId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-text">Sonarr Instance</FormLabel>
+                        <FormLabel className="text-text">
+                          Sonarr Instance
+                        </FormLabel>
                         <Select
                           value={field.value.toString()}
                           onValueChange={handleInstanceChange}
@@ -205,7 +207,9 @@ const GenreRouteCard = ({
                     name="qualityProfile"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-text">Quality Profile</FormLabel>
+                        <FormLabel className="text-text">
+                          Quality Profile
+                        </FormLabel>
                         <Select
                           value={field.value?.toString()}
                           onValueChange={field.onChange}
