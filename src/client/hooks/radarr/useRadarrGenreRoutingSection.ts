@@ -32,6 +32,7 @@ export function useRadarrGenreRoutingSection() {
         radarrInstanceId: defaultInstance?.id || 0,
         genre: '',
         rootFolder: '',
+        qualityProfile: '',
       },
     ])
   }, [instances])

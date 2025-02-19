@@ -32,6 +32,7 @@ export function useSonarrGenreRoutingSection() {
         sonarrInstanceId: defaultInstance?.id || 0,
         genre: '',
         rootFolder: '',
+        qualityProfile: '',
       },
     ])
   }, [instances])

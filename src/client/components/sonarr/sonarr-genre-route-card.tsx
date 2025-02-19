@@ -12,6 +12,7 @@ import {
   FormControl,
   FormField,
   FormItem,
+  FormLabel,
   FormMessage,
 } from '@/components/ui/form'
 import EditableCardHeader from '@/components/ui/editable-card-header'
@@ -109,6 +110,7 @@ const GenreRouteCard = ({
                     name="genre"
                     render={({ field }) => (
                       <FormItem>
+                        <FormLabel className="text-text">Genre</FormLabel>
                         <Select
                           value={field.value}
                           onValueChange={field.onChange}
@@ -138,6 +140,7 @@ const GenreRouteCard = ({
                     name="sonarrInstanceId"
                     render={({ field }) => (
                       <FormItem>
+                        <FormLabel className="text-text">Sonarr Instance</FormLabel>
                         <Select
                           value={field.value.toString()}
                           onValueChange={handleInstanceChange}
@@ -170,6 +173,7 @@ const GenreRouteCard = ({
                     name="rootFolder"
                     render={({ field }) => (
                       <FormItem>
+                        <FormLabel className="text-text">Root Folder</FormLabel>
                         <Select
                           value={field.value}
                           onValueChange={field.onChange}
@@ -201,6 +205,7 @@ const GenreRouteCard = ({
                     name="qualityProfile"
                     render={({ field }) => (
                       <FormItem>
+                        <FormLabel className="text-text">Quality Profile</FormLabel>
                         <Select
                           value={field.value?.toString()}
                           onValueChange={field.onChange}

@@ -78,4 +78,5 @@ export interface TempRoute {
   genre: string
   sonarrInstanceId: number
   rootFolder: string
+  qualityProfile: string
 }
