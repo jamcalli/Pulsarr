@@ -1,14 +1,17 @@
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import knex, { type Knex } from 'knex'
 import type { Config, User } from '@root/types/config.types.js'
-import type { TokenWatchlistItem, Item as WatchlistItem } from '@root/types/plex.types.js'
+import type {
+  TokenWatchlistItem,
+  Item as WatchlistItem,
+} from '@root/types/plex.types.js'
 import type { AdminUser } from '@schemas/auth/auth.js'
 import type {
   SonarrInstance,
   SonarrGenreRoute,
   SonarrEpisodeSchema,
   MediaNotification,
-  NotificationResult
+  NotificationResult,
 } from '@root/types/sonarr.types.js'
 import type {
   RadarrInstance,
@@ -1122,53 +1125,51 @@ export class DatabaseService {
 
   async processNotifications(
     mediaInfo: {
-      type: 'movie' | 'show';
-      guid: string;
-      title: string;
-      episodes?: SonarrEpisodeSchema[];
+      type: 'movie' | 'show'
+      guid: string
+      title: string
+      episodes?: SonarrEpisodeSchema[]
     },
-    isBulkRelease: boolean
+    isBulkRelease: boolean,
   ): Promise<NotificationResult[]> {
-    const watchlistItems = await this.getWatchlistItemsByGuid(mediaInfo.guid);
-    const notifications: NotificationResult[] = [];
-  
+    const watchlistItems = await this.getWatchlistItemsByGuid(mediaInfo.guid)
+    const notifications: NotificationResult[] = []
+
     for (const item of watchlistItems) {
-      const user = await this.getUser(item.user_id);
-      if (!user) continue;
-  
+      const user = await this.getUser(item.user_id)
+      if (!user) continue
+
       // Skip if user doesn't want notifications
-      if (!user.notify_discord && !user.notify_email) continue;
-  
+      if (!user.notify_discord && !user.notify_email) continue
+
       // For ended shows, only notify if not previously notified
       if (
         item.type === 'show' &&
         item.series_status === 'ended' &&
         item.last_notified_at
       ) {
-        continue;
+        continue
       }
-  
+
       // Update notification timestamp
-      await this.knex('watchlist_items')
-        .where('id', item.id)
-        .update({
-          last_notified_at: new Date().toISOString(),
-          status: 'notified'
-        });
-  
+      await this.knex('watchlist_items').where('id', item.id).update({
+        last_notified_at: new Date().toISOString(),
+        status: 'notified',
+      })
+
       const notification: MediaNotification = {
         type: mediaInfo.type,
         title: mediaInfo.title,
         username: user.name,
         posterUrl: item.thumb || undefined,
-      };
-  
+      }
+
       if (mediaInfo.type === 'show' && mediaInfo.episodes?.length) {
         if (isBulkRelease) {
           // For bulk releases, just mention the season
           notification.episodeDetails = {
             seasonNumber: mediaInfo.episodes[0].seasonNumber,
-          };
+          }
         } else {
           // For single episodes, include full details
           notification.episodeDetails = {
@@ -1177,22 +1178,22 @@ export class DatabaseService {
             seasonNumber: mediaInfo.episodes[0].seasonNumber,
             episodeNumber: mediaInfo.episodes[0].episodeNumber,
             airDateUtc: mediaInfo.episodes[0].airDate,
-          };
+          }
         }
       }
-  
+
       notifications.push({
         user: {
-          discord_id: user.discord_id, 
+          discord_id: user.discord_id,
           notify_discord: user.notify_discord,
           notify_email: user.notify_email,
-          name: user.name
+          name: user.name,
         },
-        notification
-      });
+        notification,
+      })
     }
-  
-    return notifications;
+
+    return notifications
   }
 
   async getWatchlistItemsByGuid(guid: string): Promise<TokenWatchlistItem[]> {
