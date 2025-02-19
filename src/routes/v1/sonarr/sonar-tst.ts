@@ -21,6 +21,7 @@ const GenreRouteSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   genre: z.string().min(1, 'Genre is required'),
   rootFolder: z.string().min(1, 'Root folder is required'),
+  qualityProfile: z.union([z.string(), z.number()]).nullable(),
 })
 
 const plugin: FastifyPluginAsync = async (fastify) => {

@@ -95,6 +95,7 @@ export interface RadarrGenreRoute {
   name: string
   genre: string
   rootFolder: string
+  qualityProfile: string | number | null
 }
 
 export interface RadarrHealthCheck {

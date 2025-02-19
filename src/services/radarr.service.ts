@@ -265,7 +265,11 @@ export class RadarrService {
     return Number.isNaN(parsed) ? 0 : parsed
   }
 
-  async addToRadarr(item: Item, overrideRootFolder?: string): Promise<void> {
+  async addToRadarr(
+    item: Item,
+    overrideRootFolder?: string,
+    overrideQualityProfileId?: number | string | null,
+  ): Promise<void> {
     const config = this.radarrConfig
     try {
       // Prepare add options
@@ -282,7 +286,9 @@ export class RadarrService {
       // Fetch and resolve quality profile
       const qualityProfiles = await this.fetchQualityProfiles()
       const qualityProfileId =
-        await this.resolveQualityProfileId(qualityProfiles)
+        overrideQualityProfileId !== undefined
+          ? overrideQualityProfileId
+          : await this.resolveQualityProfileId(qualityProfiles)
 
       // Prepare and send movie to Radarr
       const movie: RadarrPost = {
@@ -295,7 +301,9 @@ export class RadarrService {
       }
 
       await this.postToRadarr<void>('movie', movie)
-      this.log.info(`Sent ${item.title} to Radarr`)
+      this.log.info(
+        `Sent ${item.title} to Radarr (Quality Profile: ${qualityProfileId}, Root Folder: ${rootFolderPath})`,
+      )
     } catch (err) {
       this.log.debug(
         `Received warning for sending ${item.title} to Radarr: ${err}`,

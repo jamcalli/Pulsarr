@@ -473,6 +473,7 @@ export class DatabaseService {
       name: route.name,
       genre: route.genre,
       rootFolder: route.root_folder,
+      qualityProfile: route.quality_profile,
     }))
   }
 
@@ -485,6 +486,7 @@ export class DatabaseService {
         name: route.name,
         genre: route.genre,
         root_folder: route.rootFolder,
+        quality_profile: route.qualityProfile,
         created_at: this.timestamp,
         updated_at: this.timestamp,
       })
@@ -494,6 +496,7 @@ export class DatabaseService {
         'sonarr_instance_id as sonarrInstanceId',
         'genre',
         'root_folder as rootFolder',
+        'quality_profile as qualityProfile',
       ])
 
     return createdRoute
@@ -509,6 +512,9 @@ export class DatabaseService {
         ...(updates.name && { name: updates.name }),
         ...(updates.genre && { genre: updates.genre }),
         ...(updates.rootFolder && { root_folder: updates.rootFolder }),
+        ...(updates.qualityProfile && {
+          quality_profile: updates.qualityProfile,
+        }),
         updated_at: this.timestamp,
       })
   }
@@ -664,6 +670,7 @@ export class DatabaseService {
       name: route.name,
       genre: route.genre,
       rootFolder: route.root_folder,
+      qualityProfile: route.quality_profile,
     }))
   }
 
@@ -676,6 +683,7 @@ export class DatabaseService {
         name: route.name,
         genre: route.genre,
         root_folder: route.rootFolder,
+        quality_profile: route.qualityProfile,
         created_at: this.timestamp,
         updated_at: this.timestamp,
       })
@@ -685,6 +693,7 @@ export class DatabaseService {
         'radarr_instance_id as radarrInstanceId',
         'genre',
         'root_folder as rootFolder',
+        'quality_profile as qualityProfile',
       ])
     return createdRoute
   }
@@ -699,6 +708,9 @@ export class DatabaseService {
         ...(updates.name && { name: updates.name }),
         ...(updates.genre && { genre: updates.genre }),
         ...(updates.rootFolder && { root_folder: updates.rootFolder }),
+        ...(updates.qualityProfile && {
+          quality_profile: updates.qualityProfile,
+        }),
         updated_at: this.timestamp,
       })
   }

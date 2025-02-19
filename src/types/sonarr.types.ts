@@ -130,6 +130,7 @@ export interface SonarrGenreRoute {
   name: string
   genre: string
   rootFolder: string
+  qualityProfile: string | number | null
 }
 
 export interface SonarrItem {

@@ -44,7 +44,6 @@ const GenreRouteCard = ({
   const instancesLoading = useRadarrStore((state) => state.instancesLoading)
   const genres = useRadarrStore((state) => state.genres)
   const { instances } = useRadarrGenreRouting()
-
   const {
     form,
     resetForm,
@@ -102,93 +101,133 @@ const GenreRouteCard = ({
               onTitleChange={setTitleValue}
             />
             <CardContent>
-              <div className="grid gap-4 md:grid-cols-3">
-                <FormField
-                  control={form.control}
-                  name="genre"
-                  render={({ field }) => (
-                    <FormItem>
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                        onOpenChange={(open) => {
-                          if (open) onGenreDropdownOpen()
-                        }}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select genre" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {genres.map((genre) => (
-                            <SelectItem key={genre} value={genre}>
-                              {genre}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="radarrInstanceId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <Select
-                        value={field.value.toString()}
-                        onValueChange={handleInstanceChange}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select instance" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {instances.map((instance) => (
-                            <SelectItem
-                              key={instance.id}
-                              value={instance.id.toString()}
-                            >
-                              {instance.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="rootFolder"
-                  render={({ field }) => (
-                    <FormItem>
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select root folder" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {selectedInstance?.data?.rootFolders?.map(
-                            (folder) => (
-                              <SelectItem key={folder.path} value={folder.path}>
-                                {folder.path}
+              <div className="grid gap-4">
+                {/* First Row */}
+                <div className="grid gap-4 md:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="genre"
+                    render={({ field }) => (
+                      <FormItem>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          onOpenChange={(open) => {
+                            if (open) onGenreDropdownOpen()
+                          }}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select genre" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {genres.map((genre) => (
+                              <SelectItem key={genre} value={genre}>
+                                {genre}
                               </SelectItem>
-                            ),
-                          )}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="radarrInstanceId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <Select
+                          value={field.value.toString()}
+                          onValueChange={handleInstanceChange}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select instance" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {instances.map((instance) => (
+                              <SelectItem
+                                key={instance.id}
+                                value={instance.id.toString()}
+                              >
+                                {instance.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                {/* Second Row */}
+                <div className="grid gap-4 md:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="rootFolder"
+                    render={({ field }) => (
+                      <FormItem>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select root folder" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {selectedInstance?.data?.rootFolders?.map(
+                              (folder) => (
+                                <SelectItem
+                                  key={folder.path}
+                                  value={folder.path}
+                                >
+                                  {folder.path}
+                                </SelectItem>
+                              ),
+                            )}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="qualityProfile"
+                    render={({ field }) => (
+                      <FormItem>
+                        <Select
+                          value={field.value?.toString()}
+                          onValueChange={field.onChange}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select quality profile" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {selectedInstance?.data?.qualityProfiles?.map(
+                              (profile) => (
+                                <SelectItem
+                                  key={profile.id}
+                                  value={profile.id.toString()}
+                                >
+                                  {profile.name}
+                                </SelectItem>
+                              ),
+                            )}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </div>
             </CardContent>
           </form>

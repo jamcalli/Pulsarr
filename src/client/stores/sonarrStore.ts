@@ -9,6 +9,7 @@ export interface SonarrGenreRoute {
   sonarrInstanceId: number
   genre: string
   rootFolder: string
+  qualityProfileId: string
 }
 
 export interface SonarrInstance {

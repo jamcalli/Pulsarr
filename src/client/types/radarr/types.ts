@@ -26,6 +26,7 @@ export interface RadarrGenreRoute {
   radarrInstanceId: number
   genre: string
   rootFolder: string
+  qualityProfile: string
 }
 
 export interface UseRadarrInstanceFormProps {
@@ -51,6 +52,7 @@ export interface GenreRoute {
   genre: string
   radarrInstanceId: number
   rootFolder: string
+  qualityProfile: string
 }
 
 export interface TempRoute {
