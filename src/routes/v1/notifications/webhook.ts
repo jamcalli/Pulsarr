@@ -64,18 +64,6 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const { body } = request as { body: z.infer<typeof WebhookPayloadSchema> }
 
-      console.log(
-        'Webhook Payload:',
-        JSON.stringify(
-          body,
-          (key, value) => {
-            if (value === undefined) return 'undefined'
-            return value
-          },
-          2,
-        ),
-      )
-
       try {
         const mediaInfo =
           body.instanceName === 'Radarr'
