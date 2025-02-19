@@ -114,6 +114,22 @@ export interface RadarrHealthCheck {
   }
 }
 
+export interface WebhookNotification {
+  id: number
+  name: string
+  implementation: string
+  implementationName: string
+  onGrab: boolean
+  onDownload: boolean
+  onUpgrade: boolean
+  onSeriesAdd: boolean
+  onSeriesDelete: boolean
+  fields: Array<{
+    name: string
+    value: string | number | boolean | undefined | null
+  }>
+}
+
 export interface ConnectionTestResult {
   success: boolean
   message: string

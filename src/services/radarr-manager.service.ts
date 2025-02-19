@@ -17,6 +17,10 @@ export class RadarrManagerService {
     private readonly fastify: FastifyInstance,
   ) {}
 
+  private get appBaseUrl(): string {
+    return this.fastify.config.baseUrl
+  }
+
   async initialize(): Promise<void> {
     try {
       this.log.info('Starting Radarr manager initialization')
@@ -36,7 +40,11 @@ export class RadarrManagerService {
         })
 
         try {
-          const radarrService = new RadarrService(this.log)
+          const radarrService = new RadarrService(
+            this.log,
+            this.appBaseUrl,
+            this.fastify,
+          )
           await radarrService.initialize(instance)
           this.radarrServices.set(instance.id, radarrService)
           this.log.info(
@@ -50,7 +58,11 @@ export class RadarrManagerService {
 
           await new Promise((resolve) => setTimeout(resolve, 1000))
           try {
-            const radarrService = new RadarrService(this.log)
+            const radarrService = new RadarrService(
+              this.log,
+              this.appBaseUrl,
+              this.fastify,
+            )
             await radarrService.initialize(instance)
             this.radarrServices.set(instance.id, radarrService)
             this.log.info(
@@ -275,15 +287,27 @@ export class RadarrManagerService {
 
   async addInstance(instance: Omit<RadarrInstance, 'id'>): Promise<number> {
     const id = await this.fastify.db.createRadarrInstance(instance)
-    const radarrService = new RadarrService(this.log)
+    const radarrService = new RadarrService(this.log, this.appBaseUrl, this.fastify)
     await radarrService.initialize({ ...instance, id })
     this.radarrServices.set(id, radarrService)
     return id
   }
 
   async removeInstance(id: number): Promise<void> {
-    await this.fastify.db.deleteRadarrInstance(id)
-    this.radarrServices.delete(id)
+    const service = this.radarrServices.get(id)
+    if (service) {
+      try {
+        await service.removeWebhook()
+      } catch (error) {
+        this.log.error(`Failed to remove webhook for instance ${id}:`, error)
+      }
+
+      await this.fastify.db.deleteRadarrInstance(id)
+      this.radarrServices.delete(id)
+    } else {
+      this.log.warn(`No Radarr service found for instance ${id}`)
+      await this.fastify.db.deleteRadarrInstance(id)
+    }
   }
 
   async updateInstance(
@@ -293,7 +317,11 @@ export class RadarrManagerService {
     await this.fastify.db.updateRadarrInstance(id, updates)
     const instance = await this.fastify.db.getRadarrInstance(id)
     if (instance) {
-      const radarrService = new RadarrService(this.log)
+      const radarrService = new RadarrService(
+        this.log,
+        this.appBaseUrl,
+        this.fastify,
+      )
       await radarrService.initialize(instance)
       this.radarrServices.set(id, radarrService)
     }
@@ -336,8 +364,11 @@ export class RadarrManagerService {
     apiKey: string,
   ): Promise<ConnectionTestResult> {
     try {
-      // Create a temporary service instance for testing
-      const tempService = new RadarrService(this.log)
+      const tempService = new RadarrService(
+        this.log,
+        this.appBaseUrl,
+        this.fastify,
+      )
       return await tempService.testConnection(baseUrl, apiKey)
     } catch (error) {
       this.log.error('Error testing Radarr connection:', error)

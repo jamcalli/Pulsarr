@@ -17,6 +17,10 @@ export class SonarrManagerService {
     private readonly fastify: FastifyInstance,
   ) {}
 
+  private get appBaseUrl(): string {
+    return this.fastify.config.baseUrl
+  }
+
   async initialize(): Promise<void> {
     try {
       this.log.info('Starting Sonarr manager initialization')
@@ -30,39 +34,19 @@ export class SonarrManagerService {
       }
 
       for (const instance of instances) {
-        this.log.info('Attempting to initialize instance:', {
-          id: instance.id,
-          name: instance.name,
-          baseUrl: instance.baseUrl,
-        })
-
         try {
-          const sonarrService = new SonarrService(this.log)
+          const sonarrService = new SonarrService(
+            this.log,
+            this.fastify.config.baseUrl,
+            this.fastify, // Pass fastify instance
+          )
           await sonarrService.initialize(instance)
           this.sonarrServices.set(instance.id, sonarrService)
-          this.log.info(
-            `Successfully initialized Sonarr service for instance: ${instance.name}`,
-          )
-        } catch (instanceError) {
+        } catch (error) {
           this.log.error(
-            `Failed to initialize Sonarr service for instance ${instance.name}, will retry:`,
-            instanceError,
+            `Failed to initialize Sonarr service for instance ${instance.name}:`,
+            error,
           )
-
-          await new Promise((resolve) => setTimeout(resolve, 1000))
-          try {
-            const sonarrService = new SonarrService(this.log)
-            await sonarrService.initialize(instance)
-            this.sonarrServices.set(instance.id, sonarrService)
-            this.log.info(
-              `Successfully initialized Sonarr service on retry for instance: ${instance.name}`,
-            )
-          } catch (retryError) {
-            this.log.error(
-              `Failed to initialize Sonarr service after retry for instance ${instance.name}:`,
-              retryError,
-            )
-          }
         }
       }
 
@@ -80,8 +64,11 @@ export class SonarrManagerService {
     apiKey: string,
   ): Promise<ConnectionTestResult> {
     try {
-      // Create a temporary service instance for testing
-      const tempService = new SonarrService(this.log)
+      const tempService = new SonarrService(
+        this.log,
+        this.appBaseUrl,
+        this.fastify,
+      )
       return await tempService.testConnection(baseUrl, apiKey)
     } catch (error) {
       this.log.error('Error testing Sonarr connection:', error)
@@ -300,15 +287,31 @@ export class SonarrManagerService {
 
   async addInstance(instance: Omit<SonarrInstance, 'id'>): Promise<number> {
     const id = await this.fastify.db.createSonarrInstance(instance)
-    const sonarrService = new SonarrService(this.log)
+    const sonarrService = new SonarrService(
+      this.log,
+      this.appBaseUrl,
+      this.fastify,
+    )
     await sonarrService.initialize({ ...instance, id })
     this.sonarrServices.set(id, sonarrService)
     return id
   }
 
   async removeInstance(id: number): Promise<void> {
-    await this.fastify.db.deleteSonarrInstance(id)
-    this.sonarrServices.delete(id)
+    const service = this.sonarrServices.get(id)
+    if (service) {
+      try {
+        await service.removeWebhook()
+      } catch (error) {
+        this.log.error(`Failed to remove webhook for instance ${id}:`, error)
+      }
+
+      await this.fastify.db.deleteSonarrInstance(id)
+      this.sonarrServices.delete(id)
+    } else {
+      this.log.warn(`No Sonarr service found for instance ${id}`)
+      await this.fastify.db.deleteSonarrInstance(id)
+    }
   }
 
   async updateInstance(
@@ -318,7 +321,11 @@ export class SonarrManagerService {
     await this.fastify.db.updateSonarrInstance(id, updates)
     const instance = await this.fastify.db.getSonarrInstance(id)
     if (instance) {
-      const sonarrService = new SonarrService(this.log)
+      const sonarrService = new SonarrService(
+        this.log,
+        this.appBaseUrl,
+        this.fastify,
+      )
       await sonarrService.initialize(instance)
       this.sonarrServices.set(id, sonarrService)
     }
