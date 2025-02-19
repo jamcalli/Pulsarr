@@ -366,53 +366,61 @@ export class DiscordNotificationService {
       this.log.warn('Bot client not available for sending direct message')
       return false
     }
-  
+
     try {
       const emoji = notification.type === 'movie' ? '🎬' : '📺'
       let description: string
-      const fields: Array<{ name: string; value: string; inline?: boolean }> = []
-  
+      const fields: Array<{ name: string; value: string; inline?: boolean }> =
+        []
+
       if (notification.type === 'show' && notification.episodeDetails) {
         const { episodeDetails } = notification
-  
+
         // Check if it's a single episode (has episode number) or bulk release
-        if (episodeDetails.episodeNumber !== undefined && episodeDetails.seasonNumber !== undefined) {
+        if (
+          episodeDetails.episodeNumber !== undefined &&
+          episodeDetails.seasonNumber !== undefined
+        ) {
           // Single episode release
           description = `New episode available for ${notification.title}! ${emoji}`
-          
+
           // Format season and episode numbers with padding
-          const seasonNum = episodeDetails.seasonNumber.toString().padStart(2, '0')
-          const episodeNum = episodeDetails.episodeNumber.toString().padStart(2, '0')
-          
+          const seasonNum = episodeDetails.seasonNumber
+            .toString()
+            .padStart(2, '0')
+          const episodeNum = episodeDetails.episodeNumber
+            .toString()
+            .padStart(2, '0')
+
           // Create episode identifier
           const episodeId = `S${seasonNum}E${episodeNum}`
-          
+
           // Add episode title if available
-          const episodeTitle = episodeDetails.title 
+          const episodeTitle = episodeDetails.title
             ? ` - ${episodeDetails.title}`
             : ''
-          
+
           fields.push({
             name: 'Episode',
             value: `${episodeId}${episodeTitle}`,
-            inline: false
+            inline: false,
           })
-  
+
           // Add overview if available
           if (episodeDetails.overview) {
             fields.push({
               name: 'Overview',
               value: episodeDetails.overview,
-              inline: false
+              inline: false,
             })
           }
-  
+
           // Add air date if available
           if (episodeDetails.airDateUtc) {
             fields.push({
               name: 'Air Date',
               value: new Date(episodeDetails.airDateUtc).toLocaleDateString(),
-              inline: true
+              inline: true,
             })
           }
         } else if (episodeDetails.seasonNumber !== undefined) {
@@ -421,7 +429,7 @@ export class DiscordNotificationService {
           fields.push({
             name: 'Season Added',
             value: `Season ${episodeDetails.seasonNumber}`,
-            inline: true
+            inline: true,
           })
         } else {
           // Fallback description if somehow neither condition is met
@@ -431,32 +439,32 @@ export class DiscordNotificationService {
         // Movie notification
         description = `Your movie is available to watch! ${emoji}`
       }
-  
+
       const embed: DiscordEmbed = {
         title: notification.title,
         description,
         color: this.COLOR,
         timestamp: new Date().toISOString(),
-        fields
+        fields,
       }
-  
+
       if (notification.posterUrl) {
         embed.image = {
           url: notification.posterUrl,
         }
       }
-  
+
       const user = await this.botClient.users.fetch(discordId)
       if (!user) {
         this.log.warn({ discordId }, 'Could not find Discord user')
         return false
       }
-  
+
       await user.send({
         content: `Hey ${user}! 👋`,
         embeds: [embed],
       })
-  
+
       return true
     } catch (error) {
       this.log.error({ error, discordId }, 'Failed to send direct message')

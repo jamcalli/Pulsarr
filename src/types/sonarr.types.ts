@@ -154,12 +154,12 @@ export interface ConnectionTestResult {
 }
 
 export interface SonarrEpisodeSchema {
-  episodeNumber: number;
-  seasonNumber: number;
-  title: string;
-  overview: string;
-  airDate: string;      // Format: "2025-02-06"
-  airDateUtc: string;   // Format: "2025-02-06T08:00:00Z"
+  episodeNumber: number
+  seasonNumber: number
+  title: string
+  overview: string
+  airDate: string // Format: "2025-02-06"
+  airDateUtc: string // Format: "2025-02-06T08:00:00Z"
 }
 
 export interface MediaNotification {
@@ -178,10 +178,10 @@ export interface MediaNotification {
 
 export interface NotificationResult {
   user: {
-    discord_id: string | null | undefined;
-    notify_discord: boolean;
-    notify_email: boolean;
-    name: string;
-  };
-  notification: MediaNotification;
+    discord_id: string | null | undefined
+    notify_discord: boolean
+    notify_email: boolean
+    name: string
+  }
+  notification: MediaNotification
 }
