@@ -98,10 +98,8 @@ export class SonarrManagerService {
   async fetchAllSeries(): Promise<SonarrItem[]> {
     const allSeries: SonarrItem[] = []
 
-    // Get all Sonarr instances
     const instances = await this.fastify.db.getAllSonarrInstances()
 
-    // Fetch series from each initialized service
     for (const instance of instances) {
       try {
         const sonarrService = this.sonarrServices.get(instance.id)
@@ -113,10 +111,8 @@ export class SonarrManagerService {
           continue
         }
 
-        // Fetch series for this instance
         const instanceSeries = await sonarrService.fetchSeries()
 
-        // Convert Set to Array and spread into allSeries
         allSeries.push(...Array.from(instanceSeries))
       } catch (error) {
         this.log.error(
@@ -138,17 +134,14 @@ export class SonarrManagerService {
           : [],
     )
 
-    // Get all genre routes and instances
     const genreRoutes = await this.fastify.db.getSonarrGenreRoutes()
     const instances = await this.fastify.db.getAllSonarrInstances()
 
-    // First, check for genre-specific routing
     const genreMatches = genreRoutes.filter((route) =>
       itemGenres.has(route.genre),
     )
 
     if (genreMatches.length > 0) {
-      // Genre routing takes priority - route to these specific instances
       for (const match of genreMatches) {
         this.log.info(
           `Processing genre route "${match.name}" for genre "${match.genre}"`,
@@ -164,7 +157,11 @@ export class SonarrManagerService {
         const sonarrItem = this.prepareSonarrItem(item)
 
         try {
-          await sonarrService.addToSonarr(sonarrItem, match.rootFolder)
+          await sonarrService.addToSonarr(
+            sonarrItem,
+            match.rootFolder,
+            match.qualityProfile,
+          )
           await this.fastify.db.updateWatchlistItem(key, {
             sonarr_instance_id: match.sonarrInstanceId,
           })
@@ -179,13 +176,11 @@ export class SonarrManagerService {
         }
       }
     } else {
-      // If no genre matches, find target instance and check for syncs
       const defaultInstance = await this.fastify.db.getDefaultSonarrInstance()
       if (!defaultInstance) {
         throw new Error('No default Sonarr instance configured')
       }
 
-      // Get all synced instances including the default instance
       const syncedInstanceIds = new Set([
         defaultInstance.id,
         ...(defaultInstance.syncedInstances || []),
@@ -195,11 +190,9 @@ export class SonarrManagerService {
         syncedInstanceIds.has(instance.id),
       )
 
-      // If no synced instances, just use the default instance
       const targetInstances =
         syncedInstances.length > 0 ? syncedInstances : [defaultInstance]
 
-      // Route to all target instances
       for (const instance of targetInstances) {
         const sonarrService = this.sonarrServices.get(instance.id)
         if (!sonarrService) {
@@ -210,24 +203,52 @@ export class SonarrManagerService {
         const sonarrItem = this.prepareSonarrItem(item)
 
         try {
-          // Check if there's a matching root folder for this instance
           const matchingRoute = genreRoutes.find(
             (route) =>
               route.sonarrInstanceId === instance.id &&
               itemGenres.has(route.genre),
           )
 
+          if (matchingRoute) {
+            this.log.info(
+              `Using genre route "${matchingRoute.name}" for default instance routing`,
+            )
+          }
+
           const targetRootFolder =
             matchingRoute?.rootFolder || instance.rootFolder
+          let targetQualityProfileId: number | undefined = undefined
+
+          const isNumericQualityProfile = (
+            value: string | number | null,
+          ): value is number => {
+            if (value === null) return false
+            if (typeof value === 'number') return true
+            return /^\d+$/.test(value)
+          }
+
+          if (matchingRoute?.qualityProfile) {
+            if (isNumericQualityProfile(matchingRoute.qualityProfile)) {
+              targetQualityProfileId = Number(matchingRoute.qualityProfile)
+            }
+          } else if (instance.qualityProfile) {
+            if (isNumericQualityProfile(instance.qualityProfile)) {
+              targetQualityProfileId = Number(instance.qualityProfile)
+            }
+          }
 
           await sonarrService.addToSonarr(
             sonarrItem,
             targetRootFolder || undefined,
+            targetQualityProfileId,
           )
+
           await this.fastify.db.updateWatchlistItem(key, {
             sonarr_instance_id: instance.id,
           })
-          this.log.info(`Successfully routed item to instance ${instance.id}`)
+          this.log.info(
+            `Successfully routed item to instance ${instance.id} with quality profile ${targetQualityProfileId ?? 'default'}`,
+          )
         } catch (error) {
           this.log.error(
             `Failed to add item to instance ${instance.id}:`,

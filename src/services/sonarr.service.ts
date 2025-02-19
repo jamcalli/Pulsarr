@@ -297,7 +297,11 @@ export class SonarrService {
     return fallbackId
   }
 
-  async addToSonarr(item: Item, overrideRootFolder?: string): Promise<void> {
+  async addToSonarr(
+    item: Item,
+    overrideRootFolder?: string,
+    overrideQualityProfileId?: number | string | null,
+  ): Promise<void> {
     const config = this.sonarrConfig
     try {
       const addOptions: SonarrAddOptions = {
@@ -314,7 +318,9 @@ export class SonarrService {
 
       const qualityProfiles = await this.fetchQualityProfiles()
       const qualityProfileId =
-        await this.resolveQualityProfileId(qualityProfiles)
+        overrideQualityProfileId !== undefined
+          ? overrideQualityProfileId
+          : await this.resolveQualityProfileId(qualityProfiles)
 
       const show: SonarrPost = {
         title: item.title,
@@ -328,7 +334,9 @@ export class SonarrService {
       }
 
       await this.postToSonarr<void>('series', show)
-      this.log.info(`Sent ${item.title} to Sonarr`)
+      this.log.info(
+        `Sent ${item.title} to Sonarr (Quality Profile: ${qualityProfileId}, Root Folder: ${rootFolderPath})`,
+      )
     } catch (err) {
       this.log.debug(
         `Received warning for sending ${item.title} to Sonarr: ${err}`,

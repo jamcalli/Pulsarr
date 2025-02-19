@@ -43,6 +43,7 @@ export interface SonarrGenreRoute {
   sonarrInstanceId: number
   genre: string
   rootFolder: string
+  qualityProfile: string
 }
 
 export interface UseSonarrInstanceFormProps {
@@ -68,6 +69,7 @@ export interface GenreRoute {
   genre: string
   sonarrInstanceId: number
   rootFolder: string
+  qualityProfile: string
 }
 
 export interface TempRoute {

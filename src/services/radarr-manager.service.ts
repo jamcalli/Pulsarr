@@ -109,17 +109,14 @@ export class RadarrManagerService {
           : [],
     )
 
-    // Get all genre routes and instances
     const genreRoutes = await this.fastify.db.getRadarrGenreRoutes()
     const instances = await this.fastify.db.getAllRadarrInstances()
 
-    // First, check for genre-specific routing
     const genreMatches = genreRoutes.filter((route) =>
       itemGenres.has(route.genre),
     )
 
     if (genreMatches.length > 0) {
-      // Genre routing takes priority - only route to these specific instances
       for (const match of genreMatches) {
         this.log.info(
           `Processing genre route "${match.name}" for genre "${match.genre}"`,
@@ -135,7 +132,11 @@ export class RadarrManagerService {
         const radarrItem = this.prepareRadarrItem(item)
 
         try {
-          await radarrService.addToRadarr(radarrItem, match.rootFolder)
+          await radarrService.addToRadarr(
+            radarrItem,
+            match.rootFolder,
+            match.qualityProfile,
+          )
           await this.fastify.db.updateWatchlistItem(key, {
             radarr_instance_id: match.radarrInstanceId,
           })
@@ -150,13 +151,11 @@ export class RadarrManagerService {
         }
       }
     } else {
-      // If no genre matches, find target instance and check for syncs
       const defaultInstance = await this.fastify.db.getDefaultRadarrInstance()
       if (!defaultInstance) {
         throw new Error('No default Radarr instance configured')
       }
 
-      // Get all synced instances including the default instance
       const syncedInstanceIds = new Set([
         defaultInstance.id,
         ...(defaultInstance.syncedInstances || []),
@@ -166,11 +165,9 @@ export class RadarrManagerService {
         syncedInstanceIds.has(instance.id),
       )
 
-      // If no synced instances, just use the default instance
       const targetInstances =
         syncedInstances.length > 0 ? syncedInstances : [defaultInstance]
 
-      // Route to all target instances
       for (const instance of targetInstances) {
         const radarrService = this.radarrServices.get(instance.id)
         if (!radarrService) {
@@ -181,7 +178,6 @@ export class RadarrManagerService {
         const radarrItem = this.prepareRadarrItem(item)
 
         try {
-          // Check if there's a matching root folder for this instance
           const matchingRoute = genreRoutes.find(
             (route) =>
               route.radarrInstanceId === instance.id &&
@@ -196,15 +192,38 @@ export class RadarrManagerService {
 
           const targetRootFolder =
             matchingRoute?.rootFolder || instance.rootFolder
+          let targetQualityProfileId: number | undefined = undefined
+
+          const isNumericQualityProfile = (
+            value: string | number | null,
+          ): value is number => {
+            if (value === null) return false
+            if (typeof value === 'number') return true
+            return /^\d+$/.test(value)
+          }
+
+          if (matchingRoute?.qualityProfile) {
+            if (isNumericQualityProfile(matchingRoute.qualityProfile)) {
+              targetQualityProfileId = Number(matchingRoute.qualityProfile)
+            }
+          } else if (instance.qualityProfile) {
+            if (isNumericQualityProfile(instance.qualityProfile)) {
+              targetQualityProfileId = Number(instance.qualityProfile)
+            }
+          }
 
           await radarrService.addToRadarr(
             radarrItem,
             targetRootFolder || undefined,
+            targetQualityProfileId,
           )
+
           await this.fastify.db.updateWatchlistItem(key, {
             radarr_instance_id: instance.id,
           })
-          this.log.info(`Successfully routed item to instance ${instance.id}`)
+          this.log.info(
+            `Successfully routed item to instance ${instance.id} with quality profile ${targetQualityProfileId ?? 'default'}`,
+          )
         } catch (error) {
           this.log.error(
             `Failed to add item to instance ${instance.id}:`,

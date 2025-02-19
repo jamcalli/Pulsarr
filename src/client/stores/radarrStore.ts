@@ -8,6 +8,7 @@ export interface RadarrGenreRoute {
   radarrInstanceId: number
   genre: string
   rootFolder: string
+  qualityProfileId: string
 }
 
 export interface RadarrInstance {

@@ -35,6 +35,9 @@ export const genreRouteSchema = z.object({
   rootFolder: z.string().min(1, {
     message: 'Root folder is required.',
   }),
+  qualityProfile: z.string().min(1, {
+    message: 'Quality Profile is required',
+  }),
 })
 
 export type GenreRouteFormValues = z.infer<typeof genreRouteSchema>

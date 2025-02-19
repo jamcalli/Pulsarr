@@ -26,6 +26,7 @@ const useRadarrGenreForm = ({
         genre: route.genre,
         radarrInstanceId: route.radarrInstanceId,
         rootFolder: route.rootFolder,
+        qualityProfile: route.qualityProfile || '',
       },
       mode: 'all'
     })
@@ -36,7 +37,12 @@ const useRadarrGenreForm = ({
         genre: route.genre,
         radarrInstanceId: route.radarrInstanceId,
         rootFolder: route.rootFolder,
+        qualityProfile: route.qualityProfile || '',
       })
+
+      if (!route.qualityProfile) {
+        form.trigger('qualityProfile')
+      }
     }, [form, route])
   
     const setTitleValue = useCallback((title: string) => {
@@ -47,6 +53,10 @@ const useRadarrGenreForm = ({
       const instanceId = Number.parseInt(value)
       form.setValue('radarrInstanceId', instanceId)
       form.setValue('rootFolder', '', { shouldDirty: true })
+      form.setValue('qualityProfile', '', { 
+        shouldDirty: true,
+        shouldValidate: true 
+      })
     }, [form])
   
     // Initialize component and fetch genres if needed
