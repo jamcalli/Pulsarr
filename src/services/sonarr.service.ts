@@ -200,7 +200,9 @@ export class SonarrService {
 
       // Skip webhook setup for placeholder credentials
       if (instance.apiKey === 'placeholder') {
-        this.log.info(`Basic initialization only for ${instance.name} (placeholder credentials)`)
+        this.log.info(
+          `Basic initialization only for ${instance.name} (placeholder credentials)`,
+        )
         this.config = {
           sonarrBaseUrl: instance.baseUrl,
           sonarrApiKey: instance.apiKey,

@@ -248,7 +248,9 @@ export class RadarrService {
 
       // Skip webhook setup for placeholder credentials
       if (instance.apiKey === 'placeholder') {
-        this.log.info(`Basic initialization only for ${instance.name} (placeholder credentials)`)
+        this.log.info(
+          `Basic initialization only for ${instance.name} (placeholder credentials)`,
+        )
         this.config = {
           radarrBaseUrl: instance.baseUrl,
           radarrApiKey: instance.apiKey,
