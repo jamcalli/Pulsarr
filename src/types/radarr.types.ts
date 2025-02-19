@@ -117,17 +117,53 @@ export interface RadarrHealthCheck {
 export interface WebhookNotification {
   id: number
   name: string
-  implementation: string
+  fields: {
+    order: number
+    name: string
+    label: string
+    value?: string | number | boolean | null | undefined
+    type: string
+    advanced: boolean
+    privacy?: string
+    helpText?: string
+    isFloat?: boolean
+    selectOptions?: {
+      value: number
+      name: string
+      order: number
+      dividerAfter: boolean
+    }[]
+  }[]
   implementationName: string
+  implementation: string
+  configContract: string
+  infoLink: string
+  tags: number[]
   onGrab: boolean
   onDownload: boolean
   onUpgrade: boolean
-  onSeriesAdd: boolean
-  onSeriesDelete: boolean
-  fields: Array<{
-    name: string
-    value: string | number | boolean | undefined | null
-  }>
+  onRename: boolean
+  onMovieAdded: boolean
+  onMovieDelete: boolean
+  onMovieFileDelete: boolean
+  onMovieFileDeleteForUpgrade: boolean
+  onHealthIssue: boolean
+  includeHealthWarnings: boolean
+  onHealthRestored: boolean
+  onApplicationUpdate: boolean
+  onManualInteractionRequired: boolean
+  supportsOnGrab: boolean
+  supportsOnDownload: boolean
+  supportsOnUpgrade: boolean
+  supportsOnRename: boolean
+  supportsOnMovieAdded: boolean
+  supportsOnMovieDelete: boolean
+  supportsOnMovieFileDelete: boolean
+  supportsOnMovieFileDeleteForUpgrade: boolean
+  supportsOnHealthIssue: boolean
+  supportsOnHealthRestored: boolean
+  supportsOnApplicationUpdate: boolean
+  supportsOnManualInteractionRequired: boolean
 }
 
 export interface ConnectionTestResult {

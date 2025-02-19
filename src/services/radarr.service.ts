@@ -31,6 +31,19 @@ export class RadarrService {
     return this.config
   }
 
+  private async verifyCredentials(): Promise<boolean> {
+    try {
+      const result = await this.testConnection(
+        this.radarrConfig.radarrBaseUrl,
+        this.radarrConfig.radarrApiKey,
+      )
+      return result.success
+    } catch (error) {
+      this.log.warn('Failed to verify credentials:', error)
+      return false
+    }
+  }
+
   private constructWebhookUrl(): string {
     const cleanBaseUrl = this.appBaseUrl.replace(/\/$/, '')
     return `${cleanBaseUrl}/v1/notifications/webhook`
@@ -41,12 +54,19 @@ export class RadarrService {
       return
     }
 
+    // Verify credentials before attempting any webhook operations
+    const hasValidCredentials = await this.verifyCredentials()
+    if (!hasValidCredentials) {
+      this.log.info('Skipping webhook setup due to invalid credentials')
+      return
+    }
+
     await new Promise((resolve) => setTimeout(resolve, 1000))
 
     try {
       const expectedWebhookUrl = this.constructWebhookUrl()
       this.log.info(
-        `Attempting to setup webhook with URL for Radarr: ${expectedWebhookUrl}`,
+        `Credentials verified, attempting to setup webhook with URL: ${expectedWebhookUrl}`,
       )
 
       const existingWebhooks =
@@ -60,7 +80,7 @@ export class RadarrService {
           (field) => field.name === 'url',
         )?.value
         if (currentWebhookUrl === expectedWebhookUrl) {
-          this.log.info('Pulsarr Radarr webhook exists with correct URL')
+          this.log.info('Pulsarr webhook exists with correct URL')
           return
         }
         this.log.info('Pulsarr webhook URL mismatch, recreating webhook')
@@ -224,6 +244,19 @@ export class RadarrService {
         throw new Error(
           'Invalid Radarr configuration: baseUrl and apiKey are required',
         )
+      }
+
+      // Skip webhook setup for placeholder credentials
+      if (instance.apiKey === 'placeholder') {
+        this.log.info(`Basic initialization only for ${instance.name} (placeholder credentials)`)
+        this.config = {
+          radarrBaseUrl: instance.baseUrl,
+          radarrApiKey: instance.apiKey,
+          radarrQualityProfileId: instance.qualityProfile || null,
+          radarrRootFolder: instance.rootFolder || null,
+          radarrTagIds: instance.tags,
+        }
+        return
       }
 
       this.config = {
