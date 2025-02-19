@@ -1,131 +1,176 @@
 import { z } from 'zod'
-import type { FastifyPluginAsync } from 'fastify'
+import type { FastifyPluginAsync, FastifyInstance } from 'fastify'
+import {
+  WebhookPayloadSchema,
+  WebhookResponseSchema,
+  ErrorSchema,
+  SonarrEpisodeSchema,
+  type WebhookPayload,
+  type WebhookResponse,
+} from '@root/schemas/notifications/webhook.schema.js'
 
-// Schema definitions
-const RadarrMovieSchema = z.object({
-  id: z.number(),
-  title: z.string(),
-  imdbId: z.string().optional(),
-  tmdbId: z.number(),
-})
+interface QueuedWebhook {
+  mediaInfo: {
+    type: 'show';
+    guid: string;
+    title: string;
+    episodes: z.infer<typeof SonarrEpisodeSchema>[];
+  };
+  receivedAt: Date;
+}
 
-const SonarrEpisodeSchema = z.object({
-  episodeNumber: z.number(),
-  seasonNumber: z.number(),
-  title: z.string(),
-  overview: z.string(),
-  airDate: z.string(),
-  airDateUtc: z.string(),
-})
+interface WebhookQueue {
+  [seriesId: string]: {
+    episodes: QueuedWebhook[];
+    timeoutId: NodeJS.Timeout;
+  };
+}
 
-const SonarrSeriesSchema = z.object({
-  id: z.number(),
-  title: z.string(),
-  tvdbId: z.number(),
-  imdbId: z.string().optional(),
-})
+const QUEUE_WAIT_TIME = 20 * 1000;
+const webhookQueue: WebhookQueue = {};
 
-const WebhookPayloadSchema = z.discriminatedUnion('instanceName', [
-  z.object({
-    instanceName: z.literal('Radarr'),
-    movie: RadarrMovieSchema,
-  }),
-  z.object({
-    instanceName: z.literal('Sonarr'),
-    series: SonarrSeriesSchema,
-    episodes: z.array(SonarrEpisodeSchema),
-  }),
-])
+async function processQueuedWebhooks(tvdbId: string, fastify: FastifyInstance) {
+  const queue = webhookQueue[tvdbId];
+  if (!queue) return;
 
-interface MediaNotification {
-  type: 'movie' | 'show'
-  title: string
-  username: string
-  posterUrl?: string
-  episodeDetails?: {
-    title?: string
-    overview?: string
-    seasonNumber?: number
-    episodeNumber?: number
-    airDate?: string
+  const episodes = queue.episodes;
+  delete webhookQueue[tvdbId];
+
+  const isBulkRelease = episodes.length > 1;
+  
+  fastify.log.info({
+    tvdbId,
+    episodeCount: episodes.length,
+    isBulkRelease
+  }, 'Processing queued webhooks');
+
+  const mediaInfo = episodes[0].mediaInfo;
+  const notificationResults = await fastify.db.processNotifications(mediaInfo, isBulkRelease);
+
+  for (const result of notificationResults) {
+    if (result.user.notify_discord && result.user.discord_id) {
+      await fastify.discord.sendDirectMessage(
+        result.user.discord_id,
+        result.notification
+      );
+    }
+    if (result.user.notify_email) {
+      // TODO: Implement email notification service
+    }
   }
 }
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.post<{
-    Body: z.infer<typeof WebhookPayloadSchema>
+    Body: WebhookPayload;
+    Reply: WebhookResponse;
   }>(
     '/webhook',
     {
       schema: {
-        body: WebhookPayloadSchema,
+        body: {
+          ...WebhookPayloadSchema,
+          examples: [
+            {
+              instanceName: 'Radarr',
+              movie: {
+                id: 1,
+                title: 'Example Movie',
+                imdbId: 'tt1234567',
+                tmdbId: 123456
+              }
+            },
+            {
+              instanceName: 'Sonarr',
+              series: {
+                id: 1,
+                title: 'Example Series',
+                tvdbId: 123456,
+                imdbId: 'tt1234567'
+              },
+              episodes: [
+                {
+                  episodeNumber: 1,
+                  seasonNumber: 1,
+                  title: 'Pilot',
+                  overview: 'First episode of the series',
+                  airDate: '2025-01-01',
+                  airDateUtc: '2025-01-01T00:00:00Z'
+                }
+              ]
+            }
+          ]
+        },
+        description: 'Process webhooks from Radarr (movies) or Sonarr (TV series)',
+        response: {
+          200: WebhookResponseSchema,
+          400: ErrorSchema,
+          500: ErrorSchema,
+        },
+        tags: ['Notifications'],
       },
     },
     async (request, reply) => {
-      const { body } = request as { body: z.infer<typeof WebhookPayloadSchema> }
+      const { body } = request;
 
       try {
-        const mediaInfo =
-          body.instanceName === 'Radarr'
-            ? {
-                type: 'movie' as const,
-                guid: `tmdb:${body.movie.tmdbId}`,
-                title: body.movie.title,
-              }
-            : {
-                type: 'show' as const,
-                guid: `tvdb:${body.series.tvdbId}`,
-                title: body.series.title,
-                episodes: body.episodes,
-              }
+        if (body.instanceName === 'Radarr') {
+          const mediaInfo = {
+            type: 'movie' as const,
+            guid: `tmdb:${body.movie.tmdbId}`,
+            title: body.movie.title,
+          };
 
-        fastify.log.info({ mediaInfo }, 'Processing media webhook')
-
-        const watchlistItems = await fastify.db.getWatchlistItemsByGuid(
-          mediaInfo.guid,
-        )
-
-        for (const item of watchlistItems) {
-          const user = await fastify.db.getUser(item.user_id)
-          if (!user) continue
-
-          const shouldNotify = await fastify.db.shouldSendNotification(item)
-          if (shouldNotify) {
-            if (user.notify_discord && user.discord_id) {
-              const notification: MediaNotification = {
-                type: mediaInfo.type,
-                title: mediaInfo.title,
-                username: user.name,
-                posterUrl: item.thumb || undefined,
-                ...(body.instanceName === 'Sonarr' && body.episodes.length > 0
-                  ? {
-                      episodeDetails: {
-                        title: body.episodes[0].title,
-                        overview: body.episodes[0].overview,
-                        seasonNumber: body.episodes[0].seasonNumber,
-                        episodeNumber: body.episodes[0].episodeNumber,
-                        airDate: body.episodes[0].airDate,
-                      },
-                    }
-                  : {}),
-              }
+          const notificationResults = await fastify.db.processNotifications(mediaInfo, false);
+          
+          for (const result of notificationResults) {
+            if (result.user.notify_discord && result.user.discord_id) {
               await fastify.discord.sendDirectMessage(
-                user.discord_id,
-                notification,
-              )
-            }
-            if (user.notify_email) {
-              // TODO: Implement email notification service
+                result.user.discord_id,
+                result.notification
+              );
             }
           }
-        }
-        return { success: true }
-      } catch (error) {
-        fastify.log.error({ error }, 'Error processing webhook')
-        throw reply.internalServerError('Error processing webhook')
-      }
-    },
-  )
-}
 
-export default plugin
+          return { success: true };
+        }
+
+        const mediaInfo = {
+          type: 'show' as const,
+          guid: `tvdb:${body.series.tvdbId}`,
+          title: body.series.title,
+          episodes: body.episodes,
+        };
+
+        const tvdbId = body.series.tvdbId.toString();
+        
+        if (!webhookQueue[tvdbId]) {
+          webhookQueue[tvdbId] = {
+            episodes: [],
+            timeoutId: setTimeout(() => {
+              processQueuedWebhooks(tvdbId, fastify);
+            }, QUEUE_WAIT_TIME)
+          };
+        }
+
+        webhookQueue[tvdbId].episodes.push({
+          mediaInfo,
+          receivedAt: new Date()
+        });
+
+        fastify.log.info({
+          tvdbId,
+          episodeNumber: body.episodes[0].episodeNumber,
+          queueLength: webhookQueue[tvdbId].episodes.length
+        }, 'Queued webhook for processing');
+
+        return { success: true };
+      } catch (error) {
+        fastify.log.error({ error }, 'Error processing webhook');
+        throw reply.internalServerError('Error processing webhook');
+      }
+    }
+  );
+};
+
+export default plugin;
