@@ -1,4 +1,4 @@
-import type { FastifyBaseLogger } from 'fastify'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type {
   SonarrAddOptions,
   SonarrPost,
@@ -11,17 +11,170 @@ import type {
   SonarrInstance,
   ConnectionTestResult,
   PingResponse,
+  WebhookNotification,
 } from '@root/types/sonarr.types.js'
 
 export class SonarrService {
   private config: SonarrConfiguration | null = null
-  constructor(private readonly log: FastifyBaseLogger) {}
+  private webhookInitialized = false
+
+  constructor(
+    private readonly log: FastifyBaseLogger,
+    private readonly appBaseUrl: string,
+    private readonly fastify: FastifyInstance,
+  ) {}
 
   private get sonarrConfig(): SonarrConfiguration {
     if (!this.config) {
       throw new Error('Sonarr service not initialized')
     }
     return this.config
+  }
+
+  private constructWebhookUrl(): string {
+    const cleanBaseUrl = this.appBaseUrl.replace(/\/$/, '')
+    return `${cleanBaseUrl}/v1/notifications/webhook`
+  }
+
+  private async setupWebhook(): Promise<void> {
+    if (this.webhookInitialized) {
+      return
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+
+    try {
+      const expectedWebhookUrl = this.constructWebhookUrl()
+      this.log.info(
+        `Attempting to setup webhook with URL for Sonarr: ${expectedWebhookUrl}`,
+      )
+
+      const existingWebhooks =
+        await this.getFromSonarr<WebhookNotification[]>('notification')
+      const existingPulsarrWebhook = existingWebhooks.find(
+        (hook) => hook.name === 'Pulsarr',
+      )
+
+      if (existingPulsarrWebhook) {
+        const currentWebhookUrl = existingPulsarrWebhook.fields.find(
+          (field) => field.name === 'url',
+        )?.value
+
+        if (currentWebhookUrl === expectedWebhookUrl) {
+          this.log.info('Pulsarr Sonarr webhook exists with correct URL')
+          return
+        }
+
+        this.log.info('Pulsarr webhook URL mismatch, recreating webhook')
+        await this.deleteNotification(existingPulsarrWebhook.id)
+      }
+
+      const webhookConfig = {
+        onGrab: false,
+        onDownload: true,
+        onUpgrade: false,
+        onImportComplete: false,
+        onRename: false,
+        onSeriesAdd: false,
+        onSeriesDelete: false,
+        onEpisodeFileDelete: false,
+        onEpisodeFileDeleteForUpgrade: true,
+        onHealthIssue: false,
+        includeHealthWarnings: false,
+        onHealthRestored: false,
+        onApplicationUpdate: false,
+        onManualInteractionRequired: false,
+        supportsOnGrab: true,
+        supportsOnDownload: true,
+        supportsOnUpgrade: true,
+        supportsOnImportComplete: true,
+        supportsOnRename: true,
+        supportsOnSeriesAdd: true,
+        supportsOnSeriesDelete: true,
+        supportsOnEpisodeFileDelete: true,
+        supportsOnEpisodeFileDeleteForUpgrade: true,
+        supportsOnHealthIssue: true,
+        supportsOnHealthRestored: true,
+        supportsOnApplicationUpdate: true,
+        supportsOnManualInteractionRequired: true,
+        name: 'Pulsarr',
+        fields: [
+          {
+            order: 0,
+            name: 'url',
+            label: 'Webhook URL',
+            value: expectedWebhookUrl,
+            type: 'url',
+            advanced: false,
+          },
+          {
+            order: 1,
+            name: 'method',
+            label: 'Method',
+            value: 1,
+            type: 'select',
+            advanced: false,
+          },
+        ],
+        implementationName: 'Webhook',
+        implementation: 'Webhook',
+        configContract: 'WebhookSettings',
+        infoLink: 'https://wiki.servarr.com/sonarr/supported#webhook',
+        tags: [],
+      }
+
+      try {
+        const response = await this.postToSonarr('notification', webhookConfig)
+        this.log.info(
+          `Successfully created Pulsarr webhook with URL: ${expectedWebhookUrl}`,
+        )
+        this.log.debug('Webhook creation response:', response)
+      } catch (createError) {
+        this.log.error('Error creating webhook. Full config:', webhookConfig)
+        this.log.error('Creation error details:', createError)
+        throw createError
+      }
+      this.webhookInitialized = true
+    } catch (error) {
+      this.log.error('Failed to setup webhook:', error)
+      throw error
+    }
+  }
+
+  async removeWebhook(): Promise<void> {
+    try {
+      const existingWebhooks =
+        await this.getFromSonarr<WebhookNotification[]>('notification')
+      const pulsarrWebhook = existingWebhooks.find(
+        (hook) => hook.name === 'Pulsarr',
+      )
+
+      if (pulsarrWebhook) {
+        await this.deleteNotification(pulsarrWebhook.id)
+        this.log.info('Successfully removed Pulsarr webhook')
+      }
+    } catch (error) {
+      this.log.error('Failed to remove webhook:', error)
+      throw error
+    }
+  }
+
+  private async deleteNotification(notificationId: number): Promise<void> {
+    const config = this.sonarrConfig
+    const url = new URL(
+      `${config.sonarrBaseUrl}/api/v3/notification/${notificationId}`,
+    )
+
+    const response = await fetch(url.toString(), {
+      method: 'DELETE',
+      headers: {
+        'X-Api-Key': config.sonarrApiKey,
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`Sonarr API error: ${response.statusText}`)
+    }
   }
 
   async initialize(instance: SonarrInstance): Promise<void> {
@@ -31,8 +184,6 @@ export class SonarrService {
           'Invalid Sonarr configuration: baseUrl and apiKey are required',
         )
       }
-
-      //await this.verifyConnection(instance)
 
       this.config = {
         sonarrBaseUrl: instance.baseUrl,
@@ -45,8 +196,23 @@ export class SonarrService {
       }
 
       this.log.info(
-        `Successfully initialized Sonarr service for ${instance.name}`,
+        `Successfully initialized base Sonarr service for ${instance.name}`,
       )
+
+      if (this.fastify.server.listening) {
+        await this.setupWebhook()
+      } else {
+        this.fastify.server.prependOnceListener('listening', async () => {
+          try {
+            await this.setupWebhook()
+          } catch (error) {
+            this.log.error(
+              `Failed to setup webhook for instance ${instance.name} after server start:`,
+              error,
+            )
+          }
+        })
+      }
     } catch (error) {
       this.log.error(
         `Failed to initialize Sonarr service for instance ${instance.name}:`,

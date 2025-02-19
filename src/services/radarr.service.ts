@@ -1,4 +1,4 @@
-import type { FastifyBaseLogger } from 'fastify'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type {
   RadarrAddOptions,
   RadarrPost,
@@ -11,18 +11,211 @@ import type {
   RadarrInstance,
   PingResponse,
   ConnectionTestResult,
+  WebhookNotification,
 } from '@root/types/radarr.types.js'
 
 export class RadarrService {
   private config: RadarrConfiguration | null = null
+  private webhookInitialized = false
 
-  constructor(private readonly log: FastifyBaseLogger) {}
+  constructor(
+    private readonly log: FastifyBaseLogger,
+    private readonly appBaseUrl: string,
+    private readonly fastify: FastifyInstance,
+  ) {}
 
   private get radarrConfig(): RadarrConfiguration {
     if (!this.config) {
       throw new Error('Radarr service not initialized')
     }
     return this.config
+  }
+
+  private constructWebhookUrl(): string {
+    const cleanBaseUrl = this.appBaseUrl.replace(/\/$/, '')
+    return `${cleanBaseUrl}/v1/notifications/webhook`
+  }
+
+  private async setupWebhook(): Promise<void> {
+    if (this.webhookInitialized) {
+      return
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+
+    try {
+      const expectedWebhookUrl = this.constructWebhookUrl()
+      this.log.info(
+        `Attempting to setup webhook with URL for Radarr: ${expectedWebhookUrl}`,
+      )
+
+      const existingWebhooks =
+        await this.getFromRadarr<WebhookNotification[]>('notification')
+      const existingPulsarrWebhook = existingWebhooks.find(
+        (hook) => hook.name === 'Pulsarr',
+      )
+
+      if (existingPulsarrWebhook) {
+        const currentWebhookUrl = existingPulsarrWebhook.fields.find(
+          (field) => field.name === 'url',
+        )?.value
+        if (currentWebhookUrl === expectedWebhookUrl) {
+          this.log.info('Pulsarr Radarr webhook exists with correct URL')
+          return
+        }
+        this.log.info('Pulsarr webhook URL mismatch, recreating webhook')
+        await this.deleteNotification(existingPulsarrWebhook.id)
+      }
+
+      const webhookConfig = {
+        onGrab: false,
+        onDownload: true,
+        onUpgrade: false,
+        onRename: false,
+        onMovieAdded: false,
+        onMovieDelete: false,
+        onMovieFileDelete: false,
+        onMovieFileDeleteForUpgrade: true,
+        onHealthIssue: false,
+        includeHealthWarnings: false,
+        onHealthRestored: false,
+        onApplicationUpdate: false,
+        onManualInteractionRequired: false,
+        supportsOnGrab: true,
+        supportsOnDownload: true,
+        supportsOnUpgrade: true,
+        supportsOnRename: true,
+        supportsOnMovieAdded: true,
+        supportsOnMovieDelete: true,
+        supportsOnMovieFileDelete: true,
+        supportsOnMovieFileDeleteForUpgrade: true,
+        supportsOnHealthIssue: true,
+        supportsOnHealthRestored: true,
+        supportsOnApplicationUpdate: true,
+        supportsOnManualInteractionRequired: true,
+        name: 'Pulsarr',
+        fields: [
+          {
+            order: 0,
+            name: 'url',
+            label: 'Webhook URL',
+            value: expectedWebhookUrl,
+            type: 'url',
+            advanced: false,
+            privacy: 'normal',
+            isFloat: false,
+          },
+          {
+            order: 1,
+            name: 'method',
+            label: 'Method',
+            helpText: 'Which HTTP method to use submit to the Webservice',
+            value: 1,
+            type: 'select',
+            advanced: false,
+            selectOptions: [
+              {
+                value: 1,
+                name: 'POST',
+                order: 1,
+                dividerAfter: false,
+              },
+              {
+                value: 2,
+                name: 'PUT',
+                order: 2,
+                dividerAfter: false,
+              },
+            ],
+            privacy: 'normal',
+            isFloat: false,
+          },
+          {
+            order: 2,
+            name: 'username',
+            label: 'Username',
+            type: 'textbox',
+            advanced: false,
+            privacy: 'userName',
+            isFloat: false,
+          },
+          {
+            order: 3,
+            name: 'password',
+            label: 'Password',
+            type: 'password',
+            advanced: false,
+            privacy: 'password',
+            isFloat: false,
+          },
+          {
+            order: 4,
+            name: 'headers',
+            label: 'Headers',
+            value: [],
+            type: 'keyValueList',
+            advanced: true,
+            privacy: 'normal',
+            isFloat: false,
+          },
+        ],
+        implementationName: 'Webhook',
+        implementation: 'Webhook',
+        configContract: 'WebhookSettings',
+        infoLink: 'https://wiki.servarr.com/radarr/supported#webhook',
+        tags: [],
+      }
+
+      try {
+        const response = await this.postToRadarr('notification', webhookConfig)
+        this.log.info(
+          `Successfully created Pulsarr webhook with URL: ${expectedWebhookUrl}`,
+        )
+        this.log.debug('Webhook creation response:', response)
+      } catch (createError) {
+        this.log.error('Error creating webhook. Full config:', webhookConfig)
+        this.log.error('Creation error details:', createError)
+        throw createError
+      }
+
+      this.webhookInitialized = true
+    } catch (error) {
+      this.log.error('Failed to setup webhook:', error)
+      throw error
+    }
+  }
+
+  async removeWebhook(): Promise<void> {
+    try {
+      const existingWebhooks =
+        await this.getFromRadarr<WebhookNotification[]>('notification')
+      const pulsarrWebhook = existingWebhooks.find(
+        (hook) => hook.name === 'Pulsarr',
+      )
+      if (pulsarrWebhook) {
+        await this.deleteNotification(pulsarrWebhook.id)
+        this.log.info('Successfully removed Pulsarr webhook')
+      }
+    } catch (error) {
+      this.log.error('Failed to remove webhook:', error)
+      throw error
+    }
+  }
+
+  private async deleteNotification(notificationId: number): Promise<void> {
+    const config = this.radarrConfig
+    const url = new URL(
+      `${config.radarrBaseUrl}/api/v3/notification/${notificationId}`,
+    )
+    const response = await fetch(url.toString(), {
+      method: 'DELETE',
+      headers: {
+        'X-Api-Key': config.radarrApiKey,
+      },
+    })
+    if (!response.ok) {
+      throw new Error(`Radarr API error: ${response.statusText}`)
+    }
   }
 
   async initialize(instance: RadarrInstance): Promise<void> {
@@ -33,8 +226,6 @@ export class RadarrService {
         )
       }
 
-      //await this.verifyConnection(instance)
-
       this.config = {
         radarrBaseUrl: instance.baseUrl,
         radarrApiKey: instance.apiKey,
@@ -44,8 +235,23 @@ export class RadarrService {
       }
 
       this.log.info(
-        `Successfully initialized Radarr service for ${instance.name}`,
+        `Successfully initialized base Radarr service for ${instance.name}`,
       )
+
+      if (this.fastify.server.listening) {
+        await this.setupWebhook()
+      } else {
+        this.fastify.server.prependOnceListener('listening', async () => {
+          try {
+            await this.setupWebhook()
+          } catch (error) {
+            this.log.error(
+              `Failed to setup webhook for instance ${instance.name} after server start:`,
+              error,
+            )
+          }
+        })
+      }
     } catch (error) {
       this.log.error(
         `Failed to initialize Radarr service for instance ${instance.name}:`,
