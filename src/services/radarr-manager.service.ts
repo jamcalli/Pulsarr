@@ -287,7 +287,11 @@ export class RadarrManagerService {
 
   async addInstance(instance: Omit<RadarrInstance, 'id'>): Promise<number> {
     const id = await this.fastify.db.createRadarrInstance(instance)
-    const radarrService = new RadarrService(this.log, this.appBaseUrl, this.fastify)
+    const radarrService = new RadarrService(
+      this.log,
+      this.appBaseUrl,
+      this.fastify,
+    )
     await radarrService.initialize({ ...instance, id })
     this.radarrServices.set(id, radarrService)
     return id

@@ -31,6 +31,19 @@ export class SonarrService {
     return this.config
   }
 
+  private async verifyCredentials(): Promise<boolean> {
+    try {
+      const result = await this.testConnection(
+        this.sonarrConfig.sonarrBaseUrl,
+        this.sonarrConfig.sonarrApiKey,
+      )
+      return result.success
+    } catch (error) {
+      this.log.warn('Failed to verify credentials:', error)
+      return false
+    }
+  }
+
   private constructWebhookUrl(): string {
     const cleanBaseUrl = this.appBaseUrl.replace(/\/$/, '')
     return `${cleanBaseUrl}/v1/notifications/webhook`
@@ -183,6 +196,21 @@ export class SonarrService {
         throw new Error(
           'Invalid Sonarr configuration: baseUrl and apiKey are required',
         )
+      }
+
+      // Skip webhook setup for placeholder credentials
+      if (instance.apiKey === 'placeholder') {
+        this.log.info(`Basic initialization only for ${instance.name} (placeholder credentials)`)
+        this.config = {
+          sonarrBaseUrl: instance.baseUrl,
+          sonarrApiKey: instance.apiKey,
+          sonarrQualityProfileId: instance.qualityProfile || null,
+          sonarrLanguageProfileId: 1,
+          sonarrRootFolder: instance.rootFolder || null,
+          sonarrTagIds: instance.tags,
+          sonarrSeasonMonitoring: instance.seasonMonitoring,
+        }
+        return
       }
 
       this.config = {
