@@ -21,6 +21,7 @@ export class RadarrService {
   constructor(
     private readonly log: FastifyBaseLogger,
     private readonly appBaseUrl: string,
+    private readonly port: number,
     private readonly fastify: FastifyInstance,
   ) {}
 
@@ -31,33 +32,15 @@ export class RadarrService {
     return this.config
   }
 
-  private async verifyCredentials(): Promise<boolean> {
-    try {
-      const result = await this.testConnection(
-        this.radarrConfig.radarrBaseUrl,
-        this.radarrConfig.radarrApiKey,
-      )
-      return result.success
-    } catch (error) {
-      this.log.warn('Failed to verify credentials:', error)
-      return false
-    }
-  }
-
   private constructWebhookUrl(): string {
-    const cleanBaseUrl = this.appBaseUrl.replace(/\/$/, '')
-    return `${cleanBaseUrl}/v1/notifications/webhook`
+    const url = new URL(this.appBaseUrl)
+    url.port = this.port.toString()
+    url.pathname = '/v1/notifications/webhook'
+    return url.toString()
   }
 
   private async setupWebhook(): Promise<void> {
     if (this.webhookInitialized) {
-      return
-    }
-
-    // Verify credentials before attempting any webhook operations
-    const hasValidCredentials = await this.verifyCredentials()
-    if (!hasValidCredentials) {
-      this.log.info('Skipping webhook setup due to invalid credentials')
       return
     }
 
@@ -66,7 +49,7 @@ export class RadarrService {
     try {
       const expectedWebhookUrl = this.constructWebhookUrl()
       this.log.info(
-        `Credentials verified, attempting to setup webhook with URL: ${expectedWebhookUrl}`,
+        `Credentials verified, attempting to setup webhook with URL for Radarr: ${expectedWebhookUrl}`,
       )
 
       const existingWebhooks =
@@ -80,10 +63,10 @@ export class RadarrService {
           (field) => field.name === 'url',
         )?.value
         if (currentWebhookUrl === expectedWebhookUrl) {
-          this.log.info('Pulsarr webhook exists with correct URL')
+          this.log.info('Pulsarr Radarr webhook exists with correct URL')
           return
         }
-        this.log.info('Pulsarr webhook URL mismatch, recreating webhook')
+        this.log.info('Pulsarr Radarr webhook URL mismatch, recreating webhook')
         await this.deleteNotification(existingPulsarrWebhook.id)
       }
 
@@ -189,18 +172,18 @@ export class RadarrService {
       try {
         const response = await this.postToRadarr('notification', webhookConfig)
         this.log.info(
-          `Successfully created Pulsarr webhook with URL: ${expectedWebhookUrl}`,
+          `Successfully created Pulsarr webhook with URL for Radarr: ${expectedWebhookUrl}`,
         )
-        this.log.debug('Webhook creation response:', response)
+        this.log.debug('Webhook creation response for Radarr:', response)
       } catch (createError) {
-        this.log.error('Error creating webhook. Full config:', webhookConfig)
+        this.log.error('Error creating webhook for Radarr. Full config:', webhookConfig)
         this.log.error('Creation error details:', createError)
         throw createError
       }
 
       this.webhookInitialized = true
     } catch (error) {
-      this.log.error('Failed to setup webhook:', error)
+      this.log.error('Failed to setup webhook for Radarr:', error)
       throw error
     }
   }
@@ -214,10 +197,10 @@ export class RadarrService {
       )
       if (pulsarrWebhook) {
         await this.deleteNotification(pulsarrWebhook.id)
-        this.log.info('Successfully removed Pulsarr webhook')
+        this.log.info('Successfully removed Pulsarr webhook for Radarr')
       }
     } catch (error) {
-      this.log.error('Failed to remove webhook:', error)
+      this.log.error('Failed to remove webhook for Radarr:', error)
       throw error
     }
   }
@@ -401,10 +384,9 @@ export class RadarrService {
         }>
         totalRecords = pagedResult.totalRecords
 
-        // Map the exclusion records to RadarrMovie format
         const exclusionMovies = pagedResult.records.map((record) => ({
           title: record.movieTitle,
-          imdbId: undefined, // These might need to be added if available in the API
+          imdbId: undefined, 
           tmdbId: record.tmdbId,
           id: record.id,
         }))
@@ -455,12 +437,10 @@ export class RadarrService {
   ): Promise<number> {
     const configProfile = this.radarrConfig.radarrQualityProfileId
 
-    // If no profiles available, throw error
     if (profiles.length === 0) {
       throw new Error('No quality profiles configured in Radarr')
     }
 
-    // If no profile configured, use first available
     if (configProfile === null) {
       const defaultId = profiles[0].id
       this.log.info(
@@ -469,12 +449,10 @@ export class RadarrService {
       return defaultId
     }
 
-    // If profile is numeric (either number or numeric string), use it directly
     if (this.isNumericQualityProfile(configProfile)) {
       return Number(configProfile)
     }
 
-    // Try to match by name
     const matchingProfile = profiles.find(
       (profile) =>
         profile.name.toLowerCase() === configProfile.toString().toLowerCase(),
@@ -487,7 +465,6 @@ export class RadarrService {
       return matchingProfile.id
     }
 
-    // Fallback to first profile if no match found
     this.log.warn(
       `Could not find quality profile "${configProfile}". Available profiles: ${profiles.map((p) => p.name).join(', ')}`,
     )
@@ -513,25 +490,21 @@ export class RadarrService {
   ): Promise<void> {
     const config = this.radarrConfig
     try {
-      // Prepare add options
+
       const addOptions: RadarrAddOptions = {
         searchForMovie: true,
       }
 
-      // Extract TMDB ID
       const tmdbId = this.extractTmdbId(item)
 
-      // Resolve root folder
       const rootFolderPath = await this.resolveRootFolder(overrideRootFolder)
 
-      // Fetch and resolve quality profile
       const qualityProfiles = await this.fetchQualityProfiles()
       const qualityProfileId =
         overrideQualityProfileId !== undefined
           ? overrideQualityProfileId
           : await this.resolveQualityProfileId(qualityProfiles)
 
-      // Prepare and send movie to Radarr
       const movie: RadarrPost = {
         title: item.title,
         tmdbId,

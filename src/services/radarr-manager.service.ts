@@ -21,6 +21,10 @@ export class RadarrManagerService {
     return this.fastify.config.baseUrl
   }
 
+  private get port(): number {
+    return this.fastify.config.port
+  }
+
   async initialize(): Promise<void> {
     try {
       this.log.info('Starting Radarr manager initialization')
@@ -43,6 +47,7 @@ export class RadarrManagerService {
           const radarrService = new RadarrService(
             this.log,
             this.appBaseUrl,
+            this.port,
             this.fastify,
           )
           await radarrService.initialize(instance)
@@ -61,6 +66,7 @@ export class RadarrManagerService {
             const radarrService = new RadarrService(
               this.log,
               this.appBaseUrl,
+              this.port,
               this.fastify,
             )
             await radarrService.initialize(instance)
@@ -290,6 +296,7 @@ export class RadarrManagerService {
     const radarrService = new RadarrService(
       this.log,
       this.appBaseUrl,
+      this.port,
       this.fastify,
     )
     await radarrService.initialize({ ...instance, id })
@@ -324,6 +331,7 @@ export class RadarrManagerService {
       const radarrService = new RadarrService(
         this.log,
         this.appBaseUrl,
+        this.port,
         this.fastify,
       )
       await radarrService.initialize(instance)
@@ -371,6 +379,7 @@ export class RadarrManagerService {
       const tempService = new RadarrService(
         this.log,
         this.appBaseUrl,
+        this.port,
         this.fastify,
       )
       return await tempService.testConnection(baseUrl, apiKey)
