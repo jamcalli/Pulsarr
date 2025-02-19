@@ -1,8 +1,15 @@
 export interface MediaNotification {
-  username: string
-  title: string
   type: 'movie' | 'show'
+  title: string
+  username: string
   posterUrl?: string
+  episodeDetails?: {
+    title?: string
+    overview?: string
+    seasonNumber?: number
+    episodeNumber?: number
+    airDateUtc?: string
+  }
 }
 
 export interface DiscordEmbed {

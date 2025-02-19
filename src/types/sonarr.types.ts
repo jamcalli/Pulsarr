@@ -152,3 +152,36 @@ export interface ConnectionTestResult {
   success: boolean
   message: string
 }
+
+export interface SonarrEpisodeSchema {
+  episodeNumber: number;
+  seasonNumber: number;
+  title: string;
+  overview: string;
+  airDate: string;      // Format: "2025-02-06"
+  airDateUtc: string;   // Format: "2025-02-06T08:00:00Z"
+}
+
+export interface MediaNotification {
+  type: 'movie' | 'show'
+  title: string
+  username: string
+  posterUrl?: string
+  episodeDetails?: {
+    title?: string
+    overview?: string
+    seasonNumber?: number
+    episodeNumber?: number
+    airDateUtc?: string
+  }
+}
+
+export interface NotificationResult {
+  user: {
+    discord_id: string | null | undefined;
+    notify_discord: boolean;
+    notify_email: boolean;
+    name: string;
+  };
+  notification: MediaNotification;
+}
