@@ -21,6 +21,7 @@ export class SonarrService {
   constructor(
     private readonly log: FastifyBaseLogger,
     private readonly appBaseUrl: string,
+    private readonly port: number,
     private readonly fastify: FastifyInstance,
   ) {}
 
@@ -31,22 +32,11 @@ export class SonarrService {
     return this.config
   }
 
-  private async verifyCredentials(): Promise<boolean> {
-    try {
-      const result = await this.testConnection(
-        this.sonarrConfig.sonarrBaseUrl,
-        this.sonarrConfig.sonarrApiKey,
-      )
-      return result.success
-    } catch (error) {
-      this.log.warn('Failed to verify credentials:', error)
-      return false
-    }
-  }
-
   private constructWebhookUrl(): string {
-    const cleanBaseUrl = this.appBaseUrl.replace(/\/$/, '')
-    return `${cleanBaseUrl}/v1/notifications/webhook`
+    const url = new URL(this.appBaseUrl)
+    url.port = this.port.toString()
+    url.pathname = '/v1/notifications/webhook'
+    return url.toString()
   }
 
   private async setupWebhook(): Promise<void> {
@@ -59,7 +49,7 @@ export class SonarrService {
     try {
       const expectedWebhookUrl = this.constructWebhookUrl()
       this.log.info(
-        `Attempting to setup webhook with URL for Sonarr: ${expectedWebhookUrl}`,
+        `Credentials verified, attempting to setup webhook with URL for Sonarr: ${expectedWebhookUrl}`,
       )
 
       const existingWebhooks =
@@ -78,7 +68,7 @@ export class SonarrService {
           return
         }
 
-        this.log.info('Pulsarr webhook URL mismatch, recreating webhook')
+        this.log.info('Pulsarr webhook URL mismatch, recreating webhook for Sonarr')
         await this.deleteNotification(existingPulsarrWebhook.id)
       }
 
@@ -139,17 +129,17 @@ export class SonarrService {
       try {
         const response = await this.postToSonarr('notification', webhookConfig)
         this.log.info(
-          `Successfully created Pulsarr webhook with URL: ${expectedWebhookUrl}`,
+          `Successfully created Pulsarr webhook with URL for Sonarr: ${expectedWebhookUrl}`,
         )
         this.log.debug('Webhook creation response:', response)
       } catch (createError) {
-        this.log.error('Error creating webhook. Full config:', webhookConfig)
-        this.log.error('Creation error details:', createError)
+        this.log.error('Error creating webhook for Sonarr. Full config:', webhookConfig)
+        this.log.error('Creation error details for Sonarr:', createError)
         throw createError
       }
       this.webhookInitialized = true
     } catch (error) {
-      this.log.error('Failed to setup webhook:', error)
+      this.log.error('Failed to setup webhook for Sonarr:', error)
       throw error
     }
   }
@@ -164,10 +154,10 @@ export class SonarrService {
 
       if (pulsarrWebhook) {
         await this.deleteNotification(pulsarrWebhook.id)
-        this.log.info('Successfully removed Pulsarr webhook')
+        this.log.info('Successfully removed Pulsarr webhook for Sonarr')
       }
     } catch (error) {
-      this.log.error('Failed to remove webhook:', error)
+      this.log.error('Failed to remove webhook for Sonarr:', error)
       throw error
     }
   }
@@ -237,7 +227,7 @@ export class SonarrService {
             await this.setupWebhook()
           } catch (error) {
             this.log.error(
-              `Failed to setup webhook for instance ${instance.name} after server start:`,
+              `Failed to setup webhook for instance ${instance.name} after server start for Sonarr:`,
               error,
             )
           }

@@ -21,6 +21,10 @@ export class SonarrManagerService {
     return this.fastify.config.baseUrl
   }
 
+  private get port(): number {
+    return this.fastify.config.port
+  }
+
   async initialize(): Promise<void> {
     try {
       this.log.info('Starting Sonarr manager initialization')
@@ -38,7 +42,8 @@ export class SonarrManagerService {
           const sonarrService = new SonarrService(
             this.log,
             this.fastify.config.baseUrl,
-            this.fastify, // Pass fastify instance
+            this.port,
+            this.fastify,
           )
           await sonarrService.initialize(instance)
           this.sonarrServices.set(instance.id, sonarrService)
@@ -67,6 +72,7 @@ export class SonarrManagerService {
       const tempService = new SonarrService(
         this.log,
         this.appBaseUrl,
+        this.port,
         this.fastify,
       )
       return await tempService.testConnection(baseUrl, apiKey)
@@ -290,6 +296,7 @@ export class SonarrManagerService {
     const sonarrService = new SonarrService(
       this.log,
       this.appBaseUrl,
+      this.port,
       this.fastify,
     )
     await sonarrService.initialize({ ...instance, id })
@@ -324,6 +331,7 @@ export class SonarrManagerService {
       const sonarrService = new SonarrService(
         this.log,
         this.appBaseUrl,
+        this.port,
         this.fastify,
       )
       await sonarrService.initialize(instance)
