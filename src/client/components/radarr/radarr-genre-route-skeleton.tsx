@@ -14,15 +14,28 @@ export const GenreRouteCardSkeleton = () => {
         </div>
       </div>
       <CardContent>
-        <div className="grid gap-4 md:grid-cols-3">
-          <div className="space-y-2">
-            <Skeleton className="h-10 w-full" />
+        <div className="grid gap-4">
+          {/* First Row */}
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-12" /> {/* Label */}
+              <Skeleton className="h-10 w-full" /> {/* Select */}
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-32" /> {/* Label */}
+              <Skeleton className="h-10 w-full" /> {/* Select */}
+            </div>
           </div>
-          <div className="space-y-2">
-            <Skeleton className="h-10 w-full" />
-          </div>
-          <div className="space-y-2">
-            <Skeleton className="h-10 w-full" />
+          {/* Second Row */}
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-24" /> {/* Label */}
+              <Skeleton className="h-10 w-full" /> {/* Select */}
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-28" /> {/* Label */}
+              <Skeleton className="h-10 w-full" /> {/* Select */}
+            </div>
           </div>
         </div>
       </CardContent>

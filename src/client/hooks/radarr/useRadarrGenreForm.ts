@@ -26,7 +26,7 @@ const useRadarrGenreForm = ({
         genre: route.genre,
         radarrInstanceId: route.radarrInstanceId,
         rootFolder: route.rootFolder,
-        qualityProfile: route.qualityProfile || '',
+        qualityProfile: route.qualityProfile?.toString() || '',
       },
       mode: 'all'
     })
@@ -37,12 +37,9 @@ const useRadarrGenreForm = ({
         genre: route.genre,
         radarrInstanceId: route.radarrInstanceId,
         rootFolder: route.rootFolder,
-        qualityProfile: route.qualityProfile || '',
+        qualityProfile: route.qualityProfile?.toString() || '',
       })
 
-      if (!route.qualityProfile) {
-        form.trigger('qualityProfile')
-      }
     }, [form, route])
   
     const setTitleValue = useCallback((title: string) => {

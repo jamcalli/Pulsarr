@@ -61,4 +61,5 @@ export interface TempRoute {
   genre: string
   radarrInstanceId: number
   rootFolder: string
+  qualityProfile: string
 }

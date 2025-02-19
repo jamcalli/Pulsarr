@@ -14,15 +14,28 @@ export const GenreRouteCardSkeleton = () => {
         </div>
       </div>
       <CardContent>
-        <div className="grid gap-4 md:grid-cols-3">
-          <div className="space-y-2">
-            <Skeleton className="h-10 w-full" />
+        <div className="grid gap-4">
+          {/* First Row */}
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-12" /> {/* Genre Label */}
+              <Skeleton className="h-10 w-full" /> {/* Genre Select */}
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-32" /> {/* Sonarr Instance Label */}
+              <Skeleton className="h-10 w-full" /> {/* Instance Select */}
+            </div>
           </div>
-          <div className="space-y-2">
-            <Skeleton className="h-10 w-full" />
-          </div>
-          <div className="space-y-2">
-            <Skeleton className="h-10 w-full" />
+          {/* Second Row */}
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-24" /> {/* Root Folder Label */}
+              <Skeleton className="h-10 w-full" /> {/* Root Folder Select */}
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-28" /> {/* Quality Profile Label */}
+              <Skeleton className="h-10 w-full" /> {/* Quality Profile Select */}
+            </div>
           </div>
         </div>
       </CardContent>
