@@ -1139,19 +1139,17 @@ export class DatabaseService {
       const user = await this.getUser(item.user_id)
       if (!user) continue
 
-      // Skip if user doesn't want notifications
       if (!user.notify_discord && !user.notify_email) continue
 
-      // For ended shows, only notify if not previously notified
       if (
         item.type === 'show' &&
         item.series_status === 'ended' &&
-        item.last_notified_at
+        item.last_notified_at &&
+        !isBulkRelease 
       ) {
         continue
       }
-
-      // Update notification timestamp
+      
       await this.knex('watchlist_items').where('id', item.id).update({
         last_notified_at: new Date().toISOString(),
         status: 'notified',
@@ -1166,18 +1164,16 @@ export class DatabaseService {
 
       if (mediaInfo.type === 'show' && mediaInfo.episodes?.length) {
         if (isBulkRelease) {
-          // For bulk releases, just mention the season
           notification.episodeDetails = {
             seasonNumber: mediaInfo.episodes[0].seasonNumber,
           }
         } else {
-          // For single episodes, include full details
           notification.episodeDetails = {
             title: mediaInfo.episodes[0].title,
-            overview: mediaInfo.episodes[0].overview,
+            ...(mediaInfo.episodes[0].overview && { overview: mediaInfo.episodes[0].overview }),
             seasonNumber: mediaInfo.episodes[0].seasonNumber,
             episodeNumber: mediaInfo.episodes[0].episodeNumber,
-            airDateUtc: mediaInfo.episodes[0].airDate,
+            airDateUtc: mediaInfo.episodes[0].airDateUtc,
           }
         }
       }

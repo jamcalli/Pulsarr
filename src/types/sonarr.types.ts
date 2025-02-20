@@ -173,8 +173,7 @@ export interface SonarrEpisodeSchema {
   episodeNumber: number
   seasonNumber: number
   title: string
-  overview: string
-  airDate: string // Format: "2025-02-06"
+  overview?: string
   airDateUtc: string // Format: "2025-02-06T08:00:00Z"
 }
 
