@@ -78,7 +78,7 @@ export class RadarrService {
         onMovieAdded: false,
         onMovieDelete: false,
         onMovieFileDelete: false,
-        onMovieFileDeleteForUpgrade: true,
+        onMovieFileDeleteForUpgrade: false,
         onHealthIssue: false,
         includeHealthWarnings: false,
         onHealthRestored: false,

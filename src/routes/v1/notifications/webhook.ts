@@ -14,55 +14,97 @@ interface QueuedWebhook {
     type: 'show'
     guid: string
     title: string
-    episodes: z.infer<typeof SonarrEpisodeSchema>[]
+    episodes: {
+      seasonNumber: number
+      episodeNumber: number
+      title: string
+      overview?: string
+      airDateUtc: string
+    }[]
   }
   receivedAt: Date
+  lastUpdated: Date
+}
+
+interface SeasonQueue {
+  episodes: QueuedWebhook['mediaInfo']['episodes']
+  firstReceived: Date
+  lastUpdated: Date
+  timeoutId: NodeJS.Timeout
+  notifiedSeasons: Set<number>
 }
 
 interface WebhookQueue {
   [seriesId: string]: {
-    episodes: QueuedWebhook[]
-    timeoutId: NodeJS.Timeout
+    seasons: {
+      [seasonNumber: number]: SeasonQueue
+    }
+    title: string
   }
 }
 
-const QUEUE_WAIT_TIME = 20 * 1000
+const QUEUE_WAIT_TIME = 60 * 1000 // 1 minute
+const NEW_EPISODE_THRESHOLD = 48 * 60 * 60 * 1000 // 48 hours in milliseconds
 const webhookQueue: WebhookQueue = {}
 
-async function processQueuedWebhooks(tvdbId: string, fastify: FastifyInstance) {
-  const queue = webhookQueue[tvdbId]
-  if (!queue) return
+function isRecentEpisode(airDateUtc: string): boolean {
+  const airDate = new Date(airDateUtc).getTime()
+  const now = Date.now()
+  return (now - airDate) <= NEW_EPISODE_THRESHOLD
+}
 
-  const episodes = queue.episodes
-  delete webhookQueue[tvdbId]
+async function processQueuedWebhooks(tvdbId: string, seasonNumber: number, fastify: FastifyInstance) {
+  const queue = webhookQueue[tvdbId]
+  if (!queue?.seasons[seasonNumber]) return
+
+  const seasonQueue = queue.seasons[seasonNumber]
+  const episodes = seasonQueue.episodes
+
+  clearTimeout(seasonQueue.timeoutId)
+
+  const hasRecentEpisodes = episodes.some(ep => isRecentEpisode(ep.airDateUtc))
+  if (seasonQueue.notifiedSeasons.has(seasonNumber) && !hasRecentEpisodes) {
+    delete queue.seasons[seasonNumber]
+    return
+  }
+
+  seasonQueue.notifiedSeasons.add(seasonNumber)
 
   const isBulkRelease = episodes.length > 1
+  
+  fastify.log.info({
+    tvdbId,
+    seasonNumber,
+    episodeCount: episodes.length,
+    isBulkRelease,
+    hasRecentEpisodes
+  }, 'Processing queued webhooks')
 
-  fastify.log.info(
-    {
-      tvdbId,
-      episodeCount: episodes.length,
-      isBulkRelease,
-    },
-    'Processing queued webhooks',
-  )
+  const mediaInfo = {
+    type: 'show' as const,
+    guid: `tvdb:${tvdbId}`,
+    title: queue.title,
+    episodes: episodes,
+  }
 
-  const mediaInfo = episodes[0].mediaInfo
   const notificationResults = await fastify.db.processNotifications(
     mediaInfo,
-    isBulkRelease,
+    isBulkRelease
   )
 
   for (const result of notificationResults) {
     if (result.user.notify_discord && result.user.discord_id) {
       await fastify.discord.sendDirectMessage(
         result.user.discord_id,
-        result.notification,
+        result.notification
       )
     }
-    if (result.user.notify_email) {
-      // TODO: Implement email notification service
-    }
+  }
+
+  delete queue.seasons[seasonNumber]
+
+  if (Object.keys(queue.seasons).length === 0) {
+    delete webhookQueue[tvdbId]
   }
 }
 
@@ -118,16 +160,16 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       },
     },
     async (request, reply) => {
+      
       const { body } = request
 
       try {
-        // Type guard for test payload
+
         if ('eventType' in body && body.eventType === 'Test') {
           fastify.log.info('Received test webhook')
           return { success: true }
         }
 
-        // Type guard for Radarr payload
         if (body.instanceName === 'Radarr' && 'movie' in body) {
           const mediaInfo = {
             type: 'movie' as const,
@@ -152,50 +194,72 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           return { success: true }
         }
 
-        // Type guard for Sonarr payload
-        // Type guard for Sonarr payload
         if (
           body.instanceName === 'Sonarr' &&
           'series' in body &&
           'episodes' in body &&
           body.episodes
         ) {
-          const mediaInfo = {
-            type: 'show' as const,
-            guid: `tvdb:${body.series.tvdbId}`,
-            title: body.series.title,
-            episodes: body.episodes as z.infer<typeof SonarrEpisodeSchema>[],
-          }
-
           const tvdbId = body.series.tvdbId.toString()
+          const seasonNumber = body.episodes[0].seasonNumber
+          const recentEpisodes = body.episodes.filter(ep => isRecentEpisode(ep.airDateUtc))
 
           if (!webhookQueue[tvdbId]) {
             webhookQueue[tvdbId] = {
-              episodes: [],
-              timeoutId: setTimeout(() => {
-                processQueuedWebhooks(tvdbId, fastify)
-              }, QUEUE_WAIT_TIME),
+              seasons: {},
+              title: body.series.title
             }
           }
-
-          webhookQueue[tvdbId].episodes.push({
-            mediaInfo,
-            receivedAt: new Date(),
-          })
-
-          fastify.log.info(
-            {
-              tvdbId,
-              episodeNumber: body.episodes[0].episodeNumber,
-              queueLength: webhookQueue[tvdbId].episodes.length,
-            },
-            'Queued webhook for processing',
-          )
-
+        
+          if (recentEpisodes.length > 0) {
+            const mediaInfo = {
+              type: 'show' as const,
+              guid: `tvdb:${tvdbId}`,
+              title: body.series.title,
+              episodes: recentEpisodes,
+            }
+        
+            const notificationResults = await fastify.db.processNotifications(
+              mediaInfo,
+              recentEpisodes.length > 1
+            )
+        
+            for (const result of notificationResults) {
+              if (result.user.notify_discord && result.user.discord_id) {
+                await fastify.discord.sendDirectMessage(
+                  result.user.discord_id,
+                  result.notification
+                )
+              }
+            }
+          }
+        
+          const nonRecentEpisodes = body.episodes.filter(ep => !isRecentEpisode(ep.airDateUtc))
+          if (nonRecentEpisodes.length > 0) {
+            if (!webhookQueue[tvdbId].seasons[seasonNumber]) {
+              webhookQueue[tvdbId].seasons[seasonNumber] = {
+                episodes: [],
+                firstReceived: new Date(),
+                lastUpdated: new Date(),
+                notifiedSeasons: new Set(),
+                timeoutId: setTimeout(() => {
+                  processQueuedWebhooks(tvdbId, seasonNumber, fastify)
+                }, QUEUE_WAIT_TIME)
+              }
+            } else {
+              clearTimeout(webhookQueue[tvdbId].seasons[seasonNumber].timeoutId)
+              webhookQueue[tvdbId].seasons[seasonNumber].timeoutId = setTimeout(() => {
+                processQueuedWebhooks(tvdbId, seasonNumber, fastify)
+              }, QUEUE_WAIT_TIME)
+            }
+        
+            webhookQueue[tvdbId].seasons[seasonNumber].episodes.push(...nonRecentEpisodes)
+            webhookQueue[tvdbId].seasons[seasonNumber].lastUpdated = new Date()
+          }
+        
           return { success: true }
         }
 
-        // If no matching payload type is found
         throw new Error('Invalid webhook payload')
       } catch (error) {
         fastify.log.error({ error }, 'Error processing webhook')
