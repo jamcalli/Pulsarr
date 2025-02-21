@@ -1,7 +1,8 @@
 import type { LevelWithSilent } from 'pino'
 import * as rfs from 'rotating-file-stream'
 import fs from 'node:fs'
-import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { resolve, dirname } from 'node:path'
 
 export const validLogLevels: LevelWithSilent[] = [
   'fatal',
@@ -13,13 +14,17 @@ export const validLogLevels: LevelWithSilent[] = [
   'silent',
 ]
 
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+const projectRoot = resolve(__dirname, '..')
+
 function getLogStream() {
-  const logDirectory = resolve(process.cwd(), 'data', 'logs')
+  const logDirectory = resolve(projectRoot, 'data', 'logs')
   try {
     if (!fs.existsSync(logDirectory)) {
       fs.mkdirSync(logDirectory, { recursive: true })
     }
-    return rfs.createStream('app.log', {
+    return rfs.createStream('pulsarr-%Y-%m-%d.log', {
       size: '10M',
       interval: '1d',
       path: logDirectory,
