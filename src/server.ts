@@ -3,6 +3,23 @@ import fp from 'fastify-plugin'
 import closeWithGrace from 'close-with-grace'
 import serviceApp from './app.js'
 import type { LevelWithSilent } from 'pino'
+import * as rfs from 'rotating-file-stream'
+import fs from 'node:fs'
+import { resolve } from 'node:path'
+
+function getLogStream() {
+  const logDirectory = resolve(import.meta.dirname, 'data/logs')
+  if (!fs.existsSync(logDirectory)) {
+    fs.mkdirSync(logDirectory)
+  }
+  return rfs.createStream('app.log', {
+    size: '10M',
+    interval: '1d',
+    path: logDirectory,
+    compress: 'gzip',
+    maxFiles: 7,
+  })
+}
 
 function getLoggerOptions() {
   if (process.stdout.isTTY) {
@@ -17,7 +34,9 @@ function getLoggerOptions() {
       },
     }
   }
-  return { level: 'silent' }
+  return {
+    level: 'info',
+  }
 }
 
 const validLogLevels: LevelWithSilent[] = [
@@ -32,7 +51,9 @@ const validLogLevels: LevelWithSilent[] = [
 
 async function init() {
   const app = Fastify({
-    logger: getLoggerOptions(),
+    logger: process.stdout.isTTY
+      ? getLoggerOptions()
+      : Object.assign(getLoggerOptions(), { stream: getLogStream() }),
     ajv: {
       customOptions: {
         coerceTypes: 'array',

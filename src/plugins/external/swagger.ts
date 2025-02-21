@@ -10,8 +10,9 @@ import type { FastifyInstance } from 'fastify'
 
 const createOpenapiConfig = (fastify: FastifyInstance) => {
   const urlObject = new URL(fastify.config.baseUrl)
-  const isLocal = urlObject.hostname === 'localhost' || urlObject.hostname === '127.0.0.1'
-  
+  const isLocal =
+    urlObject.hostname === 'localhost' || urlObject.hostname === '127.0.0.1'
+
   // Always include the port - this is the actual API endpoint
   const baseUrl = `${urlObject.protocol}//${urlObject.hostname}:${fastify.config.port}`
 
