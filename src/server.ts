@@ -8,7 +8,7 @@ import fs from 'node:fs'
 import { resolve } from 'node:path'
 
 function getLogStream() {
-  const logDirectory = resolve(import.meta.dirname, 'data/logs')
+  const logDirectory = resolve(process.cwd(), 'data', 'logs')
   if (!fs.existsSync(logDirectory)) {
     fs.mkdirSync(logDirectory)
   }
