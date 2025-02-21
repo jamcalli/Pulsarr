@@ -16,12 +16,12 @@ export function SettingsButton() {
   return (
     <>
       <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <div className="flex h-full w-full items-center justify-center bg-main rounded-tr-base cursor-pointer">
-          <Settings className="stroke-text h-6 w-6 scale-130" />
-          <span className="sr-only">Settings</span>
-        </div>
-      </DropdownMenuTrigger>
+        <DropdownMenuTrigger asChild>
+          <div className="flex h-full w-full items-center justify-center bg-main rounded-tr-base portrait:rounded-none cursor-pointer">
+            <Settings className="stroke-text h-6 w-6 scale-130" />
+            <span className="sr-only">Settings</span>
+          </div>
+        </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-40">
           <DropdownMenuItem onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
             {theme === 'dark' ? (
