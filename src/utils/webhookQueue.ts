@@ -1,8 +1,13 @@
 import type { FastifyInstance } from 'fastify'
-import type { WebhookQueue } from '@root/types/webhook.types.js'
+import type {
+  WebhookQueue,
+  RecentWebhook,
+  SeasonQueue,
+} from '@root/types/webhook.types.js'
 
 export const QUEUE_WAIT_TIME = 60 * 1000 // 1 minute
 export const NEW_EPISODE_THRESHOLD = 48 * 60 * 60 * 1000 // 48 hours
+export const UPGRADE_BUFFER_TIME = 2000 // 2 seconds buffer
 
 export const webhookQueue: WebhookQueue = {}
 
@@ -10,6 +15,62 @@ export function isRecentEpisode(airDateUtc: string): boolean {
   const airDate = new Date(airDateUtc).getTime()
   const now = Date.now()
   return now - airDate <= NEW_EPISODE_THRESHOLD
+}
+
+export async function checkForUpgrade(
+  tvdbId: string,
+  seasonNumber: number,
+  episodeNumber: number,
+  isUpgrade: boolean,
+  fastify: FastifyInstance,
+): Promise<boolean> {
+  const queue = webhookQueue[tvdbId]
+  if (!queue?.seasons[seasonNumber]) {
+    webhookQueue[tvdbId] = {
+      seasons: {
+        [seasonNumber]: {
+          episodes: [],
+          firstReceived: new Date(),
+          lastUpdated: new Date(),
+          notifiedSeasons: new Set(),
+          timeoutId: setTimeout(() => {}, 0),
+          upgradeTracker: new Map(),
+        },
+      },
+      title: '',
+    }
+  }
+
+  const seasonQueue = webhookQueue[tvdbId].seasons[seasonNumber]
+  const webhookKey = `${seasonNumber}-${episodeNumber}`
+
+  const currentWebhook: RecentWebhook = {
+    timestamp: Date.now(),
+    isUpgrade,
+  }
+
+  const existingWebhooks = seasonQueue.upgradeTracker.get(webhookKey) || []
+  seasonQueue.upgradeTracker.set(webhookKey, [
+    ...existingWebhooks,
+    currentWebhook,
+  ])
+
+  const now = Date.now()
+  for (const [key, webhooks] of seasonQueue.upgradeTracker.entries()) {
+    const filtered = webhooks.filter(
+      (w) => now - w.timestamp < UPGRADE_BUFFER_TIME,
+    )
+    if (filtered.length === 0) {
+      seasonQueue.upgradeTracker.delete(key)
+    } else {
+      seasonQueue.upgradeTracker.set(key, filtered)
+    }
+  }
+
+  await new Promise((resolve) => setTimeout(resolve, 500))
+
+  const recentWebhooks = seasonQueue.upgradeTracker.get(webhookKey) || []
+  return recentWebhooks.some((w) => w.isUpgrade)
 }
 
 export async function processQueuedWebhooks(
