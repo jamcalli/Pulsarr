@@ -15,16 +15,28 @@ export interface QueuedWebhook {
   lastUpdated: Date
 }
 
+export interface RecentWebhook {
+  timestamp: number
+  isUpgrade: boolean
+}
+
 export interface SeasonQueue {
-  episodes: QueuedWebhook['mediaInfo']['episodes']
+  episodes: Array<{
+    episodeNumber: number
+    seasonNumber: number
+    title: string
+    overview?: string
+    airDateUtc: string
+  }>
   firstReceived: Date
   lastUpdated: Date
-  timeoutId: NodeJS.Timeout
   notifiedSeasons: Set<number>
+  timeoutId: NodeJS.Timeout
+  upgradeTracker: Map<string, RecentWebhook[]>
 }
 
 export interface WebhookQueue {
-  [seriesId: string]: {
+  [tvdbId: string]: {
     seasons: {
       [seasonNumber: number]: SeasonQueue
     }

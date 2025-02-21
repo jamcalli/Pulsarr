@@ -76,8 +76,8 @@ export class SonarrService {
 
       const webhookConfig = {
         onGrab: false,
-        onDownload: false,
-        onUpgrade: false,
+        onDownload: true,
+        onUpgrade: true,
         onImportComplete: true,
         onRename: false,
         onSeriesAdd: false,

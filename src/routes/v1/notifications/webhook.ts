@@ -1,4 +1,4 @@
-import type { FastifyPluginAsync, FastifyInstance } from 'fastify'
+import type { FastifyPluginAsync } from 'fastify'
 import {
   WebhookPayloadSchema,
   WebhookResponseSchema,
@@ -11,6 +11,7 @@ import {
   processQueuedWebhooks,
   webhookQueue,
   QUEUE_WAIT_TIME,
+  checkForUpgrade,
 } from '@root/utils/webhookQueue.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
@@ -105,70 +106,134 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         ) {
           const tvdbId = body.series.tvdbId.toString()
           const seasonNumber = body.episodes[0].seasonNumber
-          const recentEpisodes = body.episodes.filter((ep) =>
-            isRecentEpisode(ep.airDateUtc),
-          )
+          const episodeNumber = body.episodes[0].episodeNumber
 
-          if (!webhookQueue[tvdbId]) {
-            webhookQueue[tvdbId] = {
-              seasons: {},
-              title: body.series.title,
-            }
+          if ('episodeFile' in body && !('episodeFiles' in body)) {
+
+            await checkForUpgrade(
+              tvdbId,
+              seasonNumber,
+              episodeNumber,
+              body.isUpgrade === true,
+              fastify,
+            )
+            fastify.log.info('Skipping initial download webhook')
+            return { success: true }
           }
 
-          if (recentEpisodes.length > 0) {
-            const mediaInfo = {
-              type: 'show' as const,
-              guid: `tvdb:${tvdbId}`,
-              title: body.series.title,
-              episodes: recentEpisodes,
-            }
-
-            const notificationResults = await fastify.db.processNotifications(
-              mediaInfo,
-              recentEpisodes.length > 1,
+          if ('episodeFiles' in body) {
+            const isUpgradeInProgress = await checkForUpgrade(
+              tvdbId,
+              seasonNumber,
+              episodeNumber,
+              false,
+              fastify,
             )
 
-            for (const result of notificationResults) {
-              if (result.user.notify_discord && result.user.discord_id) {
-                await fastify.discord.sendDirectMessage(
-                  result.user.discord_id,
-                  result.notification,
-                )
-              }
-            }
-          }
-
-          const nonRecentEpisodes = body.episodes.filter(
-            (ep) => !isRecentEpisode(ep.airDateUtc),
-          )
-          if (nonRecentEpisodes.length > 0) {
-            if (!webhookQueue[tvdbId].seasons[seasonNumber]) {
-              webhookQueue[tvdbId].seasons[seasonNumber] = {
-                episodes: [],
-                firstReceived: new Date(),
-                lastUpdated: new Date(),
-                notifiedSeasons: new Set(),
-                timeoutId: setTimeout(() => {
-                  processQueuedWebhooks(tvdbId, seasonNumber, fastify)
-                }, QUEUE_WAIT_TIME),
-              }
-            } else {
-              clearTimeout(webhookQueue[tvdbId].seasons[seasonNumber].timeoutId)
-              webhookQueue[tvdbId].seasons[seasonNumber].timeoutId = setTimeout(
-                () => {
-                  processQueuedWebhooks(tvdbId, seasonNumber, fastify)
+            if (isUpgradeInProgress) {
+              fastify.log.info(
+                {
+                  series: body.series.title,
+                  episode: `S${seasonNumber}E${episodeNumber}`,
+                  tvdbId,
                 },
-                QUEUE_WAIT_TIME,
+                'Skipping notification due to upgrade in progress',
               )
+              return { success: true }
             }
 
-            webhookQueue[tvdbId].seasons[seasonNumber].episodes.push(
-              ...nonRecentEpisodes,
-            )
-            webhookQueue[tvdbId].seasons[seasonNumber].lastUpdated = new Date()
-          }
+            if (!webhookQueue[tvdbId]) {
+              webhookQueue[tvdbId] = {
+                seasons: {},
+                title: body.series.title,
+              }
+            }
 
+            const recentEpisodes = body.episodes.filter((ep) =>
+              isRecentEpisode(ep.airDateUtc),
+            )
+
+            if (recentEpisodes.length > 0) {
+              const mediaInfo = {
+                type: 'show' as const,
+                guid: `tvdb:${tvdbId}`,
+                title: body.series.title,
+                episodes: recentEpisodes,
+              }
+
+              const notificationResults = await fastify.db.processNotifications(
+                mediaInfo,
+                recentEpisodes.length > 1,
+              )
+
+              fastify.log.info(
+                {
+                  mediaInfo,
+                  recipientCount: notificationResults.length,
+                },
+                'Processing notifications for recent episodes',
+              )
+
+              for (const result of notificationResults) {
+                if (result.user.notify_discord && result.user.discord_id) {
+                  const success = await fastify.discord.sendDirectMessage(
+                    result.user.discord_id,
+                    result.notification,
+                  )
+
+                  fastify.log.info(
+                    {
+                      success,
+                      userId: result.user.discord_id,
+                      username: result.user.name,
+                      mediaTitle: mediaInfo.title,
+                      episodeInfo: recentEpisodes
+                        .map((ep) => `S${ep.seasonNumber}E${ep.episodeNumber}`)
+                        .join(', '),
+                    },
+                    success
+                      ? 'Successfully sent Discord notification'
+                      : 'Failed to send Discord notification',
+                  )
+                }
+              }
+            }
+
+            const nonRecentEpisodes = body.episodes.filter(
+              (ep) => !isRecentEpisode(ep.airDateUtc),
+            )
+
+            if (nonRecentEpisodes.length > 0) {
+              if (!webhookQueue[tvdbId].seasons[seasonNumber]) {
+                webhookQueue[tvdbId].seasons[seasonNumber] = {
+                  episodes: [],
+                  firstReceived: new Date(),
+                  lastUpdated: new Date(),
+                  notifiedSeasons: new Set(),
+                  upgradeTracker: new Map(),
+                  timeoutId: setTimeout(() => {
+                    processQueuedWebhooks(tvdbId, seasonNumber, fastify)
+                  }, QUEUE_WAIT_TIME),
+                }
+              } else {
+                clearTimeout(
+                  webhookQueue[tvdbId].seasons[seasonNumber].timeoutId,
+                )
+                webhookQueue[tvdbId].seasons[seasonNumber].timeoutId =
+                  setTimeout(() => {
+                    processQueuedWebhooks(tvdbId, seasonNumber, fastify)
+                  }, QUEUE_WAIT_TIME)
+              }
+
+              webhookQueue[tvdbId].seasons[seasonNumber].episodes.push(
+                ...nonRecentEpisodes,
+              )
+              webhookQueue[tvdbId].seasons[seasonNumber].lastUpdated =
+                new Date()
+            }
+
+            return { success: true }
+          }
           return { success: true }
         }
 
