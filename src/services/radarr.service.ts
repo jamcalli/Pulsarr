@@ -176,7 +176,10 @@ export class RadarrService {
         )
         this.log.debug('Webhook creation response for Radarr:', response)
       } catch (createError) {
-        this.log.error('Error creating webhook for Radarr. Full config:', webhookConfig)
+        this.log.error(
+          'Error creating webhook for Radarr. Full config:',
+          webhookConfig,
+        )
         this.log.error('Creation error details:', createError)
         throw createError
       }
@@ -386,7 +389,7 @@ export class RadarrService {
 
         const exclusionMovies = pagedResult.records.map((record) => ({
           title: record.movieTitle,
-          imdbId: undefined, 
+          imdbId: undefined,
           tmdbId: record.tmdbId,
           id: record.id,
         }))
@@ -490,7 +493,6 @@ export class RadarrService {
   ): Promise<void> {
     const config = this.radarrConfig
     try {
-
       const addOptions: RadarrAddOptions = {
         searchForMovie: true,
       }

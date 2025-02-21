@@ -1145,11 +1145,11 @@ export class DatabaseService {
         item.type === 'show' &&
         item.series_status === 'ended' &&
         item.last_notified_at &&
-        !isBulkRelease 
+        !isBulkRelease
       ) {
         continue
       }
-      
+
       await this.knex('watchlist_items').where('id', item.id).update({
         last_notified_at: new Date().toISOString(),
         status: 'notified',
@@ -1170,7 +1170,9 @@ export class DatabaseService {
         } else {
           notification.episodeDetails = {
             title: mediaInfo.episodes[0].title,
-            ...(mediaInfo.episodes[0].overview && { overview: mediaInfo.episodes[0].overview }),
+            ...(mediaInfo.episodes[0].overview && {
+              overview: mediaInfo.episodes[0].overview,
+            }),
             seasonNumber: mediaInfo.episodes[0].seasonNumber,
             episodeNumber: mediaInfo.episodes[0].episodeNumber,
             airDateUtc: mediaInfo.episodes[0].airDateUtc,

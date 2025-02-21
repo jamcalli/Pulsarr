@@ -44,10 +44,12 @@ export const SonarrWebhookPayloadSchema = z.object({
 })
 
 // Combined webhook payload schema
-export const WebhookPayloadSchema = z.discriminatedUnion('eventType', [
-  WebhookTestPayloadSchema,
-  SonarrWebhookPayloadSchema,
-]).or(RadarrWebhookPayloadSchema)
+export const WebhookPayloadSchema = z
+  .discriminatedUnion('eventType', [
+    WebhookTestPayloadSchema,
+    SonarrWebhookPayloadSchema,
+  ])
+  .or(RadarrWebhookPayloadSchema)
 
 export const WebhookResponseSchema = z.object({
   success: z.boolean(),

@@ -68,7 +68,9 @@ export class SonarrService {
           return
         }
 
-        this.log.info('Pulsarr webhook URL mismatch, recreating webhook for Sonarr')
+        this.log.info(
+          'Pulsarr webhook URL mismatch, recreating webhook for Sonarr',
+        )
         await this.deleteNotification(existingPulsarrWebhook.id)
       }
 
@@ -133,7 +135,10 @@ export class SonarrService {
         )
         this.log.debug('Webhook creation response:', response)
       } catch (createError) {
-        this.log.error('Error creating webhook for Sonarr. Full config:', webhookConfig)
+        this.log.error(
+          'Error creating webhook for Sonarr. Full config:',
+          webhookConfig,
+        )
         this.log.error('Creation error details for Sonarr:', createError)
         throw createError
       }
