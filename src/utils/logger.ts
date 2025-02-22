@@ -16,7 +16,7 @@ export const validLogLevels: LevelWithSilent[] = [
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
-const projectRoot = resolve(__dirname, '..')
+const projectRoot = resolve(__dirname, '..', '..')
 
 function getLogStream() {
   const logDirectory = resolve(projectRoot, 'data', 'logs')
