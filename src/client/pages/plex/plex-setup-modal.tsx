@@ -21,6 +21,8 @@ interface PlexSetupModalProps {
 export function PlexSetupModal({ open, onOpenChange }: PlexSetupModalProps) {
   const { toast } = useToast()
   const updateConfig = useConfigStore((state) => state.updateConfig)
+  const fetchUserData = useConfigStore((state) => state.fetchUserData)
+  const refreshRssFeeds = useConfigStore((state) => state.refreshRssFeeds)
   const [plexToken, setPlexToken] = React.useState('')
   const [currentStep, setCurrentStep] = React.useState<'token' | 'syncing'>(
     'token',
@@ -43,24 +45,35 @@ export function PlexSetupModal({ open, onOpenChange }: PlexSetupModalProps) {
       selfWatchlistStatus === 'success' &&
       othersWatchlistStatus === 'success'
     ) {
-      const timer = setTimeout(() => {
-        onOpenChange(false)
-        // Add a small delay before resetting states
-        setTimeout(() => {
-          setCurrentStep('token')
-          setIsSubmitting(false)
-          setSelfWatchlistStatus('idle')
-          setOthersWatchlistStatus('idle')
-        }, 150) // Small delay to ensure modal is closed
+      const timer = setTimeout(async () => {
+        try {
+          // Fetch fresh user data before closing modal
+          await fetchUserData()
+          onOpenChange(false)
+
+          // Add a small delay before resetting states
+          setTimeout(() => {
+            setCurrentStep('token')
+            setIsSubmitting(false)
+            setSelfWatchlistStatus('idle')
+            setOthersWatchlistStatus('idle')
+          }, 150) // Small delay to ensure modal is closed
+        } catch (error) {
+          console.error('Error updating final state:', error)
+          toast({
+            description: 'Error finalizing setup',
+            variant: 'destructive',
+          })
+        }
       }, 1000)
       return () => clearTimeout(timer)
     }
-  }, [selfWatchlistStatus, othersWatchlistStatus, onOpenChange])
+  }, [selfWatchlistStatus, othersWatchlistStatus, onOpenChange, fetchUserData])
 
   const handleSubmit = async () => {
     setIsSubmitting(true)
     try {
-      // Submit token
+      // Submit token and ensure it's properly set in context
       await updateConfig({
         plexTokens: [plexToken],
       })
@@ -103,10 +116,8 @@ export function PlexSetupModal({ open, onOpenChange }: PlexSetupModalProps) {
         throw new Error('Failed to sync others watchlist')
       }
 
-      // Generate RSS feeds (no progress display needed)
-      await fetch('/v1/plex/generate-rss-feeds', {
-        method: 'GET',
-      })
+      // Generate and set RSS feeds in context
+      await refreshRssFeeds()
 
       setOthersWatchlistStatus('success')
 

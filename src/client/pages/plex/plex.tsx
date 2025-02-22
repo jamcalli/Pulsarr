@@ -44,6 +44,7 @@ export default function PlexConfigPage() {
   const refreshRssFeeds = useConfigStore((state) => state.refreshRssFeeds)
 
   const [showSetupModal, setShowSetupModal] = React.useState(false)
+  const [isInitialized, setIsInitialized] = React.useState(false)
   const [status, setStatus] = React.useState<
     'idle' | 'loading' | 'success' | 'error'
   >('idle')
@@ -74,15 +75,30 @@ export default function PlexConfigPage() {
   const form = useForm<PlexTokenFormSchema>({
     resolver: zodResolver(plexTokenFormSchema),
     defaultValues: {
-      plexToken: config?.plexTokens[0] || '',
+      plexToken: '',
     },
   })
 
   React.useEffect(() => {
-    if (config?.plexTokens[0]) {
-      form.setValue('plexToken', config.plexTokens[0])
+    if (config) {
+      const token = config.plexTokens?.[0] || ''
+      form.setValue('plexToken', token)
+      setIsInitialized(true)
     }
   }, [config, form])
+
+  // Only check for showing modal after initialization
+  React.useEffect(() => {
+    if (
+      isInitialized &&
+      config &&
+      (!config.plexTokens || config.plexTokens.length === 0)
+    ) {
+      setShowSetupModal(true)
+    } else if (config?.plexTokens && config.plexTokens.length > 0) {
+      fetchUserData()
+    }
+  }, [config, fetchUserData, isInitialized])
 
   const handleRefreshWatchlists = async () => {
     setRefreshStatus('loading')
@@ -207,6 +223,11 @@ export default function PlexConfigPage() {
                             type="text"
                             disabled={status === 'loading'}
                             className="w-full"
+                            onClick={() => {
+                              if (!field.value) {
+                                setShowSetupModal(true)
+                              }
+                            }}
                           />
                         </FormControl>
                         <FormMessage className="text-xs mt-1" />
@@ -399,7 +420,7 @@ export default function PlexConfigPage() {
         {users ? (
           <WatchlistTable users={users} />
         ) : (
-          <div className="text-center py-8 text-muted-foreground">
+          <div className="text-center py-8 text-text text-muted-foreground">
             No watchlist data available
           </div>
         )}

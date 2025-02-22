@@ -73,7 +73,14 @@ export const useConfigStore = create<ConfigState>()(
         const response = await fetch('/v1/config/config')
         const data: ConfigResponse = await response.json()
         if (data.success) {
-          set({ config: data.config })
+          // Set the entire config object, ensuring all fields are properly set
+          set((state) => ({
+            ...state,
+            config: {
+              ...data.config, // This includes plexTokens and all other fields
+            },
+            error: null,
+          }))
         } else {
           throw new Error('Failed to fetch config')
         }
@@ -89,16 +96,11 @@ export const useConfigStore = create<ConfigState>()(
         const result = await response.json()
 
         if (response.ok && result.self && result.friends) {
-          // Get current config
-          const currentConfig = get().config
-          if (currentConfig) {
-            // Update config with new RSS feeds
-            await get().updateConfig({
-              ...currentConfig,
-              selfRss: result.self,
-              friendsRss: result.friends,
-            })
-          }
+          // Update config with new RSS feeds
+          await get().updateConfig({
+            selfRss: result.self,
+            friendsRss: result.friends,
+          })
           return { selfRss: result.self, friendsRss: result.friends }
         }
       } catch (err) {
@@ -117,7 +119,12 @@ export const useConfigStore = create<ConfigState>()(
         })
         const data: ConfigResponse = await response.json()
         if (data.success) {
-          set({ config: data.config })
+          set((state) => ({
+            config: {
+              ...state.config,
+              ...data.config,
+            },
+          }))
         } else {
           throw new Error('Failed to update config')
         }
@@ -188,7 +195,16 @@ export const useConfigStore = create<ConfigState>()(
       const state = get()
       if (!state.isInitialized || force) {
         try {
-          await Promise.all([state.fetchConfig(), state.fetchUserData()])
+          await state.fetchConfig()
+
+          const currentState = get()
+          if (
+            currentState.config?.plexTokens &&
+            currentState.config.plexTokens.length > 0
+          ) {
+            await state.fetchUserData()
+          }
+
           set({ isInitialized: true })
         } catch (error) {
           set({ error: 'Failed to initialize config' })
