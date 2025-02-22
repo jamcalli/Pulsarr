@@ -48,7 +48,6 @@ const BaseSonarrWebhookSchema = z.object({
 })
 
 export const SonarrWebhookPayloadSchema = z.union([
-
   BaseSonarrWebhookSchema.extend({
     episodeFile: SonarrEpisodeFileSchema,
   }),
