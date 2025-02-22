@@ -109,7 +109,6 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           const episodeNumber = body.episodes[0].episodeNumber
 
           if ('episodeFile' in body && !('episodeFiles' in body)) {
-
             await checkForUpgrade(
               tvdbId,
               seasonNumber,

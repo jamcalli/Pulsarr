@@ -15,9 +15,9 @@ const CreateUserPage = lazy(() =>
   })),
 )
 
-const PlexConfigPage = lazy(() => import('@/pages/dashboard/plex/plex'))
-const SonarrConfigPage = lazy(() => import('@/pages/dashboard/sonarr/sonarr'))
-const RadarrConfigPage = lazy(() => import('@/pages/dashboard/radarr/radarr'))
+const PlexConfigPage = lazy(() => import('@/pages/plex/plex'))
+const SonarrConfigPage = lazy(() => import('@/pages/sonarr/sonarr'))
+const RadarrConfigPage = lazy(() => import('@/pages/radarr/radarr'))
 
 // Loading fallback component
 const LoadingFallback = () => null

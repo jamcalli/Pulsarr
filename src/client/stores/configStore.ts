@@ -2,14 +2,26 @@ import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import type { Config } from '@root/types/config.types'
 
-export type LogLevel =
-  | 'fatal'
-  | 'error'
-  | 'warn'
-  | 'info'
-  | 'debug'
-  | 'trace'
-  | 'silent'
+// New types for user data
+interface UserWatchlistInfo {
+  id: string
+  name: string
+  email: string
+  alias: string | null
+  discord_id: string | null
+  notify_email: boolean
+  notify_discord: boolean
+  can_sync: boolean
+  created_at: string
+  updated_at: string
+  watchlist_count: number
+}
+
+interface UserListResponse {
+  success: boolean
+  message: string
+  users: UserWatchlistInfo[]
+}
 
 interface ConfigResponse {
   success: boolean
@@ -23,10 +35,26 @@ interface ConfigState {
   error: string | null
   isInitialized: boolean
 
+  // New user-related state
+  users: UserWatchlistInfo[] | null
+  selfWatchlistCount: number | null
+  othersWatchlistInfo: {
+    userCount: number
+    totalItems: number
+  } | null
+
   // Actions
   initialize: (force?: boolean) => Promise<void>
   updateConfig: (updates: Partial<Config>) => Promise<void>
   fetchConfig: () => Promise<void>
+
+  // New actions
+  fetchUserData: () => Promise<void>
+  getSelfWatchlistInfo: () => UserWatchlistInfo | null
+  getOthersWatchlistInfo: () => {
+    users: UserWatchlistInfo[]
+    totalCount: number
+  } | null
 }
 
 export const useConfigStore = create<ConfigState>()(
@@ -36,6 +64,9 @@ export const useConfigStore = create<ConfigState>()(
     loading: true,
     error: null,
     isInitialized: false,
+    users: null,
+    selfWatchlistCount: null,
+    othersWatchlistInfo: null,
 
     fetchConfig: async () => {
       try {
@@ -75,11 +106,68 @@ export const useConfigStore = create<ConfigState>()(
       }
     },
 
+    // New method to fetch user data
+    fetchUserData: async () => {
+      try {
+        const response = await fetch('/v1/users/users/list/with-counts')
+        const data: UserListResponse = await response.json()
+
+        if (data.success && data.users) {
+          const users = data.users
+          const selfUser = users.find((user) => user.can_sync)
+          const otherUsers = users.filter((user) => !user.can_sync)
+
+          set({
+            users,
+            selfWatchlistCount: selfUser?.watchlist_count ?? null,
+            othersWatchlistInfo:
+              otherUsers.length > 0
+                ? {
+                    userCount: otherUsers.length,
+                    totalItems: otherUsers.reduce(
+                      (acc, user) => acc + user.watchlist_count,
+                      0,
+                    ),
+                  }
+                : null,
+          })
+        } else {
+          throw new Error('Failed to fetch user data')
+        }
+      } catch (err) {
+        set({ error: 'Failed to fetch user data' })
+        console.error('User data fetch error:', err)
+      }
+    },
+
+    // Helper method to get self watchlist info - user with ID 1 is self
+    getSelfWatchlistInfo: () => {
+      const state = get()
+      return state.users?.find((user) => Number(user.id) === 1) ?? null
+    },
+
+    // Helper method to get others watchlist info - all users except ID 1
+    getOthersWatchlistInfo: () => {
+      const state = get()
+      const otherUsers =
+        state.users?.filter((user) => Number(user.id) !== 1) ?? []
+
+      return otherUsers.length > 0
+        ? {
+            users: otherUsers,
+            totalCount: otherUsers.reduce(
+              (acc, user) => acc + (user.watchlist_count || 0),
+              0,
+            ),
+          }
+        : null
+    },
+
     initialize: async (force = false) => {
       const state = get()
       if (!state.isInitialized || force) {
         try {
-          await state.fetchConfig()
+          await Promise.all([state.fetchConfig(), state.fetchUserData()])
           set({ isInitialized: true })
         } catch (error) {
           set({ error: 'Failed to initialize config' })
