@@ -2,7 +2,6 @@ import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import type { Config } from '@root/types/config.types'
 
-// New types for user data
 interface UserWatchlistInfo {
   id: string
   name: string
@@ -35,7 +34,7 @@ interface ConfigState {
   error: string | null
   isInitialized: boolean
 
-  // New user-related state
+  // User-related state
   users: UserWatchlistInfo[] | null
   selfWatchlistCount: number | null
   othersWatchlistInfo: {
@@ -47,8 +46,9 @@ interface ConfigState {
   initialize: (force?: boolean) => Promise<void>
   updateConfig: (updates: Partial<Config>) => Promise<void>
   fetchConfig: () => Promise<void>
+  refreshRssFeeds: () => Promise<void>
 
-  // New actions
+  // User data actions
   fetchUserData: () => Promise<void>
   getSelfWatchlistInfo: () => UserWatchlistInfo | null
   getOthersWatchlistInfo: () => {
@@ -83,6 +83,30 @@ export const useConfigStore = create<ConfigState>()(
       }
     },
 
+    refreshRssFeeds: async () => {
+      try {
+        const response = await fetch('/v1/plex/generate-rss-feeds')
+        const result = await response.json()
+
+        if (response.ok && result.self && result.friends) {
+          // Get current config
+          const currentConfig = get().config
+          if (currentConfig) {
+            // Update config with new RSS feeds
+            await get().updateConfig({
+              ...currentConfig,
+              selfRss: result.self,
+              friendsRss: result.friends,
+            })
+          }
+          return { selfRss: result.self, friendsRss: result.friends }
+        }
+      } catch (err) {
+        console.error('RSS generation error:', err)
+        throw err
+      }
+    },
+
     updateConfig: async (updates: Partial<Config>) => {
       set({ loading: true })
       try {
@@ -106,7 +130,6 @@ export const useConfigStore = create<ConfigState>()(
       }
     },
 
-    // New method to fetch user data
     fetchUserData: async () => {
       try {
         const response = await fetch('/v1/users/users/list/with-counts')
@@ -140,13 +163,11 @@ export const useConfigStore = create<ConfigState>()(
       }
     },
 
-    // Helper method to get self watchlist info - user with ID 1 is self
     getSelfWatchlistInfo: () => {
       const state = get()
       return state.users?.find((user) => Number(user.id) === 1) ?? null
     },
 
-    // Helper method to get others watchlist info - all users except ID 1
     getOthersWatchlistInfo: () => {
       const state = get()
       const otherUsers =
