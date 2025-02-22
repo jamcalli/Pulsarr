@@ -41,6 +41,8 @@ export default function PlexConfigPage() {
   )
   const users = useConfigStore((state) => state.users)
 
+  const refreshRssFeeds = useConfigStore((state) => state.refreshRssFeeds)
+
   const [showSetupModal, setShowSetupModal] = React.useState(false)
   const [status, setStatus] = React.useState<
     'idle' | 'loading' | 'success' | 'error'
@@ -54,14 +56,6 @@ export default function PlexConfigPage() {
 
   const selfWatchlistProgress = useWatchlistProgress('self-watchlist')
   const othersWatchlistProgress = useWatchlistProgress('others-watchlist')
-
-  const [rssFeeds, setRssFeeds] = React.useState<{
-    self: string
-    friends: string
-  }>({
-    self: '',
-    friends: '',
-  })
 
   // Get watchlist data from store
   const selfWatchlist = getSelfWatchlistInfo()
@@ -110,26 +104,16 @@ export default function PlexConfigPage() {
     }
   }
 
-  const generateRssFeeds = async () => {
+  const handleGenerateRssFeeds = async () => {
     setRssStatus('loading')
     try {
-      const response = await fetch('/v1/plex/generate-rss-feeds')
-      const result = await response.json()
-
-      if (response.ok && result.self && result.friends) {
-        setRssFeeds({
-          self: result.self,
-          friends: result.friends,
-        })
-        setRssStatus('success')
-        toast({
-          title: 'RSS Feeds Generated',
-          description: 'RSS feed URLs have been successfully generated',
-          variant: 'default',
-        })
-      } else {
-        throw new Error('Failed to generate RSS feeds')
-      }
+      await refreshRssFeeds()
+      setRssStatus('success')
+      toast({
+        title: 'RSS Feeds Generated',
+        description: 'RSS feed URLs have been successfully generated',
+        variant: 'default',
+      })
     } catch (error) {
       console.error('RSS generation error:', error)
       setRssStatus('error')
@@ -360,7 +344,7 @@ export default function PlexConfigPage() {
               <Button
                 type="button"
                 variant="noShadow"
-                onClick={generateRssFeeds}
+                onClick={handleGenerateRssFeeds}
                 disabled={rssStatus === 'loading'}
                 className="shrink-0"
               >
@@ -379,7 +363,7 @@ export default function PlexConfigPage() {
                   <FormLabel className="text-text text-sm">Self Feed</FormLabel>
                   <FormControl>
                     <Input
-                      value={rssFeeds.self}
+                      value={config?.selfRss || ''}
                       placeholder="Generate RSS feeds to view URL"
                       type="text"
                       readOnly
@@ -387,13 +371,14 @@ export default function PlexConfigPage() {
                     />
                   </FormControl>
                 </FormItem>
+
                 <FormItem className="flex-1">
                   <FormLabel className="text-text text-sm">
                     Friends Feed
                   </FormLabel>
                   <FormControl>
                     <Input
-                      value={rssFeeds.friends}
+                      value={config?.friendsRss || ''}
                       placeholder="Generate RSS feeds to view URL"
                       type="text"
                       readOnly
@@ -405,15 +390,12 @@ export default function PlexConfigPage() {
             </div>
           </form>
         </Form>
-        {/* Add divider before table */}
-        <div className="my-6" />
 
-        {/* Add section title */}
+        <div className="my-6" />
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold text-text">User Watchlists</h2>
         </div>
 
-        {/* Add the watchlist table */}
         {users ? (
           <WatchlistTable users={users} />
         ) : (
