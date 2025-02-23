@@ -29,24 +29,26 @@ setFavicon()
 function RootLayout() {
   return (
     <ThemeProvider>
-      <div className="fixed inset-0 overflow-hidden">
-        <CRTOverlay className="h-full">
-          <div className="absolute top-8 left-0 right-0 z-10">
-            <div className="relative">
-              <h1
-                className="text-5xl font-bold tracking-tighter text-center"
-                style={{ color: 'var(--static-text)' }}
-              >
-                Pulsarr
-              </h1>
+      <div className="h-screen relative overflow-hidden">
+        {/* Background layer */}
+        <div className="fixed inset-0">
+          <CRTOverlay className="h-full">
+            <div className="absolute top-8 left-0 right-0 z-10">
+              <div className="relative">
+                <h1
+                  className="text-5xl font-bold tracking-tighter text-center"
+                  style={{ color: 'var(--static-text)' }}
+                >
+                  Pulsarr
+                </h1>
+              </div>
             </div>
-          </div>
-          <ParallaxStarfield>
-            {/* Planet Image */}
-            <div className="fixed bottom-0 right-0 z-0 translate-x-1/4 translate-y-1/4">
-              <div className="relative w-[1000px] portrait:w-[600px]">
-                <AspectRatio ratio={1522 / 1608}>
-                  <picture>
+            <ParallaxStarfield>
+              {/* Planet Image */}
+              <div className="fixed bottom-0 right-0 z-0 translate-x-1/4 translate-y-1/4">
+                <div className="relative w-[1000px] portrait:w-[600px]">
+                  <AspectRatio ratio={1522 / 1608}>
+                    <picture>
                     <source
                       media="(orientation: portrait)"
                       srcSet={planetMobile}
@@ -70,29 +72,34 @@ function RootLayout() {
                       className="h-full w-full object-cover"
                     />
                   </picture>
-                </AspectRatio>
+                  </AspectRatio>
+                </div>
               </div>
+              {/* Other background elements */}
+              <div className="fixed top-32 left-1/2 -translate-x-1/2 -translate-y-32 ml-24 z-[-1] pointer-events-none">
+                <Pulsar className="w-24 h-24" />
+              </div>
+              <AsteroidsBackground />
+              </ParallaxStarfield>
+            <div className="absolute bottom-8 left-0 right-0 z-10">
+              <p
+                className="text-xl tracking-tighter text-center"
+                style={{ color: 'var(--static-text)' }}
+              >
+                Plex watchlist tracker and notification center.
+              </p>
             </div>
-            {/* Other background elements */}
-            <div className="fixed top-32 left-1/2 -translate-x-1/2 -translate-y-32 ml-24 z-[-1] pointer-events-none">
-              <Pulsar className="w-24 h-24" />
-            </div>
-            <AsteroidsBackground />
-          </ParallaxStarfield>
-          <div className="absolute bottom-8 left-0 right-0 z-10">
-            <p
-              className="text-xl tracking-tighter text-center"
-              style={{ color: 'var(--static-text)' }}
-            >
-              Plex watchlist tracker and notification center.
-            </p>
-          </div>
-        </CRTOverlay>
+          </CRTOverlay>
+        </div>
+
+        {/* Content layer */}
+        <div className="relative h-full flex items-center justify-center">
+          <main className="z-10 w-full h-full flex items-center justify-center">
+            <RouterProvider router={router} />
+          </main>
+        </div>
+        <Toaster />
       </div>
-      <main className="fixed inset-0 flex items-center justify-center">
-        <RouterProvider router={router} />
-      </main>
-      <Toaster />
     </ThemeProvider>
   )
 }

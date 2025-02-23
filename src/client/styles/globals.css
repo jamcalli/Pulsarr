@@ -52,7 +52,8 @@ body {
 	position: fixed;
 	width: 100%;
 	height: 100%;
-}
+	touch-action: pan-y pinch-zoom;
+  }
 
 #app {
 	position: fixed;
@@ -60,3 +61,4 @@ body {
 	height: 100%;
 	overflow: hidden;
 }
+
