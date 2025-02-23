@@ -49,7 +49,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
-
 interface UserWatchlistInfo {
   id: string
   name: string

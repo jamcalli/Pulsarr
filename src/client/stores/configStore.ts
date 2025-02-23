@@ -28,13 +28,10 @@ interface ConfigResponse {
 }
 
 interface ConfigState {
-  // State
   config: Config | null
   loading: boolean
   error: string | null
   isInitialized: boolean
-
-  // User-related state
   users: UserWatchlistInfo[] | null
   selfWatchlistCount: number | null
   othersWatchlistInfo: {
@@ -42,13 +39,11 @@ interface ConfigState {
     totalItems: number
   } | null
 
-  // Actions
   initialize: (force?: boolean) => Promise<void>
   updateConfig: (updates: Partial<Config>) => Promise<void>
   fetchConfig: () => Promise<void>
   refreshRssFeeds: () => Promise<void>
 
-  // User data actions
   fetchUserData: () => Promise<void>
   getSelfWatchlistInfo: () => UserWatchlistInfo | null
   getOthersWatchlistInfo: () => {
@@ -59,7 +54,6 @@ interface ConfigState {
 
 export const useConfigStore = create<ConfigState>()(
   devtools((set, get) => ({
-    // Initial state
     config: null,
     loading: true,
     error: null,
@@ -73,11 +67,10 @@ export const useConfigStore = create<ConfigState>()(
         const response = await fetch('/v1/config/config')
         const data: ConfigResponse = await response.json()
         if (data.success) {
-          // Set the entire config object, ensuring all fields are properly set
           set((state) => ({
             ...state,
             config: {
-              ...data.config, // This includes plexTokens and all other fields
+              ...data.config,
             },
             error: null,
           }))
@@ -96,7 +89,6 @@ export const useConfigStore = create<ConfigState>()(
         const result = await response.json()
 
         if (response.ok && result.self && result.friends) {
-          // Update config with new RSS feeds
           await get().updateConfig({
             selfRss: result.self,
             friendsRss: result.friends,
