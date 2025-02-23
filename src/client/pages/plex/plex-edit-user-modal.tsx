@@ -27,11 +27,15 @@ interface UserEditModalProps {
   } | null
 }
 
-export function UserEditModal({ open, onOpenChange, user }: UserEditModalProps) {
+export function UserEditModal({
+  open,
+  onOpenChange,
+  user,
+}: UserEditModalProps) {
   const { toast } = useToast()
   const fetchUserData = useConfigStore((state) => state.fetchUserData)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
-  
+
   // Form state
   const [formData, setFormData] = React.useState({
     name: '',
@@ -39,7 +43,7 @@ export function UserEditModal({ open, onOpenChange, user }: UserEditModalProps) 
     alias: '',
     discord_id: '',
     notify_email: false,
-    notify_discord: false
+    notify_discord: false,
   })
 
   // Update form data when user prop changes
@@ -51,7 +55,7 @@ export function UserEditModal({ open, onOpenChange, user }: UserEditModalProps) 
         alias: user.alias || '',
         discord_id: user.discord_id || '',
         notify_email: user.notify_email,
-        notify_discord: user.notify_discord
+        notify_discord: user.notify_discord,
       })
     }
   }, [user])
@@ -64,9 +68,9 @@ export function UserEditModal({ open, onOpenChange, user }: UserEditModalProps) 
       const response = await fetch(`/v1/users/users/${user.id}`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(formData),
       })
 
       if (!response.ok) {
@@ -78,15 +82,16 @@ export function UserEditModal({ open, onOpenChange, user }: UserEditModalProps) 
 
       toast({
         description: 'User information updated successfully',
-        variant: 'default'
+        variant: 'default',
       })
 
       onOpenChange(false)
     } catch (error) {
       console.error('Update error:', error)
       toast({
-        description: error instanceof Error ? error.message : 'Failed to update user',
-        variant: 'destructive'
+        description:
+          error instanceof Error ? error.message : 'Failed to update user',
+        variant: 'destructive',
       })
     } finally {
       setIsSubmitting(false)
@@ -102,7 +107,7 @@ export function UserEditModal({ open, onOpenChange, user }: UserEditModalProps) 
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent 
+      <DialogContent
         className="sm:max-w-md"
         onPointerDownOutside={(e) => {
           if (isSubmitting) {
@@ -129,7 +134,9 @@ export function UserEditModal({ open, onOpenChange, user }: UserEditModalProps) 
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, name: e.target.value }))
+                }
                 placeholder="User name"
                 disabled={isSubmitting}
               />
@@ -140,7 +147,9 @@ export function UserEditModal({ open, onOpenChange, user }: UserEditModalProps) 
               <Input
                 id="email"
                 value={formData.email}
-                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, email: e.target.value }))
+                }
                 placeholder="Email address"
                 type="email"
                 disabled={isSubmitting}
@@ -152,7 +161,9 @@ export function UserEditModal({ open, onOpenChange, user }: UserEditModalProps) 
               <Input
                 id="alias"
                 value={formData.alias}
-                onChange={(e) => setFormData(prev => ({ ...prev, alias: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, alias: e.target.value }))
+                }
                 placeholder="User alias (optional)"
                 disabled={isSubmitting}
               />
@@ -163,7 +174,12 @@ export function UserEditModal({ open, onOpenChange, user }: UserEditModalProps) 
               <Input
                 id="discord"
                 value={formData.discord_id}
-                onChange={(e) => setFormData(prev => ({ ...prev, discord_id: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    discord_id: e.target.value,
+                  }))
+                }
                 placeholder="Discord ID (optional)"
                 disabled={isSubmitting}
               />
@@ -171,21 +187,32 @@ export function UserEditModal({ open, onOpenChange, user }: UserEditModalProps) 
 
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <Label htmlFor="notify-email" className="flex-grow">Email Notifications</Label>
+                <Label htmlFor="notify-email" className="flex-grow">
+                  Email Notifications
+                </Label>
                 <Switch
                   id="notify-email"
                   checked={formData.notify_email}
-                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, notify_email: checked }))}
+                  onCheckedChange={(checked) =>
+                    setFormData((prev) => ({ ...prev, notify_email: checked }))
+                  }
                   disabled={isSubmitting}
                 />
               </div>
 
               <div className="flex items-center justify-between">
-                <Label htmlFor="notify-discord" className="flex-grow">Discord Notifications</Label>
+                <Label htmlFor="notify-discord" className="flex-grow">
+                  Discord Notifications
+                </Label>
                 <Switch
                   id="notify-discord"
                   checked={formData.notify_discord}
-                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, notify_discord: checked }))}
+                  onCheckedChange={(checked) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      notify_discord: checked,
+                    }))
+                  }
                   disabled={isSubmitting}
                 />
               </div>
