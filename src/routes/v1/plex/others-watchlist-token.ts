@@ -12,7 +12,7 @@ export const othersWatchlistTokenRoute: FastifyPluginAsyncZod = async (
     handler: async (_request, reply) => {
       try {
         const response = await fastify.plexWatchlist.getOthersWatchlists()
-        reply.send(response)
+        return reply.send(response)
       } catch (err) {
         fastify.log.error(err)
         reply

@@ -23,7 +23,7 @@ export default fp(
         service.removeConnection(connectionId)
       })
 
-      reply.sse(
+      return reply.sse(
         (async function* source() {
           for await (const [event] of on(
             service.getEventEmitter(),
