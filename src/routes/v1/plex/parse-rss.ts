@@ -15,7 +15,9 @@ export const rssWatchlistRoute: FastifyPluginAsyncZod = async (
         return reply.send(response)
       } catch (err) {
         fastify.log.error(err)
-        return reply.code(500).send({ error: 'Unable to fetch RSS watchlist items' })
+        return reply
+          .code(500)
+          .send({ error: 'Unable to fetch RSS watchlist items' })
       }
     },
   })

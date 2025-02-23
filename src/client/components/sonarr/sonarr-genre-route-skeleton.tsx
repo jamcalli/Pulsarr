@@ -4,13 +4,13 @@ import { Skeleton } from '@/components/ui/skeleton'
 export const GenreRouteCardSkeleton = () => {
   return (
     <Card className="bg-bg">
-      <div className="flex flex-row items-center justify-between space-y-0 p-6 pb-2">
+      <div className="flex flex-row items-center justify-between space-y-0 p-6 pb-2 portrait:flex-col portrait:items-start portrait:gap-4">
         <div className="flex items-center space-x-4">
           <Skeleton className="h-6 w-48" />
         </div>
-        <div className="flex space-x-2">
-          <Skeleton className="h-9 w-20" />
-          <Skeleton className="h-9 w-20" />
+        <div className="flex space-x-2 portrait:w-full">
+          <Skeleton className="h-9 min-w-[5rem] flex-1" />
+          <Skeleton className="h-9 min-w-[5rem] flex-1" />
         </div>
       </div>
       <CardContent>

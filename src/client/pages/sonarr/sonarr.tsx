@@ -4,7 +4,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { useSonarrStore } from '@/stores/sonarrStore'
 import SonarrGenreRouting from '@/components/sonarr/sonarr-genre-routing'
 import { InstanceCard } from '@/components/sonarr/sonarr-instance-card'
-import InstanceCardSkeleton from '@/components/sonarr/radarr-card-skeleton'
+import InstanceCardSkeleton from '@/components/sonarr/sonarr-card-skeleton'
 import { API_KEY_PLACEHOLDER } from '@/types/sonarr/constants'
 
 export default function SonarrConfigPage() {

@@ -29,7 +29,7 @@ import {
 } from '@/components/sonarr/sonarr-selects'
 import SyncedInstancesSelect from './sonarr-synced-instance-select'
 import ConnectionSettings from './sonarr-connection-settings'
-import InstanceCardSkeleton from './radarr-card-skeleton'
+import InstanceCardSkeleton from './sonarr-card-skeleton'
 import DeleteInstanceAlert from './delete-instance-alert'
 import type { SonarrInstance } from '@/types/sonarr/types'
 import { useToast } from '@/hooks/use-toast'
