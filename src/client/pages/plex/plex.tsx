@@ -19,7 +19,6 @@ import { useConfigStore } from '@/stores/configStore'
 import { useWatchlistProgress } from '@/hooks/useProgress'
 import { PlexSetupModal } from '@/pages/plex/plex-setup-modal'
 import { WatchlistTable } from '@/pages/plex/plex-user-table'
-import { ScrollArea } from '@/components/ui/scroll-area'
 
 const plexTokenFormSchema = z.object({
   plexToken: z.string().min(5, { message: 'Plex Token is required' }),
@@ -196,7 +195,6 @@ export default function PlexConfigPage() {
   }
 
   return (
-    <ScrollArea className="h-full">
       <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
         <PlexSetupModal
           open={showSetupModal}
@@ -442,6 +440,5 @@ export default function PlexConfigPage() {
           </div>
         </div>
       </div>
-    </ScrollArea>
   )
 }

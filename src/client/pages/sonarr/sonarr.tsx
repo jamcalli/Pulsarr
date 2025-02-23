@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { useSonarrStore } from '@/stores/sonarrStore'
 import SonarrGenreRouting from '@/components/sonarr/sonarr-genre-routing'
 import { InstanceCard } from '@/components/sonarr/sonarr-instance-card'
@@ -40,7 +39,6 @@ export default function SonarrConfigPage() {
 
   if (instancesLoading && hasRealInstances) {
     return (
-      <ScrollArea className="h-full">
         <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
           <div className="grid gap-6">
             <div className="flex justify-between items-center">
@@ -52,12 +50,10 @@ export default function SonarrConfigPage() {
             <SonarrGenreRouting />
           </div>
         </div>
-      </ScrollArea>
     )
   }
 
   return (
-    <ScrollArea className="h-full">
       <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
         {isPlaceholderInstance && !showInstanceCard ? (
           <div className="grid gap-6">
@@ -109,6 +105,5 @@ export default function SonarrConfigPage() {
           </div>
         )}
       </div>
-    </ScrollArea>
   )
 }
