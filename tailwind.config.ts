@@ -6,6 +6,9 @@ const config: Config = {
   content: ['./src/client/index.html', './src/client/**/*.{ts,tsx,js,jsx}'],
   theme: {
     extend: {
+      screens: {
+        xs: '490px',
+      },
       fontFamily: {
         sans: ['Shuttleblock', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         heading: ['Shuttleblock', 'ui-sans-serif', 'system-ui', 'sans-serif'],

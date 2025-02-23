@@ -68,7 +68,13 @@ export function PlexSetupModal({ open, onOpenChange }: PlexSetupModalProps) {
       }, 1000)
       return () => clearTimeout(timer)
     }
-  }, [selfWatchlistStatus, othersWatchlistStatus, onOpenChange, fetchUserData])
+  }, [
+    selfWatchlistStatus,
+    othersWatchlistStatus,
+    onOpenChange,
+    fetchUserData,
+    toast,
+  ])
 
   const handleSubmit = async () => {
     setIsSubmitting(true)

@@ -4,14 +4,14 @@ import { Skeleton } from '@/components/ui/skeleton'
 export const InstanceCardSkeleton = () => {
   return (
     <Card className="bg-bg">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-7">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-7 portrait:flex-col portrait:items-start portrait:gap-4">
         <div className="flex items-center space-x-4">
           <Skeleton className="h-6 w-48" />
           <Skeleton className="h-5 w-16" />
         </div>
-        <div className="flex space-x-2">
-          <Skeleton className="h-9 w-20" />
-          <Skeleton className="h-9 w-20" />
+        <div className="flex space-x-2 portrait:w-full">
+          <Skeleton className="h-9 min-w-[5rem] flex-1" />
+          <Skeleton className="h-9 min-w-[5rem] flex-1" />
         </div>
       </CardHeader>
       <CardContent className="space-y-8">
