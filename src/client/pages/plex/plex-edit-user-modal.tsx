@@ -27,27 +27,32 @@ import {
 } from '@/components/ui/form'
 
 // Define the form schema
-const userFormSchema = z.object({
-  name: z.string(),
-  email: z.string().email('Invalid email address'),
-  alias: z.string().nullable(),
-  discord_id: z.string().nullable(),
-  notify_email: z.boolean(),
-  notify_discord: z.boolean(),
-}).refine((data) => {
-  // Cannot have discord notifications without discord ID
-  if (data.notify_discord && !data.discord_id) {
-    return false;
-  }
-  // Cannot have email notifications with placeholder email
-  if (data.notify_email && data.email.endsWith('@placeholder.com')) {
-    return false;
-  }
-  return true;
-}, {
-  message: "Invalid notification settings based on user information",
-  path: ["notify_settings"] // Custom path for the error
-});
+const userFormSchema = z
+  .object({
+    name: z.string(),
+    email: z.string().email('Invalid email address'),
+    alias: z.string().nullable(),
+    discord_id: z.string().nullable(),
+    notify_email: z.boolean(),
+    notify_discord: z.boolean(),
+  })
+  .refine(
+    (data) => {
+      // Cannot have discord notifications without discord ID
+      if (data.notify_discord && !data.discord_id) {
+        return false
+      }
+      // Cannot have email notifications with placeholder email
+      if (data.notify_email && data.email.endsWith('@placeholder.com')) {
+        return false
+      }
+      return true
+    },
+    {
+      message: 'Invalid notification settings based on user information',
+      path: ['notify_settings'], // Custom path for the error
+    },
+  )
 
 type UserFormValues = z.infer<typeof userFormSchema>
 
@@ -72,7 +77,9 @@ export function UserEditModal({
 }: UserEditModalProps) {
   const { toast } = useToast()
   const updateUser = useConfigStore((state) => state.updateUser)
-  const [saveStatus, setSaveStatus] = React.useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const [saveStatus, setSaveStatus] = React.useState<
+    'idle' | 'loading' | 'success' | 'error'
+  >('idle')
 
   // Initialize the form
   const form = useForm<UserFormValues>({
@@ -117,8 +124,10 @@ export function UserEditModal({
 
     setSaveStatus('loading')
     try {
-      const minimumLoadingTime = new Promise((resolve) => setTimeout(resolve, 500))
-      
+      const minimumLoadingTime = new Promise((resolve) =>
+        setTimeout(resolve, 500),
+      )
+
       await Promise.all([
         updateUser(user.id, {
           name: values.name,
@@ -128,7 +137,7 @@ export function UserEditModal({
           notify_email: values.notify_email,
           notify_discord: values.notify_discord,
         }),
-        minimumLoadingTime
+        minimumLoadingTime,
       ])
 
       setSaveStatus('success')
@@ -144,7 +153,8 @@ export function UserEditModal({
       console.error('Update error:', error)
       setSaveStatus('error')
       toast({
-        description: error instanceof Error ? error.message : 'Failed to update user',
+        description:
+          error instanceof Error ? error.message : 'Failed to update user',
         variant: 'destructive',
       })
       await new Promise((resolve) => setTimeout(resolve, 1000))
@@ -159,6 +169,9 @@ export function UserEditModal({
     }
     onOpenChange(newOpen)
   }
+
+  // Check if form is dirty (has changes)
+  const isFormDirty = form.formState.isDirty
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -183,7 +196,10 @@ export function UserEditModal({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
+          <form
+            onSubmit={form.handleSubmit(handleSubmit)}
+            className="space-y-8"
+          >
             <div className="space-y-4">
               <FormField
                 control={form.control}
@@ -269,22 +285,26 @@ export function UserEditModal({
                 control={form.control}
                 name="notify_email"
                 render={({ field }) => {
-                  const email = form.watch('email');
-                  const isPlaceholderEmail = email.endsWith('@placeholder.com');
+                  const email = form.watch('email')
+                  const isPlaceholderEmail = email.endsWith('@placeholder.com')
                   // If it's a placeholder email and notifications are on, turn them off
                   if (isPlaceholderEmail && field.value) {
-                    field.onChange(false);
+                    field.onChange(false)
                   }
-                  
+
                   return (
                     <FormItem>
                       <div className="flex items-center justify-between">
-                        <FormLabel className="text-text">Email Notifications</FormLabel>
+                        <FormLabel className="text-text">
+                          Email Notifications
+                        </FormLabel>
                         <FormControl>
                           <Switch
                             checked={field.value}
                             onCheckedChange={field.onChange}
-                            disabled={saveStatus !== 'idle' || isPlaceholderEmail}
+                            disabled={
+                              saveStatus !== 'idle' || isPlaceholderEmail
+                            }
                           />
                         </FormControl>
                       </div>
@@ -292,7 +312,7 @@ export function UserEditModal({
                         <FormMessage>Requires valid email address</FormMessage>
                       )}
                     </FormItem>
-                  );
+                  )
                 }}
               />
 
@@ -300,17 +320,19 @@ export function UserEditModal({
                 control={form.control}
                 name="notify_discord"
                 render={({ field }) => {
-                  const discordId = form.watch('discord_id');
-                  const hasDiscordId = Boolean(discordId);
+                  const discordId = form.watch('discord_id')
+                  const hasDiscordId = Boolean(discordId)
                   // If there's no Discord ID and notifications are on, turn them off
                   if (!hasDiscordId && field.value) {
-                    field.onChange(false);
+                    field.onChange(false)
                   }
 
                   return (
                     <FormItem>
                       <div className="flex items-center justify-between">
-                        <FormLabel className="text-text">Discord Notifications</FormLabel>
+                        <FormLabel className="text-text">
+                          Discord Notifications
+                        </FormLabel>
                         <FormControl>
                           <Switch
                             checked={field.value}
@@ -323,7 +345,7 @@ export function UserEditModal({
                         <FormMessage>Requires Discord ID</FormMessage>
                       )}
                     </FormItem>
-                  );
+                  )
                 }}
               />
             </div>
@@ -340,7 +362,7 @@ export function UserEditModal({
               <Button
                 type="submit"
                 variant="default"
-                disabled={saveStatus !== 'idle'}
+                disabled={saveStatus !== 'idle' || !isFormDirty}
                 className="min-w-[100px] flex items-center justify-center gap-2"
               >
                 {saveStatus === 'loading' ? (

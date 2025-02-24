@@ -39,71 +39,70 @@ export default function RadarrConfigPage() {
 
   if (instancesLoading && hasRealInstances) {
     return (
-        <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
-          <div className="grid gap-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-text">Radarr Instances</h2>
-            </div>
-            <div className="grid gap-4">
-              <InstanceCardSkeleton />
-            </div>
-            <RadarrGenreRouting />
+      <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
+        <div className="grid gap-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-bold text-text">Radarr Instances</h2>
           </div>
+          <div className="grid gap-4">
+            <InstanceCardSkeleton />
+          </div>
+          <RadarrGenreRouting />
         </div>
+      </div>
     )
   }
 
   return (
-
-      <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
-        {isPlaceholderInstance && !showInstanceCard ? (
-          <div className="grid gap-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-text">Radarr Instances</h2>
-            </div>
-            <div className="text-center py-8 text-text">
-              <p>No Radarr instances configured</p>
-              <Button onClick={addInstance} className="mt-4">
-                Add Your First Instance
-              </Button>
-            </div>
-            <RadarrGenreRouting />
+    <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
+      {isPlaceholderInstance && !showInstanceCard ? (
+        <div className="grid gap-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-bold text-text">Radarr Instances</h2>
           </div>
-        ) : (
-          <div className="grid gap-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-text">Radarr Instances</h2>
-              <Button onClick={addInstance}>Add Instance</Button>
-            </div>
-            <div className="grid gap-4">
-              {instances.map((instance) =>
-                instance.apiKey !== API_KEY_PLACEHOLDER ? (
-                  <InstanceCard key={instance.id} instance={instance} />
-                ) : null,
-              )}
-              {showInstanceCard && (
-                <InstanceCard
-                  instance={{
-                    id: -1,
-                    name: `Radarr Instance ${
-                      instances.filter((i) => i.apiKey !== API_KEY_PLACEHOLDER)
-                        .length + 1
-                    }`,
-                    baseUrl: 'http://localhost:7878',
-                    apiKey: '',
-                    bypassIgnored: false,
-                    tags: [],
-                    isDefault: instances.length === 0,
-                    qualityProfile: '',
-                    rootFolder: '',
-                  }}
-                  setShowInstanceCard={setShowInstanceCard}
-                />
-              )}
-            </div>
-            <RadarrGenreRouting />
+          <div className="text-center py-8 text-text">
+            <p>No Radarr instances configured</p>
+            <Button onClick={addInstance} className="mt-4">
+              Add Your First Instance
+            </Button>
           </div>
-        )}
-      </div>
+          <RadarrGenreRouting />
+        </div>
+      ) : (
+        <div className="grid gap-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-bold text-text">Radarr Instances</h2>
+            <Button onClick={addInstance}>Add Instance</Button>
+          </div>
+          <div className="grid gap-4">
+            {instances.map((instance) =>
+              instance.apiKey !== API_KEY_PLACEHOLDER ? (
+                <InstanceCard key={instance.id} instance={instance} />
+              ) : null,
+            )}
+            {showInstanceCard && (
+              <InstanceCard
+                instance={{
+                  id: -1,
+                  name: `Radarr Instance ${
+                    instances.filter((i) => i.apiKey !== API_KEY_PLACEHOLDER)
+                      .length + 1
+                  }`,
+                  baseUrl: 'http://localhost:7878',
+                  apiKey: '',
+                  bypassIgnored: false,
+                  tags: [],
+                  isDefault: instances.length === 0,
+                  qualityProfile: '',
+                  rootFolder: '',
+                }}
+                setShowInstanceCard={setShowInstanceCard}
+              />
+            )}
+          </div>
+          <RadarrGenreRouting />
+        </div>
+      )}
+    </div>
   )
 }
