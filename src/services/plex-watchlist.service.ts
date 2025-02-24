@@ -753,7 +753,7 @@ export class PlexWatchlistService {
   ) {
     return existingItemsToLink.has(user)
       ? Array.from(existingItemsToLink.get(user) as Set<WatchlistItem>).map(
-          (item) => this.formatWatchlistItem(item) 
+          (item) => this.formatWatchlistItem(item),
         )
       : []
   }
@@ -763,8 +763,8 @@ export class PlexWatchlistService {
     user: Friend & { userId: number },
   ) {
     return processedItems.has(user)
-      ? Array.from(processedItems.get(user) as Set<WatchlistItem>).map(
-          (item) => this.formatWatchlistItem(item)
+      ? Array.from(processedItems.get(user) as Set<WatchlistItem>).map((item) =>
+          this.formatWatchlistItem(item),
         )
       : []
   }
@@ -775,27 +775,29 @@ export class PlexWatchlistService {
       plexKey: item.key,
       type: item.type,
       thumb: item.thumb || '',
-      guids: this.safeParseArray<string>(item.guids), 
+      guids: this.safeParseArray<string>(item.guids),
       genres: this.safeParseArray<string>(item.genres),
       status: 'pending' as const,
-    };
+    }
   }
 
   private safeParseArray<T>(value: unknown): T[] {
     if (Array.isArray(value)) {
-      return value as T[];
+      return value as T[]
     }
-    
+
     if (typeof value === 'string') {
       try {
-        const parsed = JSON.parse(value);
-        return (Array.isArray(parsed) ? parsed : [parsed].filter(Boolean)) as T[];
+        const parsed = JSON.parse(value)
+        return (
+          Array.isArray(parsed) ? parsed : [parsed].filter(Boolean)
+        ) as T[]
       } catch (e) {
-        return (value ? [value] : []) as T[];
+        return (value ? [value] : []) as T[]
       }
     }
-    
-    return (value ? [value] : []) as T[];
+
+    return (value ? [value] : []) as T[]
   }
 
   async processRssWatchlists(): Promise<RssWatchlistResults> {
