@@ -24,7 +24,7 @@ function getLogStream() {
     if (!fs.existsSync(logDirectory)) {
       fs.mkdirSync(logDirectory, { recursive: true })
     }
-    return rfs.createStream('pulsarr-%Y-%m-%d.log', {
+    return rfs.createStream('pulsarr-%DATE%.log', {
       size: '10M',
       interval: '1d',
       path: logDirectory,

@@ -759,30 +759,38 @@ export class DatabaseService {
     userIds: number[],
     keys: string[],
   ): Promise<WatchlistItem[]> {
-    this.log.info(
-      `Checking for existing items with ${userIds.length} users and ${keys.length} keys`,
-    )
+    const logMessage =
+      keys.length > 0
+        ? `Checking for existing items with ${userIds.length} users and ${keys.length} keys`
+        : `Checking for existing items with ${userIds.length} users (no specific keys)`
 
-    if (keys.length === 0) return []
+    this.log.debug(logMessage)
 
     // Ensure all userIds are numbers
     const numericUserIds = userIds.map((id) =>
       typeof id === 'object' ? (id as { id: number }).id : id,
     )
 
-    const query = this.knex('watchlist_items')
-      .whereIn('key', keys)
-      .whereIn('user_id', numericUserIds)
+    const query = this.knex('watchlist_items').whereIn(
+      'user_id',
+      numericUserIds,
+    )
+
+    if (keys.length > 0) {
+      query.whereIn('key', keys)
+    }
 
     const results = await query
 
-    this.log.info(
+    const logContext = {
+      query: query.toString(),
+      userIds: numericUserIds,
+      ...(keys.length > 0 ? { keysCount: keys.length } : {}),
+    }
+
+    this.log.debug(
       `Query returned ${results.length} total matches from database`,
-      {
-        query: query.toString(),
-        userIds: numericUserIds,
-        keysCount: keys.length,
-      },
+      logContext,
     )
 
     return results.map((row) => ({
@@ -790,6 +798,31 @@ export class DatabaseService {
       guids: JSON.parse(row.guids || '[]'),
       genres: JSON.parse(row.genres || '[]'),
     }))
+  }
+
+  async getWatchlistItemsByKeys(keys: string[]): Promise<WatchlistItem[]> {
+    if (keys.length === 0) {
+      return []
+    }
+
+    try {
+      const items = await this.knex('watchlist_items')
+        .whereIn('key', keys)
+        .select('*')
+
+      this.log.debug(`Retrieved ${items.length} items by keys`, {
+        keyCount: keys.length,
+        resultCount: items.length,
+      })
+
+      return items
+    } catch (error) {
+      this.log.error('Error in getWatchlistItemsByKeys', {
+        error: error instanceof Error ? error.message : String(error),
+      })
+
+      throw error
+    }
   }
 
   async bulkUpdateWatchlistItems(

@@ -285,6 +285,7 @@ export const getWatchlistForUser = async (
       for (const node of watchlist.nodes) {
         const item: TokenWatchlistItem = {
           ...node,
+          key: node.id,
           user_id: userId,
           status: 'pending',
           created_at: currentTime,
@@ -486,6 +487,8 @@ const toItems = async (
   config: Config,
   log: FastifyBaseLogger,
   item: TokenWatchlistItem,
+  retryCount = 0,
+  maxRetries = 2,
 ): Promise<Set<Item>> => {
   try {
     const url = new URL(
@@ -521,16 +524,43 @@ const toItems = async (
       updated_at: new Date().toISOString(),
     }))
 
-    log.debug(`Processed metadata for item: ${item.title}`)
+    if (
+      items.length > 0 &&
+      (!items[0].guids || items[0].guids.length === 0) &&
+      retryCount < maxRetries
+    ) {
+      log.warn(
+        `Found item ${item.title} but no GUIDs. Retry ${retryCount + 1}/${maxRetries}`,
+      )
+      await new Promise((resolve) =>
+        setTimeout(resolve, 1000 * (retryCount + 1)),
+      )
+      return toItems(config, log, item, retryCount + 1, maxRetries)
+    }
+
+    log.debug(
+      `Processed metadata for item: ${item.title}${items[0]?.guids?.length ? ` with ${items[0].guids.length} GUIDs` : ''}`,
+    )
     return new Set(items)
   } catch (err) {
     const error = err as Error
     if (error.message.includes('Plex API error')) {
+      if (retryCount < maxRetries) {
+        log.warn(
+          `Failed to find ${item.title} in Plex's database. Retry ${retryCount + 1}/${maxRetries}`,
+        )
+        await new Promise((resolve) =>
+          setTimeout(resolve, 1000 * (retryCount + 1)),
+        )
+        return toItems(config, log, item, retryCount + 1, maxRetries)
+      }
       log.warn(
-        `Found item ${item.title} on the watchlist, but we cannot find this in Plex's database.`,
+        `Found item ${item.title} on the watchlist, but we cannot find this in Plex's database after ${maxRetries + 1} attempts.`,
       )
     } else {
-      log.error(`Unable to fetch item details for ${item.title}: ${error}`)
+      log.error(
+        `Unable to fetch item details for ${item.title} after ${retryCount + 1} attempts: ${error}`,
+      )
     }
     return new Set()
   }

@@ -342,18 +342,50 @@ export class PlexWatchlistService {
     allKeys: Set<string>,
   ): Promise<WatchlistItem[]> {
     const keys = Array.from(allKeys)
-    const userIds = Array.from(userKeyMap.keys()).map(Number)
+    const userIds = Array.from(userKeyMap.keys())
+      .map(Number)
+      .filter((id) => !Number.isNaN(id))
 
-    const existingItems = await this.dbService.getBulkWatchlistItems(
+    this.log.debug(
+      `Looking up existing items with ${userIds.length} users and ${keys.length} unique keys`,
+      {
+        userIds,
+        keySample: keys.slice(0, 5),
+      },
+    )
+
+    const allItemsByKey = await this.dbService.getWatchlistItemsByKeys(keys)
+
+    this.log.debug(
+      `Found ${allItemsByKey.length} existing items by keys in database`,
+    )
+
+    const userSpecificItems = await this.dbService.getBulkWatchlistItems(
       userIds,
       keys,
     )
 
-    this.log.info(`Found ${existingItems.length} existing items in database`, {
-      itemCount: existingItems.length,
-      uniqueUsers: new Set(existingItems.map((item) => item.user_id)).size,
-      uniqueKeys: new Set(existingItems.map((item) => item.key)).size,
-    })
+    this.log.debug(
+      `Found ${userSpecificItems.length} user-specific items in database`,
+    )
+
+    const combinedItems = [...allItemsByKey, ...userSpecificItems]
+    const uniqueItems = new Map<string, WatchlistItem>()
+
+    for (const item of combinedItems) {
+      if (!item.key || !item.user_id) continue
+
+      const uniqueId = `${item.key}:${item.user_id}`
+      if (!uniqueItems.has(uniqueId)) {
+        uniqueItems.set(uniqueId, item)
+      }
+    }
+
+    const existingItems = Array.from(uniqueItems.values())
+
+    this.log.info(
+      `Found ${existingItems.length} unique existing items for processing`,
+    )
 
     return existingItems
   }
@@ -461,16 +493,53 @@ export class PlexWatchlistService {
   private async linkExistingItems(
     existingItemsToLink: Map<Friend, Set<WatchlistItem>>,
   ): Promise<void> {
-    const linkItems = Array.from(existingItemsToLink.values()).flatMap(
-      (items) => Array.from(items),
+    if (existingItemsToLink.size === 0) {
+      this.log.debug('No existing items to link')
+      return
+    }
+
+    const linkItems: WatchlistItem[] = []
+    const userCounts: Record<string, number> = {}
+
+    for (const [user, items] of existingItemsToLink.entries()) {
+      const itemArray = Array.from(items)
+      linkItems.push(...itemArray)
+      userCounts[user.username] = itemArray.length
+    }
+
+    if (linkItems.length === 0) {
+      this.log.debug('No items to link after filtering')
+      return
+    }
+
+    this.log.info(
+      `Linking ${linkItems.length} existing items to ${existingItemsToLink.size} users`,
     )
 
-    if (linkItems.length > 0) {
+    this.log.debug('Linking details:', {
+      userCounts,
+      sample: linkItems.slice(0, 3).map((item) => ({
+        title: item.title,
+        key: item.key,
+        userId: item.user_id,
+      })),
+    })
+
+    try {
       await this.dbService.createWatchlistItems(linkItems, {
         onConflict: 'merge',
       })
+
       await this.dbService.syncGenresFromWatchlist()
-      this.log.info(`Linked ${linkItems.length} existing items to new users`)
+
+      this.log.info(
+        `Successfully linked ${linkItems.length} existing items to new users`,
+      )
+    } catch (error) {
+      this.log.error('Error linking existing items', {
+        error: error instanceof Error ? error.message : String(error),
+      })
+      throw error
     }
   }
 
@@ -496,10 +565,16 @@ export class PlexWatchlistService {
   }
 
   private mapExistingItemsByKey(existingItems: WatchlistItem[]) {
+    this.log.debug(`Mapping ${existingItems.length} existing items by key`)
+
     const map = new Map<string, Map<number, WatchlistItem>>()
+    let skippedCount = 0
 
     for (const item of existingItems) {
-      if (!item.key || !item.user_id) continue
+      if (!item.key || !item.user_id) {
+        skippedCount++
+        continue
+      }
 
       let userMap = map.get(item.key)
       if (!userMap) {
@@ -509,6 +584,12 @@ export class PlexWatchlistService {
 
       userMap.set(item.user_id, item)
     }
+
+    this.log.debug(`Created key map with ${map.size} unique keys`, {
+      totalItems: existingItems.length,
+      skippedItems: skippedCount,
+      uniqueKeys: map.size,
+    })
 
     return map
   }
@@ -521,17 +602,64 @@ export class PlexWatchlistService {
     const newItems = new Set<TokenWatchlistItem>()
     const itemsToLink = new Set<WatchlistItem>()
 
+    let newItemsCount = 0
+    let existingItemsCount = 0
+    let alreadyLinkedCount = 0
+    let toBeLinkedCount = 0
+
+    this.log.debug(
+      `Separating ${items.size} items for user ${user.username} (ID: ${user.userId})`,
+    )
+
     for (const item of items) {
-      const existingItem = existingItemsByKey.get(item.id)
-      if (!existingItem) {
+      const lookupKey = item.key || item.id
+
+      if (!lookupKey) {
+        this.log.warn(`Item missing key/id for user ${user.username}`, {
+          title: item.title,
+        })
+        continue
+      }
+
+      const existingItemMap = existingItemsByKey.get(lookupKey)
+
+      if (!existingItemMap) {
         newItems.add(item)
-      } else if (!Array.from(existingItem.keys()).includes(user.userId)) {
-        const templateItem = existingItem.values().next().value
-        if (templateItem?.title && templateItem?.type) {
-          itemsToLink.add(this.createWatchlistItem(user, item, templateItem))
+        newItemsCount++
+      } else {
+        existingItemsCount++
+
+        if (existingItemMap.has(user.userId)) {
+          alreadyLinkedCount++
+        } else {
+          const templateItem = existingItemMap.values().next().value
+
+          if (templateItem?.title && templateItem?.type) {
+            itemsToLink.add(this.createWatchlistItem(user, item, templateItem))
+            toBeLinkedCount++
+          } else {
+            this.log.warn(`Invalid template item for ${lookupKey}`, {
+              hasTitle: !!templateItem?.title,
+              hasType: !!templateItem?.type,
+            })
+            newItems.add(item)
+            newItemsCount++
+          }
         }
       }
     }
+
+    this.log.info(
+      `Processed ${items.size} items for user ${user.username}: ${newItemsCount} new, ${toBeLinkedCount} to link`,
+    )
+
+    this.log.debug(`Detailed separation results for ${user.username}:`, {
+      total: items.size,
+      newItems: newItemsCount,
+      existingInDb: existingItemsCount,
+      alreadyLinked: alreadyLinkedCount,
+      toBeLinked: toBeLinkedCount,
+    })
 
     return { newItems, itemsToLink }
   }
@@ -616,7 +744,7 @@ export class PlexWatchlistService {
   ) {
     return existingItems
       .filter((item) => item.user_id === user.userId)
-      .map(this.formatWatchlistItem)
+      .map((item) => this.formatWatchlistItem(item))
   }
 
   private formatLinkedItems(
@@ -625,7 +753,7 @@ export class PlexWatchlistService {
   ) {
     return existingItemsToLink.has(user)
       ? Array.from(existingItemsToLink.get(user) as Set<WatchlistItem>).map(
-          this.formatWatchlistItem,
+          (item) => this.formatWatchlistItem(item) 
         )
       : []
   }
@@ -636,7 +764,7 @@ export class PlexWatchlistService {
   ) {
     return processedItems.has(user)
       ? Array.from(processedItems.get(user) as Set<WatchlistItem>).map(
-          this.formatWatchlistItem,
+          (item) => this.formatWatchlistItem(item)
         )
       : []
   }
@@ -647,16 +775,27 @@ export class PlexWatchlistService {
       plexKey: item.key,
       type: item.type,
       thumb: item.thumb || '',
-      guids:
-        typeof item.guids === 'string'
-          ? JSON.parse(item.guids)
-          : item.guids || [],
-      genres:
-        typeof item.genres === 'string'
-          ? JSON.parse(item.genres)
-          : item.genres || [],
+      guids: this.safeParseArray<string>(item.guids), 
+      genres: this.safeParseArray<string>(item.genres),
       status: 'pending' as const,
+    };
+  }
+
+  private safeParseArray<T>(value: unknown): T[] {
+    if (Array.isArray(value)) {
+      return value as T[];
     }
+    
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value);
+        return (Array.isArray(parsed) ? parsed : [parsed].filter(Boolean)) as T[];
+      } catch (e) {
+        return (value ? [value] : []) as T[];
+      }
+    }
+    
+    return (value ? [value] : []) as T[];
   }
 
   async processRssWatchlists(): Promise<RssWatchlistResults> {
