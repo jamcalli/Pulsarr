@@ -76,13 +76,17 @@ interface WatchlistTableProps {
 export function WatchlistTable({ users }: WatchlistTableProps) {
   // Table state
   const [sorting, setSorting] = React.useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
+    [],
+  )
+  const [columnVisibility, setColumnVisibility] =
+    React.useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = React.useState({})
 
   // Modal state
   const [isEditModalOpen, setIsEditModalOpen] = React.useState(false)
-  const [selectedUser, setSelectedUser] = React.useState<UserWatchlistInfo | null>(null)
+  const [selectedUser, setSelectedUser] =
+    React.useState<UserWatchlistInfo | null>(null)
 
   // Handle opening the edit modal
   const handleEditUser = (user: UserWatchlistInfo) => {
@@ -250,7 +254,9 @@ export function WatchlistTable({ users }: WatchlistTableProps) {
                       key={column.id}
                       className="capitalize"
                       checked={column.getIsVisible()}
-                      onCheckedChange={(value) => column.toggleVisibility(!!value)}
+                      onCheckedChange={(value) =>
+                        column.toggleVisibility(!!value)
+                      }
                     >
                       {column.id}
                     </DropdownMenuCheckboxItem>
@@ -266,7 +272,8 @@ export function WatchlistTable({ users }: WatchlistTableProps) {
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => {
                     const headerClassName = `px-2 py-2 ${
-                      (header.column.columnDef.meta as ColumnMetaType)?.headerClassName || ''
+                      (header.column.columnDef.meta as ColumnMetaType)
+                        ?.headerClassName || ''
                     }`
                     return (
                       <TableHead key={header.id} className={headerClassName}>
@@ -291,7 +298,8 @@ export function WatchlistTable({ users }: WatchlistTableProps) {
                   >
                     {row.getVisibleCells().map((cell) => {
                       const cellClassName = `px-2 py-2 ${
-                        (cell.column.columnDef.meta as ColumnMetaType)?.className || ''
+                        (cell.column.columnDef.meta as ColumnMetaType)
+                          ?.className || ''
                       }`
                       return (
                         <TableCell key={cell.id} className={cellClassName}>
@@ -306,7 +314,10 @@ export function WatchlistTable({ users }: WatchlistTableProps) {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={columns.length} className="h-24 text-center">
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-24 text-center"
+                  >
                     No results.
                   </TableCell>
                 </TableRow>
@@ -323,7 +334,9 @@ export function WatchlistTable({ users }: WatchlistTableProps) {
               }}
             >
               <SelectTrigger className="h-8 w-[70px]">
-                <SelectValue placeholder={table.getState().pagination.pageSize} />
+                <SelectValue
+                  placeholder={table.getState().pagination.pageSize}
+                />
               </SelectTrigger>
               <SelectContent side="top">
                 {[10, 20, 30, 40, 50].map((pageSize) => (

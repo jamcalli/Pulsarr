@@ -49,29 +49,29 @@ function RootLayout() {
                 <div className="relative w-[1000px] portrait:w-[600px]">
                   <AspectRatio ratio={1522 / 1608}>
                     <picture>
-                    <source
-                      media="(orientation: portrait)"
-                      srcSet={planetMobile}
-                      type="image/webp"
-                      width="600"
-                      height="634"
-                    />
-                    <source
-                      media="(orientation: landscape)"
-                      srcSet={planetDesktop}
-                      type="image/webp"
-                      width="1522"
-                      height="1608"
-                    />
-                    <img
-                      src={planetDesktop}
-                      alt="Planet"
-                      fetchPriority="high"
-                      width="1522"
-                      height="1608"
-                      className="h-full w-full object-cover"
-                    />
-                  </picture>
+                      <source
+                        media="(orientation: portrait)"
+                        srcSet={planetMobile}
+                        type="image/webp"
+                        width="600"
+                        height="634"
+                      />
+                      <source
+                        media="(orientation: landscape)"
+                        srcSet={planetDesktop}
+                        type="image/webp"
+                        width="1522"
+                        height="1608"
+                      />
+                      <img
+                        src={planetDesktop}
+                        alt="Planet"
+                        fetchPriority="high"
+                        width="1522"
+                        height="1608"
+                        className="h-full w-full object-cover"
+                      />
+                    </picture>
                   </AspectRatio>
                 </div>
               </div>
@@ -80,7 +80,7 @@ function RootLayout() {
                 <Pulsar className="w-24 h-24" />
               </div>
               <AsteroidsBackground />
-              </ParallaxStarfield>
+            </ParallaxStarfield>
             <div className="absolute bottom-8 left-0 right-0 z-10">
               <p
                 className="text-xl tracking-tighter text-center"

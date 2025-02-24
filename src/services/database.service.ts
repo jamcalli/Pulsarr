@@ -1155,9 +1155,11 @@ export class DatabaseService {
         status: 'notified',
       })
 
+      const notificationTitle = mediaInfo.title || item.title
+
       const notification: MediaNotification = {
         type: mediaInfo.type,
-        title: mediaInfo.title,
+        title: notificationTitle,
         username: user.name,
         posterUrl: item.thumb || undefined,
       }

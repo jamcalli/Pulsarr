@@ -50,7 +50,10 @@ interface ConfigState {
     users: UserWatchlistInfo[]
     totalCount: number
   } | null
-  updateUser: (userId: string, updates: Partial<UserWatchlistInfo>) => Promise<void>
+  updateUser: (
+    userId: string,
+    updates: Partial<UserWatchlistInfo>,
+  ) => Promise<void>
 }
 
 export const useConfigStore = create<ConfigState>()(
@@ -175,24 +178,25 @@ export const useConfigStore = create<ConfigState>()(
             discord_id: updates.discord_id,
             notify_email: updates.notify_email,
             notify_discord: updates.notify_discord,
-            can_sync: updates.can_sync
+            can_sync: updates.can_sync,
           }),
-        });
+        })
 
         if (!response.ok) {
-          throw new Error('Failed to update user');
+          throw new Error('Failed to update user')
         }
 
         set((state) => ({
-          users: state.users?.map((user) =>
-            user.id === userId ? { ...user, ...updates } : user
-          ) ?? null,
-        }));
+          users:
+            state.users?.map((user) =>
+              user.id === userId ? { ...user, ...updates } : user,
+            ) ?? null,
+        }))
 
-        await get().fetchUserData();
+        await get().fetchUserData()
       } catch (error) {
-        console.error('User update error:', error);
-        throw error;
+        console.error('User update error:', error)
+        throw error
       }
     },
 

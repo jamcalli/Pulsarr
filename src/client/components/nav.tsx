@@ -1,10 +1,21 @@
 import { Link, useLocation } from 'react-router-dom'
 import { SettingsButton } from '@/components/ui/settings-button'
+import { cn } from '@/lib/utils'
 
-export default function Nav() {
+interface NavProps {
+  className?: string
+}
+
+export default function Nav({ className }: NavProps) {
   const location = useLocation()
   return (
-    <nav className="border-b-border dark:border-b-darkBorder flex flex-col h-[100px] rounded-tr-base border-b-4 bg-black text-xl w600:text-lg w400:h-20 w400:text-base portrait:rounded-none portrait:mt-[50px]">
+    <nav
+      className={cn(
+        'border-b-border dark:border-b-darkBorder flex flex-col h-[100px] rounded-tr-base border-b-4 bg-black text-xl w600:text-lg w400:h-20 w400:text-base portrait:rounded-none',
+        className,
+      )}
+    >
+      {' '}
       <div className="grid h-[50px] grid-cols-[1fr_1fr_50px] border-b-4 border-b-border dark:border-b-darkBorder">
         <Link
           className={
