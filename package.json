@@ -9,7 +9,7 @@
     "build": "npm run build:server && npm run clean:client && vite build",
     "build:server": "tsc && tsc-alias",
     "dev:server": "tsx watch src/server.ts",
-    "dev": "npm run build:server && node dist/server.js --dev",
+    "dev": "npm run build:server && node dist/server.js --dev --log-both",
     "start:prod": "node dist/server.js",
     "fix": "biome format --write . && biome lint --write .",
     "migrate": "tsx migrations/migrate.ts",

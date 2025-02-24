@@ -2,7 +2,11 @@ import Fastify from 'fastify'
 import fp from 'fastify-plugin'
 import closeWithGrace from 'close-with-grace'
 import serviceApp from './app.js'
-import { createLoggerConfig, validLogLevels } from '@utils/logger.js'
+import {
+  createLoggerConfig,
+  validLogLevels,
+  LogDestination,
+} from '@utils/logger.js'
 import type { LevelWithSilent } from 'pino'
 
 async function init() {
