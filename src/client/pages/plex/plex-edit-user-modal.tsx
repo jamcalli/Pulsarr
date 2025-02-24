@@ -1,4 +1,10 @@
+'use client'
+
+import { Loader2, Check } from 'lucide-react'
 import React from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import * as z from 'zod'
 import {
   Dialog,
   DialogContent,
@@ -11,7 +17,39 @@ import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import { useConfigStore } from '@/stores/configStore'
 import { Switch } from '@/components/ui/switch'
-import { Label } from '@/components/ui/label'
+import {
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from '@/components/ui/form'
+
+// Define the form schema
+const userFormSchema = z.object({
+  name: z.string(),
+  email: z.string().email('Invalid email address'),
+  alias: z.string().nullable(),
+  discord_id: z.string().nullable(),
+  notify_email: z.boolean(),
+  notify_discord: z.boolean(),
+}).refine((data) => {
+  // Cannot have discord notifications without discord ID
+  if (data.notify_discord && !data.discord_id) {
+    return false;
+  }
+  // Cannot have email notifications with placeholder email
+  if (data.notify_email && data.email.endsWith('@placeholder.com')) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Invalid notification settings based on user information",
+  path: ["notify_settings"] // Custom path for the error
+});
+
+type UserFormValues = z.infer<typeof userFormSchema>
 
 interface UserEditModalProps {
   open: boolean
@@ -33,76 +71,93 @@ export function UserEditModal({
   user,
 }: UserEditModalProps) {
   const { toast } = useToast()
-  const fetchUserData = useConfigStore((state) => state.fetchUserData)
-  const [isSubmitting, setIsSubmitting] = React.useState(false)
+  const updateUser = useConfigStore((state) => state.updateUser)
+  const [saveStatus, setSaveStatus] = React.useState<'idle' | 'loading' | 'success' | 'error'>('idle')
 
-  // Form state
-  const [formData, setFormData] = React.useState({
-    name: '',
-    email: '',
-    alias: '',
-    discord_id: '',
-    notify_email: false,
-    notify_discord: false,
+  // Initialize the form
+  const form = useForm<UserFormValues>({
+    resolver: zodResolver(userFormSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      alias: null,
+      discord_id: null,
+      notify_email: false,
+      notify_discord: false,
+    },
   })
 
   // Update form data when user prop changes
   React.useEffect(() => {
     if (user) {
-      setFormData({
+      form.reset({
         name: user.name,
         email: user.email,
-        alias: user.alias || '',
-        discord_id: user.discord_id || '',
+        alias: user.alias,
+        discord_id: user.discord_id,
         notify_email: user.notify_email,
         notify_discord: user.notify_discord,
       })
     }
-  }, [user])
+  }, [user, form])
 
-  const handleSubmit = async () => {
+  // Watch for completion and modal close
+  React.useEffect(() => {
+    if (saveStatus === 'success' && !open) {
+      // Reset state after modal is closed
+      const timer = setTimeout(() => {
+        setSaveStatus('idle')
+      }, 150)
+      return () => clearTimeout(timer)
+    }
+  }, [saveStatus, open])
+
+  const handleSubmit = async (values: UserFormValues) => {
     if (!user) return
 
-    setIsSubmitting(true)
+    setSaveStatus('loading')
     try {
-      const response = await fetch(`/v1/users/users/${user.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      })
+      const minimumLoadingTime = new Promise((resolve) => setTimeout(resolve, 500))
+      
+      await Promise.all([
+        updateUser(user.id, {
+          name: values.name,
+          email: values.email,
+          alias: values.alias,
+          discord_id: values.discord_id,
+          notify_email: values.notify_email,
+          notify_discord: values.notify_discord,
+        }),
+        minimumLoadingTime
+      ])
 
-      if (!response.ok) {
-        throw new Error('Failed to update user')
-      }
-
-      // Refresh user data
-      await fetchUserData()
-
+      setSaveStatus('success')
       toast({
         description: 'User information updated successfully',
         variant: 'default',
       })
 
+      // Show success state then close
+      await new Promise((resolve) => setTimeout(resolve, 300))
       onOpenChange(false)
     } catch (error) {
       console.error('Update error:', error)
+      setSaveStatus('error')
       toast({
-        description:
-          error instanceof Error ? error.message : 'Failed to update user',
+        description: error instanceof Error ? error.message : 'Failed to update user',
         variant: 'destructive',
       })
-    } finally {
-      setIsSubmitting(false)
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+      setSaveStatus('idle')
     }
   }
 
   // Prevent closing during submission
   const handleOpenChange = (newOpen: boolean) => {
-    if (!isSubmitting) {
-      onOpenChange(newOpen)
+    if (saveStatus === 'loading') {
+      return // Prevent closing during loading
     }
+    onOpenChange(newOpen)
   }
 
   return (
@@ -110,12 +165,12 @@ export function UserEditModal({
       <DialogContent
         className="sm:max-w-md"
         onPointerDownOutside={(e) => {
-          if (isSubmitting) {
+          if (saveStatus === 'loading') {
             e.preventDefault()
           }
         }}
         onEscapeKeyDown={(e) => {
-          if (isSubmitting) {
+          if (saveStatus === 'loading') {
             e.preventDefault()
           }
         }}
@@ -127,115 +182,184 @@ export function UserEditModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="py-4 space-y-4">
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, name: e.target.value }))
-                }
-                placeholder="User name"
-                disabled={isSubmitting}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                value={formData.email}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, email: e.target.value }))
-                }
-                placeholder="Email address"
-                type="email"
-                disabled={isSubmitting}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="alias">Alias</Label>
-              <Input
-                id="alias"
-                value={formData.alias}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, alias: e.target.value }))
-                }
-                placeholder="User alias (optional)"
-                disabled={isSubmitting}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="discord">Discord ID</Label>
-              <Input
-                id="discord"
-                value={formData.discord_id}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    discord_id: e.target.value,
-                  }))
-                }
-                placeholder="Discord ID (optional)"
-                disabled={isSubmitting}
-              />
-            </div>
-
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="notify-email" className="flex-grow">
-                  Email Notifications
-                </Label>
-                <Switch
-                  id="notify-email"
-                  checked={formData.notify_email}
-                  onCheckedChange={(checked) =>
-                    setFormData((prev) => ({ ...prev, notify_email: checked }))
-                  }
-                  disabled={isSubmitting}
-                />
-              </div>
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-text">Plex User Name</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Plex user name"
+                        className="bg-muted/50 cursor-not-allowed"
+                        disabled={true}
+                        readOnly
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-              <div className="flex items-center justify-between">
-                <Label htmlFor="notify-discord" className="flex-grow">
-                  Discord Notifications
-                </Label>
-                <Switch
-                  id="notify-discord"
-                  checked={formData.notify_discord}
-                  onCheckedChange={(checked) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      notify_discord: checked,
-                    }))
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-text">Email</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="email"
+                        placeholder="Email address"
+                        disabled={saveStatus !== 'idle'}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="alias"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-text">Alias</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="User alias (optional)"
+                        disabled={saveStatus !== 'idle'}
+                        {...field}
+                        value={field.value || ''}
+                        onChange={(e) => field.onChange(e.target.value || null)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="discord_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-text">Discord ID</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Discord ID"
+                        className="bg-muted/50 cursor-not-allowed"
+                        disabled={true}
+                        readOnly
+                        {...field}
+                        value={field.value || ''}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="notify_email"
+                render={({ field }) => {
+                  const email = form.watch('email');
+                  const isPlaceholderEmail = email.endsWith('@placeholder.com');
+                  // If it's a placeholder email and notifications are on, turn them off
+                  if (isPlaceholderEmail && field.value) {
+                    field.onChange(false);
                   }
-                  disabled={isSubmitting}
-                />
-              </div>
+                  
+                  return (
+                    <FormItem>
+                      <div className="flex items-center justify-between">
+                        <FormLabel className="text-text">Email Notifications</FormLabel>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            disabled={saveStatus !== 'idle' || isPlaceholderEmail}
+                          />
+                        </FormControl>
+                      </div>
+                      {isPlaceholderEmail && (
+                        <FormMessage>Requires valid email address</FormMessage>
+                      )}
+                    </FormItem>
+                  );
+                }}
+              />
+
+              <FormField
+                control={form.control}
+                name="notify_discord"
+                render={({ field }) => {
+                  const discordId = form.watch('discord_id');
+                  const hasDiscordId = Boolean(discordId);
+                  // If there's no Discord ID and notifications are on, turn them off
+                  if (!hasDiscordId && field.value) {
+                    field.onChange(false);
+                  }
+
+                  return (
+                    <FormItem>
+                      <div className="flex items-center justify-between">
+                        <FormLabel className="text-text">Discord Notifications</FormLabel>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            disabled={saveStatus !== 'idle' || !hasDiscordId}
+                          />
+                        </FormControl>
+                      </div>
+                      {!hasDiscordId && (
+                        <FormMessage>Requires Discord ID</FormMessage>
+                      )}
+                    </FormItem>
+                  );
+                }}
+              />
             </div>
-          </div>
 
-          <div className="flex justify-end gap-2">
-            <Button
-              variant="noShadow"
-              onClick={() => handleOpenChange(false)}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="default"
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-            >
-              Save Changes
-            </Button>
-          </div>
-        </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="neutral"
+                onClick={() => handleOpenChange(false)}
+                disabled={saveStatus !== 'idle'}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="default"
+                disabled={saveStatus !== 'idle'}
+                className="min-w-[100px] flex items-center justify-center gap-2"
+              >
+                {saveStatus === 'loading' ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : saveStatus === 'success' ? (
+                  <>
+                    <Check className="h-4 w-4" />
+                    Saved
+                  </>
+                ) : (
+                  'Save Changes'
+                )}
+              </Button>
+            </div>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   )

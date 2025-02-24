@@ -50,6 +50,7 @@ interface ConfigState {
     users: UserWatchlistInfo[]
     totalCount: number
   } | null
+  updateUser: (userId: string, updates: Partial<UserWatchlistInfo>) => Promise<void>
 }
 
 export const useConfigStore = create<ConfigState>()(
@@ -159,6 +160,39 @@ export const useConfigStore = create<ConfigState>()(
       } catch (err) {
         set({ error: 'Failed to fetch user data' })
         console.error('User data fetch error:', err)
+      }
+    },
+
+    updateUser: async (userId: string, updates: Partial<UserWatchlistInfo>) => {
+      try {
+        const response = await fetch(`/v1/users/users/${userId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: updates.name,
+            email: updates.email,
+            alias: updates.alias,
+            discord_id: updates.discord_id,
+            notify_email: updates.notify_email,
+            notify_discord: updates.notify_discord,
+            can_sync: updates.can_sync
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to update user');
+        }
+
+        set((state) => ({
+          users: state.users?.map((user) =>
+            user.id === userId ? { ...user, ...updates } : user
+          ) ?? null,
+        }));
+
+        await get().fetchUserData();
+      } catch (error) {
+        console.error('User update error:', error);
+        throw error;
       }
     },
 
