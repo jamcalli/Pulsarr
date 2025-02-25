@@ -878,35 +878,36 @@ export class DatabaseService {
         .whereNotNull('genres')
         .where('genres', '!=', '[]')
         .select('genres')
-
+      
       const uniqueGenres = new Set<string>()
-
+      
       for (const row of items) {
         try {
           const parsedGenres = JSON.parse(row.genres || '[]')
-          for (const genre of parsedGenres) {
-            if (genre && typeof genre === 'string') {
-              uniqueGenres.add(genre.trim())
+          if (Array.isArray(parsedGenres)) {
+            for (const genre of parsedGenres) {
+              if (typeof genre === 'string' && genre.trim().length > 1) {
+                uniqueGenres.add(genre.trim())
+              }
             }
           }
         } catch (parseError) {
           this.log.error('Error parsing genres:', parseError)
         }
       }
-
-      const existingGenres = await this.knex('genres').select('name')
-      const existingGenreNames = new Set(existingGenres.map((g) => g.name))
-      const newGenres = Array.from(uniqueGenres)
-        .filter((genre) => !existingGenreNames.has(genre))
-        .map((genre) => ({
-          name: genre,
-          is_custom: false,
-          created_at: this.timestamp,
-          updated_at: this.timestamp,
-        }))
-
-      if (newGenres.length > 0) {
-        await this.knex('genres').insert(newGenres).onConflict('name').ignore()
+      
+      const genresToInsert = Array.from(uniqueGenres).map(genre => ({
+        name: genre,
+        is_custom: false,
+        created_at: this.timestamp,
+        updated_at: this.timestamp,
+      }))
+      
+      if (genresToInsert.length > 0) {
+        await this.knex('genres')
+          .insert(genresToInsert)
+          .onConflict('name')
+          .merge(['updated_at'])
       }
     } catch (error) {
       this.log.error('Error syncing genres:', error)
