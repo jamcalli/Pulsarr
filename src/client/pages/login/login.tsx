@@ -17,17 +17,30 @@ import {
   type LoginFormSchema,
 } from '@/pages/login/form-schema'
 import { useToast } from '@/hooks/use-toast'
-import { Form, FormField, FormItem, FormMessage } from '@/components/ui/form'
+import {
+  Form,
+  FormField,
+  FormItem,
+  FormControl,
+  FormMessage,
+} from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 
 export function LoginPage() {
   const navigate = useNavigate()
   const { toast } = useToast()
-
   const [status, setStatus] = React.useState<'idle' | 'loading' | 'success'>(
     'idle',
   )
   const [backendError, setBackendError] = React.useState<string | null>(null)
+  const emailInputRef = React.useRef<HTMLInputElement>(null)
+
+  // Focus email input on component mount
+  React.useEffect(() => {
+    if (emailInputRef.current) {
+      emailInputRef.current.focus()
+    }
+  }, [])
 
   const form = useForm<LoginFormSchema>({
     resolver: zodResolver(loginFormSchema),
@@ -76,9 +89,7 @@ export function LoginPage() {
     <div className="w-full max-w-sm px-4">
       <Card className="relative">
         <CardHeader>
-          <h1 className="text-2xl font-heading text-center mb-2">
-            Welcome Back
-          </h1>
+          <h1 className="text-2xl font-heading text-center mb-2">Pulsarr</h1>
           <CardDescription className="text-center">
             Enter your credentials to login
           </CardDescription>
@@ -91,12 +102,15 @@ export function LoginPage() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <Input
-                      {...field}
-                      type="email"
-                      placeholder="Email"
-                      autoComplete="email"
-                    />
+                    <FormControl>
+                      <Input
+                        {...field}
+                        ref={emailInputRef}
+                        type="email"
+                        placeholder="Email"
+                        autoComplete="email"
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -106,12 +120,14 @@ export function LoginPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <Input
-                      {...field}
-                      type="password"
-                      placeholder="Password"
-                      autoComplete="current-password"
-                    />
+                    <FormControl>
+                      <Input
+                        {...field}
+                        type="password"
+                        placeholder="Password"
+                        autoComplete="current-password"
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
