@@ -15,7 +15,13 @@ import {
 } from '@/pages/create-user/form-schema'
 import { CreateUserErrorMessage } from '@/pages/create-user/create-user-error'
 import { useToast } from '@/hooks/use-toast'
-import { Form, FormField, FormItem, FormMessage } from '@/components/ui/form'
+import {
+  Form,
+  FormField,
+  FormItem,
+  FormControl,
+  FormMessage,
+} from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { ModeToggle } from '@/components/ui/mode-toggle'
 import { useNavigate } from 'react-router-dom'
@@ -27,6 +33,14 @@ export function CreateUserPage() {
     'idle',
   )
   const [backendError, setBackendError] = React.useState<string | null>(null)
+  const emailInputRef = React.useRef<HTMLInputElement>(null)
+
+  // Focus email input on component mount
+  React.useEffect(() => {
+    if (emailInputRef.current) {
+      emailInputRef.current.focus()
+    }
+  }, [])
 
   const form = useForm<CreateUserFormSchema>({
     resolver: zodResolver(createUserFormSchema),
@@ -94,12 +108,15 @@ export function CreateUserPage() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <Input
-                      {...field}
-                      type="email"
-                      placeholder="Email"
-                      autoComplete="email"
-                    />
+                    <FormControl>
+                      <Input
+                        {...field}
+                        ref={emailInputRef}
+                        type="email"
+                        placeholder="Email"
+                        autoComplete="email"
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -109,12 +126,14 @@ export function CreateUserPage() {
                 name="username"
                 render={({ field }) => (
                   <FormItem>
-                    <Input
-                      {...field}
-                      type="text"
-                      placeholder="Username"
-                      autoComplete="username"
-                    />
+                    <FormControl>
+                      <Input
+                        {...field}
+                        type="text"
+                        placeholder="Username"
+                        autoComplete="username"
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -124,12 +143,14 @@ export function CreateUserPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <Input
-                      {...field}
-                      type="password"
-                      placeholder="Password"
-                      autoComplete="new-password"
-                    />
+                    <FormControl>
+                      <Input
+                        {...field}
+                        type="password"
+                        placeholder="Password"
+                        autoComplete="new-password"
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -139,12 +160,14 @@ export function CreateUserPage() {
                 name="confirmPassword"
                 render={({ field }) => (
                   <FormItem>
-                    <Input
-                      {...field}
-                      type="password"
-                      placeholder="Confirm Password"
-                      autoComplete="new-password"
-                    />
+                    <FormControl>
+                      <Input
+                        {...field}
+                        type="password"
+                        placeholder="Confirm Password"
+                        autoComplete="new-password"
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -176,9 +199,6 @@ export function CreateUserPage() {
           <div className="mt-6 text-center">
             <ModeToggle />
           </div>
-          <footer className="mt-8 text-center text-sm text-muted-foreground">
-            &copy; Your Company {new Date().getFullYear()}
-          </footer>
         </CardContent>
       </Card>
     </div>
