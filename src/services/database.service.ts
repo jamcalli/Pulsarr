@@ -759,38 +759,30 @@ export class DatabaseService {
     userIds: number[],
     keys: string[],
   ): Promise<WatchlistItem[]> {
-    const logMessage =
-      keys.length > 0
-        ? `Checking for existing items with ${userIds.length} users and ${keys.length} keys`
-        : `Checking for existing items with ${userIds.length} users (no specific keys)`
+    this.log.info(
+      `Checking for existing items with ${userIds.length} users and ${keys.length} keys`,
+    )
 
-    this.log.debug(logMessage)
+    if (keys.length === 0) return []
 
     // Ensure all userIds are numbers
     const numericUserIds = userIds.map((id) =>
       typeof id === 'object' ? (id as { id: number }).id : id,
     )
 
-    const query = this.knex('watchlist_items').whereIn(
-      'user_id',
-      numericUserIds,
-    )
-
-    if (keys.length > 0) {
-      query.whereIn('key', keys)
-    }
+    const query = this.knex('watchlist_items')
+      .whereIn('key', keys)
+      .whereIn('user_id', numericUserIds)
 
     const results = await query
 
-    const logContext = {
-      query: query.toString(),
-      userIds: numericUserIds,
-      ...(keys.length > 0 ? { keysCount: keys.length } : {}),
-    }
-
-    this.log.debug(
+    this.log.info(
       `Query returned ${results.length} total matches from database`,
-      logContext,
+      {
+        query: query.toString(),
+        userIds: numericUserIds,
+        keysCount: keys.length,
+      },
     )
 
     return results.map((row) => ({
