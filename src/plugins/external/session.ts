@@ -23,7 +23,7 @@ export default fp(
       cookie: {
         secure: fastify.config.cookieSecured,
         httpOnly: true,
-        maxAge: 1800000,
+        maxAge: 604800000,
       },
     })
   },

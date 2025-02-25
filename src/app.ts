@@ -95,6 +95,10 @@ export default async function serviceApp(
   })
 
   fastify.get('/', async (request, reply) => {
+    if (request.session.user) {
+      return reply.redirect('/app/dashboard/plex')
+    }
+
     const hasUsers = await fastify.db.hasAdminUsers()
     return reply.redirect(hasUsers ? '/app/login' : '/app/create-user')
   })
@@ -107,6 +111,10 @@ export default async function serviceApp(
           request.url === '/app/login' ||
           request.url === '/app/create-user'
         ) {
+          if (request.session.user) {
+            return reply.redirect('/app/dashboard/plex')
+          }
+
           const hasUsers = await fastify.db.hasAdminUsers()
 
           if (!hasUsers && request.url === '/app/login') {
