@@ -89,29 +89,29 @@ function getFileOptions(): FileLoggerOptions {
  */
 export function parseLogDestinationFromArgs(): LogDestination {
   const args = process.argv.slice(2)
-  
+
   if (args.includes('--log-terminal')) return 'terminal'
   if (args.includes('--log-file')) return 'file'
   if (args.includes('--log-both')) return 'both'
-  
+
   // Default destination if no argument is found
   return 'terminal'
 }
 
 /**
- * Create logger configuration with specified destination or 
+ * Create logger configuration with specified destination or
  * automatically detect from command line arguments
  * @param destination Optional explicit destination, overrides command line args
  * @returns Logger configuration object
  */
 export function createLoggerConfig(
-  destination?: LogDestination
+  destination?: LogDestination,
 ): PulsarrLoggerOptions {
   // If no destination provided, try to get it from command line args
   const logDestination = destination || parseLogDestinationFromArgs()
-  
+
   console.log(`Setting up logger with destination: ${logDestination}`)
-  
+
   switch (logDestination) {
     case 'terminal':
       return getTerminalOptions()
@@ -120,24 +120,24 @@ export function createLoggerConfig(
     case 'both': {
       // Use pino's built-in multistream
       const fileStream = getFileStream()
-      
+
       // Create a pretty stream for terminal output
       const prettyStream = pino.transport({
         target: 'pino-pretty',
         options: {
           translateTime: 'HH:MM:ss Z',
           ignore: 'pid,hostname',
-        }
+        },
       })
-      
+
       const multistream = pino.multistream([
         { stream: prettyStream },
-        { stream: fileStream }
+        { stream: fileStream },
       ])
-      
+
       return {
         level: 'info',
-        stream: multistream
+        stream: multistream,
       }
     }
     default:
