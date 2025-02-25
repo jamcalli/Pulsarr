@@ -4,6 +4,6 @@
 echo "Running database migrations..."
 npm run migrate
 
-# Start the application
-echo "Starting application..."
-exec npm run start:prod
+# Start the application with arguments
+echo "Starting application with args: ${NODE_ARGS:-}"
+exec node dist/server.js ${NODE_ARGS:-}
