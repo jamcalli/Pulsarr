@@ -105,6 +105,16 @@ function createNotificationsEmbed(user: User): EmbedBuilder {
 }
 
 function createActionRow(user: User): ActionRowBuilder<ButtonBuilder> {
+  // Simply check if email exists - placeholders are already converted to null
+  const hasValidEmail = !!user.email
+  const emailButtonDisabled = !hasValidEmail
+
+  const emailButton = new ButtonBuilder()
+    .setCustomId('toggleEmail')
+    .setLabel(user.notify_email ? 'Disable Email' : 'Enable Email')
+    .setStyle(user.notify_email ? ButtonStyle.Success : ButtonStyle.Secondary)
+    .setDisabled(emailButtonDisabled && !user.notify_email)
+
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
       .setCustomId('editProfile')
@@ -116,12 +126,7 @@ function createActionRow(user: User): ActionRowBuilder<ButtonBuilder> {
       .setStyle(
         user.notify_discord ? ButtonStyle.Success : ButtonStyle.Secondary,
       ),
-    new ButtonBuilder()
-      .setCustomId('toggleEmail')
-      .setLabel(user.notify_email ? 'Disable Email' : 'Enable Email')
-      .setStyle(
-        user.notify_email ? ButtonStyle.Success : ButtonStyle.Secondary,
-      ),
+    emailButton,
     new ButtonBuilder()
       .setCustomId('closeSettings')
       .setLabel('Exit')
@@ -145,10 +150,12 @@ function createPlexLinkModal(): ModalBuilder {
   return modal
 }
 
+// Complete replacement for createProfileEditModal function
 function createProfileEditModal(user: User): ModalBuilder {
   const modal = new ModalBuilder()
     .setCustomId('editProfileModal')
     .setTitle('Edit Profile')
+
   const aliasInput = new TextInputBuilder()
     .setCustomId('alias')
     .setLabel('Display Name')
@@ -156,17 +163,24 @@ function createProfileEditModal(user: User): ModalBuilder {
     .setRequired(false)
     .setValue(user.alias || '')
     .setPlaceholder('Enter a display name')
+
   const emailInput = new TextInputBuilder()
     .setCustomId('email')
     .setLabel('Email Address')
     .setStyle(TextInputStyle.Short)
     .setRequired(false)
-    .setValue(user.email || '')
     .setPlaceholder('Enter your email address')
+
+  if (user.email && !user.email.includes('@placeholder.com')) {
+    emailInput.setValue(user.email)
+  }
+
+  // Add components to modal
   modal.addComponents(
     new ActionRowBuilder<TextInputBuilder>().addComponents(aliasInput),
     new ActionRowBuilder<TextInputBuilder>().addComponents(emailInput),
   )
+
   return modal
 }
 
@@ -178,6 +192,11 @@ async function getUser(
   try {
     const users = await context.fastify.db.getAllUsers()
     const user = users.find((u) => u.discord_id === discordId)
+    if (user) {
+      if (user.email?.endsWith('@placeholder.com')) {
+        user.email = null
+      }
+    }
     context.log.debug(
       { discordId, found: !!user },
       'Looking up user by Discord ID',
@@ -298,34 +317,6 @@ export async function handleNotificationButtons(
 ) {
   const cache = SettingsCache.getInstance()
 
-  if (interaction.customId === 'retryPlexLink') {
-    try {
-      await interaction.showModal(createPlexLinkModal())
-      context.log.debug(
-        { userId: interaction.user.id },
-        'Showing Plex link modal for retry attempt',
-      )
-    } catch (error) {
-      context.log.error(
-        { error, userId: interaction.user.id },
-        'Failed to show Plex link modal on retry',
-      )
-      try {
-        await interaction.reply({
-          content:
-            'An error occurred. Please try the /notifications command again.',
-          flags: DiscordMessageFlags.Ephemeral,
-        })
-      } catch (replyError) {
-        context.log.error(
-          { error: replyError, userId: interaction.user.id },
-          'Failed to send error message after modal failure',
-        )
-      }
-    }
-    return
-  }
-
   if (!cache.has(interaction.user.id)) {
     context.log.debug(
       { userId: interaction.user.id },
@@ -373,6 +364,16 @@ export async function handleNotificationButtons(
 
     case 'toggleEmail': {
       await interaction.deferUpdate()
+
+      if (!user.notify_email && !user.email) {
+        await interaction.followUp({
+          content:
+            "You need to set a valid email address before enabling email notifications. Please use the 'Edit Profile' button to set your email.",
+          flags: MessageFlags.Ephemeral,
+        })
+        return
+      }
+
       const emailUpdated = await updateUser(
         user.id,
         { notify_email: !user.notify_email },
@@ -417,6 +418,8 @@ export async function handlePlexUsernameModal(
     .getTextInputValue('plexUsername')
     .trim()
 
+  await interaction.deferReply({ ephemeral: true })
+
   try {
     context.log.info(
       { userId: interaction.user.id },
@@ -442,18 +445,114 @@ export async function handlePlexUsernameModal(
             'Please ensure:\n• Your Plex username is spelled correctly\n• You have an active Plex account\n• Your account has been added to the server',
         })
 
-      await interaction.reply({
+      const retryId = `retryPlexLink_${Date.now()}`
+
+      await interaction.editReply({
         embeds: [errorEmbed],
-        flags: MessageFlags.Ephemeral,
         components: [
           new ActionRowBuilder<ButtonBuilder>().addComponents(
             new ButtonBuilder()
-              .setCustomId('retryPlexLink')
+              .setCustomId(retryId)
               .setLabel('Try Again')
               .setStyle(ButtonStyle.Primary),
           ),
         ],
       })
+
+      if (interaction.channel) {
+        const collector = interaction.channel.createMessageComponentCollector({
+          filter: (i) =>
+            i.customId === retryId && i.user.id === interaction.user.id,
+          time: 15 * 60 * 1000, // 15 minute timeout
+          max: 1,
+        })
+
+        collector.on('collect', async (buttonInteraction) => {
+          try {
+            await interaction.deleteReply()
+            await buttonInteraction.showModal(createPlexLinkModal())
+          } catch (error) {
+            context.log.error(
+              { error, userId: buttonInteraction.user.id },
+              'Error handling retry button',
+            )
+            await buttonInteraction.reply({
+              content:
+                'An error occurred. Please try the /notifications command again.',
+              ephemeral: true,
+            })
+          }
+        })
+      }
+
+      return
+    }
+
+    if (
+      matchingUser.discord_id &&
+      matchingUser.discord_id !== interaction.user.id
+    ) {
+      context.log.warn(
+        {
+          plexUsername,
+          userId: interaction.user.id,
+          existingDiscordId: matchingUser.discord_id,
+        },
+        'Plex account already linked to another Discord user',
+      )
+
+      const errorEmbed = new EmbedBuilder()
+        .setTitle('❌ Account Link Failed')
+        .setColor(0xff0000)
+        .setDescription(
+          'This Plex account is already linked to another Discord user.',
+        )
+        .addFields({
+          name: 'What to do next',
+          value:
+            'Please ensure:\n• You are using your own Plex username\n• Contact an administrator if you believe this is an error',
+        })
+
+      const retryId = `retryPlexLink_${Date.now()}`
+
+      await interaction.editReply({
+        embeds: [errorEmbed],
+        components: [
+          new ActionRowBuilder<ButtonBuilder>().addComponents(
+            new ButtonBuilder()
+              .setCustomId(retryId)
+              .setLabel('Try Different Username')
+              .setStyle(ButtonStyle.Primary),
+          ),
+        ],
+      })
+
+      if (interaction.channel) {
+        const collector = interaction.channel.createMessageComponentCollector({
+          filter: (i) =>
+            i.customId === retryId && i.user.id === interaction.user.id,
+          time: 15 * 60 * 1000, // 15 minute timeout
+          max: 1, // Collect only one interaction
+        })
+
+        collector.on('collect', async (buttonInteraction) => {
+          try {
+            await interaction.deleteReply()
+            await buttonInteraction.showModal(createPlexLinkModal())
+          } catch (error) {
+            context.log.error(
+              { error, userId: buttonInteraction.user.id },
+              'Error handling retry button',
+            )
+            await buttonInteraction.reply({
+              content:
+                'An error occurred. Please try the /notifications command again.',
+              ephemeral: true,
+            })
+          }
+        })
+      }
+
       return
     }
 
@@ -472,16 +571,20 @@ export async function handlePlexUsernameModal(
     if (updatedUser) {
       const cache = SettingsCache.getInstance()
       cache.set(interaction.user.id, interaction.id)
-      await showSettingsForm(interaction, updatedUser, context)
+
+      const messagePayload = {
+        embeds: [createNotificationsEmbed(updatedUser)],
+        components: [createActionRow(updatedUser)],
+      }
+      await interaction.editReply(messagePayload)
     }
   } catch (error) {
     context.log.error(
       { error, plexUsername, userId: interaction.user.id },
       'Error processing Plex username',
     )
-    await interaction.reply({
+    await interaction.editReply({
       content: 'An error occurred while processing your request.',
-      flags: MessageFlags.Ephemeral,
     })
   }
 }
