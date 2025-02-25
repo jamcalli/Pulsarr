@@ -941,203 +941,206 @@ export class PlexWatchlistService {
     }))
   }
 
+  // Fix for matchRssPendingItemsSelf and matchRssPendingItemsFriends
+
   async matchRssPendingItemsSelf(
     userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>,
   ): Promise<void> {
-    const pendingItems = await this.dbService.getTempRssItems('self')
-
+    const pendingItems = await this.dbService.getTempRssItems('self');
+  
     this.log.info(
       `Found ${pendingItems.length} pending RSS items to match during self sync`,
-    )
-    let matchCount = 0
-    let noMatchCount = 0
-    const matchedItemIds: number[] = []
-
-    const userIds = Array.from(userWatchlistMap.keys()).map(
-      (user) => user.userId,
-    )
-    const existingItems = await this.dbService.getBulkWatchlistItems(
-      userIds,
-      [],
-    )
-    const existingGuidsMap = new Map<number, Set<string>>()
-
-    for (const item of existingItems) {
-      if (!item.user_id) continue
-      const guids =
-        typeof item.guids === 'string'
-          ? JSON.parse(item.guids)
-          : item.guids || []
-      if (!existingGuidsMap.has(item.user_id)) {
-        existingGuidsMap.set(item.user_id, new Set())
-      }
-      for (const guid of guids) {
-        existingGuidsMap.get(item.user_id)?.add(guid)
-      }
-    }
-
+    );
+    let matchCount = 0;
+    let noMatchCount = 0;
+    const matchedItemIds: number[] = [];
+  
     for (const pendingItem of pendingItems) {
-      let foundMatch = false
+      const pendingGuids: string[] = Array.isArray(pendingItem.guids) 
+        ? pendingItem.guids 
+        : JSON.parse(pendingItem.guids as string);
+      
+      this.log.debug(`Processing RSS item "${pendingItem.title}" with GUIDs:`, pendingGuids);
+      let foundMatch = false;
+      
       for (const [user, items] of userWatchlistMap.entries()) {
         for (const item of items) {
-          const itemGuids = (
-            typeof item.guids === 'string' ? JSON.parse(item.guids) : item.guids
-          ) as string[]
-
-          if (pendingItem.guids.some((guid) => itemGuids.includes(guid))) {
-            foundMatch = true
-            matchCount++
-            matchedItemIds.push(pendingItem.id)
-
-            const userExistingGuids =
-              existingGuidsMap.get(user.userId) || new Set()
-            const isNewItem = !itemGuids.some((guid) =>
-              userExistingGuids.has(guid),
+          const itemGuids: string[] = Array.isArray(item.guids) 
+            ? item.guids 
+            : JSON.parse(item.guids as string);
+          
+          const hasMatch = pendingGuids.some((pendingGuid: string) => 
+            itemGuids.some((itemGuid: string) => 
+              itemGuid.toLowerCase() === pendingGuid.toLowerCase()
             )
-
-            if (isNewItem) {
-              await this.fastify.discord.sendMediaNotification({
-                username: user.username,
-                title: item.title,
-                type: item.type as 'movie' | 'show',
-                posterUrl: item.thumb,
-              })
-              this.log.info(
-                `Sent notification for new item "${item.title}" for user ${user.username}`,
-              )
-            } else {
-              this.log.debug(
-                `Skipped notification for existing item "${item.title}" for user ${user.username}`,
-              )
-            }
-
-            break
+          );
+          
+          if (hasMatch) {
+            foundMatch = true;
+            matchCount++;
+            matchedItemIds.push(pendingItem.id);
+            
+            this.log.info(
+              `Matched item "${pendingItem.title}" to user ${user.username}'s item "${item.title}"`,
+              {
+                pendingGuids,
+                itemGuids,
+                userId: user.userId
+              }
+            );
+            
+            await this.fastify.discord.sendMediaNotification({
+              username: user.username,
+              title: item.title,
+              type: item.type as 'movie' | 'show',
+              posterUrl: item.thumb,
+            });
+            
+            break;
           }
         }
-        if (foundMatch) break
+        if (foundMatch) break;
       }
-
+  
       if (!foundMatch) {
-        noMatchCount++
+        noMatchCount++;
         this.log.warn(
           `No match found for self RSS item "${pendingItem.title}"`,
           {
             itemTitle: pendingItem.title,
-            pendingGuids: pendingItem.guids,
+            pendingGuids,
           },
-        )
+        );
       }
     }
-
+  
     if (matchedItemIds.length > 0) {
-      await this.dbService.deleteTempRssItems(matchedItemIds)
+      await this.dbService.deleteTempRssItems(matchedItemIds);
     }
-
+  
     this.log.info('Self RSS matching complete', {
       totalChecked: pendingItems.length,
       matched: matchCount,
       unmatched: noMatchCount,
-    })
+    });
   }
 
   async matchRssPendingItemsFriends(
     userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>,
   ): Promise<void> {
-    const pendingItems = await this.dbService.getTempRssItems('friends')
-
+    const pendingItems = await this.dbService.getTempRssItems('friends');
+  
     this.log.info(
       `Found ${pendingItems.length} pending RSS items to match during friend sync`,
-    )
-    let matchCount = 0
-    let noMatchCount = 0
-    const matchedItemIds: number[] = []
-
+    );
+    let matchCount = 0;
+    let noMatchCount = 0;
+    const matchedItemIds: number[] = [];
+  
     const userIds = Array.from(userWatchlistMap.keys()).map(
       (user) => user.userId,
-    )
+    );
     const existingItems = await this.dbService.getBulkWatchlistItems(
       userIds,
       [],
-    )
-    const existingGuidsMap = new Map<number, Set<string>>()
-
+    );
+    const existingGuidsMap = new Map<number, Set<string>>();
+  
     for (const item of existingItems) {
-      if (!item.user_id) continue
-      const guids =
+      if (!item.user_id) continue;
+      const guids: string[] =
         typeof item.guids === 'string'
           ? JSON.parse(item.guids)
-          : item.guids || []
+          : item.guids || [];
       if (!existingGuidsMap.has(item.user_id)) {
-        existingGuidsMap.set(item.user_id, new Set())
+        existingGuidsMap.set(item.user_id, new Set<string>());
       }
       for (const guid of guids) {
-        existingGuidsMap.get(item.user_id)?.add(guid)
+        existingGuidsMap.get(item.user_id)?.add(guid);
       }
     }
-
+  
     for (const pendingItem of pendingItems) {
-      let foundAnyMatch = false
-
+      const pendingGuids: string[] = Array.isArray(pendingItem.guids)
+        ? pendingItem.guids
+        : JSON.parse(pendingItem.guids as string);
+        
+      let foundAnyMatch = false;
+  
       for (const [friend, items] of userWatchlistMap.entries()) {
         for (const item of items) {
-          const itemGuids = (
+          const itemGuids: string[] = (
             typeof item.guids === 'string' ? JSON.parse(item.guids) : item.guids
-          ) as string[]
-
-          if (pendingItem.guids.some((guid) => itemGuids.includes(guid))) {
-            foundAnyMatch = true
-            matchCount++
-            matchedItemIds.push(pendingItem.id)
-
+          );
+  
+          const hasMatch = pendingGuids.some((pendingGuid: string) => 
+            itemGuids.includes(pendingGuid.toLowerCase())
+          );
+  
+          if (hasMatch) {
+            foundAnyMatch = true;
+            matchCount++;
+            matchedItemIds.push(pendingItem.id);
+  
             const userExistingGuids =
-              existingGuidsMap.get(friend.userId) || new Set()
-            const isNewItem = !itemGuids.some((guid) =>
-              userExistingGuids.has(guid),
-            )
-
+              existingGuidsMap.get(friend.userId) || new Set<string>();
+            const isNewItem = !itemGuids.some((guid: string) =>
+              userExistingGuids.has(guid)
+            );
+  
             if (isNewItem) {
               await this.fastify.discord.sendMediaNotification({
                 username: friend.username,
                 title: item.title,
                 type: item.type as 'movie' | 'show',
                 posterUrl: item.thumb,
-              })
+              });
               this.log.info(
                 `Sent notification for new item "${item.title}" for user ${friend.username}`,
-              )
+                {
+                  pendingGuids,
+                  itemGuids,
+                  userId: friend.userId
+                }
+              );
             } else {
               this.log.debug(
                 `Skipped notification for existing item "${item.title}" for user ${friend.username}`,
-              )
+                {
+                  pendingGuids,
+                  itemGuids,
+                  userId: friend.userId
+                }
+              );
             }
-
-            break
+  
+            break;
           }
         }
-        if (foundAnyMatch) break
+        if (foundAnyMatch) break;
       }
-
+  
       if (!foundAnyMatch) {
-        noMatchCount++
+        noMatchCount++;
         this.log.warn(
           `No matches found for friend RSS item "${pendingItem.title}"`,
           {
             itemTitle: pendingItem.title,
-            pendingGuids: pendingItem.guids,
+            pendingGuids,
           },
-        )
+        );
       }
     }
-
+  
     if (matchedItemIds.length > 0) {
-      await this.dbService.deleteTempRssItems(matchedItemIds)
+      await this.dbService.deleteTempRssItems(matchedItemIds);
     }
-
+  
     this.log.info('Friend RSS matching complete', {
       totalChecked: pendingItems.length,
       matched: matchCount,
       unmatched: noMatchCount,
-    })
+    });
   }
 
   private async handleRemovedItems(
