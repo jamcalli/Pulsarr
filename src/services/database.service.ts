@@ -878,9 +878,9 @@ export class DatabaseService {
         .whereNotNull('genres')
         .where('genres', '!=', '[]')
         .select('genres')
-      
+
       const uniqueGenres = new Set<string>()
-      
+
       for (const row of items) {
         try {
           const parsedGenres = JSON.parse(row.genres || '[]')
@@ -895,14 +895,14 @@ export class DatabaseService {
           this.log.error('Error parsing genres:', parseError)
         }
       }
-      
-      const genresToInsert = Array.from(uniqueGenres).map(genre => ({
+
+      const genresToInsert = Array.from(uniqueGenres).map((genre) => ({
         name: genre,
         is_custom: false,
         created_at: this.timestamp,
         updated_at: this.timestamp,
       }))
-      
+
       if (genresToInsert.length > 0) {
         await this.knex('genres')
           .insert(genresToInsert)

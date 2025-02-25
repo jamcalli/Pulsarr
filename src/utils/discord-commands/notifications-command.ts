@@ -317,6 +317,12 @@ export async function handleNotificationButtons(
 ) {
   const cache = SettingsCache.getInstance()
 
+  // Check if this is a dynamic retry button (they start with retryPlexLink_)
+  if (interaction.customId.startsWith('retryPlexLink_')) {
+    // This is now handled by the collector in the modal handler
+    return
+  }
+
   if (!cache.has(interaction.user.id)) {
     context.log.debug(
       { userId: interaction.user.id },
@@ -364,16 +370,6 @@ export async function handleNotificationButtons(
 
     case 'toggleEmail': {
       await interaction.deferUpdate()
-
-      if (!user.notify_email && !user.email) {
-        await interaction.followUp({
-          content:
-            "You need to set a valid email address before enabling email notifications. Please use the 'Edit Profile' button to set your email.",
-          flags: MessageFlags.Ephemeral,
-        })
-        return
-      }
-
       const emailUpdated = await updateUser(
         user.id,
         { notify_email: !user.notify_email },
@@ -418,7 +414,7 @@ export async function handlePlexUsernameModal(
     .getTextInputValue('plexUsername')
     .trim()
 
-  await interaction.deferReply({ ephemeral: true })
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral })
 
   try {
     context.log.info(
@@ -464,7 +460,7 @@ export async function handlePlexUsernameModal(
           filter: (i) =>
             i.customId === retryId && i.user.id === interaction.user.id,
           time: 15 * 60 * 1000, // 15 minute timeout
-          max: 1,
+          max: 1, // Collect only one interaction
         })
 
         collector.on('collect', async (buttonInteraction) => {
@@ -479,7 +475,7 @@ export async function handlePlexUsernameModal(
             await buttonInteraction.reply({
               content:
                 'An error occurred. Please try the /notifications command again.',
-              ephemeral: true,
+              flags: MessageFlags.Ephemeral,
             })
           }
         })
@@ -547,7 +543,7 @@ export async function handlePlexUsernameModal(
             await buttonInteraction.reply({
               content:
                 'An error occurred. Please try the /notifications command again.',
-              ephemeral: true,
+              flags: MessageFlags.Ephemeral,
             })
           }
         })
