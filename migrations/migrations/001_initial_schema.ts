@@ -119,6 +119,10 @@ export async function up(knex: Knex): Promise<void> {
     table.string('discordBotToken')
     table.string('discordClientId')
     table.string('discordGuildId')
+    // General Notifications
+    table.integer('queueWaitTime').defaultTo(120000)
+    table.integer('newEpisodeThreshold').defaultTo(172800000)
+    table.integer('upgradeBufferTime').defaultTo(2000)
     // Plex
     table.json('plexTokens')
     table.boolean('skipFriendSync')
