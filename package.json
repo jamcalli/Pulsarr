@@ -50,6 +50,7 @@
     "@fastify/swagger": "^9.4.2",
     "@fastify/vite": "^8.0.0-alpha.2",
     "@hookform/resolvers": "^4.0.0",
+    "@radix-ui/react-accordion": "^1.2.3",
     "@radix-ui/react-alert-dialog": "^1.1.6",
     "@radix-ui/react-aspect-ratio": "^1.1.2",
     "@radix-ui/react-dialog": "^1.1.6",

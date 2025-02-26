@@ -9,7 +9,10 @@ import type {
   RssResponse,
 } from '@root/types/plex.types.js'
 import type { Config } from '@root/types/config.types.js'
-import type { ProgressOptions } from '@root/types/progress.types.js'
+import type {
+  ProgressOptions,
+  ProgressService,
+} from '@root/types/progress.types.js'
 
 export const pingPlex = async (
   token: string,
@@ -412,19 +415,19 @@ export const processWatchlistItems = async (
   log: FastifyBaseLogger,
   userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>,
   progressInfo?: {
-    progress: any;
-    operationId: string;
-    type: string;
-  }
+    progress: ProgressService
+    operationId: string
+    type: 'self-watchlist' | 'others-watchlist' | 'rss-feed' | 'system'
+  },
 ): Promise<Map<Friend, Set<Item>>> => {
-  const results = new Map<Friend, Set<Item>>();
-  
+  const results = new Map<Friend, Set<Item>>()
+
   // Calculate total items for progress tracking
   const totalItems = Array.from(userWatchlistMap.values()).reduce(
     (sum, items) => sum + items.size,
-    0
-  );
-  
+    0,
+  )
+
   if (progressInfo) {
     progressInfo.progress.emit({
       operationId: progressInfo.operationId,
@@ -432,49 +435,53 @@ export const processWatchlistItems = async (
       phase: 'setup',
       progress: 5,
       message: `Starting to process ${totalItems} items`,
-    });
+    })
   }
-  
+
   // Track completed items across all users
-  let completedItems = 0;
-  
+  let completedItems = 0
+
   // Process each user's watchlist
   for (const [user, watchlistItems] of userWatchlistMap.entries()) {
-    log.info(`Processing ${watchlistItems.size} watchlist items for user ${user.username}`);
-    
+    log.info(
+      `Processing ${watchlistItems.size} watchlist items for user ${user.username}`,
+    )
+
     // Process items in parallel batches
-    const itemsArray = Array.from(watchlistItems);
+    const itemsArray = Array.from(watchlistItems)
     const processedItemsMap = await toItemsBatch(
-      config, 
-      log, 
+      config,
+      log,
       itemsArray,
-      progressInfo ? {
-        progress: progressInfo.progress,
-        operationId: progressInfo.operationId,
-        type: progressInfo.type,
-        completedItems,
-        totalItems,
-        username: user.username
-      } : undefined,
-      5 // Concurrency limit
-    );
-    
+      progressInfo
+        ? {
+            progress: progressInfo.progress,
+            operationId: progressInfo.operationId,
+            type: progressInfo.type,
+            completedItems,
+            totalItems,
+            username: user.username,
+          }
+        : undefined,
+      5, // Concurrency limit
+    )
+
     // Combine all items for this user
-    const userItems = new Set<Item>();
+    const userItems = new Set<Item>()
     for (const itemSet of processedItemsMap.values()) {
       for (const item of itemSet) {
-        userItems.add(item);
+        userItems.add(item)
       }
     }
-    
+
     if (userItems.size > 0) {
-      results.set(user, userItems);
+      results.set(user, userItems)
     }
-    
+
     // Update completed items count
-    completedItems += watchlistItems.size;
+    completedItems += watchlistItems.size
   }
-  
+
   if (progressInfo) {
     progressInfo.progress.emit({
       operationId: progressInfo.operationId,
@@ -482,75 +489,84 @@ export const processWatchlistItems = async (
       phase: 'complete',
       progress: 95,
       message: `Processed all ${totalItems} items - finalizing`,
-    });
+    })
   }
-  
-  return results;
-};
+
+  return results
+}
 
 const toItemsBatch = async (
   config: Config,
   log: FastifyBaseLogger,
   items: TokenWatchlistItem[],
   progressTracker?: {
-    progress: any;
-    operationId: string;
-    type: string;
-    completedItems: number;
-    totalItems: number;
-    username: string;
+    progress: ProgressService
+    operationId: string
+    type: 'self-watchlist' | 'others-watchlist' | 'rss-feed' | 'system'
+    completedItems: number
+    totalItems: number
+    username: string
   },
-  concurrencyLimit = 5
+  concurrencyLimit = 5,
 ): Promise<Map<TokenWatchlistItem, Set<Item>>> => {
-  const results = new Map<TokenWatchlistItem, Set<Item>>();
-  const queue = [...items];
-  let processingCount = 0;
-  let batchCompletedCount = 0;
-  
+  const results = new Map<TokenWatchlistItem, Set<Item>>()
+  const queue = [...items]
+  let processingCount = 0
+  let batchCompletedCount = 0
+
   // Process items in batches with controlled concurrency
   while (queue.length > 0 || processingCount > 0) {
     // Start processing new items up to the concurrency limit
     while (queue.length > 0 && processingCount < concurrencyLimit) {
-      const item = queue.shift()!;
-      processingCount++;
-      
-      // Process this item asynchronously
-      toItemsSingle(config, log, item)
-        .then(itemSet => {
-          results.set(item, itemSet);
-          processingCount--;
-          batchCompletedCount++;
-          
-          // Update progress if tracking is enabled
-          if (progressTracker) {
-            const totalCompletedItems = progressTracker.completedItems + batchCompletedCount;
-            const overallProgress = Math.floor((totalCompletedItems / progressTracker.totalItems) * 90) + 5;
-            
-            progressTracker.progress.emit({
-              operationId: progressTracker.operationId,
-              type: progressTracker.type,
-              phase: 'processing',
-              progress: Math.min(95, overallProgress),
-              message: `Processed ${totalCompletedItems} of ${progressTracker.totalItems} items`,
-            });
-          }
-        })
-        .catch(error => {
-          log.error(`Error processing item ${item.title}:`, error);
-          results.set(item, new Set());
-          processingCount--;
-          batchCompletedCount++;
-        });
+      const item = queue.shift()
+      if (item) {
+        processingCount++
+
+        // Process this item asynchronously
+        toItemsSingle(config, log, item)
+          .then((itemSet) => {
+            results.set(item, itemSet)
+            processingCount--
+            batchCompletedCount++
+
+            // Update progress if tracking is enabled
+            if (progressTracker) {
+              const totalCompletedItems =
+                progressTracker.completedItems + batchCompletedCount
+              const overallProgress =
+                Math.floor(
+                  (totalCompletedItems / progressTracker.totalItems) * 90,
+                ) + 5
+
+              progressTracker.progress.emit({
+                operationId: progressTracker.operationId,
+                type: progressTracker.type,
+                phase: 'processing',
+                progress: Math.min(95, overallProgress),
+                message: `Processed ${totalCompletedItems} of ${progressTracker.totalItems} items`,
+              })
+            }
+          })
+          .catch((error) => {
+            log.error(`Error processing item ${item.title}:`, error)
+            results.set(item, new Set())
+            processingCount--
+            batchCompletedCount++
+          })
+      }
     }
-    
+
     // Wait a bit before checking again if we're at the concurrency limit
-    if (processingCount >= concurrencyLimit || (processingCount > 0 && queue.length === 0)) {
-      await new Promise(resolve => setTimeout(resolve, 50));
+    if (
+      processingCount >= concurrencyLimit ||
+      (processingCount > 0 && queue.length === 0)
+    ) {
+      await new Promise((resolve) => setTimeout(resolve, 50))
     }
   }
-  
-  return results;
-};
+
+  return results
+}
 
 // The single item processor with smarter retry mechanism
 const toItemsSingle = async (
@@ -558,29 +574,29 @@ const toItemsSingle = async (
   log: FastifyBaseLogger,
   item: TokenWatchlistItem,
   retryCount = 0,
-  maxRetries = 2
+  maxRetries = 2,
 ): Promise<Set<Item>> => {
   try {
     const url = new URL(
       `https://discover.provider.plex.tv/library/metadata/${item.id}`,
-    );
-    url.searchParams.append('X-Plex-Token', config.plexTokens[0]);
+    )
+    url.searchParams.append('X-Plex-Token', config.plexTokens[0])
 
     const response = await fetch(url.toString(), {
       headers: {
         Accept: 'application/json',
       },
       // Add a reasonable timeout to prevent hanging requests
-      signal: AbortSignal.timeout(5000)
-    });
+      signal: AbortSignal.timeout(5000),
+    })
 
     if (!response.ok) {
-      throw new Error(`Plex API error: ${response.statusText}`);
+      throw new Error(`Plex API error: ${response.statusText}`)
     }
 
-    const json = (await response.json()) as PlexApiResponse;
+    const json = (await response.json()) as PlexApiResponse
     if (!json.MediaContainer || !json.MediaContainer.Metadata) {
-      throw new Error('Invalid response structure');
+      throw new Error('Invalid response structure')
     }
 
     const items = json.MediaContainer.Metadata.map((metadata) => ({
@@ -594,7 +610,7 @@ const toItemsSingle = async (
       status: 'pending' as const,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-    }));
+    }))
 
     if (
       items.length > 0 &&
@@ -603,40 +619,40 @@ const toItemsSingle = async (
     ) {
       log.warn(
         `Found item ${item.title} but no GUIDs. Retry ${retryCount + 1}/${maxRetries}`,
-      );
+      )
       // Use exponential backoff with shorter initial delay
-      const backoffDelay = Math.min(200 * Math.pow(1.5, retryCount), 1000);
-      await new Promise((resolve) => setTimeout(resolve, backoffDelay));
-      return toItemsSingle(config, log, item, retryCount + 1, maxRetries);
+      const backoffDelay = Math.min(200 * 1.5 ** retryCount, 1000)
+      await new Promise((resolve) => setTimeout(resolve, backoffDelay))
+      return toItemsSingle(config, log, item, retryCount + 1, maxRetries)
     }
 
     log.debug(
       `Processed metadata for item: ${item.title}${items[0]?.guids?.length ? ` with ${items[0].guids.length} GUIDs` : ''}`,
-    );
-    return new Set(items);
+    )
+    return new Set(items)
   } catch (err) {
-    const error = err as Error;
+    const error = err as Error
     if (error.message.includes('Plex API error')) {
       if (retryCount < maxRetries) {
         log.warn(
           `Failed to find ${item.title} in Plex's database. Retry ${retryCount + 1}/${maxRetries}`,
-        );
+        )
         // Use exponential backoff with shorter initial delay
-        const backoffDelay = Math.min(200 * Math.pow(1.5, retryCount), 1000);
-        await new Promise((resolve) => setTimeout(resolve, backoffDelay));
-        return toItemsSingle(config, log, item, retryCount + 1, maxRetries);
+        const backoffDelay = Math.min(200 * 1.5 ** retryCount, 1000)
+        await new Promise((resolve) => setTimeout(resolve, backoffDelay))
+        return toItemsSingle(config, log, item, retryCount + 1, maxRetries)
       }
       log.warn(
         `Found item ${item.title} on the watchlist, but we cannot find this in Plex's database after ${maxRetries + 1} attempts.`,
-      );
+      )
     } else {
       log.error(
         `Unable to fetch item details for ${item.title} after ${retryCount + 1} attempts: ${error}`,
-      );
+      )
     }
-    return new Set();
+    return new Set()
   }
-};
+}
 
 export const getPlexWatchlistUrls = async (
   tokens: Set<string>,

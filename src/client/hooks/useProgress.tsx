@@ -19,26 +19,18 @@ export const useProgress = (type: ProgressType): ProgressState => {
   const mountedRef = useRef(true)
 
   const handleProgress = useCallback((event: ProgressEvent) => {
-    console.log(`[useProgress] Received update for ${type}:`, event)
     if (mountedRef.current) {
       setProgress(event.progress)
       setMessage(event.message)
       setPhase(event.phase)
-      console.log(`[useProgress] State updated for ${type}`, {
-        progress: event.progress,
-        message: event.message,
-        phase: event.phase
-      })
     }
   }, [type])
 
   useEffect(() => {
-    console.log(`[useProgress] Setting up subscription for ${type}`)
     const unsubscribe = eventSourceManager.subscribeToType(type, handleProgress)
     setIsConnected(eventSourceManager.isConnected())
 
     return () => {
-      console.log(`[useProgress] Cleaning up subscription for ${type}`)
       mountedRef.current = false
       unsubscribe()
     }

@@ -29,11 +29,11 @@ export default function Nav({ className }: NavProps) {
         </Link>
         <Link
           className={
-            location.pathname === '/app/dashboard/notifications'
+            location.pathname === '/app/notifications'
               ? 'bg-black text-white flex h-full items-center justify-center uppercase'
               : 'text-text bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border dark:border-r-darkBorder'
           }
-          to="/app/dashboard/notifications"
+          to="/app/notifications"
         >
           Notifications
         </Link>
@@ -42,31 +42,31 @@ export default function Nav({ className }: NavProps) {
       <div className="grid h-[50px] grid-cols-3">
         <Link
           className={
-            location.pathname === '/app/dashboard/plex'
+            location.pathname === '/app/plex'
               ? 'bg-black text-white flex h-full items-center justify-center uppercase'
               : 'text-text bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border dark:border-r-darkBorder'
           }
-          to="/app/dashboard/plex"
+          to="/app/plex"
         >
           Plex
         </Link>
         <Link
           className={
-            location.pathname === '/app/dashboard/sonarr'
+            location.pathname === '/app/sonarr'
               ? 'bg-black text-white flex h-full items-center justify-center uppercase'
               : 'text-text bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border dark:border-r-darkBorder'
           }
-          to="/app/dashboard/sonarr"
+          to="/app/sonarr"
         >
           Sonarr
         </Link>
         <Link
           className={
-            location.pathname === '/app/dashboard/radarr'
+            location.pathname === '/app/radarr'
               ? 'bg-black text-white flex h-full items-center justify-center uppercase'
               : 'text-text bg-main flex h-full items-center justify-center uppercase border-r-0 border-r-border dark:border-r-darkBorder'
           }
-          to="/app/dashboard/radarr"
+          to="/app/radarr"
         >
           Radarr
         </Link>
