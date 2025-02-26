@@ -24,7 +24,7 @@ const config: { [key: string]: Knex.Config } = {
   development: {
     client: 'better-sqlite3',
     connection: {
-      filename: resolve(ensureDbDirectory(), 'plexwatchlist.db')
+      filename: resolve(ensureDbDirectory(), 'pulsarr.db')
     },
     useNullAsDefault: true,
     migrations: {
