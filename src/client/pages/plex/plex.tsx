@@ -311,14 +311,7 @@ export default function PlexConfigPage() {
                               {selfWatchlistProgress.progress}%
                             </span>
                           </div>
-                          <Progress
-                            value={selfWatchlistProgress.progress}
-                            className={
-                              selfWatchlistProgress.isComplete
-                                ? 'bg-green-500'
-                                : ''
-                            }
-                          />
+                          <Progress value={selfWatchlistProgress.progress} />
                         </div>
                       ) : (
                         <FormControl>
@@ -354,14 +347,7 @@ export default function PlexConfigPage() {
                               {othersWatchlistProgress.progress}%
                             </span>
                           </div>
-                          <Progress
-                            value={othersWatchlistProgress.progress}
-                            className={
-                              othersWatchlistProgress.isComplete
-                                ? 'bg-green-500'
-                                : ''
-                            }
-                          />
+                          <Progress value={othersWatchlistProgress.progress} />
                         </div>
                       ) : (
                         <FormControl>
