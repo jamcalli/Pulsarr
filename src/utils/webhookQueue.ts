@@ -1,20 +1,15 @@
 import type { FastifyInstance } from 'fastify'
-import type {
-  WebhookQueue,
-  RecentWebhook,
-  SeasonQueue,
-} from '@root/types/webhook.types.js'
-
-export const QUEUE_WAIT_TIME = 60 * 1000 // 1 minute
-export const NEW_EPISODE_THRESHOLD = 48 * 60 * 60 * 1000 // 48 hours
-export const UPGRADE_BUFFER_TIME = 2000 // 2 seconds buffer
+import type { WebhookQueue, RecentWebhook } from '@root/types/webhook.types.js'
 
 export const webhookQueue: WebhookQueue = {}
 
-export function isRecentEpisode(airDateUtc: string): boolean {
+export function isRecentEpisode(
+  airDateUtc: string,
+  fastify: FastifyInstance,
+): boolean {
   const airDate = new Date(airDateUtc).getTime()
   const now = Date.now()
-  return now - airDate <= NEW_EPISODE_THRESHOLD
+  return now - airDate <= fastify.config.newEpisodeThreshold
 }
 
 export async function checkForUpgrade(
@@ -58,7 +53,7 @@ export async function checkForUpgrade(
   const now = Date.now()
   for (const [key, webhooks] of seasonQueue.upgradeTracker.entries()) {
     const filtered = webhooks.filter(
-      (w) => now - w.timestamp < UPGRADE_BUFFER_TIME,
+      (w) => now - w.timestamp < fastify.config.upgradeBufferTime,
     )
     if (filtered.length === 0) {
       seasonQueue.upgradeTracker.delete(key)
@@ -87,7 +82,7 @@ export async function processQueuedWebhooks(
   clearTimeout(seasonQueue.timeoutId)
 
   const hasRecentEpisodes = episodes.some((ep) =>
-    isRecentEpisode(ep.airDateUtc),
+    isRecentEpisode(ep.airDateUtc, fastify),
   )
   if (seasonQueue.notifiedSeasons.has(seasonNumber) && !hasRecentEpisodes) {
     delete queue.seasons[seasonNumber]

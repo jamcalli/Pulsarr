@@ -38,6 +38,10 @@ export interface Config {
   discordBotToken: string
   discordClientId: string
   discordGuildId: string
+  // General Notifications
+  queueWaitTime: number
+  newEpisodeThreshold: number
+  upgradeBufferTime: number
   // Sonarr Config
   sonarrBaseUrl: string
   sonarrApiKey: string

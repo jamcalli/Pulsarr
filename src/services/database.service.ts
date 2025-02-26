@@ -228,6 +228,10 @@ export class DatabaseService {
       // Handle timing defaults
       syncIntervalSeconds: config.syncIntervalSeconds || 10,
       queueProcessDelaySeconds: config.queueProcessDelaySeconds || 60,
+      // Handle notification timing defaults
+      queueWaitTime: config.queueWaitTime || 120000,
+      newEpisodeThreshold: config.newEpisodeThreshold || 172800000,
+      upgradeBufferTime: config.upgradeBufferTime || 2000,
       // Convert boolean fields
       cookieSecured: Boolean(config.cookieSecured),
       skipFriendSync: Boolean(config.skipFriendSync),
@@ -257,6 +261,10 @@ export class DatabaseService {
         // Timing fields
         syncIntervalSeconds: config.syncIntervalSeconds || 10,
         queueProcessDelaySeconds: config.queueProcessDelaySeconds || 60,
+        // Notification timing fields
+        queueWaitTime: config.queueWaitTime || 120000,
+        newEpisodeThreshold: config.newEpisodeThreshold || 172800000,
+        upgradeBufferTime: config.upgradeBufferTime || 2000,
         // Plex fields
         plexTokens: JSON.stringify(config.plexTokens || []),
         skipFriendSync: config.skipFriendSync,

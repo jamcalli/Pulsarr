@@ -21,6 +21,16 @@ export const ConfigSchema = z.object({
   rateLimitMax: z.number().optional(),
   syncIntervalSeconds: z.number().optional(),
   queueProcessDelaySeconds: z.number().optional(),
+  // Discord Config
+  discordWebhookUrl: z.string().url().optional(),
+  discordBotToken: z.string().optional(),
+  discordClientId: z.string().optional(),
+  discordGuildId: z.string().optional(),
+  // General Notifications
+  queueWaitTime: z.number().optional(),
+  newEpisodeThreshold: z.number().optional(),
+  upgradeBufferTime: z.number().optional(),
+  // Other configs
   plexTokens: z.array(z.string()).optional(),
   skipFriendSync: z.boolean().optional(),
   deleteMovie: z.boolean().optional(),
@@ -30,10 +40,6 @@ export const ConfigSchema = z.object({
   deleteFiles: z.boolean().optional(),
   selfRss: z.string().optional(),
   friendsRss: z.string().optional(),
-  discordWebhookUrl: z.string().url().optional(),
-  discordBotToken: z.string().optional(),
-  discordClientId: z.string().optional(),
-  discordGuildId: z.string().optional(),
   _isReady: z.boolean().optional(),
 })
 
