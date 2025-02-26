@@ -102,7 +102,6 @@ export default function PlexConfigPage() {
 
   const handleRefreshWatchlists = async () => {
     try {
-      // Start both watchlist syncs without waiting between them
       setSelfWatchlistStatus('loading')
       setOthersWatchlistStatus('loading')
 
@@ -111,7 +110,6 @@ export default function PlexConfigPage() {
         fetch('/v1/plex/others-watchlist-token'),
       ])
 
-      // After both are complete, update status and refresh state
       setSelfWatchlistStatus('success')
       setOthersWatchlistStatus('success')
       await fetchUserData()

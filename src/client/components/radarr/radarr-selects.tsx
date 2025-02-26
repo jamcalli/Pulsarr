@@ -39,9 +39,9 @@ export function QualityProfileSelect({
   const selectedProfile = currentInstance?.data?.qualityProfiles?.find(
     (p) => p.id.toString() === field.value?.toString(),
   )
-  
-  const isLoading = currentInstance && !currentInstance?.data?.qualityProfiles;
-  
+
+  const isLoading = currentInstance && !currentInstance?.data?.qualityProfiles
+
   if (isLoading) {
     return <Skeleton className="h-10 w-full" />
   }
@@ -95,8 +95,8 @@ export function RootFolderSelect({
   const selectedFolder = currentInstance?.data?.rootFolders?.find(
     (f) => f.path === field.value,
   )
-  
-  const isLoading = currentInstance && !currentInstance?.data?.rootFolders;
+
+  const isLoading = currentInstance && !currentInstance?.data?.rootFolders
 
   if (isLoading) {
     return <Skeleton className="h-10 w-full" />

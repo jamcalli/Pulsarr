@@ -8,16 +8,17 @@ const LoginPage = lazy(() =>
     default: module.LoginPage,
   })),
 )
-
 const CreateUserPage = lazy(() =>
   import('@/pages/create-user/create-user').then((module) => ({
     default: module.CreateUserPage,
   })),
 )
-
 const PlexConfigPage = lazy(() => import('@/pages/plex/plex'))
 const SonarrConfigPage = lazy(() => import('@/pages/sonarr/sonarr'))
 const RadarrConfigPage = lazy(() => import('@/pages/radarr/radarr'))
+const NotificationsConfigPage = lazy(
+  () => import('@/pages/notifications/notifications'),
+)
 
 // Loading fallback component
 const LoadingFallback = () => null
@@ -40,7 +41,7 @@ export const router = createBrowserRouter([
     ),
   },
   {
-    path: '/app/dashboard/plex',
+    path: '/app/plex',
     element: (
       <AuthenticatedLayout>
         <Suspense fallback={<LoadingFallback />}>
@@ -50,7 +51,7 @@ export const router = createBrowserRouter([
     ),
   },
   {
-    path: '/app/dashboard/sonarr',
+    path: '/app/sonarr',
     element: (
       <AuthenticatedLayout>
         <Suspense fallback={<LoadingFallback />}>
@@ -60,11 +61,21 @@ export const router = createBrowserRouter([
     ),
   },
   {
-    path: '/app/dashboard/radarr',
+    path: '/app/radarr',
     element: (
       <AuthenticatedLayout>
         <Suspense fallback={<LoadingFallback />}>
           <RadarrConfigPage />
+        </Suspense>
+      </AuthenticatedLayout>
+    ),
+  },
+  {
+    path: '/app/notifications',
+    element: (
+      <AuthenticatedLayout>
+        <Suspense fallback={<LoadingFallback />}>
+          <NotificationsConfigPage />
         </Suspense>
       </AuthenticatedLayout>
     ),
