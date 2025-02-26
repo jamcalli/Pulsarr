@@ -71,6 +71,18 @@ const schema = {
       type: 'string',
       default: '',
     },
+    queueWaitTime: {
+      type: 'number',
+      default: 120000,
+    },
+    newEpisodeThreshold: {
+      type: 'number',
+      default: 172800000,
+    },
+    upgradeBufferTime: {
+      type: 'number',
+      default: 2000,
+    },
     sonarrBaseUrl: {
       type: 'string',
       default: 'http://localhost:8989',

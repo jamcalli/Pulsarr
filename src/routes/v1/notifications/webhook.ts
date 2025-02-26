@@ -10,7 +10,6 @@ import {
   isRecentEpisode,
   processQueuedWebhooks,
   webhookQueue,
-  QUEUE_WAIT_TIME,
   checkForUpgrade,
 } from '@root/utils/webhookQueue.js'
 
@@ -149,7 +148,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             }
 
             const recentEpisodes = body.episodes.filter((ep) =>
-              isRecentEpisode(ep.airDateUtc),
+              isRecentEpisode(ep.airDateUtc, fastify),
             )
 
             if (recentEpisodes.length > 0) {
@@ -199,7 +198,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             }
 
             const nonRecentEpisodes = body.episodes.filter(
-              (ep) => !isRecentEpisode(ep.airDateUtc),
+              (ep) => !isRecentEpisode(ep.airDateUtc, fastify),
             )
 
             if (nonRecentEpisodes.length > 0) {
@@ -212,7 +211,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                   upgradeTracker: new Map(),
                   timeoutId: setTimeout(() => {
                     processQueuedWebhooks(tvdbId, seasonNumber, fastify)
-                  }, QUEUE_WAIT_TIME),
+                  }, fastify.config.queueWaitTime),
                 }
               } else {
                 clearTimeout(
@@ -221,7 +220,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                 webhookQueue[tvdbId].seasons[seasonNumber].timeoutId =
                   setTimeout(() => {
                     processQueuedWebhooks(tvdbId, seasonNumber, fastify)
-                  }, QUEUE_WAIT_TIME)
+                  }, fastify.config.queueWaitTime)
               }
 
               webhookQueue[tvdbId].seasons[seasonNumber].episodes.push(
