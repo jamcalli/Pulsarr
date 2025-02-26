@@ -20,7 +20,7 @@ const schema = {
     },
     dbPath: {
       type: 'string',
-      default: './data/db/plexwatchlist.db',
+      default: './data/db/pulsarr.db',
     },
     cookieSecret: {
       type: 'string',
