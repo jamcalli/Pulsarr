@@ -2,7 +2,7 @@ import * as React from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Loader2, Check, RefreshCw } from 'lucide-react'
+import { Loader2, Save, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -17,8 +17,13 @@ import { useToast } from '@/hooks/use-toast'
 import { useConfigStore } from '@/stores/configStore'
 import { DiscordStatusBadge } from '@/components/ui/discord-bot-status-badge'
 
-const discordFormSchema = z.object({
+// Separate webhook schema
+const webhookFormSchema = z.object({
   discordWebhookUrl: z.string().optional(),
+})
+
+// Discord bot schema
+const discordBotFormSchema = z.object({
   discordBotToken: z.string().optional(),
   discordClientId: z.string().optional(),
   discordGuildId: z.string().optional(),
@@ -30,7 +35,8 @@ const generalFormSchema = z.object({
   upgradeBufferTime: z.coerce.number().int().min(0).optional(),
 })
 
-type DiscordFormSchema = z.infer<typeof discordFormSchema>
+type WebhookFormSchema = z.infer<typeof webhookFormSchema>
+type DiscordBotFormSchema = z.infer<typeof discordBotFormSchema>
 type GeneralFormSchema = z.infer<typeof generalFormSchema>
 
 export function NotificationsConfigPage() {
@@ -40,7 +46,11 @@ export function NotificationsConfigPage() {
   const initialize = useConfigStore((state) => state.initialize)
 
   const [isInitialized, setIsInitialized] = React.useState(false)
-  const [discordStatus, setDiscordStatus] = React.useState<
+  const [webhookStatus, setWebhookStatus] = React.useState<
+    'idle' | 'loading' | 'testing' | 'success' | 'error'
+  >('idle')
+  const [webhookTestValid, setWebhookTestValid] = React.useState(true)
+  const [discordBotStatus, setDiscordBotStatus] = React.useState<
     'idle' | 'loading' | 'success' | 'error'
   >('idle')
   const [generalStatus, setGeneralStatus] = React.useState<
@@ -51,10 +61,105 @@ export function NotificationsConfigPage() {
     initialize()
   }, [initialize])
 
-  const discordForm = useForm<DiscordFormSchema>({
-    resolver: zodResolver(discordFormSchema),
+  // Function to validate Discord webhook URL
+  const validateDiscordWebhook = async (url: string) => {
+    try {
+      if (!url || !url.includes('discord.com/api/webhooks')) {
+        return { valid: false, error: 'Invalid webhook URL format' }
+      }
+
+      // Perform a GET request to the webhook URL
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      // Check if the response is ok (status in the range 200-299)
+      if (response.ok) {
+        const data = await response.json()
+
+        // If we can get the webhook details, it's valid
+        if (data?.id && data.token) {
+          return { valid: true, webhook: data }
+        }
+      }
+
+      return { valid: false, error: 'Invalid webhook URL' }
+    } catch (error) {
+      console.error('Webhook validation error:', error)
+      return { valid: false, error: 'Error validating webhook' }
+    }
+  }
+
+  const testWebhook = async () => {
+    const webhookUrl = webhookForm.getValues('discordWebhookUrl')
+
+    if (!webhookUrl) {
+      toast({
+        description: 'Please enter a webhook URL to test',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setWebhookStatus('testing')
+    try {
+      const minimumLoadingTime = new Promise((resolve) =>
+        setTimeout(resolve, 500),
+      )
+
+      const [result] = await Promise.all([
+        validateDiscordWebhook(webhookUrl),
+        minimumLoadingTime,
+      ])
+
+      if (result.valid) {
+        setWebhookTestValid(true)
+        toast({
+          description: 'Discord webhook URL is valid!',
+          variant: 'default',
+        })
+      } else {
+        setWebhookTestValid(false)
+        toast({
+          description: `Webhook validation failed: ${result.error}`,
+          variant: 'destructive',
+        })
+      }
+    } catch (error) {
+      console.error('Webhook test error:', error)
+      setWebhookTestValid(false)
+      toast({
+        description: 'Failed to validate webhook URL',
+        variant: 'destructive',
+      })
+    } finally {
+      setWebhookStatus('idle')
+    }
+  }
+
+  const webhookForm = useForm<WebhookFormSchema>({
+    resolver: zodResolver(webhookFormSchema),
     defaultValues: {
       discordWebhookUrl: '',
+    },
+  })
+
+  React.useEffect(() => {
+    const subscription = webhookForm.watch((_, { name }) => {
+      if (name === 'discordWebhookUrl') {
+        setWebhookTestValid(true)
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [webhookForm])
+
+  const discordBotForm = useForm<DiscordBotFormSchema>({
+    resolver: zodResolver(discordBotFormSchema),
+    defaultValues: {
       discordBotToken: '',
       discordClientId: '',
       discordGuildId: '',
@@ -72,10 +177,17 @@ export function NotificationsConfigPage() {
 
   React.useEffect(() => {
     if (config) {
-      discordForm.setValue('discordWebhookUrl', config.discordWebhookUrl || '')
-      discordForm.setValue('discordBotToken', config.discordBotToken || '')
-      discordForm.setValue('discordClientId', config.discordClientId || '')
-      discordForm.setValue('discordGuildId', config.discordGuildId || '')
+      webhookForm.setValue('discordWebhookUrl', config.discordWebhookUrl || '')
+      webhookForm.reset({ discordWebhookUrl: config.discordWebhookUrl || '' })
+
+      discordBotForm.setValue('discordBotToken', config.discordBotToken || '')
+      discordBotForm.setValue('discordClientId', config.discordClientId || '')
+      discordBotForm.setValue('discordGuildId', config.discordGuildId || '')
+      discordBotForm.reset({
+        discordBotToken: config.discordBotToken || '',
+        discordClientId: config.discordClientId || '',
+        discordGuildId: config.discordGuildId || '',
+      })
 
       generalForm.setValue('queueWaitTime', config.queueWaitTime || 0)
       generalForm.setValue(
@@ -83,13 +195,18 @@ export function NotificationsConfigPage() {
         config.newEpisodeThreshold || 0,
       )
       generalForm.setValue('upgradeBufferTime', config.upgradeBufferTime || 0)
+      generalForm.reset({
+        queueWaitTime: config.queueWaitTime || 0,
+        newEpisodeThreshold: config.newEpisodeThreshold || 0,
+        upgradeBufferTime: config.upgradeBufferTime || 0,
+      })
 
       setIsInitialized(true)
     }
-  }, [config, discordForm, generalForm])
+  }, [config, webhookForm, discordBotForm, generalForm])
 
-  const onSubmitDiscord = async (data: DiscordFormSchema) => {
-    setDiscordStatus('loading')
+  const onSubmitWebhook = async (data: WebhookFormSchema) => {
+    setWebhookStatus('loading')
     try {
       const minimumLoadingTime = new Promise((resolve) =>
         setTimeout(resolve, 500),
@@ -98,6 +215,39 @@ export function NotificationsConfigPage() {
       await Promise.all([
         updateConfig({
           discordWebhookUrl: data.discordWebhookUrl,
+        }),
+        minimumLoadingTime,
+      ])
+
+      setWebhookStatus('idle')
+      // Reset form's dirty state
+      webhookForm.reset(data)
+      toast({
+        description: 'Discord webhook URL has been updated',
+        variant: 'default',
+      })
+    } catch (error) {
+      console.error('Discord webhook update error:', error)
+      setWebhookStatus('error')
+      toast({
+        description: 'Failed to update Discord webhook',
+        variant: 'destructive',
+      })
+
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+      setWebhookStatus('idle')
+    }
+  }
+
+  const onSubmitDiscordBot = async (data: DiscordBotFormSchema) => {
+    setDiscordBotStatus('loading')
+    try {
+      const minimumLoadingTime = new Promise((resolve) =>
+        setTimeout(resolve, 500),
+      )
+
+      await Promise.all([
+        updateConfig({
           discordBotToken: data.discordBotToken,
           discordClientId: data.discordClientId,
           discordGuildId: data.discordGuildId,
@@ -105,26 +255,23 @@ export function NotificationsConfigPage() {
         minimumLoadingTime,
       ])
 
-      setDiscordStatus('success')
+      setDiscordBotStatus('idle')
+      // Reset form's dirty state
+      discordBotForm.reset(data)
       toast({
-        description: 'Discord notification settings have been updated',
+        description: 'Discord bot settings have been updated',
         variant: 'default',
       })
-
-      // Show success state for a moment
-      await new Promise((resolve) => setTimeout(resolve, 300))
-      setDiscordStatus('idle')
     } catch (error) {
-      console.error('Discord settings update error:', error)
-      setDiscordStatus('error')
+      console.error('Discord bot settings update error:', error)
+      setDiscordBotStatus('error')
       toast({
-        description: 'Failed to update Discord settings',
+        description: 'Failed to update Discord bot settings',
         variant: 'destructive',
       })
 
-      // Reset status after error is shown
       await new Promise((resolve) => setTimeout(resolve, 1000))
-      setDiscordStatus('idle')
+      setDiscordBotStatus('idle')
     }
   }
 
@@ -144,15 +291,13 @@ export function NotificationsConfigPage() {
         minimumLoadingTime,
       ])
 
-      setGeneralStatus('success')
+      setGeneralStatus('idle')
+      // Reset form's dirty state
+      generalForm.reset(data)
       toast({
         description: 'General notification settings have been updated',
         variant: 'default',
       })
-
-      // Show success state for a moment
-      await new Promise((resolve) => setTimeout(resolve, 300))
-      setGeneralStatus('idle')
     } catch (error) {
       console.error('General settings update error:', error)
       setGeneralStatus('error')
@@ -161,7 +306,6 @@ export function NotificationsConfigPage() {
         variant: 'destructive',
       })
 
-      // Reset status after error is shown
       await new Promise((resolve) => setTimeout(resolve, 1000))
       setGeneralStatus('idle')
     }
@@ -172,22 +316,20 @@ export function NotificationsConfigPage() {
       <div className="grid gap-6">
         {/* Discord Notifications Section */}
         <div>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <h2 className="text-2xl font-bold text-text">
-                Discord Notifications
-              </h2>
-              <DiscordStatusBadge />
-            </div>
-          </div>
+          <h2 className="text-2xl font-bold text-text">
+            Discord Notifications
+          </h2>
+
+          {/* Discord Webhook Section */}
           <div className="grid gap-4 mt-4">
-            <Form {...discordForm}>
+            <h3 className="text-xl font-semibold text-text">Discord Webhook</h3>
+            <Form {...webhookForm}>
               <form
-                onSubmit={discordForm.handleSubmit(onSubmitDiscord)}
+                onSubmit={webhookForm.handleSubmit(onSubmitWebhook)}
                 className="space-y-4"
               >
                 <FormField
-                  control={discordForm.control}
+                  control={webhookForm.control}
                   name="discordWebhookUrl"
                   render={({ field }) => (
                     <FormItem>
@@ -195,21 +337,90 @@ export function NotificationsConfigPage() {
                         Discord Webhook URL
                       </FormLabel>
                       <FormControl>
-                        <Input
-                          {...field}
-                          placeholder="Enter Discord Webhook URL"
-                          type="text"
-                          disabled={discordStatus === 'loading'}
-                          className="w-full"
-                        />
+                        <div className="flex gap-2">
+                          <Input
+                            {...field}
+                            placeholder="Enter Discord Webhook URL"
+                            type="text"
+                            disabled={
+                              webhookStatus === 'loading' ||
+                              webhookStatus === 'testing'
+                            }
+                            className="w-full"
+                          />
+                          <Button
+                            type="button"
+                            onClick={testWebhook}
+                            disabled={
+                              webhookStatus === 'loading' ||
+                              webhookStatus === 'testing' ||
+                              !field.value
+                            }
+                            variant="noShadow"
+                            className="shrink-0"
+                          >
+                            {webhookStatus === 'testing' ? (
+                              <>
+                                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                                <span>Testing</span>
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                                <span>Test</span>
+                              </>
+                            )}
+                          </Button>
+                        </div>
                       </FormControl>
                       <FormMessage className="text-xs mt-1" />
                     </FormItem>
                   )}
                 />
 
+                <Button
+                  type="submit"
+                  disabled={
+                    webhookStatus === 'loading' ||
+                    webhookStatus === 'testing' ||
+                    !webhookForm.formState.isDirty ||
+                    !isInitialized ||
+                    !webhookTestValid
+                  }
+                  className="mt-4 flex items-center gap-2"
+                  variant="blue"
+                >
+                  {webhookStatus === 'loading' ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span className="portrait:hidden">Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4" />
+                      <span className="portrait:hidden">Save Changes</span>
+                    </>
+                  )}
+                </Button>
+              </form>
+            </Form>
+          </div>
+
+          {/* Discord Bot Section */}
+          <div className="grid gap-4 mt-6">
+            <div className="flex items-center">
+              <h3 className="text-xl font-semibold text-text">
+                Discord Bot Settings
+              </h3>
+              <DiscordStatusBadge />
+            </div>
+            <Form {...discordBotForm}>
+              <form
+                onSubmit={discordBotForm.handleSubmit(onSubmitDiscordBot)}
+                className="space-y-4"
+              >
                 <FormField
-                  control={discordForm.control}
+                  control={discordBotForm.control}
                   name="discordBotToken"
                   render={({ field }) => (
                     <FormItem>
@@ -221,7 +432,7 @@ export function NotificationsConfigPage() {
                           {...field}
                           placeholder="Enter Discord Bot Token"
                           type="password"
-                          disabled={discordStatus === 'loading'}
+                          disabled={discordBotStatus === 'loading'}
                           className="w-full"
                         />
                       </FormControl>
@@ -232,7 +443,7 @@ export function NotificationsConfigPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
-                    control={discordForm.control}
+                    control={discordBotForm.control}
                     name="discordClientId"
                     render={({ field }) => (
                       <FormItem>
@@ -244,7 +455,7 @@ export function NotificationsConfigPage() {
                             {...field}
                             placeholder="Enter Discord Client ID"
                             type="text"
-                            disabled={discordStatus === 'loading'}
+                            disabled={discordBotStatus === 'loading'}
                             className="w-full"
                           />
                         </FormControl>
@@ -254,7 +465,7 @@ export function NotificationsConfigPage() {
                   />
 
                   <FormField
-                    control={discordForm.control}
+                    control={discordBotForm.control}
                     name="discordGuildId"
                     render={({ field }) => (
                       <FormItem>
@@ -266,7 +477,7 @@ export function NotificationsConfigPage() {
                             {...field}
                             placeholder="Enter Discord Guild ID"
                             type="text"
-                            disabled={discordStatus === 'loading'}
+                            disabled={discordBotStatus === 'loading'}
                             className="w-full"
                           />
                         </FormControl>
@@ -279,23 +490,23 @@ export function NotificationsConfigPage() {
                 <Button
                   type="submit"
                   disabled={
-                    discordStatus !== 'idle' || !discordForm.formState.isDirty
+                    discordBotStatus === 'loading' ||
+                    !discordBotForm.formState.isDirty ||
+                    !isInitialized
                   }
-                  className="mt-4 min-w-[100px] flex items-center justify-center gap-2"
-                  variant="default"
+                  className="mt-4 flex items-center gap-2"
+                  variant="blue"
                 >
-                  {discordStatus === 'loading' ? (
+                  {discordBotStatus === 'loading' ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : discordStatus === 'success' ? (
-                    <>
-                      <Check className="h-4 w-4" />
-                      Saved
+                      <span className="portrait:hidden">Saving...</span>
                     </>
                   ) : (
-                    'Save Changes'
+                    <>
+                      <Save className="h-4 w-4" />
+                      <span className="portrait:hidden">Save Changes</span>
+                    </>
                   )}
                 </Button>
               </form>
@@ -405,23 +616,23 @@ export function NotificationsConfigPage() {
                 <Button
                   type="submit"
                   disabled={
-                    generalStatus !== 'idle' || !generalForm.formState.isDirty
+                    generalStatus === 'loading' ||
+                    !generalForm.formState.isDirty ||
+                    !isInitialized
                   }
-                  className="mt-4 min-w-[100px] flex items-center justify-center gap-2"
-                  variant="default"
+                  className="mt-4 flex items-center gap-2"
+                  variant="blue"
                 >
                   {generalStatus === 'loading' ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : generalStatus === 'success' ? (
-                    <>
-                      <Check className="h-4 w-4" />
-                      Saved
+                      <span className="portrait:hidden">Saving...</span>
                     </>
                   ) : (
-                    'Save Changes'
+                    <>
+                      <Save className="h-4 w-4" />
+                      <span className="portrait:hidden">Save Changes</span>
+                    </>
                   )}
                 </Button>
               </form>

@@ -1,9 +1,16 @@
 import { useDiscordStatus } from '@/hooks/notifications/useDiscordStatus'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Loader2, Square, Play } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useState } from 'react'
+import { useToast } from '@/hooks/use-toast'
 
 export function DiscordStatusBadge() {
   const status = useDiscordStatus()
+  const { toast } = useToast()
+  const [actionStatus, setActionStatus] = useState<'idle' | 'loading'>('idle')
+  const [currentAction, setCurrentAction] = useState<'start' | 'stop' | null>(null)
   
   const getBadgeVariant = () => {
     switch (status) {
@@ -20,14 +27,103 @@ export function DiscordStatusBadge() {
     }
   }
 
+  const handleToggle = async () => {
+    setActionStatus('loading')
+    
+    if (status === 'running') {
+      setCurrentAction('stop')
+    } else {
+      setCurrentAction('start')
+    }
+    
+    try {
+      const minimumLoadingTime = new Promise(resolve => setTimeout(resolve, 500))
+      
+      if (status === 'running') {
+        const response = await fetch('/v1/notifications/discordstop', { method: 'POST' })
+        await minimumLoadingTime
+        
+        if (!response.ok) {
+          throw new Error(`Failed to stop Discord bot: ${response.status}`)
+        }
+        
+        // Success toast for stopping
+        toast({
+          description: 'Discord bot has been stopped successfully',
+          variant: 'default',
+        })
+      } else {
+        const response = await fetch('/v1/notifications/discordstart', { method: 'POST' })
+        await minimumLoadingTime
+        
+        if (!response.ok) {
+          throw new Error(`Failed to start Discord bot: ${response.status}`)
+        }
+        
+        // Success toast for starting
+        toast({
+          description: 'Discord bot has been started successfully',
+          variant: 'default',
+        })
+      }
+      
+      setActionStatus('idle')
+      // Keep the current action set until the next user interaction
+    } catch (error) {
+      console.error('Discord bot toggle error:', error)
+      setActionStatus('idle')
+      
+      // Enhanced error message for start failure
+      if (status !== 'running') {
+        toast({
+          description: 'Failed to start Discord bot. Please check your bot token, client ID, and guild ID settings.',
+          variant: 'destructive',
+        })
+      } else {
+        toast({
+          description: 'Failed to stop Discord bot',
+          variant: 'destructive',
+        })
+      }
+    }
+  }
+
+  // Don't allow toggling while in a transition state
+  const isDisabled = status === 'starting' || status === 'stopping' || actionStatus === 'loading'
+  
   return (
-    <div className="ml-2 inline-flex items-center">
+    <div className="ml-2 inline-flex items-center gap-2 h-full">
       <Badge 
         variant="neutral" 
-        className={cn('px-2 py-0.5 text-xs', getBadgeVariant())}
+        className={cn('px-2 py-0.5 h-7 text-sm', getBadgeVariant())}
       >
         {status.charAt(0).toUpperCase() + status.slice(1)}
       </Badge>
+      
+      <Button
+        size="sm"
+        variant="neutralnoShadow"
+        className="h-7 px-2"
+        onClick={handleToggle}
+        disabled={isDisabled}
+      >
+        {actionStatus === 'loading' ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin mr-1" />
+            <span>{currentAction === 'stop' ? 'Stopping...' : 'Starting...'}</span>
+          </>
+        ) : status === 'running' ? (
+          <>
+            <Square className="h-4 w-4 mr-1 fill-red-500 text-red-500" />
+            <span>Stop</span>
+          </>
+        ) : (
+          <>
+            <Play className="h-4 w-4 mr-1 fill-green-500 text-green-500" />
+            <span>Start</span>
+          </>
+        )}
+      </Button>
     </div>
   )
 }

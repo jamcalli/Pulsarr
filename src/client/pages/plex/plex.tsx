@@ -105,9 +105,14 @@ export default function PlexConfigPage() {
       setSelfWatchlistStatus('loading')
       setOthersWatchlistStatus('loading')
 
+      const minimumLoadingTime = new Promise((resolve) =>
+        setTimeout(resolve, 500),
+      )
+
       await Promise.all([
         fetch('/v1/plex/self-watchlist-token'),
         fetch('/v1/plex/others-watchlist-token'),
+        minimumLoadingTime,
       ])
 
       setSelfWatchlistStatus('success')
@@ -133,7 +138,12 @@ export default function PlexConfigPage() {
   const handleGenerateRssFeeds = async () => {
     setRssStatus('loading')
     try {
-      await refreshRssFeeds()
+      const minimumLoadingTime = new Promise((resolve) =>
+        setTimeout(resolve, 500),
+      )
+
+      await Promise.all([refreshRssFeeds(), minimumLoadingTime])
+
       setRssStatus('success')
       toast({
         title: 'RSS Feeds Generated',
@@ -154,9 +164,17 @@ export default function PlexConfigPage() {
   const onSubmit = async (data: PlexTokenFormSchema) => {
     setStatus('loading')
     try {
-      await updateConfig({
-        plexTokens: [data.plexToken],
-      })
+      const minimumLoadingTime = new Promise((resolve) =>
+        setTimeout(resolve, 500),
+      )
+
+      await Promise.all([
+        updateConfig({
+          plexTokens: [data.plexToken],
+        }),
+        minimumLoadingTime,
+      ])
+
       setStatus('success')
     } catch (error) {
       console.error('Token update error:', error)
@@ -172,9 +190,17 @@ export default function PlexConfigPage() {
   const handleRemoveToken = async () => {
     setStatus('loading')
     try {
-      await updateConfig({
-        plexTokens: [],
-      })
+      const minimumLoadingTime = new Promise((resolve) =>
+        setTimeout(resolve, 500),
+      )
+
+      await Promise.all([
+        updateConfig({
+          plexTokens: [],
+        }),
+        minimumLoadingTime,
+      ])
+
       form.reset()
       setStatus('idle')
       toast({

@@ -39,7 +39,6 @@ export function PlexSetupModal({ open, onOpenChange }: PlexSetupModalProps) {
     'idle' | 'loading' | 'success' | 'error'
   >('idle')
 
-  // Watch for completion
   React.useEffect(() => {
     if (
       selfWatchlistStatus === 'success' &&
@@ -47,17 +46,15 @@ export function PlexSetupModal({ open, onOpenChange }: PlexSetupModalProps) {
     ) {
       const timer = setTimeout(async () => {
         try {
-          // Fetch fresh user data before closing modal
           await fetchUserData()
           onOpenChange(false)
 
-          // Add a small delay before resetting states
           setTimeout(() => {
             setCurrentStep('token')
             setIsSubmitting(false)
             setSelfWatchlistStatus('idle')
             setOthersWatchlistStatus('idle')
-          }, 150) // Small delay to ensure modal is closed
+          }, 150)
         } catch (error) {
           console.error('Error updating final state:', error)
           toast({
@@ -79,15 +76,26 @@ export function PlexSetupModal({ open, onOpenChange }: PlexSetupModalProps) {
   const handleSubmit = async () => {
     setIsSubmitting(true)
     try {
-      // Submit token and ensure it's properly set in context
-      await updateConfig({
-        plexTokens: [plexToken],
-      })
+      const tokenMinLoadingTime = new Promise((resolve) =>
+        setTimeout(resolve, 500),
+      )
+      await Promise.all([
+        updateConfig({
+          plexTokens: [plexToken],
+        }),
+        tokenMinLoadingTime,
+      ])
 
-      // Verify token
-      const plexPingResponse = await fetch('/v1/plex/ping', {
-        method: 'GET',
-      })
+      const verifyMinLoadingTime = new Promise((resolve) =>
+        setTimeout(resolve, 500),
+      )
+      const [plexPingResponse] = await Promise.all([
+        fetch('/v1/plex/ping', {
+          method: 'GET',
+        }),
+        verifyMinLoadingTime,
+      ])
+
       const plexPingResult = await plexPingResponse.json()
 
       if (!plexPingResult.success) {
@@ -96,34 +104,45 @@ export function PlexSetupModal({ open, onOpenChange }: PlexSetupModalProps) {
 
       setCurrentStep('syncing')
 
-      // Start self watchlist sync
       setSelfWatchlistStatus('loading')
-      const watchlistResponse = await fetch('/v1/plex/self-watchlist-token', {
-        method: 'GET',
-        headers: { Accept: 'application/json' },
-      })
+      const selfMinLoadingTime = new Promise((resolve) =>
+        setTimeout(resolve, 500),
+      )
+      const [watchlistResponse] = await Promise.all([
+        fetch('/v1/plex/self-watchlist-token', {
+          method: 'GET',
+          headers: { Accept: 'application/json' },
+        }),
+        selfMinLoadingTime,
+      ])
 
       if (!watchlistResponse.ok) {
         throw new Error('Failed to sync watchlist')
       }
 
-      // When self is done, start others
       setSelfWatchlistStatus('success')
       await new Promise((resolve) => setTimeout(resolve, 1000))
 
-      // Now sync others watchlist
       setOthersWatchlistStatus('loading')
-      const othersResponse = await fetch('/v1/plex/others-watchlist-token', {
-        method: 'GET',
-        headers: { Accept: 'application/json' },
-      })
+      const othersMinLoadingTime = new Promise((resolve) =>
+        setTimeout(resolve, 500),
+      )
+      const [othersResponse] = await Promise.all([
+        fetch('/v1/plex/others-watchlist-token', {
+          method: 'GET',
+          headers: { Accept: 'application/json' },
+        }),
+        othersMinLoadingTime,
+      ])
 
       if (!othersResponse.ok) {
         throw new Error('Failed to sync others watchlist')
       }
 
-      // Generate and set RSS feeds in context
-      await refreshRssFeeds()
+      const rssMinLoadingTime = new Promise((resolve) =>
+        setTimeout(resolve, 500),
+      )
+      await Promise.all([refreshRssFeeds(), rssMinLoadingTime])
 
       setOthersWatchlistStatus('success')
 
@@ -148,7 +167,6 @@ export function PlexSetupModal({ open, onOpenChange }: PlexSetupModalProps) {
     }
   }
 
-  // Prevent closing during submission
   const handleOpenChange = (newOpen: boolean) => {
     if (!isSubmitting && currentStep === 'token') {
       onOpenChange(newOpen)
