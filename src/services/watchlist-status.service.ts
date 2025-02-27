@@ -66,15 +66,19 @@ export class StatusService {
       added?: string
       status?: 'pending' | 'requested' | 'grabbed' | 'notified'
       series_status?: 'continuing' | 'ended'
+      sonarr_instance_id?: number
     }> = []
 
     for (const item of watchlistItems) {
       const sonarrMatch = this.findMatch(sonarrItems, item.guids)
       if (sonarrMatch) {
+        const instanceId = sonarrMatch.sonarr_instance_id || undefined
+
         if (
           item.status !== sonarrMatch.status ||
           item.series_status !== sonarrMatch.series_status ||
-          item.added !== sonarrMatch.added
+          item.added !== sonarrMatch.added ||
+          item.sonarr_instance_id !== instanceId
         ) {
           updates.push({
             userId: item.user_id,
@@ -82,6 +86,7 @@ export class StatusService {
             added: sonarrMatch.added,
             status: sonarrMatch.status,
             series_status: sonarrMatch.series_status,
+            sonarr_instance_id: instanceId,
           })
         }
       }
@@ -99,15 +104,19 @@ export class StatusService {
       added?: string
       status?: 'pending' | 'requested' | 'grabbed' | 'notified'
       movie_status?: 'available' | 'unavailable'
+      radarr_instance_id?: number
     }> = []
 
     for (const item of watchlistItems) {
       const radarrMatch = this.findMatch(radarrItems, item.guids)
       if (radarrMatch) {
+        const instanceId = radarrMatch.radarr_instance_id || undefined
+
         if (
           item.status !== radarrMatch.status ||
           item.movie_status !== radarrMatch.movie_status ||
-          item.added !== radarrMatch.added
+          item.added !== radarrMatch.added ||
+          item.radarr_instance_id !== instanceId
         ) {
           updates.push({
             userId: item.user_id,
@@ -117,6 +126,7 @@ export class StatusService {
             movie_status: radarrMatch.movie_status as
               | 'available'
               | 'unavailable',
+            radarr_instance_id: instanceId,
           })
         }
       }
@@ -129,13 +139,15 @@ export class StatusService {
     itemGuids: string[] | string | undefined,
   ): T | undefined {
     if (!itemGuids) return undefined
+
     const guids = Array.isArray(itemGuids)
       ? itemGuids
       : typeof itemGuids === 'string'
         ? JSON.parse(itemGuids)
         : []
+
     return items.find((item) =>
-      guids.some((guid: string) => item.guids.includes(guid)),
+      item.guids.some((itemGuid) => guids.includes(itemGuid)),
     )
   }
 }

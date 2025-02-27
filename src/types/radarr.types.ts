@@ -70,6 +70,7 @@ export interface Item {
   status?: 'pending' | 'requested' | 'grabbed' | 'notified'
   movie_status?: 'available' | 'unavailable'
   genres?: string[]
+  radarr_instance_id?: number
 }
 
 export interface RadarrInstance {

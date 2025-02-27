@@ -107,7 +107,13 @@ export class RadarrManagerService {
         }
 
         const instanceMovies = await radarrService.fetchMovies()
-        allMovies.push(...Array.from(instanceMovies))
+
+        for (const movie of Array.from(instanceMovies)) {
+          allMovies.push({
+            ...movie,
+            radarr_instance_id: instance.id,
+          })
+        }
       } catch (error) {
         this.log.error(
           `Error fetching movies for instance ${instance.name}:`,

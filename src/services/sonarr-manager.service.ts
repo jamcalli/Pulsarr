@@ -90,7 +90,6 @@ export class SonarrManagerService {
 
   async fetchAllSeries(): Promise<SonarrItem[]> {
     const allSeries: SonarrItem[] = []
-
     const instances = await this.fastify.db.getAllSonarrInstances()
 
     for (const instance of instances) {
@@ -106,7 +105,12 @@ export class SonarrManagerService {
 
         const instanceSeries = await sonarrService.fetchSeries()
 
-        allSeries.push(...Array.from(instanceSeries))
+        for (const series of Array.from(instanceSeries)) {
+          allSeries.push({
+            ...series,
+            sonarr_instance_id: instance.id,
+          })
+        }
       } catch (error) {
         this.log.error(
           `Error fetching series for instance ${instance.name}:`,
