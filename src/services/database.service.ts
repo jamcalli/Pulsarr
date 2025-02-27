@@ -1254,4 +1254,276 @@ export class DatabaseService {
         genres: JSON.parse(item.genres || '[]'),
       }))
   }
+
+  async getTopGenres(limit = 10): Promise<{ genre: string; count: number }[]> {
+    try {
+      // Fetch all watchlist items with non-empty genres
+      const items = await this.knex('watchlist_items')
+        .whereNotNull('genres')
+        .where('genres', '!=', '[]')
+        .select('genres')
+
+      const genreCounts: Record<string, number> = {}
+
+      for (const item of items) {
+        try {
+          let genres: string[] = []
+          try {
+            const parsed = JSON.parse(item.genres)
+            if (Array.isArray(parsed)) {
+              genres = parsed
+            }
+          } catch (parseError) {
+            this.log.debug('Skipping malformed genres JSON', {
+              genres: item.genres,
+            })
+            continue
+          }
+
+          for (const genre of genres) {
+            if (typeof genre === 'string' && genre.trim().length > 0) {
+              const normalizedGenre = genre.trim()
+              genreCounts[normalizedGenre] =
+                (genreCounts[normalizedGenre] || 0) + 1
+            }
+          }
+        } catch (err) {
+          this.log.error('Error processing genre item:', err)
+        }
+      }
+
+      const sortedGenres = Object.entries(genreCounts)
+        .map(([genre, count]) => ({ genre, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, limit)
+
+      return sortedGenres
+    } catch (error) {
+      this.log.error('Error in getTopGenres:', error)
+      throw error
+    }
+  }
+
+  async getMostWatchlistedShows(
+    limit = 10,
+  ): Promise<{ title: string; count: number; thumb: string | null }[]> {
+    const results = await this.knex('watchlist_items')
+      .where('type', 'show')
+      .select('title', 'thumb')
+      .count('* as count')
+      .groupBy('key')
+      .orderBy('count', 'desc')
+      .limit(limit)
+
+    return results.map((row) => ({
+      title: String(row.title),
+      count: Number(row.count),
+      thumb: row.thumb ? String(row.thumb) : null,
+    }))
+  }
+
+  async getMostWatchlistedMovies(
+    limit = 10,
+  ): Promise<{ title: string; count: number; thumb: string | null }[]> {
+    const results = await this.knex('watchlist_items')
+      .where('type', 'movie')
+      .select('title', 'thumb')
+      .count('* as count')
+      .groupBy('key')
+      .orderBy('count', 'desc')
+      .limit(limit)
+
+    return results.map((row) => ({
+      title: String(row.title),
+      count: Number(row.count),
+      thumb: row.thumb ? String(row.thumb) : null,
+    }))
+  }
+
+  async getUsersWithMostWatchlistItems(
+    limit = 10,
+  ): Promise<{ name: string; count: number }[]> {
+    const results = await this.knex('watchlist_items')
+      .join('users', 'watchlist_items.user_id', '=', 'users.id')
+      .select('users.name')
+      .count('watchlist_items.id as count')
+      .groupBy('users.id')
+      .orderBy('count', 'desc')
+      .limit(limit)
+
+    return results.map((row) => ({
+      name: String(row.name),
+      count: Number(row.count),
+    }))
+  }
+
+  async getWatchlistStatusDistribution(): Promise<
+    { status: string; count: number }[]
+  > {
+    const results = await this.knex('watchlist_items')
+      .select('status')
+      .count('* as count')
+      .groupBy('status')
+      .orderBy('count', 'desc')
+
+    return results.map((row) => ({
+      status: String(row.status),
+      count: Number(row.count),
+    }))
+  }
+
+  async getContentTypeDistribution(): Promise<
+    { type: string; count: number }[]
+  > {
+    const results = await this.knex('watchlist_items')
+      .select('type')
+      .count('* as count')
+      .groupBy('type')
+
+    const typeMap: Record<string, number> = {}
+
+    for (const row of results) {
+      const normalizedType = String(row.type).toLowerCase()
+      typeMap[normalizedType] =
+        (typeMap[normalizedType] || 0) + Number(row.count)
+    }
+
+    return Object.entries(typeMap).map(([type, count]) => ({
+      type,
+      count,
+    }))
+  }
+
+  async getRecentActivityStats(days = 30): Promise<{
+    new_watchlist_items: number
+    status_changes: number
+    notifications_sent: number
+  }> {
+    const cutoffDate = new Date()
+    cutoffDate.setDate(cutoffDate.getDate() - days)
+    const cutoffDateStr = cutoffDate.toISOString()
+
+    // New watchlist items in last X days
+    const newItems = await this.knex('watchlist_items')
+      .where('created_at', '>=', cutoffDateStr)
+      .count('* as count')
+      .first()
+
+    // Status changes in last X days (approximated by updated_at)
+    const statusChanges = await this.knex('watchlist_items')
+      .where('updated_at', '>=', cutoffDateStr)
+      .whereRaw('updated_at != created_at') // Exclude initial creation
+      .count('* as count')
+      .first()
+
+    // Notifications in last X days
+    const notifications = await this.knex('watchlist_items')
+      .where('last_notified_at', '>=', cutoffDateStr)
+      .count('* as count')
+      .first()
+
+    return {
+      new_watchlist_items: Number(newItems?.count || 0),
+      status_changes: Number(statusChanges?.count || 0),
+      notifications_sent: Number(notifications?.count || 0),
+    }
+  }
+
+  async getInstanceActivityStats(): Promise<
+    {
+      instance_id: number
+      instance_type: 'sonarr' | 'radarr'
+      name: string
+      item_count: number
+    }[]
+  > {
+    const sonarrResults = await this.knex('watchlist_items')
+      .join(
+        'sonarr_instances',
+        'watchlist_items.sonarr_instance_id',
+        '=',
+        'sonarr_instances.id',
+      )
+      .whereNotNull('watchlist_items.sonarr_instance_id')
+      .select('sonarr_instances.id as instance_id', 'sonarr_instances.name')
+      .count('watchlist_items.id as item_count')
+      .groupBy('sonarr_instances.id')
+
+    const radarrResults = await this.knex('watchlist_items')
+      .join(
+        'radarr_instances',
+        'watchlist_items.radarr_instance_id',
+        '=',
+        'radarr_instances.id',
+      )
+      .whereNotNull('watchlist_items.radarr_instance_id')
+      .select('radarr_instances.id as instance_id', 'radarr_instances.name')
+      .count('watchlist_items.id as item_count')
+      .groupBy('radarr_instances.id')
+
+    const sonarrStats = sonarrResults.map((row) => ({
+      instance_id: Number(row.instance_id),
+      instance_type: 'sonarr' as const,
+      name: String(row.name),
+      item_count: Number(row.item_count),
+    }))
+
+    const radarrStats = radarrResults.map((row) => ({
+      instance_id: Number(row.instance_id),
+      instance_type: 'radarr' as const,
+      name: String(row.name),
+      item_count: Number(row.item_count),
+    }))
+
+    return [...sonarrStats, ...radarrStats].sort(
+      (a, b) => b.item_count - a.item_count,
+    )
+  }
+
+  async getAverageTimeToAvailability(): Promise<
+    {
+      content_type: string
+      avg_days: number
+      min_days: number
+      max_days: number
+      count: number
+    }[]
+  > {
+    const results = await this.knex('watchlist_items')
+      .whereNotNull('added')
+      .whereNotNull('last_notified_at')
+      .where(function () {
+        this.where({
+          type: 'movie',
+          movie_status: 'available',
+          status: 'notified',
+        }).orWhere({
+          type: 'show',
+          series_status: 'ended',
+          status: 'notified',
+        })
+      })
+      .select([
+        'type as content_type',
+        this.knex.raw(
+          'avg(julianday(last_notified_at) - julianday(added)) as avg_days',
+        ),
+        this.knex.raw(
+          'min(julianday(last_notified_at) - julianday(added)) as min_days',
+        ),
+        this.knex.raw(
+          'max(julianday(last_notified_at) - julianday(added)) as max_days',
+        ),
+        this.knex.raw('count(*) as count'),
+      ])
+      .groupBy('type')
+
+    return results.map((row) => ({
+      content_type: String(row.content_type),
+      avg_days: Number(row.avg_days),
+      min_days: Number(row.min_days),
+      max_days: Number(row.max_days),
+      count: Number(row.count),
+    }))
+  }
 }
