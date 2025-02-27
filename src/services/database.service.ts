@@ -1453,14 +1453,14 @@ export class DatabaseService {
 
     // New watchlist items in last X days
     const newItems = await this.knex('watchlist_items')
-      .where('created_at', '>=', cutoffDateStr)
+      .where('added', '>=', cutoffDateStr)
       .count('* as count')
       .first()
 
     // Status changes in last X days (approximated by updated_at)
     const statusChanges = await this.knex('watchlist_items')
       .where('updated_at', '>=', cutoffDateStr)
-      .whereRaw('updated_at != created_at') // Exclude initial creation
+      .whereRaw('updated_at != created_at')
       .count('* as count')
       .first()
 
