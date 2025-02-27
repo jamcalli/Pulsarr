@@ -110,6 +110,7 @@ export interface Item {
   status?: 'pending' | 'requested' | 'grabbed' | 'notified'
   series_status?: 'continuing' | 'ended'
   genres?: string[]
+  sonarr_instance_id?: number
 }
 
 export interface SonarrConfiguration {
@@ -158,6 +159,7 @@ export interface SonarrItem {
   status?: 'pending' | 'requested' | 'grabbed' | 'notified'
   series_status?: 'continuing' | 'ended'
   genres?: string[]
+  sonarr_instance_id?: number
 }
 
 export interface PingResponse {

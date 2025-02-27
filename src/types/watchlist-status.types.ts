@@ -11,6 +11,8 @@ export interface DatabaseWatchlistItem {
   status: 'pending' | 'requested' | 'grabbed' | 'notified'
   series_status?: 'continuing' | 'ended' | null
   movie_status?: string | null
+  sonarr_instance_id?: number
+  radarr_instance_id?: number
   created_at?: string
   updated_at?: string
 }

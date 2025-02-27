@@ -748,6 +748,50 @@ export class DatabaseService {
       })
   }
 
+  async updateWatchlistItemByGuid(
+    guid: string,
+    updates: {
+      sonarr_instance_id?: number | null
+      radarr_instance_id?: number | null
+    },
+  ): Promise<number> {
+    try {
+      const items = await this.knex('watchlist_items')
+        .whereRaw('json_array_length(guids) > 0')
+        .select('id', 'guids')
+
+      const matchingIds = items
+        .filter((item) => {
+          try {
+            const guids = JSON.parse(item.guids || '[]')
+            return Array.isArray(guids) && guids.includes(guid)
+          } catch (e) {
+            this.log.error(`Error parsing GUIDs for item ${item.id}:`, e)
+            return false
+          }
+        })
+        .map((item) => item.id)
+
+      if (matchingIds.length === 0) {
+        this.log.warn(`No items found with GUID: ${guid}`)
+        return 0
+      }
+
+      const updateCount = await this.knex('watchlist_items')
+        .whereIn('id', matchingIds)
+        .update({
+          ...updates,
+          updated_at: this.timestamp,
+        })
+
+      this.log.debug(`Updated ${updateCount} items by GUID ${guid}`)
+      return updateCount
+    } catch (error) {
+      this.log.error(`Error updating items by GUID ${guid}:`, error)
+      throw error
+    }
+  }
+
   async getWatchlistItem(
     userId: number,
     key: string,
@@ -842,6 +886,8 @@ export class DatabaseService {
       series_status?: 'continuing' | 'ended'
       movie_status?: 'available' | 'unavailable'
       last_notified_at?: string
+      sonarr_instance_id?: number
+      radarr_instance_id?: number
     }>,
   ): Promise<number> {
     let updatedCount = 0
@@ -864,6 +910,8 @@ export class DatabaseService {
                   series_status: update.series_status,
                   movie_status: update.movie_status,
                   last_notified_at: update.last_notified_at,
+                  sonarr_instance_id: update.sonarr_instance_id,
+                  radarr_instance_id: update.radarr_instance_id,
                   updated_at: this.timestamp,
                 }),
             ),

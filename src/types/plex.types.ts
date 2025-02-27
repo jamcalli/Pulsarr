@@ -66,8 +66,8 @@ export interface Item {
   status: 'pending' | 'requested' | 'grabbed' | 'notified'
   series_status?: 'continuing' | 'ended'
   movie_status?: 'available' | 'unavailable'
-  sonarr_instance_id?: number | null
-  radarr_instance_id?: number | null
+  sonarr_instance_id?: number
+  radarr_instance_id?: number
   last_notified_at?: string
   sync_started_at?: string
   created_at: string

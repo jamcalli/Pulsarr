@@ -235,7 +235,7 @@ class PlexTestingWorkflow {
   private convertToTempItem(item: WatchlistItem): TemptRssWatchlistItem {
     return {
       title: item.title,
-      type: item.type,
+      type: typeof item.type === 'string' ? item.type.toLowerCase() : item.type,
       thumb: item.thumb,
       guids: item.guids,
       genres: item.genres,
@@ -254,12 +254,20 @@ class PlexTestingWorkflow {
         this.changeQueue.add(item)
         hasNewItems = true
 
-        if (item.type === 'SHOW') {
+        if (item.type.toLowerCase() === 'show') {
           this.log.info(`Processing show ${item.title} immediately`)
-          await this.processSonarrItem(item)
-        } else if (item.type === 'MOVIE') {
+          const normalizedItem = {
+            ...item,
+            type: 'show',
+          }
+          await this.processSonarrItem(normalizedItem)
+        } else if (item.type.toLowerCase() === 'movie') {
           this.log.info(`Processing movie ${item.title} immediately`)
-          await this.processRadarrItem(item)
+          const normalizedItem = {
+            ...item,
+            type: 'movie',
+          }
+          await this.processRadarrItem(normalizedItem)
         }
       }
     }
