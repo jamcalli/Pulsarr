@@ -39,7 +39,7 @@ export function DashboardPage() {
       {/* Dashboard Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center">
-          <h1 className="text-3xl font-bold text-text">Dashboard</h1>
+          <h1 className="text-3xl font-bold text-text">Main Workflow</h1>
           <WatchlistStatusBadge />
         </div>
         <Button
@@ -62,11 +62,12 @@ export function DashboardPage() {
         Last updated: {lastRefreshed.toLocaleTimeString()}
       </p>
 
-      {/* System Status Section */}
+{/*
+      // System Status Section 
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-text mb-4">System Status</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* System Status Card */}
+          // System Status Card 
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-lg font-medium">Services</CardTitle>
@@ -82,7 +83,7 @@ export function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* CPU Usage Card */}
+          // CPU Usage Card 
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-lg font-medium">CPU Usage</CardTitle>
@@ -99,7 +100,7 @@ export function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Memory Usage Card */}
+          // Memory Usage Card 
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-lg font-medium">Memory</CardTitle>
@@ -118,11 +119,11 @@ export function DashboardPage() {
         </div>
       </div>
 
-      {/* Active Statistics Section */}
+      // Active Statistics Section 
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-text mb-4">Active Statistics</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {/* Total Users Card */}
+          // Total Users Card 
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-lg font-medium">Total Users</CardTitle>
@@ -138,7 +139,7 @@ export function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Active Sessions Card */}
+          // Active Sessions Card 
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-lg font-medium">
@@ -154,7 +155,7 @@ export function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Processing Queue Card */}
+          // Processing Queue Card 
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-lg font-medium">Queue</CardTitle>
@@ -168,7 +169,7 @@ export function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Error Rate Card */}
+          // Error Rate Card 
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-lg font-medium">Error Rate</CardTitle>
@@ -186,13 +187,13 @@ export function DashboardPage() {
         </div>
       </div>
 
-      {/* Recent Activity Section */}
+      // Recent Activity Section 
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-text mb-4">Recent Activity</h2>
         <Card>
           <CardContent className="p-6">
             <div className="space-y-4">
-              {/* Activity Items */}
+              // Activity Items 
               {[1, 2, 3, 4, 5].map((item) => (
                 <div
                   key={item}
@@ -216,11 +217,11 @@ export function DashboardPage() {
         </Card>
       </div>
 
-      {/* System Health Overview */}
+      // System Health Overview 
       <div>
         <h2 className="text-2xl font-bold text-text mb-4">System Health</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Weekly Usage Card */}
+          // Weekly Usage Card 
           <Card>
             <CardHeader>
               <CardTitle>Weekly Usage</CardTitle>
@@ -235,7 +236,7 @@ export function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Resources Allocation Card */}
+          // Resources Allocation Card 
           <Card>
             <CardHeader>
               <CardTitle>Resource Allocation</CardTitle>
@@ -251,6 +252,7 @@ export function DashboardPage() {
           </Card>
         </div>
       </div>
+*/}
     </div>
   )
 }
