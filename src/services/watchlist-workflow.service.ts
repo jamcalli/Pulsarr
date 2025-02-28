@@ -7,9 +7,10 @@ import type {
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 
-type WorkflowStatus = 'stopped' | 'running'
+type WorkflowStatus = 'stopped' | 'running' | 'starting' | 'stopping'
 
-export class PlexWorkflowService {
+export class WatchlistWorkflowService {
+  private status: WorkflowStatus = 'stopped'
   private rssCheckInterval: NodeJS.Timeout | null = null
   private queueCheckInterval: NodeJS.Timeout | null = null
   private lastQueueItemTime: number = Date.now()
@@ -25,7 +26,7 @@ export class PlexWorkflowService {
     private readonly rssCheckIntervalMs: number = 10000,
     private readonly queueProcessDelayMs: number = 60000,
   ) {
-    this.log.info('Initializing Plex Workflow Service')
+    this.log.info('Initializing Watchlist Workflow Service')
   }
 
   private get config() {
@@ -53,47 +54,51 @@ export class PlexWorkflowService {
   }
 
   getStatus(): WorkflowStatus {
-    return this.isRunning ? 'running' : 'stopped'
+    return this.status
   }
 
   async startWorkflow() {
-    if (this.isRunning) {
-      this.log.warn('Workflow already running, skipping start')
+    if (this.status !== 'stopped') {
+      this.log.warn(`Workflow already ${this.status}, skipping start`)
       return false
     }
 
-    this.log.info('Starting Plex testing workflow')
-    this.isRunning = true
+    this.log.info('Starting Watchlist Workflow Service...')
+    this.status = 'starting'
 
     try {
       await this.plexService.pingPlex()
       this.log.info('Plex connection verified')
-
       await this.fetchWatchlists()
       await this.initialSyncCheck()
-
       const rssFeeds = await this.plexService.generateAndSaveRssFeeds()
       if ('error' in rssFeeds) {
         throw new Error(`Failed to generate RSS feeds: ${rssFeeds.error}`)
       }
-
       await this.initializeRssSnapshots()
-
       this.startRssCheck()
       this.startQueueProcessor()
 
-      this.log.info('Plex testing workflow running')
+      this.status = 'running'
+      this.isRunning = true
+      this.log.info('Watchlist testing workflow running')
       return true
     } catch (error) {
+      this.status = 'stopped'
       this.isRunning = false
-      this.log.error('Error in Plex testing workflow:', error)
+      this.log.error('Error in Watchlist testing workflow:', error)
       throw error
     }
   }
 
   async stop() {
-    this.log.info('Stopping Plex testing workflow')
-    this.isRunning = false
+    if (this.status !== 'running' && this.status !== 'starting') {
+      this.log.warn(`Cannot stop workflow: current status is ${this.status}`)
+      return false
+    }
+
+    this.log.info('Stopping Watchlist testing workflow')
+    this.status = 'stopping'
 
     if (this.rssCheckInterval) {
       clearInterval(this.rssCheckInterval)
@@ -106,6 +111,9 @@ export class PlexWorkflowService {
     }
 
     this.changeQueue.clear()
+    this.isRunning = false
+    this.status = 'stopped'
+
     return true
   }
 
@@ -485,7 +493,7 @@ export class PlexWorkflowService {
       throw error
     }
   }
-  
+
   private async initialSyncCheck() {
     this.log.info('Performing initial sync check')
 

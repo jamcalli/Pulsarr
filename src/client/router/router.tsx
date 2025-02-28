@@ -19,6 +19,7 @@ const RadarrConfigPage = lazy(() => import('@/pages/radarr/radarr'))
 const NotificationsConfigPage = lazy(
   () => import('@/pages/notifications/notifications'),
 )
+const DashboardPage = lazy(() => import('@/pages/dashboard/dashboard'))
 
 // Loading fallback component
 const LoadingFallback = () => null
@@ -76,6 +77,16 @@ export const router = createBrowserRouter([
       <AuthenticatedLayout>
         <Suspense fallback={<LoadingFallback />}>
           <NotificationsConfigPage />
+        </Suspense>
+      </AuthenticatedLayout>
+    ),
+  },
+  {
+    path: '/app/dashboard',
+    element: (
+      <AuthenticatedLayout>
+        <Suspense fallback={<LoadingFallback />}>
+          <DashboardPage />
         </Suspense>
       </AuthenticatedLayout>
     ),
