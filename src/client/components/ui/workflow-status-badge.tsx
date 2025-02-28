@@ -1,10 +1,13 @@
 import { useWatchlistStatus } from '@/hooks/workflow/useWatchlistStatus'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Loader2, Square, Play } from 'lucide-react'
+import { Loader2, Square, Play, BookmarkCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useState, useEffect } from 'react'
 import { useToast } from '@/hooks/use-toast'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 export function WatchlistStatusBadge() {
   const status = useWatchlistStatus()
@@ -12,6 +15,7 @@ export function WatchlistStatusBadge() {
   const [actionStatus, setActionStatus] = useState<'idle' | 'loading'>('idle')
   const [currentAction, setCurrentAction] = useState<'start' | 'stop' | null>(null)
   const [lastStableStatus, setLastStableStatus] = useState<string>(status)
+  const [autoStart, setAutoStart] = useState<boolean>(false)
   
   // Track transitions between stable and transitional states
   useEffect(() => {
@@ -68,7 +72,16 @@ export function WatchlistStatusBadge() {
           variant: 'default',
         })
       } else {
-        const response = await fetch('/v1/watchlist-workflow/start', { method: 'POST' })
+        // Include autoStart in the request body if checked
+        const requestOptions = {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: autoStart ? JSON.stringify({ autoStart: true }) : undefined
+        }
+        
+        const response = await fetch('/v1/watchlist-workflow/start', requestOptions)
         await minimumLoadingTime
         
         if (!response.ok) {
@@ -76,8 +89,9 @@ export function WatchlistStatusBadge() {
         }
         
         // Success toast for starting
+        const autoStartMsg = autoStart ? ' with auto-start enabled' : ''
         toast({
-          description: 'Watchlist workflow has been started successfully',
+          description: `Watchlist workflow has been started successfully${autoStartMsg}`,
           variant: 'default',
         })
       }
@@ -144,6 +158,36 @@ export function WatchlistStatusBadge() {
           </>
         )}
       </Button>
+      
+      {/* Only show auto-start toggle when stopped - now positioned after the button */}
+      {(status === 'stopped' || (status === 'starting' && currentAction === 'start')) && (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center gap-1.5 h-7">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="auto-start"
+                    checked={autoStart}
+                    onCheckedChange={setAutoStart}
+                    disabled={isDisabled}
+                  />
+                  <Label
+                    htmlFor="auto-start"
+                    className="text-xs text-text cursor-pointer flex items-center gap-1"
+                  >
+                    <BookmarkCheck className="h-3.5 w-3.5" />
+                    Auto-Start
+                  </Label>
+                </div>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              <p className="text-xs">Mark as ready when starting workflow</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )}
     </div>
   )
 }

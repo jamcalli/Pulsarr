@@ -1,5 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify'
-import type { z } from 'zod'
+import { z } from 'zod'
 import {
   WatchlistWorkflowResponseSchema,
   ErrorSchema,
@@ -8,11 +8,15 @@ import {
 const plugin: FastifyPluginAsync = async (fastify) => {
   // Start Watchlist Workflow
   fastify.post<{
+    Body: { autoStart?: boolean },
     Reply: z.infer<typeof WatchlistWorkflowResponseSchema>
   }>(
     '/start',
     {
       schema: {
+        body: z.object({
+          autoStart: z.boolean().optional(),
+        }).optional(),
         response: {
           200: WatchlistWorkflowResponseSchema,
           400: ErrorSchema,
@@ -31,9 +35,43 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
 
         try {
+          // Start the workflow
           fastify.watchlistWorkflow.startWorkflow().catch((err) => {
             fastify.log.error('Error in background workflow startup:', err)
           })
+
+          // Check if autoStart parameter is provided and is true
+          if (request.body?.autoStart === true) {
+            try {
+              // Get current config
+              const currentConfig = await fastify.db.getConfig(1)
+              if (currentConfig) {
+                // Update the _isReady flag
+                const configUpdate = {
+                  ...currentConfig,
+                  _isReady: true
+                }
+                
+                // Save the updated config
+                const dbUpdated = await fastify.db.updateConfig(1, configUpdate)
+                if (dbUpdated) {
+                  // Update the runtime config if database update was successful
+                  const savedConfig = await fastify.db.getConfig(1)
+                  if (savedConfig) {
+                    await fastify.updateConfig(savedConfig)
+                    fastify.log.info('Updated config _isReady to true')
+                  }
+                } else {
+                  fastify.log.warn('Failed to update _isReady config value')
+                }
+              } else {
+                fastify.log.warn('Could not find config to update _isReady')
+              }
+            } catch (configErr) {
+              // Log config update error but don't fail the workflow start
+              fastify.log.error('Error updating _isReady config:', configErr)
+            }
+          }
 
           const response: z.infer<typeof WatchlistWorkflowResponseSchema> = {
             success: true,
