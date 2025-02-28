@@ -1,9 +1,4 @@
-import type {
-  FastifyPluginCallback,
-  FastifyInstance,
-  FastifyBaseLogger,
-} from 'fastify'
-import fp from 'fastify-plugin'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type {
   TemptRssWatchlistItem,
   RssWatchlistResults,
@@ -12,7 +7,9 @@ import type {
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 
-class PlexTestingWorkflow {
+type WorkflowStatus = 'stopped' | 'running'
+
+export class PlexWorkflowService {
   private rssCheckInterval: NodeJS.Timeout | null = null
   private queueCheckInterval: NodeJS.Timeout | null = null
   private lastQueueItemTime: number = Date.now()
@@ -23,21 +20,46 @@ class PlexTestingWorkflow {
   private isRunning = false
 
   constructor(
-    private readonly plexService: FastifyInstance['plexWatchlist'],
     private readonly log: FastifyBaseLogger,
-    private readonly sonarrManager: FastifyInstance['sonarrManager'],
-    private readonly radarrManager: FastifyInstance['radarrManager'],
     private readonly fastify: FastifyInstance,
-    private readonly dbService: FastifyInstance['db'],
-    private readonly showStatusService: FastifyInstance['sync'],
     private readonly rssCheckIntervalMs: number = 10000,
     private readonly queueProcessDelayMs: number = 60000,
-  ) {}
+  ) {
+    this.log.info('Initializing Plex Workflow Service')
+  }
+
+  private get config() {
+    return this.fastify.config
+  }
+
+  private get plexService() {
+    return this.fastify.plexWatchlist
+  }
+
+  private get sonarrManager() {
+    return this.fastify.sonarrManager
+  }
+
+  private get radarrManager() {
+    return this.fastify.radarrManager
+  }
+
+  private get dbService() {
+    return this.fastify.db
+  }
+
+  private get showStatusService() {
+    return this.fastify.sync
+  }
+
+  getStatus(): WorkflowStatus {
+    return this.isRunning ? 'running' : 'stopped'
+  }
 
   async startWorkflow() {
     if (this.isRunning) {
       this.log.warn('Workflow already running, skipping start')
-      return
+      return false
     }
 
     this.log.info('Starting Plex testing workflow')
@@ -61,6 +83,7 @@ class PlexTestingWorkflow {
       this.startQueueProcessor()
 
       this.log.info('Plex testing workflow running')
+      return true
     } catch (error) {
       this.isRunning = false
       this.log.error('Error in Plex testing workflow:', error)
@@ -83,6 +106,7 @@ class PlexTestingWorkflow {
     }
 
     this.changeQueue.clear()
+    return true
   }
 
   async fetchWatchlists() {
@@ -461,6 +485,7 @@ class PlexTestingWorkflow {
       throw error
     }
   }
+  
   private async initialSyncCheck() {
     this.log.info('Performing initial sync check')
 
@@ -605,58 +630,3 @@ class PlexTestingWorkflow {
     }, 10000)
   }
 }
-
-const plexTestingPlugin: FastifyPluginCallback = (fastify, opts, done) => {
-  try {
-    const rssCheckIntervalMs = (fastify.config.syncIntervalSeconds || 10) * 1000
-    const queueProcessDelayMs =
-      (fastify.config.queueProcessDelaySeconds || 60) * 1000
-    const workflow = new PlexTestingWorkflow(
-      fastify.plexWatchlist,
-      fastify.log,
-      fastify.sonarrManager,
-      fastify.radarrManager,
-      fastify,
-      fastify.db,
-      fastify.sync,
-      rssCheckIntervalMs,
-      queueProcessDelayMs,
-    )
-
-    fastify.addHook('onClose', async () => {
-      await workflow.stop()
-    })
-
-    fastify.decorate('plexTestingWorkflow', workflow)
-
-    // Start workflow with proper error handling
-    const startWorkflow = async () => {
-      try {
-        fastify.log.info('Waiting for config to be ready...')
-        await fastify.waitForConfig()
-        fastify.log.info('Config ready, starting workflow')
-        await workflow.startWorkflow()
-      } catch (err) {
-        fastify.log.error('Error in workflow startup:', err)
-        throw err
-      }
-    }
-
-    setImmediate(startWorkflow)
-
-    done()
-  } catch (err) {
-    done(err as Error)
-  }
-}
-
-export default fp(plexTestingPlugin, {
-  name: 'plex-testing-plugin',
-  dependencies: [
-    'plex-watchlist',
-    'sonarr-manager',
-    'radarr-manager',
-    'sync',
-    'config',
-  ],
-})
