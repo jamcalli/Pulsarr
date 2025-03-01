@@ -1075,7 +1075,7 @@ export class DatabaseService {
   ): Promise<void> {
     await this.knex.transaction(async (trx) => {
       const chunks = this.chunkArray(items, 250)
-
+  
       for (const chunk of chunks) {
         try {
           const itemsToInsert = chunk.map((item) => ({
@@ -1085,7 +1085,7 @@ export class DatabaseService {
                 : item.user_id,
             key: item.key,
             title: item.title,
-            type: item.type,
+            type: typeof item.type === 'string' ? item.type.toLowerCase() : item.type,
             thumb: item.thumb,
             guids: JSON.stringify(item.guids || []),
             genres: JSON.stringify(item.genres || []),
@@ -1093,15 +1093,15 @@ export class DatabaseService {
             created_at: this.timestamp,
             updated_at: this.timestamp,
           }))
-
+  
           const query = trx('watchlist_items').insert(itemsToInsert)
-
+  
           if (options.onConflict === 'merge') {
             query.onConflict(['user_id', 'key']).merge()
           } else {
             query.onConflict(['user_id', 'key']).ignore()
           }
-
+  
           await query
         } catch (err) {
           this.log.error(`Error inserting chunk: ${err}`)
