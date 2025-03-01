@@ -630,7 +630,14 @@ export class WatchlistWorkflowService {
           await this.fetchWatchlists()
           this.log.info('Watchlist refresh completed')
         } catch (error) {
-          this.log.error('Error during watchlist refresh:', error)
+          this.status = 'stopped'
+          this.isRunning = false
+          this.log.error('Error in Watchlist testing workflow:', {
+            message: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined,
+            details: error,
+          })
+          throw error
         } finally {
           this.isRefreshing = false
         }

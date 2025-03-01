@@ -9,8 +9,8 @@ interface ProgressState {
   typeSubscribers: Map<string, Set<(event: ProgressEvent) => void>>
 
   // Actions
-  connect: () => void
-  disconnect: () => void
+  initialize: () => void
+  cleanup: () => void
   subscribeToOperation: (
     operationId: string,
     callback: (event: ProgressEvent) => void,
@@ -28,16 +28,27 @@ export const useProgressStore = create<ProgressState>()(
     operationSubscribers: new Map(),
     typeSubscribers: new Map(),
 
-    connect: () => {
+    initialize: () => {
       const state = get()
-      if (state.eventSource) return
+      if (state.eventSource) {
+        console.log('EventSource already initialized')
+        return
+      }
+
+      console.log('Initializing persistent EventSource connection')
 
       const eventSource = new EventSource('/api/progress')
+
+      eventSource.onopen = () => {
+        console.log('EventSource connection established')
+        set({ isConnected: true })
+      }
 
       eventSource.onmessage = (event) => {
         const data: ProgressEvent = JSON.parse(event.data)
         const state = get()
 
+        // Handle operation subscribers
         const operationCallbacks = state.operationSubscribers.get(
           data.operationId,
         )
@@ -47,36 +58,35 @@ export const useProgressStore = create<ProgressState>()(
           }
         }
 
+        // Handle type subscribers
         const typeCallbacks = state.typeSubscribers.get(data.type)
         if (typeCallbacks) {
           for (const callback of typeCallbacks) {
             callback(data)
           }
         }
-
-        if (data.phase === 'complete') {
-          setTimeout(() => {
-            if (
-              state.operationSubscribers.size === 0 &&
-              state.typeSubscribers.size === 0
-            ) {
-              state.disconnect()
-            }
-          }, 1000)
-        }
       }
 
-      eventSource.onerror = () => {
-        get().disconnect()
+      eventSource.onerror = (err) => {
+        console.error('EventSource error:', err)
+        setTimeout(() => {
+          const currentState = get()
+          if (currentState.eventSource === eventSource) {
+            console.log('Reconnecting EventSource after error')
+            currentState.cleanup()
+            currentState.initialize()
+          }
+        }, 2000)
       }
 
       set({ eventSource, isConnected: true })
     },
 
-    disconnect: () => {
+    cleanup: () => {
       const state = get()
       if (!state.eventSource) return
 
+      console.log('Cleaning up EventSource connection')
       state.eventSource.close()
       set({ eventSource: null, isConnected: false })
     },
@@ -96,7 +106,7 @@ export const useProgressStore = create<ProgressState>()(
       callbacks.add(callback)
 
       if (!state.eventSource) {
-        state.connect()
+        state.initialize()
       }
 
       return () => {
@@ -108,13 +118,6 @@ export const useProgressStore = create<ProgressState>()(
           if (callbacks.size === 0) {
             state.operationSubscribers.delete(operationId)
           }
-        }
-
-        if (
-          state.operationSubscribers.size === 0 &&
-          state.typeSubscribers.size === 0
-        ) {
-          state.disconnect()
         }
       }
     },
@@ -134,7 +137,7 @@ export const useProgressStore = create<ProgressState>()(
       callbacks.add(callback)
 
       if (!state.eventSource) {
-        state.connect()
+        state.initialize()
       }
 
       return () => {
@@ -146,13 +149,6 @@ export const useProgressStore = create<ProgressState>()(
           if (callbacks.size === 0) {
             state.typeSubscribers.delete(type)
           }
-        }
-
-        if (
-          state.operationSubscribers.size === 0 &&
-          state.typeSubscribers.size === 0
-        ) {
-          state.disconnect()
         }
       }
     },

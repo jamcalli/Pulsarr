@@ -15,7 +15,9 @@ export function useDiscordStatus() {
 
   useEffect(() => {
     const unsubscribe = subscribeToType('system', handleEvent)
-    return () => unsubscribe()
+    return () => {
+      unsubscribe()
+    }
   }, [subscribeToType, handleEvent])
 
   return status

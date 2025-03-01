@@ -1,6 +1,7 @@
 import fp from 'fastify-plugin'
 import type { FastifyInstance } from 'fastify'
 import { DatabaseService } from '@services/database.service.js'
+import type { Config } from '@root/types/config.types.js'
 
 declare module 'fastify' {
   interface FastifyInstance {
@@ -12,16 +13,19 @@ export default fp(
   async (fastify: FastifyInstance) => {
     const dbService = new DatabaseService(fastify.log, fastify.config)
     fastify.decorate('db', dbService)
-
     fastify.addHook('onClose', async () => {
       fastify.log.info('Closing database service...')
       await dbService.close()
     })
 
+    const isSetInEnvironment = (key: string): boolean => {
+      return key in process.env
+    }
+
     const initializeConfig = async () => {
       try {
         const dbConfig = await dbService.getConfig(1)
-        const envConfig = { ...fastify.config }
+        const envConfig = { ...fastify.config } as Config
 
         if (dbConfig) {
           const parsedDbConfig = {
@@ -37,9 +41,17 @@ export default fp(
               : JSON.parse(dbConfig.sonarrTags || '[]'),
           }
 
-          const mergedConfig = {
-            ...parsedDbConfig,
-            ...envConfig,
+          const mergedConfig = { ...parsedDbConfig } as Config
+
+          for (const key of Object.keys(envConfig)) {
+            if (isSetInEnvironment(key)) {
+              const typedKey = key as keyof Config
+              // biome-ignore lint/suspicious/noExplicitAny: This is a necessary type assertion for dynamic property access
+              ;(mergedConfig as any)[key] = envConfig[typedKey]
+              fastify.log.debug(`Using environment value for ${key}`)
+            } else {
+              fastify.log.debug(`Keeping database value for ${key}`)
+            }
           }
 
           await fastify.updateConfig(mergedConfig)
@@ -62,7 +74,6 @@ export default fp(
             mergedConfig.sonarrBaseUrl
           ) {
             fastify.log.info('Creating default Sonarr instance from .env')
-
             await dbService.createSonarrInstance({
               name: 'Default Sonarr Instance',
               baseUrl: mergedConfig.sonarrBaseUrl,
@@ -81,7 +92,6 @@ export default fp(
             mergedConfig.radarrBaseUrl
           ) {
             fastify.log.info('Creating default Radarr instance from .env')
-
             await dbService.createRadarrInstance({
               name: 'Default Radarr Instance',
               baseUrl: mergedConfig.radarrBaseUrl,
@@ -99,14 +109,12 @@ export default fp(
             ...envConfig,
             _isReady: false,
           }
-
           fastify.log.info('Creating initial config in database')
           await dbService.createConfig(initialConfig)
           await fastify.updateConfig({ _isReady: false })
 
           if (initialConfig.sonarrBaseUrl) {
             fastify.log.info('Creating default Sonarr instance from .env')
-
             await dbService.createSonarrInstance({
               name: 'Default Sonarr Instance',
               baseUrl: initialConfig.sonarrBaseUrl,
@@ -122,7 +130,6 @@ export default fp(
 
           if (initialConfig.radarrBaseUrl) {
             fastify.log.info('Creating default Radarr instance from .env')
-
             await dbService.createRadarrInstance({
               name: 'Default Radarr Instance',
               baseUrl: initialConfig.radarrBaseUrl,
