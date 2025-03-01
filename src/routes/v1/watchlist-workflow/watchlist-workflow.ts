@@ -8,15 +8,17 @@ import {
 const plugin: FastifyPluginAsync = async (fastify) => {
   // Start Watchlist Workflow
   fastify.post<{
-    Body: { autoStart?: boolean },
+    Body: { autoStart?: boolean }
     Reply: z.infer<typeof WatchlistWorkflowResponseSchema>
   }>(
     '/start',
     {
       schema: {
-        body: z.object({
-          autoStart: z.boolean().optional(),
-        }).optional(),
+        body: z
+          .object({
+            autoStart: z.boolean().optional(),
+          })
+          .optional(),
         response: {
           200: WatchlistWorkflowResponseSchema,
           400: ErrorSchema,
@@ -49,9 +51,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                 // Update the _isReady flag
                 const configUpdate = {
                   ...currentConfig,
-                  _isReady: true
+                  _isReady: true,
                 }
-                
+
                 // Save the updated config
                 const dbUpdated = await fastify.db.updateConfig(1, configUpdate)
                 if (dbUpdated) {

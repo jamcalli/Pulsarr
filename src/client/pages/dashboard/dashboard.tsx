@@ -62,7 +62,7 @@ export function DashboardPage() {
         Last updated: {lastRefreshed.toLocaleTimeString()}
       </p>
 
-{/*
+      {/*
       // System Status Section 
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-text mb-4">System Status</h2>
