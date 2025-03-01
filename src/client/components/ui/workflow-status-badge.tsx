@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { useConfigStore } from '@/stores/configStore'
 
 export function WatchlistStatusBadge() {
   const status = useWatchlistStatus()
@@ -15,7 +16,17 @@ export function WatchlistStatusBadge() {
   const [actionStatus, setActionStatus] = useState<'idle' | 'loading'>('idle')
   const [currentAction, setCurrentAction] = useState<'start' | 'stop' | null>(null)
   const [lastStableStatus, setLastStableStatus] = useState<string>(status)
+  const config = useConfigStore(state => state.config)
+  
+  // Change to use a default value of false when null
   const [autoStart, setAutoStart] = useState<boolean>(false)
+  
+  // Initialize autoStart with _isReady from config when config is loaded
+  useEffect(() => {
+    if (config && config._isReady !== undefined) {
+      setAutoStart(config._isReady)
+    }
+  }, [config])
   
   // Track transitions between stable and transitional states
   useEffect(() => {
@@ -66,13 +77,11 @@ export function WatchlistStatusBadge() {
           throw new Error(`Failed to stop Watchlist workflow: ${response.status}`)
         }
         
-        // Success toast for stopping
         toast({
           description: 'Watchlist workflow has been stopped successfully',
           variant: 'default',
         })
       } else {
-        // Include autoStart in the request body if checked
         const requestOptions = {
           method: 'POST',
           headers: {
