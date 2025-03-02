@@ -41,7 +41,8 @@ function filename(time: number | Date, index?: number): string {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
-  return `pulsarr-${year}-${month}-${day}.log`
+  const indexStr = index ? `-${index}` : ''
+  return `pulsarr-${year}-${month}-${day}${indexStr}.log`
 }
 
 function getFileStream(): rfs.RotatingFileStream | NodeJS.WriteStream {
@@ -52,7 +53,6 @@ function getFileStream(): rfs.RotatingFileStream | NodeJS.WriteStream {
     }
     return rfs.createStream(filename, {
       size: '10M',
-      interval: '1d',
       path: logDirectory,
       compress: 'gzip',
       maxFiles: 7,
