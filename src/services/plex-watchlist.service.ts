@@ -941,44 +941,43 @@ export class PlexWatchlistService {
     }))
   }
 
-
   async matchRssPendingItemsSelf(
     userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>,
   ): Promise<void> {
     const pendingItems = await this.dbService.getTempRssItems('self')
-  
+
     this.log.info(
       `Found ${pendingItems.length} pending RSS items to match during self sync`,
     )
     let matchCount = 0
     let noMatchCount = 0
     const matchedItemIds: number[] = []
-  
+
     for (const pendingItem of pendingItems) {
       const pendingGuids = this.safeParseArray<string>(pendingItem.guids)
-  
+
       this.log.debug(
         `Processing RSS item "${pendingItem.title}" with GUIDs:`,
         pendingGuids,
       )
       let foundMatch = false
-  
+
       for (const [user, items] of userWatchlistMap.entries()) {
         for (const item of items) {
           const itemGuids = this.safeParseArray<string>(item.guids)
-  
+
           const hasMatch = pendingGuids.some((pendingGuid: string) =>
             itemGuids.some(
               (itemGuid: string) =>
                 itemGuid.toLowerCase() === pendingGuid.toLowerCase(),
             ),
           )
-  
+
           if (hasMatch) {
             foundMatch = true
             matchCount++
             matchedItemIds.push(pendingItem.id)
-  
+
             this.log.info(
               `Matched item "${pendingItem.title}" to user ${user.username}'s item "${item.title}"`,
               {
@@ -987,20 +986,38 @@ export class PlexWatchlistService {
                 userId: user.userId,
               },
             )
-  
-            await this.fastify.discord.sendMediaNotification({
-              username: user.username,
-              title: item.title,
-              type: item.type as 'movie' | 'show',
-              posterUrl: item.thumb,
-            })
-  
+
+            const notificationSent =
+              await this.fastify.discord.sendMediaNotification({
+                username: user.username,
+                title: item.title,
+                type: item.type as 'movie' | 'show',
+                posterUrl: item.thumb,
+              })
+
+            if (notificationSent) {
+              const itemId =
+                typeof item.id === 'string'
+                  ? Number.parseInt(item.id, 10)
+                  : item.id
+              await this.dbService.createNotificationRecord({
+                watchlist_item_id: !isNaN(itemId) ? itemId : null,
+                user_id: user.userId,
+                type: 'watchlist_add',
+                title: item.title,
+                message: `New ${item.type} added to watchlist (self sync)`,
+                sent_to_discord: false,
+                sent_to_email: false,
+                sent_to_webhook: true,
+              })
+            }
+
             break
           }
         }
         if (foundMatch) break
       }
-  
+
       if (!foundMatch) {
         noMatchCount++
         this.log.warn(
@@ -1012,11 +1029,11 @@ export class PlexWatchlistService {
         )
       }
     }
-  
+
     if (matchedItemIds.length > 0) {
       await this.dbService.deleteTempRssItems(matchedItemIds)
     }
-  
+
     this.log.info('Self RSS matching complete', {
       totalChecked: pendingItems.length,
       matched: matchCount,
@@ -1028,14 +1045,14 @@ export class PlexWatchlistService {
     userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>,
   ): Promise<void> {
     const pendingItems = await this.dbService.getTempRssItems('friends')
-  
+
     this.log.info(
       `Found ${pendingItems.length} pending RSS items to match during friend sync`,
     )
     let matchCount = 0
     let noMatchCount = 0
     const matchedItemIds: number[] = []
-  
+
     const userIds = Array.from(userWatchlistMap.keys()).map(
       (user) => user.userId,
     )
@@ -1044,7 +1061,7 @@ export class PlexWatchlistService {
       [],
     )
     const existingGuidsMap = new Map<number, Set<string>>()
-  
+
     for (const item of existingItems) {
       if (!item.user_id) continue
       const guids = this.safeParseArray<string>(item.guids)
@@ -1055,65 +1072,76 @@ export class PlexWatchlistService {
         existingGuidsMap.get(item.user_id)?.add(guid)
       }
     }
-  
+
     for (const pendingItem of pendingItems) {
       const pendingGuids = this.safeParseArray<string>(pendingItem.guids)
       let foundAnyMatch = false
-  
+
       for (const [friend, items] of userWatchlistMap.entries()) {
         for (const item of items) {
           const itemGuids = this.safeParseArray<string>(item.guids)
-  
+
           const hasMatch = pendingGuids.some((pendingGuid: string) =>
-            itemGuids.some(guid => 
-              guid.toLowerCase() === pendingGuid.toLowerCase()
-            )
+            itemGuids.some(
+              (guid) => guid.toLowerCase() === pendingGuid.toLowerCase(),
+            ),
           )
-  
+
           if (hasMatch) {
             foundAnyMatch = true
             matchCount++
             matchedItemIds.push(pendingItem.id)
-  
+
             const userExistingGuids =
               existingGuidsMap.get(friend.userId) || new Set<string>()
-  
+
             const isNewItem = !itemGuids.some((guid: string) =>
-              userExistingGuids.has(guid)
+              userExistingGuids.has(guid),
             )
-  
+
             if (isNewItem) {
-              await this.fastify.discord.sendMediaNotification({
-                username: friend.username,
-                title: item.title,
-                type: item.type as 'movie' | 'show',
-                posterUrl: item.thumb,
-              })
+              const notificationSent =
+                await this.fastify.discord.sendMediaNotification({
+                  username: friend.username,
+                  title: item.title,
+                  type: item.type as 'movie' | 'show',
+                  posterUrl: item.thumb,
+                })
+
+              if (notificationSent) {
+                const itemId =
+                  typeof item.id === 'string'
+                    ? Number.parseInt(item.id, 10)
+                    : item.id
+                await this.dbService.createNotificationRecord({
+                  watchlist_item_id: !isNaN(itemId) ? itemId : null,
+                  user_id: friend.userId,
+                  type: 'watchlist_add',
+                  title: item.title,
+                  message: `New ${item.type} added to watchlist`,
+                  sent_to_discord: false,
+                  sent_to_email: false,
+                  sent_to_webhook: true,
+                })
+              }
+
               this.log.info(
                 `Sent notification for new item "${item.title}" for user ${friend.username}`,
                 {
                   pendingGuids,
                   itemGuids,
                   userId: friend.userId,
-                }
-              )
-            } else {
-              this.log.debug(
-                `Skipped notification for existing item "${item.title}" for user ${friend.username}`,
-                {
-                  pendingGuids,
-                  itemGuids,
-                  userId: friend.userId,
-                }
+                  notificationSent,
+                },
               )
             }
-  
+
             break
           }
         }
         if (foundAnyMatch) break
       }
-  
+
       if (!foundAnyMatch) {
         noMatchCount++
         this.log.warn(
@@ -1121,15 +1149,15 @@ export class PlexWatchlistService {
           {
             itemTitle: pendingItem.title,
             pendingGuids,
-          }
+          },
         )
       }
     }
-  
+
     if (matchedItemIds.length > 0) {
       await this.dbService.deleteTempRssItems(matchedItemIds)
     }
-  
+
     this.log.info('Friend RSS matching complete', {
       totalChecked: pendingItems.length,
       matched: matchCount,

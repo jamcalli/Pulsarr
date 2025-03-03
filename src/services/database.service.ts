@@ -897,27 +897,47 @@ export class DatabaseService {
         const chunks = this.chunkArray(updates, 100)
 
         for (const chunk of chunks) {
-          const results = await Promise.all(
-            chunk.map((update) =>
-              trx('watchlist_items')
-                .where({
-                  user_id: update.userId,
-                  key: update.key,
-                })
-                .update({
-                  added: update.added,
-                  status: update.status,
-                  series_status: update.series_status,
-                  movie_status: update.movie_status,
-                  last_notified_at: update.last_notified_at,
-                  sonarr_instance_id: update.sonarr_instance_id,
-                  radarr_instance_id: update.radarr_instance_id,
-                  updated_at: this.timestamp,
-                }),
-            ),
-          )
+          for (const update of chunk) {
+            const currentItem = await trx('watchlist_items')
+              .where({
+                user_id: update.userId,
+                key: update.key,
+              })
+              .select('id', 'status')
+              .first()
 
-          updatedCount += results.reduce((sum, result) => sum + result, 0)
+            if (!currentItem) continue
+
+            const updated = await trx('watchlist_items')
+              .where({
+                user_id: update.userId,
+                key: update.key,
+              })
+              .update({
+                added: update.added,
+                status: update.status,
+                series_status: update.series_status,
+                movie_status: update.movie_status,
+                last_notified_at: update.last_notified_at,
+                sonarr_instance_id: update.sonarr_instance_id,
+                radarr_instance_id: update.radarr_instance_id,
+                updated_at: this.timestamp,
+              })
+
+            updatedCount += updated
+
+            if (update.status && update.status !== currentItem.status) {
+              await trx('watchlist_status_history').insert({
+                watchlist_item_id: currentItem.id,
+                status: update.status,
+                timestamp: this.timestamp,
+              })
+
+              this.log.debug(
+                `Status change for item ${currentItem.id}: ${currentItem.status} -> ${update.status}`,
+              )
+            }
+          }
         }
       })
 
@@ -1075,7 +1095,7 @@ export class DatabaseService {
   ): Promise<void> {
     await this.knex.transaction(async (trx) => {
       const chunks = this.chunkArray(items, 250)
-  
+
       for (const chunk of chunks) {
         try {
           const itemsToInsert = chunk.map((item) => ({
@@ -1085,7 +1105,10 @@ export class DatabaseService {
                 : item.user_id,
             key: item.key,
             title: item.title,
-            type: typeof item.type === 'string' ? item.type.toLowerCase() : item.type,
+            type:
+              typeof item.type === 'string'
+                ? item.type.toLowerCase()
+                : item.type,
             thumb: item.thumb,
             guids: JSON.stringify(item.guids || []),
             genres: JSON.stringify(item.genres || []),
@@ -1093,15 +1116,15 @@ export class DatabaseService {
             created_at: this.timestamp,
             updated_at: this.timestamp,
           }))
-  
+
           const query = trx('watchlist_items').insert(itemsToInsert)
-  
+
           if (options.onConflict === 'merge') {
             query.onConflict(['user_id', 'key']).merge()
           } else {
             query.onConflict(['user_id', 'key']).ignore()
           }
-  
+
           await query
         } catch (err) {
           this.log.error(`Error inserting chunk: ${err}`)
@@ -1228,7 +1251,6 @@ export class DatabaseService {
     for (const item of watchlistItems) {
       const user = await this.getUser(item.user_id)
       if (!user) continue
-
       if (!user.notify_discord && !user.notify_email) continue
 
       if (
@@ -1245,8 +1267,13 @@ export class DatabaseService {
         status: 'notified',
       })
 
-      const notificationTitle = mediaInfo.title || item.title
+      await this.knex('watchlist_status_history').insert({
+        watchlist_item_id: item.id,
+        status: 'notified',
+        timestamp: new Date().toISOString(),
+      })
 
+      const notificationTitle = mediaInfo.title || item.title
       const notification: MediaNotification = {
         type: mediaInfo.type,
         title: notificationTitle,
@@ -1254,11 +1281,31 @@ export class DatabaseService {
         posterUrl: item.thumb || undefined,
       }
 
+      const userId =
+        typeof item.user_id === 'object'
+          ? (item.user_id as { id: number }).id
+          : Number(item.user_id)
+
+      const itemId =
+        typeof item.id === 'string' ? Number.parseInt(item.id, 10) : item.id
+
       if (mediaInfo.type === 'show' && mediaInfo.episodes?.length) {
         if (isBulkRelease) {
           notification.episodeDetails = {
             seasonNumber: mediaInfo.episodes[0].seasonNumber,
           }
+
+          // Create notification record
+          await this.createNotificationRecord({
+            watchlist_item_id: !Number.isNaN(itemId) ? itemId : null,
+            user_id: !Number.isNaN(userId) ? userId : null,
+            type: 'season',
+            title: notificationTitle,
+            season_number: mediaInfo.episodes[0].seasonNumber,
+            sent_to_discord: Boolean(user.notify_discord),
+            sent_to_email: Boolean(user.notify_email),
+            sent_to_webhook: false,
+          })
         } else {
           notification.episodeDetails = {
             title: mediaInfo.episodes[0].title,
@@ -1269,7 +1316,32 @@ export class DatabaseService {
             episodeNumber: mediaInfo.episodes[0].episodeNumber,
             airDateUtc: mediaInfo.episodes[0].airDateUtc,
           }
+
+          // Create notification record
+          await this.createNotificationRecord({
+            watchlist_item_id: !Number.isNaN(itemId) ? itemId : null,
+            user_id: !Number.isNaN(userId) ? userId : null,
+            type: 'episode',
+            title: notificationTitle,
+            message: mediaInfo.episodes[0].overview,
+            season_number: mediaInfo.episodes[0].seasonNumber,
+            episode_number: mediaInfo.episodes[0].episodeNumber,
+            sent_to_discord: Boolean(user.notify_discord),
+            sent_to_email: Boolean(user.notify_email),
+            sent_to_webhook: false,
+          })
         }
+      } else if (mediaInfo.type === 'movie') {
+        // Create notification record for movie
+        await this.createNotificationRecord({
+          watchlist_item_id: !Number.isNaN(itemId) ? itemId : null,
+          user_id: !Number.isNaN(userId) ? userId : null,
+          type: 'movie',
+          title: notificationTitle,
+          sent_to_discord: Boolean(user.notify_discord),
+          sent_to_email: Boolean(user.notify_email),
+          sent_to_webhook: false,
+        })
       }
 
       notifications.push({
@@ -1305,7 +1377,6 @@ export class DatabaseService {
 
   async getTopGenres(limit = 10): Promise<{ genre: string; count: number }[]> {
     try {
-      // Fetch all watchlist items with non-empty genres
       const items = await this.knex('watchlist_items')
         .whereNotNull('genres')
         .where('genres', '!=', '[]')
@@ -1408,16 +1479,57 @@ export class DatabaseService {
   async getWatchlistStatusDistribution(): Promise<
     { status: string; count: number }[]
   > {
-    const results = await this.knex('watchlist_items')
+    const historyItems = await this.knex
+      .select('h.status')
+      .count('* as count')
+      .from('watchlist_status_history as h')
+      .join(
+        this.knex
+          .select('watchlist_item_id')
+          .max('timestamp as latest_timestamp')
+          .from('watchlist_status_history')
+          .groupBy('watchlist_item_id')
+          .as('latest'),
+        function () {
+          this.on('h.watchlist_item_id', '=', 'latest.watchlist_item_id').andOn(
+            'h.timestamp',
+            '=',
+            'latest.latest_timestamp',
+          )
+        },
+      )
+      .groupBy('h.status')
+      .orderBy('count', 'desc')
+
+    const itemsWithHistory = await this.knex('watchlist_status_history')
+      .distinct('watchlist_item_id')
+      .pluck('watchlist_item_id')
+
+    const itemsWithoutHistory = await this.knex('watchlist_items')
+      .whereNotIn('id', itemsWithHistory)
       .select('status')
       .count('* as count')
       .groupBy('status')
       .orderBy('count', 'desc')
 
-    return results.map((row) => ({
-      status: String(row.status),
-      count: Number(row.count),
-    }))
+    const combinedResults = new Map<string, number>()
+
+    historyItems.forEach((item) => {
+      combinedResults.set(String(item.status), Number(item.count))
+    })
+
+    itemsWithoutHistory.forEach((item) => {
+      const status = String(item.status)
+      const currentCount = combinedResults.get(status) || 0
+      combinedResults.set(status, currentCount + Number(item.count))
+    })
+
+    return Array.from(combinedResults.entries())
+      .map(([status, count]) => ({
+        status,
+        count,
+      }))
+      .sort((a, b) => b.count - a.count)
   }
 
   async getContentTypeDistribution(): Promise<
@@ -1457,16 +1569,15 @@ export class DatabaseService {
       .count('* as count')
       .first()
 
-    // Status changes in last X days (approximated by updated_at)
-    const statusChanges = await this.knex('watchlist_items')
-      .where('updated_at', '>=', cutoffDateStr)
-      .whereRaw('updated_at != created_at')
+    // Status changes in last X days - using history table
+    const statusChanges = await this.knex('watchlist_status_history')
+      .where('timestamp', '>=', cutoffDateStr)
       .count('* as count')
       .first()
 
-    // Notifications in last X days
-    const notifications = await this.knex('watchlist_items')
-      .where('last_notified_at', '>=', cutoffDateStr)
+    // Notifications in last X days - using the notifications table
+    const notifications = await this.knex('notifications')
+      .where('created_at', '>=', cutoffDateStr)
       .count('* as count')
       .first()
 
@@ -1528,6 +1639,124 @@ export class DatabaseService {
     )
   }
 
+  async getAverageTimeFromGrabbedToNotified(): Promise<
+    {
+      content_type: string
+      avg_days: number
+      min_days: number
+      max_days: number
+      count: number
+    }[]
+  > {
+    try {
+      const results = await this.knex.raw(`
+      WITH grabbed_status AS (
+        SELECT
+          h.watchlist_item_id,
+          MIN(h.timestamp) AS first_grabbed
+        FROM watchlist_status_history h
+        WHERE h.status = 'grabbed'
+        GROUP BY h.watchlist_item_id
+      ),
+      notified_status AS (
+        SELECT
+          h.watchlist_item_id,
+          MIN(h.timestamp) AS first_notified
+        FROM watchlist_status_history h
+        WHERE h.status = 'notified'
+        GROUP BY h.watchlist_item_id
+      )
+      SELECT
+        w.type AS content_type,
+        AVG(julianday(n.first_notified) - julianday(g.first_grabbed)) AS avg_days,
+        MIN(julianday(n.first_notified) - julianday(g.first_grabbed)) AS min_days,
+        MAX(julianday(n.first_notified) - julianday(g.first_grabbed)) AS max_days,
+        COUNT(*) AS count
+      FROM watchlist_items w
+      JOIN grabbed_status g ON w.id = g.watchlist_item_id
+      JOIN notified_status n ON w.id = n.watchlist_item_id
+      WHERE 
+        n.first_notified > g.first_grabbed
+        AND (
+          (w.type = 'movie') OR
+          (w.type = 'show')
+        )
+      GROUP BY w.type
+    `)
+
+      return results.map((row: any) => ({
+        content_type: String(row.content_type),
+        avg_days: Number(row.avg_days),
+        min_days: Number(row.min_days),
+        max_days: Number(row.max_days),
+        count: Number(row.count),
+      }))
+    } catch (error) {
+      this.log.error('Error calculating time from grabbed to notified:', error)
+      throw error
+    }
+  }
+
+  async getDetailedStatusTransitionMetrics(): Promise<
+    {
+      from_status: string
+      to_status: string
+      content_type: string
+      avg_days: number
+      min_days: number
+      max_days: number
+      count: number
+    }[]
+  > {
+    try {
+      const results = await this.knex.raw(`
+      WITH status_pairs AS (
+        SELECT 
+          h1.status AS from_status,
+          h2.status AS to_status,
+          w.type AS content_type,
+          julianday(h2.timestamp) - julianday(h1.timestamp) AS days_between
+        FROM watchlist_status_history h1
+        JOIN watchlist_status_history h2 ON h1.watchlist_item_id = h2.watchlist_item_id AND h2.timestamp > h1.timestamp
+        JOIN watchlist_items w ON h1.watchlist_item_id = w.id
+        WHERE h1.status != h2.status
+        AND NOT EXISTS (
+          SELECT 1 FROM watchlist_status_history h3
+          WHERE h3.watchlist_item_id = h1.watchlist_item_id
+          AND h3.timestamp > h1.timestamp AND h3.timestamp < h2.timestamp
+        )
+      )
+      SELECT 
+        from_status,
+        to_status,
+        content_type,
+        avg(days_between) AS avg_days,
+        min(days_between) AS min_days,
+        max(days_between) AS max_days,
+        count(*) AS count
+      FROM status_pairs
+      GROUP BY from_status, to_status, content_type
+      ORDER BY from_status, to_status, content_type
+    `)
+
+      return results.map((row: any) => ({
+        from_status: String(row.from_status),
+        to_status: String(row.to_status),
+        content_type: String(row.content_type),
+        avg_days: Number(row.avg_days),
+        min_days: Number(row.min_days),
+        max_days: Number(row.max_days),
+        count: Number(row.count),
+      }))
+    } catch (error) {
+      this.log.error(
+        'Error calculating detailed status transition metrics:',
+        error,
+      )
+      throw error
+    }
+  }
+
   async getAverageTimeToAvailability(): Promise<
     {
       content_type: string
@@ -1537,41 +1766,201 @@ export class DatabaseService {
       count: number
     }[]
   > {
-    const results = await this.knex('watchlist_items')
-      .whereNotNull('added')
-      .whereNotNull('last_notified_at')
-      .where(function () {
-        this.where({
-          type: 'movie',
-          movie_status: 'available',
-          status: 'notified',
-        }).orWhere({
-          type: 'show',
-          series_status: 'ended',
-          status: 'notified',
-        })
-      })
-      .select([
-        'type as content_type',
-        this.knex.raw(
-          'avg(julianday(last_notified_at) - julianday(added)) as avg_days',
-        ),
-        this.knex.raw(
-          'min(julianday(last_notified_at) - julianday(added)) as min_days',
-        ),
-        this.knex.raw(
-          'max(julianday(last_notified_at) - julianday(added)) as max_days',
-        ),
-        this.knex.raw('count(*) as count'),
-      ])
-      .groupBy('type')
+    const results = await this.knex.raw(`
+    WITH first_added AS (
+      SELECT
+        w.id,
+        w.type AS content_type,
+        w.added
+      FROM watchlist_items w
+      WHERE w.added IS NOT NULL
+    ),
+    first_notified AS (
+      SELECT
+        h.watchlist_item_id,
+        MIN(h.timestamp) AS first_notification
+      FROM watchlist_status_history h
+      WHERE h.status = 'notified'
+      GROUP BY h.watchlist_item_id
+    )
+    SELECT
+      a.content_type,
+      AVG(julianday(n.first_notification) - julianday(a.added)) AS avg_days,
+      MIN(julianday(n.first_notification) - julianday(a.added)) AS min_days,
+      MAX(julianday(n.first_notification) - julianday(a.added)) AS max_days,
+      COUNT(*) AS count
+    FROM first_added a
+    JOIN first_notified n ON a.id = n.watchlist_item_id
+    WHERE 
+      (a.content_type = 'movie' AND EXISTS (
+        SELECT 1 FROM watchlist_items w 
+        WHERE w.id = a.id AND w.movie_status = 'available'
+      ))
+      OR 
+      (a.content_type = 'show' AND EXISTS (
+        SELECT 1 FROM watchlist_items w 
+        WHERE w.id = a.id AND w.series_status = 'ended'
+      ))
+    GROUP BY a.content_type
+  `)
 
-    return results.map((row) => ({
+    return results.map((row: any) => ({
       content_type: String(row.content_type),
       avg_days: Number(row.avg_days),
       min_days: Number(row.min_days),
       max_days: Number(row.max_days),
       count: Number(row.count),
     }))
+  }
+
+  async getStatusFlowData(): Promise<
+    {
+      from_status: string
+      to_status: string
+      content_type: string
+      count: number
+      avg_days: number
+    }[]
+  > {
+    try {
+      const results = await this.knex.raw(`
+      WITH status_transitions AS (
+        SELECT 
+          h1.status AS from_status,
+          h2.status AS to_status,
+          w.type AS content_type,
+          julianday(h2.timestamp) - julianday(h1.timestamp) AS days_between
+        FROM watchlist_status_history h1
+        JOIN watchlist_status_history h2 ON h1.watchlist_item_id = h2.watchlist_item_id AND h2.timestamp > h1.timestamp
+        JOIN watchlist_items w ON h1.watchlist_item_id = w.id
+        WHERE h1.status != h2.status
+        AND NOT EXISTS (
+          SELECT 1 FROM watchlist_status_history h3
+          WHERE h3.watchlist_item_id = h1.watchlist_item_id
+          AND h3.timestamp > h1.timestamp AND h3.timestamp < h2.timestamp
+        )
+      )
+      SELECT 
+        from_status,
+        to_status,
+        content_type,
+        count(*) AS count,
+        avg(days_between) AS avg_days
+      FROM status_transitions
+      GROUP BY from_status, to_status, content_type
+      ORDER BY count DESC
+    `)
+
+      return results.map((row: any) => ({
+        from_status: String(row.from_status),
+        to_status: String(row.to_status),
+        content_type: String(row.content_type),
+        count: Number(row.count),
+        avg_days: Number(row.avg_days),
+      }))
+    } catch (error) {
+      this.log.error('Error calculating status flow data:', error)
+      throw error
+    }
+  }
+
+  async createNotificationRecord(notification: {
+    watchlist_item_id: number | null
+    user_id: number | null
+    type: 'episode' | 'season' | 'movie' | 'watchlist_add'
+    title: string
+    message?: string
+    season_number?: number
+    episode_number?: number
+    sent_to_discord: boolean
+    sent_to_email: boolean
+    sent_to_webhook?: boolean
+  }): Promise<number> {
+    const [id] = await this.knex('notifications')
+      .insert({
+        ...notification,
+        sent_to_webhook: notification.sent_to_webhook || false,
+        created_at: this.timestamp,
+      })
+      .returning('id')
+
+    return id
+  }
+
+  async getNotificationStats(days = 30): Promise<{
+    total_notifications: number
+    by_type: { type: string; count: number }[]
+    by_channel: { channel: string; count: number }[]
+    by_user: { user_name: string; count: number }[]
+  }> {
+    const cutoffDate = new Date()
+    cutoffDate.setDate(cutoffDate.getDate() - days)
+    const cutoffDateStr = cutoffDate.toISOString()
+
+    const totalQuery = this.knex('notifications')
+      .where('created_at', '>=', cutoffDateStr)
+      .count('* as count')
+      .first()
+
+    const byTypeQuery = this.knex('notifications')
+      .where('created_at', '>=', cutoffDateStr)
+      .select('type')
+      .count('* as count')
+      .groupBy('type')
+      .orderBy('count', 'desc')
+
+    const byChannelQuery = this.knex.raw(
+      `
+      SELECT 
+        'discord' as channel, 
+        COUNT(*) as count 
+      FROM notifications 
+      WHERE created_at >= ? AND sent_to_discord = 1
+      UNION ALL
+      SELECT 
+        'email' as channel, 
+        COUNT(*) as count 
+      FROM notifications 
+      WHERE created_at >= ? AND sent_to_email = 1
+      UNION ALL
+      SELECT 
+        'webhook' as channel, 
+        COUNT(*) as count 
+      FROM notifications 
+      WHERE created_at >= ? AND sent_to_webhook = 1
+    `,
+      [cutoffDateStr, cutoffDateStr, cutoffDateStr],
+    )
+
+    const byUserQuery = this.knex('notifications')
+      .join('users', 'notifications.user_id', '=', 'users.id')
+      .where('notifications.created_at', '>=', cutoffDateStr)
+      .select('users.name as user_name')
+      .count('notifications.id as count')
+      .groupBy('users.id')
+      .orderBy('count', 'desc')
+
+    const [total, byType, byChannel, byUser] = await Promise.all([
+      totalQuery,
+      byTypeQuery,
+      byChannelQuery,
+      byUserQuery,
+    ])
+
+    return {
+      total_notifications: Number(total?.count || 0),
+      by_type: byType.map((row) => ({
+        type: String(row.type),
+        count: Number(row.count),
+      })),
+      by_channel: byChannel.map((row: any) => ({
+        channel: String(row.channel),
+        count: Number(row.count),
+      })),
+      by_user: byUser.map((row) => ({
+        user_name: String(row.user_name),
+        count: Number(row.count),
+      })),
+    }
   }
 }

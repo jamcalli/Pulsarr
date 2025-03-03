@@ -11,9 +11,13 @@ import {
   ActivityStatsSchema,
   InstanceStatSchema,
   AvailabilityTimeSchema,
+  GrabbedToNotifiedTimeSchema,
+  StatusTransitionTimeSchema,
+  StatusFlowDataSchema,
   ErrorSchema,
   LimitQuerySchema,
   ActivityQuerySchema,
+  NotificationStatsSchema,
 } from '@schemas/stats/stats.schema.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
@@ -36,7 +40,6 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         const { limit } = request.query
-
         const [
           topGenres,
           mostWatchedShows,
@@ -47,6 +50,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           recentActivity,
           instanceActivity,
           availabilityTimes,
+          grabbedToNotifiedTimes,
+          notificationStats,
         ] = await Promise.all([
           fastify.db.getTopGenres(limit),
           fastify.db.getMostWatchlistedShows(limit),
@@ -57,7 +62,20 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           fastify.db.getRecentActivityStats(),
           fastify.db.getInstanceActivityStats(),
           fastify.db.getAverageTimeToAvailability(),
+          fastify.db.getAverageTimeFromGrabbedToNotified(),
+          fastify.db.getNotificationStats(),
         ])
+
+        let statusTransitions: z.infer<typeof StatusTransitionTimeSchema>[] = []
+        let statusFlow: z.infer<typeof StatusFlowDataSchema>[] = []
+
+        try {
+          statusTransitions =
+            await fastify.db.getDetailedStatusTransitionMetrics()
+          statusFlow = await fastify.db.getStatusFlowData()
+        } catch (err) {
+          fastify.log.warn('Could not fetch advanced status metrics:', err)
+        }
 
         const response = {
           top_genres: topGenres,
@@ -69,8 +87,11 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           recent_activity: recentActivity,
           instance_activity: instanceActivity,
           availability_times: availabilityTimes,
+          grabbed_to_notified_times: grabbedToNotifiedTimes,
+          status_transitions: statusTransitions,
+          status_flow: statusFlow,
+          notification_stats: notificationStats,
         }
-
         return response
       } catch (err) {
         fastify.log.error('Error fetching dashboard statistics:', err)
@@ -241,6 +262,115 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         fastify.log.error('Error fetching availability statistics:', err)
         throw reply.internalServerError(
           'Unable to fetch availability statistics',
+        )
+      }
+    },
+  )
+
+  // NEW ENDPOINT: Get grabbed to notified time stats
+  fastify.get<{
+    Reply: z.infer<typeof GrabbedToNotifiedTimeSchema>[]
+  }>(
+    '/grabbed-to-notified',
+    {
+      schema: {
+        response: {
+          200: z.array(GrabbedToNotifiedTimeSchema),
+          500: ErrorSchema,
+        },
+        tags: ['Statistics'],
+      },
+    },
+    async (request, reply) => {
+      try {
+        const times = await fastify.db.getAverageTimeFromGrabbedToNotified()
+        return times
+      } catch (err) {
+        fastify.log.error('Error fetching grabbed-to-notified statistics:', err)
+        throw reply.internalServerError(
+          'Unable to fetch grabbed-to-notified statistics',
+        )
+      }
+    },
+  )
+
+  // NEW ENDPOINT: Get detailed status transition metrics
+  fastify.get<{
+    Reply: z.infer<typeof StatusTransitionTimeSchema>[]
+  }>(
+    '/status-transitions',
+    {
+      schema: {
+        response: {
+          200: z.array(StatusTransitionTimeSchema),
+          500: ErrorSchema,
+        },
+        tags: ['Statistics'],
+      },
+    },
+    async (request, reply) => {
+      try {
+        const transitions =
+          await fastify.db.getDetailedStatusTransitionMetrics()
+        return transitions
+      } catch (err) {
+        fastify.log.error('Error fetching status transition metrics:', err)
+        throw reply.internalServerError(
+          'Unable to fetch status transition metrics',
+        )
+      }
+    },
+  )
+
+  // NEW ENDPOINT: Get status flow data for visualization
+  fastify.get<{
+    Reply: z.infer<typeof StatusFlowDataSchema>[]
+  }>(
+    '/status-flow',
+    {
+      schema: {
+        response: {
+          200: z.array(StatusFlowDataSchema),
+          500: ErrorSchema,
+        },
+        tags: ['Statistics'],
+      },
+    },
+    async (request, reply) => {
+      try {
+        const flowData = await fastify.db.getStatusFlowData()
+        return flowData
+      } catch (err) {
+        fastify.log.error('Error fetching status flow data:', err)
+        throw reply.internalServerError('Unable to fetch status flow data')
+      }
+    },
+  )
+
+  fastify.get<{
+    Querystring: z.infer<typeof ActivityQuerySchema>
+    Reply: z.infer<typeof NotificationStatsSchema>
+  }>(
+    '/notifications',
+    {
+      schema: {
+        querystring: ActivityQuerySchema,
+        response: {
+          200: NotificationStatsSchema,
+          500: ErrorSchema,
+        },
+        tags: ['Statistics'],
+      },
+    },
+    async (request, reply) => {
+      try {
+        const { days } = request.query
+        const stats = await fastify.db.getNotificationStats(days)
+        return stats
+      } catch (err) {
+        fastify.log.error('Error fetching notification statistics:', err)
+        throw reply.internalServerError(
+          'Unable to fetch notification statistics',
         )
       }
     },

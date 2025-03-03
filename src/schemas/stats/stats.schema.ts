@@ -46,6 +46,56 @@ export const AvailabilityTimeSchema = z.object({
   min_days: z.number(),
   max_days: z.number(),
   count: z.number(),
+  median_days: z.number().optional(),
+})
+
+export const StatusTransitionTimeSchema = z.object({
+  from_status: z.string(),
+  to_status: z.string(),
+  content_type: z.string(),
+  avg_days: z.number(),
+  min_days: z.number(),
+  max_days: z.number(),
+  count: z.number(),
+})
+
+export const StatusFlowDataSchema = z.object({
+  from_status: z.string(),
+  to_status: z.string(),
+  content_type: z.string(),
+  count: z.number(),
+  avg_days: z.number(),
+})
+
+export const GrabbedToNotifiedTimeSchema = z.object({
+  content_type: z.string(),
+  avg_days: z.number(),
+  min_days: z.number(),
+  max_days: z.number(),
+  median_days: z.number().optional(),
+  count: z.number(),
+})
+
+export const NotificationChannelStatSchema = z.object({
+  channel: z.string(),
+  count: z.number(),
+})
+
+export const NotificationTypeStatSchema = z.object({
+  type: z.string(),
+  count: z.number(),
+})
+
+export const NotificationUserStatSchema = z.object({
+  user_name: z.string(),
+  count: z.number(),
+})
+
+export const NotificationStatsSchema = z.object({
+  total_notifications: z.number(),
+  by_type: z.array(NotificationTypeStatSchema),
+  by_channel: z.array(NotificationChannelStatSchema),
+  by_user: z.array(NotificationUserStatSchema),
 })
 
 export const LimitQuerySchema = z.object({
@@ -67,6 +117,10 @@ export const DashboardStatsSchema = z.object({
   recent_activity: ActivityStatsSchema,
   instance_activity: z.array(InstanceStatSchema),
   availability_times: z.array(AvailabilityTimeSchema),
+  grabbed_to_notified_times: z.array(GrabbedToNotifiedTimeSchema),
+  status_transitions: z.array(StatusTransitionTimeSchema).optional(),
+  status_flow: z.array(StatusFlowDataSchema).optional(),
+  notification_stats: NotificationStatsSchema.optional(),
 })
 
 // Common error schema
@@ -85,5 +139,8 @@ export type ContentTypeDistribution = z.infer<
 export type ActivityStats = z.infer<typeof ActivityStatsSchema>
 export type InstanceStat = z.infer<typeof InstanceStatSchema>
 export type AvailabilityTime = z.infer<typeof AvailabilityTimeSchema>
+export type StatusTransitionTime = z.infer<typeof StatusTransitionTimeSchema>
+export type StatusFlowData = z.infer<typeof StatusFlowDataSchema>
+export type GrabbedToNotifiedTime = z.infer<typeof GrabbedToNotifiedTimeSchema>
 export type DashboardStats = z.infer<typeof DashboardStatsSchema>
 export type Error = z.infer<typeof ErrorSchema>
