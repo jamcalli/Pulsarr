@@ -23,6 +23,12 @@ import type {
   GenreStat,
   NotificationStats,
 } from '@root/schemas/stats/stats.schema'
+import { useTheme } from '@/components/theme-provider'
+import type { TooltipProps } from 'recharts'
+import type {
+  ValueType,
+  NameType,
+} from 'recharts/types/component/DefaultTooltipContent'
 
 interface NotificationChartData {
   name: string
@@ -75,7 +81,6 @@ const CHART_CONFIG: Record<ChartType, ChartConfigItem> = {
 }
 
 function TypedStatsDashboard() {
-  // Local component state
   const [activeChart, setActiveChart] = useState<ChartType>(
     CHARTS.STATUS_TRANSITIONS,
   )
@@ -87,12 +92,9 @@ function TypedStatsDashboard() {
   })
   const [isLoading, setIsLoading] = useState(true)
 
-  // Get a reference to the store without causing re-renders
   const getStoreData = useStatsStore.getState
 
-  // One-time data fetch on mount
   useEffect(() => {
-    // Function to get data from store
     const fetchData = () => {
       const storeState = getStoreData()
       setChartData({
@@ -104,17 +106,14 @@ function TypedStatsDashboard() {
       setIsLoading(false)
     }
 
-    // Initial fetch
     fetchData()
 
-    // Set up a listener for store changes
     const unsubscribe = useStatsStore.subscribe(fetchData)
 
-    // Cleanup
     return () => {
       unsubscribe()
     }
-  }, [])
+  }, [getStoreData])
 
   const useCssVariableColors = () => {
     const [colors, setColors] = useState({
@@ -164,7 +163,6 @@ function TypedStatsDashboard() {
         transition.to_status === 'notified',
     )
 
-    // Convert to minutes (days * 24 * 60)
     return filteredData.map((transition) => ({
       contentType: transition.content_type === 'movie' ? 'Movies' : 'Shows',
       // Convert from days to minutes
@@ -172,15 +170,16 @@ function TypedStatsDashboard() {
       minMinutes: Math.round(transition.min_days * 24 * 60 * 100) / 100,
       maxMinutes: Math.round(transition.max_days * 24 * 60 * 100) / 100,
       count: transition.count,
-      // Calculate error bars for min/max
-      errorMin:
+
+      // Add these properties that the ErrorBar component will use automatically
+      errorX: [
         Math.round(
           (transition.avg_days - transition.min_days) * 24 * 60 * 100,
         ) / 100,
-      errorMax:
         Math.round(
           (transition.max_days - transition.avg_days) * 24 * 60 * 100,
         ) / 100,
+      ],
     }))
   }, [chartData.statusTransitions])
 
@@ -209,7 +208,7 @@ function TypedStatsDashboard() {
 
   // Generate notification chart configs
   const notificationsByChannelConfig = useMemo(() => {
-    const config: Record<string, any> = {}
+    const config: ChartConfig = {}
 
     if (chartData.notificationStats) {
       chartData.notificationStats.by_channel.forEach((item, index) => {
@@ -222,10 +221,10 @@ function TypedStatsDashboard() {
     }
 
     return config
-  }, [chartData.notificationStats]) as ChartConfig
+  }, [chartData.notificationStats])
 
   const notificationsByTypeConfig = useMemo(() => {
-    const config: Record<string, any> = {}
+    const config: ChartConfig = {}
 
     if (chartData.notificationStats) {
       chartData.notificationStats.by_type.forEach((item, index) => {
@@ -240,7 +239,7 @@ function TypedStatsDashboard() {
     }
 
     return config
-  }, [chartData.notificationStats]) as ChartConfig
+  }, [chartData.notificationStats])
 
   // Content Distribution chart config and data
   const contentDistributionData = useMemo(() => {
@@ -251,7 +250,7 @@ function TypedStatsDashboard() {
   }, [chartData.contentTypeDistribution])
 
   const contentDistributionConfig = useMemo(() => {
-    const config: Record<string, any> = {}
+    const config: ChartConfig = {}
 
     chartData.contentTypeDistribution.forEach((item, index) => {
       const key = item.type
@@ -262,7 +261,7 @@ function TypedStatsDashboard() {
     })
 
     return config
-  }, [chartData.contentTypeDistribution]) as ChartConfig
+  }, [chartData.contentTypeDistribution])
 
   // Calculate total content items for the donut chart center
   const totalContentItems = useMemo(() => {
@@ -318,23 +317,20 @@ function TypedStatsDashboard() {
               return (
                 <button
                   key={key}
+                  type="button"
                   onClick={() => setActiveChart(key)}
                   className={cn(
                     'flex h-12 items-center justify-center uppercase text-sm font-medium',
-                    // For active buttons, just use black bg with white text
                     activeChart === key
                       ? 'bg-black text-white'
                       : 'bg-main text-text',
-                    // Right borders for inactive buttons that aren't at the end of a row
                     needsBorder &&
                       index < Object.entries(CHART_CONFIG).length - 1 &&
                       !isLastInRow &&
                       'border-r-2 border-r-border dark:border-r-darkBorder',
-                    // Add the middle border in desktop view between buttons 1 and 2
                     needsBorder &&
                       isSecondButton &&
                       'sm:border-r-2 border-r-border dark:border-r-darkBorder',
-                    // Bottom border for mobile first row
                     index < 2 &&
                       'border-b-2 sm:border-b-0 border-b-border dark:border-b-darkBorder',
                   )}
@@ -364,7 +360,7 @@ function TypedStatsDashboard() {
     switch (activeChart) {
       case CHARTS.STATUS_TRANSITIONS:
         return (
-          <div className="flex flex-col">
+          <div className="flex flex-col w-full">
             <ChartContainer
               config={{
                 avgMinutes: {
@@ -377,7 +373,9 @@ function TypedStatsDashboard() {
               <BarChart
                 data={requestToNotifyData}
                 layout="vertical"
-                margin={{ top: 20, right: 30, left: 80, bottom: 20 }}
+                margin={{ top: 0, right: 0, left: 0, bottom: 0 }}
+                width={500}
+                height={300}
               >
                 <CartesianGrid
                   strokeDasharray="3 3"
@@ -435,9 +433,10 @@ function TypedStatsDashboard() {
                     )
                   }}
                 />
+
+                {/* Main bar for averages */}
                 <Bar
                   dataKey="avgMinutes"
-                  // Use a darker blue for the default fill
                   fill={cssColors.movie || '#0c2d5c'}
                   radius={4}
                   barSize={30}
@@ -445,11 +444,10 @@ function TypedStatsDashboard() {
                   {/* Display sample size (count) as a label on each bar */}
                   {requestToNotifyData.map((entry, index) => (
                     <text
-                      key={`count-${index}`}
+                      key={`${entry.contentType}-${entry.avgMinutes}-${entry.count}`}
                       x={entry.avgMinutes > 5 ? 25 : entry.avgMinutes + 3}
                       y={index * 40 + 20}
                       textAnchor={entry.avgMinutes > 5 ? 'end' : 'start'}
-                      // Use higher contrast for the text
                       fill={entry.avgMinutes > 5 ? 'white' : 'black'}
                       fontWeight="500"
                       fontSize={12}
@@ -457,18 +455,20 @@ function TypedStatsDashboard() {
                       {entry.count} {entry.count === 1 ? 'item' : 'items'}
                     </text>
                   ))}
-                  {/* Min/Max as error bars */}
+
+                  {/* Use a single ErrorBar with default styling */}
                   <ErrorBar
-                    dataKey="avgMinutes"
+                    dataKey="errorX"
                     width={4}
                     strokeWidth={2}
                     stroke={cssColors.error || '#2c5878'}
                     direction="x"
                   />
+
                   {/* Apply different color for each content type */}
-                  {requestToNotifyData.map((entry, index) => (
+                  {requestToNotifyData.map((entry) => (
                     <Cell
-                      key={`bar-cell-${index}`}
+                      key={`bar-cell-${entry.contentType}-${entry.avgMinutes}-${entry.count}`}
                       fill={
                         entry.contentType === 'Movies'
                           ? cssColors.movie || '#0c2d5c'
@@ -477,73 +477,120 @@ function TypedStatsDashboard() {
                     />
                   ))}
                 </Bar>
+
                 {/* Add reference lines for each data point's min and max */}
-                {requestToNotifyData.flatMap((entry, index) => [
-                  <ReferenceLine
-                    key={`min-${index}`}
-                    x={entry.minMinutes}
-                    stroke={cssColors.count || '#b25513'}
-                    strokeDasharray="3 3"
-                    isFront={true}
-                    ifOverflow="extendDomain"
-                  />,
-                  <ReferenceLine
-                    key={`max-${index}`}
-                    x={entry.maxMinutes}
-                    stroke={cssColors.count || '#b25513'}
-                    strokeDasharray="3 3"
-                    isFront={true}
-                    ifOverflow="extendDomain"
-                  />,
-                ])}
+                {requestToNotifyData.flatMap((entry) => {
+                  const lineColor =
+                    entry.contentType === 'Movies'
+                      ? cssColors.movie || '#0c2d5c'
+                      : cssColors.show || '#1a663d'
+
+                  const transparentLineColor = `${lineColor}99` // 60% opacity
+
+                  return [
+                    <ReferenceLine
+                      key={`min-${entry.contentType}-${entry.minMinutes}-${entry.avgMinutes}`}
+                      x={entry.minMinutes}
+                      stroke={transparentLineColor}
+                      strokeDasharray="3 3"
+                      isFront={true}
+                      ifOverflow="extendDomain"
+                    />,
+                    <ReferenceLine
+                      key={`max-${entry.contentType}-${entry.maxMinutes}-${entry.avgMinutes}`}
+                      x={entry.maxMinutes}
+                      stroke={transparentLineColor}
+                      strokeDasharray="3 3"
+                      isFront={true}
+                      ifOverflow="extendDomain"
+                    />,
+                  ]
+                })}
               </BarChart>
             </ChartContainer>
-            <div className="flex justify-center mt-3 gap-6">
+
+            <div className="flex flex-wrap justify-center mt-3 gap-6">
               <div className="flex items-center">
                 <span
                   className="h-3 w-3 rounded-full inline-block mr-2"
                   style={{ backgroundColor: cssColors.movie || '#1a5999' }}
-                ></span>
-                <span className="text-sm text-text">Movies</span>
+                />
+                <span className="text-sm text-text">Movies (avg)</span>
               </div>
               <div className="flex items-center">
                 <span
                   className="h-3 w-3 rounded-full inline-block mr-2"
                   style={{ backgroundColor: cssColors.show || '#39b978' }}
-                ></span>
-                <span className="text-sm text-text">Shows</span>
+                />
+                <span className="text-sm text-text">Shows (avg)</span>
               </div>
+
+              {/* Movies min/max with dashed line */}
               <div className="flex items-center">
-                <span
-                  className="h-3 w-3 rounded-full inline-block mr-2"
-                  style={{ backgroundColor: cssColors.count || '#f47b30' }}
-                ></span>
-                <span className="text-sm text-text">Min/Max Range</span>
+                <span className="inline-block mr-2 w-5 relative">
+                  <hr
+                    className="absolute top-1/2 w-full"
+                    style={{
+                      borderColor: cssColors.movie || '#1a5999',
+                      borderWidth: '1px',
+                      borderStyle: 'dashed',
+                      opacity: 0.8,
+                    }}
+                  />
+                </span>
+                <span className="text-sm text-text">Movies (min/max)</span>
+              </div>
+
+              {/* Shows min/max with dashed line */}
+              <div className="flex items-center">
+                <span className="inline-block mr-2 w-5 relative">
+                  <hr
+                    className="absolute top-1/2 w-full"
+                    style={{
+                      borderColor: cssColors.show || '#39b978',
+                      borderWidth: '1px',
+                      borderStyle: 'dashed',
+                      opacity: 0.8,
+                    }}
+                  />
+                </span>
+                <span className="text-sm text-text">Shows (min/max)</span>
               </div>
             </div>
           </div>
         )
 
-      case CHARTS.NOTIFICATIONS:
-        // Use more contrasting colors from your palette
+      case CHARTS.NOTIFICATIONS: {
+        const { theme } = useTheme()
+        const isDarkMode =
+          theme === 'dark' ||
+          (theme === 'system' &&
+            window.matchMedia('(prefers-color-scheme: dark)').matches)
+        const borderColor = isDarkMode ? '#f8f9fa' : '#1a1a1a'
+
         const getHSLColor = (index: number) => {
-          // Selected values with higher contrast
           const chartVars = [
-            cssColors.chart4 || '19 91% 59%', // Bright orange-red
-            cssColors.chart2 || '183 37% 49%', // Teal
-            cssColors.chart5 || '1 54% 50%', // Red
-            cssColors.chart3 || '29 85% 87%', // Yellow
-            cssColors.chart1 || '196 39% 33%', // Dark blue
+            cssColors.chart4 || '19 91% 59%',
+            cssColors.chart2 || '183 37% 49%',
+            cssColors.chart5 || '1 54% 50%',
+            cssColors.chart3 || '29 85% 87%',
+            cssColors.chart1 || '196 39% 33%',
           ]
           return `hsl(${chartVars[index % 5]})`
         }
 
-        // Custom tooltip for notification charts
-        const NotificationTooltip = (props: any) => {
-          if (!props.active || !props.payload || !props.payload.length) {
+        const NotificationTooltip = ({
+          active,
+          payload,
+        }: TooltipProps<ValueType, NameType>) => {
+          if (!active || !payload || !payload.length) {
             return null
           }
-          const data = props.payload[0].payload
+          const data = payload[0].payload as {
+            name: string
+            value: number
+            total: number
+          }
           return (
             <div className="bg-bg border border-border p-2 rounded shadow-md">
               <p className="font-medium text-text">{data.name}</p>
@@ -593,15 +640,16 @@ function TypedStatsDashboard() {
                         cx="50%"
                         cy="50%"
                         outerRadius={80}
-                        // Adding cornerRadius for visual interest (padAngle removed)
-                        cornerRadius={3}
                       >
-                        {notificationsData.byChannel.map((_, index) => (
+                        {notificationsData.byChannel.map((item) => (
                           <Cell
-                            key={`channel-cell-${index}`}
-                            fill={getHSLColor(index)}
-                            // Add a subtle stroke for definition
-                            stroke="#ffffff"
+                            key={`channel-cell-${item.name}`}
+                            fill={getHSLColor(
+                              notificationsData.byChannel.findIndex(
+                                (i) => i.name === item.name,
+                              ),
+                            )}
+                            stroke={borderColor}
                             strokeWidth={1}
                           />
                         ))}
@@ -611,15 +659,21 @@ function TypedStatsDashboard() {
                 </CardContent>
               </Card>
               <div className="flex flex-wrap justify-center mt-3 gap-3">
-                {notificationsData.byChannel.map((entry, index) => (
+                {notificationsData.byChannel.map((entry) => (
                   <div
-                    key={`channel-legend-${index}`}
+                    key={`channel-legend-${entry.name}`}
                     className="flex items-center"
                   >
                     <span
                       className="h-3 w-3 rounded-full inline-block mr-2"
-                      style={{ backgroundColor: getHSLColor(index) }}
-                    ></span>
+                      style={{
+                        backgroundColor: getHSLColor(
+                          notificationsData.byChannel.findIndex(
+                            (i) => i.name === entry.name,
+                          ),
+                        ),
+                      }}
+                    />
                     <span className="text-sm text-text">{entry.name}</span>
                   </div>
                 ))}
@@ -659,15 +713,16 @@ function TypedStatsDashboard() {
                         cx="50%"
                         cy="50%"
                         outerRadius={80}
-                        // Only cornerRadius, no padAngle to avoid type error
-                        cornerRadius={3}
                       >
-                        {notificationsData.byType.map((_, index) => (
+                        {notificationsData.byType.map((item) => (
                           <Cell
-                            key={`type-cell-${index}`}
-                            fill={getHSLColor(index)}
-                            // Add a subtle stroke for definition
-                            stroke="#ffffff"
+                            key={`type-cell-${item.name}`}
+                            fill={getHSLColor(
+                              notificationsData.byType.findIndex(
+                                (i) => i.name === item.name,
+                              ),
+                            )}
+                            stroke={borderColor}
                             strokeWidth={1}
                           />
                         ))}
@@ -677,15 +732,21 @@ function TypedStatsDashboard() {
                 </CardContent>
               </Card>
               <div className="flex flex-wrap justify-center mt-3 gap-3">
-                {notificationsData.byType.map((entry, index) => (
+                {notificationsData.byType.map((entry) => (
                   <div
-                    key={`type-legend-${index}`}
+                    key={`type-legend-${entry.name}`}
                     className="flex items-center"
                   >
                     <span
                       className="h-3 w-3 rounded-full inline-block mr-2"
-                      style={{ backgroundColor: getHSLColor(index) }}
-                    ></span>
+                      style={{
+                        backgroundColor: getHSLColor(
+                          notificationsData.byType.findIndex(
+                            (i) => i.name === entry.name,
+                          ),
+                        ),
+                      }}
+                    />
                     <span className="text-sm text-text">{entry.name}</span>
                   </div>
                 ))}
@@ -693,15 +754,17 @@ function TypedStatsDashboard() {
             </div>
           </div>
         )
-      // SOLUTION FOR CONTENT DISTRIBUTION CHART - Using CSS Variables with TypeScript Support
+      }
 
-      case CHARTS.CONTENT_DISTRIBUTION:
-        // Custom tooltip for content distribution
-        const ContentDistributionTooltip = (props: any) => {
-          if (!props.active || !props.payload || !props.payload.length) {
+      case CHARTS.CONTENT_DISTRIBUTION: {
+        const ContentDistributionTooltip = ({
+          active,
+          payload,
+        }: TooltipProps<ValueType, NameType>) => {
+          if (!active || !payload || !payload.length) {
             return null
           }
-          const data = props.payload[0].payload
+          const data = payload[0].payload as { name: string; count: number }
           return (
             <div className="bg-bg border border-border p-2 rounded shadow-md">
               <p className="font-medium text-text">{data.name}</p>
@@ -742,15 +805,13 @@ function TypedStatsDashboard() {
                   outerRadius={120}
                   strokeWidth={5}
                 >
-                  {contentDistributionData.map((entry, index) => {
-                    // Use the CSS colors retrieved from the hook
+                  {contentDistributionData.map((entry) => {
                     const type = entry.name.toLowerCase()
                     let color = cssColors.count
 
                     if (type === 'movie') color = cssColors.movie
                     if (type === 'show') color = cssColors.show
 
-                    // Use fallback colors if CSS variables aren't loaded yet
                     if (!color) {
                       const fallbacks = {
                         movie: '#1a5999',
@@ -765,11 +826,36 @@ function TypedStatsDashboard() {
                             : fallbacks.count
                     }
 
-                    return <Cell key={`cell-${index}`} fill={color} />
+                    const { theme } = useTheme()
+                    const isDarkMode =
+                      theme === 'dark' ||
+                      (theme === 'system' &&
+                        window.matchMedia('(prefers-color-scheme: dark)')
+                          .matches)
+                    const borderColor = isDarkMode ? '#f8f9fa' : '#1a1a1a'
+
+                    return (
+                      <Cell
+                        key={`cell-${entry.name}`}
+                        fill={color}
+                        stroke={borderColor}
+                        strokeWidth={1}
+                      />
+                    )
                   })}
                   <Label
                     content={({ viewBox }) => {
                       if (viewBox && 'cx' in viewBox && 'cy' in viewBox) {
+                        const { theme } = useTheme()
+
+                        const isDarkMode =
+                          theme === 'dark' ||
+                          (theme === 'system' &&
+                            window.matchMedia('(prefers-color-scheme: dark)')
+                              .matches)
+
+                        const textColor = isDarkMode ? 'white' : 'black'
+
                         return (
                           <text
                             x={viewBox.cx}
@@ -780,14 +866,19 @@ function TypedStatsDashboard() {
                             <tspan
                               x={viewBox.cx}
                               y={viewBox.cy}
-                              className="fill-foreground text-3xl font-bold text-text"
+                              className="font-bold"
+                              style={{ fill: textColor, fontSize: '1.5rem' }}
                             >
                               {totalContentItems.toLocaleString()}
                             </tspan>
                             <tspan
                               x={viewBox.cx}
                               y={(viewBox.cy || 0) + 24}
-                              className="fill-muted-foreground text-text"
+                              style={{
+                                fill: isDarkMode
+                                  ? 'rgba(255,255,255,0.7)'
+                                  : 'rgba(0,0,0,0.7)',
+                              }}
                             >
                               Items
                             </tspan>
@@ -801,7 +892,7 @@ function TypedStatsDashboard() {
               </PieChart>
             </ChartContainer>
             <div className="flex justify-center mt-3 gap-6">
-              {contentDistributionData.map((entry, index) => {
+              {contentDistributionData.map((entry) => {
                 const type = entry.name.toLowerCase()
                 let color = cssColors.count
                 if (type === 'movie') color = cssColors.movie
@@ -809,13 +900,13 @@ function TypedStatsDashboard() {
 
                 return (
                   <div
-                    key={`content-legend-${index}`}
+                    key={`content-legend-${entry.name}`}
                     className="flex items-center"
                   >
                     <span
                       className="h-3 w-3 rounded-full inline-block mr-2"
                       style={{ backgroundColor: color || '#f47b30' }}
-                    ></span>
+                    />
                     <span className="text-sm text-text">{entry.name}</span>
                   </div>
                 )
@@ -823,14 +914,17 @@ function TypedStatsDashboard() {
             </div>
           </div>
         )
+      }
 
-      case CHARTS.TOP_GENRES:
-        // Custom tooltip for top genres
-        const TopGenresTooltip = (props: any) => {
-          if (!props.active || !props.payload || !props.payload.length) {
+      case CHARTS.TOP_GENRES: {
+        const TopGenresTooltip = ({
+          active,
+          payload,
+        }: TooltipProps<ValueType, NameType>) => {
+          if (!active || !payload || !payload.length) {
             return null
           }
-          const data = props.payload[0].payload
+          const data = payload[0].payload as { name: string; count: number }
           return (
             <div className="bg-bg border border-border p-2 rounded shadow-md">
               <p className="font-medium text-text">{data.name}</p>
@@ -852,7 +946,7 @@ function TypedStatsDashboard() {
                 data={topGenresData}
                 layout="vertical"
                 accessibilityLayer
-                margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
+                margin={{ top: 0, right: 0, left: 0, bottom: 0 }}
               >
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                 <XAxis type="number" tickLine={false} axisLine={false} />
@@ -878,12 +972,13 @@ function TypedStatsDashboard() {
                 <span
                   className="h-3 w-3 rounded-full inline-block mr-2"
                   style={{ backgroundColor: cssColors.fun || '#d4b483' }}
-                ></span>
+                />
                 <span className="text-sm text-text">Genre Count</span>
               </div>
             </div>
           </div>
         )
+      }
 
       default:
         return null

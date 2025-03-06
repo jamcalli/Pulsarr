@@ -70,7 +70,7 @@ export function LoginPage() {
           variant: 'default',
         })
         setTimeout(() => {
-          navigate('/app/plex')
+          navigate(responseData.redirectTo || '/app/dashboard')
         }, 1000)
       } else {
         setStatus('idle')
