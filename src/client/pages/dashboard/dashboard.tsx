@@ -18,7 +18,6 @@ export function DashboardPage() {
     errors,
   } = useStatsStore()
 
-  // Initial data loading - run once on mount
   useEffect(() => {
     let isMounted = true
 
@@ -37,7 +36,7 @@ export function DashboardPage() {
     return () => {
       isMounted = false
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [fetchAllStats])
 
   const handleRefresh = async () => {
     setIsLoading(true)
@@ -55,7 +54,7 @@ export function DashboardPage() {
           <WatchlistStatusBadge />
         </div>
       </div>
-  
+
       {/* Refresh and Last Updated Container */}
       <div className="flex items-center gap-4 mb-6">
         <Button
@@ -75,7 +74,7 @@ export function DashboardPage() {
           Last updated: {lastRefreshed.toLocaleTimeString()}
         </p>
       </div>
-  
+
       {/* Media Statistics Section */}
       <div className="mb-8">
         <h2 className="mb-4 text-2xl font-bold text-text">

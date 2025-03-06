@@ -7,9 +7,14 @@ import type { ContentStat } from '@root/schemas/stats/stats.schema'
 interface MediaCardProps {
   item: ContentStat
   className?: string
+  priority?: boolean // New prop to control image loading behavior
 }
 
-export function MediaCard({ item, className }: MediaCardProps) {
+export function MediaCard({
+  item,
+  className,
+  priority = false,
+}: MediaCardProps) {
   return (
     <Card className={cn('shadow-none', className)}>
       <CardContent className="p-[10px]">
@@ -20,7 +25,8 @@ export function MediaCard({ item, className }: MediaCardProps) {
                 src={item.thumb}
                 alt={`${item.title} poster`}
                 className="h-full w-full object-cover"
-                loading="lazy"
+                loading={priority ? 'eager' : 'lazy'}
+                fetchPriority={priority ? 'high' : 'auto'}
               />
             ) : (
               <div className="flex h-full w-full items-center justify-center">

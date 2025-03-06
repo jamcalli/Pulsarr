@@ -48,7 +48,6 @@ export function WatchlistCarousel({
     setCanScrollNext(api.canScrollNext())
   }, [api])
 
-  // Use this effect to setup listeners
   useEffect(() => {
     if (!api) return
     onSelect()
@@ -59,13 +58,12 @@ export function WatchlistCarousel({
     }
   }, [api, onSelect])
 
-  // Apply minimum loading duration for a smoother experience
   useEffect(() => {
     if (loading) {
       setMinLoadingComplete(false)
       const timer = setTimeout(() => {
         setMinLoadingComplete(true)
-      }, 500) // Match the minimum loading time used in your application (250-500ms)
+      }, 500)
       return () => clearTimeout(timer)
     }
   }, [loading])
@@ -130,27 +128,37 @@ export function WatchlistCarousel({
           <Carousel setApi={setApi} className="w-full">
             <CarouselContent className="-ml-2 md:-ml-4">
               {loading && (!minLoadingComplete || sortedItems.length === 0)
-                ? // Show 10 skeleton items while loading
-                  Array(10)
-                    .fill(0)
-                    .map((_, index) => (
-                      <CarouselItem
-                        key={`skeleton-${index}`}
-                        className="pl-2 md:pl-4 basis-1/2 sm:basis-1/3 lg:basis-1/2 p-1"
-                      >
-                        <div className="p-1">
-                          <MediaCardSkeleton />
-                        </div>
-                      </CarouselItem>
-                    ))
-                : // Show actual items when loaded
-                  sortedItems.map((item, index) => (
+                ? // Show 10 skeleton items with static keys
+                  [
+                    'skeleton-1',
+                    'skeleton-2',
+                    'skeleton-3',
+                    'skeleton-4',
+                    'skeleton-5',
+                    'skeleton-6',
+                    'skeleton-7',
+                    'skeleton-8',
+                    'skeleton-9',
+                    'skeleton-10',
+                  ].map((skeletonId) => (
                     <CarouselItem
-                      key={`${typeof item.title === 'string' ? item.title : ''}-${index}`}
+                      key={`${title}-${skeletonId}`}
                       className="pl-2 md:pl-4 basis-1/2 sm:basis-1/3 lg:basis-1/2 p-1"
                     >
                       <div className="p-1">
-                        <MediaCard item={item} />
+                        <MediaCardSkeleton />
+                      </div>
+                    </CarouselItem>
+                  ))
+                : // Show actual items when loaded
+                  sortedItems.map((item, index) => (
+                    <CarouselItem
+                      key={`item-${typeof item.title === 'string' ? item.title : ''}-${item.count}`}
+                      className="pl-2 md:pl-4 basis-1/2 sm:basis-1/3 lg:basis-1/2 p-1"
+                    >
+                      <div className="p-1">
+                        {/* Set priority=true for the first 3 items that will be visible */}
+                        <MediaCard item={item} priority={index < 3} />
                       </div>
                     </CarouselItem>
                   ))}

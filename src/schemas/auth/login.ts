@@ -4,6 +4,7 @@ export const LoginResponseSchema = z.object({
   success: z.boolean(),
   message: z.string().optional(),
   username: z.string(),
+  redirectTo: z.string().optional(),
 })
 
 export const LoginErrorSchema = z.object({
