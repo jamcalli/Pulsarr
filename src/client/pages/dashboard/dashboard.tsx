@@ -54,6 +54,10 @@ export function DashboardPage() {
           <h1 className="text-3xl font-bold text-text">Media Statistics</h1>
           <WatchlistStatusBadge />
         </div>
+      </div>
+  
+      {/* Refresh and Last Updated Container */}
+      <div className="flex items-center gap-4 mb-6">
         <Button
           onClick={handleRefresh}
           disabled={isLoading}
@@ -67,13 +71,11 @@ export function DashboardPage() {
           )}
           <span>Refresh</span>
         </Button>
+        <p className="text-sm text-gray-500">
+          Last updated: {lastRefreshed.toLocaleTimeString()}
+        </p>
       </div>
-
-      {/* Last refreshed timestamp */}
-      <p className="mb-6 text-sm text-gray-500">
-        Last updated: {lastRefreshed.toLocaleTimeString()}
-      </p>
-
+  
       {/* Media Statistics Section */}
       <div className="mb-8">
         <h2 className="mb-4 text-2xl font-bold text-text">
