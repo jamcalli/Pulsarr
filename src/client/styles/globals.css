@@ -61,3 +61,33 @@ body {
 	height: 100%;
 	overflow: hidden;
 }
+
+@layer base {
+	:root {
+		/* Chart HSL colors for light mode - distinct from main colors */
+		--chart-1: 225 70% 55%; /* Deep blue */
+		--chart-2: 300 60% 55%; /* Purple */
+		--chart-3: 150 55% 45%; /* Forest green */
+		--chart-4: 45 90% 60%; /* Gold/yellow */
+		--chart-5: 270 60% 60%; /* Violet */
+
+		/* Direct color variables for bar charts */
+		--color-movie: hsl(225 70% 55%); /* Deep blue */
+		--color-show: hsl(270 60% 60%); /* Violet */
+		--color-count: hsl(45 90% 60%); /* Gold/yellow */
+	}
+
+	.dark {
+		/* Chart HSL colors for dark mode */
+		--chart-1: 225 80% 45%; /* Deep blue - darker */
+		--chart-2: 300 70% 45%; /* Purple - darker */
+		--chart-3: 150 65% 35%; /* Forest green - darker */
+		--chart-4: 45 95% 50%; /* Gold/yellow - darker */
+		--chart-5: 270 70% 50%; /* Violet - darker */
+
+		/* Direct color variables for bar charts - adjusted for dark mode */
+		--color-movie: hsl(225 80% 45%); /* Deep blue */
+		--color-show: hsl(270 70% 50%); /* Violet */
+		--color-count: hsl(45 95% 50%); /* Gold/yellow */
+	}
+}

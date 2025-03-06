@@ -951,7 +951,9 @@ export class PlexWatchlistService {
     )
     let matchCount = 0
     let noMatchCount = 0
+    let duplicateCount = 0
     const matchedItemIds: number[] = []
+    const duplicateItemIds: number[] = []
 
     for (const pendingItem of pendingItems) {
       const pendingGuids = this.safeParseArray<string>(pendingItem.guids)
@@ -1001,7 +1003,7 @@ export class PlexWatchlistService {
                   ? Number.parseInt(item.id, 10)
                   : item.id
               await this.dbService.createNotificationRecord({
-                watchlist_item_id: !isNaN(itemId) ? itemId : null,
+                watchlist_item_id: !Number.isNaN(itemId) ? itemId : null,
                 user_id: user.userId,
                 type: 'watchlist_add',
                 title: item.title,
@@ -1020,24 +1022,58 @@ export class PlexWatchlistService {
 
       if (!foundMatch) {
         noMatchCount++
-        this.log.warn(
-          `No match found for self RSS item "${pendingItem.title}"`,
-          {
-            itemTitle: pendingItem.title,
-            pendingGuids,
-          },
-        )
+
+        let existsInDatabase = false
+
+        for (const guid of pendingGuids) {
+          const normalizedGuid = guid.toLowerCase()
+          try {
+            const existingItems =
+              await this.dbService.getWatchlistItemsByGuid(normalizedGuid)
+
+            if (existingItems && existingItems.length > 0) {
+              existsInDatabase = true
+              this.log.info(
+                `RSS item "${pendingItem.title}" already exists in watchlist database with GUID ${guid}`,
+                {
+                  itemTitle: pendingItem.title,
+                  guid,
+                  matchCount: existingItems.length,
+                },
+              )
+              break
+            }
+          } catch (error) {
+            this.log.error(`Error checking database for GUID ${guid}:`, error)
+          }
+        }
+
+        if (existsInDatabase) {
+          duplicateCount++
+          duplicateItemIds.push(pendingItem.id)
+        } else {
+          this.log.warn(
+            `No match found for self RSS item "${pendingItem.title}" (possibly recently removed from watchlist)`,
+            {
+              itemTitle: pendingItem.title,
+              pendingGuids,
+            },
+          )
+        }
       }
     }
 
-    if (matchedItemIds.length > 0) {
-      await this.dbService.deleteTempRssItems(matchedItemIds)
+    const allIdsToDelete = [...matchedItemIds, ...duplicateItemIds]
+    if (allIdsToDelete.length > 0) {
+      await this.dbService.deleteTempRssItems(allIdsToDelete)
     }
 
     this.log.info('Self RSS matching complete', {
       totalChecked: pendingItems.length,
       matched: matchCount,
       unmatched: noMatchCount,
+      duplicatesCleanedUp: duplicateCount,
+      remainingUnmatched: noMatchCount - duplicateCount,
     })
   }
 
@@ -1045,13 +1081,14 @@ export class PlexWatchlistService {
     userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>,
   ): Promise<void> {
     const pendingItems = await this.dbService.getTempRssItems('friends')
-
     this.log.info(
       `Found ${pendingItems.length} pending RSS items to match during friend sync`,
     )
     let matchCount = 0
     let noMatchCount = 0
+    let duplicateCount = 0
     const matchedItemIds: number[] = []
+    const duplicateItemIds: number[] = []
 
     const userIds = Array.from(userWatchlistMap.keys()).map(
       (user) => user.userId,
@@ -1069,7 +1106,7 @@ export class PlexWatchlistService {
         existingGuidsMap.set(item.user_id, new Set<string>())
       }
       for (const guid of guids) {
-        existingGuidsMap.get(item.user_id)?.add(guid)
+        existingGuidsMap.get(item.user_id)?.add(guid.toLowerCase())
       }
     }
 
@@ -1096,7 +1133,7 @@ export class PlexWatchlistService {
               existingGuidsMap.get(friend.userId) || new Set<string>()
 
             const isNewItem = !itemGuids.some((guid: string) =>
-              userExistingGuids.has(guid),
+              userExistingGuids.has(guid.toLowerCase()),
             )
 
             if (isNewItem) {
@@ -1114,7 +1151,7 @@ export class PlexWatchlistService {
                     ? Number.parseInt(item.id, 10)
                     : item.id
                 await this.dbService.createNotificationRecord({
-                  watchlist_item_id: !isNaN(itemId) ? itemId : null,
+                  watchlist_item_id: !Number.isNaN(itemId) ? itemId : null,
                   user_id: friend.userId,
                   type: 'watchlist_add',
                   title: item.title,
@@ -1144,24 +1181,58 @@ export class PlexWatchlistService {
 
       if (!foundAnyMatch) {
         noMatchCount++
-        this.log.warn(
-          `No matches found for friend RSS item "${pendingItem.title}"`,
-          {
-            itemTitle: pendingItem.title,
-            pendingGuids,
-          },
-        )
+
+        let existsInDatabase = false
+
+        for (const guid of pendingGuids) {
+          const normalizedGuid = guid.toLowerCase()
+          try {
+            const existingItems =
+              await this.dbService.getWatchlistItemsByGuid(normalizedGuid)
+
+            if (existingItems && existingItems.length > 0) {
+              existsInDatabase = true
+              this.log.info(
+                `RSS item "${pendingItem.title}" already exists in watchlist database with GUID ${guid}`,
+                {
+                  itemTitle: pendingItem.title,
+                  guid,
+                  matchCount: existingItems.length,
+                },
+              )
+              break
+            }
+          } catch (error) {
+            this.log.error(`Error checking database for GUID ${guid}:`, error)
+          }
+        }
+
+        if (existsInDatabase) {
+          duplicateCount++
+          duplicateItemIds.push(pendingItem.id)
+        } else {
+          this.log.warn(
+            `No matches found for friend RSS item "${pendingItem.title}" (possibly recently removed from watchlist)`,
+            {
+              itemTitle: pendingItem.title,
+              pendingGuids,
+            },
+          )
+        }
       }
     }
 
-    if (matchedItemIds.length > 0) {
-      await this.dbService.deleteTempRssItems(matchedItemIds)
+    const allIdsToDelete = [...matchedItemIds, ...duplicateItemIds]
+    if (allIdsToDelete.length > 0) {
+      await this.dbService.deleteTempRssItems(allIdsToDelete)
     }
 
     this.log.info('Friend RSS matching complete', {
       totalChecked: pendingItems.length,
       matched: matchCount,
       unmatched: noMatchCount,
+      duplicatesCleanedUp: duplicateCount,
+      remainingUnmatched: noMatchCount - duplicateCount,
     })
   }
 

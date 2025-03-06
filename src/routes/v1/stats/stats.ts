@@ -23,13 +23,16 @@ import {
 const plugin: FastifyPluginAsync = async (fastify) => {
   // Get all dashboard stats combined
   fastify.get<{
-    Querystring: z.infer<typeof LimitQuerySchema>
+    Querystring: z.infer<typeof LimitQuerySchema & typeof ActivityQuerySchema>
     Reply: z.infer<typeof DashboardStatsSchema>
   }>(
     '/all',
     {
       schema: {
-        querystring: LimitQuerySchema,
+        querystring: z.object({
+          ...LimitQuerySchema.shape,
+          ...ActivityQuerySchema.shape,
+        }),
         response: {
           200: DashboardStatsSchema,
           500: ErrorSchema,
@@ -39,7 +42,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const { limit } = request.query
+        const { limit, days } = request.query
         const [
           topGenres,
           mostWatchedShows,
@@ -59,11 +62,11 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           fastify.db.getUsersWithMostWatchlistItems(limit),
           fastify.db.getWatchlistStatusDistribution(),
           fastify.db.getContentTypeDistribution(),
-          fastify.db.getRecentActivityStats(),
+          fastify.db.getRecentActivityStats(days),
           fastify.db.getInstanceActivityStats(),
           fastify.db.getAverageTimeToAvailability(),
           fastify.db.getAverageTimeFromGrabbedToNotified(),
-          fastify.db.getNotificationStats(),
+          fastify.db.getNotificationStats(days),
         ])
 
         let statusTransitions: z.infer<typeof StatusTransitionTimeSchema>[] = []

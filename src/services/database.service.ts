@@ -1479,6 +1479,12 @@ export class DatabaseService {
   async getWatchlistStatusDistribution(): Promise<
     { status: string; count: number }[]
   > {
+    // Define types for the query results
+    type StatusHistoryItem = {
+      status: string
+      count: number
+    }
+
     const historyItems = await this.knex
       .select('h.status')
       .count('* as count')
@@ -1514,15 +1520,15 @@ export class DatabaseService {
 
     const combinedResults = new Map<string, number>()
 
-    historyItems.forEach((item) => {
+    for (const item of historyItems) {
       combinedResults.set(String(item.status), Number(item.count))
-    })
+    }
 
-    itemsWithoutHistory.forEach((item) => {
+    for (const item of itemsWithoutHistory) {
       const status = String(item.status)
       const currentCount = combinedResults.get(status) || 0
       combinedResults.set(status, currentCount + Number(item.count))
-    })
+    }
 
     return Array.from(combinedResults.entries())
       .map(([status, count]) => ({
@@ -1649,42 +1655,50 @@ export class DatabaseService {
     }[]
   > {
     try {
-      const results = await this.knex.raw(`
-      WITH grabbed_status AS (
-        SELECT
-          h.watchlist_item_id,
-          MIN(h.timestamp) AS first_grabbed
-        FROM watchlist_status_history h
-        WHERE h.status = 'grabbed'
-        GROUP BY h.watchlist_item_id
-      ),
-      notified_status AS (
-        SELECT
-          h.watchlist_item_id,
-          MIN(h.timestamp) AS first_notified
-        FROM watchlist_status_history h
-        WHERE h.status = 'notified'
-        GROUP BY h.watchlist_item_id
-      )
-      SELECT
-        w.type AS content_type,
-        AVG(julianday(n.first_notified) - julianday(g.first_grabbed)) AS avg_days,
-        MIN(julianday(n.first_notified) - julianday(g.first_grabbed)) AS min_days,
-        MAX(julianday(n.first_notified) - julianday(g.first_grabbed)) AS max_days,
-        COUNT(*) AS count
-      FROM watchlist_items w
-      JOIN grabbed_status g ON w.id = g.watchlist_item_id
-      JOIN notified_status n ON w.id = n.watchlist_item_id
-      WHERE 
-        n.first_notified > g.first_grabbed
-        AND (
-          (w.type = 'movie') OR
-          (w.type = 'show')
-        )
-      GROUP BY w.type
-    `)
+      type GrabbedToNotifiedRow = {
+        content_type: string
+        avg_days: number
+        min_days: number
+        max_days: number
+        count: number
+      }
 
-      return results.map((row: any) => ({
+      const results = await this.knex.raw<GrabbedToNotifiedRow[]>(`
+    WITH grabbed_status AS (
+      SELECT
+        h.watchlist_item_id,
+        MIN(h.timestamp) AS first_grabbed
+      FROM watchlist_status_history h
+      WHERE h.status = 'grabbed'
+      GROUP BY h.watchlist_item_id
+    ),
+    notified_status AS (
+      SELECT
+        h.watchlist_item_id,
+        MIN(h.timestamp) AS first_notified
+      FROM watchlist_status_history h
+      WHERE h.status = 'notified'
+      GROUP BY h.watchlist_item_id
+    )
+    SELECT
+      w.type AS content_type,
+      AVG(julianday(n.first_notified) - julianday(g.first_grabbed)) AS avg_days,
+      MIN(julianday(n.first_notified) - julianday(g.first_grabbed)) AS min_days,
+      MAX(julianday(n.first_notified) - julianday(g.first_grabbed)) AS max_days,
+      COUNT(*) AS count
+    FROM watchlist_items w
+    JOIN grabbed_status g ON w.id = g.watchlist_item_id
+    JOIN notified_status n ON w.id = n.watchlist_item_id
+    WHERE 
+      n.first_notified > g.first_grabbed
+      AND (
+        (w.type = 'movie') OR
+        (w.type = 'show')
+      )
+    GROUP BY w.type
+  `)
+
+      return results.map((row: GrabbedToNotifiedRow) => ({
         content_type: String(row.content_type),
         avg_days: Number(row.avg_days),
         min_days: Number(row.min_days),
@@ -1709,7 +1723,17 @@ export class DatabaseService {
     }[]
   > {
     try {
-      const results = await this.knex.raw(`
+      type TransitionMetricsRow = {
+        from_status: string
+        to_status: string
+        content_type: string
+        avg_days: number
+        min_days: number
+        max_days: number
+        count: number
+      }
+
+      const results = await this.knex.raw<TransitionMetricsRow[]>(`
       WITH status_pairs AS (
         SELECT 
           h1.status AS from_status,
@@ -1739,7 +1763,7 @@ export class DatabaseService {
       ORDER BY from_status, to_status, content_type
     `)
 
-      return results.map((row: any) => ({
+      return results.map((row: TransitionMetricsRow) => ({
         from_status: String(row.from_status),
         to_status: String(row.to_status),
         content_type: String(row.content_type),
@@ -1766,7 +1790,15 @@ export class DatabaseService {
       count: number
     }[]
   > {
-    const results = await this.knex.raw(`
+    type AvailabilityStatsRow = {
+      content_type: string
+      avg_days: number
+      min_days: number
+      max_days: number
+      count: number
+    }
+
+    const results = await this.knex.raw<AvailabilityStatsRow[]>(`
     WITH first_added AS (
       SELECT
         w.id,
@@ -1804,7 +1836,7 @@ export class DatabaseService {
     GROUP BY a.content_type
   `)
 
-    return results.map((row: any) => ({
+    return results.map((row: AvailabilityStatsRow) => ({
       content_type: String(row.content_type),
       avg_days: Number(row.avg_days),
       min_days: Number(row.min_days),
@@ -1823,35 +1855,43 @@ export class DatabaseService {
     }[]
   > {
     try {
-      const results = await this.knex.raw(`
-      WITH status_transitions AS (
-        SELECT 
-          h1.status AS from_status,
-          h2.status AS to_status,
-          w.type AS content_type,
-          julianday(h2.timestamp) - julianday(h1.timestamp) AS days_between
-        FROM watchlist_status_history h1
-        JOIN watchlist_status_history h2 ON h1.watchlist_item_id = h2.watchlist_item_id AND h2.timestamp > h1.timestamp
-        JOIN watchlist_items w ON h1.watchlist_item_id = w.id
-        WHERE h1.status != h2.status
-        AND NOT EXISTS (
-          SELECT 1 FROM watchlist_status_history h3
-          WHERE h3.watchlist_item_id = h1.watchlist_item_id
-          AND h3.timestamp > h1.timestamp AND h3.timestamp < h2.timestamp
-        )
-      )
-      SELECT 
-        from_status,
-        to_status,
-        content_type,
-        count(*) AS count,
-        avg(days_between) AS avg_days
-      FROM status_transitions
-      GROUP BY from_status, to_status, content_type
-      ORDER BY count DESC
-    `)
+      type StatusFlowRow = {
+        from_status: string
+        to_status: string
+        content_type: string
+        count: number
+        avg_days: number
+      }
 
-      return results.map((row: any) => ({
+      const results = await this.knex.raw<StatusFlowRow[]>(`
+    WITH status_transitions AS (
+      SELECT 
+        h1.status AS from_status,
+        h2.status AS to_status,
+        w.type AS content_type,
+        julianday(h2.timestamp) - julianday(h1.timestamp) AS days_between
+      FROM watchlist_status_history h1
+      JOIN watchlist_status_history h2 ON h1.watchlist_item_id = h2.watchlist_item_id AND h2.timestamp > h1.timestamp
+      JOIN watchlist_items w ON h1.watchlist_item_id = w.id
+      WHERE h1.status != h2.status
+      AND NOT EXISTS (
+        SELECT 1 FROM watchlist_status_history h3
+        WHERE h3.watchlist_item_id = h1.watchlist_item_id
+        AND h3.timestamp > h1.timestamp AND h3.timestamp < h2.timestamp
+      )
+    )
+    SELECT 
+      from_status,
+      to_status,
+      content_type,
+      count(*) AS count,
+      avg(days_between) AS avg_days
+    FROM status_transitions
+    GROUP BY from_status, to_status, content_type
+    ORDER BY count DESC
+  `)
+
+      return results.map((row: StatusFlowRow) => ({
         from_status: String(row.from_status),
         to_status: String(row.to_status),
         content_type: String(row.content_type),
@@ -1909,7 +1949,7 @@ export class DatabaseService {
       .groupBy('type')
       .orderBy('count', 'desc')
 
-    const byChannelQuery = this.knex.raw(
+    const byChannelQuery = this.knex.raw<{ channel: string; count: number }[]>(
       `
       SELECT 
         'discord' as channel, 
@@ -1953,7 +1993,7 @@ export class DatabaseService {
         type: String(row.type),
         count: Number(row.count),
       })),
-      by_channel: byChannel.map((row: any) => ({
+      by_channel: byChannel.map((row: { channel: string; count: number }) => ({
         channel: String(row.channel),
         count: Number(row.count),
       })),
