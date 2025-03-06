@@ -136,6 +136,7 @@ export type StatusDistribution = z.infer<typeof StatusDistributionSchema>
 export type ContentTypeDistribution = z.infer<
   typeof ContentTypeDistributionSchema
 >
+export type NotificationStats = z.infer<typeof NotificationStatsSchema>
 export type ActivityStats = z.infer<typeof ActivityStatsSchema>
 export type InstanceStat = z.infer<typeof InstanceStatSchema>
 export type AvailabilityTime = z.infer<typeof AvailabilityTimeSchema>
