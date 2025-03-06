@@ -8,15 +8,14 @@ import {
   CartesianGrid,
   PieChart,
   Pie,
+  Cell,
   Label,
+  Tooltip,
+  ErrorBar,
+  ReferenceLine,
 } from 'recharts'
 import { Card, CardContent } from '@/components/ui/card'
-import {
-  type ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from '@/components/ui/chart'
+import { type ChartConfig, ChartContainer } from '@/components/ui/chart'
 import { cn } from '@/lib/utils'
 import type {
   StatusTransitionTime,
@@ -24,13 +23,6 @@ import type {
   GenreStat,
   NotificationStats,
 } from '@root/schemas/stats/stats.schema'
-
-// Define local chart-specific types
-interface StatusTransitionChartData {
-  transitionName: string
-  movie: number
-  show: number
-}
 
 interface NotificationChartData {
   name: string
@@ -65,8 +57,8 @@ interface ChartConfigItem {
 
 const CHART_CONFIG: Record<ChartType, ChartConfigItem> = {
   [CHARTS.STATUS_TRANSITIONS]: {
-    label: 'Status Transitions',
-    description: 'Average days for status transitions by content type',
+    label: 'Request to Notify',
+    description: 'Time taken from request to notification (in minutes)',
   },
   [CHARTS.NOTIFICATIONS]: {
     label: 'Notifications',
@@ -124,41 +116,73 @@ function TypedStatsDashboard() {
     }
   }, [])
 
-  // Status Transitions chart config and data
-  const statusTransitionsData = useMemo(() => {
-    const grouped: Record<string, StatusTransitionChartData> = {}
-
-    chartData.statusTransitions.forEach((transition) => {
-      const key = `${transition.from_status} → ${transition.to_status}`
-
-      if (!grouped[key]) {
-        grouped[key] = {
-          transitionName: key,
-          movie: 0,
-          show: 0,
-        }
-      }
-
-      if (transition.content_type === 'movie') {
-        grouped[key].movie = Number.parseFloat(transition.avg_days.toFixed(2))
-      } else if (transition.content_type === 'show') {
-        grouped[key].show = Number.parseFloat(transition.avg_days.toFixed(2))
-      }
+  const useCssVariableColors = () => {
+    const [colors, setColors] = useState({
+      movie: '',
+      show: '',
+      count: '',
+      fun: '',
+      blue: '',
+      chart1: '',
+      chart2: '',
+      chart3: '',
+      chart4: '',
+      chart5: '',
+      error: '',
     })
 
-    return Object.values(grouped)
-  }, [chartData.statusTransitions])
+    useEffect(() => {
+      // Get the computed CSS variable values
+      const computedStyle = getComputedStyle(document.documentElement)
+      setColors({
+        movie: computedStyle.getPropertyValue('--color-movie').trim(),
+        show: computedStyle.getPropertyValue('--color-show').trim(),
+        count: computedStyle.getPropertyValue('--color-count').trim(),
+        fun: computedStyle.getPropertyValue('--fun').trim(),
+        blue: computedStyle.getPropertyValue('--blue').trim(),
+        chart1: computedStyle.getPropertyValue('--chart-1').trim(),
+        chart2: computedStyle.getPropertyValue('--chart-2').trim(),
+        chart3: computedStyle.getPropertyValue('--chart-3').trim(),
+        chart4: computedStyle.getPropertyValue('--chart-4').trim(),
+        chart5: computedStyle.getPropertyValue('--chart-5').trim(),
+        error: computedStyle.getPropertyValue('--error').trim(),
+      })
+    }, [])
 
-  const statusTransitionsConfig = {
-    movie: {
-      label: 'Movies',
-      color: 'hsl(var(--chart-1))',
-    },
-    show: {
-      label: 'Shows',
-      color: 'hsl(var(--chart-2))',
-    },
-  } satisfies ChartConfig
+    return colors
+  }
+
+  // Then in your component, near your other useMemo hooks:
+  const cssColors = useCssVariableColors()
+
+  // Status Transitions chart config and data
+  const requestToNotifyData = useMemo(() => {
+    // Filter the data to only include requested → notified transitions
+    const filteredData = chartData.statusTransitions.filter(
+      (transition) =>
+        transition.from_status === 'requested' &&
+        transition.to_status === 'notified',
+    )
+
+    // Convert to minutes (days * 24 * 60)
+    return filteredData.map((transition) => ({
+      contentType: transition.content_type === 'movie' ? 'Movies' : 'Shows',
+      // Convert from days to minutes
+      avgMinutes: Math.round(transition.avg_days * 24 * 60 * 100) / 100,
+      minMinutes: Math.round(transition.min_days * 24 * 60 * 100) / 100,
+      maxMinutes: Math.round(transition.max_days * 24 * 60 * 100) / 100,
+      count: transition.count,
+      // Calculate error bars for min/max
+      errorMin:
+        Math.round(
+          (transition.avg_days - transition.min_days) * 24 * 60 * 100,
+        ) / 100,
+      errorMax:
+        Math.round(
+          (transition.max_days - transition.avg_days) * 24 * 60 * 100,
+        ) / 100,
+    }))
+  }, [chartData.statusTransitions])
 
   // Notifications chart config and data
   const notificationsData = useMemo(() => {
@@ -340,213 +364,525 @@ function TypedStatsDashboard() {
     switch (activeChart) {
       case CHARTS.STATUS_TRANSITIONS:
         return (
-          <ChartContainer
-            config={statusTransitionsConfig}
-            className="aspect-auto h-[350px] w-full"
-          >
-            <BarChart
-              data={statusTransitionsData}
-              accessibilityLayer
-              margin={{
-                top: 20,
-                right: 30,
-                left: 20,
-                bottom: 80,
+          <div className="flex flex-col">
+            <ChartContainer
+              config={{
+                avgMinutes: {
+                  label: 'Average Minutes',
+                  color: 'hsl(var(--chart-1))',
+                },
               }}
+              className="aspect-auto h-[350px] w-full"
             >
-              <CartesianGrid vertical={false} />
-              <XAxis
-                dataKey="transitionName"
-                angle={0}
-                tickLine={false}
-                tickMargin={10}
-                height={50}
-                axisLine={false}
-              />
-              <YAxis
-                label={{
-                  value: 'Avg Days',
-                  angle: -90,
-                  position: 'insideLeft',
-                }}
-                tickLine={false}
-                axisLine={false}
-              />
-              <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-              <Bar dataKey="movie" fill="var(--color-movie)" radius={4} />
-              <Bar dataKey="show" fill="var(--color-show)" radius={4} />
-            </BarChart>
-          </ChartContainer>
-        )
-
-      case CHARTS.NOTIFICATIONS:
-        return (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card className="bg-bg relative">
-              <div className="bg-main text-text px-4 py-3 text-center">
-                <h4 className="text-base font-medium">By Channel</h4>
-              </div>
-              <CardContent className="pt-4">
-                <ChartContainer
-                  config={notificationsByChannelConfig}
-                  className="mx-auto aspect-square h-[250px] [&_.recharts-pie-label-text]:fill-foreground"
+              <BarChart
+                data={requestToNotifyData}
+                layout="vertical"
+                margin={{ top: 20, right: 30, left: 80, bottom: 20 }}
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  horizontal={true}
+                  vertical={false}
+                />
+                <XAxis
+                  type="number"
+                  label={{
+                    value: 'Minutes',
+                    position: 'insideBottom',
+                    offset: -10,
+                  }}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis
+                  dataKey="contentType"
+                  type="category"
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <Tooltip
+                  content={(props) => {
+                    if (
+                      !props.active ||
+                      !props.payload ||
+                      !props.payload.length
+                    ) {
+                      return null
+                    }
+                    const data = props.payload[0].payload
+                    return (
+                      <div className="bg-bg border border-border p-2 rounded shadow-md">
+                        <p className="font-medium text-text">
+                          {data.contentType}
+                        </p>
+                        <p className="text-text">
+                          <span className="font-medium">Avg: </span>
+                          {data.avgMinutes} min
+                        </p>
+                        <p className="text-text">
+                          <span className="font-medium">Min: </span>
+                          {data.minMinutes} min
+                        </p>
+                        <p className="text-text">
+                          <span className="font-medium">Max: </span>
+                          {data.maxMinutes} min
+                        </p>
+                        <p className="text-text">
+                          <span className="font-medium">Count: </span>
+                          {data.count} {data.count === 1 ? 'item' : 'items'}
+                        </p>
+                      </div>
+                    )
+                  }}
+                />
+                <Bar
+                  dataKey="avgMinutes"
+                  // Use a darker blue for the default fill
+                  fill={cssColors.movie || '#0c2d5c'}
+                  radius={4}
+                  barSize={30}
                 >
-                  <PieChart
-                    margin={{
-                      top: 5,
-                      right: 5,
-                      bottom: 5,
-                      left: 5,
-                    }}
-                  >
-                    <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-                    <Pie
-                      data={notificationsData.byChannel}
-                      dataKey="value"
-                      nameKey="name"
-                      label
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
+                  {/* Display sample size (count) as a label on each bar */}
+                  {requestToNotifyData.map((entry, index) => (
+                    <text
+                      key={`count-${index}`}
+                      x={entry.avgMinutes > 5 ? 25 : entry.avgMinutes + 3}
+                      y={index * 40 + 20}
+                      textAnchor={entry.avgMinutes > 5 ? 'end' : 'start'}
+                      // Use higher contrast for the text
+                      fill={entry.avgMinutes > 5 ? 'white' : 'black'}
+                      fontWeight="500"
+                      fontSize={12}
+                    >
+                      {entry.count} {entry.count === 1 ? 'item' : 'items'}
+                    </text>
+                  ))}
+                  {/* Min/Max as error bars */}
+                  <ErrorBar
+                    dataKey="avgMinutes"
+                    width={4}
+                    strokeWidth={2}
+                    stroke={cssColors.error || '#2c5878'}
+                    direction="x"
+                  />
+                  {/* Apply different color for each content type */}
+                  {requestToNotifyData.map((entry, index) => (
+                    <Cell
+                      key={`bar-cell-${index}`}
+                      fill={
+                        entry.contentType === 'Movies'
+                          ? cssColors.movie || '#0c2d5c'
+                          : cssColors.show || '#1a663d'
+                      }
                     />
-                  </PieChart>
-                </ChartContainer>
-              </CardContent>
-            </Card>
-            <Card className="bg-bg relative">
-              <div className="bg-main text-text px-4 py-3 text-center">
-                <h4 className="text-base font-medium">By Type</h4>
+                  ))}
+                </Bar>
+                {/* Add reference lines for each data point's min and max */}
+                {requestToNotifyData.flatMap((entry, index) => [
+                  <ReferenceLine
+                    key={`min-${index}`}
+                    x={entry.minMinutes}
+                    stroke={cssColors.count || '#b25513'}
+                    strokeDasharray="3 3"
+                    isFront={true}
+                    ifOverflow="extendDomain"
+                  />,
+                  <ReferenceLine
+                    key={`max-${index}`}
+                    x={entry.maxMinutes}
+                    stroke={cssColors.count || '#b25513'}
+                    strokeDasharray="3 3"
+                    isFront={true}
+                    ifOverflow="extendDomain"
+                  />,
+                ])}
+              </BarChart>
+            </ChartContainer>
+            <div className="flex justify-center mt-3 gap-6">
+              <div className="flex items-center">
+                <span
+                  className="h-3 w-3 rounded-full inline-block mr-2"
+                  style={{ backgroundColor: cssColors.movie || '#1a5999' }}
+                ></span>
+                <span className="text-sm text-text">Movies</span>
               </div>
-              <CardContent className="pt-4">
-                <ChartContainer
-                  config={notificationsByTypeConfig}
-                  className="mx-auto aspect-square h-[250px] [&_.recharts-pie-label-text]:fill-foreground"
-                >
-                  <PieChart
-                    margin={{
-                      top: 5,
-                      right: 5,
-                      bottom: 5,
-                      left: 5,
-                    }}
-                  >
-                    <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-                    <Pie
-                      data={notificationsData.byType}
-                      dataKey="value"
-                      nameKey="name"
-                      label
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
-                    />
-                  </PieChart>
-                </ChartContainer>
-              </CardContent>
-            </Card>
+              <div className="flex items-center">
+                <span
+                  className="h-3 w-3 rounded-full inline-block mr-2"
+                  style={{ backgroundColor: cssColors.show || '#39b978' }}
+                ></span>
+                <span className="text-sm text-text">Shows</span>
+              </div>
+              <div className="flex items-center">
+                <span
+                  className="h-3 w-3 rounded-full inline-block mr-2"
+                  style={{ backgroundColor: cssColors.count || '#f47b30' }}
+                ></span>
+                <span className="text-sm text-text">Min/Max Range</span>
+              </div>
+            </div>
           </div>
         )
 
-      case CHARTS.CONTENT_DISTRIBUTION:
-        // For content distribution, we need to adjust the data format for the chart config
-        const contentPieData = contentDistributionData.map((item) => ({
-          ...item,
-          value: item.count,
-        }))
+      case CHARTS.NOTIFICATIONS:
+        // Use more contrasting colors from your palette
+        const getHSLColor = (index: number) => {
+          // Selected values with higher contrast
+          const chartVars = [
+            cssColors.chart4 || '19 91% 59%', // Bright orange-red
+            cssColors.chart2 || '183 37% 49%', // Teal
+            cssColors.chart5 || '1 54% 50%', // Red
+            cssColors.chart3 || '29 85% 87%', // Yellow
+            cssColors.chart1 || '196 39% 33%', // Dark blue
+          ]
+          return `hsl(${chartVars[index % 5]})`
+        }
+
+        // Custom tooltip for notification charts
+        const NotificationTooltip = (props: any) => {
+          if (!props.active || !props.payload || !props.payload.length) {
+            return null
+          }
+          const data = props.payload[0].payload
+          return (
+            <div className="bg-bg border border-border p-2 rounded shadow-md">
+              <p className="font-medium text-text">{data.name}</p>
+              <p className="text-text">
+                <span className="font-medium">Count: </span>
+                {data.value}
+              </p>
+              <p className="text-text">
+                <span className="font-medium">Percentage: </span>
+                {Math.round((data.value / data.total) * 100)}%
+              </p>
+            </div>
+          )
+        }
 
         return (
-          <ChartContainer
-            config={contentDistributionConfig}
-            className="mx-auto aspect-square h-[350px]"
-          >
-            <PieChart
-              margin={{
-                top: 5,
-                right: 5,
-                bottom: 5,
-                left: 5,
-              }}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex flex-col">
+              <Card className="bg-bw relative shadow-md">
+                <div className="bg-main text-text px-4 py-3 text-center">
+                  <h4 className="text-base font-medium">By Channel</h4>
+                </div>
+                <CardContent className="pt-4">
+                  <ChartContainer
+                    config={notificationsByChannelConfig}
+                    className="mx-auto aspect-square h-[250px]"
+                  >
+                    <PieChart
+                      margin={{
+                        top: 5,
+                        right: 5,
+                        bottom: 5,
+                        left: 5,
+                      }}
+                    >
+                      <Tooltip content={NotificationTooltip} />
+                      <Pie
+                        data={notificationsData.byChannel.map((item) => ({
+                          ...item,
+                          total: notificationsData.byChannel.reduce(
+                            (sum, i) => sum + i.value,
+                            0,
+                          ),
+                        }))}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={80}
+                        // Adding cornerRadius for visual interest (padAngle removed)
+                        cornerRadius={3}
+                      >
+                        {notificationsData.byChannel.map((_, index) => (
+                          <Cell
+                            key={`channel-cell-${index}`}
+                            fill={getHSLColor(index)}
+                            // Add a subtle stroke for definition
+                            stroke="#ffffff"
+                            strokeWidth={1}
+                          />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ChartContainer>
+                </CardContent>
+              </Card>
+              <div className="flex flex-wrap justify-center mt-3 gap-3">
+                {notificationsData.byChannel.map((entry, index) => (
+                  <div
+                    key={`channel-legend-${index}`}
+                    className="flex items-center"
+                  >
+                    <span
+                      className="h-3 w-3 rounded-full inline-block mr-2"
+                      style={{ backgroundColor: getHSLColor(index) }}
+                    ></span>
+                    <span className="text-sm text-text">{entry.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col">
+              <Card className="bg-bw relative shadow-md">
+                <div className="bg-main text-text px-4 py-3 text-center">
+                  <h4 className="text-base font-medium">By Type</h4>
+                </div>
+                <CardContent className="pt-4">
+                  <ChartContainer
+                    config={notificationsByTypeConfig}
+                    className="mx-auto aspect-square h-[250px]"
+                  >
+                    <PieChart
+                      margin={{
+                        top: 5,
+                        right: 5,
+                        bottom: 5,
+                        left: 5,
+                      }}
+                    >
+                      {/* Make sure the tooltip is inside the PieChart */}
+                      <Tooltip content={NotificationTooltip} />
+                      <Pie
+                        data={notificationsData.byType.map((item) => ({
+                          ...item,
+                          total: notificationsData.byType.reduce(
+                            (sum, i) => sum + i.value,
+                            0,
+                          ),
+                        }))}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={80}
+                        // Only cornerRadius, no padAngle to avoid type error
+                        cornerRadius={3}
+                      >
+                        {notificationsData.byType.map((_, index) => (
+                          <Cell
+                            key={`type-cell-${index}`}
+                            fill={getHSLColor(index)}
+                            // Add a subtle stroke for definition
+                            stroke="#ffffff"
+                            strokeWidth={1}
+                          />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ChartContainer>
+                </CardContent>
+              </Card>
+              <div className="flex flex-wrap justify-center mt-3 gap-3">
+                {notificationsData.byType.map((entry, index) => (
+                  <div
+                    key={`type-legend-${index}`}
+                    className="flex items-center"
+                  >
+                    <span
+                      className="h-3 w-3 rounded-full inline-block mr-2"
+                      style={{ backgroundColor: getHSLColor(index) }}
+                    ></span>
+                    <span className="text-sm text-text">{entry.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )
+      // SOLUTION FOR CONTENT DISTRIBUTION CHART - Using CSS Variables with TypeScript Support
+
+      case CHARTS.CONTENT_DISTRIBUTION:
+        // Custom tooltip for content distribution
+        const ContentDistributionTooltip = (props: any) => {
+          if (!props.active || !props.payload || !props.payload.length) {
+            return null
+          }
+          const data = props.payload[0].payload
+          return (
+            <div className="bg-bg border border-border p-2 rounded shadow-md">
+              <p className="font-medium text-text">{data.name}</p>
+              <p className="text-text">
+                <span className="font-medium">Count: </span>
+                {data.count.toLocaleString()}
+              </p>
+              <p className="text-text">
+                <span className="font-medium">Percentage: </span>
+                {Math.round((data.count / totalContentItems) * 100)}%
+              </p>
+            </div>
+          )
+        }
+
+        return (
+          <div className="flex flex-col">
+            <ChartContainer
+              config={contentDistributionConfig}
+              className="mx-auto aspect-square h-[350px]"
             >
-              <ChartTooltip
-                cursor={false}
-                content={<ChartTooltipContent hideLabel />}
-              />
-              <Pie
-                data={contentPieData}
-                dataKey="value"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={120}
-                strokeWidth={5}
+              <PieChart
+                margin={{
+                  top: 5,
+                  right: 5,
+                  bottom: 5,
+                  left: 5,
+                }}
               >
-                <Label
-                  content={({ viewBox }) => {
-                    if (viewBox && 'cx' in viewBox && 'cy' in viewBox) {
-                      return (
-                        <text
-                          x={viewBox.cx}
-                          y={viewBox.cy}
-                          textAnchor="middle"
-                          dominantBaseline="middle"
-                        >
-                          <tspan
+                <Tooltip cursor={false} content={ContentDistributionTooltip} />
+                <Pie
+                  data={contentDistributionData}
+                  dataKey="count"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={120}
+                  strokeWidth={5}
+                >
+                  {contentDistributionData.map((entry, index) => {
+                    // Use the CSS colors retrieved from the hook
+                    const type = entry.name.toLowerCase()
+                    let color = cssColors.count
+
+                    if (type === 'movie') color = cssColors.movie
+                    if (type === 'show') color = cssColors.show
+
+                    // Use fallback colors if CSS variables aren't loaded yet
+                    if (!color) {
+                      const fallbacks = {
+                        movie: '#1a5999',
+                        show: '#39b978',
+                        count: '#f47b30',
+                      }
+                      color =
+                        type === 'movie'
+                          ? fallbacks.movie
+                          : type === 'show'
+                            ? fallbacks.show
+                            : fallbacks.count
+                    }
+
+                    return <Cell key={`cell-${index}`} fill={color} />
+                  })}
+                  <Label
+                    content={({ viewBox }) => {
+                      if (viewBox && 'cx' in viewBox && 'cy' in viewBox) {
+                        return (
+                          <text
                             x={viewBox.cx}
                             y={viewBox.cy}
-                            className="fill-foreground text-3xl font-bold text-text"
+                            textAnchor="middle"
+                            dominantBaseline="middle"
                           >
-                            {totalContentItems.toLocaleString()}
-                          </tspan>
-                          <tspan
-                            x={viewBox.cx}
-                            y={(viewBox.cy || 0) + 24}
-                            className="fill-muted-foreground text-text"
-                          >
-                            Items
-                          </tspan>
-                        </text>
-                      )
-                    }
-                    return null
-                  }}
-                />
-              </Pie>
-            </PieChart>
-          </ChartContainer>
+                            <tspan
+                              x={viewBox.cx}
+                              y={viewBox.cy}
+                              className="fill-foreground text-3xl font-bold text-text"
+                            >
+                              {totalContentItems.toLocaleString()}
+                            </tspan>
+                            <tspan
+                              x={viewBox.cx}
+                              y={(viewBox.cy || 0) + 24}
+                              className="fill-muted-foreground text-text"
+                            >
+                              Items
+                            </tspan>
+                          </text>
+                        )
+                      }
+                      return null
+                    }}
+                  />
+                </Pie>
+              </PieChart>
+            </ChartContainer>
+            <div className="flex justify-center mt-3 gap-6">
+              {contentDistributionData.map((entry, index) => {
+                const type = entry.name.toLowerCase()
+                let color = cssColors.count
+                if (type === 'movie') color = cssColors.movie
+                if (type === 'show') color = cssColors.show
+
+                return (
+                  <div
+                    key={`content-legend-${index}`}
+                    className="flex items-center"
+                  >
+                    <span
+                      className="h-3 w-3 rounded-full inline-block mr-2"
+                      style={{ backgroundColor: color || '#f47b30' }}
+                    ></span>
+                    <span className="text-sm text-text">{entry.name}</span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
         )
 
       case CHARTS.TOP_GENRES:
+        // Custom tooltip for top genres
+        const TopGenresTooltip = (props: any) => {
+          if (!props.active || !props.payload || !props.payload.length) {
+            return null
+          }
+          const data = props.payload[0].payload
+          return (
+            <div className="bg-bg border border-border p-2 rounded shadow-md">
+              <p className="font-medium text-text">{data.name}</p>
+              <p className="text-text">
+                <span className="font-medium">Count: </span>
+                {data.count.toLocaleString()}
+              </p>
+            </div>
+          )
+        }
+
         return (
-          <ChartContainer
-            config={topGenresConfig}
-            className="aspect-auto h-[350px] w-full"
-          >
-            <BarChart
-              data={topGenresData}
-              layout="vertical"
-              accessibilityLayer
-              margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
+          <div className="flex flex-col">
+            <ChartContainer
+              config={topGenresConfig}
+              className="aspect-auto h-[350px] w-full"
             >
-              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-              <XAxis type="number" tickLine={false} axisLine={false} />
-              <YAxis
-                dataKey="name"
-                type="category"
-                width={80}
-                tick={{ fontSize: 12 }}
-                tickLine={false}
-                axisLine={false}
-              />
-              <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-              <Bar
-                dataKey="count"
-                fill="var(--color-count)"
-                radius={4}
-                background={{ fill: 'rgba(0, 0, 0, 0.05)' }}
-              />
-            </BarChart>
-          </ChartContainer>
+              <BarChart
+                data={topGenresData}
+                layout="vertical"
+                accessibilityLayer
+                margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                <XAxis type="number" tickLine={false} axisLine={false} />
+                <YAxis
+                  dataKey="name"
+                  type="category"
+                  width={80}
+                  tick={{ fontSize: 12 }}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <Tooltip cursor={false} content={TopGenresTooltip} />
+                <Bar
+                  dataKey="count"
+                  radius={4}
+                  background={{ fill: 'rgba(0, 0, 0, 0.05)' }}
+                  fill={cssColors.fun || '#d4b483'}
+                />
+              </BarChart>
+            </ChartContainer>
+            <div className="flex justify-center mt-3 gap-6">
+              <div className="flex items-center">
+                <span
+                  className="h-3 w-3 rounded-full inline-block mr-2"
+                  style={{ backgroundColor: cssColors.fun || '#d4b483' }}
+                ></span>
+                <span className="text-sm text-text">Genre Count</span>
+              </div>
+            </div>
+          </div>
         )
 
       default:
@@ -555,7 +891,7 @@ function TypedStatsDashboard() {
   }
 
   return (
-    <Card className="w-full bg-bg relative overflow-hidden">
+    <Card className="w-full bg-bw relative overflow-hidden">
       <ChartHeader />
       <CardContent className="px-6 py-6">{renderChart()}</CardContent>
     </Card>
