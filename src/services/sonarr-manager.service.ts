@@ -122,7 +122,66 @@ export class SonarrManagerService {
     return allSeries
   }
 
-  async routeItemToSonarr(item: SonarrItem, key: string): Promise<void> {
+  async routeItemToSonarr(
+    item: SonarrItem,
+    key: string,
+    targetInstanceId?: number,
+  ): Promise<void> {
+    if (targetInstanceId !== undefined) {
+      const targetService = this.sonarrServices.get(targetInstanceId)
+      if (!targetService) {
+        throw new Error(`Sonarr service ${targetInstanceId} not found`)
+      }
+
+      const sonarrItem = this.prepareSonarrItem(item)
+
+      try {
+        const instance =
+          await this.fastify.db.getSonarrInstance(targetInstanceId)
+        if (!instance) {
+          throw new Error(`Sonarr instance ${targetInstanceId} not found`)
+        }
+
+        let targetQualityProfileId: number | undefined = undefined
+
+        const isNumericQualityProfile = (
+          value: string | number | null,
+        ): value is number => {
+          if (value === null) return false
+          if (typeof value === 'number') return true
+          return /^\d+$/.test(value)
+        }
+
+        if (
+          instance.qualityProfile &&
+          isNumericQualityProfile(instance.qualityProfile)
+        ) {
+          targetQualityProfileId = Number(instance.qualityProfile)
+        }
+
+        await targetService.addToSonarr(
+          sonarrItem,
+          instance.rootFolder || undefined,
+          targetQualityProfileId,
+        )
+
+        await this.fastify.db.updateWatchlistItem(key, {
+          sonarr_instance_id: targetInstanceId,
+        })
+
+        this.log.info(
+          `Successfully routed item to instance ${targetInstanceId} with quality profile ${targetQualityProfileId ?? 'default'}`,
+        )
+        return
+      } catch (error) {
+        this.log.error(
+          `Failed to add item to instance ${targetInstanceId}:`,
+          error,
+        )
+        throw error
+      }
+    }
+
     const itemGenres = new Set(
       Array.isArray(item.genres)
         ? item.genres
