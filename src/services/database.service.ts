@@ -1273,7 +1273,7 @@ export class DatabaseService {
     }
   }
 
-  async getAllShowWatchlistItems(): Promise<WatchlistItem[]> {
+  async getAllShowWatchlistItems(): Promise<TokenWatchlistItem[]> {
     try {
       const items = await this.knex('watchlist_items')
         .where('type', 'show')
@@ -1296,7 +1296,7 @@ export class DatabaseService {
     }
   }
 
-  async getAllMovieWatchlistItems(): Promise<WatchlistItem[]> {
+  async getAllMovieWatchlistItems(): Promise<TokenWatchlistItem[]> {
     try {
       const items = await this.knex('watchlist_items')
         .where('type', 'movie')
