@@ -17,6 +17,12 @@ import type {
   RadarrInstance,
   RadarrGenreRoute,
 } from '@root/types/radarr.types.js'
+import type {
+  WatchlistInstanceStatus,
+  MainTableField,
+  JunctionTableField,
+  WatchlistItemUpdate,
+} from '@root/types/watchlist-status.types.js'
 
 export class DatabaseService {
   private readonly knex: Knex
@@ -735,17 +741,86 @@ export class DatabaseService {
 
   async updateWatchlistItem(
     key: string,
-    updates: {
-      sonarr_instance_id?: number | null
-      radarr_instance_id?: number | null
-    },
+    updates: WatchlistItemUpdate,
   ): Promise<void> {
-    await this.knex('watchlist_items')
-      .where('key', key)
-      .update({
-        ...updates,
-        updated_at: this.timestamp,
-      })
+    try {
+      if (key.startsWith('selfRSS_') || key.startsWith('friendsRSS_')) {
+        this.log.debug(`Skipping temporary RSS key: ${key}`)
+        return
+      }
+
+      const item = await this.knex('watchlist_items').where({ key }).first()
+
+      if (!item) {
+        this.log.warn(
+          `Tried to update non-existent watchlist item with key: ${key}`,
+        )
+        return
+      }
+
+      const { radarr_instance_id, sonarr_instance_id, ...otherUpdates } =
+        updates
+
+      if (Object.keys(otherUpdates).length > 0) {
+        await this.knex('watchlist_items')
+          .where({ key })
+          .update({
+            ...otherUpdates,
+            updated_at: this.timestamp,
+          })
+      }
+
+      // Handle Radarr instance assignment via junction table
+      if (radarr_instance_id !== undefined) {
+        if (radarr_instance_id === null) {
+          await this.knex('watchlist_radarr_instances')
+            .where({ watchlist_id: item.id })
+            .delete()
+        } else {
+          const existingInstanceIds = await this.getWatchlistRadarrInstanceIds(
+            item.id,
+          )
+
+          if (!existingInstanceIds.includes(radarr_instance_id)) {
+            await this.addWatchlistToRadarrInstance(
+              item.id,
+              radarr_instance_id,
+              updates.status || item.status || 'pending',
+              true,
+            )
+          } else {
+            await this.setPrimaryRadarrInstance(item.id, radarr_instance_id)
+          }
+        }
+      }
+
+      // Handle Sonarr instance assignment via junction table
+      if (sonarr_instance_id !== undefined) {
+        if (sonarr_instance_id === null) {
+          await this.knex('watchlist_sonarr_instances')
+            .where({ watchlist_id: item.id })
+            .delete()
+        } else {
+          const existingInstanceIds = await this.getWatchlistSonarrInstanceIds(
+            item.id,
+          )
+
+          if (!existingInstanceIds.includes(sonarr_instance_id)) {
+            await this.addWatchlistToSonarrInstance(
+              item.id,
+              sonarr_instance_id,
+              updates.status || item.status || 'pending',
+              true,
+            )
+          } else {
+            await this.setPrimarySonarrInstance(item.id, sonarr_instance_id)
+          }
+        }
+      }
+    } catch (error) {
+      this.log.error(`Error updating watchlist item ${key}:`, error)
+      throw error
+    }
   }
 
   async updateWatchlistItemByGuid(
@@ -898,44 +973,199 @@ export class DatabaseService {
 
         for (const chunk of chunks) {
           for (const update of chunk) {
-            const currentItem = await trx('watchlist_items')
-              .where({
-                user_id: update.userId,
-                key: update.key,
-              })
-              .select('id', 'status')
-              .first()
+            try {
+              const { userId, key, ...updateFields } = update
 
-            if (!currentItem) continue
+              const currentItem = await trx('watchlist_items')
+                .where({
+                  user_id: userId,
+                  key: key,
+                })
+                .select('id', 'status')
+                .first()
 
-            const updated = await trx('watchlist_items')
-              .where({
-                user_id: update.userId,
-                key: update.key,
-              })
-              .update({
-                added: update.added,
-                status: update.status,
-                series_status: update.series_status,
-                movie_status: update.movie_status,
-                last_notified_at: update.last_notified_at,
-                sonarr_instance_id: update.sonarr_instance_id,
-                radarr_instance_id: update.radarr_instance_id,
-                updated_at: this.timestamp,
-              })
+              if (!currentItem) continue
 
-            updatedCount += updated
+              // Process main watchlist item fields
 
-            if (update.status && update.status !== currentItem.status) {
-              await trx('watchlist_status_history').insert({
-                watchlist_item_id: currentItem.id,
-                status: update.status,
-                timestamp: this.timestamp,
-              })
+              const mainTableFields: MainTableField = {}
+              const junctionFields: JunctionTableField = {}
 
-              this.log.debug(
-                `Status change for item ${currentItem.id}: ${currentItem.status} -> ${update.status}`,
-              )
+              for (const [field, value] of Object.entries(updateFields)) {
+                if (
+                  field === 'radarr_instance_id' ||
+                  field === 'sonarr_instance_id'
+                ) {
+                  if (
+                    value === null ||
+                    typeof value === 'number' ||
+                    value === undefined
+                  ) {
+                    junctionFields[field as keyof JunctionTableField] = value
+                  } else {
+                    const numericValue =
+                      typeof value === 'string' ? Number(value) : null
+                    junctionFields[field as keyof JunctionTableField] =
+                      Number.isNaN(numericValue) ? null : numericValue
+                  }
+                } else {
+                  mainTableFields[field as keyof MainTableField] = value
+                }
+              }
+
+              if (Object.keys(mainTableFields).length > 0) {
+                const updated = await trx('watchlist_items')
+                  .where({
+                    user_id: userId,
+                    key: key,
+                  })
+                  .update({
+                    ...mainTableFields,
+                    updated_at: this.timestamp,
+                  })
+
+                updatedCount += updated > 0 ? 1 : 0
+              }
+
+              if ('radarr_instance_id' in junctionFields) {
+                const radarrInstanceId = junctionFields.radarr_instance_id as
+                  | number
+                  | null
+                  | undefined
+
+                if (radarrInstanceId === null) {
+                  await trx('watchlist_radarr_instances')
+                    .where({ watchlist_id: currentItem.id })
+                    .delete()
+                } else if (radarrInstanceId !== undefined) {
+                  const existingAssoc = await trx('watchlist_radarr_instances')
+                    .where({
+                      watchlist_id: currentItem.id,
+                      radarr_instance_id: radarrInstanceId,
+                    })
+                    .first()
+
+                  if (!existingAssoc) {
+                    await trx('watchlist_radarr_instances').insert({
+                      watchlist_id: currentItem.id,
+                      radarr_instance_id: radarrInstanceId,
+                      status: update.status || currentItem.status,
+                      is_primary: true,
+                      last_notified_at: update.last_notified_at,
+                      created_at: this.timestamp,
+                      updated_at: this.timestamp,
+                    })
+
+                    await trx('watchlist_radarr_instances')
+                      .where({ watchlist_id: currentItem.id })
+                      .whereNot({ radarr_instance_id: radarrInstanceId })
+                      .update({
+                        is_primary: false,
+                        updated_at: this.timestamp,
+                      })
+                  } else {
+                    await trx('watchlist_radarr_instances')
+                      .where({
+                        watchlist_id: currentItem.id,
+                        radarr_instance_id: radarrInstanceId,
+                      })
+                      .update({
+                        status: update.status || existingAssoc.status,
+                        is_primary: true,
+                        last_notified_at:
+                          update.last_notified_at !== undefined
+                            ? update.last_notified_at
+                            : existingAssoc.last_notified_at,
+                        updated_at: this.timestamp,
+                      })
+
+                    await trx('watchlist_radarr_instances')
+                      .where({ watchlist_id: currentItem.id })
+                      .whereNot({ radarr_instance_id: radarrInstanceId })
+                      .update({
+                        is_primary: false,
+                        updated_at: this.timestamp,
+                      })
+                  }
+                }
+              }
+
+              if ('sonarr_instance_id' in junctionFields) {
+                const sonarrInstanceId = junctionFields.sonarr_instance_id as
+                  | number
+                  | null
+                  | undefined
+
+                if (sonarrInstanceId === null) {
+                  await trx('watchlist_sonarr_instances')
+                    .where({ watchlist_id: currentItem.id })
+                    .delete()
+                } else if (sonarrInstanceId !== undefined) {
+                  const existingAssoc = await trx('watchlist_sonarr_instances')
+                    .where({
+                      watchlist_id: currentItem.id,
+                      sonarr_instance_id: sonarrInstanceId,
+                    })
+                    .first()
+
+                  if (!existingAssoc) {
+                    await trx('watchlist_sonarr_instances').insert({
+                      watchlist_id: currentItem.id,
+                      sonarr_instance_id: sonarrInstanceId,
+                      status: update.status || currentItem.status,
+                      is_primary: true,
+                      last_notified_at: update.last_notified_at,
+                      created_at: this.timestamp,
+                      updated_at: this.timestamp,
+                    })
+
+                    await trx('watchlist_sonarr_instances')
+                      .where({ watchlist_id: currentItem.id })
+                      .whereNot({ sonarr_instance_id: sonarrInstanceId })
+                      .update({
+                        is_primary: false,
+                        updated_at: this.timestamp,
+                      })
+                  } else {
+                    await trx('watchlist_sonarr_instances')
+                      .where({
+                        watchlist_id: currentItem.id,
+                        sonarr_instance_id: sonarrInstanceId,
+                      })
+                      .update({
+                        status: update.status || existingAssoc.status,
+                        is_primary: true,
+                        last_notified_at:
+                          update.last_notified_at !== undefined
+                            ? update.last_notified_at
+                            : existingAssoc.last_notified_at,
+                        updated_at: this.timestamp,
+                      })
+
+                    await trx('watchlist_sonarr_instances')
+                      .where({ watchlist_id: currentItem.id })
+                      .whereNot({ sonarr_instance_id: sonarrInstanceId })
+                      .update({
+                        is_primary: false,
+                        updated_at: this.timestamp,
+                      })
+                  }
+                }
+              }
+
+              if (update.status && update.status !== currentItem.status) {
+                await trx('watchlist_status_history').insert({
+                  watchlist_item_id: currentItem.id,
+                  status: update.status,
+                  timestamp: this.timestamp,
+                })
+
+                this.log.debug(
+                  `Status change for item ${currentItem.id}: ${currentItem.status} -> ${update.status}`,
+                )
+              }
+            } catch (itemError) {
+              this.log.error(`Error updating item ${update.key}:`, itemError)
             }
           }
         }
@@ -2001,6 +2231,331 @@ export class DatabaseService {
         user_name: String(row.user_name),
         count: Number(row.count),
       })),
+    }
+  }
+
+  // Radarr Junction Table Methods
+  async getWatchlistRadarrInstanceIds(watchlistId: number): Promise<number[]> {
+    try {
+      const result = await this.knex('watchlist_radarr_instances')
+        .select('radarr_instance_id')
+        .where({ watchlist_id: watchlistId })
+
+      return result.map((r) => r.radarr_instance_id)
+    } catch (error) {
+      this.log.error(
+        `Error getting Radarr instance IDs for watchlist ${watchlistId}:`,
+        error,
+      )
+      return []
+    }
+  }
+
+  async getWatchlistRadarrInstanceStatus(
+    watchlistId: number,
+    instanceId: number,
+  ): Promise<WatchlistInstanceStatus | null> {
+    try {
+      const result = await this.knex('watchlist_radarr_instances')
+        .select('status', 'last_notified_at', 'is_primary')
+        .where({
+          watchlist_id: watchlistId,
+          radarr_instance_id: instanceId,
+        })
+        .first()
+
+      return result || null
+    } catch (error) {
+      this.log.error(
+        `Error getting Radarr instance status for watchlist ${watchlistId}, instance ${instanceId}:`,
+        error,
+      )
+      return null
+    }
+  }
+
+  async addWatchlistToRadarrInstance(
+    watchlistId: number,
+    instanceId: number,
+    status = 'pending',
+    isPrimary = false,
+  ): Promise<void> {
+    try {
+      await this.knex('watchlist_radarr_instances').insert({
+        watchlist_id: watchlistId,
+        radarr_instance_id: instanceId,
+        status,
+        is_primary: isPrimary,
+        created_at: this.timestamp,
+        updated_at: this.timestamp,
+      })
+      this.log.debug(
+        `Added watchlist ${watchlistId} to Radarr instance ${instanceId}`,
+      )
+    } catch (error) {
+      this.log.error(
+        `Error adding watchlist ${watchlistId} to Radarr instance ${instanceId}:`,
+        error,
+      )
+      throw error
+    }
+  }
+
+  async updateWatchlistRadarrInstanceStatus(
+    watchlistId: number,
+    instanceId: number,
+    status: string,
+    lastNotifiedAt: string | null = null,
+  ): Promise<void> {
+    try {
+      const updateData: Record<string, unknown> = {
+        status,
+        updated_at: this.timestamp,
+      }
+
+      if (lastNotifiedAt !== undefined) {
+        updateData.last_notified_at = lastNotifiedAt
+      }
+
+      await this.knex('watchlist_radarr_instances')
+        .where({
+          watchlist_id: watchlistId,
+          radarr_instance_id: instanceId,
+        })
+        .update(updateData)
+
+      this.log.debug(
+        `Updated watchlist ${watchlistId} Radarr instance ${instanceId} status to ${status}`,
+      )
+    } catch (error) {
+      this.log.error(
+        `Error updating watchlist ${watchlistId} Radarr instance ${instanceId} status:`,
+        error,
+      )
+      throw error
+    }
+  }
+
+  async removeWatchlistFromRadarrInstance(
+    watchlistId: number,
+    instanceId: number,
+  ): Promise<void> {
+    try {
+      await this.knex('watchlist_radarr_instances')
+        .where({
+          watchlist_id: watchlistId,
+          radarr_instance_id: instanceId,
+        })
+        .delete()
+
+      this.log.debug(
+        `Removed watchlist ${watchlistId} from Radarr instance ${instanceId}`,
+      )
+    } catch (error) {
+      this.log.error(
+        `Error removing watchlist ${watchlistId} from Radarr instance ${instanceId}:`,
+        error,
+      )
+      throw error
+    }
+  }
+
+  async setPrimaryRadarrInstance(
+    watchlistId: number,
+    primaryInstanceId: number,
+  ): Promise<void> {
+    try {
+      await this.knex.transaction(async (trx) => {
+        await trx('watchlist_radarr_instances')
+          .where({ watchlist_id: watchlistId })
+          .update({
+            is_primary: false,
+            updated_at: this.timestamp,
+          })
+
+        await trx('watchlist_radarr_instances')
+          .where({
+            watchlist_id: watchlistId,
+            radarr_instance_id: primaryInstanceId,
+          })
+          .update({
+            is_primary: true,
+            updated_at: this.timestamp,
+          })
+      })
+
+      this.log.debug(
+        `Set Radarr instance ${primaryInstanceId} as primary for watchlist ${watchlistId}`,
+      )
+    } catch (error) {
+      this.log.error(
+        `Error setting primary Radarr instance for watchlist ${watchlistId}:`,
+        error,
+      )
+      throw error
+    }
+  }
+
+  // Sonarr Junction Table Methods
+  async getWatchlistSonarrInstanceIds(watchlistId: number): Promise<number[]> {
+    try {
+      const result = await this.knex('watchlist_sonarr_instances')
+        .select('sonarr_instance_id')
+        .where({ watchlist_id: watchlistId })
+
+      return result.map((r) => r.sonarr_instance_id)
+    } catch (error) {
+      this.log.error(
+        `Error getting Sonarr instance IDs for watchlist ${watchlistId}:`,
+        error,
+      )
+      return []
+    }
+  }
+
+  async getWatchlistSonarrInstanceStatus(
+    watchlistId: number,
+    instanceId: number,
+  ): Promise<WatchlistInstanceStatus | null> {
+    try {
+      const result = await this.knex('watchlist_sonarr_instances')
+        .select('status', 'last_notified_at', 'is_primary')
+        .where({
+          watchlist_id: watchlistId,
+          sonarr_instance_id: instanceId,
+        })
+        .first()
+
+      return result || null
+    } catch (error) {
+      this.log.error(
+        `Error getting Sonarr instance status for watchlist ${watchlistId}, instance ${instanceId}:`,
+        error,
+      )
+      return null
+    }
+  }
+
+  async addWatchlistToSonarrInstance(
+    watchlistId: number,
+    instanceId: number,
+    status = 'pending',
+    isPrimary = false,
+  ): Promise<void> {
+    try {
+      await this.knex('watchlist_sonarr_instances').insert({
+        watchlist_id: watchlistId,
+        sonarr_instance_id: instanceId,
+        status,
+        is_primary: isPrimary,
+        created_at: this.timestamp,
+        updated_at: this.timestamp,
+      })
+
+      this.log.debug(
+        `Added watchlist ${watchlistId} to Sonarr instance ${instanceId}`,
+      )
+    } catch (error) {
+      this.log.error(
+        `Error adding watchlist ${watchlistId} to Sonarr instance ${instanceId}:`,
+        error,
+      )
+      throw error
+    }
+  }
+
+  async updateWatchlistSonarrInstanceStatus(
+    watchlistId: number,
+    instanceId: number,
+    status: string,
+    lastNotifiedAt: string | null = null,
+  ): Promise<void> {
+    try {
+      const updateData: Record<string, unknown> = {
+        status,
+        updated_at: this.timestamp,
+      }
+
+      if (lastNotifiedAt !== undefined) {
+        updateData.last_notified_at = lastNotifiedAt
+      }
+
+      await this.knex('watchlist_sonarr_instances')
+        .where({
+          watchlist_id: watchlistId,
+          sonarr_instance_id: instanceId,
+        })
+        .update(updateData)
+
+      this.log.debug(
+        `Updated watchlist ${watchlistId} Sonarr instance ${instanceId} status to ${status}`,
+      )
+    } catch (error) {
+      this.log.error(
+        `Error updating watchlist ${watchlistId} Sonarr instance ${instanceId} status:`,
+        error,
+      )
+      throw error
+    }
+  }
+
+  async removeWatchlistFromSonarrInstance(
+    watchlistId: number,
+    instanceId: number,
+  ): Promise<void> {
+    try {
+      await this.knex('watchlist_sonarr_instances')
+        .where({
+          watchlist_id: watchlistId,
+          sonarr_instance_id: instanceId,
+        })
+        .delete()
+
+      this.log.debug(
+        `Removed watchlist ${watchlistId} from Sonarr instance ${instanceId}`,
+      )
+    } catch (error) {
+      this.log.error(
+        `Error removing watchlist ${watchlistId} from Sonarr instance ${instanceId}:`,
+        error,
+      )
+      throw error
+    }
+  }
+
+  async setPrimarySonarrInstance(
+    watchlistId: number,
+    primaryInstanceId: number,
+  ): Promise<void> {
+    try {
+      await this.knex.transaction(async (trx) => {
+        await trx('watchlist_sonarr_instances')
+          .where({ watchlist_id: watchlistId })
+          .update({
+            is_primary: false,
+            updated_at: this.timestamp,
+          })
+
+        await trx('watchlist_sonarr_instances')
+          .where({
+            watchlist_id: watchlistId,
+            sonarr_instance_id: primaryInstanceId,
+          })
+          .update({
+            is_primary: true,
+            updated_at: this.timestamp,
+          })
+      })
+
+      this.log.debug(
+        `Set Sonarr instance ${primaryInstanceId} as primary for watchlist ${watchlistId}`,
+      )
+    } catch (error) {
+      this.log.error(
+        `Error setting primary Sonarr instance for watchlist ${watchlistId}:`,
+        error,
+      )
+      throw error
     }
   }
 }
