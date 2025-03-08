@@ -1154,4 +1154,195 @@ export class StatusService {
       return false
     }
   }
+
+  async syncAllConfiguredInstances(): Promise<{
+    radarr: Array<{ id: number; name: string; itemsCopied: number }>
+    sonarr: Array<{ id: number; name: string; itemsCopied: number }>
+  }> {
+    const operationId = `all-instances-sync-${Date.now()}`
+    const emitProgress = this.hasActiveProgressConnections()
+
+    if (emitProgress) {
+      this.emitProgress({
+        operationId,
+        type: 'sync' as const,
+        phase: 'start',
+        progress: 0,
+        message: 'Initializing sync for all non-default instances...',
+      })
+    }
+
+    try {
+      this.log.info('Fetching all Radarr instances')
+      const radarrInstances = await this.dbService.getAllRadarrInstances()
+      const radarrToSync = radarrInstances.filter(
+        (instance) => !instance.isDefault,
+      )
+
+      this.log.info('Fetching all Sonarr instances')
+      const sonarrInstances = await this.dbService.getAllSonarrInstances()
+      const sonarrToSync = sonarrInstances.filter(
+        (instance) => !instance.isDefault,
+      )
+
+      const totalInstances = radarrToSync.length + sonarrToSync.length
+
+      if (emitProgress) {
+        this.emitProgress({
+          operationId,
+          type: 'sync' as const,
+          phase: 'processing',
+          progress: 5,
+          message: `Found ${totalInstances} instances to sync (${radarrToSync.length} Radarr, ${sonarrToSync.length} Sonarr)`,
+        })
+      }
+
+      let instancesProcessed = 0
+      const radarrResults: Array<{
+        id: number
+        name: string
+        itemsCopied: number
+      }> = []
+      const sonarrResults: Array<{
+        id: number
+        name: string
+        itemsCopied: number
+      }> = []
+
+      const BATCH_SIZE = 3 // Process 3 instances at a time
+
+      for (let i = 0; i < radarrToSync.length; i += BATCH_SIZE) {
+        const batch = radarrToSync.slice(i, i + BATCH_SIZE)
+
+        if (emitProgress) {
+          this.emitProgress({
+            operationId,
+            type: 'sync' as const,
+            phase: 'processing',
+            progress:
+              5 + Math.floor((instancesProcessed / totalInstances) * 90),
+            message: `Processing Radarr instances ${i + 1} to ${Math.min(i + batch.length, radarrToSync.length)} of ${radarrToSync.length}`,
+          })
+        }
+
+        const batchResults = await Promise.all(
+          batch.map(async (instance) => {
+            try {
+              this.log.info(
+                `Syncing Radarr instance ${instance.id} (${instance.name})`,
+              )
+              const itemsCopied = await this.syncRadarrInstance(instance.id)
+              return {
+                id: instance.id,
+                name: instance.name,
+                itemsCopied,
+              }
+            } catch (error) {
+              this.log.error(
+                `Error syncing Radarr instance ${instance.id} (${instance.name}):`,
+                error,
+              )
+              return {
+                id: instance.id,
+                name: instance.name,
+                itemsCopied: 0,
+                error: String(error),
+              }
+            }
+          }),
+        )
+
+        radarrResults.push(...batchResults)
+        instancesProcessed += batch.length
+      }
+
+      for (let i = 0; i < sonarrToSync.length; i += BATCH_SIZE) {
+        const batch = sonarrToSync.slice(i, i + BATCH_SIZE)
+
+        if (emitProgress) {
+          this.emitProgress({
+            operationId,
+            type: 'sync' as const,
+            phase: 'processing',
+            progress:
+              5 + Math.floor((instancesProcessed / totalInstances) * 90),
+            message: `Processing Sonarr instances ${i + 1} to ${Math.min(i + batch.length, sonarrToSync.length)} of ${sonarrToSync.length}`,
+          })
+        }
+
+        const batchResults = await Promise.all(
+          batch.map(async (instance) => {
+            try {
+              this.log.info(
+                `Syncing Sonarr instance ${instance.id} (${instance.name})`,
+              )
+              const itemsCopied = await this.syncSonarrInstance(instance.id)
+              return {
+                id: instance.id,
+                name: instance.name,
+                itemsCopied,
+              }
+            } catch (error) {
+              this.log.error(
+                `Error syncing Sonarr instance ${instance.id} (${instance.name}):`,
+                error,
+              )
+              return {
+                id: instance.id,
+                name: instance.name,
+                itemsCopied: 0,
+                error: String(error),
+              }
+            }
+          }),
+        )
+
+        sonarrResults.push(...batchResults)
+        instancesProcessed += batch.length
+      }
+
+      if (emitProgress) {
+        this.emitProgress({
+          operationId,
+          type: 'sync' as const,
+          phase: 'complete',
+          progress: 100,
+          message: `Completed sync for all ${totalInstances} instances`,
+        })
+      }
+
+      const totalRadarrItems = radarrResults.reduce(
+        (sum, result) => sum + result.itemsCopied,
+        0,
+      )
+      const totalSonarrItems = sonarrResults.reduce(
+        (sum, result) => sum + result.itemsCopied,
+        0,
+      )
+
+      this.log.info('Sync completed for all instances. Results:', {
+        radarr: `${radarrResults.length} instances, ${totalRadarrItems} items copied`,
+        sonarr: `${sonarrResults.length} instances, ${totalSonarrItems} items copied`,
+      })
+
+      return {
+        radarr: radarrResults,
+        sonarr: sonarrResults,
+      }
+    } catch (error) {
+      this.log.error('Error syncing all configured instances:', error)
+
+      if (emitProgress) {
+        this.emitProgress({
+          operationId,
+          type: 'sync' as const,
+          phase: 'error',
+          progress: 100,
+          message: `Error syncing instances: ${error}`,
+        })
+      }
+
+      throw error
+    }
+  }
 }

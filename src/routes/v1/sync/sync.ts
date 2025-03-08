@@ -1,29 +1,15 @@
 import type { FastifyPluginAsync } from 'fastify'
-import { z } from 'zod'
-import { ErrorSchema } from '@schemas/stats/stats.schema.js'
-
-// Define schemas for responses
-const SyncInstanceResultSchema = z.object({
-  itemsCopied: z.number(),
-  message: z.string(),
-})
-
-const SyncAllInstancesResultSchema = z.object({
-  shows: z.number(),
-  movies: z.number(),
-  message: z.string(),
-})
-
-const InstanceIdParamsSchema = z.object({
-  instanceId: z.coerce.number().int().positive(),
-})
-
-const InstanceTypeQuerySchema = z.object({
-  type: z.enum(['radarr', 'sonarr']),
-})
+import type { z } from 'zod'
+import {
+  ErrorSchema,
+  InstanceIdParamsSchema,
+  InstanceTypeQuerySchema,
+  SyncInstanceResultSchema,
+  SyncAllInstancesResultSchema,
+} from '@schemas/sync/sync.schema.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
-  // Sync a new instance (radarr or sonarr)
+  // Sync a specific instance (radarr or sonarr)
   fastify.post<{
     Params: z.infer<typeof InstanceIdParamsSchema>
     Querystring: z.infer<typeof InstanceTypeQuerySchema>
@@ -48,7 +34,6 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         fastify.log.info(`Starting sync for ${type} instance ${instanceId}`)
 
-        // Check if instance exists before attempting to sync
         if (type === 'radarr') {
           const instance = await fastify.db.getRadarrInstance(instanceId)
           if (!instance) {
@@ -82,107 +67,13 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     },
   )
 
-  // Sync new Radarr instance
+  // Sync all configured instances (both Radarr and Sonarr)
   fastify.post<{
-    Params: z.infer<typeof InstanceIdParamsSchema>
-    Reply: z.infer<typeof SyncInstanceResultSchema>
-  }>(
-    '/radarr/:instanceId',
-    {
-      schema: {
-        params: InstanceIdParamsSchema,
-        response: {
-          200: SyncInstanceResultSchema,
-          500: ErrorSchema,
-        },
-        tags: ['Sync'],
-      },
-    },
-    async (request, reply) => {
-      try {
-        const { instanceId } = request.params
-
-        fastify.log.info(`Starting sync for Radarr instance ${instanceId}`)
-
-        const instance = await fastify.db.getRadarrInstance(instanceId)
-        if (!instance) {
-          return reply.notFound(
-            `Radarr instance with ID ${instanceId} not found`,
-          )
-        }
-
-        const itemsCopied = await fastify.sync.syncRadarrInstance(instanceId)
-
-        fastify.log.info(
-          `Radarr instance sync completed: Copied ${itemsCopied} movies`,
-        )
-
-        return {
-          itemsCopied,
-          message: `Successfully synchronized ${itemsCopied} movies to Radarr instance`,
-        }
-      } catch (err) {
-        fastify.log.error(`Error syncing Radarr instance: ${err}`)
-        return reply.internalServerError('Unable to sync Radarr instance')
-      }
-    },
-  )
-
-  // Sync new Sonarr instance
-  fastify.post<{
-    Params: z.infer<typeof InstanceIdParamsSchema>
-    Reply: z.infer<typeof SyncInstanceResultSchema>
-  }>(
-    '/sonarr/:instanceId',
-    {
-      schema: {
-        params: InstanceIdParamsSchema,
-        response: {
-          200: SyncInstanceResultSchema,
-          500: ErrorSchema,
-        },
-        tags: ['Sync'],
-      },
-    },
-    async (request, reply) => {
-      try {
-        const { instanceId } = request.params
-
-        fastify.log.info(`Starting sync for Sonarr instance ${instanceId}`)
-
-        const instance = await fastify.db.getSonarrInstance(instanceId)
-        if (!instance) {
-          return reply.notFound(
-            `Sonarr instance with ID ${instanceId} not found`,
-          )
-        }
-
-        const itemsCopied = await fastify.sync.syncSonarrInstance(instanceId)
-
-        fastify.log.info(
-          `Sonarr instance sync completed: Copied ${itemsCopied} shows`,
-        )
-
-        return {
-          itemsCopied,
-          message: `Successfully synchronized ${itemsCopied} shows`,
-        }
-      } catch (err) {
-        fastify.log.error(`Error syncing Radarr instance: ${err}`)
-        return reply.internalServerError('Unable to sync Sonarr instance')
-      }
-    },
-  )
-
-  // Combined sync for both Radarr and Sonarr
-  fastify.post<{
-    Params: z.infer<typeof InstanceIdParamsSchema>
     Reply: z.infer<typeof SyncAllInstancesResultSchema>
   }>(
-    '/all/:instanceId',
+    '/all',
     {
       schema: {
-        params: InstanceIdParamsSchema,
         response: {
           200: SyncAllInstancesResultSchema,
           500: ErrorSchema,
@@ -192,45 +83,30 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const { instanceId } = request.params
+        fastify.log.info('Starting sync for all configured instances')
 
-        fastify.log.info(`Starting combined sync for instance ${instanceId}`)
+        const results = await fastify.sync.syncAllConfiguredInstances()
 
-        // Check if the instance exists in both Radarr and Sonarr
-        const radarrInstance = await fastify.db.getRadarrInstance(instanceId)
-        const sonarrInstance = await fastify.db.getSonarrInstance(instanceId)
+        const totalRadarrItems = results.radarr.reduce(
+          (sum, instance) => sum + instance.itemsCopied,
+          0,
+        )
+        const totalSonarrItems = results.sonarr.reduce(
+          (sum, instance) => sum + instance.itemsCopied,
+          0,
+        )
 
-        if (!radarrInstance && !sonarrInstance) {
-          return reply.notFound(
-            `No instance with ID ${instanceId} found in either Radarr or Sonarr`,
-          )
-        }
-
-        let movies = 0
-        let shows = 0
-
-        // Sync Radarr if the instance exists
-        if (radarrInstance) {
-          movies = await fastify.sync.syncRadarrInstance(instanceId)
-          fastify.log.info(`Radarr sync completed: Copied ${movies} movies`)
-        }
-
-        // Sync Sonarr if the instance exists
-        if (sonarrInstance) {
-          shows = await fastify.sync.syncSonarrInstance(instanceId)
-          fastify.log.info(`Sonarr sync completed: Copied ${shows} shows`)
-        }
+        fastify.log.info(
+          `All instances sync completed: Copied ${totalRadarrItems} movies and ${totalSonarrItems} shows across ${results.radarr.length + results.sonarr.length} instances`,
+        )
 
         return {
-          shows,
-          movies,
-          message: `Successfully synchronized ${shows} shows and ${movies} movies to instance`,
+          ...results,
+          message: `Successfully synchronized ${totalRadarrItems} movies and ${totalSonarrItems} shows across all configured instances`,
         }
       } catch (err) {
-        fastify.log.error(`Error performing combined sync for instance: ${err}`)
-        return reply.internalServerError(
-          'Unable to perform combined sync for instance',
-        )
+        fastify.log.error(`Error syncing all instances: ${err}`)
+        return reply.internalServerError('Unable to sync all instances')
       }
     },
   )
