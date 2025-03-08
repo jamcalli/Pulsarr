@@ -1,6 +1,6 @@
 export interface ProgressEvent {
   operationId: string
-  type: 'self-watchlist' | 'others-watchlist' | 'rss-feed' | 'system'
+  type: 'self-watchlist' | 'others-watchlist' | 'rss-feed' | 'system' | 'sync'
   phase: string
   progress: number
   message: string

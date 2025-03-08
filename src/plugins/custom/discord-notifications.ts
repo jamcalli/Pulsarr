@@ -89,7 +89,7 @@ function emitDiscordStatus(fastify: FastifyInstance) {
 
   fastify.progress.emit({
     operationId,
-    type: 'system',
+    type: 'system', 
     phase: 'info',
     progress: 100,
     message: `Discord bot status: ${status}`,
