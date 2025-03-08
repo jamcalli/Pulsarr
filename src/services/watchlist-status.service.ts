@@ -17,6 +17,7 @@ export class StatusService {
     private readonly dbService: FastifyInstance['db'],
     private readonly sonarrManager: FastifyInstance['sonarrManager'],
     private readonly radarrManager: FastifyInstance['radarrManager'],
+    private readonly fastify?: FastifyInstance,
   ) {}
 
   async syncAllStatuses(): Promise<{ shows: number; movies: number }> {
@@ -31,29 +32,23 @@ export class StatusService {
     try {
       const existingSeries = await this.sonarrManager.fetchAllSeries()
       const watchlistItems = await this.dbService.getAllShowWatchlistItems()
-
       const dbWatchlistItems = this.convertToDbWatchlistItems(watchlistItems)
-
       const mainUpdates = this.processShowStatusUpdates(
         existingSeries,
         dbWatchlistItems,
       )
-
       let updateCount = 0
       if (mainUpdates.length > 0) {
         updateCount = await this.dbService.bulkUpdateWatchlistItems(mainUpdates)
       }
-
       const genreRoutes = await this.dbService.getSonarrGenreRoutes()
       const defaultInstance = await this.dbService.getDefaultSonarrInstance()
-
       const junctionUpdates = await this.processShowJunctionUpdates(
         existingSeries,
         dbWatchlistItems,
         genreRoutes,
         defaultInstance,
       )
-
       updateCount += junctionUpdates
       return updateCount
     } catch (error) {
@@ -66,29 +61,23 @@ export class StatusService {
     try {
       const existingMovies = await this.radarrManager.fetchAllMovies()
       const watchlistItems = await this.dbService.getAllMovieWatchlistItems()
-
       const dbWatchlistItems = this.convertToDbWatchlistItems(watchlistItems)
-
       const mainUpdates = this.processMovieStatusUpdates(
         existingMovies,
         dbWatchlistItems,
       )
-
       let updateCount = 0
       if (mainUpdates.length > 0) {
         updateCount = await this.dbService.bulkUpdateWatchlistItems(mainUpdates)
       }
-
       const genreRoutes = await this.dbService.getRadarrGenreRoutes()
       const defaultInstance = await this.dbService.getDefaultRadarrInstance()
-
       const junctionUpdates = await this.processMovieJunctionUpdates(
         existingMovies,
         dbWatchlistItems,
         genreRoutes,
         defaultInstance,
       )
-
       updateCount += junctionUpdates
       return updateCount
     } catch (error) {
@@ -118,12 +107,10 @@ export class StatusService {
       series_status?: 'continuing' | 'ended'
       sonarr_instance_id?: number
     }> = []
-
     for (const item of watchlistItems) {
       const sonarrMatch = this.findMatch(sonarrItems, item.guids)
       if (sonarrMatch) {
         const instanceId = sonarrMatch.sonarr_instance_id || undefined
-
         const update: {
           userId: number
           key: string
@@ -135,11 +122,9 @@ export class StatusService {
           userId: item.user_id,
           key: item.key,
         }
-
         if (item.added !== sonarrMatch.added) {
           update.added = sonarrMatch.added
         }
-
         if (item.status !== sonarrMatch.status) {
           if (item.status !== 'notified') {
             update.status = sonarrMatch.status
@@ -149,21 +134,17 @@ export class StatusService {
             )
           }
         }
-
         if (item.series_status !== sonarrMatch.series_status) {
           update.series_status = sonarrMatch.series_status
         }
-
         if (item.sonarr_instance_id !== instanceId) {
           update.sonarr_instance_id = instanceId
         }
-
         if (Object.keys(update).length > 2) {
           updates.push(update)
         }
       }
     }
-
     return updates
   }
 
@@ -179,12 +160,10 @@ export class StatusService {
       movie_status?: 'available' | 'unavailable'
       radarr_instance_id?: number
     }> = []
-
     for (const item of watchlistItems) {
       const radarrMatch = this.findMatch(radarrItems, item.guids)
       if (radarrMatch) {
         const instanceId = radarrMatch.radarr_instance_id || undefined
-
         const update: {
           userId: number
           key: string
@@ -196,11 +175,9 @@ export class StatusService {
           userId: item.user_id,
           key: item.key,
         }
-
         if (item.added !== radarrMatch.added) {
           update.added = radarrMatch.added
         }
-
         if (item.status !== radarrMatch.status) {
           if (item.status !== 'notified') {
             update.status = radarrMatch.status
@@ -210,28 +187,23 @@ export class StatusService {
             )
           }
         }
-
         if (item.movie_status !== radarrMatch.movie_status) {
           update.movie_status = radarrMatch.movie_status as
             | 'available'
             | 'unavailable'
         }
-
         if (item.radarr_instance_id !== instanceId) {
           update.radarr_instance_id = instanceId
         }
-
         if (Object.keys(update).length > 2) {
           updates.push(update)
         }
       }
     }
-
     return updates
   }
 
   // Junction table updates
-
   private async processShowJunctionUpdates(
     sonarrItems: SonarrItem[],
     watchlistItems: DatabaseWatchlistItem[],
@@ -239,50 +211,39 @@ export class StatusService {
     defaultInstance: SonarrInstance | null,
   ): Promise<number> {
     let updateCount = 0
-
     for (const item of watchlistItems) {
       try {
         if (item.id === undefined) {
           this.log.debug(`Skipping show ${item.title} with undefined ID`)
           continue
         }
-
         const matchingSeries = sonarrItems.filter((series) =>
           this.isGuidMatch(series.guids, item.guids),
         )
-
         if (matchingSeries.length === 0) continue
-
         const currentInstanceIds =
           await this.dbService.getWatchlistSonarrInstanceIds(item.id)
-
         const itemGenres = this.parseGenres(item.genres)
         const targetInstanceIds = new Set<number>()
-
         for (const route of genreRoutes) {
           if (itemGenres.includes(route.genre)) {
             targetInstanceIds.add(route.sonarrInstanceId)
           }
         }
-
         if (targetInstanceIds.size === 0 && defaultInstance) {
           targetInstanceIds.add(defaultInstance.id)
-
           const syncedInstances = Array.isArray(defaultInstance.syncedInstances)
             ? defaultInstance.syncedInstances
             : typeof defaultInstance.syncedInstances === 'string'
               ? JSON.parse(defaultInstance.syncedInstances || '[]')
               : []
-
           for (const syncedId of syncedInstances) {
             targetInstanceIds.add(syncedId)
           }
         }
-
         for (const series of matchingSeries) {
           const instanceId = series.sonarr_instance_id
           if (!instanceId) continue
-
           if (targetInstanceIds.has(instanceId)) {
             if (!currentInstanceIds.includes(instanceId)) {
               await this.dbService.addWatchlistToSonarrInstance(
@@ -301,7 +262,6 @@ export class StatusService {
                   item.id,
                   instanceId,
                 )
-
               if (
                 currentStatus &&
                 currentStatus.status !== series.status &&
@@ -326,16 +286,13 @@ export class StatusService {
             }
           }
         }
-
         const instancesToRemove = currentInstanceIds.filter(
           (id) => !targetInstanceIds.has(id),
         )
-
         if (instancesToRemove.length > 0) {
           if (targetInstanceIds.size > 0) {
             const validInstanceIds = Array.from(targetInstanceIds)
             let needNewPrimary = false
-
             for (const instanceId of instancesToRemove) {
               const status =
                 await this.dbService.getWatchlistSonarrInstanceStatus(
@@ -345,7 +302,6 @@ export class StatusService {
               if (status?.is_primary) {
                 needNewPrimary = true
               }
-
               await this.dbService.removeWatchlistFromSonarrInstance(
                 item.id,
                 instanceId,
@@ -355,7 +311,6 @@ export class StatusService {
                 `Removed show ${item.title} from Sonarr instance ${instanceId} (genre routing)`,
               )
             }
-
             if (needNewPrimary && validInstanceIds.length > 0) {
               await this.dbService.setPrimarySonarrInstance(
                 item.id,
@@ -383,7 +338,6 @@ export class StatusService {
         )
       }
     }
-
     return updateCount
   }
 
@@ -394,50 +348,39 @@ export class StatusService {
     defaultInstance: RadarrInstance | null,
   ): Promise<number> {
     let updateCount = 0
-
     for (const item of watchlistItems) {
       try {
         if (item.id === undefined) {
           this.log.debug(`Skipping movie ${item.title} with undefined ID`)
           continue
         }
-
         const matchingMovies = radarrItems.filter((movie) =>
           this.isGuidMatch(movie.guids, item.guids),
         )
-
         if (matchingMovies.length === 0) continue
-
         const currentInstanceIds =
           await this.dbService.getWatchlistRadarrInstanceIds(item.id)
-
         const itemGenres = this.parseGenres(item.genres)
         const targetInstanceIds = new Set<number>()
-
         for (const route of genreRoutes) {
           if (itemGenres.includes(route.genre)) {
             targetInstanceIds.add(route.radarrInstanceId)
           }
         }
-
         if (targetInstanceIds.size === 0 && defaultInstance) {
           targetInstanceIds.add(defaultInstance.id)
-
           const syncedInstances = Array.isArray(defaultInstance.syncedInstances)
             ? defaultInstance.syncedInstances
             : typeof defaultInstance.syncedInstances === 'string'
               ? JSON.parse(defaultInstance.syncedInstances || '[]')
               : []
-
           for (const syncedId of syncedInstances) {
             targetInstanceIds.add(syncedId)
           }
         }
-
         for (const movie of matchingMovies) {
           const instanceId = movie.radarr_instance_id
           if (!instanceId) continue
-
           if (targetInstanceIds.has(instanceId)) {
             if (!currentInstanceIds.includes(instanceId)) {
               await this.dbService.addWatchlistToRadarrInstance(
@@ -456,7 +399,6 @@ export class StatusService {
                   item.id,
                   instanceId,
                 )
-
               if (
                 currentStatus &&
                 currentStatus.status !== movie.status &&
@@ -481,16 +423,13 @@ export class StatusService {
             }
           }
         }
-
         const instancesToRemove = currentInstanceIds.filter(
           (id) => !targetInstanceIds.has(id),
         )
-
         if (instancesToRemove.length > 0) {
           if (targetInstanceIds.size > 0) {
             const validInstanceIds = Array.from(targetInstanceIds)
             let needNewPrimary = false
-
             for (const instanceId of instancesToRemove) {
               const status =
                 await this.dbService.getWatchlistRadarrInstanceStatus(
@@ -500,7 +439,6 @@ export class StatusService {
               if (status?.is_primary) {
                 needNewPrimary = true
               }
-
               await this.dbService.removeWatchlistFromRadarrInstance(
                 item.id,
                 instanceId,
@@ -510,7 +448,6 @@ export class StatusService {
                 `Removed movie ${item.title} from Radarr instance ${instanceId} (genre routing)`,
               )
             }
-
             if (needNewPrimary && validInstanceIds.length > 0) {
               await this.dbService.setPrimaryRadarrInstance(
                 item.id,
@@ -538,7 +475,6 @@ export class StatusService {
         )
       }
     }
-
     return updateCount
   }
 
@@ -562,19 +498,16 @@ export class StatusService {
     itemGuids2: string[] | string | undefined,
   ): boolean {
     if (!itemGuids1 || !itemGuids2) return false
-
     const guids1 = Array.isArray(itemGuids1)
       ? itemGuids1
       : typeof itemGuids1 === 'string'
         ? JSON.parse(itemGuids1)
         : []
-
     const guids2 = Array.isArray(itemGuids2)
       ? itemGuids2
       : typeof itemGuids2 === 'string'
         ? JSON.parse(itemGuids2)
         : []
-
     return guids1.some((guid: string) => guids2.includes(guid))
   }
 
@@ -588,143 +521,93 @@ export class StatusService {
     }
   }
 
-  private async verifyItemExistsInSonarrInstance(
+  async syncInstance(
     instanceId: number,
-    item: { title: string; guids: string[] | string | undefined; key: string },
-  ): Promise<boolean> {
-    try {
-      if (!item.guids) {
-        this.log.debug(`Show ${item.title} has no GUIDs to verify against`)
-        return false
-      }
-
-      const tempItem = {
-        title: item.title,
-        guids:
-          typeof item.guids === 'string' ? JSON.parse(item.guids) : item.guids,
-        type: 'show',
-        key: item.key,
-      }
-
-      const exists = await this.sonarrManager.verifyItemExists(
-        instanceId,
-        tempItem,
-      )
-      if (exists) {
-        this.log.debug(
-          `Show ${item.title} already exists in Sonarr instance ${instanceId}, skipping addition`,
-        )
-        return true
-      }
-
-      return false
-    } catch (error) {
-      this.log.error(
-        `Error verifying show ${item.title} in Sonarr instance ${instanceId}: ${error}`,
-      )
-      return false
+    instanceType: 'radarr' | 'sonarr',
+  ): Promise<number> {
+    if (instanceType === 'radarr') {
+      return this.syncRadarrInstance(instanceId)
     }
+    return this.syncSonarrInstance(instanceId)
   }
 
-  private async verifyItemExistsInRadarrInstance(
-    instanceId: number,
-    item: { title: string; guids: string[] | string | undefined; key: string },
-  ): Promise<boolean> {
-    try {
-      if (!item.guids) {
-        this.log.debug(`Movie ${item.title} has no GUIDs to verify against`)
-        return false
-      }
+  private hasActiveProgressConnections(): boolean {
+    return this.fastify?.progress?.hasActiveConnections() || false
+  }
 
-      const tempItem = {
-        title: item.title,
-        guids:
-          typeof item.guids === 'string' ? JSON.parse(item.guids) : item.guids,
-        type: 'movie',
-        key: item.key,
-      }
-
-      const exists = await this.radarrManager.verifyItemExists(
-        instanceId,
-        tempItem,
-      )
-      if (exists) {
-        this.log.debug(
-          `Movie ${item.title} already exists in Radarr instance ${instanceId}, skipping addition`,
-        )
-        return true
-      }
-
-      return false
-    } catch (error) {
-      this.log.error(
-        `Error verifying movie ${item.title} in Radarr instance ${instanceId}: ${error}`,
-      )
-      return false
+  private emitProgress(progressData: {
+    operationId: string
+    type: 'sync'
+    phase: string
+    progress: number
+    message: string
+  }): void {
+    if (this.fastify?.progress) {
+      this.fastify.progress.emit(progressData)
     }
   }
 
   async syncRadarrInstance(instanceId: number): Promise<number> {
     try {
-      this.log.info(`Starting sync for Radarr instance ${instanceId}`)
+      const operationId = `radarr-instance-sync-${instanceId}-${Date.now()}`
+      const emitProgress = this.hasActiveProgressConnections()
 
+      if (emitProgress) {
+        this.emitProgress({
+          operationId,
+          type: 'sync' as const,
+          phase: 'start',
+          progress: 0,
+          message: `Initializing Radarr sync for instance ${instanceId}...`,
+        })
+      }
+
+      this.log.info(`Starting sync for Radarr instance ${instanceId}`)
       const instance = await this.dbService.getRadarrInstance(instanceId)
       if (!instance) {
         throw new Error(`Radarr instance ${instanceId} not found`)
       }
-
       const defaultInstance = await this.dbService.getDefaultRadarrInstance()
-
       this.log.debug(
         `Instance syncedInstances: ${JSON.stringify(instance.syncedInstances)}`,
       )
       this.log.debug(`Instance isDefault: ${instance.isDefault}`)
-
       if (defaultInstance) {
         this.log.debug(`Default instance ID: ${defaultInstance.id}`)
         this.log.debug(
           `Default instance syncedInstances: ${JSON.stringify(defaultInstance.syncedInstances)}`,
         )
       }
-
       const shouldSyncFromDefault =
         defaultInstance &&
         defaultInstance.id !== instanceId &&
         Array.isArray(defaultInstance.syncedInstances) &&
         defaultInstance.syncedInstances.includes(instanceId)
-
       this.log.debug(
         `Should sync from default to this instance: ${shouldSyncFromDefault}`,
       )
 
       const watchlistItems = await this.dbService.getAllMovieWatchlistItems()
-
       const uniqueByGuid = new Map<string, (typeof watchlistItems)[0]>()
-
       for (const item of watchlistItems) {
         const guids = Array.isArray(item.guids)
           ? item.guids
           : typeof item.guids === 'string'
             ? JSON.parse(item.guids || '[]')
             : []
-
         if (guids.length > 0 && !uniqueByGuid.has(guids[0])) {
           uniqueByGuid.set(guids[0], item)
         }
       }
-
       const uniqueWatchlistItems = Array.from(uniqueByGuid.values())
-
       this.log.info(
         `Deduplicated watchlist items from ${watchlistItems.length} to ${uniqueWatchlistItems.length} unique media items`,
       )
 
       const allExistingMovies = await this.radarrManager.fetchAllMovies()
-
       const existingMoviesInInstance = allExistingMovies.filter(
         (movie) => movie.radarr_instance_id === instanceId,
       )
-
       const existingGuidMap = new Map<string, boolean>()
       for (const movie of existingMoviesInInstance) {
         const guids = Array.isArray(movie.guids)
@@ -732,35 +615,30 @@ export class StatusService {
           : typeof movie.guids === 'string'
             ? JSON.parse(movie.guids || '[]')
             : []
-
         for (const guid of guids) {
           existingGuidMap.set(guid, true)
         }
       }
-
       this.log.debug(
         `Found ${uniqueWatchlistItems.length} unique movies to evaluate for sync`,
       )
-
       const genreRoutes = await this.dbService.getRadarrGenreRoutes()
       this.log.debug(`Found ${genreRoutes.length} genre routes for Radarr`)
 
-      let itemsCopied = 0
+      const itemsToCopy: Array<{
+        item: (typeof watchlistItems)[0]
+        matchingMovie: RadarrItem
+      }> = []
 
       for (const item of uniqueWatchlistItems) {
         try {
           if (item.id === undefined) continue
-
           const numericId =
             typeof item.id === 'string' ? Number(item.id) : item.id
-
           const currentInstanceIds =
             await this.dbService.getWatchlistRadarrInstanceIds(numericId)
-
           if (currentInstanceIds.includes(instanceId)) continue
-
           let shouldBeInInstance = false
-
           const itemGenres = this.parseGenres(item.genres)
           for (const route of genreRoutes) {
             if (
@@ -774,7 +652,6 @@ export class StatusService {
               break
             }
           }
-
           if (!shouldBeInInstance && shouldSyncFromDefault) {
             if (
               defaultInstance &&
@@ -786,14 +663,12 @@ export class StatusService {
               )
             }
           }
-
           if (!shouldBeInInstance) {
             const syncedInstances = Array.isArray(instance.syncedInstances)
               ? instance.syncedInstances
               : typeof instance.syncedInstances === 'string'
                 ? JSON.parse(instance.syncedInstances || '[]')
                 : []
-
             for (const syncedId of syncedInstances) {
               const isInSyncedInstance = currentInstanceIds.includes(syncedId)
               if (isInSyncedInstance) {
@@ -805,18 +680,15 @@ export class StatusService {
               }
             }
           }
-
           if (shouldBeInInstance) {
             const itemGuids = Array.isArray(item.guids)
               ? item.guids
               : typeof item.guids === 'string'
                 ? JSON.parse(item.guids || '[]')
                 : []
-
             const alreadyExists = itemGuids.some((guid: string) =>
               existingGuidMap.has(guid),
             )
-
             if (alreadyExists) {
               this.log.debug(
                 `Movie ${item.title} exists in Radarr instance ${instanceId} but not in junction table, updating database`,
@@ -827,28 +699,14 @@ export class StatusService {
                 'pending',
                 currentInstanceIds.length === 0,
               )
-              itemsCopied++
               continue
             }
-
             const matchingMovie = this.findMatch(allExistingMovies, item.guids)
-
             if (matchingMovie) {
-              try {
-                await this.radarrManager.routeItemToRadarr(
-                  matchingMovie,
-                  item.key,
-                  instanceId,
-                )
-                itemsCopied++
-                this.log.debug(
-                  `Copied movie ${item.title} to Radarr instance ${instanceId}`,
-                )
-              } catch (error) {
-                this.log.error(
-                  `Error copying movie ${item.title} to instance ${instanceId}: ${error}`,
-                )
-              }
+              itemsToCopy.push({
+                item,
+                matchingMovie,
+              })
             } else {
               this.log.debug(
                 `No matching movie found for ${item.title} to copy to instance ${instanceId}`,
@@ -857,8 +715,106 @@ export class StatusService {
           }
         } catch (itemError) {
           this.log.error(
-            `Error processing movie ${item.title} during sync: ${itemError}`,
+            `Error processing movie ${item.title} during analysis: ${itemError}`,
           )
+        }
+      }
+
+      let itemsCopied = 0
+
+      if (itemsToCopy.length > 0) {
+        if (emitProgress) {
+          this.emitProgress({
+            operationId,
+            type: 'sync' as const,
+            phase: 'copying',
+            progress: 5,
+            message: `Starting to process ${itemsToCopy.length} movies for Radarr instance ${instanceId}`,
+          })
+        }
+
+        const BATCH_SIZE = 5 // Number of items to process in parallel
+        let completedCount = 0
+
+        const queue = [...itemsToCopy]
+        let processingCount = 0
+
+        while (queue.length > 0 || processingCount > 0) {
+          while (queue.length > 0 && processingCount < BATCH_SIZE) {
+            const queueItem = queue.shift()
+            if (queueItem) {
+              processingCount++
+              const { item, matchingMovie } = queueItem
+
+              const dbItem: DatabaseWatchlistItem = {
+                ...item,
+                id:
+                  typeof item.id === 'string'
+                    ? Number.parseInt(item.id, 10)
+                    : (item.id as number),
+              }
+
+              this.processSingleRadarrItem(
+                dbItem as DatabaseWatchlistItem,
+                matchingMovie,
+                instanceId,
+              )
+                .then((success) => {
+                  if (success) {
+                    itemsCopied++
+                  }
+                  processingCount--
+                  completedCount++
+
+                  if (emitProgress) {
+                    const progress = Math.min(
+                      5 +
+                        Math.floor((completedCount / itemsToCopy.length) * 90),
+                      95,
+                    )
+                    this.emitProgress({
+                      operationId,
+                      type: 'sync' as const,
+                      phase: 'copying',
+                      progress,
+                      message: `Copied ${completedCount} of ${itemsToCopy.length} movies to Radarr instance ${instanceId}`,
+                    })
+                  }
+                })
+                .catch((error) => {
+                  this.log.error(`Error in batch processing movie: ${error}`)
+                  processingCount--
+                  completedCount++
+                })
+            }
+          }
+
+          if (
+            processingCount >= BATCH_SIZE ||
+            (processingCount > 0 && queue.length === 0)
+          ) {
+            await new Promise((resolve) => setTimeout(resolve, 50))
+          }
+        }
+
+        if (emitProgress) {
+          this.emitProgress({
+            operationId,
+            type: 'sync' as const,
+            phase: 'complete',
+            progress: 100,
+            message: `Completed sync for Radarr instance ${instanceId}, copied ${itemsCopied} items`,
+          })
+        }
+      } else {
+        if (emitProgress) {
+          this.emitProgress({
+            operationId,
+            type: 'sync' as const,
+            phase: 'complete',
+            progress: 100,
+            message: `No items needed to be copied to Radarr instance ${instanceId}`,
+          })
         }
       }
 
@@ -872,67 +828,90 @@ export class StatusService {
     }
   }
 
+  private async processSingleRadarrItem(
+    item: DatabaseWatchlistItem,
+    matchingMovie: RadarrItem,
+    instanceId: number,
+  ): Promise<boolean> {
+    try {
+      await this.radarrManager.routeItemToRadarr(
+        matchingMovie,
+        item.key,
+        instanceId,
+      )
+      this.log.debug(
+        `Copied movie ${item.title} to Radarr instance ${instanceId}`,
+      )
+      return true
+    } catch (error) {
+      this.log.error(
+        `Error copying movie ${item.title} to instance ${instanceId}: ${error}`,
+      )
+      return false
+    }
+  }
+
   async syncSonarrInstance(instanceId: number): Promise<number> {
     try {
-      this.log.info(`Starting sync for Sonarr instance ${instanceId}`)
+      const operationId = `sonarr-instance-sync-${instanceId}-${Date.now()}`
+      const emitProgress = this.hasActiveProgressConnections()
 
+      if (emitProgress) {
+        this.emitProgress({
+          operationId,
+          type: 'sync' as const,
+          phase: 'start',
+          progress: 0,
+          message: `Initializing Sonarr sync for instance ${instanceId}...`,
+        })
+      }
+
+      this.log.info(`Starting sync for Sonarr instance ${instanceId}`)
       const instance = await this.dbService.getSonarrInstance(instanceId)
       if (!instance) {
         throw new Error(`Sonarr instance ${instanceId} not found`)
       }
-
       const defaultInstance = await this.dbService.getDefaultSonarrInstance()
-
       this.log.debug(
         `Instance syncedInstances: ${JSON.stringify(instance.syncedInstances)}`,
       )
       this.log.debug(`Instance isDefault: ${instance.isDefault}`)
-
       if (defaultInstance) {
         this.log.debug(`Default instance ID: ${defaultInstance.id}`)
         this.log.debug(
           `Default instance syncedInstances: ${JSON.stringify(defaultInstance.syncedInstances)}`,
         )
       }
-
       const shouldSyncFromDefault =
         defaultInstance &&
         defaultInstance.id !== instanceId &&
         Array.isArray(defaultInstance.syncedInstances) &&
         defaultInstance.syncedInstances.includes(instanceId)
-
       this.log.debug(
         `Should sync from default to this instance: ${shouldSyncFromDefault}`,
       )
 
       const watchlistItems = await this.dbService.getAllShowWatchlistItems()
-
       const uniqueByGuid = new Map<string, (typeof watchlistItems)[0]>()
-
       for (const item of watchlistItems) {
         const guids = Array.isArray(item.guids)
           ? item.guids
           : typeof item.guids === 'string'
             ? JSON.parse(item.guids || '[]')
             : []
-
         if (guids.length > 0 && !uniqueByGuid.has(guids[0])) {
           uniqueByGuid.set(guids[0], item)
         }
       }
-
       const uniqueWatchlistItems = Array.from(uniqueByGuid.values())
-
       this.log.info(
         `Deduplicated watchlist items from ${watchlistItems.length} to ${uniqueWatchlistItems.length} unique media items`,
       )
 
       const allExistingSeries = await this.sonarrManager.fetchAllSeries()
-
       const existingSeriesInInstance = allExistingSeries.filter(
         (series) => series.sonarr_instance_id === instanceId,
       )
-
       const existingGuidMap = new Map<string, boolean>()
       for (const series of existingSeriesInInstance) {
         const guids = Array.isArray(series.guids)
@@ -940,35 +919,30 @@ export class StatusService {
           : typeof series.guids === 'string'
             ? JSON.parse(series.guids || '[]')
             : []
-
         for (const guid of guids) {
           existingGuidMap.set(guid, true)
         }
       }
-
       this.log.debug(
         `Found ${uniqueWatchlistItems.length} unique shows to evaluate for sync`,
       )
-
       const genreRoutes = await this.dbService.getSonarrGenreRoutes()
       this.log.debug(`Found ${genreRoutes.length} genre routes for Sonarr`)
 
-      let itemsCopied = 0
+      const itemsToCopy: Array<{
+        item: (typeof watchlistItems)[0]
+        matchingSeries: SonarrItem
+      }> = []
 
       for (const item of uniqueWatchlistItems) {
         try {
           if (item.id === undefined) continue
-
           const numericId =
             typeof item.id === 'string' ? Number(item.id) : item.id
-
           const currentInstanceIds =
             await this.dbService.getWatchlistSonarrInstanceIds(numericId)
-
           if (currentInstanceIds.includes(instanceId)) continue
-
           let shouldBeInInstance = false
-
           const itemGenres = this.parseGenres(item.genres)
           for (const route of genreRoutes) {
             if (
@@ -982,7 +956,6 @@ export class StatusService {
               break
             }
           }
-
           if (!shouldBeInInstance && shouldSyncFromDefault) {
             if (
               defaultInstance &&
@@ -994,14 +967,12 @@ export class StatusService {
               )
             }
           }
-
           if (!shouldBeInInstance) {
             const syncedInstances = Array.isArray(instance.syncedInstances)
               ? instance.syncedInstances
               : typeof instance.syncedInstances === 'string'
                 ? JSON.parse(instance.syncedInstances || '[]')
                 : []
-
             for (const syncedId of syncedInstances) {
               const isInSyncedInstance = currentInstanceIds.includes(syncedId)
               if (isInSyncedInstance) {
@@ -1013,18 +984,15 @@ export class StatusService {
               }
             }
           }
-
           if (shouldBeInInstance) {
             const itemGuids = Array.isArray(item.guids)
               ? item.guids
               : typeof item.guids === 'string'
                 ? JSON.parse(item.guids || '[]')
                 : []
-
             const alreadyExists = itemGuids.some((guid: string) =>
               existingGuidMap.has(guid),
             )
-
             if (alreadyExists) {
               this.log.debug(
                 `Show ${item.title} exists in Sonarr instance ${instanceId} but not in junction table, updating database`,
@@ -1035,29 +1003,14 @@ export class StatusService {
                 'pending',
                 currentInstanceIds.length === 0,
               )
-              itemsCopied++
               continue
             }
-
             const matchingSeries = this.findMatch(allExistingSeries, item.guids)
-
             if (matchingSeries) {
-              try {
-                await this.sonarrManager.routeItemToSonarr(
-                  matchingSeries,
-                  item.key,
-                  instanceId,
-                )
-
-                itemsCopied++
-                this.log.debug(
-                  `Copied show ${item.title} to Sonarr instance ${instanceId}`,
-                )
-              } catch (error) {
-                this.log.error(
-                  `Error copying show ${item.title} to instance ${instanceId}: ${error}`,
-                )
-              }
+              itemsToCopy.push({
+                item,
+                matchingSeries,
+              })
             } else {
               this.log.debug(
                 `No matching series found for ${item.title} to copy to instance ${instanceId}`,
@@ -1066,8 +1019,106 @@ export class StatusService {
           }
         } catch (itemError) {
           this.log.error(
-            `Error processing show ${item.title} during sync: ${itemError}`,
+            `Error processing show ${item.title} during analysis: ${itemError}`,
           )
+        }
+      }
+
+      let itemsCopied = 0
+
+      if (itemsToCopy.length > 0) {
+        if (emitProgress) {
+          this.emitProgress({
+            operationId,
+            type: 'sync' as const,
+            phase: 'copying',
+            progress: 5,
+            message: `Starting to process ${itemsToCopy.length} shows for Sonarr instance ${instanceId}`,
+          })
+        }
+
+        const BATCH_SIZE = 5 // Number of items to process in parallel
+        let completedCount = 0
+
+        const queue = [...itemsToCopy]
+        let processingCount = 0
+
+        while (queue.length > 0 || processingCount > 0) {
+          while (queue.length > 0 && processingCount < BATCH_SIZE) {
+            const queueItem = queue.shift()
+            if (queueItem) {
+              processingCount++
+              const { item, matchingSeries } = queueItem
+
+              const dbItem: DatabaseWatchlistItem = {
+                ...item,
+                id:
+                  typeof item.id === 'string'
+                    ? Number.parseInt(item.id, 10)
+                    : (item.id as number),
+              }
+
+              this.processSingleSonarrItem(
+                dbItem as DatabaseWatchlistItem,
+                matchingSeries,
+                instanceId,
+              )
+                .then((success) => {
+                  if (success) {
+                    itemsCopied++
+                  }
+                  processingCount--
+                  completedCount++
+
+                  if (emitProgress) {
+                    const progress = Math.min(
+                      5 +
+                        Math.floor((completedCount / itemsToCopy.length) * 90),
+                      95,
+                    )
+                    this.emitProgress({
+                      operationId,
+                      type: 'sync' as const,
+                      phase: 'copying',
+                      progress,
+                      message: `Copied ${completedCount} of ${itemsToCopy.length} shows to Sonarr instance ${instanceId}`,
+                    })
+                  }
+                })
+                .catch((error) => {
+                  this.log.error(`Error in batch processing show: ${error}`)
+                  processingCount--
+                  completedCount++
+                })
+            }
+          }
+
+          if (
+            processingCount >= BATCH_SIZE ||
+            (processingCount > 0 && queue.length === 0)
+          ) {
+            await new Promise((resolve) => setTimeout(resolve, 50))
+          }
+        }
+
+        if (emitProgress) {
+          this.emitProgress({
+            operationId,
+            type: 'sync' as const,
+            phase: 'complete',
+            progress: 100,
+            message: `Completed sync for Sonarr instance ${instanceId}, copied ${itemsCopied} items`,
+          })
+        }
+      } else {
+        if (emitProgress) {
+          this.emitProgress({
+            operationId,
+            type: 'sync' as const,
+            phase: 'complete',
+            progress: 100,
+            message: `No items needed to be copied to Sonarr instance ${instanceId}`,
+          })
         }
       }
 
@@ -1081,13 +1132,26 @@ export class StatusService {
     }
   }
 
-  async syncInstance(
+  private async processSingleSonarrItem(
+    item: DatabaseWatchlistItem,
+    matchingSeries: SonarrItem,
     instanceId: number,
-    instanceType: 'radarr' | 'sonarr',
-  ): Promise<number> {
-    if (instanceType === 'radarr') {
-      return this.syncRadarrInstance(instanceId)
+  ): Promise<boolean> {
+    try {
+      await this.sonarrManager.routeItemToSonarr(
+        matchingSeries,
+        item.key,
+        instanceId,
+      )
+      this.log.debug(
+        `Copied show ${item.title} to Sonarr instance ${instanceId}`,
+      )
+      return true
+    } catch (error) {
+      this.log.error(
+        `Error copying show ${item.title} to instance ${instanceId}: ${error}`,
+      )
+      return false
     }
-    return this.syncSonarrInstance(instanceId)
   }
 }
