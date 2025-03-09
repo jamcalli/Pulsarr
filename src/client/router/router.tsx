@@ -14,8 +14,8 @@ const CreateUserPage = lazy(() =>
   })),
 )
 const PlexConfigPage = lazy(() => import('@/pages/plex/plex'))
-const SonarrConfigPage = lazy(() => import('@/pages/sonarr/sonarr'))
-const RadarrConfigPage = lazy(() => import('@/pages/radarr/radarr'))
+const SonarrConfigPage = lazy(() => import('@/features/sonarr'))
+const RadarrConfigPage = lazy(() => import('@/features/radarr'))
 const NotificationsConfigPage = lazy(
   () => import('@/pages/notifications/notifications'),
 )
