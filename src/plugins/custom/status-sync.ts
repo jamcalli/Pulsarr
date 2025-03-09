@@ -15,6 +15,7 @@ export default fp(
       fastify.db,
       fastify.sonarrManager,
       fastify.radarrManager,
+      fastify,
     )
     fastify.decorate('sync', service)
   },

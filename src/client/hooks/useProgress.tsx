@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { eventSourceManager } from '@/lib/eventSourceManager'
+import { useProgressStore } from '@/stores/progressStore'
 import type { ProgressEvent } from '@root/types/progress.types'
 
 type ProgressType = ProgressEvent['type']
@@ -17,6 +17,9 @@ export const useProgress = (type: ProgressType): ProgressState => {
   const [phase, setPhase] = useState('')
   const [isConnected, setIsConnected] = useState(false)
   const mountedRef = useRef(true)
+  
+  const subscribeToType = useProgressStore(state => state.subscribeToType)
+  const isStoreConnected = useProgressStore(state => state.isConnected)
 
   const handleProgress = useCallback((event: ProgressEvent) => {
     if (mountedRef.current) {
@@ -24,17 +27,17 @@ export const useProgress = (type: ProgressType): ProgressState => {
       setMessage(event.message)
       setPhase(event.phase)
     }
-  }, [type])
+  }, [])
 
   useEffect(() => {
-    const unsubscribe = eventSourceManager.subscribeToType(type, handleProgress)
-    setIsConnected(eventSourceManager.isConnected())
+    const unsubscribe = subscribeToType(type, handleProgress)
+    setIsConnected(isStoreConnected)
 
     return () => {
       mountedRef.current = false
       unsubscribe()
     }
-  }, [type, handleProgress])
+  }, [type, handleProgress, subscribeToType, isStoreConnected])
 
   useEffect(() => {
     return () => {
@@ -77,6 +80,9 @@ export const useOperationProgress = (operationId: string): ProgressState => {
   const [isConnected, setIsConnected] = useState(false)
   const mountedRef = useRef(true)
 
+  const subscribeToOperation = useProgressStore(state => state.subscribeToOperation)
+  const isStoreConnected = useProgressStore(state => state.isConnected)
+
   const handleProgress = useCallback((event: ProgressEvent) => {
     if (mountedRef.current) {
       setProgress(event.progress)
@@ -86,14 +92,14 @@ export const useOperationProgress = (operationId: string): ProgressState => {
   }, [])
 
   useEffect(() => {
-    const unsubscribe = eventSourceManager.subscribeToOperation(operationId, handleProgress)
-    setIsConnected(eventSourceManager.isConnected())
+    const unsubscribe = subscribeToOperation(operationId, handleProgress)
+    setIsConnected(isStoreConnected)
 
     return () => {
       mountedRef.current = false
       unsubscribe()
     }
-  }, [operationId, handleProgress])
+  }, [operationId, handleProgress, subscribeToOperation, isStoreConnected])
 
   useEffect(() => {
     return () => {

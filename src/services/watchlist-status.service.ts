@@ -17,7 +17,7 @@ export class StatusService {
     private readonly dbService: FastifyInstance['db'],
     private readonly sonarrManager: FastifyInstance['sonarrManager'],
     private readonly radarrManager: FastifyInstance['radarrManager'],
-    private readonly fastify?: FastifyInstance,
+    private readonly fastify: FastifyInstance,
   ) {}
 
   async syncAllStatuses(): Promise<{ shows: number; movies: number }> {

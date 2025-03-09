@@ -480,8 +480,65 @@ export class DatabaseService {
       })
   }
 
+  async cleanupDeletedSonarrInstanceReferences(
+    deletedId: number,
+  ): Promise<void> {
+    try {
+      const instances = await this.knex('sonarr_instances').select(
+        'id',
+        'synced_instances',
+      )
+
+      for (const instance of instances) {
+        try {
+          const syncedInstances = JSON.parse(instance.synced_instances || '[]')
+
+          if (
+            Array.isArray(syncedInstances) &&
+            syncedInstances.includes(deletedId)
+          ) {
+            const updatedInstances = syncedInstances.filter(
+              (id) => id !== deletedId,
+            )
+
+            await this.knex('sonarr_instances')
+              .where('id', instance.id)
+              .update({
+                synced_instances: JSON.stringify(updatedInstances),
+                updated_at: this.timestamp,
+              })
+
+            this.log.debug(
+              `Removed deleted Sonarr instance ${deletedId} from synced_instances of instance ${instance.id}`,
+            )
+          }
+        } catch (parseError) {
+          this.log.error(
+            `Error parsing synced_instances for Sonarr instance ${instance.id}:`,
+            parseError,
+          )
+        }
+      }
+    } catch (error) {
+      this.log.error(
+        `Error cleaning up references to deleted Sonarr instance ${deletedId}:`,
+        error,
+      )
+      throw error
+    }
+  }
+
   async deleteSonarrInstance(id: number): Promise<void> {
-    await this.knex('sonarr_instances').where('id', id).delete()
+    try {
+      await this.cleanupDeletedSonarrInstanceReferences(id)
+
+      await this.knex('sonarr_instances').where('id', id).delete()
+
+      this.log.info(`Deleted Sonarr instance ${id} and cleaned up references`)
+    } catch (error) {
+      this.log.error(`Error deleting Sonarr instance ${id}:`, error)
+      throw error
+    }
   }
 
   async getSonarrGenreRoutes(): Promise<SonarrGenreRoute[]> {
@@ -678,8 +735,65 @@ export class DatabaseService {
       })
   }
 
+  async cleanupDeletedRadarrInstanceReferences(
+    deletedId: number,
+  ): Promise<void> {
+    try {
+      const instances = await this.knex('radarr_instances').select(
+        'id',
+        'synced_instances',
+      )
+
+      for (const instance of instances) {
+        try {
+          const syncedInstances = JSON.parse(instance.synced_instances || '[]')
+
+          if (
+            Array.isArray(syncedInstances) &&
+            syncedInstances.includes(deletedId)
+          ) {
+            const updatedInstances = syncedInstances.filter(
+              (id) => id !== deletedId,
+            )
+
+            await this.knex('radarr_instances')
+              .where('id', instance.id)
+              .update({
+                synced_instances: JSON.stringify(updatedInstances),
+                updated_at: this.timestamp,
+              })
+
+            this.log.debug(
+              `Removed deleted Radarr instance ${deletedId} from synced_instances of instance ${instance.id}`,
+            )
+          }
+        } catch (parseError) {
+          this.log.error(
+            `Error parsing synced_instances for Radarr instance ${instance.id}:`,
+            parseError,
+          )
+        }
+      }
+    } catch (error) {
+      this.log.error(
+        `Error cleaning up references to deleted Radarr instance ${deletedId}:`,
+        error,
+      )
+      throw error
+    }
+  }
+
   async deleteRadarrInstance(id: number): Promise<void> {
-    await this.knex('radarr_instances').where('id', id).delete()
+    try {
+      await this.cleanupDeletedRadarrInstanceReferences(id)
+
+      await this.knex('radarr_instances').where('id', id).delete()
+
+      this.log.info(`Deleted Radarr instance ${id} and cleaned up references`)
+    } catch (error) {
+      this.log.error(`Error deleting Radarr instance ${id}:`, error)
+      throw error
+    }
   }
 
   async getRadarrGenreRoutes(): Promise<RadarrGenreRoute[]> {
