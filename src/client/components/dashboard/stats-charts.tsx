@@ -14,6 +14,7 @@ import {
   ErrorBar,
   ReferenceLine,
 } from 'recharts'
+import { AspectRatio } from '@/components/ui/aspect-ratio'
 import { Card, CardContent } from '@/components/ui/card'
 import { type ChartConfig, ChartContainer } from '@/components/ui/chart'
 import { cn } from '@/lib/utils'
@@ -614,48 +615,50 @@ function TypedStatsDashboard() {
                   <h4 className="text-base font-medium">By Channel</h4>
                 </div>
                 <CardContent className="pt-4">
-                  <ChartContainer
-                    config={notificationsByChannelConfig}
-                    className="mx-auto aspect-square h-[250px]"
-                  >
-                    <PieChart
-                      margin={{
-                        top: 5,
-                        right: 5,
-                        bottom: 5,
-                        left: 5,
-                      }}
+                  <AspectRatio ratio={1} className="w-full">
+                    <ChartContainer
+                      config={notificationsByChannelConfig}
+                      className="w-full h-full"
                     >
-                      <Tooltip content={NotificationTooltip} />
-                      <Pie
-                        data={notificationsData.byChannel.map((item) => ({
-                          ...item,
-                          total: notificationsData.byChannel.reduce(
-                            (sum, i) => sum + i.value,
-                            0,
-                          ),
-                        }))}
-                        dataKey="value"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={80}
+                      <PieChart
+                        margin={{
+                          top: 5,
+                          right: 5,
+                          bottom: 5,
+                          left: 5,
+                        }}
                       >
-                        {notificationsData.byChannel.map((item) => (
-                          <Cell
-                            key={`channel-cell-${item.name}`}
-                            fill={getHSLColor(
-                              notificationsData.byChannel.findIndex(
-                                (i) => i.name === item.name,
-                              ),
-                            )}
-                            stroke={borderColor}
-                            strokeWidth={1}
-                          />
-                        ))}
-                      </Pie>
-                    </PieChart>
-                  </ChartContainer>
+                        <Tooltip content={NotificationTooltip} />
+                        <Pie
+                          data={notificationsData.byChannel.map((item) => ({
+                            ...item,
+                            total: notificationsData.byChannel.reduce(
+                              (sum, i) => sum + i.value,
+                              0,
+                            ),
+                          }))}
+                          dataKey="value"
+                          nameKey="name"
+                          cx="50%"
+                          cy="50%"
+                          outerRadius="80%"
+                        >
+                          {notificationsData.byChannel.map((item) => (
+                            <Cell
+                              key={`channel-cell-${item.name}`}
+                              fill={getHSLColor(
+                                notificationsData.byChannel.findIndex(
+                                  (i) => i.name === item.name,
+                                ),
+                              )}
+                              stroke={borderColor}
+                              strokeWidth={1}
+                            />
+                          ))}
+                        </Pie>
+                      </PieChart>
+                    </ChartContainer>
+                  </AspectRatio>
                 </CardContent>
               </Card>
               <div className="flex flex-wrap justify-center mt-3 gap-3">
@@ -686,49 +689,51 @@ function TypedStatsDashboard() {
                   <h4 className="text-base font-medium">By Type</h4>
                 </div>
                 <CardContent className="pt-4">
-                  <ChartContainer
-                    config={notificationsByTypeConfig}
-                    className="mx-auto aspect-square h-[250px]"
-                  >
-                    <PieChart
-                      margin={{
-                        top: 5,
-                        right: 5,
-                        bottom: 5,
-                        left: 5,
-                      }}
+                  <AspectRatio ratio={1} className="w-full">
+                    <ChartContainer
+                      config={notificationsByTypeConfig}
+                      className="w-full h-full"
                     >
-                      {/* Make sure the tooltip is inside the PieChart */}
-                      <Tooltip content={NotificationTooltip} />
-                      <Pie
-                        data={notificationsData.byType.map((item) => ({
-                          ...item,
-                          total: notificationsData.byType.reduce(
-                            (sum, i) => sum + i.value,
-                            0,
-                          ),
-                        }))}
-                        dataKey="value"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={80}
+                      <PieChart
+                        margin={{
+                          top: 5,
+                          right: 5,
+                          bottom: 5,
+                          left: 5,
+                        }}
                       >
-                        {notificationsData.byType.map((item) => (
-                          <Cell
-                            key={`type-cell-${item.name}`}
-                            fill={getHSLColor(
-                              notificationsData.byType.findIndex(
-                                (i) => i.name === item.name,
-                              ),
-                            )}
-                            stroke={borderColor}
-                            strokeWidth={1}
-                          />
-                        ))}
-                      </Pie>
-                    </PieChart>
-                  </ChartContainer>
+                        {/* Make sure the tooltip is inside the PieChart */}
+                        <Tooltip content={NotificationTooltip} />
+                        <Pie
+                          data={notificationsData.byType.map((item) => ({
+                            ...item,
+                            total: notificationsData.byType.reduce(
+                              (sum, i) => sum + i.value,
+                              0,
+                            ),
+                          }))}
+                          dataKey="value"
+                          nameKey="name"
+                          cx="50%"
+                          cy="50%"
+                          outerRadius="80%"
+                        >
+                          {notificationsData.byType.map((item) => (
+                            <Cell
+                              key={`type-cell-${item.name}`}
+                              fill={getHSLColor(
+                                notificationsData.byType.findIndex(
+                                  (i) => i.name === item.name,
+                                ),
+                              )}
+                              stroke={borderColor}
+                              strokeWidth={1}
+                            />
+                          ))}
+                        </Pie>
+                      </PieChart>
+                    </ChartContainer>
+                  </AspectRatio>
                 </CardContent>
               </Card>
               <div className="flex flex-wrap justify-center mt-3 gap-3">
@@ -782,115 +787,120 @@ function TypedStatsDashboard() {
 
         return (
           <div className="flex flex-col">
-            <ChartContainer
-              config={contentDistributionConfig}
-              className="mx-auto aspect-square h-[350px]"
-            >
-              <PieChart
-                margin={{
-                  top: 5,
-                  right: 5,
-                  bottom: 5,
-                  left: 5,
-                }}
+            <AspectRatio ratio={1} className="w-full">
+              <ChartContainer
+                config={contentDistributionConfig}
+                className="w-full h-full"
               >
-                <Tooltip cursor={false} content={ContentDistributionTooltip} />
-                <Pie
-                  data={contentDistributionData}
-                  dataKey="count"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={120}
-                  strokeWidth={5}
+                <PieChart
+                  margin={{
+                    top: 5,
+                    right: 5,
+                    bottom: 5,
+                    left: 5,
+                  }}
                 >
-                  {contentDistributionData.map((entry) => {
-                    const type = entry.name.toLowerCase()
-                    let color = cssColors.count
+                  <Tooltip
+                    cursor={false}
+                    content={ContentDistributionTooltip}
+                  />
+                  <Pie
+                    data={contentDistributionData}
+                    dataKey="count"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius="30%"
+                    outerRadius="70%"
+                    strokeWidth={5}
+                  >
+                    {contentDistributionData.map((entry) => {
+                      const type = entry.name.toLowerCase()
+                      let color = cssColors.count
 
-                    if (type === 'movie') color = cssColors.movie
-                    if (type === 'show') color = cssColors.show
+                      if (type === 'movie') color = cssColors.movie
+                      if (type === 'show') color = cssColors.show
 
-                    if (!color) {
-                      const fallbacks = {
-                        movie: '#1a5999',
-                        show: '#39b978',
-                        count: '#f47b30',
+                      if (!color) {
+                        const fallbacks = {
+                          movie: '#1a5999',
+                          show: '#39b978',
+                          count: '#f47b30',
+                        }
+                        color =
+                          type === 'movie'
+                            ? fallbacks.movie
+                            : type === 'show'
+                              ? fallbacks.show
+                              : fallbacks.count
                       }
-                      color =
-                        type === 'movie'
-                          ? fallbacks.movie
-                          : type === 'show'
-                            ? fallbacks.show
-                            : fallbacks.count
-                    }
 
-                    const { theme } = useTheme()
-                    const isDarkMode =
-                      theme === 'dark' ||
-                      (theme === 'system' &&
-                        window.matchMedia('(prefers-color-scheme: dark)')
-                          .matches)
-                    const borderColor = isDarkMode ? '#f8f9fa' : '#1a1a1a'
+                      const { theme } = useTheme()
+                      const isDarkMode =
+                        theme === 'dark' ||
+                        (theme === 'system' &&
+                          window.matchMedia('(prefers-color-scheme: dark)')
+                            .matches)
+                      const borderColor = isDarkMode ? '#f8f9fa' : '#1a1a1a'
 
-                    return (
-                      <Cell
-                        key={`cell-${entry.name}`}
-                        fill={color}
-                        stroke={borderColor}
-                        strokeWidth={1}
-                      />
-                    )
-                  })}
-                  <Label
-                    content={({ viewBox }) => {
-                      if (viewBox && 'cx' in viewBox && 'cy' in viewBox) {
-                        const { theme } = useTheme()
+                      return (
+                        <Cell
+                          key={`cell-${entry.name}`}
+                          fill={color}
+                          stroke={borderColor}
+                          strokeWidth={1}
+                        />
+                      )
+                    })}
+                    <Label
+                      content={({ viewBox }) => {
+                        if (viewBox && 'cx' in viewBox && 'cy' in viewBox) {
+                          const { theme } = useTheme()
 
-                        const isDarkMode =
-                          theme === 'dark' ||
-                          (theme === 'system' &&
-                            window.matchMedia('(prefers-color-scheme: dark)')
-                              .matches)
+                          const isDarkMode =
+                            theme === 'dark' ||
+                            (theme === 'system' &&
+                              window.matchMedia('(prefers-color-scheme: dark)')
+                                .matches)
 
-                        const textColor = isDarkMode ? 'white' : 'black'
+                          const textColor = isDarkMode ? 'white' : 'black'
 
-                        return (
-                          <text
-                            x={viewBox.cx}
-                            y={viewBox.cy}
-                            textAnchor="middle"
-                            dominantBaseline="middle"
-                          >
-                            <tspan
+                          return (
+                            <text
                               x={viewBox.cx}
                               y={viewBox.cy}
-                              className="font-bold"
-                              style={{ fill: textColor, fontSize: '1.5rem' }}
+                              textAnchor="middle"
+                              dominantBaseline="middle"
                             >
-                              {totalContentItems.toLocaleString()}
-                            </tspan>
-                            <tspan
-                              x={viewBox.cx}
-                              y={(viewBox.cy || 0) + 24}
-                              style={{
-                                fill: isDarkMode
-                                  ? 'rgba(255,255,255,0.7)'
-                                  : 'rgba(0,0,0,0.7)',
-                              }}
-                            >
-                              Items
-                            </tspan>
-                          </text>
-                        )
-                      }
-                      return null
-                    }}
-                  />
-                </Pie>
-              </PieChart>
-            </ChartContainer>
+                              <tspan
+                                x={viewBox.cx}
+                                y={viewBox.cy}
+                                className="font-bold"
+                                style={{ fill: textColor, fontSize: '1.5rem' }}
+                              >
+                                {totalContentItems.toLocaleString()}
+                              </tspan>
+                              <tspan
+                                x={viewBox.cx}
+                                y={(viewBox.cy || 0) + 24}
+                                style={{
+                                  fill: isDarkMode
+                                    ? 'rgba(255,255,255,0.7)'
+                                    : 'rgba(0,0,0,0.7)',
+                                }}
+                              >
+                                Items
+                              </tspan>
+                            </text>
+                          )
+                        }
+                        return null
+                      }}
+                    />
+                  </Pie>
+                </PieChart>
+              </ChartContainer>
+            </AspectRatio>
             <div className="flex justify-center mt-3 gap-6">
               {contentDistributionData.map((entry) => {
                 const type = entry.name.toLowerCase()

@@ -21,20 +21,20 @@ export function PlexConnectionSkeleton() {
             </div>
           </div>
 
-          <div className="flex items-end gap-2 shrink-0">
-            <Skeleton className="h-10 w-32" />
-            <Skeleton className="h-10 w-32" />
+          <div className="flex items-end gap-2 shrink-0 portrait:w-full portrait:mt-2">
+            <Skeleton className="h-10 w-32 flex-1 portrait:flex-1" />
+            <Skeleton className="h-10 w-32 flex-1 portrait:flex-1" />
           </div>
         </div>
 
         {/* Watchlist stats section */}
-        <div className="flex gap-4">
+        <div className="flex portrait:flex-col gap-4">
           <div className="flex-1 space-y-2">
             <Skeleton className="h-4 w-28" />
             <Skeleton className="h-10 w-full" />
           </div>
 
-          <div className="flex-1 space-y-2">
+          <div className="flex-1 space-y-2 portrait:mt-2">
             <Skeleton className="h-4 w-28" />
             <Skeleton className="h-10 w-full" />
           </div>
@@ -48,7 +48,7 @@ export function PlexConnectionSkeleton() {
               <Skeleton className="h-10 w-full" />
             </div>
 
-            <div className="flex-1 space-y-2">
+            <div className="flex-1 space-y-2 portrait:mt-2">
               <Skeleton className="h-4 w-24" />
               <Skeleton className="h-10 w-full" />
             </div>
