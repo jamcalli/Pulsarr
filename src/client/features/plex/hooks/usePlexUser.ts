@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useToast } from '@/hooks/use-toast'
 import { useConfigStore } from '@/stores/configStore'
+import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 
-// Import the type directly from configStore instead of redefining it
 import type { UserWatchlistInfo } from '@/stores/configStore'
 
 export type UserStatus = 'idle' | 'loading' | 'success' | 'error'
@@ -16,6 +16,18 @@ export function usePlexUser() {
   )
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [saveStatus, setSaveStatus] = useState<UserStatus>('idle')
+  const [isLoading, setIsLoading] = useState(true)
+  const isInitialized = useConfigStore((state) => state.isInitialized)
+
+  useEffect(() => {
+    if (isInitialized) {
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+      }, MIN_LOADING_DELAY);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isInitialized, users]);
 
   const handleEditUser = (user: UserWatchlistInfo) => {
     setSelectedUser(user)
@@ -29,7 +41,7 @@ export function usePlexUser() {
     setSaveStatus('loading')
     try {
       const minimumLoadingTime = new Promise((resolve) =>
-        setTimeout(resolve, 500),
+        setTimeout(resolve, MIN_LOADING_DELAY),
       )
 
       await Promise.all([updateUser(userId, updates), minimumLoadingTime])
@@ -41,7 +53,7 @@ export function usePlexUser() {
       })
 
       // Show success state then close
-      await new Promise((resolve) => setTimeout(resolve, 300))
+      await new Promise((resolve) => setTimeout(resolve, MIN_LOADING_DELAY / 2))
       setIsEditModalOpen(false)
     } catch (error) {
       console.error('Update error:', error)
@@ -51,7 +63,7 @@ export function usePlexUser() {
           error instanceof Error ? error.message : 'Failed to update user',
         variant: 'destructive',
       })
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      await new Promise((resolve) => setTimeout(resolve, MIN_LOADING_DELAY))
       setSaveStatus('idle')
     }
   }
@@ -64,6 +76,7 @@ export function usePlexUser() {
     setIsEditModalOpen,
     saveStatus,
     setSaveStatus,
+    isLoading,
     handleEditUser,
     handleUpdateUser,
   }

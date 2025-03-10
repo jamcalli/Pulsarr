@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useToast } from '@/hooks/use-toast'
 import { useConfigStore } from '@/stores/configStore'
+import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 
 export type ConnectionStatus = 'idle' | 'loading' | 'success' | 'error'
 
@@ -19,6 +20,7 @@ export function usePlexConnection() {
   const updateConfig = useConfigStore((state) => state.updateConfig)
   const [isInitialized, setIsInitialized] = useState(false)
   const [status, setStatus] = useState<ConnectionStatus>('idle')
+  const [isLoading, setIsLoading] = useState(true)
 
   const form = useForm<PlexTokenFormSchema>({
     resolver: zodResolver(plexTokenFormSchema),
@@ -32,6 +34,12 @@ export function usePlexConnection() {
       const token = config.plexTokens?.[0] || ''
       form.setValue('plexToken', token)
       setIsInitialized(true)
+      
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+      }, MIN_LOADING_DELAY);
+      
+      return () => clearTimeout(timer);
     }
   }, [config, form])
 
@@ -39,7 +47,7 @@ export function usePlexConnection() {
     setStatus('loading')
     try {
       const minimumLoadingTime = new Promise((resolve) =>
-        setTimeout(resolve, 500),
+        setTimeout(resolve, MIN_LOADING_DELAY),
       )
 
       await Promise.all([
@@ -63,6 +71,8 @@ export function usePlexConnection() {
         description: 'Failed to update token',
         variant: 'destructive',
       })
+    } finally {
+      setStatus('idle')
     }
   }
 
@@ -70,7 +80,7 @@ export function usePlexConnection() {
     setStatus('loading')
     try {
       const minimumLoadingTime = new Promise((resolve) =>
-        setTimeout(resolve, 500),
+        setTimeout(resolve, MIN_LOADING_DELAY),
       )
 
       await Promise.all([
@@ -94,12 +104,15 @@ export function usePlexConnection() {
         description: 'Failed to remove token',
         variant: 'destructive',
       })
+    } finally {
+      setStatus('idle')
     }
   }
 
   return {
     form,
     isInitialized,
+    isLoading,
     status,
     setStatus,
     handleUpdateToken,
