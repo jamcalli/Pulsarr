@@ -1,7 +1,7 @@
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { useWatchlistProgress } from '@/hooks/useProgress'
-import { usePlexWatchlist } from '../../hooks/usePlexWatchlist'
+import { usePlexWatchlist } from '@/features/plex/hooks/usePlexWatchlist'
 import { useConfigStore } from '@/stores/configStore'
 
 export default function WatchlistStatsSection() {

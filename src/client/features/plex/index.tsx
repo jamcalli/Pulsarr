@@ -1,9 +1,9 @@
 import { useEffect } from 'react'
 import { useConfigStore } from '@/stores/configStore'
-import PlexConnectionSection from './components/connection/connection-section'
-import UserTableSection from './components/user/user-table-section'
-import SetupModal from './components/setup/setup-modal'
-import { usePlexSetup } from './hooks/usePlexSetup'
+import PlexConnectionSection from '@/features/plex/components/connection/connection-section'
+import UserTableSection from '@/features/plex/components/user/user-table-section'
+import SetupModal from '@/features/plex/components/setup/setup-modal'
+import { usePlexSetup } from '@/features/plex/hooks/usePlexSetup'
 
 export default function PlexConfigPage() {
   const config = useConfigStore((state) => state.config)
