@@ -1,4 +1,5 @@
-import { Trash2, RefreshCw, Loader2, Check } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Loader2, RefreshCw, Check, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -16,15 +17,22 @@ import { usePlexConnection } from '@/features/plex/hooks/usePlexConnection'
 import { usePlexRssFeeds } from '@/features/plex/hooks/usePlexRssFeeds'
 import { usePlexWatchlist } from '@/features/plex/hooks/usePlexWatchlist'
 import { useWatchlistProgress } from '@/hooks/useProgress'
+import PlexConnectionSkeleton from '@/features/plex/components/connection/connection-section-skeleton'
+import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 
 export default function PlexConnectionSection() {
   // Connection state
   const { form, status, handleUpdateToken, handleRemoveToken } =
     usePlexConnection()
-
+  
+  // Loading state
+  const [isLoading, setIsLoading] = useState(true)
+  const [minLoadingComplete, setMinLoadingComplete] = useState(false)
+  
   // RSS feed state
   const { rssStatus, generateRssFeeds } = usePlexRssFeeds()
   const config = useConfigStore((state) => state.config)
+  const isInitialized = useConfigStore((state) => state.isInitialized)
 
   // Get user data to compute watchlist counts
   const users = useConfigStore((state) => state.users)
@@ -45,6 +53,37 @@ export default function PlexConnectionSection() {
 
   // Setup modal trigger
   const { setShowSetupModal } = usePlexSetup()
+
+  // Setup minimum loading time
+  useEffect(() => {
+    let isMounted = true;
+    
+    const timer = setTimeout(() => {
+      if (isMounted) {
+        setMinLoadingComplete(true);
+        if (isInitialized) {
+          setIsLoading(false);
+        }
+      }
+    }, MIN_LOADING_DELAY);
+    
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [isInitialized]);
+  
+  // Update loading state when initialized
+  useEffect(() => {
+    if (isInitialized && minLoadingComplete) {
+      setIsLoading(false);
+    }
+  }, [isInitialized, minLoadingComplete]);
+
+  // Show skeleton during loading
+  if (isLoading) {
+    return <PlexConnectionSkeleton />;
+  }
 
   return (
     <div>
