@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { SonarrMonitoringType } from './types'
+import type { SonarrMonitoringType } from '../types/types'
 import { SONARR_MONITORING_OPTIONS } from './constants'
 
 const urlWithoutTrailingSlash = z

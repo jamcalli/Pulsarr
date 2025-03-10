@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import type { SonarrInstanceSchema } from '@/features/sonarr/store/schemas'
-import type { ConnectionStatus } from '@/features/sonarr/store/types'
+import type { ConnectionStatus } from '@/features/sonarr/types/types'
 
 interface ConnectionSettingsProps {
   form: UseFormReturn<SonarrInstanceSchema>

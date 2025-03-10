@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
-import type { ConnectionStatus } from '@/features/radarr/store/types'
+import type { ConnectionStatus } from '@/features/radarr/types/types'
 
 interface ConnectionSettingsProps {
   form: UseFormReturn<RadarrInstanceSchema>

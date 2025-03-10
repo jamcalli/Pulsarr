@@ -4,7 +4,7 @@ import { useToast } from '@/hooks/use-toast'
 import type {
   RadarrInstance,
   RadarrConnectionValues,
-} from '@/features/radarr/store/types'
+} from '@/features/radarr/types/types'
 import type { UseFormReturn } from 'react-hook-form'
 
 type RadarrConnectionForm = RadarrConnectionValues & {
