@@ -1,7 +1,8 @@
-import React from 'react'
+import React, { useEffect } from 'react'
+import { Loader2, Check } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Loader2, Check } from 'lucide-react'
+import * as z from 'zod'
 import {
   Dialog,
   DialogContent,
@@ -20,34 +21,56 @@ import {
   FormControl,
   FormMessage,
 } from '@/components/ui/form'
-import { plexUserSchema, type PlexUserSchema } from '@/features/plex/store/schemas'
-import { DEFAULT_EMAIL_PLACEHOLDER } from '@/features/plex/store/constants'
-import type { UserListWithCountsResponse } from '@root/schemas/users/users-list.schema';
-import { useToast } from '@/hooks/use-toast'
+import type { UserWatchlistInfo } from '@/stores/configStore'
 
-type PlexUserType = UserListWithCountsResponse['users'][0];
+// Define the form schema
+const userFormSchema = z
+  .object({
+    name: z.string(),
+    email: z.string().email('Invalid email address'),
+    alias: z.string().nullable(),
+    discord_id: z.string().nullable(),
+    notify_email: z.boolean(),
+    notify_discord: z.boolean(),
+  })
+  .refine(
+    (data) => {
+      // Cannot have discord notifications without discord ID
+      if (data.notify_discord && !data.discord_id) {
+        return false
+      }
+      // Cannot have email notifications with placeholder email
+      if (data.notify_email && data.email.endsWith('@placeholder.com')) {
+        return false
+      }
+      return true
+    },
+    {
+      message: 'Invalid notification settings based on user information',
+      path: ['notify_settings'], // Custom path for the error
+    },
+  )
 
-interface PlexUserEditModalProps {
+type UserFormValues = z.infer<typeof userFormSchema>
+
+interface UserEditModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  user: PlexUserType | null
-  onUpdate: (userId: number, updates: Partial<PlexUserType>) => Promise<boolean>
-  isUpdating: boolean
+  user: UserWatchlistInfo | null
+  onSave: (userId: string, updates: Partial<UserWatchlistInfo>) => Promise<void>
+  saveStatus: 'idle' | 'loading' | 'success' | 'error'
 }
 
-export function PlexUserEditModal({
+export default function UserEditModal({
   open,
   onOpenChange,
   user,
-  onUpdate,
-  isUpdating: externalIsUpdating,
-}: PlexUserEditModalProps) {
-  const { toast } = useToast()
-  const [saveStatus, setSaveStatus] = React.useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-
+  onSave,
+  saveStatus,
+}: UserEditModalProps) {
   // Initialize the form
-  const form = useForm<PlexUserSchema>({
-    resolver: zodResolver(plexUserSchema),
+  const form = useForm<UserFormValues>({
+    resolver: zodResolver(userFormSchema),
     defaultValues: {
       name: '',
       email: '',
@@ -59,11 +82,11 @@ export function PlexUserEditModal({
   })
 
   // Update form data when user prop changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (user) {
       form.reset({
         name: user.name,
-        email: user.email ?? undefined,
+        email: user.email,
         alias: user.alias,
         discord_id: user.discord_id,
         notify_email: user.notify_email,
@@ -72,67 +95,14 @@ export function PlexUserEditModal({
     }
   }, [user, form])
 
-  // Watch for completion and modal close
-  React.useEffect(() => {
-    if (saveStatus === 'success' && !open) {
-      // Reset state after modal is closed
-      const timer = setTimeout(() => {
-        setSaveStatus('idle')
-      }, 150)
-      return () => clearTimeout(timer)
-    }
-  }, [saveStatus, open])
-
-  const handleSubmit = async (values: PlexUserSchema) => {
+  const handleSubmit = async (values: UserFormValues) => {
     if (!user) return
-
-    setSaveStatus('loading')
-    try {
-      const minimumLoadingTime = new Promise((resolve) =>
-        setTimeout(resolve, 500),
-      )
-
-      const [success] = await Promise.all([
-        onUpdate(user.id, {
-          name: values.name,
-          email: values.email,
-          alias: values.alias,
-          discord_id: values.discord_id,
-          notify_email: values.notify_email,
-          notify_discord: values.notify_discord,
-        }),
-        minimumLoadingTime,
-      ])
-
-      if (success) {
-        setSaveStatus('success')
-        toast({
-          description: 'User information updated successfully',
-          variant: 'default',
-        })
-
-        // Show success state then close
-        await new Promise((resolve) => setTimeout(resolve, 300))
-        onOpenChange(false)
-      } else {
-        throw new Error('Failed to update user')
-      }
-    } catch (error) {
-      console.error('Update error:', error)
-      setSaveStatus('error')
-      toast({
-        description:
-          error instanceof Error ? error.message : 'Failed to update user',
-        variant: 'destructive',
-      })
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      setSaveStatus('idle')
-    }
+    await onSave(user.id, values)
   }
 
   // Prevent closing during submission
   const handleOpenChange = (newOpen: boolean) => {
-    if (saveStatus === 'loading' || externalIsUpdating) {
+    if (saveStatus === 'loading') {
       return // Prevent closing during loading
     }
     onOpenChange(newOpen)
@@ -140,19 +110,18 @@ export function PlexUserEditModal({
 
   // Check if form is dirty (has changes)
   const isFormDirty = form.formState.isDirty
-  const isUpdating = saveStatus === 'loading' || externalIsUpdating
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
         className="sm:max-w-md"
         onPointerDownOutside={(e) => {
-          if (isUpdating) {
+          if (saveStatus === 'loading') {
             e.preventDefault()
           }
         }}
         onEscapeKeyDown={(e) => {
-          if (isUpdating) {
+          if (saveStatus === 'loading') {
             e.preventDefault()
           }
         }}
@@ -200,7 +169,7 @@ export function PlexUserEditModal({
                       <Input
                         type="email"
                         placeholder="Email address"
-                        disabled={isUpdating}
+                        disabled={saveStatus !== 'idle'}
                         {...field}
                       />
                     </FormControl>
@@ -218,7 +187,7 @@ export function PlexUserEditModal({
                     <FormControl>
                       <Input
                         placeholder="User alias (optional)"
-                        disabled={isUpdating}
+                        disabled={saveStatus !== 'idle'}
                         {...field}
                         value={field.value || ''}
                         onChange={(e) => field.onChange(e.target.value || null)}
@@ -255,7 +224,7 @@ export function PlexUserEditModal({
                 name="notify_email"
                 render={({ field }) => {
                   const email = form.watch('email')
-                  const isPlaceholderEmail = email.endsWith(DEFAULT_EMAIL_PLACEHOLDER)
+                  const isPlaceholderEmail = email.endsWith('@placeholder.com')
                   // If it's a placeholder email and notifications are on, turn them off
                   if (isPlaceholderEmail && field.value) {
                     field.onChange(false)
@@ -271,7 +240,9 @@ export function PlexUserEditModal({
                           <Switch
                             checked={field.value}
                             onCheckedChange={field.onChange}
-                            disabled={isUpdating || isPlaceholderEmail}
+                            disabled={
+                              saveStatus !== 'idle' || isPlaceholderEmail
+                            }
                           />
                         </FormControl>
                       </div>
@@ -304,7 +275,7 @@ export function PlexUserEditModal({
                           <Switch
                             checked={field.value}
                             onCheckedChange={field.onChange}
-                            disabled={isUpdating || !hasDiscordId}
+                            disabled={saveStatus !== 'idle' || !hasDiscordId}
                           />
                         </FormControl>
                       </div>
@@ -322,14 +293,14 @@ export function PlexUserEditModal({
                 type="button"
                 variant="neutral"
                 onClick={() => handleOpenChange(false)}
-                disabled={isUpdating}
+                disabled={saveStatus !== 'idle'}
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 variant="default"
-                disabled={isUpdating || !isFormDirty}
+                disabled={saveStatus !== 'idle' || !isFormDirty}
                 className="min-w-[100px] flex items-center justify-center gap-2"
               >
                 {saveStatus === 'loading' ? (

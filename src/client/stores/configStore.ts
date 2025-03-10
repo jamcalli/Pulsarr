@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import type { Config } from '@root/types/config.types'
 
-interface UserWatchlistInfo {
+export interface UserWatchlistInfo {
   id: string
   name: string
   email: string
