@@ -34,12 +34,12 @@ export function usePlexConnection() {
       const token = config.plexTokens?.[0] || ''
       form.setValue('plexToken', token)
       setIsInitialized(true)
-      
+
       const timer = setTimeout(() => {
-        setIsLoading(false);
-      }, MIN_LOADING_DELAY);
-      
-      return () => clearTimeout(timer);
+        setIsLoading(false)
+      }, MIN_LOADING_DELAY)
+
+      return () => clearTimeout(timer)
     }
   }, [config, form])
 

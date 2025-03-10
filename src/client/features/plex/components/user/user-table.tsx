@@ -47,6 +47,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import type { UserWatchlistInfo } from '@/stores/configStore'
+import UserTableSkeletonRows from './user-table-skeleton'
 
 interface ColumnMetaType {
   className?: string
@@ -56,9 +57,14 @@ interface ColumnMetaType {
 interface UserTableProps {
   users: UserWatchlistInfo[]
   onEditUser: (user: UserWatchlistInfo) => void
+  isLoading?: boolean
 }
 
-export default function UserTable({ users, onEditUser }: UserTableProps) {
+export default function UserTable({
+  users,
+  onEditUser,
+  isLoading = false,
+}: UserTableProps) {
   // Table state
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -210,10 +216,11 @@ export default function UserTable({ users, onEditUser }: UserTableProps) {
             table.getColumn('name')?.setFilterValue(event.target.value)
           }
           className="w-full max-w-sm min-w-0"
+          disabled={isLoading}
         />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="noShadow" className="ml-4">
+            <Button variant="noShadow" className="ml-4" disabled={isLoading}>
               Columns <ChevronDown className="ml-2 h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -263,7 +270,9 @@ export default function UserTable({ users, onEditUser }: UserTableProps) {
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (
+            {isLoading ? (
+              <UserTableSkeletonRows colSpan={columns.length} />
+            ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
@@ -305,6 +314,7 @@ export default function UserTable({ users, onEditUser }: UserTableProps) {
             onValueChange={(value) => {
               table.setPageSize(Number(value))
             }}
+            disabled={isLoading}
           >
             <SelectTrigger className="h-8 w-[70px]">
               <SelectValue placeholder={table.getState().pagination.pageSize} />
@@ -332,7 +342,7 @@ export default function UserTable({ users, onEditUser }: UserTableProps) {
             variant="noShadow"
             size="sm"
             onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
+            disabled={!table.getCanPreviousPage() || isLoading}
           >
             <ChevronLeft className="h-4 w-4 xs:hidden" />
             <span className="hidden xs:inline">Previous</span>
@@ -341,7 +351,7 @@ export default function UserTable({ users, onEditUser }: UserTableProps) {
             variant="noShadow"
             size="sm"
             onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
+            disabled={!table.getCanNextPage() || isLoading}
           >
             <ChevronRight className="h-4 w-4 xs:hidden" />
             <span className="hidden xs:inline">Next</span>

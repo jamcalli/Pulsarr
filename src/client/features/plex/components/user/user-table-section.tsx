@@ -3,7 +3,6 @@ import { useConfigStore } from '@/stores/configStore'
 import { usePlexUser } from '../../hooks/usePlexUser'
 import UserTable from './user-table'
 import UserEditModal from './user-edit-modal'
-import UserTableSkeleton from './user-table-skeleton'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 
 export default function UserTableSection() {
@@ -16,7 +15,7 @@ export default function UserTableSection() {
     handleEditUser,
     handleUpdateUser,
   } = usePlexUser()
-  
+
   const [isLoading, setIsLoading] = useState(true)
   const [minLoadingComplete, setMinLoadingComplete] = useState(false)
   const isInitialized = useConfigStore((state) => state.isInitialized)
@@ -24,29 +23,29 @@ export default function UserTableSection() {
 
   // Setup minimum loading time
   useEffect(() => {
-    let isMounted = true;
-    
+    let isMounted = true
+
     const timer = setTimeout(() => {
       if (isMounted) {
-        setMinLoadingComplete(true);
+        setMinLoadingComplete(true)
         if (isInitialized) {
-          setIsLoading(false);
+          setIsLoading(false)
         }
       }
-    }, MIN_LOADING_DELAY);
-    
+    }, MIN_LOADING_DELAY)
+
     return () => {
-      isMounted = false;
-      clearTimeout(timer);
-    };
-  }, [isInitialized]);
-  
+      isMounted = false
+      clearTimeout(timer)
+    }
+  }, [isInitialized])
+
   // Update loading state when initialized
   useEffect(() => {
     if (isInitialized && minLoadingComplete) {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  }, [isInitialized, minLoadingComplete]);
+  }, [isInitialized, minLoadingComplete])
 
   return (
     <div>
@@ -54,11 +53,17 @@ export default function UserTableSection() {
         <h2 className="text-2xl font-bold text-text">User Watchlists</h2>
       </div>
       <div className="grid gap-4 mt-4">
-        {isLoading ? (
-          <UserTableSkeleton />
-        ) : users && users.length > 0 ? (
+        {!hasUserData && !isLoading ? (
+          <div className="text-center py-8 text-text text-muted-foreground">
+            No watchlist data available
+          </div>
+        ) : (
           <>
-            <UserTable users={users} onEditUser={handleEditUser} />
+            <UserTable
+              users={users || []}
+              onEditUser={handleEditUser}
+              isLoading={isLoading}
+            />
             <UserEditModal
               open={isEditModalOpen}
               onOpenChange={setIsEditModalOpen}
@@ -67,10 +72,6 @@ export default function UserTableSection() {
               saveStatus={saveStatus}
             />
           </>
-        ) : (
-          <div className="text-center py-8 text-text text-muted-foreground">
-            No watchlist data available
-          </div>
         )}
       </div>
     </div>
