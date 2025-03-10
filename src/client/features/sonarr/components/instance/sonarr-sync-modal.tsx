@@ -35,9 +35,9 @@ export function SonarrSyncModal({
 
   useEffect(() => {
     const nameMap: Record<number, string> = {}
-    allInstances.forEach((instance) => {
+    for (const instance of allInstances) {
       nameMap[instance.id] = instance.name
-    })
+    }
     instanceNamesRef.current = nameMap
   }, [allInstances])
 
@@ -85,7 +85,7 @@ export function SonarrSyncModal({
         setSyncCompleted(true)
 
         toast({
-          description: `Successfully synchronized all Sonarr instances`,
+          description: 'Successfully synchronized all Sonarr instances',
           variant: 'default',
         })
       }

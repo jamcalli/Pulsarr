@@ -32,15 +32,12 @@ export default function PlexConnectionSection() {
   const otherUsers = users?.filter((user) => Number(user.id) !== 1) || []
   const othersTotal = otherUsers.reduce(
     (acc, user) => acc + (user.watchlist_count || 0),
-    0
+    0,
   )
 
   // Watchlist refresh
-  const { 
-    selfWatchlistStatus, 
-    othersWatchlistStatus, 
-    refreshWatchlists 
-  } = usePlexWatchlist()
+  const { selfWatchlistStatus, othersWatchlistStatus, refreshWatchlists } =
+    usePlexWatchlist()
 
   // Progress hooks for live updates
   const selfWatchlistProgress = useWatchlistProgress('self-watchlist')
@@ -151,9 +148,7 @@ export default function PlexConnectionSection() {
             <div className="flex gap-4">
               <div className="flex-1">
                 <FormItem className="flex-grow">
-                  <FormLabel className="text-text">
-                    Self Watchlist
-                  </FormLabel>
+                  <FormLabel className="text-text">Self Watchlist</FormLabel>
                   {selfWatchlistStatus === 'loading' ? (
                     <div className="space-y-1">
                       <div className="flex justify-between items-center">
@@ -186,9 +181,7 @@ export default function PlexConnectionSection() {
 
               <div className="flex-1">
                 <FormItem className="flex-grow">
-                  <FormLabel className="text-text">
-                    Others Watchlist
-                  </FormLabel>
+                  <FormLabel className="text-text">Others Watchlist</FormLabel>
                   {othersWatchlistStatus === 'loading' ? (
                     <div className="space-y-1">
                       <div className="flex justify-between items-center">

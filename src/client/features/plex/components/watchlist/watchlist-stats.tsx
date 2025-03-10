@@ -5,7 +5,6 @@ import { usePlexWatchlist } from '../../hooks/usePlexWatchlist'
 import { useConfigStore } from '@/stores/configStore'
 
 export default function WatchlistStatsSection() {
-
   const users = useConfigStore((state) => state.users)
 
   const selfWatchlist = users?.find((user) => Number(user.id) === 1)
@@ -16,7 +15,7 @@ export default function WatchlistStatsSection() {
   )
 
   const { selfWatchlistStatus, othersWatchlistStatus } = usePlexWatchlist()
-  
+
   const selfWatchlistProgress = useWatchlistProgress('self-watchlist')
   const othersWatchlistProgress = useWatchlistProgress('others-watchlist')
 
@@ -64,7 +63,8 @@ export default function WatchlistStatsSection() {
             <div className="space-y-1">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-text">
-                  {othersWatchlistProgress.message || "Syncing Others' Watchlists"}
+                  {othersWatchlistProgress.message ||
+                    "Syncing Others' Watchlists"}
                 </span>
                 <span className="text-sm text-text">
                   {othersWatchlistProgress.progress}%
