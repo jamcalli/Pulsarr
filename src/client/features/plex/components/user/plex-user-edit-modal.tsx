@@ -23,6 +23,7 @@ import {
 import { plexUserSchema, type PlexUserSchema } from '@/features/plex/store/schemas'
 import { DEFAULT_EMAIL_PLACEHOLDER } from '@/features/plex/store/constants'
 import type { UserListWithCountsResponse } from '@root/schemas/users/users-list.schema';
+import { useToast } from '@/hooks/use-toast'
 
 type PlexUserType = UserListWithCountsResponse['users'][0];
 
@@ -39,8 +40,11 @@ export function PlexUserEditModal({
   onOpenChange,
   user,
   onUpdate,
-  isUpdating,
+  isUpdating: externalIsUpdating,
 }: PlexUserEditModalProps) {
+  const { toast } = useToast()
+  const [saveStatus, setSaveStatus] = React.useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+
   // Initialize the form
   const form = useForm<PlexUserSchema>({
     resolver: zodResolver(plexUserSchema),
@@ -68,33 +72,75 @@ export function PlexUserEditModal({
     }
   }, [user, form])
 
+  // Watch for completion and modal close
+  React.useEffect(() => {
+    if (saveStatus === 'success' && !open) {
+      // Reset state after modal is closed
+      const timer = setTimeout(() => {
+        setSaveStatus('idle')
+      }, 150)
+      return () => clearTimeout(timer)
+    }
+  }, [saveStatus, open])
+
   const handleSubmit = async (values: PlexUserSchema) => {
     if (!user) return
 
-    const success = await onUpdate(user.id, {
-      name: values.name,
-      email: values.email,
-      alias: values.alias,
-      discord_id: values.discord_id,
-      notify_email: values.notify_email,
-      notify_discord: values.notify_discord,
-    })
+    setSaveStatus('loading')
+    try {
+      const minimumLoadingTime = new Promise((resolve) =>
+        setTimeout(resolve, 500),
+      )
 
-    if (success) {
-      // Modal will close via the parent component
+      const [success] = await Promise.all([
+        onUpdate(user.id, {
+          name: values.name,
+          email: values.email,
+          alias: values.alias,
+          discord_id: values.discord_id,
+          notify_email: values.notify_email,
+          notify_discord: values.notify_discord,
+        }),
+        minimumLoadingTime,
+      ])
+
+      if (success) {
+        setSaveStatus('success')
+        toast({
+          description: 'User information updated successfully',
+          variant: 'default',
+        })
+
+        // Show success state then close
+        await new Promise((resolve) => setTimeout(resolve, 300))
+        onOpenChange(false)
+      } else {
+        throw new Error('Failed to update user')
+      }
+    } catch (error) {
+      console.error('Update error:', error)
+      setSaveStatus('error')
+      toast({
+        description:
+          error instanceof Error ? error.message : 'Failed to update user',
+        variant: 'destructive',
+      })
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+      setSaveStatus('idle')
     }
   }
 
   // Prevent closing during submission
   const handleOpenChange = (newOpen: boolean) => {
-    if (isUpdating) {
-      return
+    if (saveStatus === 'loading' || externalIsUpdating) {
+      return // Prevent closing during loading
     }
     onOpenChange(newOpen)
   }
 
   // Check if form is dirty (has changes)
   const isFormDirty = form.formState.isDirty
+  const isUpdating = saveStatus === 'loading' || externalIsUpdating
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -119,7 +165,10 @@ export function PlexUserEditModal({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
+          <form
+            onSubmit={form.handleSubmit(handleSubmit)}
+            className="space-y-8"
+          >
             <div className="space-y-4">
               <FormField
                 control={form.control}
@@ -283,10 +332,15 @@ export function PlexUserEditModal({
                 disabled={isUpdating || !isFormDirty}
                 className="min-w-[100px] flex items-center justify-center gap-2"
               >
-                {isUpdating ? (
+                {saveStatus === 'loading' ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Saving...
+                  </>
+                ) : saveStatus === 'success' ? (
+                  <>
+                    <Check className="h-4 w-4" />
+                    Saved
                   </>
                 ) : (
                   'Save Changes'

@@ -2,6 +2,7 @@ import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Form } from '@/components/ui/form'
 import { Progress } from '@/components/ui/progress'
 import { FormItem, FormLabel, FormControl } from '@/components/ui/form'
 import { RefreshCw, Loader2, Check } from 'lucide-react'
@@ -11,6 +12,7 @@ import { usePlexSync } from '@/features/plex/hooks/instance/usePlexSync'
 import { PlexConnectionSettings } from '@/features/plex/components/instance/plex-connection-settings'
 import { PlexSetupModal } from '@/features/plex/components/instance/plex-setup-modal'
 import { usePlexStore } from '@/features/plex/store/plexStore'
+import { useForm } from 'react-hook-form'
 
 export function PlexInstanceCard() {
   const [showSetupModal, setShowSetupModal] = React.useState(false)
@@ -64,6 +66,8 @@ export function PlexInstanceCard() {
   const handleRemoveToken = async () => {
     await removePlexToken()
   }
+
+  const displayForm = useForm();
   
   return (
     <>
@@ -88,7 +92,7 @@ export function PlexInstanceCard() {
             onSave={handleSaveToken}
             onRemove={handleRemoveToken}
           />
-
+            <Form {...displayForm}>
           {/* Watchlist Information Section */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormItem>
@@ -246,6 +250,7 @@ export function PlexInstanceCard() {
               </FormItem>
             </div>
           </div>
+          </Form>
         </CardContent>
       </Card>
     </>
