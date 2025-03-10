@@ -1,4 +1,4 @@
-import type { SonarrMonitoringType } from '@/features/sonarr/store/types'
+import type { SonarrMonitoringType } from '@/features/sonarr/types/types'
 
 export const SONARR_MONITORING_OPTIONS: Record<SonarrMonitoringType, string> = {
   unknown: 'Unknown',

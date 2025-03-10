@@ -4,7 +4,7 @@ import { useToast } from '@/hooks/use-toast'
 import type {
   SonarrInstance,
   SonarrConnectionValues,
-} from '@/features/sonarr/store/types'
+} from '@/features/sonarr/types/types'
 import type { UseFormReturn } from 'react-hook-form'
 
 type SonarrConnectionForm = SonarrConnectionValues & {

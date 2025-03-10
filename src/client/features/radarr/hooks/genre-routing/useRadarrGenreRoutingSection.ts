@@ -3,7 +3,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useRadarrStore } from '@/features/radarr/store/radarrStore'
 import { useRadarrGenreRouting } from './useRadarrGenreRouting'
 import type { GenreRouteFormValues } from '@/features/radarr/store/schemas'
-import type { TempRoute } from '@/features/radarr/store/types'
+import type { TempRoute } from '@/features/radarr/types/types'
 
 export function useRadarrGenreRoutingSection() {
   const { toast } = useToast()

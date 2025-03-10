@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import type {
   SonarrMonitoringType,
   UseSonarrInstanceFormProps,
-} from '@/features/sonarr/store/types'
+} from '@/features/sonarr/types/types'
 import {
   initialInstanceSchema,
   fullInstanceSchema,

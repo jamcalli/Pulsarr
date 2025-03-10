@@ -20,7 +20,7 @@ import GenreRouteCardSkeleton from '@/features/sonarr/components/genre-routing/s
 import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
 import useSonarrGenreForm from '@/features/sonarr/hooks/genre-routing/useSonarrGenreForm'
 import type { GenreRouteFormValues } from '@/features/sonarr/store/schemas'
-import type { GenreRoute } from '@/features/sonarr/store/types'
+import type { GenreRoute } from '@/features/sonarr/types/types'
 import { useSonarrGenreRouting } from '@/features/sonarr/hooks/genre-routing/useSonarrGenreRouting'
 
 interface GenreRouteCardProps {

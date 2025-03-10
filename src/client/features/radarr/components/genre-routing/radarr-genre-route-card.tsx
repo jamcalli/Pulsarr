@@ -20,7 +20,7 @@ import GenreRouteCardSkeleton from '@/features/radarr/components/genre-routing/r
 import { useRadarrStore } from '@/features/radarr/store/radarrStore'
 import useRadarrGenreForm from '@/features/radarr/hooks/genre-routing/useRadarrGenreForm'
 import type { GenreRouteFormValues } from '@/features/radarr/store/schemas'
-import type { GenreRoute } from '@/features/radarr/store/types'
+import type { GenreRoute } from '@/features/radarr/types/types'
 import { useRadarrGenreRouting } from '@/features/radarr/hooks/genre-routing/useRadarrGenreRouting'
 
 interface GenreRouteCardProps {

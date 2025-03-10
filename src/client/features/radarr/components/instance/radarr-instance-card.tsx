@@ -23,7 +23,7 @@ import SyncedInstancesSelect from '@/features/radarr/components/selects/radarr-s
 import ConnectionSettings from '@/features/radarr/components/instance/radarr-connection-settings'
 import InstanceCardSkeleton from '@/features/radarr/components/instance/radarr-card-skeleton'
 import DeleteInstanceAlert from '@/features/radarr/components/instance/delete-instance-alert'
-import type { RadarrInstance } from '@/features/radarr/store/types'
+import type { RadarrInstance } from '@/features/radarr/types/types'
 import { useToast } from '@/hooks/use-toast'
 import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
 

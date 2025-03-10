@@ -3,7 +3,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
 import { useSonarrGenreRouting } from '@/features/sonarr/hooks/genre-routing/useSonarrGenreRouting'
 import type { GenreRouteFormValues } from '@/features/sonarr/store/schemas'
-import type { TempRoute } from '@/features/sonarr/store/types'
+import type { TempRoute } from '@/features/sonarr/types/types'
 
 export function useSonarrGenreRoutingSection() {
   const { toast } = useToast()

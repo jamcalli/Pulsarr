@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import type { UseRadarrInstanceFormProps } from '@/features/radarr/store/types'
+import type { UseRadarrInstanceFormProps } from '@/features/radarr/types/types'
 import {
   initialInstanceSchema,
   fullInstanceSchema,
