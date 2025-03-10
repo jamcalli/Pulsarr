@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import { useEffect } from 'react'
 import { Loader2, Check } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -47,7 +47,7 @@ const userFormSchema = z
     },
     {
       message: 'Invalid notification settings based on user information',
-      path: ['notify_settings'], // Custom path for the error
+      path: ['notify_settings'],
     },
   )
 

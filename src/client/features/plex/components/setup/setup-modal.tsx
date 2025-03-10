@@ -27,14 +27,14 @@ export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
   const [plexToken, setPlexToken] = useState('')
   const [currentStep, setCurrentStep] = useState<'token' | 'syncing'>('token')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  
-  const { 
+
+  const {
     selfWatchlistStatus,
     othersWatchlistStatus,
     setSelfWatchlistStatus,
     setOthersWatchlistStatus,
   } = usePlexWatchlist()
-  
+
   const selfWatchlistProgress = useWatchlistProgress('self-watchlist')
   const othersWatchlistProgress = useWatchlistProgress('others-watchlist')
 

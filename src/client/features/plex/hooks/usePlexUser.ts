@@ -11,7 +11,9 @@ export function usePlexUser() {
   const { toast } = useToast()
   const users = useConfigStore((state) => state.users)
   const updateUser = useConfigStore((state) => state.updateUser)
-  const [selectedUser, setSelectedUser] = useState<UserWatchlistInfo | null>(null)
+  const [selectedUser, setSelectedUser] = useState<UserWatchlistInfo | null>(
+    null,
+  )
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [saveStatus, setSaveStatus] = useState<UserStatus>('idle')
 
@@ -22,7 +24,7 @@ export function usePlexUser() {
 
   const handleUpdateUser = async (
     userId: string,
-    updates: Partial<UserWatchlistInfo>
+    updates: Partial<UserWatchlistInfo>,
   ) => {
     setSaveStatus('loading')
     try {
@@ -30,10 +32,7 @@ export function usePlexUser() {
         setTimeout(resolve, 500),
       )
 
-      await Promise.all([
-        updateUser(userId, updates),
-        minimumLoadingTime,
-      ])
+      await Promise.all([updateUser(userId, updates), minimumLoadingTime])
 
       setSaveStatus('success')
       toast({

@@ -1,7 +1,13 @@
-import React from 'react'
 import { Trash2, RefreshCw, Loader2, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Form, FormField, FormItem, FormControl, FormLabel, FormMessage } from '@/components/ui/form'
+import {
+  Form,
+  FormField,
+  FormItem,
+  FormControl,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { useConfigStore } from '@/stores/configStore'
 import { usePlexSetup } from '../../hooks/usePlexSetup'
@@ -11,19 +17,17 @@ import { usePlexWatchlist } from '../../hooks/usePlexWatchlist'
 
 export default function PlexConnectionSection() {
   // Connection state
-  const { form, status, isInitialized, handleUpdateToken, handleRemoveToken } = usePlexConnection()
-  
+  const { form, status, handleUpdateToken, handleRemoveToken } =
+    usePlexConnection()
+
   // RSS feed state
   const { rssStatus, generateRssFeeds } = usePlexRssFeeds()
   const config = useConfigStore((state) => state.config)
-  
+
   // Watchlist refresh
-  const { 
-    selfWatchlistStatus, 
-    othersWatchlistStatus, 
-    refreshWatchlists 
-  } = usePlexWatchlist()
-  
+  const { selfWatchlistStatus, othersWatchlistStatus, refreshWatchlists } =
+    usePlexWatchlist()
+
   // Setup modal trigger
   const { setShowSetupModal } = usePlexSetup()
 
@@ -128,9 +132,7 @@ export default function PlexConnectionSection() {
             <div className="space-y-4">
               <div className="flex portrait:flex-col gap-4">
                 <FormItem className="flex-1">
-                  <FormLabel className="text-text text-sm">
-                    Self Feed
-                  </FormLabel>
+                  <FormLabel className="text-text text-sm">Self Feed</FormLabel>
                   <FormControl>
                     <Input
                       value={config?.selfRss || ''}

@@ -7,16 +7,22 @@ export type WatchlistStatus = 'idle' | 'loading' | 'success' | 'error'
 export function usePlexWatchlist() {
   const { toast } = useToast()
   const fetchUserData = useConfigStore((state) => state.fetchUserData)
-  const getSelfWatchlistInfo = useConfigStore((state) => state.getSelfWatchlistInfo)
-  const getOthersWatchlistInfo = useConfigStore((state) => state.getOthersWatchlistInfo)
+  const getSelfWatchlistInfo = useConfigStore(
+    (state) => state.getSelfWatchlistInfo,
+  )
+  const getOthersWatchlistInfo = useConfigStore(
+    (state) => state.getOthersWatchlistInfo,
+  )
 
   // Get watchlist data from store
   const selfWatchlist = getSelfWatchlistInfo()
   const othersWatchlist = getOthersWatchlistInfo()
 
   // Status states
-  const [selfWatchlistStatus, setSelfWatchlistStatus] = useState<WatchlistStatus>('idle')
-  const [othersWatchlistStatus, setOthersWatchlistStatus] = useState<WatchlistStatus>('idle')
+  const [selfWatchlistStatus, setSelfWatchlistStatus] =
+    useState<WatchlistStatus>('idle')
+  const [othersWatchlistStatus, setOthersWatchlistStatus] =
+    useState<WatchlistStatus>('idle')
 
   const refreshWatchlists = async () => {
     try {
