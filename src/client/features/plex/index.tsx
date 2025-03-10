@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useConfigStore } from '@/stores/configStore'
 import PlexConnectionSection from './components/connection/connection-section'
 import WatchlistStatsSection from './components/watchlist/watchlist-stats'
@@ -24,18 +24,15 @@ export default function PlexConfigPage() {
 
   return (
     <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
-      <SetupModal 
-        open={showSetupModal} 
-        onOpenChange={setShowSetupModal} 
-      />
-      
+      <SetupModal open={showSetupModal} onOpenChange={setShowSetupModal} />
+
       <div className="grid gap-6">
         {/* Plex Connection Section */}
         <PlexConnectionSection />
-        
+
         {/* Watchlist Stats Section */}
         <WatchlistStatsSection />
-        
+
         {/* User Table Section */}
         <UserTableSection />
       </div>

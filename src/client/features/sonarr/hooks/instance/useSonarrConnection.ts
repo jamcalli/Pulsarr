@@ -5,6 +5,12 @@ import type {
   SonarrInstance,
   SonarrConnectionValues,
 } from '@/features/sonarr/store/types'
+import type { UseFormReturn } from 'react-hook-form'
+
+type SonarrConnectionForm = SonarrConnectionValues & {
+  qualityProfile: string
+  rootFolder: string
+}
 
 export function useSonarrConnection(
   instance: SonarrInstance,
@@ -105,7 +111,10 @@ export function useSonarrConnection(
   ])
 
   const testConnection = useCallback(
-    async (values: SonarrConnectionValues, form: any) => {
+    async (
+      values: SonarrConnectionValues,
+      form: UseFormReturn<SonarrConnectionForm>,
+    ) => {
       if (!values.name?.trim()) {
         toast({
           title: 'Name Required',

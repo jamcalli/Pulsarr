@@ -1,4 +1,3 @@
-import React from 'react'
 import { usePlexUser } from '../../hooks/usePlexUser'
 import UserTable from './user-table'
 import UserEditModal from './user-edit-modal'
@@ -11,7 +10,7 @@ export default function UserTableSection() {
     setIsEditModalOpen,
     saveStatus,
     handleEditUser,
-    handleUpdateUser
+    handleUpdateUser,
   } = usePlexUser()
 
   return (
@@ -22,10 +21,7 @@ export default function UserTableSection() {
       <div className="grid gap-4 mt-4">
         {users ? (
           <>
-            <UserTable 
-              users={users} 
-              onEditUser={handleEditUser}
-            />
+            <UserTable users={users} onEditUser={handleEditUser} />
             <UserEditModal
               open={isEditModalOpen}
               onOpenChange={setIsEditModalOpen}

@@ -6,7 +6,7 @@ export function usePlexSetup() {
   const updateConfig = useConfigStore((state) => state.updateConfig)
   const fetchUserData = useConfigStore((state) => state.fetchUserData)
   const refreshRssFeeds = useConfigStore((state) => state.refreshRssFeeds)
-  
+
   // Function to handle setting up a new Plex token
   const setupPlexToken = async (token: string) => {
     // Update config with new token

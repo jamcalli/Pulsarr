@@ -106,7 +106,7 @@ export function useSonarrInstanceForm({
         shouldDirty: true,
       })
     }
-  }, [form, isConnectionValid, instance])
+  }, [form, isConnectionValid])
 
   const resetForm = useCallback(
     (data?: SonarrInstanceSchema) => {

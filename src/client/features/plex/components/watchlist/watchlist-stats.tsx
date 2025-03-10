@@ -1,20 +1,37 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { FormControl } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
 import { useWatchlistProgress } from '@/hooks/useProgress'
 import { usePlexWatchlist } from '../../hooks/usePlexWatchlist'
+import { useConfigStore } from '@/stores/configStore'
+
+// In your features/plex/components/watchlist/watchlist-stats.tsx
 
 export default function WatchlistStatsSection() {
-  const { 
-    selfWatchlist, 
-    othersWatchlist, 
-    selfWatchlistStatus, 
-    othersWatchlistStatus 
-  } = usePlexWatchlist()
-  
-  const selfWatchlistProgress = useWatchlistProgress('self-watchlist')
-  const othersWatchlistProgress = useWatchlistProgress('others-watchlist')
+  // Get the raw users directly instead of using the selectors
+  const users = useConfigStore((state) => state.users)
+
+  // Compute the values directly in the component
+  const selfWatchlist = users?.find((user) => Number(user.id) === 1)
+  const otherUsers = users?.filter((user) => Number(user.id) !== 1) || []
+  const othersTotal = otherUsers.reduce(
+    (acc, user) => acc + (user.watchlist_count || 0),
+    0,
+  )
+
+  // Watchlist status management can remain the same
+  const { selfWatchlistStatus, othersWatchlistStatus } = usePlexWatchlist()
+
+  // Log for debugging
+  useEffect(() => {
+    console.log('Users data:', {
+      users,
+      selfWatchlist,
+      otherUsers,
+      othersTotal,
+    })
+  }, [users, selfWatchlist, otherUsers, othersTotal])
 
   return (
     <div className="flex gap-4">
@@ -24,17 +41,7 @@ export default function WatchlistStatsSection() {
             Self Watchlist
           </div>
           {selfWatchlistStatus === 'loading' ? (
-            <div className="space-y-1">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-text">
-                  {selfWatchlistProgress.message || 'Processing...'}
-                </span>
-                <span className="text-sm text-text">
-                  {selfWatchlistProgress.progress}%
-                </span>
-              </div>
-              <Progress value={selfWatchlistProgress.progress} />
-            </div>
+            <div className="space-y-1">{/* Loading UI */}</div>
           ) : (
             <Input
               value={
@@ -57,23 +64,12 @@ export default function WatchlistStatsSection() {
             Others Watchlist
           </div>
           {othersWatchlistStatus === 'loading' ? (
-            <div className="space-y-1">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-text">
-                  {othersWatchlistProgress.message ||
-                    'Processing...'}
-                </span>
-                <span className="text-sm text-text">
-                  {othersWatchlistProgress.progress}%
-                </span>
-              </div>
-              <Progress value={othersWatchlistProgress.progress} />
-            </div>
+            <div className="space-y-1">{/* Loading UI */}</div>
           ) : (
             <Input
               value={
-                othersWatchlist
-                  ? `${othersWatchlist.users.length.toLocaleString()} users with ${othersWatchlist.totalCount.toLocaleString()} items total`
+                otherUsers.length > 0
+                  ? `${otherUsers.length.toLocaleString()} users with ${othersTotal.toLocaleString()} items total`
                   : ''
               }
               placeholder="No other watchlists available"
