@@ -9,6 +9,8 @@ import {
 } from '@/components/ui/table'
 
 export default function UserTableSkeleton() {
+  const skeletonRows = Array.from({ length: 5 }, (_, i) => `skeleton-row-${i}`)
+
   return (
     <div className="w-full">
       <div className="flex items-center justify-between py-4">
@@ -37,8 +39,8 @@ export default function UserTableSkeleton() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {Array.from({ length: 5 }).map((_, i) => (
-              <TableRow key={i}>
+            {skeletonRows.map((key) => (
+              <TableRow key={key}>
                 <TableCell className="px-2 py-2">
                   <Skeleton className="h-6 w-48" />
                 </TableCell>

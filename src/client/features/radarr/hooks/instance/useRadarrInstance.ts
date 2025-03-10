@@ -2,6 +2,7 @@ import { useCallback } from 'react'
 import { useRadarrStore } from '@/features/radarr/store/radarrStore'
 import { useToast } from '@/hooks/use-toast'
 import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
+import type { UseFormReturn } from 'react-hook-form'
 
 export function useRadarrInstance(instanceId: number) {
   const { toast } = useToast()
@@ -41,7 +42,7 @@ export function useRadarrInstance(instanceId: number) {
 
   const handleDeleteInstance = useCallback(
     async (
-      form: any,
+      form: UseFormReturn<RadarrInstanceSchema>,
       setIsConnectionValid: (valid: boolean) => void,
       setTestStatus: (status: 'idle' | 'loading' | 'success' | 'error') => void,
     ) => {

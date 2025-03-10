@@ -5,6 +5,12 @@ import type {
   RadarrInstance,
   RadarrConnectionValues,
 } from '@/features/radarr/store/types'
+import type { UseFormReturn } from 'react-hook-form'
+
+type RadarrConnectionForm = RadarrConnectionValues & {
+  qualityProfile: string
+  rootFolder: string
+}
 
 export function useRadarrConnection(
   instance: RadarrInstance,
@@ -105,7 +111,10 @@ export function useRadarrConnection(
   ])
 
   const testConnection = useCallback(
-    async (values: RadarrConnectionValues, form: any) => {
+    async (
+      values: RadarrConnectionValues,
+      form: UseFormReturn<RadarrConnectionForm>,
+    ) => {
       if (!values.name?.trim()) {
         toast({
           title: 'Name Required',

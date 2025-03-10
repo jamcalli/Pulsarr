@@ -2,6 +2,7 @@ import { useCallback } from 'react'
 import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
 import { useToast } from '@/hooks/use-toast'
 import type { SonarrInstanceSchema } from '@/features/sonarr/store/schemas'
+import type { UseFormReturn } from 'react-hook-form'
 
 export function useSonarrInstance(instanceId: number) {
   const { toast } = useToast()
@@ -27,7 +28,7 @@ export function useSonarrInstance(instanceId: number) {
 
   const handleDeleteInstance = useCallback(
     async (
-      form: any,
+      form: UseFormReturn<SonarrInstanceSchema>,
       setIsConnectionValid: (valid: boolean) => void,
       setTestStatus: (status: 'idle' | 'loading' | 'success' | 'error') => void,
     ) => {

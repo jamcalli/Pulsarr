@@ -101,7 +101,7 @@ export function useRadarrInstanceForm({
         shouldDirty: true,
       })
     }
-  }, [form, isConnectionValid, instance])
+  }, [form, isConnectionValid])
 
   const resetForm = useCallback(
     (data?: RadarrInstanceSchema) => {
