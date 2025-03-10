@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -9,89 +9,162 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
+import { useToast } from '@/hooks/use-toast'
+import { useConfigStore } from '@/stores/configStore'
 import { useWatchlistProgress } from '@/hooks/useProgress'
-import { usePlexConnection } from '@/features/plex/hooks/instance/usePlexConnection'
+import { usePlexWatchlist } from '../../hooks/usePlexWatchlist'
 
-interface PlexSetupModalProps {
+interface SetupModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-export function PlexSetupModal({ open, onOpenChange }: PlexSetupModalProps) {
-  const [plexToken, setPlexToken] = React.useState('')
-  const [currentStep, setCurrentStep] = React.useState<'token' | 'syncing'>('token')
-  const [isSubmitting, setIsSubmitting] = React.useState(false)
+export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
+  const { toast } = useToast()
+  const updateConfig = useConfigStore((state) => state.updateConfig)
+  const fetchUserData = useConfigStore((state) => state.fetchUserData)
+  const refreshRssFeeds = useConfigStore((state) => state.refreshRssFeeds)
+  const [plexToken, setPlexToken] = useState('')
+  const [currentStep, setCurrentStep] = useState<'token' | 'syncing'>('token')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  const { 
+    selfWatchlistStatus,
+    othersWatchlistStatus,
+    setSelfWatchlistStatus,
+    setOthersWatchlistStatus,
+  } = usePlexWatchlist()
   
   const selfWatchlistProgress = useWatchlistProgress('self-watchlist')
   const othersWatchlistProgress = useWatchlistProgress('others-watchlist')
-  
-  // Track loading states for each step
-  const [selfWatchlistStatus, setSelfWatchlistStatus] = React.useState<
-    'idle' | 'loading' | 'success' | 'error'
-  >('idle')
-  const [othersWatchlistStatus, setOthersWatchlistStatus] = React.useState<
-    'idle' | 'loading' | 'success' | 'error'
-  >('idle')
-
-  const { setupPlex } = usePlexConnection()
 
   React.useEffect(() => {
     if (
       selfWatchlistStatus === 'success' &&
       othersWatchlistStatus === 'success'
     ) {
-      const timer = setTimeout(() => {
-        // Close modal after successful setup
-        onOpenChange(false)
-        
-        // Reset state after animation completes
-        setTimeout(() => {
-          setCurrentStep('token')
-          setIsSubmitting(false)
-          setSelfWatchlistStatus('idle')
-          setOthersWatchlistStatus('idle')
-          setPlexToken('')
-        }, 150)
+      const timer = setTimeout(async () => {
+        try {
+          await fetchUserData()
+          onOpenChange(false)
+
+          setTimeout(() => {
+            setCurrentStep('token')
+            setIsSubmitting(false)
+            setSelfWatchlistStatus('idle')
+            setOthersWatchlistStatus('idle')
+          }, 150)
+        } catch (error) {
+          console.error('Error updating final state:', error)
+          toast({
+            description: 'Error finalizing setup',
+            variant: 'destructive',
+          })
+        }
       }, 1000)
       return () => clearTimeout(timer)
     }
-  }, [selfWatchlistStatus, othersWatchlistStatus, onOpenChange])
+  }, [
+    selfWatchlistStatus,
+    othersWatchlistStatus,
+    onOpenChange,
+    fetchUserData,
+    toast,
+    setSelfWatchlistStatus,
+    setOthersWatchlistStatus,
+  ])
 
   const handleSubmit = async () => {
     setIsSubmitting(true)
     try {
-      // First setup the token and test
-      setCurrentStep('syncing')
-      
-      // Track self watchlist
-      setSelfWatchlistStatus('loading')
-      
-      // Initially successful token setup
-      const success = await setupPlex(plexToken)
-      
-      if (success) {
-        setSelfWatchlistStatus('success')
-        
-        // Small delay before showing others watchlist progress
-        await new Promise(resolve => setTimeout(resolve, 500))
-        
-        // Start tracking other watchlists
-        setOthersWatchlistStatus('loading')
-        
-        // This should already be done by setupPlex, just updating UI status
-        setTimeout(() => {
-          setOthersWatchlistStatus('success')  
-        }, 1000)
-      } else {
-        throw new Error('Failed to setup Plex token')
+      const tokenMinLoadingTime = new Promise((resolve) =>
+        setTimeout(resolve, 500),
+      )
+      await Promise.all([
+        updateConfig({
+          plexTokens: [plexToken],
+        }),
+        tokenMinLoadingTime,
+      ])
+
+      const verifyMinLoadingTime = new Promise((resolve) =>
+        setTimeout(resolve, 500),
+      )
+      const [plexPingResponse] = await Promise.all([
+        fetch('/v1/plex/ping', {
+          method: 'GET',
+        }),
+        verifyMinLoadingTime,
+      ])
+
+      const plexPingResult = await plexPingResponse.json()
+
+      if (!plexPingResult.success) {
+        throw new Error('Invalid Plex token')
       }
+
+      setCurrentStep('syncing')
+
+      setSelfWatchlistStatus('loading')
+      const selfMinLoadingTime = new Promise((resolve) =>
+        setTimeout(resolve, 500),
+      )
+      const [watchlistResponse] = await Promise.all([
+        fetch('/v1/plex/self-watchlist-token', {
+          method: 'GET',
+          headers: { Accept: 'application/json' },
+        }),
+        selfMinLoadingTime,
+      ])
+
+      if (!watchlistResponse.ok) {
+        throw new Error('Failed to sync watchlist')
+      }
+
+      setSelfWatchlistStatus('success')
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+
+      setOthersWatchlistStatus('loading')
+      const othersMinLoadingTime = new Promise((resolve) =>
+        setTimeout(resolve, 500),
+      )
+      const [othersResponse] = await Promise.all([
+        fetch('/v1/plex/others-watchlist-token', {
+          method: 'GET',
+          headers: { Accept: 'application/json' },
+        }),
+        othersMinLoadingTime,
+      ])
+
+      if (!othersResponse.ok) {
+        throw new Error('Failed to sync others watchlist')
+      }
+
+      const rssMinLoadingTime = new Promise((resolve) =>
+        setTimeout(resolve, 500),
+      )
+      await Promise.all([refreshRssFeeds(), rssMinLoadingTime])
+
+      setOthersWatchlistStatus('success')
+
+      toast({
+        description: 'Plex configuration has been successfully completed',
+        variant: 'default',
+      })
     } catch (error) {
       console.error('Setup error:', error)
-      // Reset to token input
+      toast({
+        description:
+          error instanceof Error
+            ? error.message
+            : 'An unexpected error occurred',
+        variant: 'destructive',
+      })
+      setIsSubmitting(false)
       setCurrentStep('token')
       setSelfWatchlistStatus('idle')
       setOthersWatchlistStatus('idle')
-      setIsSubmitting(false)
+      return
     }
   }
 

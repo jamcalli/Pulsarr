@@ -13,7 +13,7 @@ const CreateUserPage = lazy(() =>
     default: module.CreateUserPage,
   })),
 )
-const PlexConfigPage = lazy(() => import('@/pages/plex/plex'))
+const PlexConfigPage = lazy(() => import('@/features/plex'))
 const SonarrConfigPage = lazy(() => import('@/features/sonarr'))
 const RadarrConfigPage = lazy(() => import('@/features/radarr'))
 const NotificationsConfigPage = lazy(
