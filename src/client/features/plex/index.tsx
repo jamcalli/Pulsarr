@@ -1,7 +1,6 @@
 import { useEffect } from 'react'
 import { useConfigStore } from '@/stores/configStore'
 import PlexConnectionSection from './components/connection/connection-section'
-import WatchlistStatsSection from './components/watchlist/watchlist-stats'
 import UserTableSection from './components/user/user-table-section'
 import SetupModal from './components/setup/setup-modal'
 import { usePlexSetup } from './hooks/usePlexSetup'
@@ -29,9 +28,6 @@ export default function PlexConfigPage() {
       <div className="grid gap-6">
         {/* Plex Connection Section */}
         <PlexConnectionSection />
-
-        {/* Watchlist Stats Section */}
-        <WatchlistStatsSection />
 
         {/* User Table Section */}
         <UserTableSection />

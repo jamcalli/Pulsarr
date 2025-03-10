@@ -14,11 +14,9 @@ export function usePlexWatchlist() {
     (state) => state.getOthersWatchlistInfo,
   )
 
-  // Get watchlist data from store
   const selfWatchlist = getSelfWatchlistInfo()
   const othersWatchlist = getOthersWatchlistInfo()
 
-  // Status states
   const [selfWatchlistStatus, setSelfWatchlistStatus] =
     useState<WatchlistStatus>('idle')
   const [othersWatchlistStatus, setOthersWatchlistStatus] =

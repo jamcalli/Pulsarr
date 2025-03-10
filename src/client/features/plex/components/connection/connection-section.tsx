@@ -9,11 +9,13 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { Progress } from '@/components/ui/progress'
 import { useConfigStore } from '@/stores/configStore'
-import { usePlexSetup } from '../../hooks/usePlexSetup'
-import { usePlexConnection } from '../../hooks/usePlexConnection'
-import { usePlexRssFeeds } from '../../hooks/usePlexRssFeeds'
-import { usePlexWatchlist } from '../../hooks/usePlexWatchlist'
+import { usePlexSetup } from '@/features/plex/hooks/usePlexSetup'
+import { usePlexConnection } from '@/features/plex/hooks/usePlexConnection'
+import { usePlexRssFeeds } from '@/features/plex/hooks/usePlexRssFeeds'
+import { usePlexWatchlist } from '@/features/plex/hooks/usePlexWatchlist'
+import { useWatchlistProgress } from '@/hooks/useProgress'
 
 export default function PlexConnectionSection() {
   // Connection state
@@ -24,9 +26,25 @@ export default function PlexConnectionSection() {
   const { rssStatus, generateRssFeeds } = usePlexRssFeeds()
   const config = useConfigStore((state) => state.config)
 
+  // Get user data to compute watchlist counts
+  const users = useConfigStore((state) => state.users)
+  const selfWatchlist = users?.find((user) => Number(user.id) === 1)
+  const otherUsers = users?.filter((user) => Number(user.id) !== 1) || []
+  const othersTotal = otherUsers.reduce(
+    (acc, user) => acc + (user.watchlist_count || 0),
+    0
+  )
+
   // Watchlist refresh
-  const { selfWatchlistStatus, othersWatchlistStatus, refreshWatchlists } =
-    usePlexWatchlist()
+  const { 
+    selfWatchlistStatus, 
+    othersWatchlistStatus, 
+    refreshWatchlists 
+  } = usePlexWatchlist()
+
+  // Progress hooks for live updates
+  const selfWatchlistProgress = useWatchlistProgress('self-watchlist')
+  const othersWatchlistProgress = useWatchlistProgress('others-watchlist')
 
   // Setup modal trigger
   const { setShowSetupModal } = usePlexSetup()
@@ -126,6 +144,79 @@ export default function PlexConnectionSection() {
                   )}
                   Manual refresh
                 </Button>
+              </div>
+            </div>
+
+            {/* Watchlist stats section */}
+            <div className="flex gap-4">
+              <div className="flex-1">
+                <FormItem className="flex-grow">
+                  <FormLabel className="text-text">
+                    Self Watchlist
+                  </FormLabel>
+                  {selfWatchlistStatus === 'loading' ? (
+                    <div className="space-y-1">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-text">
+                          {selfWatchlistProgress.message || 'Processing...'}
+                        </span>
+                        <span className="text-sm text-text">
+                          {selfWatchlistProgress.progress}%
+                        </span>
+                      </div>
+                      <Progress value={selfWatchlistProgress.progress} />
+                    </div>
+                  ) : (
+                    <FormControl>
+                      <Input
+                        value={
+                          selfWatchlist?.watchlist_count !== undefined
+                            ? `You have ${selfWatchlist.watchlist_count.toLocaleString()} items in your watchlist!`
+                            : ''
+                        }
+                        placeholder="No watchlist data available"
+                        type="text"
+                        readOnly
+                        className="w-full"
+                      />
+                    </FormControl>
+                  )}
+                </FormItem>
+              </div>
+
+              <div className="flex-1">
+                <FormItem className="flex-grow">
+                  <FormLabel className="text-text">
+                    Others Watchlist
+                  </FormLabel>
+                  {othersWatchlistStatus === 'loading' ? (
+                    <div className="space-y-1">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-text">
+                          {othersWatchlistProgress.message || 'Processing...'}
+                        </span>
+                        <span className="text-sm text-text">
+                          {othersWatchlistProgress.progress}%
+                        </span>
+                      </div>
+                      <Progress value={othersWatchlistProgress.progress} />
+                    </div>
+                  ) : (
+                    <FormControl>
+                      <Input
+                        value={
+                          otherUsers.length > 0
+                            ? `${otherUsers.length.toLocaleString()} users with ${othersTotal.toLocaleString()} items total`
+                            : ''
+                        }
+                        placeholder="No other watchlists available"
+                        type="text"
+                        readOnly
+                        className="w-full"
+                      />
+                    </FormControl>
+                  )}
+                </FormItem>
               </div>
             </div>
 
