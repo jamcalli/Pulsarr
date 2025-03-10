@@ -47,7 +47,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import type { UserWatchlistInfo } from '@/stores/configStore'
-import UserTableSkeletonRows from './user-table-skeleton'
+import UserTableSkeletonRows from '@/features/plex/components/user/user-table-skeleton'
 
 interface ColumnMetaType {
   className?: string

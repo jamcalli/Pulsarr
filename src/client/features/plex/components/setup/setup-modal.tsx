@@ -12,7 +12,7 @@ import { Progress } from '@/components/ui/progress'
 import { useToast } from '@/hooks/use-toast'
 import { useConfigStore } from '@/stores/configStore'
 import { useWatchlistProgress } from '@/hooks/useProgress'
-import { usePlexWatchlist } from '../../hooks/usePlexWatchlist'
+import { usePlexWatchlist } from '@/features/plex/hooks/usePlexWatchlist'
 
 interface SetupModalProps {
   open: boolean

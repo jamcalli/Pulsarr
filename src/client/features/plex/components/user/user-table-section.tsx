@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useConfigStore } from '@/stores/configStore'
-import { usePlexUser } from '../../hooks/usePlexUser'
-import UserTable from './user-table'
-import UserEditModal from './user-edit-modal'
+import { usePlexUser } from '@/features/plex/hooks/usePlexUser'
+import UserTable from '@/features/plex/components/user/user-table'
+import UserEditModal from '@/features/plex/components/user/user-edit-modal'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 
 export default function UserTableSection() {
