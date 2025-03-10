@@ -24,11 +24,11 @@ export default function PlexConnectionSection() {
   // Connection state
   const { form, status, handleUpdateToken, handleRemoveToken } =
     usePlexConnection()
-  
+
   // Loading state
   const [isLoading, setIsLoading] = useState(true)
   const [minLoadingComplete, setMinLoadingComplete] = useState(false)
-  
+
   // RSS feed state
   const { rssStatus, generateRssFeeds } = usePlexRssFeeds()
   const config = useConfigStore((state) => state.config)
@@ -56,33 +56,33 @@ export default function PlexConnectionSection() {
 
   // Setup minimum loading time
   useEffect(() => {
-    let isMounted = true;
-    
+    let isMounted = true
+
     const timer = setTimeout(() => {
       if (isMounted) {
-        setMinLoadingComplete(true);
+        setMinLoadingComplete(true)
         if (isInitialized) {
-          setIsLoading(false);
+          setIsLoading(false)
         }
       }
-    }, MIN_LOADING_DELAY);
-    
+    }, MIN_LOADING_DELAY)
+
     return () => {
-      isMounted = false;
-      clearTimeout(timer);
-    };
-  }, [isInitialized]);
-  
+      isMounted = false
+      clearTimeout(timer)
+    }
+  }, [isInitialized])
+
   // Update loading state when initialized
   useEffect(() => {
     if (isInitialized && minLoadingComplete) {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  }, [isInitialized, minLoadingComplete]);
+  }, [isInitialized, minLoadingComplete])
 
   // Show skeleton during loading
   if (isLoading) {
-    return <PlexConnectionSkeleton />;
+    return <PlexConnectionSkeleton />
   }
 
   return (

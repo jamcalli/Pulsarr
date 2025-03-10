@@ -22,12 +22,12 @@ export function usePlexUser() {
   useEffect(() => {
     if (isInitialized) {
       const timer = setTimeout(() => {
-        setIsLoading(false);
-      }, MIN_LOADING_DELAY);
-      
-      return () => clearTimeout(timer);
+        setIsLoading(false)
+      }, MIN_LOADING_DELAY)
+
+      return () => clearTimeout(timer)
     }
-  }, [isInitialized, users]);
+  }, [isInitialized])
 
   const handleEditUser = (user: UserWatchlistInfo) => {
     setSelectedUser(user)
