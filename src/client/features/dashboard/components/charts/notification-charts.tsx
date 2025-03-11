@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useTheme } from '@/components/theme-provider'
-import { PieChart, Pie, Cell, Tooltip } from 'recharts'
+import { PieChart, Pie, Cell, Tooltip, Label } from 'recharts'
 import { AspectRatio } from '@/components/ui/aspect-ratio'
 import { Card, CardContent } from '@/components/ui/card'
 import { ChartContainer, type ChartConfig } from '@/components/ui/chart'
@@ -146,6 +146,20 @@ export function NotificationCharts() {
     )
   }
 
+  const getTotalByChannel = useMemo(() => {
+    return notificationsData.byChannel.reduce(
+      (sum, item) => sum + item.value,
+      0
+    )
+  }, [notificationsData.byChannel])
+
+  const getTotalByType = useMemo(() => {
+    return notificationsData.byType.reduce(
+      (sum, item) => sum + item.value,
+      0
+    )
+  }, [notificationsData.byType])
+
   if (isLoading || !notificationStats) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -185,16 +199,15 @@ export function NotificationCharts() {
                   <Pie
                     data={notificationsData.byChannel.map((item) => ({
                       ...item,
-                      total: notificationsData.byChannel.reduce(
-                        (sum, i) => sum + i.value,
-                        0,
-                      ),
+                      total: getTotalByChannel,
                     }))}
                     dataKey="value"
                     nameKey="name"
                     cx="50%"
                     cy="50%"
-                    outerRadius="80%"
+                    innerRadius="30%"
+                    outerRadius="70%"
+                    strokeWidth={2}
                   >
                     {notificationsData.byChannel.map((item, index) => (
                       <Cell
@@ -204,28 +217,68 @@ export function NotificationCharts() {
                         strokeWidth={1}
                       />
                     ))}
+                    <Label
+                      content={({ viewBox }) => {
+                        if (viewBox && 'cx' in viewBox && 'cy' in viewBox) {
+                          const textColor = isDarkMode ? 'white' : 'black'
+
+                          return (
+                            <text
+                              x={viewBox.cx}
+                              y={viewBox.cy}
+                              textAnchor="middle"
+                              dominantBaseline="middle"
+                            >
+                              <tspan
+                                x={viewBox.cx}
+                                y={viewBox.cy}
+                                className="font-bold"
+                                style={{
+                                  fill: textColor,
+                                  fontSize: '1.5rem',
+                                }}
+                              >
+                                {getTotalByChannel.toLocaleString()}
+                              </tspan>
+                              <tspan
+                                x={viewBox.cx}
+                                y={(viewBox.cy || 0) + 24}
+                                style={{
+                                  fill: isDarkMode
+                                    ? 'rgba(255,255,255,0.7)'
+                                    : 'rgba(0,0,0,0.7)',
+                                }}
+                              >
+                                Total
+                              </tspan>
+                            </text>
+                          )
+                        }
+                        return null
+                      }}
+                    />
                   </Pie>
                 </PieChart>
               </ChartContainer>
             </AspectRatio>
+            <div className="flex flex-wrap justify-center mt-3 gap-3">
+              {notificationsData.byChannel.map((entry, index) => (
+                <div
+                  key={`channel-legend-${entry.name}`}
+                  className="flex items-center"
+                >
+                  <span
+                    className="h-3 w-3 rounded-full inline-block mr-2"
+                    style={{
+                      backgroundColor: getHSLColor(index),
+                    }}
+                  />
+                  <span className="text-sm text-text">{entry.name}</span>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
-        <div className="flex flex-wrap justify-center mt-3 gap-3">
-          {notificationsData.byChannel.map((entry, index) => (
-            <div
-              key={`channel-legend-${entry.name}`}
-              className="flex items-center"
-            >
-              <span
-                className="h-3 w-3 rounded-full inline-block mr-2"
-                style={{
-                  backgroundColor: getHSLColor(index),
-                }}
-              />
-              <span className="text-sm text-text">{entry.name}</span>
-            </div>
-          ))}
-        </div>
       </div>
 
       <div className="flex flex-col">
@@ -247,21 +300,19 @@ export function NotificationCharts() {
                     left: 5,
                   }}
                 >
-                  {/* Make sure the tooltip is inside the PieChart */}
                   <Tooltip content={NotificationTooltip} />
                   <Pie
                     data={notificationsData.byType.map((item) => ({
                       ...item,
-                      total: notificationsData.byType.reduce(
-                        (sum, i) => sum + i.value,
-                        0,
-                      ),
+                      total: getTotalByType,
                     }))}
                     dataKey="value"
                     nameKey="name"
                     cx="50%"
                     cy="50%"
-                    outerRadius="80%"
+                    innerRadius="30%"
+                    outerRadius="70%"
+                    strokeWidth={2}
                   >
                     {notificationsData.byType.map((item, index) => (
                       <Cell
@@ -271,28 +322,68 @@ export function NotificationCharts() {
                         strokeWidth={1}
                       />
                     ))}
+                    <Label
+                      content={({ viewBox }) => {
+                        if (viewBox && 'cx' in viewBox && 'cy' in viewBox) {
+                          const textColor = isDarkMode ? 'white' : 'black'
+
+                          return (
+                            <text
+                              x={viewBox.cx}
+                              y={viewBox.cy}
+                              textAnchor="middle"
+                              dominantBaseline="middle"
+                            >
+                              <tspan
+                                x={viewBox.cx}
+                                y={viewBox.cy}
+                                className="font-bold"
+                                style={{
+                                  fill: textColor,
+                                  fontSize: '1.5rem',
+                                }}
+                              >
+                                {getTotalByType.toLocaleString()}
+                              </tspan>
+                              <tspan
+                                x={viewBox.cx}
+                                y={(viewBox.cy || 0) + 24}
+                                style={{
+                                  fill: isDarkMode
+                                    ? 'rgba(255,255,255,0.7)'
+                                    : 'rgba(0,0,0,0.7)',
+                                }}
+                              >
+                                Total
+                              </tspan>
+                            </text>
+                          )
+                        }
+                        return null
+                      }}
+                    />
                   </Pie>
                 </PieChart>
               </ChartContainer>
             </AspectRatio>
+            <div className="flex flex-wrap justify-center mt-3 gap-3">
+              {notificationsData.byType.map((entry, index) => (
+                <div
+                  key={`type-legend-${entry.name}`}
+                  className="flex items-center"
+                >
+                  <span
+                    className="h-3 w-3 rounded-full inline-block mr-2"
+                    style={{
+                      backgroundColor: getHSLColor(index),
+                    }}
+                  />
+                  <span className="text-sm text-text">{entry.name}</span>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
-        <div className="flex flex-wrap justify-center mt-3 gap-3">
-          {notificationsData.byType.map((entry, index) => (
-            <div
-              key={`type-legend-${entry.name}`}
-              className="flex items-center"
-            >
-              <span
-                className="h-3 w-3 rounded-full inline-block mr-2"
-                style={{
-                  backgroundColor: getHSLColor(index),
-                }}
-              />
-              <span className="text-sm text-text">{entry.name}</span>
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   )
