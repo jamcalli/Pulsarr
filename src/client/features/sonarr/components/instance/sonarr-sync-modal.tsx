@@ -17,12 +17,14 @@ interface SonarrSyncModalProps {
   onOpenChange: (open: boolean) => void
   syncedInstances: number[]
   instanceId: number
+  isManualSync?: boolean
 }
 
 export function SonarrSyncModal({
   open,
   onOpenChange,
   syncedInstances,
+  isManualSync = false,
 }: SonarrSyncModalProps) {
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -32,6 +34,7 @@ export function SonarrSyncModal({
 
   const allInstances = useSonarrStore((state) => state.instances)
   const instanceNamesRef = useRef<Record<number, string>>({})
+  const isSingleInstance = syncedInstances.length === 1
 
   useEffect(() => {
     const nameMap: Record<number, string> = {}
@@ -44,13 +47,42 @@ export function SonarrSyncModal({
   const syncProgress = useSyncProgress()
 
   useEffect(() => {
-    if (open) {
+    if (
+      open &&
+      isManualSync &&
+      !isSubmitting &&
+      currentInstanceIndex === -1 &&
+      !syncCompleted
+    ) {
+      setIsSubmitting(true)
+      if (syncedInstances.length > 0) {
+        setCurrentInstanceIndex(0)
+      } else {
+        setSyncCompleted(true)
+        toast({
+          description: 'No instances to synchronize',
+          variant: 'default',
+        })
+      }
+    }
+  }, [
+    open,
+    isManualSync,
+    isSubmitting,
+    currentInstanceIndex,
+    syncCompleted,
+    syncedInstances.length,
+    toast,
+  ])
+
+  useEffect(() => {
+    if (open && !isManualSync) {
       setIsSubmitting(false)
       setCurrentInstanceIndex(-1)
       setSyncCompleted(false)
       setOverallProgress(0)
     }
-  }, [open])
+  }, [open, isManualSync])
 
   useEffect(() => {
     if (syncCompleted) {
@@ -190,7 +222,7 @@ export function SonarrSyncModal({
         <DialogHeader>
           <DialogTitle className="text-text">
             {!isSubmitting
-              ? 'Initial Instance Synchronization'
+              ? 'Instance Synchronization'
               : syncCompleted
                 ? 'Synchronization Complete'
                 : 'Synchronizing Instances'}
@@ -200,21 +232,27 @@ export function SonarrSyncModal({
               ? 'Would you like to synchronize content to your synced instances?'
               : syncCompleted
                 ? 'All instances have been synchronized successfully.'
-                : `Synchronizing content between instances... (${currentInstanceIndex + 1}/${syncedInstances.length})`}
+                : isSingleInstance
+                  ? `Synchronizing content to ${getCurrentInstanceName()}...`
+                  : `Synchronizing content between instances... (${currentInstanceIndex + 1}/${syncedInstances.length})`}
           </DialogDescription>
         </DialogHeader>
 
         <div className="py-4">
           {isSubmitting ? (
             <div className="space-y-4">
-              {/* Overall progress */}
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-text">Overall Progress</span>
-                  <span className="text-sm text-text">{overallProgress}%</span>
+              {/* Only show overall progress if more than one instance is being synced */}
+              {!isSingleInstance && !syncCompleted && (
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-text">Overall Progress</span>
+                    <span className="text-sm text-text">
+                      {overallProgress}%
+                    </span>
+                  </div>
+                  <Progress value={overallProgress} />
                 </div>
-                <Progress value={overallProgress} />
-              </div>
+              )}
 
               {/* Current instance progress */}
               {!syncCompleted && (

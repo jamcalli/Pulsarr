@@ -46,8 +46,9 @@ export default function ConnectionSettings({
   }, [testStatus, form])
 
   // Determine if the connection test error message is showing
-  const apiKeyFieldState = form.getFieldState('apiKey');
-  const hasConnectionTestError = apiKeyFieldState.error?.message?.includes('test connection') || false;
+  const apiKeyFieldState = form.getFieldState('apiKey')
+  const hasConnectionTestError =
+    apiKeyFieldState.error?.message?.includes('test connection') || false
 
   return (
     <div className="flex portrait:flex-col gap-4">
@@ -117,8 +118,16 @@ export default function ConnectionSettings({
                         )}
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent className={hasConnectionTestError ? "bg-error text-black" : ""}>
-                      <p>{hasConnectionTestError ? "Test connection" : "Test connection"}</p>
+                    <TooltipContent
+                      className={
+                        hasConnectionTestError ? 'bg-error text-black' : ''
+                      }
+                    >
+                      <p>
+                        {hasConnectionTestError
+                          ? 'Test connection'
+                          : 'Test connection'}
+                      </p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
