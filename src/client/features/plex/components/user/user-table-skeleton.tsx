@@ -23,26 +23,26 @@ export default function UserTableSkeletonRows({
                   <Skeleton className="h-3 w-16" />
                 </div>
               </TableCell>
-              
+
               {/* Email notification cell - hidden on small screens */}
               <TableCell className="px-2 py-2 hidden sm:table-cell">
                 <div className="flex justify-center">
                   <Skeleton className="h-4 w-4 rounded-full" />
                 </div>
               </TableCell>
-              
+
               {/* Discord notification cell - hidden on extra small screens */}
               <TableCell className="px-2 py-2 hidden xs:table-cell">
                 <div className="flex justify-center">
                   <Skeleton className="h-4 w-4 rounded-full" />
                 </div>
               </TableCell>
-              
+
               {/* Watchlist count cell - always visible */}
               <TableCell className="px-2 py-2 text-right">
                 <Skeleton className="h-4 w-10 ml-auto" />
               </TableCell>
-              
+
               {/* Actions cell - always visible */}
               <TableCell className="px-2 py-2 w-8">
                 <Skeleton className="h-8 w-8 ml-auto" />

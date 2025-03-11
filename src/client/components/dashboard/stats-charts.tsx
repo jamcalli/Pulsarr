@@ -23,6 +23,7 @@ import type {
   ContentTypeDistribution,
   GenreStat,
   NotificationStats,
+  InstanceBreakdown,
 } from '@root/schemas/stats/stats.schema'
 import { useTheme } from '@/components/theme-provider'
 import type { TooltipProps } from 'recharts'
@@ -46,6 +47,7 @@ interface ChartData {
   notificationStats: NotificationStats | null
   contentTypeDistribution: ContentTypeDistribution[]
   topGenres: GenreStat[]
+  instanceContentBreakdown: InstanceBreakdown[] | null
 }
 
 const CHARTS = {
@@ -90,6 +92,7 @@ function TypedStatsDashboard() {
     notificationStats: null,
     contentTypeDistribution: [],
     topGenres: [],
+    instanceContentBreakdown: null,
   })
   const [isLoading, setIsLoading] = useState(true)
 
@@ -103,6 +106,7 @@ function TypedStatsDashboard() {
         notificationStats: storeState.notificationStats,
         contentTypeDistribution: storeState.contentTypeDistribution || [],
         topGenres: storeState.topGenres || [],
+        instanceContentBreakdown: storeState.instanceContentBreakdown || [],
       })
       setIsLoading(false)
     }
@@ -271,6 +275,19 @@ function TypedStatsDashboard() {
       0,
     )
   }, [chartData.contentTypeDistribution])
+
+  const instanceContentData = useMemo(() => {
+    if (!chartData.instanceContentBreakdown) return []
+
+    return chartData.instanceContentBreakdown.map((instance) => ({
+      name: instance.name,
+      value: instance.total_items,
+      primaryItems: instance.primary_items,
+      type: instance.type,
+      byStatus: instance.by_status,
+      byContentType: instance.by_content_type,
+    }))
+  }, [chartData.instanceContentBreakdown])
 
   // Top Genres chart config and data
   const topGenresData = useMemo((): GenreChartData[] => {
@@ -785,142 +802,286 @@ function TypedStatsDashboard() {
           )
         }
 
+        const InstanceTooltip = ({
+          active,
+          payload,
+        }: TooltipProps<ValueType, NameType>) => {
+          if (!active || !payload || !payload.length) {
+            return null
+          }
+          const data = payload[0].payload
+          return (
+            <div className="bg-bg border border-border p-2 rounded shadow-md">
+              <p className="font-medium text-text">{data.name}</p>
+              <p className="text-text">
+                <span className="font-medium">Total Items: </span>
+                {data.value.toLocaleString()}
+              </p>
+              <p className="text-text">
+                <span className="font-medium">Primary Items: </span>
+                {data.primaryItems.toLocaleString()}
+              </p>
+              <p className="text-text">
+                <span className="font-medium">Type: </span>
+                {data.type === 'sonarr' ? 'Sonarr' : 'Radarr'}
+              </p>
+            </div>
+          )
+        }
+
+        // Config for instance chart
+        const instanceChartConfig = {
+          value: {
+            label: 'Items',
+            color: 'hsl(var(--chart-1))',
+          },
+        } satisfies ChartConfig
+
         return (
-          <div className="flex flex-col">
-            <AspectRatio ratio={1} className="w-full">
-              <ChartContainer
-                config={contentDistributionConfig}
-                className="w-full h-full"
-              >
-                <PieChart
-                  margin={{
-                    top: 5,
-                    right: 5,
-                    bottom: 5,
-                    left: 5,
-                  }}
-                >
-                  <Tooltip
-                    cursor={false}
-                    content={ContentDistributionTooltip}
-                  />
-                  <Pie
-                    data={contentDistributionData}
-                    dataKey="count"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius="30%"
-                    outerRadius="70%"
-                    strokeWidth={5}
-                  >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Content Type Distribution Card */}
+            <div className="flex flex-col">
+              <Card className="bg-bw relative shadow-md">
+                <div className="bg-main text-text px-4 py-3 text-center">
+                  <h4 className="text-base font-medium">Content Types</h4>
+                </div>
+                <CardContent className="pt-4">
+                  <AspectRatio ratio={1} className="w-full">
+                    <ChartContainer
+                      config={contentDistributionConfig}
+                      className="w-full h-full"
+                    >
+                      <PieChart
+                        margin={{
+                          top: 5,
+                          right: 5,
+                          bottom: 5,
+                          left: 5,
+                        }}
+                      >
+                        <Tooltip
+                          cursor={false}
+                          content={ContentDistributionTooltip}
+                        />
+                        <Pie
+                          data={contentDistributionData}
+                          dataKey="count"
+                          nameKey="name"
+                          cx="50%"
+                          cy="50%"
+                          innerRadius="30%"
+                          outerRadius="70%"
+                          strokeWidth={5}
+                        >
+                          {contentDistributionData.map((entry) => {
+                            const type = entry.name.toLowerCase()
+                            let color = cssColors.count
+
+                            if (type === 'movie') color = cssColors.movie
+                            if (type === 'show') color = cssColors.show
+
+                            if (!color) {
+                              const fallbacks = {
+                                movie: '#1a5999',
+                                show: '#39b978',
+                                count: '#f47b30',
+                              }
+                              color =
+                                type === 'movie'
+                                  ? fallbacks.movie
+                                  : type === 'show'
+                                    ? fallbacks.show
+                                    : fallbacks.count
+                            }
+
+                            const { theme } = useTheme()
+                            const isDarkMode =
+                              theme === 'dark' ||
+                              (theme === 'system' &&
+                                window.matchMedia(
+                                  '(prefers-color-scheme: dark)',
+                                ).matches)
+                            const borderColor = isDarkMode
+                              ? '#f8f9fa'
+                              : '#1a1a1a'
+
+                            return (
+                              <Cell
+                                key={`cell-${entry.name}`}
+                                fill={color}
+                                stroke={borderColor}
+                                strokeWidth={1}
+                              />
+                            )
+                          })}
+                          <Label
+                            content={({ viewBox }) => {
+                              if (
+                                viewBox &&
+                                'cx' in viewBox &&
+                                'cy' in viewBox
+                              ) {
+                                const { theme } = useTheme()
+
+                                const isDarkMode =
+                                  theme === 'dark' ||
+                                  (theme === 'system' &&
+                                    window.matchMedia(
+                                      '(prefers-color-scheme: dark)',
+                                    ).matches)
+
+                                const textColor = isDarkMode ? 'white' : 'black'
+
+                                return (
+                                  <text
+                                    x={viewBox.cx}
+                                    y={viewBox.cy}
+                                    textAnchor="middle"
+                                    dominantBaseline="middle"
+                                  >
+                                    <tspan
+                                      x={viewBox.cx}
+                                      y={viewBox.cy}
+                                      className="font-bold"
+                                      style={{
+                                        fill: textColor,
+                                        fontSize: '1.5rem',
+                                      }}
+                                    >
+                                      {totalContentItems.toLocaleString()}
+                                    </tspan>
+                                    <tspan
+                                      x={viewBox.cx}
+                                      y={(viewBox.cy || 0) + 24}
+                                      style={{
+                                        fill: isDarkMode
+                                          ? 'rgba(255,255,255,0.7)'
+                                          : 'rgba(0,0,0,0.7)',
+                                      }}
+                                    >
+                                      Items
+                                    </tspan>
+                                  </text>
+                                )
+                              }
+                              return null
+                            }}
+                          />
+                        </Pie>
+                      </PieChart>
+                    </ChartContainer>
+                  </AspectRatio>
+                  <div className="flex flex-wrap justify-center mt-3 gap-3">
                     {contentDistributionData.map((entry) => {
                       const type = entry.name.toLowerCase()
                       let color = cssColors.count
-
                       if (type === 'movie') color = cssColors.movie
                       if (type === 'show') color = cssColors.show
 
-                      if (!color) {
-                        const fallbacks = {
-                          movie: '#1a5999',
-                          show: '#39b978',
-                          count: '#f47b30',
-                        }
-                        color =
-                          type === 'movie'
-                            ? fallbacks.movie
-                            : type === 'show'
-                              ? fallbacks.show
-                              : fallbacks.count
-                      }
-
-                      const { theme } = useTheme()
-                      const isDarkMode =
-                        theme === 'dark' ||
-                        (theme === 'system' &&
-                          window.matchMedia('(prefers-color-scheme: dark)')
-                            .matches)
-                      const borderColor = isDarkMode ? '#f8f9fa' : '#1a1a1a'
-
                       return (
-                        <Cell
-                          key={`cell-${entry.name}`}
-                          fill={color}
-                          stroke={borderColor}
-                          strokeWidth={1}
-                        />
+                        <div
+                          key={`content-legend-${entry.name}`}
+                          className="flex items-center"
+                        >
+                          <span
+                            className="h-3 w-3 rounded-full inline-block mr-2"
+                            style={{ backgroundColor: color || '#f47b30' }}
+                          />
+                          <span className="text-sm text-text">
+                            {entry.name}
+                          </span>
+                        </div>
                       )
                     })}
-                    <Label
-                      content={({ viewBox }) => {
-                        if (viewBox && 'cx' in viewBox && 'cy' in viewBox) {
-                          const { theme } = useTheme()
-
-                          const isDarkMode =
-                            theme === 'dark' ||
-                            (theme === 'system' &&
-                              window.matchMedia('(prefers-color-scheme: dark)')
-                                .matches)
-
-                          const textColor = isDarkMode ? 'white' : 'black'
-
-                          return (
-                            <text
-                              x={viewBox.cx}
-                              y={viewBox.cy}
-                              textAnchor="middle"
-                              dominantBaseline="middle"
-                            >
-                              <tspan
-                                x={viewBox.cx}
-                                y={viewBox.cy}
-                                className="font-bold"
-                                style={{ fill: textColor, fontSize: '1.5rem' }}
-                              >
-                                {totalContentItems.toLocaleString()}
-                              </tspan>
-                              <tspan
-                                x={viewBox.cx}
-                                y={(viewBox.cy || 0) + 24}
-                                style={{
-                                  fill: isDarkMode
-                                    ? 'rgba(255,255,255,0.7)'
-                                    : 'rgba(0,0,0,0.7)',
-                                }}
-                              >
-                                Items
-                              </tspan>
-                            </text>
-                          )
-                        }
-                        return null
-                      }}
-                    />
-                  </Pie>
-                </PieChart>
-              </ChartContainer>
-            </AspectRatio>
-            <div className="flex justify-center mt-3 gap-6">
-              {contentDistributionData.map((entry) => {
-                const type = entry.name.toLowerCase()
-                let color = cssColors.count
-                if (type === 'movie') color = cssColors.movie
-                if (type === 'show') color = cssColors.show
-
-                return (
-                  <div
-                    key={`content-legend-${entry.name}`}
-                    className="flex items-center"
-                  >
-                    <span
-                      className="h-3 w-3 rounded-full inline-block mr-2"
-                      style={{ backgroundColor: color || '#f47b30' }}
-                    />
-                    <span className="text-sm text-text">{entry.name}</span>
                   </div>
-                )
-              })}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Instance Content Breakdown Card */}
+            <div className="flex flex-col">
+              <Card className="bg-bw relative shadow-md">
+                <div className="bg-main text-text px-4 py-3 text-center">
+                  <h4 className="text-base font-medium">Instance Breakdown</h4>
+                </div>
+                <CardContent className="pt-4">
+                  {!instanceContentData || instanceContentData.length === 0 ? (
+                    <div className="flex h-64 items-center justify-center">
+                      <span className="text-text text-muted-foreground">
+                        No instance data available
+                      </span>
+                    </div>
+                  ) : (
+                    <>
+                      <ChartContainer
+                        config={instanceChartConfig}
+                        className="aspect-auto h-[250px] w-full"
+                      >
+                        <BarChart
+                          data={instanceContentData}
+                          layout="vertical"
+                          margin={{ top: 10, right: 30, left: 20, bottom: 5 }}
+                        >
+                          <CartesianGrid
+                            strokeDasharray="3 3"
+                            horizontal={false}
+                          />
+                          <XAxis
+                            type="number"
+                            tickLine={false}
+                            axisLine={false}
+                          />
+                          <YAxis
+                            dataKey="name"
+                            type="category"
+                            width={80}
+                            tick={{ fontSize: 12 }}
+                            tickLine={false}
+                            axisLine={false}
+                          />
+                          <Tooltip content={InstanceTooltip} />
+                          <Bar dataKey="value" name="Total Items" radius={4}>
+                            {instanceContentData.map((entry) => (
+                              <Cell
+                                key={`cell-${entry.name}`}
+                                fill={
+                                  entry.type === 'sonarr'
+                                    ? cssColors.show || '#39b978'
+                                    : cssColors.movie || '#1a5999'
+                                }
+                              />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ChartContainer>
+                      <div className="flex flex-wrap justify-center mt-3 gap-3">
+                        <div className="flex items-center">
+                          <span
+                            className="h-3 w-3 rounded-full inline-block mr-2"
+                            style={{
+                              backgroundColor: cssColors.movie || '#1a5999',
+                            }}
+                          />
+                          <span className="text-sm text-text">
+                            Radarr Instances
+                          </span>
+                        </div>
+                        <div className="flex items-center">
+                          <span
+                            className="h-3 w-3 rounded-full inline-block mr-2"
+                            style={{
+                              backgroundColor: cssColors.show || '#39b978',
+                            }}
+                          />
+                          <span className="text-sm text-text">
+                            Sonarr Instances
+                          </span>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
             </div>
           </div>
         )

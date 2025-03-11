@@ -2672,4 +2672,149 @@ export class DatabaseService {
       throw error
     }
   }
+
+  async getInstanceContentBreakdown(): Promise<{
+    success: boolean
+    instances: Array<{
+      id: number
+      name: string
+      type: 'sonarr' | 'radarr'
+      total_items: number
+      by_status: Array<{ status: string; count: number }>
+      by_content_type: Array<{ content_type: string; count: number }>
+      primary_items: number
+    }>
+  }> {
+    try {
+      // Get all Radarr instances
+      const radarrInstances = await this.knex('radarr_instances')
+        .select('id', 'name')
+        .where('is_enabled', true)
+
+      // Get all Sonarr instances
+      const sonarrInstances = await this.knex('sonarr_instances')
+        .select('id', 'name')
+        .where('is_enabled', true)
+
+      const instances = []
+
+      // Process Radarr instances
+      for (const instance of radarrInstances) {
+        // Get total count
+        const totalCount = await this.knex('watchlist_radarr_instances')
+          .where('radarr_instance_id', instance.id)
+          .count('* as count')
+          .first()
+
+        // Get count of primary items
+        const primaryCount = await this.knex('watchlist_radarr_instances')
+          .where({
+            radarr_instance_id: instance.id,
+            is_primary: true,
+          })
+          .count('* as count')
+          .first()
+
+        // Get breakdown by status
+        const statusBreakdown = await this.knex('watchlist_radarr_instances')
+          .select('status')
+          .count('* as count')
+          .where('radarr_instance_id', instance.id)
+          .groupBy('status')
+
+        // Get breakdown by content type (join with watchlist_items)
+        const contentTypeBreakdown = await this.knex(
+          'watchlist_radarr_instances',
+        )
+          .join(
+            'watchlist_items',
+            'watchlist_items.id',
+            'watchlist_radarr_instances.watchlist_id',
+          )
+          .select('watchlist_items.type as content_type')
+          .count('* as count')
+          .where('watchlist_radarr_instances.radarr_instance_id', instance.id)
+          .groupBy('watchlist_items.type')
+
+        instances.push({
+          id: instance.id,
+          name: instance.name,
+          type: 'radarr' as const,
+          total_items: Number(totalCount?.count || 0),
+          primary_items: Number(primaryCount?.count || 0),
+          by_status: statusBreakdown.map((item) => ({
+            status: String(item.status),
+            count: Number(item.count),
+          })),
+          by_content_type: contentTypeBreakdown.map((item) => ({
+            content_type: String(item.content_type),
+            count: Number(item.count),
+          })),
+        })
+      }
+
+      // Process Sonarr instances
+      for (const instance of sonarrInstances) {
+        // Get total count
+        const totalCount = await this.knex('watchlist_sonarr_instances')
+          .where('sonarr_instance_id', instance.id)
+          .count('* as count')
+          .first()
+
+        // Get count of primary items
+        const primaryCount = await this.knex('watchlist_sonarr_instances')
+          .where({
+            sonarr_instance_id: instance.id,
+            is_primary: true,
+          })
+          .count('* as count')
+          .first()
+
+        // Get breakdown by status
+        const statusBreakdown = await this.knex('watchlist_sonarr_instances')
+          .select('status')
+          .count('* as count')
+          .where('sonarr_instance_id', instance.id)
+          .groupBy('status')
+
+        // Get breakdown by content type (join with watchlist_items)
+        const contentTypeBreakdown = await this.knex(
+          'watchlist_sonarr_instances',
+        )
+          .join(
+            'watchlist_items',
+            'watchlist_items.id',
+            'watchlist_sonarr_instances.watchlist_id',
+          )
+          .select('watchlist_items.type as content_type')
+          .count('* as count')
+          .where('watchlist_sonarr_instances.sonarr_instance_id', instance.id)
+          .groupBy('watchlist_items.type')
+
+        instances.push({
+          id: instance.id,
+          name: instance.name,
+          type: 'sonarr' as const,
+          total_items: Number(totalCount?.count || 0),
+          primary_items: Number(primaryCount?.count || 0),
+          by_status: statusBreakdown.map((item) => ({
+            status: String(item.status),
+            count: Number(item.count),
+          })),
+          by_content_type: contentTypeBreakdown.map((item) => ({
+            content_type: String(item.content_type),
+            count: Number(item.count),
+          })),
+        })
+      }
+
+      return {
+        success: true,
+        instances,
+      }
+    } catch (error) {
+      this.log.error('Error getting instance content breakdown:', error)
+      throw error
+    }
+  }
 }

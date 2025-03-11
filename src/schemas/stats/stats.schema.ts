@@ -106,6 +106,31 @@ export const ActivityQuerySchema = z.object({
   days: z.coerce.number().int().positive().default(30),
 })
 
+export const InstanceContentItemSchema = z.object({
+  status: z.string(),
+  count: z.number(),
+})
+
+export const InstanceContentTypeSchema = z.object({
+  content_type: z.string(),
+  count: z.number(),
+})
+
+export const InstanceBreakdownSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  type: z.enum(['sonarr', 'radarr']),
+  total_items: z.number(),
+  primary_items: z.number(),
+  by_status: z.array(InstanceContentItemSchema),
+  by_content_type: z.array(InstanceContentTypeSchema),
+})
+
+export const InstanceContentBreakdownSchema = z.object({
+  success: z.boolean(),
+  instances: z.array(InstanceBreakdownSchema),
+})
+
 // Combined dashboard stats response schema
 export const DashboardStatsSchema = z.object({
   top_genres: z.array(GenreStatSchema),
@@ -121,6 +146,7 @@ export const DashboardStatsSchema = z.object({
   status_transitions: z.array(StatusTransitionTimeSchema).optional(),
   status_flow: z.array(StatusFlowDataSchema).optional(),
   notification_stats: NotificationStatsSchema.optional(),
+  instance_content_breakdown: z.array(InstanceBreakdownSchema).optional(),
 })
 
 // Common error schema
@@ -144,4 +170,10 @@ export type StatusTransitionTime = z.infer<typeof StatusTransitionTimeSchema>
 export type StatusFlowData = z.infer<typeof StatusFlowDataSchema>
 export type GrabbedToNotifiedTime = z.infer<typeof GrabbedToNotifiedTimeSchema>
 export type DashboardStats = z.infer<typeof DashboardStatsSchema>
+export type InstanceContentItem = z.infer<typeof InstanceContentItemSchema>
+export type InstanceContentType = z.infer<typeof InstanceContentTypeSchema>
+export type InstanceBreakdown = z.infer<typeof InstanceBreakdownSchema>
+export type InstanceContentBreakdown = z.infer<
+  typeof InstanceContentBreakdownSchema
+>
 export type Error = z.infer<typeof ErrorSchema>
