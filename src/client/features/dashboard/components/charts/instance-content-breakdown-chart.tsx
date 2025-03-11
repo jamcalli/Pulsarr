@@ -143,7 +143,7 @@ export default function InstanceContentBreakdownChart() {
             </h4>
           </div>
           <CardContent className="pt-4 flex-grow flex flex-col justify-center">
-            <div className="flex-grow w-full md:min-h-0 min-h-[350px]">
+            <div className="flex-grow w-full md:min-h-0 min-h-[450px]">
               <div className="h-full w-full flex items-center justify-center">
                 <span className="text-text text-muted-foreground">
                   {isLoading
