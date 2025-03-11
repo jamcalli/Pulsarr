@@ -1606,6 +1606,53 @@ export class DatabaseService {
         continue
       }
 
+      let contentType: 'movie' | 'season' | 'episode'
+      let seasonNumber: number | undefined
+      let episodeNumber: number | undefined
+
+      if (mediaInfo.type === 'movie') {
+        contentType = 'movie'
+      } else if (mediaInfo.type === 'show' && mediaInfo.episodes?.length) {
+        if (isBulkRelease) {
+          contentType = 'season'
+          seasonNumber = mediaInfo.episodes[0].seasonNumber
+        } else {
+          contentType = 'episode'
+          seasonNumber = mediaInfo.episodes[0].seasonNumber
+          episodeNumber = mediaInfo.episodes[0].episodeNumber
+        }
+      } else {
+        continue
+      }
+
+      const existingNotification = await this.knex('notifications')
+        .where({
+          user_id: user.id,
+          type: contentType,
+          content_guid: mediaInfo.guid,
+          notification_status: 'active',
+        })
+        .modify((query) => {
+          if (seasonNumber !== undefined) {
+            query.where('season_number', seasonNumber)
+          }
+          if (episodeNumber !== undefined) {
+            query.where('episode_number', episodeNumber)
+          }
+        })
+        .first()
+
+      if (existingNotification) {
+        this.log.info(
+          `Skipping ${contentType} notification for ${mediaInfo.title}${
+            seasonNumber !== undefined ? ` S${seasonNumber}` : ''
+          }${
+            episodeNumber !== undefined ? `E${episodeNumber}` : ''
+          } - already sent previously to user ${user.name}`,
+        )
+        continue
+      }
+
       await this.knex('watchlist_items').where('id', item.id).update({
         last_notified_at: new Date().toISOString(),
         status: 'notified',
@@ -1633,55 +1680,57 @@ export class DatabaseService {
       const itemId =
         typeof item.id === 'string' ? Number.parseInt(item.id, 10) : item.id
 
-      if (mediaInfo.type === 'show' && mediaInfo.episodes?.length) {
-        if (isBulkRelease) {
-          notification.episodeDetails = {
-            seasonNumber: mediaInfo.episodes[0].seasonNumber,
-          }
-
-          // Create notification record
-          await this.createNotificationRecord({
-            watchlist_item_id: !Number.isNaN(itemId) ? itemId : null,
-            user_id: !Number.isNaN(userId) ? userId : null,
-            type: 'season',
-            title: notificationTitle,
-            season_number: mediaInfo.episodes[0].seasonNumber,
-            sent_to_discord: Boolean(user.notify_discord),
-            sent_to_email: Boolean(user.notify_email),
-            sent_to_webhook: false,
-          })
-        } else {
-          notification.episodeDetails = {
-            title: mediaInfo.episodes[0].title,
-            ...(mediaInfo.episodes[0].overview && {
-              overview: mediaInfo.episodes[0].overview,
-            }),
-            seasonNumber: mediaInfo.episodes[0].seasonNumber,
-            episodeNumber: mediaInfo.episodes[0].episodeNumber,
-            airDateUtc: mediaInfo.episodes[0].airDateUtc,
-          }
-
-          // Create notification record
-          await this.createNotificationRecord({
-            watchlist_item_id: !Number.isNaN(itemId) ? itemId : null,
-            user_id: !Number.isNaN(userId) ? userId : null,
-            type: 'episode',
-            title: notificationTitle,
-            message: mediaInfo.episodes[0].overview,
-            season_number: mediaInfo.episodes[0].seasonNumber,
-            episode_number: mediaInfo.episodes[0].episodeNumber,
-            sent_to_discord: Boolean(user.notify_discord),
-            sent_to_email: Boolean(user.notify_email),
-            sent_to_webhook: false,
-          })
-        }
-      } else if (mediaInfo.type === 'movie') {
-        // Create notification record for movie
+      if (contentType === 'movie') {
         await this.createNotificationRecord({
           watchlist_item_id: !Number.isNaN(itemId) ? itemId : null,
           user_id: !Number.isNaN(userId) ? userId : null,
           type: 'movie',
           title: notificationTitle,
+          content_guid: mediaInfo.guid,
+          sent_to_discord: Boolean(user.notify_discord),
+          sent_to_email: Boolean(user.notify_email),
+          sent_to_webhook: false,
+        })
+      } else if (contentType === 'season') {
+        notification.episodeDetails = {
+          seasonNumber: seasonNumber,
+        }
+
+        await this.createNotificationRecord({
+          watchlist_item_id: !Number.isNaN(itemId) ? itemId : null,
+          user_id: !Number.isNaN(userId) ? userId : null,
+          type: 'season',
+          title: notificationTitle,
+          content_guid: mediaInfo.guid,
+          season_number: seasonNumber,
+          sent_to_discord: Boolean(user.notify_discord),
+          sent_to_email: Boolean(user.notify_email),
+          sent_to_webhook: false,
+        })
+      } else if (
+        contentType === 'episode' &&
+        mediaInfo.episodes &&
+        mediaInfo.episodes.length > 0
+      ) {
+        const episode = mediaInfo.episodes[0]
+
+        notification.episodeDetails = {
+          title: episode.title,
+          ...(episode.overview && { overview: episode.overview }),
+          seasonNumber: episode.seasonNumber,
+          episodeNumber: episode.episodeNumber,
+          airDateUtc: episode.airDateUtc,
+        }
+
+        await this.createNotificationRecord({
+          watchlist_item_id: !Number.isNaN(itemId) ? itemId : null,
+          user_id: !Number.isNaN(userId) ? userId : null,
+          type: 'episode',
+          title: notificationTitle,
+          message: episode.overview,
+          content_guid: mediaInfo.guid,
+          season_number: episode.seasonNumber,
+          episode_number: episode.episodeNumber,
           sent_to_discord: Boolean(user.notify_discord),
           sent_to_email: Boolean(user.notify_email),
           sent_to_webhook: false,
@@ -2256,19 +2305,69 @@ export class DatabaseService {
     message?: string
     season_number?: number
     episode_number?: number
+    content_guid?: string
     sent_to_discord: boolean
     sent_to_email: boolean
     sent_to_webhook?: boolean
+    notification_status?: string
   }): Promise<number> {
     const [id] = await this.knex('notifications')
       .insert({
         ...notification,
+        content_guid: notification.content_guid || null,
+        season_number: notification.season_number || null,
+        episode_number: notification.episode_number || null,
+        notification_status: notification.notification_status || 'active',
         sent_to_webhook: notification.sent_to_webhook || false,
         created_at: this.timestamp,
       })
       .returning('id')
 
     return id
+  }
+
+  async resetContentNotifications(options: {
+    olderThan?: Date
+    contentGuid?: string
+    userId?: number
+    contentType?: string
+    seasonNumber?: number
+    episodeNumber?: number
+  }): Promise<number> {
+    const query = this.knex('notifications')
+      .where('notification_status', 'active')
+      .update({
+        notification_status: 'reset',
+        updated_at: this.timestamp,
+      })
+
+    if (options.olderThan) {
+      query.where('created_at', '<', options.olderThan.toISOString())
+    }
+
+    if (options.contentGuid) {
+      query.where('content_guid', options.contentGuid)
+    }
+
+    if (options.userId) {
+      query.where('user_id', options.userId)
+    }
+
+    if (options.contentType) {
+      query.where('type', options.contentType)
+    }
+
+    if (options.seasonNumber !== undefined) {
+      query.where('season_number', options.seasonNumber)
+    }
+
+    if (options.episodeNumber !== undefined) {
+      query.where('episode_number', options.episodeNumber)
+    }
+
+    const count = await query
+    this.log.info(`Reset ${count} notifications`)
+    return count
   }
 
   async getNotificationStats(days = 30): Promise<{
