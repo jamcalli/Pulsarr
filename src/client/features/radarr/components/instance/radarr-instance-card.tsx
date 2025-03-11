@@ -2,6 +2,14 @@ import { useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import EditableCardHeader from '@/components/ui/editable-card-header'
 import { cn } from '@/lib/utils'
+import { RefreshCw } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import {
   Form,
   FormField,
@@ -23,6 +31,7 @@ import SyncedInstancesSelect from '@/features/radarr/components/selects/radarr-s
 import ConnectionSettings from '@/features/radarr/components/instance/radarr-connection-settings'
 import InstanceCardSkeleton from '@/features/radarr/components/instance/radarr-card-skeleton'
 import DeleteInstanceAlert from '@/features/radarr/components/instance/delete-instance-alert'
+import { RadarrSyncModal } from '@/features/radarr/components/instance/radarr-sync-modal'
 import type { RadarrInstance } from '@/features/radarr/types/types'
 import { useToast } from '@/hooks/use-toast'
 import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
@@ -38,6 +47,8 @@ export function InstanceCard({
 }: InstanceCardProps) {
   const { toast } = useToast()
   const [showDeleteAlert, setShowDeleteAlert] = useState(false)
+  const [showSyncModal, setShowSyncModal] = useState(false)
+  const [isManualSync, setIsManualSync] = useState(false)
 
   const instances = useRadarrStore((state) => state.instances)
   const instancesLoading = useRadarrStore((state) => state.instancesLoading)
@@ -98,6 +109,17 @@ export function InstanceCard({
       const minimumLoadingTime = new Promise((resolve) =>
         setTimeout(resolve, 250),
       )
+
+      const originalSyncedInstances = instance.syncedInstances || []
+      const newSyncedInstances = data.syncedInstances || []
+
+      const hasChangedSyncedInstances =
+        originalSyncedInstances.length !== newSyncedInstances.length ||
+        !originalSyncedInstances.every((id) =>
+          newSyncedInstances.includes(id),
+        ) ||
+        !newSyncedInstances.every((id) => originalSyncedInstances.includes(id))
+
       await Promise.all([updateInstance(data), minimumLoadingTime])
 
       setSaveStatus('success')
@@ -107,6 +129,11 @@ export function InstanceCard({
         variant: 'default',
       })
       form.reset(data)
+
+      if (hasChangedSyncedInstances && newSyncedInstances.length > 0) {
+        setIsManualSync(false)
+        setShowSyncModal(true)
+      }
     } catch (error) {
       setSaveStatus('error')
       toast({
@@ -149,6 +176,13 @@ export function InstanceCard({
         isLastInstance={
           instances.filter((i) => i.apiKey !== 'placeholder').length === 1
         }
+      />
+      <RadarrSyncModal
+        open={showSyncModal}
+        onOpenChange={setShowSyncModal}
+        syncedInstances={form.watch('syncedInstances') || []}
+        instanceId={instance.id}
+        isManualSync={isManualSync}
       />
       <div className="relative">
         {(form.formState.isDirty || instance.id === -1) && (
@@ -242,12 +276,41 @@ export function InstanceCard({
                         <FormLabel className="text-text">
                           Sync With Instances
                         </FormLabel>
-                        <SyncedInstancesSelect
-                          field={field}
-                          instances={instances}
-                          currentInstanceId={instance.id}
-                          isDefault={instance.isDefault}
-                        />
+                        <div className="flex gap-2 items-center w-full">
+                          <div className="flex-1 min-w-0">
+                            <SyncedInstancesSelect
+                              field={field}
+                              instances={instances}
+                              currentInstanceId={instance.id}
+                              isDefault={instance.isDefault}
+                            />
+                          </div>
+                          {instance.isDefault &&
+                            field.value &&
+                            field.value.length > 0 && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      type="button"
+                                      variant="noShadow"
+                                      size="icon"
+                                      className="flex-shrink-0"
+                                      onClick={() => {
+                                        setIsManualSync(true)
+                                        setShowSyncModal(true)
+                                      }}
+                                    >
+                                      <RefreshCw className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Manually sync instances</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                        </div>
                         <FormMessage />
                       </FormItem>
                     )}
