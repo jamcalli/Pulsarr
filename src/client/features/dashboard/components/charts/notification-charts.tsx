@@ -77,7 +77,7 @@ export function NotificationCharts() {
   const notificationsByChannelConfig = useMemo(() => {
     const config: ChartConfig = {}
 
-    if (notificationStats && notificationStats.by_channel) {
+    if (notificationStats?.by_channel) {
       notificationStats.by_channel.forEach((item, index) => {
         const key = item.channel
         config[key] = {
@@ -93,7 +93,7 @@ export function NotificationCharts() {
   const notificationsByTypeConfig = useMemo(() => {
     const config: ChartConfig = {}
 
-    if (notificationStats && notificationStats.by_type) {
+    if (notificationStats?.by_type) {
       notificationStats.by_type.forEach((item, index) => {
         const key = item.type
         config[key] = {

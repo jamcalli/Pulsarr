@@ -159,7 +159,7 @@ export function useSonarrInstanceForm({
       if (name === 'baseUrl' || name === 'apiKey') {
         const origBaseUrl = form.getValues('_originalBaseUrl')
         const origApiKey = form.getValues('_originalApiKey')
-        
+
         if (
           (name === 'baseUrl' && formValues.baseUrl !== origBaseUrl) ||
           (name === 'apiKey' && formValues.apiKey !== origApiKey)

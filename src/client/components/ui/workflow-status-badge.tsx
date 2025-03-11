@@ -15,7 +15,7 @@ export function WatchlistStatusBadge() {
   const { toast } = useToast()
   const [actionStatus, setActionStatus] = useState<'idle' | 'loading'>('idle')
   const [currentAction, setCurrentAction] = useState<'start' | 'stop' | null>(null)
-  const [lastStableStatus, setLastStableStatus] = useState<string>(status)
+  const [_lastStableStatus, setLastStableStatus] = useState<string>(status)
   const config = useConfigStore(state => state.config)
   
   // Change to use a default value of false when null
