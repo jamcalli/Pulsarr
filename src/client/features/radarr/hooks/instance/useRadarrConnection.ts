@@ -4,13 +4,9 @@ import { useToast } from '@/hooks/use-toast'
 import type {
   RadarrInstance,
   RadarrConnectionValues,
+  RadarrInstanceFormValues
 } from '@/features/radarr/types/types'
 import type { UseFormReturn } from 'react-hook-form'
-
-type RadarrConnectionForm = RadarrConnectionValues & {
-  qualityProfile: string
-  rootFolder: string
-}
 
 export function useRadarrConnection(
   instance: RadarrInstance,
@@ -113,7 +109,7 @@ export function useRadarrConnection(
   const testConnection = useCallback(
     async (
       values: RadarrConnectionValues,
-      form: UseFormReturn<RadarrConnectionForm>,
+      form: UseFormReturn<RadarrInstanceFormValues>,
     ) => {
       if (!values.name?.trim()) {
         toast({
@@ -141,6 +137,10 @@ export function useRadarrConnection(
                 testResult.message || 'Failed to connect to Radarr',
               )
             }
+
+            form.setValue('_originalBaseUrl', values.baseUrl, { shouldDirty: false })
+            form.setValue('_originalApiKey', values.apiKey, { shouldDirty: false })
+            form.setValue('_connectionTested', true, { shouldDirty: false, shouldValidate: true })
 
             const isOnlyPlaceholderInstance =
               instances.length === 1 && instances[0].apiKey === 'placeholder'
@@ -209,6 +209,7 @@ export function useRadarrConnection(
       } catch (error) {
         setTestStatus('error')
         setIsConnectionValid(false)
+        form.setValue('_connectionTested', false, { shouldValidate: true })
         toast({
           title: 'Connection Failed',
           description:

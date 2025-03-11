@@ -20,15 +20,6 @@ export interface RadarrInstance {
   data?: RadarrInstanceData
 }
 
-export interface RadarrGenreRoute {
-  id: number
-  name: string
-  radarrInstanceId: number
-  genre: string
-  rootFolder: string
-  qualityProfile: string
-}
-
 export interface UseRadarrInstanceFormProps {
   instance: RadarrInstance
   instances: RadarrInstance[]
@@ -42,6 +33,17 @@ export interface RadarrConnectionValues {
   name: string
   qualityProfile?: string
   rootFolder?: string
+}
+
+// Extended with form-specific fields
+export interface RadarrInstanceFormValues extends RadarrConnectionValues {
+  bypassIgnored: boolean
+  tags: string[]
+  isDefault: boolean
+  syncedInstances?: number[]
+  _connectionTested?: boolean
+  _originalBaseUrl?: string
+  _originalApiKey?: string
 }
 
 export type ConnectionStatus = 'idle' | 'loading' | 'success' | 'error'
