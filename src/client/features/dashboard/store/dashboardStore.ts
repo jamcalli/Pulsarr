@@ -91,7 +91,7 @@ export interface StatsState {
   initialize: () => Promise<void>
 }
 
-export const useStatsStore = create<StatsState>()(
+export const useDashboardStore = create<StatsState>()(
   devtools((set, get) => ({
     // Initial states
     dashboardStats: null,
