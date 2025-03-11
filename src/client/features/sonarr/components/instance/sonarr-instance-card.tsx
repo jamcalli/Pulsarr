@@ -56,6 +56,7 @@ export function InstanceCard({
   const { toast } = useToast()
   const [showDeleteAlert, setShowDeleteAlert] = useState(false)
   const [showSyncModal, setShowSyncModal] = useState(false)
+  const [isManualSync, setIsManualSync] = useState(false)
   const instances = useSonarrStore((state) => state.instances)
   const instancesLoading = useSonarrStore((state) => state.instancesLoading)
   const setLoadingWithMinDuration = useSonarrStore(
@@ -137,6 +138,7 @@ export function InstanceCard({
       form.reset(data)
 
       if (hasChangedSyncedInstances && newSyncedInstances.length > 0) {
+        setIsManualSync(false)
         setShowSyncModal(true)
       }
     } catch (error) {
@@ -187,6 +189,7 @@ export function InstanceCard({
         onOpenChange={setShowSyncModal}
         syncedInstances={form.watch('syncedInstances') || []}
         instanceId={instance.id}
+        isManualSync={isManualSync}
       />
       <div className="relative">
         {(form.formState.isDirty || instance.id === -1) && (
@@ -305,47 +308,52 @@ export function InstanceCard({
                     )}
                   />
                   <FormField
-  control={form.control}
-  name="syncedInstances"
-  render={({ field }) => (
-    <FormItem>
-      <FormLabel className="text-text">
-        Sync With Instances
-      </FormLabel>
-      <div className="flex gap-2 items-center w-full">
-        <div className="flex-1 min-w-0">
-          <SyncedInstancesSelect
-            field={field}
-            instances={instances}
-            currentInstanceId={instance.id}
-            isDefault={instance.isDefault}
-          />
-        </div>
-        {instance.isDefault && field.value && field.value.length > 0 && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  type="button"
-                  variant="noShadow"
-                  size="icon"
-                  className="flex-shrink-0"
-                  onClick={() => setShowSyncModal(true)}
-                >
-                  <RefreshCw className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Manually sync instances</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
-      </div>
-      <FormMessage />
-    </FormItem>
-  )}
-/>
+                    control={form.control}
+                    name="syncedInstances"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-text">
+                          Sync With Instances
+                        </FormLabel>
+                        <div className="flex gap-2 items-center w-full">
+                          <div className="flex-1 min-w-0">
+                            <SyncedInstancesSelect
+                              field={field}
+                              instances={instances}
+                              currentInstanceId={instance.id}
+                              isDefault={instance.isDefault}
+                            />
+                          </div>
+                          {instance.isDefault &&
+                            field.value &&
+                            field.value.length > 0 && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      type="button"
+                                      variant="noShadow"
+                                      size="icon"
+                                      className="flex-shrink-0"
+                                      onClick={() => {
+                                        setIsManualSync(true)
+                                        setShowSyncModal(true)
+                                      }}
+                                    >
+                                      <RefreshCw className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Manually sync instances</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   <FormField
                     control={form.control}
                     name="isDefault"
