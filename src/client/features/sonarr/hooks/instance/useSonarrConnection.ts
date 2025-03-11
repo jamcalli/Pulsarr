@@ -4,13 +4,9 @@ import { useToast } from '@/hooks/use-toast'
 import type {
   SonarrInstance,
   SonarrConnectionValues,
+  SonarrInstanceFormValues
 } from '@/features/sonarr/types/types'
 import type { UseFormReturn } from 'react-hook-form'
-
-type SonarrConnectionForm = SonarrConnectionValues & {
-  qualityProfile: string
-  rootFolder: string
-}
 
 export function useSonarrConnection(
   instance: SonarrInstance,
@@ -113,7 +109,7 @@ export function useSonarrConnection(
   const testConnection = useCallback(
     async (
       values: SonarrConnectionValues,
-      form: UseFormReturn<SonarrConnectionForm>,
+      form: UseFormReturn<SonarrInstanceFormValues>,
     ) => {
       if (!values.name?.trim()) {
         toast({
@@ -141,6 +137,10 @@ export function useSonarrConnection(
                 testResult.message || 'Failed to connect to Sonarr',
               )
             }
+
+            form.setValue('_originalBaseUrl', values.baseUrl, { shouldDirty: false })
+            form.setValue('_originalApiKey', values.apiKey, { shouldDirty: false })
+            form.setValue('_connectionTested', true, { shouldDirty: false, shouldValidate: true })
 
             const isOnlyPlaceholderInstance =
               instances.length === 1 && instances[0].apiKey === 'placeholder'
@@ -209,6 +209,7 @@ export function useSonarrConnection(
       } catch (error) {
         setTestStatus('error')
         setIsConnectionValid(false)
+        form.setValue('_connectionTested', false, { shouldValidate: true })
         toast({
           title: 'Connection Failed',
           description:

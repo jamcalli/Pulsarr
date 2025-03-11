@@ -33,6 +33,8 @@ export function useSonarrInstanceForm({
         ? instances.length === 1 && instances[0].apiKey === API_KEY_PLACEHOLDER
         : instance.isDefault,
       syncedInstances: instance.syncedInstances || [],
+      _originalBaseUrl: instance.baseUrl,
+      _originalApiKey: instance.apiKey,
     },
     mode: 'all',
   })
@@ -56,6 +58,8 @@ export function useSonarrInstanceForm({
       tags: instance.tags,
       isDefault: instance.isDefault,
       syncedInstances: instance.syncedInstances || [],
+      _originalBaseUrl: instance.baseUrl,
+      _originalApiKey: instance.apiKey,
     })
 
     if (isConnectionValid) {
@@ -111,7 +115,11 @@ export function useSonarrInstanceForm({
   const resetForm = useCallback(
     (data?: SonarrInstanceSchema) => {
       if (data) {
-        form.reset(data)
+        form.reset({
+          ...data,
+          _originalBaseUrl: instance.baseUrl,
+          _originalApiKey: instance.apiKey,
+        })
       } else {
         form.reset({
           name: instance.name,
@@ -124,6 +132,8 @@ export function useSonarrInstanceForm({
           tags: instance.tags,
           isDefault: instance.isDefault,
           syncedInstances: instance.syncedInstances || [],
+          _originalBaseUrl: instance.baseUrl,
+          _originalApiKey: instance.apiKey,
         })
       }
 
@@ -143,6 +153,29 @@ export function useSonarrInstanceForm({
     },
     [form],
   )
+
+  useEffect(() => {
+    const subscription = form.watch((formValues, { name }) => {
+      if (name === 'baseUrl' || name === 'apiKey') {
+        const origBaseUrl = form.getValues('_originalBaseUrl')
+        const origApiKey = form.getValues('_originalApiKey')
+        
+        if (
+          (name === 'baseUrl' && formValues.baseUrl !== origBaseUrl) ||
+          (name === 'apiKey' && formValues.apiKey !== origApiKey)
+        ) {
+          form.setValue('_connectionTested', false)
+        } else if (
+          formValues.baseUrl === origBaseUrl &&
+          formValues.apiKey === origApiKey
+        ) {
+          form.setValue('_connectionTested', true)
+        }
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [form])
 
   return {
     form,

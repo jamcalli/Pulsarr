@@ -37,15 +37,6 @@ export interface SonarrInstance {
   data?: SonarrInstanceData
 }
 
-export interface SonarrGenreRoute {
-  id: number
-  name: string
-  sonarrInstanceId: number
-  genre: string
-  rootFolder: string
-  qualityProfile: string
-}
-
 export interface UseSonarrInstanceFormProps {
   instance: SonarrInstance
   instances: SonarrInstance[]
@@ -59,6 +50,17 @@ export interface SonarrConnectionValues {
   name: string
   qualityProfile?: string
   rootFolder?: string
+}
+
+export interface SonarrInstanceFormValues extends SonarrConnectionValues {
+  bypassIgnored: boolean
+  seasonMonitoring: SonarrMonitoringType
+  tags: string[]
+  isDefault: boolean
+  syncedInstances?: number[]
+  _connectionTested?: boolean
+  _originalBaseUrl?: string
+  _originalApiKey?: string
 }
 
 export type ConnectionStatus = 'idle' | 'loading' | 'success' | 'error'
