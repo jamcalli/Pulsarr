@@ -6,8 +6,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { ChartContainer, type ChartConfig } from '@/components/ui/chart'
 import {
   useContentDistributionData,
-  useInstanceContentData,
 } from '@/features/dashboard/hooks/useChartData'
+import InstanceContentBreakdownChart from '@/features/dashboard/components/charts/instance-content-breakdown-chart'
 import type { TooltipProps } from 'recharts'
 import type {
   ValueType,
@@ -15,16 +15,14 @@ import type {
 } from 'recharts/types/component/DefaultTooltipContent'
 
 export function ContentDistributionChart() {
-  const { data: contentTypeDistribution, isLoading } =
+  const { data: contentTypeDistribution } =
     useContentDistributionData()
-  const { data: instanceContentBreakdown } = useInstanceContentData()
   const { theme } = useTheme()
   const isDarkMode =
     theme === 'dark' ||
     (theme === 'system' &&
       window.matchMedia('(prefers-color-scheme: dark)').matches)
 
-  // CSS Custom Properties
   const cssColors = {
     movie:
       getComputedStyle(document.documentElement)
@@ -60,7 +58,6 @@ export function ContentDistributionChart() {
         .trim() || '1 54% 50%',
   }
 
-  // Content Distribution data
   const contentDistributionData = useMemo(() => {
     return contentTypeDistribution.map((item) => ({
       name: item.type.charAt(0).toUpperCase() + item.type.slice(1),
@@ -68,7 +65,6 @@ export function ContentDistributionChart() {
     }))
   }, [contentTypeDistribution])
 
-  // Content Distribution config
   const contentDistributionConfig = useMemo(() => {
     const config: ChartConfig = {}
 
@@ -83,29 +79,12 @@ export function ContentDistributionChart() {
     return config
   }, [contentTypeDistribution])
 
-  // Instance content data
-  const instanceContentData = useMemo(() => {
-    if (!instanceContentBreakdown) return []
-
-    return instanceContentBreakdown.map((instance) => ({
-      name: instance.name,
-      value: instance.total_items,
-      primaryItems: instance.primary_items,
-      type: instance.type,
-      byStatus: instance.by_status,
-      byContentType: instance.by_content_type,
-    }))
-  }, [instanceContentBreakdown])
-
-  // Calculate total content items for the donut chart center
   const totalContentItems = useMemo(() => {
     return contentTypeDistribution.reduce((acc, curr) => acc + curr.count, 0)
   }, [contentTypeDistribution])
 
-  // Border color based on theme
   const borderColor = isDarkMode ? '#f8f9fa' : '#1a1a1a'
 
-  // Custom tooltips
   const ContentDistributionTooltip = ({
     active,
     payload,
@@ -128,41 +107,6 @@ export function ContentDistributionChart() {
       </div>
     )
   }
-
-  const InstanceTooltip = ({
-    active,
-    payload,
-  }: TooltipProps<ValueType, NameType>) => {
-    if (!active || !payload || !payload.length) {
-      return null
-    }
-    const data = payload[0].payload
-    return (
-      <div className="bg-bg border border-border p-2 rounded shadow-md text-xs">
-        <p className="font-medium text-text">{data.name}</p>
-        <p className="text-text">
-          <span className="font-medium">Total Items: </span>
-          {data.value.toLocaleString()}
-        </p>
-        <p className="text-text">
-          <span className="font-medium">Primary Items: </span>
-          {data.primaryItems.toLocaleString()}
-        </p>
-        <p className="text-text">
-          <span className="font-medium">Type: </span>
-          {data.type === 'sonarr' ? 'Sonarr' : 'Radarr'}
-        </p>
-      </div>
-    )
-  }
-
-  // Instance chart config
-  const instanceChartConfig = {
-    value: {
-      label: 'Items',
-      color: 'hsl(var(--chart-1))',
-    },
-  } as ChartConfig
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -198,7 +142,7 @@ export function ContentDistributionChart() {
                     cy="50%"
                     innerRadius="30%"
                     outerRadius="70%"
-                    strokeWidth={2} // Reduced from 5
+                    strokeWidth={2}
                   >
                     {contentDistributionData.map((entry) => {
                       const type = entry.name.toLowerCase()
@@ -284,74 +228,9 @@ export function ContentDistributionChart() {
           </CardContent>
         </Card>
       </div>
-
       {/* Instance Content Breakdown Card */}
       <div className="flex flex-col">
-        <Card className="bg-bw relative shadow-md">
-          <div className="bg-main text-text px-4 py-3 text-center">
-            <h4 className="text-base font-medium">Instance Breakdown</h4>
-          </div>
-          <CardContent className="pt-4">
-            {isLoading ||
-            !instanceContentData ||
-            instanceContentData.length === 0 ? (
-              <div className="flex h-64 items-center justify-center">
-                <span className="text-text text-muted-foreground">
-                  {isLoading
-                    ? 'Loading instance data...'
-                    : 'No instance data available'}
-                </span>
-              </div>
-            ) : (
-              <ChartContainer
-                config={instanceChartConfig}
-                className="w-full h-full"
-              >
-                <PieChart>
-                  <Pie
-                    data={instanceContentData}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={80}
-                    label
-                  >
-                    {instanceContentData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={
-                          entry.type === 'sonarr'
-                            ? cssColors.show
-                            : cssColors.movie
-                        }
-                        stroke={borderColor}
-                        strokeWidth={1}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip content={InstanceTooltip} />
-                </PieChart>
-              </ChartContainer>
-            )}
-            <div className="flex flex-wrap justify-center mt-3 gap-3">
-              <div className="flex items-center">
-                <span
-                  className="h-3 w-3 rounded-full inline-block mr-2"
-                  style={{ backgroundColor: cssColors.movie }}
-                />
-                <span className="text-sm text-text">Radarr Instances</span>
-              </div>
-              <div className="flex items-center">
-                <span
-                  className="h-3 w-3 rounded-full inline-block mr-2"
-                  style={{ backgroundColor: cssColors.show }}
-                />
-                <span className="text-sm text-text">Sonarr Instances</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <InstanceContentBreakdownChart />
       </div>
     </div>
   )

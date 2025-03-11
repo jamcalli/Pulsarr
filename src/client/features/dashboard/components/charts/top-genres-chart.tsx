@@ -81,7 +81,7 @@ export function TopGenresChart() {
           data={topGenresData}
           layout="vertical"
           accessibilityLayer
-          margin={{ top: 20, right: 30, left: 100, bottom: 20 }}
+          margin={{ top: 0, right: 0, left: 0, bottom: 0 }}
         >
           <CartesianGrid strokeDasharray="3 3" horizontal={false} />
           <XAxis type="number" tickLine={false} axisLine={false} />
