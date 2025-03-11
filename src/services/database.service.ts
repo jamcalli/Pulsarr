@@ -1629,7 +1629,7 @@ export class DatabaseService {
         .where({
           user_id: user.id,
           type: contentType,
-          content_guid: mediaInfo.guid,
+          watchlist_item_id: item.id,
           notification_status: 'active',
         })
         .modify((query) => {
@@ -1686,7 +1686,6 @@ export class DatabaseService {
           user_id: !Number.isNaN(userId) ? userId : null,
           type: 'movie',
           title: notificationTitle,
-          content_guid: mediaInfo.guid,
           sent_to_discord: Boolean(user.notify_discord),
           sent_to_email: Boolean(user.notify_email),
           sent_to_webhook: false,
@@ -1701,7 +1700,6 @@ export class DatabaseService {
           user_id: !Number.isNaN(userId) ? userId : null,
           type: 'season',
           title: notificationTitle,
-          content_guid: mediaInfo.guid,
           season_number: seasonNumber,
           sent_to_discord: Boolean(user.notify_discord),
           sent_to_email: Boolean(user.notify_email),
@@ -1728,7 +1726,6 @@ export class DatabaseService {
           type: 'episode',
           title: notificationTitle,
           message: episode.overview,
-          content_guid: mediaInfo.guid,
           season_number: episode.seasonNumber,
           episode_number: episode.episodeNumber,
           sent_to_discord: Boolean(user.notify_discord),
@@ -2305,7 +2302,6 @@ export class DatabaseService {
     message?: string
     season_number?: number
     episode_number?: number
-    content_guid?: string
     sent_to_discord: boolean
     sent_to_email: boolean
     sent_to_webhook?: boolean
@@ -2314,7 +2310,6 @@ export class DatabaseService {
     const [id] = await this.knex('notifications')
       .insert({
         ...notification,
-        content_guid: notification.content_guid || null,
         season_number: notification.season_number || null,
         episode_number: notification.episode_number || null,
         notification_status: notification.notification_status || 'active',
@@ -2328,7 +2323,7 @@ export class DatabaseService {
 
   async resetContentNotifications(options: {
     olderThan?: Date
-    contentGuid?: string
+    watchlistItemId?: number
     userId?: number
     contentType?: string
     seasonNumber?: number
@@ -2345,8 +2340,8 @@ export class DatabaseService {
       query.where('created_at', '<', options.olderThan.toISOString())
     }
 
-    if (options.contentGuid) {
-      query.where('content_guid', options.contentGuid)
+    if (options.watchlistItemId) {
+      query.where('watchlist_item_id', options.watchlistItemId)
     }
 
     if (options.userId) {
