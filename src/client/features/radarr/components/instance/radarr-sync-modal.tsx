@@ -259,14 +259,18 @@ export function RadarrSyncModal({
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-text">
-                      {syncProgress.message ||
-                        `Syncing ${getCurrentInstanceName()}`}
+                      {syncProgress.message
+                        ? syncProgress.message.replace(
+                            /radarr instance \d+/i,
+                            getCurrentInstanceName(),
+                          )
+                        : `Syncing ${getCurrentInstanceName()}`}
                     </span>
                     <span className="text-sm text-text">
-                      {syncProgress.progress}%
+                      {Math.round(syncProgress.progress)}%
                     </span>
                   </div>
-                  <Progress value={syncProgress.progress} />
+                  <Progress value={syncProgress.progress || 0} />
                 </div>
               )}
             </div>
