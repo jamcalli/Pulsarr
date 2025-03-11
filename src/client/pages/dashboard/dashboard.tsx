@@ -3,7 +3,7 @@ import { Loader2, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { WatchlistStatusBadge } from '@/components/ui/workflow-status-badge'
 import { WatchlistCarousel } from '@/components/dashboard/watchlist-carousel'
-import { useStatsStore } from '@/stores/statsStore'
+import { useDashboardStore } from '@/features/dashboard/store/dashboardStore'
 import TypedStatsDashboard from '@/components/dashboard/stats-charts'
 
 export function DashboardPage() {
@@ -16,7 +16,7 @@ export function DashboardPage() {
     mostWatchedShows,
     loading,
     errors,
-  } = useStatsStore()
+  } = useDashboardStore()
 
   useEffect(() => {
     let isMounted = true

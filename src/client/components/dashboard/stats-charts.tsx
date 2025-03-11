@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useStatsStore } from '@/stores/statsStore'
+import { useDashboardStore } from '@/features/dashboard/store/dashboardStore'
 import {
   BarChart,
   Bar,
@@ -96,7 +96,7 @@ function TypedStatsDashboard() {
   })
   const [isLoading, setIsLoading] = useState(true)
 
-  const getStoreData = useStatsStore.getState
+  const getStoreData = useDashboardStore.getState
 
   useEffect(() => {
     const fetchData = () => {
@@ -113,7 +113,7 @@ function TypedStatsDashboard() {
 
     fetchData()
 
-    const unsubscribe = useStatsStore.subscribe(fetchData)
+    const unsubscribe = useDashboardStore.subscribe(fetchData)
 
     return () => {
       unsubscribe()
