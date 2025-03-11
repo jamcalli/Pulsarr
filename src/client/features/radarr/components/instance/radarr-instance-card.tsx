@@ -70,7 +70,13 @@ export function InstanceCard({
   })
 
   const handleTest = async () => {
-    const values = form.getValues()
+    const values = {
+      name: form.getValues('name'),
+      baseUrl: form.getValues('baseUrl'),
+      apiKey: form.getValues('apiKey'),
+      qualityProfile: form.getValues('qualityProfile'),
+      rootFolder: form.getValues('rootFolder'),
+    }
     await testConnection(values, form)
   }
 

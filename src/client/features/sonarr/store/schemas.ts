@@ -26,16 +26,19 @@ const baseObjectSchema = z.object({
 })
 
 export const baseInstanceSchema = baseObjectSchema.superRefine((data, ctx) => {
-  const hasChangedApiSettings = 
-    (data._originalBaseUrl !== undefined && data._originalBaseUrl !== data.baseUrl) ||
-    (data._originalApiKey !== undefined && data._originalApiKey !== data.apiKey);
+  const hasChangedApiSettings =
+    (data._originalBaseUrl !== undefined &&
+      data._originalBaseUrl !== data.baseUrl) ||
+    (data._originalApiKey !== undefined && data._originalApiKey !== data.apiKey)
 
   if (
     data.baseUrl &&
     !data.baseUrl.endsWith('/') &&
     data.apiKey &&
     !data._connectionTested &&
-    ((data._originalBaseUrl === undefined && data._originalApiKey === undefined) || hasChangedApiSettings)
+    ((data._originalBaseUrl === undefined &&
+      data._originalApiKey === undefined) ||
+      hasChangedApiSettings)
   ) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
@@ -57,16 +60,20 @@ const fullObjectSchema = baseObjectSchema.extend({
 
 export const initialInstanceSchema = initialObjectSchema.superRefine(
   (data, ctx) => {
-    const hasChangedApiSettings = 
-      (data._originalBaseUrl !== undefined && data._originalBaseUrl !== data.baseUrl) ||
-      (data._originalApiKey !== undefined && data._originalApiKey !== data.apiKey);
-  
+    const hasChangedApiSettings =
+      (data._originalBaseUrl !== undefined &&
+        data._originalBaseUrl !== data.baseUrl) ||
+      (data._originalApiKey !== undefined &&
+        data._originalApiKey !== data.apiKey)
+
     if (
       data.baseUrl &&
       !data.baseUrl.endsWith('/') &&
       data.apiKey &&
       !data._connectionTested &&
-      ((data._originalBaseUrl === undefined && data._originalApiKey === undefined) || hasChangedApiSettings)
+      ((data._originalBaseUrl === undefined &&
+        data._originalApiKey === undefined) ||
+        hasChangedApiSettings)
     ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -78,16 +85,19 @@ export const initialInstanceSchema = initialObjectSchema.superRefine(
 )
 
 export const fullInstanceSchema = fullObjectSchema.superRefine((data, ctx) => {
-  const hasChangedApiSettings = 
-    (data._originalBaseUrl !== undefined && data._originalBaseUrl !== data.baseUrl) ||
-    (data._originalApiKey !== undefined && data._originalApiKey !== data.apiKey);
+  const hasChangedApiSettings =
+    (data._originalBaseUrl !== undefined &&
+      data._originalBaseUrl !== data.baseUrl) ||
+    (data._originalApiKey !== undefined && data._originalApiKey !== data.apiKey)
 
   if (
     data.baseUrl &&
     !data.baseUrl.endsWith('/') &&
     data.apiKey &&
     !data._connectionTested &&
-    ((data._originalBaseUrl === undefined && data._originalApiKey === undefined) || hasChangedApiSettings)
+    ((data._originalBaseUrl === undefined &&
+      data._originalApiKey === undefined) ||
+      hasChangedApiSettings)
   ) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,

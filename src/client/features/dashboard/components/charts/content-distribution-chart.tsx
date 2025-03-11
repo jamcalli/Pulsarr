@@ -4,9 +4,7 @@ import { PieChart, Pie, Cell, Tooltip, Label } from 'recharts'
 import { AspectRatio } from '@/components/ui/aspect-ratio'
 import { Card, CardContent } from '@/components/ui/card'
 import { ChartContainer, type ChartConfig } from '@/components/ui/chart'
-import {
-  useContentDistributionData,
-} from '@/features/dashboard/hooks/useChartData'
+import { useContentDistributionData } from '@/features/dashboard/hooks/useChartData'
 import InstanceContentBreakdownChart from '@/features/dashboard/components/charts/instance-content-breakdown-chart'
 import type { TooltipProps } from 'recharts'
 import type {
@@ -15,8 +13,7 @@ import type {
 } from 'recharts/types/component/DefaultTooltipContent'
 
 export function ContentDistributionChart() {
-  const { data: contentTypeDistribution } =
-    useContentDistributionData()
+  const { data: contentTypeDistribution } = useContentDistributionData()
   const { theme } = useTheme()
   const isDarkMode =
     theme === 'dark' ||

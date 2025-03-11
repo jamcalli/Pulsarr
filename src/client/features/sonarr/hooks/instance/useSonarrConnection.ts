@@ -4,9 +4,9 @@ import { useToast } from '@/hooks/use-toast'
 import type {
   SonarrInstance,
   SonarrConnectionValues,
-  SonarrInstanceFormValues
 } from '@/features/sonarr/types/types'
 import type { UseFormReturn } from 'react-hook-form'
+import type { SonarrInstanceSchema } from '@/features/sonarr/store/schemas'
 
 export function useSonarrConnection(
   instance: SonarrInstance,
@@ -109,7 +109,7 @@ export function useSonarrConnection(
   const testConnection = useCallback(
     async (
       values: SonarrConnectionValues,
-      form: UseFormReturn<SonarrInstanceFormValues>,
+      form: UseFormReturn<SonarrInstanceSchema>,
     ) => {
       if (!values.name?.trim()) {
         toast({
@@ -138,9 +138,16 @@ export function useSonarrConnection(
               )
             }
 
-            form.setValue('_originalBaseUrl', values.baseUrl, { shouldDirty: false })
-            form.setValue('_originalApiKey', values.apiKey, { shouldDirty: false })
-            form.setValue('_connectionTested', true, { shouldDirty: false, shouldValidate: true })
+            form.setValue('_originalBaseUrl', values.baseUrl, {
+              shouldDirty: false,
+            })
+            form.setValue('_originalApiKey', values.apiKey, {
+              shouldDirty: false,
+            })
+            form.setValue('_connectionTested', true, {
+              shouldDirty: false,
+              shouldValidate: true,
+            })
 
             const isOnlyPlaceholderInstance =
               instances.length === 1 && instances[0].apiKey === 'placeholder'

@@ -4,9 +4,9 @@ import { useToast } from '@/hooks/use-toast'
 import type {
   RadarrInstance,
   RadarrConnectionValues,
-  RadarrInstanceFormValues
 } from '@/features/radarr/types/types'
 import type { UseFormReturn } from 'react-hook-form'
+import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
 
 export function useRadarrConnection(
   instance: RadarrInstance,
@@ -109,7 +109,7 @@ export function useRadarrConnection(
   const testConnection = useCallback(
     async (
       values: RadarrConnectionValues,
-      form: UseFormReturn<RadarrInstanceFormValues>,
+      form: UseFormReturn<RadarrInstanceSchema>,
     ) => {
       if (!values.name?.trim()) {
         toast({
@@ -138,9 +138,16 @@ export function useRadarrConnection(
               )
             }
 
-            form.setValue('_originalBaseUrl', values.baseUrl, { shouldDirty: false })
-            form.setValue('_originalApiKey', values.apiKey, { shouldDirty: false })
-            form.setValue('_connectionTested', true, { shouldDirty: false, shouldValidate: true })
+            form.setValue('_originalBaseUrl', values.baseUrl, {
+              shouldDirty: false,
+            })
+            form.setValue('_originalApiKey', values.apiKey, {
+              shouldDirty: false,
+            })
+            form.setValue('_connectionTested', true, {
+              shouldDirty: false,
+              shouldValidate: true,
+            })
 
             const isOnlyPlaceholderInstance =
               instances.length === 1 && instances[0].apiKey === 'placeholder'
