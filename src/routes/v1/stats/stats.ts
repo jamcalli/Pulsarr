@@ -18,6 +18,7 @@ import {
   LimitQuerySchema,
   ActivityQuerySchema,
   NotificationStatsSchema,
+  InstanceContentBreakdownSchema,
 } from '@schemas/stats/stats.schema.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
@@ -55,6 +56,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           availabilityTimes,
           grabbedToNotifiedTimes,
           notificationStats,
+          instanceContentBreakdown,
         ] = await Promise.all([
           fastify.db.getTopGenres(limit),
           fastify.db.getMostWatchlistedShows(limit),
@@ -67,6 +69,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           fastify.db.getAverageTimeToAvailability(),
           fastify.db.getAverageTimeFromGrabbedToNotified(),
           fastify.db.getNotificationStats(days),
+          fastify.db.getInstanceContentBreakdown(),
         ])
 
         let statusTransitions: z.infer<typeof StatusTransitionTimeSchema>[] = []
@@ -94,11 +97,40 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           status_transitions: statusTransitions,
           status_flow: statusFlow,
           notification_stats: notificationStats,
+          instance_content_breakdown: instanceContentBreakdown.instances,
         }
+
         return response
       } catch (err) {
         fastify.log.error('Error fetching dashboard statistics:', err)
         throw reply.internalServerError('Unable to fetch dashboard statistics')
+      }
+    },
+  )
+
+  // Get instance breakdown
+  fastify.get<{
+    Reply: z.infer<typeof InstanceContentBreakdownSchema>
+  }>(
+    '/instance-content',
+    {
+      schema: {
+        response: {
+          200: InstanceContentBreakdownSchema,
+          500: ErrorSchema,
+        },
+        tags: ['Statistics'],
+      },
+    },
+    async (request, reply) => {
+      try {
+        const breakdown = await fastify.db.getInstanceContentBreakdown()
+        return breakdown
+      } catch (err) {
+        fastify.log.error('Error fetching instance content breakdown:', err)
+        throw reply.internalServerError(
+          'Unable to fetch instance content breakdown',
+        )
       }
     },
   )

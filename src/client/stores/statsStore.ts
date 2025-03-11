@@ -14,6 +14,7 @@ import type {
   GrabbedToNotifiedTime,
   DashboardStats,
   NotificationStats,
+  InstanceContentBreakdown,
 } from '@root/schemas/stats/stats.schema'
 
 export interface StatsState {
@@ -34,6 +35,15 @@ export interface StatsState {
   statusTransitions: StatusTransitionTime[] | null
   statusFlow: StatusFlowData[] | null
   notificationStats: NotificationStats | null
+  instanceContentBreakdown: Array<{
+    type: 'sonarr' | 'radarr'
+    name: string
+    id: number
+    total_items: number
+    primary_items: number
+    by_status: Array<{ status: string; count: number }>
+    by_content_type: Array<{ count: number; content_type: string }>
+  }> | null
 
   // Loading and error states
   loading: {
@@ -75,6 +85,7 @@ export interface StatsState {
   fetchStatusTransitions: () => Promise<void>
   fetchStatusFlow: () => Promise<void>
   fetchNotificationStats: (days?: number) => Promise<void>
+  fetchInstanceContentBreakdown: () => Promise<void>
 
   // Initialization
   initialize: () => Promise<void>
@@ -111,6 +122,7 @@ export const useStatsStore = create<StatsState>()(
       statusTransitions: false,
       statusFlow: false,
       notifications: false,
+      instanceContent: false,
     },
 
     // Error states
@@ -126,6 +138,7 @@ export const useStatsStore = create<StatsState>()(
       statusTransitions: null,
       statusFlow: null,
       notifications: null,
+      instanceContent: null,
     },
 
     // Fetch all dashboard stats at once
@@ -166,6 +179,7 @@ export const useStatsStore = create<StatsState>()(
           statusTransitions: data.status_transitions || [],
           statusFlow: data.status_flow || [],
           notificationStats: data.notification_stats || null,
+          instanceContentBreakdown: data.instance_content_breakdown || [],
           loading: { ...state.loading, all: false },
         }))
       } catch (error) {
@@ -210,6 +224,40 @@ export const useStatsStore = create<StatsState>()(
           errors: {
             ...state.errors,
             genres: error instanceof Error ? error.message : 'Unknown error',
+          },
+        }))
+      }
+    },
+
+    fetchInstanceContentBreakdown: async () => {
+      set((state) => ({
+        ...state,
+        loading: { ...state.loading, instanceContent: true },
+        errors: { ...state.errors, instanceContent: null },
+      }))
+
+      try {
+        const response = await fetch('/v1/stats/instance-content')
+        if (!response.ok) {
+          throw new Error('Failed to fetch instance content breakdown')
+        }
+
+        const data: InstanceContentBreakdown = await response.json()
+
+        set((state) => ({
+          ...state,
+          instanceContentBreakdown: data.instances,
+          loading: { ...state.loading, instanceContent: false },
+        }))
+      } catch (error) {
+        console.error('Error fetching instance content breakdown:', error)
+        set((state) => ({
+          ...state,
+          loading: { ...state.loading, instanceContent: false },
+          errors: {
+            ...state.errors,
+            instanceContent:
+              error instanceof Error ? error.message : 'Unknown error',
           },
         }))
       }
