@@ -2,6 +2,14 @@ import { useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import EditableCardHeader from '@/components/ui/editable-card-header'
 import { cn } from '@/lib/utils'
+import { RefreshCw } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import {
   Form,
   FormField,
@@ -297,23 +305,47 @@ export function InstanceCard({
                     )}
                   />
                   <FormField
-                    control={form.control}
-                    name="syncedInstances"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-text">
-                          Sync With Instances
-                        </FormLabel>
-                        <SyncedInstancesSelect
-                          field={field}
-                          instances={instances}
-                          currentInstanceId={instance.id}
-                          isDefault={instance.isDefault}
-                        />
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+  control={form.control}
+  name="syncedInstances"
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel className="text-text">
+        Sync With Instances
+      </FormLabel>
+      <div className="flex gap-2 items-center w-full">
+        <div className="flex-1 min-w-0">
+          <SyncedInstancesSelect
+            field={field}
+            instances={instances}
+            currentInstanceId={instance.id}
+            isDefault={instance.isDefault}
+          />
+        </div>
+        {instance.isDefault && field.value && field.value.length > 0 && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type="button"
+                  variant="noShadow"
+                  size="icon"
+                  className="flex-shrink-0"
+                  onClick={() => setShowSyncModal(true)}
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Manually sync instances</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+      </div>
+      <FormMessage />
+    </FormItem>
+  )}
+/>
                   <FormField
                     control={form.control}
                     name="isDefault"
