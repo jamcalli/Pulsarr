@@ -1,9 +1,9 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
-import { MediaCard } from './media-card'
+import { MediaCard } from '@/features/dashboard/components/media-card'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
-import MediaCardSkeleton from './media-card-skeleton'
+import MediaCardSkeleton from '@/features/dashboard/components/media-card-skeleton'
 import {
   Carousel,
   CarouselContent,

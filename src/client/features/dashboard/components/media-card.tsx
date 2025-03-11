@@ -7,7 +7,7 @@ import type { ContentStat } from '@root/schemas/stats/stats.schema'
 interface MediaCardProps {
   item: ContentStat
   className?: string
-  priority?: boolean // New prop to control image loading behavior
+  priority?: boolean
 }
 
 export function MediaCard({
