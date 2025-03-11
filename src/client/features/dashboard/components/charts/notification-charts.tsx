@@ -149,15 +149,12 @@ export function NotificationCharts() {
   const getTotalByChannel = useMemo(() => {
     return notificationsData.byChannel.reduce(
       (sum, item) => sum + item.value,
-      0
+      0,
     )
   }, [notificationsData.byChannel])
 
   const getTotalByType = useMemo(() => {
-    return notificationsData.byType.reduce(
-      (sum, item) => sum + item.value,
-      0
-    )
+    return notificationsData.byType.reduce((sum, item) => sum + item.value, 0)
   }, [notificationsData.byType])
 
   if (isLoading || !notificationStats) {

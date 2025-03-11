@@ -9,6 +9,12 @@ import {
   FormControl,
   FormMessage,
 } from '@/components/ui/form'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { Input } from '@/components/ui/input'
 import type { SonarrInstanceSchema } from '@/features/sonarr/store/schemas'
 import type { ConnectionStatus } from '@/features/sonarr/types/types'
@@ -38,6 +44,10 @@ export default function ConnectionSettings({
       form.setValue('_connectionTested', false, { shouldValidate: true })
     }
   }, [testStatus, form])
+
+  // Determine if the connection test error message is showing
+  const apiKeyFieldState = form.getFieldState('apiKey');
+  const hasConnectionTestError = apiKeyFieldState.error?.message?.includes('test connection') || false;
 
   return (
     <div className="flex portrait:flex-col gap-4">
@@ -85,24 +95,33 @@ export default function ConnectionSettings({
                     />
                   </FormControl>
                 </div>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="noShadow"
-                  onClick={() => {
-                    onTest().catch(() => {})
-                  }}
-                  disabled={isDisabled || !hasValidUrlAndKey}
-                  className="mt-0"
-                >
-                  {testStatus === 'loading' ? (
-                    <Loader2 className="animate-spin" />
-                  ) : testStatus === 'success' ? (
-                    <Check className="text-black" />
-                  ) : (
-                    <Check />
-                  )}
-                </Button>
+                <TooltipProvider>
+                  <Tooltip open={hasConnectionTestError || undefined}>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="noShadow"
+                        onClick={() => {
+                          onTest().catch(() => {})
+                        }}
+                        disabled={isDisabled || !hasValidUrlAndKey}
+                        className="mt-0"
+                      >
+                        {testStatus === 'loading' ? (
+                          <Loader2 className="animate-spin" />
+                        ) : testStatus === 'success' ? (
+                          <Check className="text-black" />
+                        ) : (
+                          <Check />
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent className={hasConnectionTestError ? "bg-error text-black" : ""}>
+                      <p>{hasConnectionTestError ? "Test connection" : "Test connection"}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
               <FormMessage />
             </FormItem>
