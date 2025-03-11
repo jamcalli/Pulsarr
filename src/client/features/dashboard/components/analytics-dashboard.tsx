@@ -1,12 +1,10 @@
 import { useState } from 'react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { ChevronDown } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import { StatusTransitionsChart } from './charts/status-transitions-chart'
-import { NotificationCharts } from './charts/notification-charts'
-import { ContentDistributionChart } from './charts/content-distribution-chart'
-import { TopGenresChart } from './charts/top-genres-chart'
+import { StatusTransitionsChart } from '@/features/dashboard/components/charts/status-transition-chart'
+import { NotificationCharts } from '@/features/dashboard/components/charts/notification-charts'
+import { ContentDistributionChart } from '@/features/dashboard/components/charts/content-distribution-chart'
+import { TopGenresChart } from '@/features/dashboard/components/charts/top-genres-chart'
 
 const CHARTS = {
   STATUS_TRANSITIONS: 'status_transitions',
@@ -117,9 +115,12 @@ export function AnalyticsDashboard() {
   }
 
   return (
-    <Card className="w-full bg-bw relative overflow-hidden">
-      <ChartHeader />
-      <div className="px-6 py-6">{renderChart()}</div>
-    </Card>
+    <div className="mb-8">
+      <h2 className="mb-4 text-2xl font-bold text-text">Media Analytics</h2>
+      <Card className="w-full bg-bw relative overflow-hidden">
+        <ChartHeader />
+        <CardContent className="px-6 py-6">{renderChart()}</CardContent>
+      </Card>
+    </div>
   )
 }

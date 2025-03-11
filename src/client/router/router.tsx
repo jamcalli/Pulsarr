@@ -19,7 +19,7 @@ const RadarrConfigPage = lazy(() => import('@/features/radarr'))
 const NotificationsConfigPage = lazy(
   () => import('@/pages/notifications/notifications'),
 )
-const DashboardPage = lazy(() => import('@/pages/dashboard/dashboard'))
+const DashboardPage = lazy(() => import('@/features/dashboard'))
 
 // Loading fallback component
 const LoadingFallback = () => null

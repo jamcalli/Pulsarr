@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react'
-import { useDashboardStore } from '../store/dashboardStore'
+import { useState, useCallback, useEffect } from 'react'
+import { useDashboardStore } from '@/features/dashboard/store/dashboardStore'
 import type { ContentStat } from '@root/schemas/stats/stats.schema'
 
 interface DashboardStatsState {
@@ -23,21 +23,35 @@ interface DashboardStatsState {
 export function useDashboardStats(): DashboardStatsState {
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date())
   const [isLoading, setIsLoading] = useState<boolean>(true)
-  
-  const { 
-    fetchAllStats, 
-    mostWatchedMovies, 
-    mostWatchedShows, 
-    loading, 
-    errors
+
+  const {
+    fetchAllStats,
+    mostWatchedMovies,
+    mostWatchedShows,
+    loading,
+    errors,
   } = useDashboardStore()
 
-  const refreshStats = useCallback(async (params?: { limit?: number; days?: number }) => {
-    setIsLoading(true)
-    await fetchAllStats(params || { limit: 10 })
-    setIsLoading(false)
-    setLastRefreshed(new Date())
-  }, [fetchAllStats])
+  const refreshStats = useCallback(
+    async (params?: { limit?: number; days?: number }) => {
+      setIsLoading(true)
+      try {
+        await fetchAllStats(params || { limit: 10 })
+      } catch (error) {
+        console.error('Error refreshing stats:', error)
+      } finally {
+        setIsLoading(false)
+        setLastRefreshed(new Date())
+      }
+    },
+    [fetchAllStats],
+  )
+
+  useEffect(() => {
+    if (!loading.all && isLoading) {
+      setIsLoading(false)
+    }
+  }, [loading.all, isLoading])
 
   return {
     isLoading,
@@ -47,13 +61,13 @@ export function useDashboardStats(): DashboardStatsState {
     loadingStates: {
       all: loading.all,
       shows: loading.shows,
-      movies: loading.movies
+      movies: loading.movies,
     },
     errorStates: {
       all: errors.all,
       shows: errors.shows,
-      movies: errors.movies
+      movies: errors.movies,
     },
-    refreshStats
+    refreshStats,
   }
 }
