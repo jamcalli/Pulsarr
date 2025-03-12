@@ -260,7 +260,10 @@ export function SonarrSyncModal({
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-text">
                       {syncProgress.message
-                        ? syncProgress.message.replace(/instance \d+/i, getCurrentInstanceName())
+                        ? syncProgress.message.replace(
+                            /instance \d+/i,
+                            getCurrentInstanceName(),
+                          )
                         : `Syncing ${getCurrentInstanceName()}`}
                     </span>
                     <span className="text-sm text-text">
