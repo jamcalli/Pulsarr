@@ -3,15 +3,25 @@ import { z } from 'zod'
 // Discord webhook form schema
 export const webhookFormSchema = z.object({
   discordWebhookUrl: z.string().optional(),
+  _connectionTested: z.boolean().optional().default(false),
 })
+.superRefine((data, ctx) => {
+  if (data.discordWebhookUrl && !data._connectionTested) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Please test connection before saving',
+      path: ['discordWebhookUrl'],
+    });
+  }
+});
 
 export type WebhookFormSchema = z.infer<typeof webhookFormSchema>
 
 // Discord bot schema
 export const discordBotFormSchema = z.object({
-  discordBotToken: z.string().optional(),
-  discordClientId: z.string().optional(),
-  discordGuildId: z.string().optional(),
+  discordBotToken: z.string().min(1, 'Bot token is required'),
+  discordClientId: z.string().min(1, 'Client ID is required'),
+  discordGuildId: z.string().min(1, 'Guild ID is required'),
 })
 
 export type DiscordBotFormSchema = z.infer<typeof discordBotFormSchema>

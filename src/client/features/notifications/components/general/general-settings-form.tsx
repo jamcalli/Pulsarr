@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Loader2, Save, InfoIcon } from 'lucide-react'
+import { Loader2, Save, X, InfoIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -84,6 +84,32 @@ export function GeneralSettingsForm({
     }
   }, [config, generalForm])
 
+  const resetForm = () => {
+    if (config) {
+      // Convert milliseconds to minutes for queueWaitTime
+      const queueWaitTimeMinutes = Math.round(
+        (config.queueWaitTime || DEFAULT_QUEUE_WAIT_TIME) / (60 * 1000),
+      )
+
+      // Convert milliseconds to hours for newEpisodeThreshold
+      const newEpisodeThresholdHours = Math.round(
+        (config.newEpisodeThreshold || DEFAULT_NEW_EPISODE_THRESHOLD) /
+          (60 * 60 * 1000),
+      )
+
+      // Convert milliseconds to seconds for upgradeBufferTime
+      const upgradeBufferTimeSeconds = Math.round(
+        (config.upgradeBufferTime || DEFAULT_UPGRADE_BUFFER_TIME) / 1000,
+      )
+
+      generalForm.reset({
+        queueWaitTime: queueWaitTimeMinutes,
+        newEpisodeThreshold: newEpisodeThresholdHours,
+        upgradeBufferTime: upgradeBufferTimeSeconds,
+      })
+    }
+  }
+
   const onSubmitGeneral = async (data: GeneralFormSchema) => {
     setGeneralStatus('loading')
     try {
@@ -109,7 +135,7 @@ export function GeneralSettingsForm({
 
       await Promise.all([updateConfig(updatedConfig), minimumLoadingTime])
 
-      setGeneralStatus('idle')
+      setGeneralStatus('success')
 
       // Keep the display values in the form
       generalForm.reset(data)
@@ -118,6 +144,10 @@ export function GeneralSettingsForm({
         description: 'General notification settings have been updated',
         variant: 'default',
       })
+
+      setTimeout(() => {
+        setGeneralStatus('idle')
+      }, 1000)
     } catch (error) {
       console.error('General settings update error:', error)
       setGeneralStatus('error')
@@ -131,8 +161,10 @@ export function GeneralSettingsForm({
     }
   }
 
+  const isDirty = generalForm.formState.isDirty
+
   return (
-    <div className="grid gap-4">
+    <div className="relative">
       <Form {...generalForm}>
         <form
           onSubmit={generalForm.handleSubmit(onSubmitGeneral)}
@@ -192,12 +224,12 @@ export function GeneralSettingsForm({
                     </HoverCardTrigger>
                     <HoverCardContent className="w-80">
                       <p>
-                        Time threshold that determines how
-                        recently an episode must have aired to receive immediate
-                        notifications. Episodes that aired within this window
-                        (48 hours/2 days default) trigger instant notifications,
-                        while older episodes are batched together to reduce
-                        notification spam.
+                        Time threshold that determines how recently an episode
+                        must have aired to receive immediate notifications.
+                        Episodes that aired within this window (48 hours/2 days
+                        default) trigger instant notifications, while older
+                        episodes are batched together to reduce notification
+                        spam.
                       </p>
                     </HoverCardContent>
                   </HoverCard>
@@ -255,28 +287,45 @@ export function GeneralSettingsForm({
             )}
           />
 
-          <Button
-            type="submit"
-            disabled={
-              generalStatus === 'loading' ||
-              !generalForm.formState.isDirty ||
-              !isInitialized
-            }
-            className="mt-4 flex items-center gap-2"
-            variant="blue"
-          >
-            {generalStatus === 'loading' ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span className="portrait:hidden">Saving...</span>
-              </>
-            ) : (
-              <>
-                <Save className="h-4 w-4" />
-                <span className="portrait:hidden">Save Changes</span>
-              </>
+          <div className="flex justify-end gap-2 mt-4">
+            {isDirty && (
+              <Button
+                type="button"
+                variant="cancel"
+                onClick={resetForm}
+                disabled={generalStatus === 'loading'}
+                className="flex items-center gap-1"
+              >
+                <X className="h-4 w-4" />
+                <span>Cancel</span>
+              </Button>
             )}
-          </Button>
+            <Button
+              type="submit"
+              disabled={
+                generalStatus === 'loading' || !isDirty || !isInitialized
+              }
+              className="flex items-center gap-2"
+              variant="blue"
+            >
+              {generalStatus === 'loading' ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Saving...</span>
+                </>
+              ) : generalStatus === 'success' ? (
+                <>
+                  <Save className="h-4 w-4" />
+                  <span>Saved</span>
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4" />
+                  <span>Save Changes</span>
+                </>
+              )}
+            </Button>
+          </div>
         </form>
       </Form>
     </div>

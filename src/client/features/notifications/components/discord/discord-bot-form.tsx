@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Loader2, Save } from 'lucide-react'
+import { Loader2, Save, X, InfoIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -12,6 +12,11 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from '@/components/ui/hover-card'
 import { useToast } from '@/hooks/use-toast'
 import { useConfigStore } from '@/stores/configStore'
 import { DiscordStatusBadge } from '@/components/ui/discord-bot-status-badge'
@@ -39,6 +44,7 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
       discordClientId: '',
       discordGuildId: '',
     },
+    mode: 'onTouched',
   })
 
   React.useEffect(() => {
@@ -53,6 +59,28 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
       })
     }
   }, [config, discordBotForm])
+
+  // Trigger form validation when any field is touched
+  React.useEffect(() => {
+    const subscription = discordBotForm.watch(() => {
+      if (discordBotForm.formState.isDirty) {
+        // Trigger validation for all fields
+        discordBotForm.trigger();
+      }
+    });
+    
+    return () => subscription.unsubscribe();
+  }, [discordBotForm]);
+
+  const resetForm = () => {
+    if (config) {
+      discordBotForm.reset({
+        discordBotToken: config.discordBotToken || '',
+        discordClientId: config.discordClientId || '',
+        discordGuildId: config.discordGuildId || '',
+      })
+    }
+  }
 
   const onSubmitDiscordBot = async (data: DiscordBotFormSchema) => {
     setDiscordBotStatus('loading')
@@ -70,13 +98,17 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
         minimumLoadingTime,
       ])
 
-      setDiscordBotStatus('idle')
+      setDiscordBotStatus('success')
       // Reset form's dirty state
       discordBotForm.reset(data)
       toast({
         description: 'Discord bot settings have been updated',
         variant: 'default',
       })
+      
+      setTimeout(() => {
+        setDiscordBotStatus('idle')
+      }, 1000)
     } catch (error) {
       console.error('Discord bot settings update error:', error)
       setDiscordBotStatus('error')
@@ -90,6 +122,9 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
     }
   }
 
+  const isDirty = discordBotForm.formState.isDirty;
+  const isValid = discordBotForm.formState.isValid;
+
   return (
     <div className="grid gap-4 mt-6">
       <div className="flex items-center">
@@ -98,6 +133,7 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
         </h3>
         <DiscordStatusBadge />
       </div>
+      
       <Form {...discordBotForm}>
         <form
           onSubmit={discordBotForm.handleSubmit(onSubmitDiscordBot)}
@@ -108,7 +144,20 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
             name="discordBotToken"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-text">Discord Bot Token</FormLabel>
+                <div className="flex items-center gap-1">
+                  <FormLabel className="text-text">Discord Bot Token</FormLabel>
+                  <HoverCard>
+                    <HoverCardTrigger asChild>
+                      <InfoIcon className="h-4 w-4 text-text cursor-help" />
+                    </HoverCardTrigger>
+                    <HoverCardContent className="w-80">
+                      <p>
+                        The token for your Discord bot. You can create a bot and get
+                        this token from the Discord Developer Portal.
+                      </p>
+                    </HoverCardContent>
+                  </HoverCard>
+                </div>
                 <FormControl>
                   <Input
                     {...field}
@@ -129,7 +178,20 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
               name="discordClientId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-text">Discord Client ID</FormLabel>
+                  <div className="flex items-center gap-1">
+                    <FormLabel className="text-text">Discord Client ID</FormLabel>
+                    <HoverCard>
+                      <HoverCardTrigger asChild>
+                        <InfoIcon className="h-4 w-4 text-text cursor-help" />
+                      </HoverCardTrigger>
+                      <HoverCardContent className="w-80">
+                        <p>
+                          The Client ID of your Discord application. Found in the
+                          Discord Developer Portal under your application's General Information.
+                        </p>
+                      </HoverCardContent>
+                    </HoverCard>
+                  </div>
                   <FormControl>
                     <Input
                       {...field}
@@ -149,7 +211,20 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
               name="discordGuildId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-text">Discord Guild ID</FormLabel>
+                  <div className="flex items-center gap-1">
+                    <FormLabel className="text-text">Discord Guild ID</FormLabel>
+                    <HoverCard>
+                      <HoverCardTrigger asChild>
+                        <InfoIcon className="h-4 w-4 text-text cursor-help" />
+                      </HoverCardTrigger>
+                      <HoverCardContent className="w-80">
+                        <p>
+                          The ID of your Discord server (guild). You can find this by
+                          enabling Developer Mode in Discord and right-clicking on your server.
+                        </p>
+                      </HoverCardContent>
+                    </HoverCard>
+                  </div>
                   <FormControl>
                     <Input
                       {...field}
@@ -165,28 +240,49 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
             />
           </div>
 
-          <Button
-            type="submit"
-            disabled={
-              discordBotStatus === 'loading' ||
-              !discordBotForm.formState.isDirty ||
-              !isInitialized
-            }
-            className="mt-4 flex items-center gap-2"
-            variant="blue"
-          >
-            {discordBotStatus === 'loading' ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span className="portrait:hidden">Saving...</span>
-              </>
-            ) : (
-              <>
-                <Save className="h-4 w-4" />
-                <span className="portrait:hidden">Save Changes</span>
-              </>
+          <div className="flex justify-end gap-2 mt-4">
+            {isDirty && (
+              <Button
+                type="button"
+                variant="cancel" 
+                onClick={resetForm}
+                disabled={discordBotStatus === 'loading'}
+                className="flex items-center gap-1"
+              >
+                <X className="h-4 w-4" />
+                <span>Cancel</span>
+              </Button>
             )}
-          </Button>
+            
+            <Button
+              type="submit"
+              disabled={
+                discordBotStatus === 'loading' ||
+                !isDirty ||
+                !isValid ||
+                !isInitialized
+              }
+              className="flex items-center gap-2"
+              variant="blue"
+            >
+              {discordBotStatus === 'loading' ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Saving...</span>
+                </>
+              ) : discordBotStatus === 'success' ? (
+                <>
+                  <Save className="h-4 w-4" />
+                  <span>Saved</span>
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4" />
+                  <span>Save Changes</span>
+                </>
+              )}
+            </Button>
+          </div>
         </form>
       </Form>
     </div>
