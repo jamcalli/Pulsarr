@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Loader2, Save, CheckCircle } from 'lucide-react'
+import { Loader2, Save, Check, InfoIcon, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -11,6 +11,17 @@ import {
   FormControl,
   FormMessage,
 } from '@/components/ui/form'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from '@/components/ui/hover-card'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import { useConfigStore } from '@/stores/configStore'
@@ -30,31 +41,53 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
   const [webhookStatus, setWebhookStatus] = React.useState<
     'idle' | 'loading' | 'testing' | 'success' | 'error'
   >('idle')
-  const [webhookTestValid, setWebhookTestValid] = React.useState(true)
+  const [webhookTestValid, setWebhookTestValid] = React.useState(false)
+  const [_webhookTested, setWebhookTested] = React.useState(false)
 
   const webhookForm = useForm<WebhookFormSchema>({
     resolver: zodResolver(webhookFormSchema),
     defaultValues: {
       discordWebhookUrl: '',
+      _connectionTested: false,
     },
+    mode: 'onChange',
   })
 
   React.useEffect(() => {
     if (config) {
       webhookForm.setValue('discordWebhookUrl', config.discordWebhookUrl || '')
-      webhookForm.reset({ discordWebhookUrl: config.discordWebhookUrl || '' })
+      webhookForm.setValue('_connectionTested', false)
+      webhookForm.reset({
+        discordWebhookUrl: config.discordWebhookUrl || '',
+        _connectionTested: false,
+      })
     }
   }, [config, webhookForm])
 
   React.useEffect(() => {
     const subscription = webhookForm.watch((_, { name }) => {
       if (name === 'discordWebhookUrl') {
-        setWebhookTestValid(true)
+        setWebhookTested(false)
+        setWebhookTestValid(false)
+        webhookForm.setValue('_connectionTested', false, {
+          shouldValidate: true,
+        })
       }
     })
 
     return () => subscription.unsubscribe()
   }, [webhookForm])
+
+  const resetForm = () => {
+    if (config) {
+      webhookForm.reset({
+        discordWebhookUrl: config.discordWebhookUrl || '',
+        _connectionTested: false,
+      })
+      setWebhookTested(false)
+      setWebhookTestValid(false)
+    }
+  }
 
   // Function to validate Discord webhook URL
   const validateDiscordWebhook = async (url: string) => {
@@ -110,14 +143,22 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
         minimumLoadingTime,
       ])
 
+      setWebhookTested(true)
+
       if (result.valid) {
         setWebhookTestValid(true)
+        webhookForm.setValue('_connectionTested', true, {
+          shouldValidate: true,
+        })
         toast({
           description: 'Discord webhook URL is valid!',
           variant: 'default',
         })
       } else {
         setWebhookTestValid(false)
+        webhookForm.setValue('_connectionTested', false, {
+          shouldValidate: true,
+        })
         toast({
           description: `Webhook validation failed: ${result.error}`,
           variant: 'destructive',
@@ -126,6 +167,7 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
     } catch (error) {
       console.error('Webhook test error:', error)
       setWebhookTestValid(false)
+      webhookForm.setValue('_connectionTested', false, { shouldValidate: true })
       toast({
         description: 'Failed to validate webhook URL',
         variant: 'destructive',
@@ -136,6 +178,14 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
   }
 
   const onSubmitWebhook = async (data: WebhookFormSchema) => {
+    if (!webhookTestValid) {
+      webhookForm.setError('discordWebhookUrl', {
+        type: 'manual',
+        message: 'Please test the connection before saving',
+      })
+      return
+    }
+
     setWebhookStatus('loading')
     try {
       const minimumLoadingTime = new Promise((resolve) =>
@@ -149,13 +199,20 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
         minimumLoadingTime,
       ])
 
-      setWebhookStatus('idle')
+      setWebhookStatus('success')
       // Reset form's dirty state
-      webhookForm.reset(data)
+      webhookForm.reset({
+        ...data,
+        _connectionTested: true,
+      })
       toast({
         description: 'Discord webhook URL has been updated',
         variant: 'default',
       })
+
+      setTimeout(() => {
+        setWebhookStatus('idle')
+      }, 1000)
     } catch (error) {
       console.error('Discord webhook update error:', error)
       setWebhookStatus('error')
@@ -169,9 +226,15 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
     }
   }
 
+  const isDirty = webhookForm.formState.isDirty
+  const webhookFieldState = webhookForm.getFieldState('discordWebhookUrl')
+  const showTestError =
+    webhookFieldState.isDirty && !webhookTestValid && isDirty
+
   return (
     <div className="grid gap-4">
       <h3 className="text-xl font-semibold text-text">Discord Webhook</h3>
+
       <Form {...webhookForm}>
         <form
           onSubmit={webhookForm.handleSubmit(onSubmitWebhook)}
@@ -182,7 +245,24 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
             name="discordWebhookUrl"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-text">Discord Webhook URL</FormLabel>
+                <div className="flex items-center gap-1">
+                  <FormLabel className="text-text">
+                    Discord Webhook URL
+                  </FormLabel>
+                  <HoverCard>
+                    <HoverCardTrigger asChild>
+                      <InfoIcon className="h-4 w-4 text-text cursor-help" />
+                    </HoverCardTrigger>
+                    <HoverCardContent className="w-80">
+                      <p>
+                        Discord webhook URL for sending notifications. You can
+                        create a webhook in your Discord server settings under
+                        Integrations &gt; Webhooks. Test the connection before
+                        saving.
+                      </p>
+                    </HoverCardContent>
+                  </HoverCard>
+                </div>
                 <FormControl>
                   <div className="flex gap-2">
                     <Input
@@ -195,60 +275,93 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
                       }
                       className="w-full"
                     />
-                    <Button
-                      type="button"
-                      onClick={testWebhook}
-                      disabled={
-                        webhookStatus === 'loading' ||
-                        webhookStatus === 'testing' ||
-                        !field.value
-                      }
-                      variant="noShadow"
-                      className="shrink-0"
-                    >
-                      {webhookStatus === 'testing' ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                          <span>Testing</span>
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          <span>Test</span>
-                        </>
-                      )}
-                    </Button>
+                    <TooltipProvider>
+                      <Tooltip open={showTestError || undefined}>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            onClick={testWebhook}
+                            disabled={
+                              webhookStatus === 'loading' ||
+                              webhookStatus === 'testing' ||
+                              !field.value
+                            }
+                            size="icon"
+                            variant="noShadow"
+                            className="shrink-0"
+                          >
+                            {webhookStatus === 'testing' ? (
+                              <Loader2 className="animate-spin" />
+                            ) : webhookTestValid ? (
+                              <Check className="text-black" />
+                            ) : (
+                              <Check />
+                            )}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent
+                          className={showTestError ? 'bg-error text-black' : ''}
+                        >
+                          <p>Test connection</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                 </FormControl>
-                <FormMessage className="text-xs mt-1" />
+                {showTestError && (
+                  <FormMessage className="text-xs mt-1">
+                    Please test connection before saving
+                  </FormMessage>
+                )}
               </FormItem>
             )}
           />
 
-          <Button
-            type="submit"
-            disabled={
-              webhookStatus === 'loading' ||
-              webhookStatus === 'testing' ||
-              !webhookForm.formState.isDirty ||
-              !isInitialized ||
-              !webhookTestValid
-            }
-            className="mt-4 flex items-center gap-2"
-            variant="blue"
-          >
-            {webhookStatus === 'loading' ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span className="portrait:hidden">Saving...</span>
-              </>
-            ) : (
-              <>
-                <Save className="h-4 w-4" />
-                <span className="portrait:hidden">Save Changes</span>
-              </>
+          <div className="flex justify-end gap-2 mt-4">
+            {isDirty && (
+              <Button
+                type="button"
+                variant="cancel"
+                onClick={resetForm}
+                disabled={
+                  webhookStatus === 'loading' || webhookStatus === 'testing'
+                }
+                className="flex items-center gap-1"
+              >
+                <X className="h-4 w-4" />
+                <span>Cancel</span>
+              </Button>
             )}
-          </Button>
+
+            <Button
+              type="submit"
+              disabled={
+                webhookStatus === 'loading' ||
+                webhookStatus === 'testing' ||
+                !isDirty ||
+                !isInitialized
+              }
+              className="flex items-center gap-2"
+              variant="blue"
+            >
+              {webhookStatus === 'loading' ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Saving...</span>
+                </>
+              ) : webhookStatus === 'success' ? (
+                <>
+                  <Save className="h-4 w-4" />
+                  <span>Saved</span>
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4" />
+                  <span>Save Changes</span>
+                </>
+              )}
+            </Button>
+          </div>
         </form>
       </Form>
     </div>
