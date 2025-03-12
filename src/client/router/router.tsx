@@ -3,18 +3,11 @@ import { createBrowserRouter } from 'react-router-dom'
 import AuthenticatedLayout from '@/layouts/authenticated'
 
 const LoginPage = lazy(() => import('@/features/auth'))
-
-const CreateUserPage = lazy(() =>
-  import('@/pages/create-user/create-user').then((module) => ({
-    default: module.CreateUserPage,
-  })),
-)
+const CreateUserPage = lazy(() => import('@/features/create-user'))
 const PlexConfigPage = lazy(() => import('@/features/plex'))
 const SonarrConfigPage = lazy(() => import('@/features/sonarr'))
 const RadarrConfigPage = lazy(() => import('@/features/radarr'))
-const NotificationsConfigPage = lazy(
-  () => import('@/pages/notifications/notifications'),
-)
+const NotificationsConfigPage = lazy(() => import('@/features/notifications'))
 const DashboardPage = lazy(() => import('@/features/dashboard'))
 
 const LoadingFallback = () => null
