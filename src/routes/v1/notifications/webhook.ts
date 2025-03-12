@@ -72,29 +72,29 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       const { body } = request
       const instanceId = request.query.instanceId
       let instance = null
-      
+
       if (instanceId) {
         if (body.instanceName === 'Sonarr') {
           instance = await fastify.db.getSonarrInstanceByIdentifier(instanceId)
           fastify.log.debug(
-            { 
-              instanceId, 
+            {
+              instanceId,
               foundInstance: !!instance,
               instanceName: instance?.name,
-              baseUrl: instance?.baseUrl 
-            }, 
-            'Sonarr instance lookup result'
+              baseUrl: instance?.baseUrl,
+            },
+            'Sonarr instance lookup result',
           )
         } else if (body.instanceName === 'Radarr') {
           instance = await fastify.db.getRadarrInstanceByIdentifier(instanceId)
           fastify.log.debug(
-            { 
-              instanceId, 
+            {
+              instanceId,
               foundInstance: !!instance,
               instanceName: instance?.name,
-              baseUrl: instance?.baseUrl 
-            }, 
-            'Radarr instance lookup result'
+              baseUrl: instance?.baseUrl,
+            },
+            'Radarr instance lookup result',
           )
         }
       }
@@ -108,46 +108,51 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         if (body.instanceName === 'Radarr' && 'movie' in body) {
           if (instance) {
             try {
-              const tmdbGuid = `tmdb:${body.movie.tmdbId}`;
-              const matchingItems = await fastify.db.getWatchlistItemsByGuid(tmdbGuid);
-              
+              const tmdbGuid = `tmdb:${body.movie.tmdbId}`
+              const matchingItems =
+                await fastify.db.getWatchlistItemsByGuid(tmdbGuid)
+
               for (const item of matchingItems) {
-                const itemId = typeof item.id === 'string' ? parseInt(item.id, 10) : item.id;
-                
+                const itemId =
+                  typeof item.id === 'string' ? Number.parseInt(item.id, 10) : item.id
+
                 if (!Number.isNaN(itemId)) {
-                  const isSyncing = await fastify.db.isRadarrItemSyncing(itemId, instance.id);
-                  
+                  const isSyncing = await fastify.db.isRadarrItemSyncing(
+                    itemId,
+                    instance.id,
+                  )
+
                   if (isSyncing) {
                     fastify.log.info(
                       {
                         title: item.title,
-                        instanceName: instance.name
+                        instanceName: instance.name,
                       },
-                      'Suppressing notification for synced item'
-                    );
-                    
+                      'Suppressing notification for synced item',
+                    )
+
                     await fastify.db.updateWatchlistRadarrInstanceStatus(
                       itemId,
                       instance.id,
                       'grabbed',
-                      null
-                    );
-                    
+                      null,
+                    )
+
                     await fastify.db.updateRadarrSyncingStatus(
                       itemId,
                       instance.id,
-                      false
-                    );
-                    
-                    return { success: true };
+                      false,
+                    )
+
+                    return { success: true }
                   }
                 }
               }
             } catch (error) {
               fastify.log.debug(
                 { error, tmdbId: body.movie.tmdbId, instanceId: instance.id },
-                'Error checking sync status for Radarr webhook'
-              );
+                'Error checking sync status for Radarr webhook',
+              )
             }
           }
 
@@ -184,50 +189,94 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           const seasonNumber = body.episodes[0].seasonNumber
           const episodeNumber = body.episodes[0].episodeNumber
 
+          fastify.log.info(
+            {
+              webhook: 'sonarr',
+              tvdbId,
+              season: seasonNumber,
+              episode: episodeNumber,
+              hasEpisodeFile: 'episodeFile' in body,
+              hasEpisodeFiles: 'episodeFiles' in body,
+              isUpgrade: body.isUpgrade === true,
+              episodeCount: body.episodes.length,
+              eventType: body.eventType,
+            },
+            'Received Sonarr webhook',
+          )
+
           if ('episodeFile' in body && !('episodeFiles' in body)) {
-            if (instance) {
-              try {
-                const tvdbGuid = `tvdb:${tvdbId}`;
-                const matchingItems = await fastify.db.getWatchlistItemsByGuid(tvdbGuid);
-                
-                for (const item of matchingItems) {
-                  const itemId = typeof item.id === 'string' ? parseInt(item.id, 10) : item.id;
-                  
-                  if (!Number.isNaN(itemId)) {
-                    const isSyncing = await fastify.db.isSonarrItemSyncing(itemId, instance.id);
-                    
-                    if (isSyncing) {
-                      fastify.log.info(
-                        {
-                          title: item.title,
-                          instanceName: instance.name
-                        },
-                        'Suppressing notification for synced item'
-                      );
-                      
-                      await fastify.db.updateWatchlistSonarrInstanceStatus(
-                        itemId,
-                        instance.id,
-                        'grabbed',
-                        null
-                      );
-                      
-                      await fastify.db.updateSonarrSyncingStatus(
-                        itemId,
-                        instance.id,
-                        false
-                      );
-                      
-                      return { success: true };
-                    }
+            const isCompleteDownload =
+              body.eventType === 'Download' &&
+              body.episodeFile &&
+              body.isUpgrade !== true
+
+            if (isCompleteDownload) {
+              fastify.log.info(
+                { tvdbId, season: seasonNumber, episode: episodeNumber },
+                'Processing individual episode completion',
+              )
+
+              if (!webhookQueue[tvdbId]) {
+                webhookQueue[tvdbId] = {
+                  seasons: {},
+                  title: body.series.title,
+                }
+              }
+
+              const isRecentEp = isRecentEpisode(
+                body.episodes[0].airDateUtc,
+                fastify,
+              )
+
+              if (isRecentEp) {
+                const mediaInfo = {
+                  type: 'show' as const,
+                  guid: `tvdb:${tvdbId}`,
+                  title: body.series.title,
+                  episodes: [body.episodes[0]],
+                }
+
+                const notificationResults =
+                  await fastify.db.processNotifications(mediaInfo, false)
+
+                for (const result of notificationResults) {
+                  if (result.user.notify_discord && result.user.discord_id) {
+                    await fastify.discord.sendDirectMessage(
+                      result.user.discord_id,
+                      result.notification,
+                    )
                   }
                 }
-              } catch (error) {
-                fastify.log.debug(
-                  { error, tvdbId, instanceId: instance.id },
-                  'Error checking sync status for Sonarr webhook'
-                );
+              } else {
+                if (!webhookQueue[tvdbId].seasons[seasonNumber]) {
+                  webhookQueue[tvdbId].seasons[seasonNumber] = {
+                    episodes: [],
+                    firstReceived: new Date(),
+                    lastUpdated: new Date(),
+                    notifiedSeasons: new Set(),
+                    upgradeTracker: new Map(),
+                    timeoutId: setTimeout(() => {
+                      processQueuedWebhooks(tvdbId, seasonNumber, fastify)
+                    }, fastify.config.queueWaitTime),
+                  }
+                }
+
+                webhookQueue[tvdbId].seasons[seasonNumber].episodes.push(
+                  body.episodes[0],
+                )
+                fastify.log.info(
+                  {
+                    tvdbId,
+                    seasonNumber,
+                    episodeCount:
+                      webhookQueue[tvdbId].seasons[seasonNumber].episodes
+                        .length,
+                  },
+                  'Added single episode to queue',
+                )
               }
+
+              return { success: true }
             }
 
             await checkForUpgrade(
@@ -263,6 +312,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             }
 
             if (!webhookQueue[tvdbId]) {
+              fastify.log.debug(`Initializing webhook queue for show ${tvdbId}`)
               webhookQueue[tvdbId] = {
                 seasons: {},
                 title: body.series.title,
@@ -274,6 +324,11 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             )
 
             if (recentEpisodes.length > 0) {
+              fastify.log.info(
+                { count: recentEpisodes.length, tvdbId },
+                'Processing recent episodes for immediate notification',
+              )
+
               const mediaInfo = {
                 type: 'show' as const,
                 guid: `tvdb:${tvdbId}`,
@@ -293,7 +348,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                     episodeCount: recentEpisodes.length,
                     recipientCount: notificationResults.length,
                   },
-                  'Sending notifications for episodes'
+                  'Sending notifications for recent episodes',
                 )
               }
 
@@ -312,7 +367,16 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             )
 
             if (nonRecentEpisodes.length > 0) {
+              fastify.log.info(
+                { count: nonRecentEpisodes.length, tvdbId, seasonNumber },
+                'Adding non-recent episodes to queue',
+              )
+
               if (!webhookQueue[tvdbId].seasons[seasonNumber]) {
+                fastify.log.debug(
+                  `Initializing season ${seasonNumber} in queue for ${tvdbId}`,
+                )
+
                 webhookQueue[tvdbId].seasons[seasonNumber] = {
                   episodes: [],
                   firstReceived: new Date(),
@@ -320,15 +384,28 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                   notifiedSeasons: new Set(),
                   upgradeTracker: new Map(),
                   timeoutId: setTimeout(() => {
+                    fastify.log.info(
+                      { tvdbId, seasonNumber },
+                      'Queue timeout reached, processing queued webhooks',
+                    )
                     processQueuedWebhooks(tvdbId, seasonNumber, fastify)
                   }, fastify.config.queueWaitTime),
                 }
               } else {
+                fastify.log.debug(
+                  { tvdbId, seasonNumber },
+                  'Clearing existing timeout and setting a new one',
+                )
+
                 clearTimeout(
                   webhookQueue[tvdbId].seasons[seasonNumber].timeoutId,
                 )
                 webhookQueue[tvdbId].seasons[seasonNumber].timeoutId =
                   setTimeout(() => {
+                    fastify.log.info(
+                      { tvdbId, seasonNumber },
+                      'Queue timeout reached, processing queued webhooks',
+                    )
                     processQueuedWebhooks(tvdbId, seasonNumber, fastify)
                   }, fastify.config.queueWaitTime)
               }
@@ -336,12 +413,30 @@ const plugin: FastifyPluginAsync = async (fastify) => {
               webhookQueue[tvdbId].seasons[seasonNumber].episodes.push(
                 ...nonRecentEpisodes,
               )
+
+              fastify.log.info(
+                {
+                  tvdbId,
+                  seasonNumber,
+                  totalEpisodes:
+                    webhookQueue[tvdbId].seasons[seasonNumber].episodes.length,
+                  justAdded: nonRecentEpisodes.length,
+                },
+                'Added episodes to queue',
+              )
+
               webhookQueue[tvdbId].seasons[seasonNumber].lastUpdated =
                 new Date()
+            } else {
+              fastify.log.debug(
+                { tvdbId, seasonNumber },
+                'No non-recent episodes to queue',
+              )
             }
 
             return { success: true }
           }
+
           return { success: true }
         }
 
