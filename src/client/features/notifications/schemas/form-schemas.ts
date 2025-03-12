@@ -1,19 +1,20 @@
 import { z } from 'zod'
 
 // Discord webhook form schema
-export const webhookFormSchema = z.object({
-  discordWebhookUrl: z.string().optional(),
-  _connectionTested: z.boolean().optional().default(false),
-})
-.superRefine((data, ctx) => {
-  if (data.discordWebhookUrl && !data._connectionTested) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'Please test connection before saving',
-      path: ['discordWebhookUrl'],
-    });
-  }
-});
+export const webhookFormSchema = z
+  .object({
+    discordWebhookUrl: z.string().optional(),
+    _connectionTested: z.boolean().optional().default(false),
+  })
+  .superRefine((data, ctx) => {
+    if (data.discordWebhookUrl && !data._connectionTested) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Please test connection before saving',
+        path: ['discordWebhookUrl'],
+      })
+    }
+  })
 
 export type WebhookFormSchema = z.infer<typeof webhookFormSchema>
 

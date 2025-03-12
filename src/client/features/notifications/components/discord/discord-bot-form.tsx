@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Loader2, Save, X, InfoIcon } from 'lucide-react'
+import { Loader2, Save, X, InfoIcon, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -24,6 +24,7 @@ import {
   discordBotFormSchema,
   type DiscordBotFormSchema,
 } from '@/features/notifications/schemas/form-schemas'
+import { DiscordClearAlert } from '@/features/notifications/components/discord/discord-clear-alert'
 
 interface DiscordBotFormProps {
   isInitialized: boolean
@@ -36,6 +37,7 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
   const [discordBotStatus, setDiscordBotStatus] = React.useState<
     'idle' | 'loading' | 'success' | 'error'
   >('idle')
+  const [showClearAlert, setShowClearAlert] = React.useState(false)
 
   const discordBotForm = useForm<DiscordBotFormSchema>({
     resolver: zodResolver(discordBotFormSchema),
@@ -44,7 +46,7 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
       discordClientId: '',
       discordGuildId: '',
     },
-    mode: 'onTouched',
+    mode: 'onChange',
   })
 
   React.useEffect(() => {
@@ -60,15 +62,12 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
     }
   }, [config, discordBotForm])
 
-  // Trigger form validation when any field is touched
   React.useEffect(() => {
     const subscription = discordBotForm.watch(() => {
       if (discordBotForm.formState.isDirty) {
-        // Trigger validation for all fields
         discordBotForm.trigger();
       }
     });
-    
     return () => subscription.unsubscribe();
   }, [discordBotForm]);
 
@@ -105,7 +104,7 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
         description: 'Discord bot settings have been updated',
         variant: 'default',
       })
-      
+
       setTimeout(() => {
         setDiscordBotStatus('idle')
       }, 1000)
@@ -122,8 +121,58 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
     }
   }
 
-  const isDirty = discordBotForm.formState.isDirty;
-  const isValid = discordBotForm.formState.isValid;
+  const handleClearDiscordBot = async () => {
+    setDiscordBotStatus('loading')
+    try {
+      const minimumLoadingTime = new Promise((resolve) =>
+        setTimeout(resolve, 500),
+      )
+
+      await Promise.all([
+        updateConfig({
+          discordBotToken: '',
+          discordClientId: '',
+          discordGuildId: '',
+        }),
+        minimumLoadingTime,
+      ])
+
+      setDiscordBotStatus('success')
+      discordBotForm.reset({
+        discordBotToken: '',
+        discordClientId: '',
+        discordGuildId: '',
+      })
+
+      toast({
+        description: 'Discord bot settings have been cleared',
+        variant: 'default',
+      })
+
+      setTimeout(() => {
+        setDiscordBotStatus('idle')
+      }, 1000)
+    } catch (error) {
+      console.error('Discord bot settings clear error:', error)
+      setDiscordBotStatus('error')
+      toast({
+        description: 'Failed to clear Discord bot settings',
+        variant: 'destructive',
+      })
+
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+      setDiscordBotStatus('idle')
+    }
+  }
+
+  const isDirty = discordBotForm.formState.isDirty
+  const isValid = discordBotForm.formState.isValid
+
+  const hasBotSettings = !!(
+    discordBotForm.watch('discordBotToken') ||
+    discordBotForm.watch('discordClientId') ||
+    discordBotForm.watch('discordGuildId')
+  )
 
   return (
     <div className="grid gap-4 mt-6">
@@ -133,7 +182,7 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
         </h3>
         <DiscordStatusBadge />
       </div>
-      
+
       <Form {...discordBotForm}>
         <form
           onSubmit={discordBotForm.handleSubmit(onSubmitDiscordBot)}
@@ -152,8 +201,8 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
                     </HoverCardTrigger>
                     <HoverCardContent className="w-80">
                       <p>
-                        The token for your Discord bot. You can create a bot and get
-                        this token from the Discord Developer Portal.
+                        The token for your Discord bot. You can create a bot and
+                        get this token from the Discord Developer Portal.
                       </p>
                     </HoverCardContent>
                   </HoverCard>
@@ -179,15 +228,18 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <div className="flex items-center gap-1">
-                    <FormLabel className="text-text">Discord Client ID</FormLabel>
+                    <FormLabel className="text-text">
+                      Discord Client ID
+                    </FormLabel>
                     <HoverCard>
                       <HoverCardTrigger asChild>
                         <InfoIcon className="h-4 w-4 text-text cursor-help" />
                       </HoverCardTrigger>
                       <HoverCardContent className="w-80">
                         <p>
-                          The Client ID of your Discord application. Found in the
-                          Discord Developer Portal under your application's General Information.
+                          The Client ID of your Discord application. Found in
+                          the Discord Developer Portal under your application's
+                          General Information.
                         </p>
                       </HoverCardContent>
                     </HoverCard>
@@ -212,15 +264,18 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <div className="flex items-center gap-1">
-                    <FormLabel className="text-text">Discord Guild ID</FormLabel>
+                    <FormLabel className="text-text">
+                      Discord Guild ID
+                    </FormLabel>
                     <HoverCard>
                       <HoverCardTrigger asChild>
                         <InfoIcon className="h-4 w-4 text-text cursor-help" />
                       </HoverCardTrigger>
                       <HoverCardContent className="w-80">
                         <p>
-                          The ID of your Discord server (guild). You can find this by
-                          enabling Developer Mode in Discord and right-clicking on your server.
+                          The ID of your Discord server (guild). You can find
+                          this by enabling Developer Mode in Discord and
+                          right-clicking on your server.
                         </p>
                       </HoverCardContent>
                     </HoverCard>
@@ -244,7 +299,7 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
             {isDirty && (
               <Button
                 type="button"
-                variant="cancel" 
+                variant="cancel"
                 onClick={resetForm}
                 disabled={discordBotStatus === 'loading'}
                 className="flex items-center gap-1"
@@ -253,7 +308,7 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
                 <span>Cancel</span>
               </Button>
             )}
-            
+
             <Button
               type="submit"
               disabled={
@@ -282,9 +337,30 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
                 </>
               )}
             </Button>
+
+            {hasBotSettings && (
+              <Button
+                variant="error"
+                size="icon"
+                onClick={() => setShowClearAlert(true)}
+                disabled={discordBotStatus === 'loading'}
+                className="transition-opacity"
+                type="button"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </form>
       </Form>
+
+      <DiscordClearAlert
+        open={showClearAlert}
+        onOpenChange={setShowClearAlert}
+        onConfirm={handleClearDiscordBot}
+        title="Clear Discord Bot Settings?"
+        description="This will remove all Discord bot configuration values."
+      />
     </div>
   )
 }

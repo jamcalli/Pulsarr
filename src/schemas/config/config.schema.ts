@@ -22,7 +22,7 @@ export const ConfigSchema = z.object({
   syncIntervalSeconds: z.number().optional(),
   queueProcessDelaySeconds: z.number().optional(),
   // Discord Config
-  discordWebhookUrl: z.string().url().optional(),
+  discordWebhookUrl: z.string().optional(),
   discordBotToken: z.string().optional(),
   discordClientId: z.string().optional(),
   discordGuildId: z.string().optional(),
