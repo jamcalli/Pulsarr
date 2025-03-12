@@ -126,6 +126,7 @@ export class SonarrManagerService {
     item: SonarrItem,
     key: string,
     targetInstanceId?: number,
+    syncing: boolean = false
   ): Promise<void> {
     if (targetInstanceId !== undefined) {
       const targetService = this.sonarrServices.get(targetInstanceId)
@@ -167,6 +168,7 @@ export class SonarrManagerService {
 
         await this.fastify.db.updateWatchlistItem(key, {
           sonarr_instance_id: targetInstanceId,
+          syncing: syncing
         })
 
         this.log.info(
