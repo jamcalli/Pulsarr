@@ -114,7 +114,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
               for (const item of matchingItems) {
                 const itemId =
-                  typeof item.id === 'string' ? Number.parseInt(item.id, 10) : item.id
+                  typeof item.id === 'string'
+                    ? Number.parseInt(item.id, 10)
+                    : item.id
 
                 if (!Number.isNaN(itemId)) {
                   const isSyncing = await fastify.db.isRadarrItemSyncing(
