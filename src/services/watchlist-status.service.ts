@@ -525,10 +525,30 @@ export class StatusService {
     instanceId: number,
     instanceType: 'radarr' | 'sonarr',
   ): Promise<number> {
-    if (instanceType === 'radarr') {
-      return this.syncRadarrInstance(instanceId)
+    try {
+      const itemsCopied =
+        instanceType === 'radarr'
+          ? await this.syncRadarrInstance(instanceId)
+          : await this.syncSonarrInstance(instanceId)
+
+      this.log.info(
+        `Syncing statuses for ${instanceType} instance ${instanceId}`,
+      )
+
+      await this.syncAllStatuses()
+
+      this.log.info(
+        `Completed sync for ${instanceType} instance ${instanceId}: ${itemsCopied} items copied and statuses updated`,
+      )
+
+      return itemsCopied
+    } catch (error) {
+      this.log.error(
+        `Error in syncInstance for ${instanceType} ${instanceId}:`,
+        error,
+      )
+      throw error
     }
-    return this.syncSonarrInstance(instanceId)
   }
 
   private hasActiveProgressConnections(): boolean {

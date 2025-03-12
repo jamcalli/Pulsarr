@@ -31,6 +31,10 @@ export const WebhookTestPayloadSchema = z.object({
   instanceName: z.string(),
 })
 
+export const WebhookQuerySchema = z.object({
+  instanceId: z.string().optional(),
+})
+
 export const RadarrWebhookPayloadSchema = z.object({
   instanceName: z.literal('Radarr'),
   movie: z.object({
@@ -75,6 +79,7 @@ export const ErrorSchema = z.object({
   message: z.string(),
 })
 
+export type WebhookQuery = z.infer<typeof WebhookQuerySchema>
 export type WebhookPayload = z.infer<typeof WebhookPayloadSchema>
 export type WebhookResponse = z.infer<typeof WebhookResponseSchema>
 export type Error = z.infer<typeof ErrorSchema>
