@@ -12,13 +12,8 @@ import { LoginErrorMessage } from '@/features/auth/components/login-error'
 import { useLoginForm } from '@/features/auth/hooks/useLoginForm'
 
 export function LoginForm() {
-  const {
-    form,
-    status,
-    backendError,
-    emailInputRef,
-    handleSubmit,
-  } = useLoginForm()
+  const { form, status, backendError, emailInputRef, handleSubmit } =
+    useLoginForm()
 
   return (
     <Form {...form}>

@@ -36,6 +36,13 @@ export class RadarrService {
     const url = new URL(this.appBaseUrl)
     url.port = this.port.toString()
     url.pathname = '/v1/notifications/webhook'
+
+    const urlIdentifier = this.radarrConfig.radarrBaseUrl
+      .replace(/https?:\/\//, '')
+      .replace(/[^a-zA-Z0-9]/g, '')
+
+    url.searchParams.append('instanceId', urlIdentifier)
+
     return url.toString()
   }
 

@@ -2,9 +2,11 @@ import type { FastifyPluginAsync } from 'fastify'
 import {
   WebhookPayloadSchema,
   WebhookResponseSchema,
+  WebhookQuerySchema,
   ErrorSchema,
   type WebhookPayload,
   type WebhookResponse,
+  type WebhookQuery,
 } from '@root/schemas/notifications/webhook.schema.js'
 import {
   isRecentEpisode,
@@ -17,6 +19,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.post<{
     Body: WebhookPayload
     Reply: WebhookResponse
+    Querystring: WebhookQuery
   }>(
     '/webhook',
     {
@@ -54,6 +57,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             },
           ],
         },
+        querystring: WebhookQuerySchema,
         description:
           'Process webhooks from Radarr (movies) or Sonarr (TV series)',
         response: {
@@ -66,6 +70,36 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     },
     async (request, reply) => {
       const { body } = request
+      const instanceId = request.query.instanceId
+
+      let instance = null
+      
+      if (instanceId) {
+        if (body.instanceName === 'Sonarr') {
+          instance = await fastify.db.getSonarrInstanceByIdentifier(instanceId)
+          fastify.log.info(
+            { 
+              instanceId, 
+              foundInstance: !!instance,
+              instanceName: instance?.name,
+              baseUrl: instance?.baseUrl 
+            }, 
+            'Sonarr instance lookup result'
+          )
+        } else if (body.instanceName === 'Radarr') {
+          instance = await fastify.db.getRadarrInstanceByIdentifier(instanceId)
+          fastify.log.info(
+            { 
+              instanceId, 
+              foundInstance: !!instance,
+              instanceName: instance?.name,
+              baseUrl: instance?.baseUrl 
+            }, 
+            'Radarr instance lookup result'
+          )
+        }
+      }
+
 
       try {
         if ('eventType' in body && body.eventType === 'Test') {

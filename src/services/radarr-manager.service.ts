@@ -128,7 +128,7 @@ export class RadarrManagerService {
     item: RadarrItem,
     key: string,
     targetInstanceId?: number,
-    syncing: boolean = false,
+    syncing = false,
   ): Promise<void> {
     if (targetInstanceId !== undefined) {
       const targetService = this.radarrServices.get(targetInstanceId)
@@ -170,7 +170,7 @@ export class RadarrManagerService {
 
         await this.fastify.db.updateWatchlistItem(key, {
           radarr_instance_id: targetInstanceId,
-          syncing: syncing
+          syncing: syncing,
         })
 
         this.log.info(
