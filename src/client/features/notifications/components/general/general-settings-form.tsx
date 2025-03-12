@@ -149,11 +149,15 @@ export function GeneralSettingsForm({
                   </FormLabel>
                   <HoverCard>
                     <HoverCardTrigger asChild>
-                      <InfoIcon className="h-4 w-4 text-black cursor-help" />
+                      <InfoIcon className="h-4 w-4 text-text cursor-help" />
                     </HoverCardTrigger>
                     <HoverCardContent className="w-80">
                       <p>
-                        Time to wait before processing queue items (in minutes)
+                        Time to wait in milliseconds before processing queued
+                        notification events. This is used when multiple episode
+                        downloads are detected to group them together rather
+                        than sending immediate individual notifications (2
+                        minutes default).
                       </p>
                     </HoverCardContent>
                   </HoverCard>
@@ -184,12 +188,16 @@ export function GeneralSettingsForm({
                   </FormLabel>
                   <HoverCard>
                     <HoverCardTrigger asChild>
-                      <InfoIcon className="h-4 w-4 text-black cursor-help" />
+                      <InfoIcon className="h-4 w-4 text-text cursor-help" />
                     </HoverCardTrigger>
                     <HoverCardContent className="w-80">
                       <p>
-                        Time threshold for considering episodes as new (in
-                        hours)
+                        Time threshold that determines how
+                        recently an episode must have aired to receive immediate
+                        notifications. Episodes that aired within this window
+                        (48 hours/2 days default) trigger instant notifications,
+                        while older episodes are batched together to reduce
+                        notification spam.
                       </p>
                     </HoverCardContent>
                   </HoverCard>
@@ -220,10 +228,15 @@ export function GeneralSettingsForm({
                   </FormLabel>
                   <HoverCard>
                     <HoverCardTrigger asChild>
-                      <InfoIcon className="h-4 w-4 text-black cursor-help" />
+                      <InfoIcon className="h-4 w-4 text-text cursor-help" />
                     </HoverCardTrigger>
                     <HoverCardContent className="w-80">
-                      <p>Buffer time between upgrades (in seconds)</p>
+                      <p>
+                        Buffer time in milliseconds between file quality
+                        upgrades to prevent duplicate notifications when Sonarr
+                        is upgrading the same episode within a short timeframe
+                        (2 seconds default).
+                      </p>
                     </HoverCardContent>
                   </HoverCard>
                 </div>
