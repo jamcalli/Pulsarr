@@ -66,19 +66,19 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
   React.useEffect(() => {
     const subscription = discordBotForm.watch(() => {
       if (formTouched) {
-        discordBotForm.trigger();
+        discordBotForm.trigger()
       }
-    });
-    
-    return () => subscription.unsubscribe();
-  }, [discordBotForm, formTouched]);
+    })
+
+    return () => subscription.unsubscribe()
+  }, [discordBotForm, formTouched])
 
   const handleFieldChange = () => {
     if (!formTouched) {
-      setFormTouched(true);
-      discordBotForm.trigger();
+      setFormTouched(true)
+      discordBotForm.trigger()
     }
-  };
+  }
 
   const resetForm = () => {
     if (config) {
@@ -87,7 +87,7 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
         discordClientId: config.discordClientId || '',
         discordGuildId: config.discordGuildId || '',
       })
-      setFormTouched(false);
+      setFormTouched(false)
     }
   }
 
@@ -110,7 +110,7 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
       setDiscordBotStatus('success')
       // Reset form's dirty state
       discordBotForm.reset(data)
-      setFormTouched(false);
+      setFormTouched(false)
       toast({
         description: 'Discord bot settings have been updated',
         variant: 'default',
@@ -154,7 +154,7 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
         discordClientId: '',
         discordGuildId: '',
       })
-      setFormTouched(false);
+      setFormTouched(false)
 
       toast({
         description: 'Discord bot settings have been cleared',
@@ -227,8 +227,8 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
                     disabled={discordBotStatus === 'loading'}
                     className="w-full"
                     onChange={(e) => {
-                      field.onChange(e);
-                      handleFieldChange();
+                      field.onChange(e)
+                      handleFieldChange()
                     }}
                   />
                 </FormControl>
@@ -268,8 +268,8 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
                       disabled={discordBotStatus === 'loading'}
                       className="w-full"
                       onChange={(e) => {
-                        field.onChange(e);
-                        handleFieldChange();
+                        field.onChange(e)
+                        handleFieldChange()
                       }}
                     />
                   </FormControl>
@@ -308,8 +308,8 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
                       disabled={discordBotStatus === 'loading'}
                       className="w-full"
                       onChange={(e) => {
-                        field.onChange(e);
-                        handleFieldChange();
+                        field.onChange(e)
+                        handleFieldChange()
                       }}
                     />
                   </FormControl>
