@@ -872,7 +872,7 @@ export class DatabaseService {
         return
       }
 
-      const { radarr_instance_id, sonarr_instance_id, ...otherUpdates } =
+      const { radarr_instance_id, sonarr_instance_id, syncing, ...otherUpdates } =
         updates
 
       if (Object.keys(otherUpdates).length > 0) {
@@ -901,9 +901,15 @@ export class DatabaseService {
               radarr_instance_id,
               updates.status || item.status || 'pending',
               true,
+              syncing || false
             )
           } else {
             await this.setPrimaryRadarrInstance(item.id, radarr_instance_id)
+
+            if (syncing !== undefined) {
+              await this.updateRadarrSyncingStatus(item.id, radarr_instance_id, syncing)
+            }
+
           }
         }
       }
@@ -925,9 +931,14 @@ export class DatabaseService {
               sonarr_instance_id,
               updates.status || item.status || 'pending',
               true,
+              syncing || false
             )
           } else {
             await this.setPrimarySonarrInstance(item.id, sonarr_instance_id)
+
+            if (syncing !== undefined) {
+              await this.updateSonarrSyncingStatus(item.id, sonarr_instance_id, syncing)
+            }
           }
         }
       }
@@ -2487,6 +2498,7 @@ export class DatabaseService {
     instanceId: number,
     status = 'pending',
     isPrimary = false,
+    syncing = false
   ): Promise<void> {
     try {
       await this.knex('watchlist_radarr_instances').insert({
@@ -2494,6 +2506,7 @@ export class DatabaseService {
         radarr_instance_id: instanceId,
         status,
         is_primary: isPrimary,
+        syncing,
         created_at: this.timestamp,
         updated_at: this.timestamp,
       })
@@ -2649,6 +2662,7 @@ export class DatabaseService {
     instanceId: number,
     status = 'pending',
     isPrimary = false,
+    syncing = false
   ): Promise<void> {
     try {
       await this.knex('watchlist_sonarr_instances').insert({
@@ -2656,6 +2670,7 @@ export class DatabaseService {
         sonarr_instance_id: instanceId,
         status,
         is_primary: isPrimary,
+        syncing,
         created_at: this.timestamp,
         updated_at: this.timestamp,
       })
@@ -2909,6 +2924,109 @@ export class DatabaseService {
     } catch (error) {
       this.log.error('Error getting instance content breakdown:', error)
       throw error
+    }
+  }
+
+  async updateRadarrSyncingStatus(
+    watchlistId: number,
+    instanceId: number, 
+    syncing: boolean
+  ): Promise<void> {
+    await this.knex('watchlist_radarr_instances')
+      .where({
+        watchlist_id: watchlistId,
+        radarr_instance_id: instanceId,
+      })
+      .update({
+        syncing,
+        updated_at: this.timestamp,
+      })
+  }
+  
+  async updateSonarrSyncingStatus(
+    watchlistId: number,
+    instanceId: number,
+    syncing: boolean
+  ): Promise<void> {
+    await this.knex('watchlist_sonarr_instances')
+      .where({
+        watchlist_id: watchlistId,
+        sonarr_instance_id: instanceId,
+      })
+      .update({
+        syncing,
+        updated_at: this.timestamp,
+      })
+  }
+  
+  async isRadarrItemSyncing(
+    watchlistId: number, 
+    instanceId: number
+  ): Promise<boolean> {
+    const item = await this.knex('watchlist_radarr_instances')
+      .where({
+        watchlist_id: watchlistId,
+        radarr_instance_id: instanceId,
+      })
+      .first()
+    
+    return item ? Boolean(item.syncing) : false
+  }
+  
+  async isSonarrItemSyncing(
+    watchlistId: number,
+    instanceId: number
+  ): Promise<boolean> {
+    const item = await this.knex('watchlist_sonarr_instances')
+      .where({
+        watchlist_id: watchlistId,
+        sonarr_instance_id: instanceId,
+      })
+      .first()
+    
+    return item ? Boolean(item.syncing) : false
+  }
+  
+  async getSonarrInstanceByBaseUrl(baseUrl: string): Promise<SonarrInstance | null> {
+    const instance = await this.knex('sonarr_instances')
+      .where('base_url', 'like', `%${baseUrl}%`)
+      .first()
+    
+    if (!instance) return null
+    
+    return {
+      id: instance.id,
+      name: instance.name,
+      baseUrl: instance.base_url,
+      apiKey: instance.api_key,
+      qualityProfile: instance.quality_profile,
+      rootFolder: instance.root_folder,
+      bypassIgnored: Boolean(instance.bypass_ignored),
+      seasonMonitoring: instance.season_monitoring,
+      tags: JSON.parse(instance.tags || '[]'),
+      isDefault: Boolean(instance.is_default),
+      syncedInstances: JSON.parse(instance.synced_instances || '[]'),
+    }
+  }
+  
+  async getRadarrInstanceByBaseUrl(baseUrl: string): Promise<RadarrInstance | null> {
+    const instance = await this.knex('radarr_instances')
+      .where('base_url', 'like', `%${baseUrl}%`)
+      .first()
+    
+    if (!instance) return null
+    
+    return {
+      id: instance.id,
+      name: instance.name,
+      baseUrl: instance.base_url,
+      apiKey: instance.api_key,
+      qualityProfile: instance.quality_profile,
+      rootFolder: instance.root_folder,
+      bypassIgnored: Boolean(instance.bypass_ignored),
+      tags: JSON.parse(instance.tags || '[]'),
+      isDefault: Boolean(instance.is_default),
+      syncedInstances: JSON.parse(instance.synced_instances || '[]'),
     }
   }
 }

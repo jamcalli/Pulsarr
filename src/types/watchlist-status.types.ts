@@ -50,4 +50,5 @@ export type WatchlistItemUpdate = Partial<
   radarr_instance_id?: number | null
   sonarr_instance_id?: number | null
   last_notified_at?: string | null
+  syncing?: boolean | null
 }
