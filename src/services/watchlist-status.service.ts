@@ -858,7 +858,7 @@ export class StatusService {
         matchingMovie,
         item.key,
         instanceId,
-        true
+        true,
       )
       this.log.debug(
         `Copied movie ${item.title} to Radarr instance ${instanceId}`,
@@ -1163,7 +1163,7 @@ export class StatusService {
         matchingSeries,
         item.key,
         instanceId,
-        true
+        true,
       )
       this.log.debug(
         `Copied show ${item.title} to Sonarr instance ${instanceId}`,

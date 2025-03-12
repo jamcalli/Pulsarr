@@ -7,9 +7,38 @@ export function isRecentEpisode(
   airDateUtc: string,
   fastify: FastifyInstance,
 ): boolean {
-  const airDate = new Date(airDateUtc).getTime()
-  const now = Date.now()
-  return now - airDate <= fastify.config.newEpisodeThreshold
+  try {
+    if (!airDateUtc) {
+      fastify.log.warn('Missing airDateUtc in isRecentEpisode check')
+      return false
+    }
+
+    const airDate = new Date(airDateUtc).getTime()
+    const now = Date.now()
+    const threshold = fastify.config.newEpisodeThreshold
+    const age = now - airDate
+    const isRecent = age <= threshold
+
+    fastify.log.debug(
+      {
+        airDateUtc,
+        airDateMs: airDate,
+        nowMs: now,
+        ageMs: age,
+        thresholdMs: threshold,
+        isRecent,
+      },
+      'Checking if episode is recent',
+    )
+
+    return isRecent
+  } catch (error) {
+    fastify.log.error(
+      { error, airDateUtc },
+      'Error checking if episode is recent',
+    )
+    return false
+  }
 }
 
 export async function checkForUpgrade(
@@ -19,27 +48,48 @@ export async function checkForUpgrade(
   isUpgrade: boolean,
   fastify: FastifyInstance,
 ): Promise<boolean> {
-  const queue = webhookQueue[tvdbId]
-  if (!queue?.seasons[seasonNumber]) {
+  fastify.log.debug(
+    { tvdbId, seasonNumber, episodeNumber, isUpgrade },
+    'Checking for upgrade activity',
+  )
+
+  if (!webhookQueue[tvdbId]) {
+    fastify.log.debug(
+      { tvdbId, seasonNumber },
+      'Initializing queue for upgrade check',
+    )
+
     webhookQueue[tvdbId] = {
-      seasons: {
-        [seasonNumber]: {
-          episodes: [],
-          firstReceived: new Date(),
-          lastUpdated: new Date(),
-          notifiedSeasons: new Set(),
-          timeoutId: setTimeout(() => {}, 0),
-          upgradeTracker: new Map(),
-        },
-      },
+      seasons: {},
       title: '',
+    }
+  }
+
+  if (!webhookQueue[tvdbId].seasons[seasonNumber]) {
+    fastify.log.debug(
+      { tvdbId, seasonNumber },
+      'Initializing season for upgrade check',
+    )
+
+    webhookQueue[tvdbId].seasons[seasonNumber] = {
+      episodes: [],
+      firstReceived: new Date(),
+      lastUpdated: new Date(),
+      notifiedSeasons: new Set(),
+      timeoutId: setTimeout(() => {
+        fastify.log.debug(
+          { tvdbId, seasonNumber },
+          'Placeholder timeout in upgrade check',
+        )
+      }, 0),
+      upgradeTracker: new Map(),
     }
   }
 
   const seasonQueue = webhookQueue[tvdbId].seasons[seasonNumber]
   const webhookKey = `${seasonNumber}-${episodeNumber}`
 
-  const currentWebhook: RecentWebhook = {
+  const currentWebhook = {
     timestamp: Date.now(),
     isUpgrade,
   }
@@ -51,21 +101,45 @@ export async function checkForUpgrade(
   ])
 
   const now = Date.now()
+  let cleanedEntries = 0
+
   for (const [key, webhooks] of seasonQueue.upgradeTracker.entries()) {
     const filtered = webhooks.filter(
       (w) => now - w.timestamp < fastify.config.upgradeBufferTime,
     )
+
     if (filtered.length === 0) {
       seasonQueue.upgradeTracker.delete(key)
+      cleanedEntries++
     } else {
       seasonQueue.upgradeTracker.set(key, filtered)
     }
   }
 
+  if (cleanedEntries > 0) {
+    fastify.log.debug(
+      { cleanedEntries, tvdbId, seasonNumber },
+      'Cleaned old entries from upgrade tracker',
+    )
+  }
+
   await new Promise((resolve) => setTimeout(resolve, 500))
 
   const recentWebhooks = seasonQueue.upgradeTracker.get(webhookKey) || []
-  return recentWebhooks.some((w) => w.isUpgrade)
+  const hasUpgrade = recentWebhooks.some((w) => w.isUpgrade)
+
+  fastify.log.debug(
+    {
+      tvdbId,
+      seasonNumber,
+      episodeNumber,
+      recentWebhooksCount: recentWebhooks.length,
+      hasUpgrade,
+    },
+    'Upgrade check result',
+  )
+
+  return hasUpgrade
 }
 
 export async function processQueuedWebhooks(
@@ -74,18 +148,48 @@ export async function processQueuedWebhooks(
   fastify: FastifyInstance,
 ) {
   const queue = webhookQueue[tvdbId]
-  if (!queue?.seasons[seasonNumber]) return
+  if (!queue?.seasons[seasonNumber]) {
+    fastify.log.warn(
+      { tvdbId, seasonNumber },
+      'Attempted to process non-existent queue',
+    )
+    return
+  }
 
   const seasonQueue = queue.seasons[seasonNumber]
   const episodes = seasonQueue.episodes
 
-  clearTimeout(seasonQueue.timeoutId)
+  if (episodes.length === 0) {
+    fastify.log.warn(
+      { tvdbId, seasonNumber },
+      'Queue has no episodes to process',
+    )
+    delete queue.seasons[seasonNumber]
+
+    if (Object.keys(queue.seasons).length === 0) {
+      delete webhookQueue[tvdbId]
+    }
+    return
+  }
+
+  if (seasonQueue.timeoutId) {
+    clearTimeout(seasonQueue.timeoutId)
+  }
 
   const hasRecentEpisodes = episodes.some((ep) =>
     isRecentEpisode(ep.airDateUtc, fastify),
   )
+
   if (seasonQueue.notifiedSeasons.has(seasonNumber) && !hasRecentEpisodes) {
+    fastify.log.info(
+      { tvdbId, seasonNumber },
+      'Season already notified and no recent episodes, clearing queue',
+    )
     delete queue.seasons[seasonNumber]
+
+    if (Object.keys(queue.seasons).length === 0) {
+      delete webhookQueue[tvdbId]
+    }
     return
   }
 
@@ -100,6 +204,7 @@ export async function processQueuedWebhooks(
       episodeCount: episodes.length,
       isBulkRelease,
       hasRecentEpisodes,
+      title: queue.title,
     },
     'Processing queued webhooks',
   )
@@ -111,23 +216,52 @@ export async function processQueuedWebhooks(
     episodes: episodes,
   }
 
-  const notificationResults = await fastify.db.processNotifications(
-    mediaInfo,
-    isBulkRelease,
-  )
+  try {
+    const notificationResults = await fastify.db.processNotifications(
+      mediaInfo,
+      isBulkRelease,
+    )
 
-  for (const result of notificationResults) {
-    if (result.user.notify_discord && result.user.discord_id) {
-      await fastify.discord.sendDirectMessage(
-        result.user.discord_id,
-        result.notification,
-      )
+    fastify.log.info(
+      { tvdbId, seasonNumber, recipientCount: notificationResults.length },
+      'Processed notifications from queue',
+    )
+
+    for (const result of notificationResults) {
+      if (result.user.notify_discord && result.user.discord_id) {
+        try {
+          const sent = await fastify.discord.sendDirectMessage(
+            result.user.discord_id,
+            result.notification,
+          )
+
+          fastify.log.info(
+            {
+              userId: result.user.discord_id,
+              username: result.user.name,
+              success: sent,
+            },
+            'Sent Discord notification',
+          )
+        } catch (error) {
+          fastify.log.error(
+            { error, userId: result.user.discord_id },
+            'Failed to send Discord notification',
+          )
+        }
+      }
     }
+  } catch (error) {
+    fastify.log.error(
+      { error, tvdbId, seasonNumber },
+      'Error processing notifications from queue',
+    )
   }
 
   delete queue.seasons[seasonNumber]
 
   if (Object.keys(queue.seasons).length === 0) {
     delete webhookQueue[tvdbId]
+    fastify.log.debug({ tvdbId }, 'Removed empty queue')
   }
 }
