@@ -15,7 +15,7 @@ export function StatsHeader({ onRefresh }: StatsHeaderProps) {
       {/* Dashboard Header */}
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center">
-          <h1 className="text-3xl font-bold text-text">Media Statistics</h1>
+          <h1 className="text-3xl font-bold text-text">Main Workflow</h1>
           <WatchlistStatusBadge />
         </div>
       </div>
