@@ -9,20 +9,21 @@ import {
 import type { FastifyInstance } from 'fastify'
 
 const createOpenapiConfig = (fastify: FastifyInstance) => {
-
   const urlObject = new URL(fastify.config.baseUrl)
-  
-  fastify.log.info(`Configuring Swagger with base URL: ${fastify.config.baseUrl}`)
-  
+
+  fastify.log.info(
+    `Configuring Swagger with base URL: ${fastify.config.baseUrl}`,
+  )
+
   return {
     openapi: {
       info: {
         title: 'Pulsarr API',
-        description: 'API documentation for Pulsarr - a Plex watchlist integration for Sonarr and Radarr',
+        description:
+          'API documentation for Pulsarr - a Plex watchlist integration for Sonarr and Radarr',
         version: 'V1',
       },
       servers: [
-
         {
           url: fastify.config.baseUrl,
           description: 'Primary Server',
@@ -30,7 +31,7 @@ const createOpenapiConfig = (fastify: FastifyInstance) => {
         {
           url: `${urlObject.protocol}//${urlObject.hostname}:${fastify.config.port}`,
           description: 'Direct Server Access (with port)',
-        }
+        },
       ],
       tags: [
         {
@@ -56,7 +57,7 @@ const createOpenapiConfig = (fastify: FastifyInstance) => {
         {
           name: 'Users',
           description: 'User management endpoints',
-        }
+        },
       ],
     },
     hideUntagged: true,

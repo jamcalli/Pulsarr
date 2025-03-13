@@ -25,7 +25,8 @@
       "@data/*": ["./data/*"],
       "@schemas/*": ["./schemas/*"],
       "@services/*": ["./services/*"],
-      "@/*": ["./client/*"]
+      "@/*": ["./client/*"],
+      "@commitlint/types": ["./node_modules/@commitlint/types"]
     }
   },
   "include": ["src/**/*", "config"],

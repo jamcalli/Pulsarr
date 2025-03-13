@@ -1,4 +1,4 @@
-name: Docker Build and Push
+name: Release
 on:
   push:
     tags:
@@ -7,11 +7,24 @@ permissions:
   contents: write
   packages: write
 jobs:
-  docker:
+  release:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Check if prerelease
+        id: check-prerelease
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          if [[ "$VERSION" == *"-beta"* || "$VERSION" == *"-alpha"* ]]; then
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+          fi
+      
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
@@ -39,14 +52,27 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
+      - name: Generate Release Notes
+        uses: release-drafter/release-drafter@v5
+        id: release-drafter
+        with:
+          config-name: release-drafter.yml
+          tag: ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          body: "Release version ${{ github.ref_name }}"
-          draft: true 
+          body: ${{ steps.release-drafter.outputs.body }}
+          draft: false
+          prerelease: ${{ steps.check-prerelease.outputs.is_prerelease == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

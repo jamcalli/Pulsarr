@@ -1,6 +1,7 @@
 {
   "name": "pulsarr",
-  "version": "0.1.0",
+  "version": "0.1.0-beta.1",
+  "description": "Plex watchlist tracker and notification center that integrates with the Arr stack",
   "main": "build/server.js",
   "type": "module",
   "scripts": {
@@ -14,27 +15,36 @@
     "fix": "biome format --write . && biome lint --write .",
     "migrate": "tsx migrations/migrate.ts",
     "migrate:make": "knex migrate:make -x ts",
-    "migrate:rollback": "knex migrate:rollback"
+    "migrate:rollback": "knex migrate:rollback",
+    "release:beta": "npm version prerelease --preid=beta && git push && git push --tags",
+    "release:patch": "npm version patch && git push && git push --tags",
+    "release:minor": "npm version minor && git push && git push --tags",
+    "release:major": "npm version major && git push && git push --tags"
   },
-  "keywords": [],
-  "author": "jamcalli",
-  "license": "ISC",
-  "description": "Pulsarr is a plex watchlist aggregator and arrs manager. It includes discord integration and a web interface.",
-  "devDependencies": {
-    "@biomejs/biome": "^1.9.4",
-    "@types/better-sqlite3": "^7.6.12",
-    "@types/node": "^22.13.4",
-    "@types/react": "^19.0.8",
-    "@types/react-dom": "^19.0.3",
-    "@types/react-router-dom": "^5.3.3",
-    "autoprefixer": "^10.4.20",
-    "fastify-cli": "^7.3.0",
-    "fastify-tsconfig": "^3.0.0",
-    "postcss": "^8.5.2",
-    "tailwindcss": "^3.4.17",
-    "tsc-alias": "^1.8.10",
-    "typescript": "^5.7.3"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jamcalli/Pulsarr.git"
   },
+  "homepage": "https://github.com/jamcalli/Pulsarr#readme",
+  "bugs": {
+    "url": "https://github.com/jamcalli/Pulsarr/issues"
+  },
+  "keywords": [
+    "plex",
+    "watchlist",
+    "sonarr",
+    "radarr",
+    "media-server",
+    "media-automation",
+    "arr-stack",
+    "discord",
+    "content-management",
+    "plex-pass",
+    "rss-monitoring",
+    "self-hosted"
+  ],
+  "author": "Your Name",
+  "license": "AGPL-3.0",
   "dependencies": {
     "@fastify/autoload": "^6.1.0",
     "@fastify/compress": "^8.0.1",
@@ -97,5 +107,8 @@
     "vite": "^6.1.0",
     "zod": "^3.24.2",
     "zustand": "^5.0.3"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7"
   }
 }
