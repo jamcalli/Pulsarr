@@ -41,7 +41,7 @@ const schema = {
     },
     closeGraceDelay: {
       type: 'number',
-      default: 1000,
+      default: 10000,
     },
     rateLimitMax: {
       type: 'number',
