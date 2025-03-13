@@ -9,39 +9,54 @@ import {
 import type { FastifyInstance } from 'fastify'
 
 const createOpenapiConfig = (fastify: FastifyInstance) => {
+
   const urlObject = new URL(fastify.config.baseUrl)
-  const isLocal =
-    urlObject.hostname === 'localhost' || urlObject.hostname === '127.0.0.1'
-
-  // Always include the port - this is the actual API endpoint
-  const baseUrl = `${urlObject.protocol}//${urlObject.hostname}:${fastify.config.port}`
-
+  
+  fastify.log.info(`Configuring Swagger with base URL: ${fastify.config.baseUrl}`)
+  
   return {
     openapi: {
       info: {
-        title: 'Test swagger',
-        description: 'testing the fastify swagger api',
+        title: 'Pulsarr API',
+        description: 'API documentation for Pulsarr - a Plex watchlist integration for Sonarr and Radarr',
         version: 'V1',
       },
       servers: [
+
         {
-          url: baseUrl,
-          description: isLocal ? 'Development Server' : 'Production Server',
+          url: fastify.config.baseUrl,
+          description: 'Primary Server',
         },
-        ...(isLocal
-          ? [
-              {
-                url: baseUrl.replace('localhost', '127.0.0.1'),
-                description: 'Development Server (IP)',
-              },
-            ]
-          : []),
+        {
+          url: `${urlObject.protocol}//${urlObject.hostname}:${fastify.config.port}`,
+          description: 'Direct Server Access (with port)',
+        }
       ],
       tags: [
         {
           name: 'Plex',
           description: 'Plex related endpoints',
         },
+        {
+          name: 'Sonarr',
+          description: 'Sonarr related endpoints',
+        },
+        {
+          name: 'Radarr',
+          description: 'Radarr related endpoints',
+        },
+        {
+          name: 'Config',
+          description: 'Configuration endpoints',
+        },
+        {
+          name: 'Authentication',
+          description: 'Authentication endpoints',
+        },
+        {
+          name: 'Users',
+          description: 'User management endpoints',
+        }
       ],
     },
     hideUntagged: true,
