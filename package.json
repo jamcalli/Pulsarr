@@ -1,6 +1,6 @@
 {
   "name": "pulsarr",
-  "version": "0.1.0-beta.3",
+  "version": "0.1.0-beta.2",
   "description": "Plex watchlist tracker and notification center that integrates with the Arr stack",
   "main": "build/server.js",
   "type": "module",
@@ -94,7 +94,6 @@
     "lucide-react": "^0.475.0",
     "next-themes": "^0.4.4",
     "pino-pretty": "^13.0.0",
-    "postcss": "^8.5.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.54.2",
@@ -103,7 +102,6 @@
     "rotating-file-stream": "^3.2.6",
     "sonner": "^1.7.4",
     "tailwind-merge": "^3.0.1",
-    "tailwindcss": "^4.0.13",
     "tailwindcss-animate": "^1.0.7",
     "tsx": "^4.19.2",
     "vaul": "^1.1.2",
@@ -111,11 +109,24 @@
     "zod": "^3.24.2",
     "zustand": "^5.0.3"
   },
-  "devDependencies": {
-    "@commitlint/cli": "^19.8.0",
-    "@commitlint/config-conventional": "^19.8.0",
-    "@tailwindcss/postcss": "^4.0.13",
-    "husky": "^9.1.7",
-    "tsc-alias": "^1.8.11"
+"devDependencies": {
+  "@commitlint/cli": "^19.8.0",
+  "@commitlint/config-conventional": "^19.8.0",
+  "husky": "^9.1.7",
+    "@biomejs/biome": "^1.9.4",
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^22.13.4",
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3",
+    "@types/react-router-dom": "^5.3.3",
+    "autoprefixer": "^10.4.20",
+    "fastify-cli": "^7.3.0",
+    "fastify-tsconfig": "^3.0.0",
+    "postcss": "^8.5.2",
+    "tailwindcss": "^3.4.17",
+    "tsc-alias": "^1.8.10",
+    "typescript": "^5.7.3"
   }
 }
+
+
