@@ -4,11 +4,12 @@ import type { FastifyInstance } from 'fastify'
 import type { FastifyCorsOptions } from '@fastify/cors'
 
 const createCorsConfig = (fastify: FastifyInstance): FastifyCorsOptions => {
+  fastify.log.info(
+    `Using baseUrl: ${fastify.config.baseUrl} for service connections`,
+  )
 
-  fastify.log.info(`Using baseUrl: ${fastify.config.baseUrl} for service connections`);
-  
   return {
-    origin: true, 
+    origin: true,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: [
@@ -18,8 +19,8 @@ const createCorsConfig = (fastify: FastifyInstance): FastifyCorsOptions => {
       'Accept',
       'Authorization',
     ],
-  };
-};
+  }
+}
 
 export default fp(
   async (fastify: FastifyInstance) => {
