@@ -20,7 +20,7 @@ jobs:
         run: npm ci
       - name: Build
         run: npm run build
-      - name: Check code formatting
-        run: |
-          npx biome format . --report
-          npx biome lint . --report
+      - name: Check Formatting
+        run: npx biome format .
+      - name: Check Linting
+        run: npx biome lint .
