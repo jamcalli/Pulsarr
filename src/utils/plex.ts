@@ -568,7 +568,6 @@ const toItemsBatch = async (
   return results
 }
 
-// The single item processor with smarter retry mechanism
 const toItemsSingle = async (
   config: Config,
   log: FastifyBaseLogger,
@@ -586,12 +585,13 @@ const toItemsSingle = async (
       headers: {
         Accept: 'application/json',
       },
-      // Add a reasonable timeout to prevent hanging requests
       signal: AbortSignal.timeout(5000),
     })
 
     if (!response.ok) {
-      throw new Error(`Plex API error: ${response.statusText}`)
+      throw new Error(
+        `Plex API error: HTTP ${response.status} - ${response.statusText}`,
+      )
     }
 
     const json = (await response.json()) as PlexApiResponse
@@ -620,7 +620,7 @@ const toItemsSingle = async (
       log.warn(
         `Found item ${item.title} but no GUIDs. Retry ${retryCount + 1}/${maxRetries}`,
       )
-      // Use exponential backoff with shorter initial delay
+      // Use exponential backoff
       const backoffDelay = Math.min(200 * 1.5 ** retryCount, 1000)
       await new Promise((resolve) => setTimeout(resolve, backoffDelay))
       return toItemsSingle(config, log, item, retryCount + 1, maxRetries)
@@ -635,15 +635,15 @@ const toItemsSingle = async (
     if (error.message.includes('Plex API error')) {
       if (retryCount < maxRetries) {
         log.warn(
-          `Failed to find ${item.title} in Plex's database. Retry ${retryCount + 1}/${maxRetries}`,
+          `Failed to find ${item.title} in Plex's database. Error: ${error.message}. Retry ${retryCount + 1}/${maxRetries}`,
         )
-        // Use exponential backoff with shorter initial delay
+        // Use exponential backoff
         const backoffDelay = Math.min(200 * 1.5 ** retryCount, 1000)
         await new Promise((resolve) => setTimeout(resolve, backoffDelay))
         return toItemsSingle(config, log, item, retryCount + 1, maxRetries)
       }
       log.warn(
-        `Found item ${item.title} on the watchlist, but we cannot find this in Plex's database after ${maxRetries + 1} attempts.`,
+        `Found item ${item.title} on the watchlist, but we cannot find this in Plex's database after ${maxRetries + 1} attempts. Last error: ${error.message}`,
       )
     } else {
       log.error(
