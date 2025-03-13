@@ -20,5 +20,7 @@ jobs:
         run: npm ci
       - name: Build
         run: npm run build
-      - name: Lint
-        run: npm run fix -- --check
+      - name: Lint Format Check
+        run: npx biome format --check .
+      - name: Lint Rules Check
+        run: npx biome lint .
