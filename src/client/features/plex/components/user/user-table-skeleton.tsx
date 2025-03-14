@@ -2,7 +2,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { TableCell, TableRow } from '@/components/ui/table'
 
 export default function UserTableSkeletonRows({
-  colSpan = 5,
+  colSpan = 6,
 }: { colSpan?: number }) {
   const skeletonRows = Array.from({ length: 10 }, (_, i) => `skeleton-row-${i}`)
 
@@ -24,14 +24,21 @@ export default function UserTableSkeletonRows({
                 </div>
               </TableCell>
 
-              {/* Email notification cell - hidden on small screens */}
-              <TableCell className="px-2 py-2 hidden sm:table-cell">
+              {/* Email notification cell - hidden on screens smaller than md */}
+              <TableCell className="px-2 py-2 hidden md:table-cell">
                 <div className="flex justify-center">
                   <Skeleton className="h-4 w-4 rounded-full" />
                 </div>
               </TableCell>
 
-              {/* Discord notification cell - hidden on extra small screens */}
+              {/* Discord notification cell - hidden on screens smaller than md */}
+              <TableCell className="px-2 py-2 hidden md:table-cell">
+                <div className="flex justify-center">
+                  <Skeleton className="h-4 w-4 rounded-full" />
+                </div>
+              </TableCell>
+
+              {/* Can Sync status cell - hidden on extra small screens */}
               <TableCell className="px-2 py-2 hidden xs:table-cell">
                 <div className="flex justify-center">
                   <Skeleton className="h-4 w-4 rounded-full" />

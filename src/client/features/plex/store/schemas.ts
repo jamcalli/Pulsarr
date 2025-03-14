@@ -14,6 +14,7 @@ export const plexUserSchema = z
     discord_id: z.string().nullable(),
     notify_email: z.boolean(),
     notify_discord: z.boolean(),
+    can_sync: z.boolean(),
   })
   .refine(
     (data) => {
