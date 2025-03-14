@@ -137,12 +137,12 @@ export const useConfigStore = create<ConfigState>()(
       try {
         const response = await fetch('/v1/users/users/list/with-counts')
         const data: UserListResponse = await response.json()
-    
+
         if (data.success && data.users) {
           const users = data.users
           const selfUser = users.find((user) => Number(user.id) === 1)
           const otherUsers = users.filter((user) => Number(user.id) !== 1)
-    
+
           set({
             users,
             selfWatchlistCount: selfUser?.watchlist_count ?? null,
