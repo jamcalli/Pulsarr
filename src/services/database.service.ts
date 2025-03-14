@@ -3056,4 +3056,18 @@ export class DatabaseService {
 
     return null
   }
+
+  async hasUsersWithSyncDisabled(): Promise<boolean> {
+    try {
+      const count = await this.knex('users')
+        .where({ can_sync: false })
+        .count('* as count')
+        .first()
+
+      return Number(count?.count || 0) > 0
+    } catch (error) {
+      this.log.error('Error checking for users with sync disabled:', error)
+      return true
+    }
+  }
 }
