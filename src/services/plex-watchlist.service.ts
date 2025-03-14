@@ -453,7 +453,7 @@ export class PlexWatchlistService {
     )
 
     if (processedItems instanceof Map) {
-      const itemsToInsert = this.prepareItemsForInsertion(processedItems)
+      const itemsToInsert = await this.prepareItemsForInsertion(processedItems)
 
       if (itemsToInsert.length > 0) {
         if (emitProgress) {
@@ -683,11 +683,36 @@ export class PlexWatchlistService {
     }
   }
 
-  private prepareItemsForInsertion(
+  private async prepareItemsForInsertion(
     processedItems: Map<Friend & { userId: number }, Set<WatchlistItem>>,
   ) {
-    return Array.from(processedItems.entries()).flatMap(([user, items]) =>
-      Array.from(items).map((item) => ({
+    // Get all user IDs from the processedItems
+    const userIds = Array.from(processedItems.keys()).map((user) => user.userId)
+
+    // Fetch all users in one batch to get their sync permissions
+    const users = await Promise.all(
+      userIds.map((id) => this.dbService.getUser(id)),
+    )
+
+    // Create a map of user ID to their can_sync permission
+    const userSyncPermissions = new Map<number, boolean>()
+    users.forEach((user, index) => {
+      if (user) {
+        userSyncPermissions.set(userIds[index], user.can_sync)
+      }
+    })
+
+    return Array.from(processedItems.entries()).flatMap(([user, items]) => {
+      const canSync = userSyncPermissions.get(user.userId) !== false
+
+      if (!canSync) {
+        this.log.info(
+          `Skipping ${items.size} items for user ${user.username} (ID: ${user.userId}) who has sync disabled`,
+        )
+        return []
+      }
+
+      return Array.from(items).map((item) => ({
         user_id: user.userId,
         title: item.title,
         key: item.key,
@@ -698,8 +723,8 @@ export class PlexWatchlistService {
         status: 'pending' as const,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-      })),
-    )
+      }))
+    })
   }
 
   private calculateTotal(
