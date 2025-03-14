@@ -103,7 +103,7 @@ export default function UserTable({
     },
     {
       accessorKey: 'notify_email',
-      header: () => <div className="hidden sm:block">Email</div>,
+      header: () => <div className="hidden md:block">Email</div>,
       cell: ({ row }) => (
         <div className="flex justify-center w-16">
           {row.getValue('notify_email') ? (
@@ -114,16 +114,33 @@ export default function UserTable({
         </div>
       ),
       meta: {
-        className: 'hidden sm:table-cell',
-        headerClassName: 'hidden sm:table-cell',
+        className: 'hidden md:table-cell',
+        headerClassName: 'hidden md:table-cell',
       },
     },
     {
       accessorKey: 'notify_discord',
-      header: () => <div className="hidden xs:block">Discord</div>,
+      header: () => <div className="hidden md:block">Discord</div>,
       cell: ({ row }) => (
         <div className="flex justify-center w-16">
           {row.getValue('notify_discord') ? (
+            <Check className="h-4 w-4 text-main" />
+          ) : (
+            <X className="h-4 w-4 text-error" />
+          )}
+        </div>
+      ),
+      meta: {
+        className: 'hidden md:table-cell',
+        headerClassName: 'hidden md:table-cell',
+      },
+    },
+    {
+      accessorKey: 'can_sync',
+      header: () => <div className="hidden xs:block">Can Sync</div>,
+      cell: ({ row }) => (
+        <div className="flex justify-center w-16">
+          {row.getValue('can_sync') ? (
             <Check className="h-4 w-4 text-main" />
           ) : (
             <X className="h-4 w-4 text-error" />
