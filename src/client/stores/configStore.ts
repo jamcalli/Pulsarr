@@ -140,8 +140,8 @@ export const useConfigStore = create<ConfigState>()(
 
         if (data.success && data.users) {
           const users = data.users
-          const selfUser = users.find((user) => user.can_sync)
-          const otherUsers = users.filter((user) => !user.can_sync)
+          const selfUser = users.find((user) => Number(user.id) === 1)
+          const otherUsers = users.filter((user) => Number(user.id) !== 1)
 
           set({
             users,
