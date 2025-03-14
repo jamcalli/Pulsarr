@@ -47,8 +47,7 @@ export default function UserEditModal({
   onSave,
   saveStatus,
 }: UserEditModalProps) {
-
-  const isMobile = useMediaQuery("(max-width: 768px)")
+  const isMobile = useMediaQuery('(max-width: 768px)')
 
   const form = useForm<PlexUserSchema>({
     resolver: zodResolver(plexUserSchema),
@@ -84,7 +83,7 @@ export default function UserEditModal({
 
   const handleOpenChange = (newOpen: boolean) => {
     if (saveStatus === 'loading') {
-      return 
+      return
     }
     onOpenChange(newOpen)
   }
@@ -93,10 +92,7 @@ export default function UserEditModal({
 
   const FormContent = () => (
     <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(handleSubmit)}
-        className="space-y-8"
-      >
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
         <div className="space-y-4">
           <FormField
             control={form.control}
@@ -199,9 +195,7 @@ export default function UserEditModal({
                       <Switch
                         checked={field.value}
                         onCheckedChange={field.onChange}
-                        disabled={
-                          saveStatus !== 'idle' || isPlaceholderEmail
-                        }
+                        disabled={saveStatus !== 'idle' || isPlaceholderEmail}
                       />
                     </FormControl>
                   </div>

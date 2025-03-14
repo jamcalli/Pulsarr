@@ -6,9 +6,7 @@ import type {
 } from '@root/types/plex.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
-
 type WorkflowStatus = 'stopped' | 'running' | 'starting' | 'stopping'
-
 export class WatchlistWorkflowService {
   private status: WorkflowStatus = 'stopped'
   private rssCheckInterval: NodeJS.Timeout | null = null
@@ -19,7 +17,6 @@ export class WatchlistWorkflowService {
   private previousFriendsItems: Map<string, WatchlistItem> = new Map()
   private isRefreshing = false
   private isRunning = false
-
   constructor(
     private readonly log: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
@@ -28,49 +25,39 @@ export class WatchlistWorkflowService {
   ) {
     this.log.info('Initializing Watchlist Workflow Service')
   }
-
   private get config() {
     return this.fastify.config
   }
-
   private get plexService() {
     return this.fastify.plexWatchlist
   }
-
   private get sonarrManager() {
     return this.fastify.sonarrManager
   }
-
   private get radarrManager() {
     return this.fastify.radarrManager
   }
-
   private get dbService() {
     return this.fastify.db
   }
-
   private get showStatusService() {
     return this.fastify.sync
   }
-
   getStatus(): WorkflowStatus {
     return this.status
   }
-
   async startWorkflow() {
     if (this.status !== 'stopped') {
       this.log.warn(`Workflow already ${this.status}, skipping start`)
       return false
     }
-
     this.log.info('Starting Watchlist Workflow Service...')
     this.status = 'starting'
-
     try {
       await this.plexService.pingPlex()
       this.log.info('Plex connection verified')
       await this.fetchWatchlists()
-      await this.initialSyncCheck()
+      await this.syncWatchlistItems()
       const rssFeeds = await this.plexService.generateAndSaveRssFeeds()
       if ('error' in rssFeeds) {
         throw new Error(`Failed to generate RSS feeds: ${rssFeeds.error}`)
@@ -78,7 +65,6 @@ export class WatchlistWorkflowService {
       await this.initializeRssSnapshots()
       this.startRssCheck()
       this.startQueueProcessor()
-
       this.status = 'running'
       this.isRunning = true
       this.log.info('Watchlist testing workflow running')
@@ -90,33 +76,26 @@ export class WatchlistWorkflowService {
       throw error
     }
   }
-
   async stop() {
     if (this.status !== 'running' && this.status !== 'starting') {
       this.log.warn(`Cannot stop workflow: current status is ${this.status}`)
       return false
     }
-
     this.log.info('Stopping Watchlist testing workflow')
     this.status = 'stopping'
-
     if (this.rssCheckInterval) {
       clearInterval(this.rssCheckInterval)
       this.rssCheckInterval = null
     }
-
     if (this.queueCheckInterval) {
       clearInterval(this.queueCheckInterval)
       this.queueCheckInterval = null
     }
-
     this.changeQueue.clear()
     this.isRunning = false
     this.status = 'stopped'
-
     return true
   }
-
   async fetchWatchlists() {
     this.log.info('Refreshing watchlists')
     try {
@@ -125,7 +104,6 @@ export class WatchlistWorkflowService {
         this.plexService.getOthersWatchlists(),
       ])
       this.log.info('Watchlists refreshed successfully')
-
       const { shows, movies } = await this.showStatusService.syncAllStatuses()
       this.log.info(
         `Updated ${shows} show statuses and ${movies} movie statuses after watchlist refresh`,
@@ -135,11 +113,9 @@ export class WatchlistWorkflowService {
       throw error
     }
   }
-
   private async initializeRssSnapshots() {
     this.log.info('Initializing RSS snapshots')
     const results = await this.plexService.processRssWatchlists()
-
     if (results.self.users[0]?.watchlist) {
       this.previousSelfItems = this.createItemMap(
         results.self.users[0].watchlist,
@@ -148,7 +124,6 @@ export class WatchlistWorkflowService {
         itemCount: this.previousSelfItems.size,
       })
     }
-
     if (results.friends.users[0]?.watchlist) {
       this.previousFriendsItems = this.createItemMap(
         results.friends.users[0].watchlist,
@@ -158,7 +133,6 @@ export class WatchlistWorkflowService {
       })
     }
   }
-
   private createItemMap(items: WatchlistItem[]): Map<string, WatchlistItem> {
     const itemMap = new Map<string, WatchlistItem>()
     for (const item of items) {
@@ -168,12 +142,10 @@ export class WatchlistWorkflowService {
     }
     return itemMap
   }
-
   private startRssCheck() {
     if (this.rssCheckInterval) {
       clearInterval(this.rssCheckInterval)
     }
-
     this.rssCheckInterval = setInterval(async () => {
       try {
         const results = await this.plexService.processRssWatchlists()
@@ -183,7 +155,6 @@ export class WatchlistWorkflowService {
       }
     }, this.rssCheckIntervalMs)
   }
-
   private async processRssResults(results: RssWatchlistResults) {
     if (results.self.users[0]?.watchlist) {
       const currentItems = this.createItemMap(results.self.users[0].watchlist)
@@ -193,7 +164,6 @@ export class WatchlistWorkflowService {
       }
       this.previousSelfItems = currentItems
     }
-
     if (results.friends.users[0]?.watchlist) {
       const currentItems = this.createItemMap(
         results.friends.users[0].watchlist,
@@ -208,16 +178,13 @@ export class WatchlistWorkflowService {
       this.previousFriendsItems = currentItems
     }
   }
-
   private detectChanges(
     previousItems: Map<string, WatchlistItem>,
     currentItems: Map<string, WatchlistItem>,
   ): Set<TemptRssWatchlistItem> {
     const changes = new Set<TemptRssWatchlistItem>()
-
     currentItems.forEach((currentItem, guid) => {
       const previousItem = previousItems.get(guid)
-
       if (!previousItem) {
         this.log.debug('New item detected', { guid, title: currentItem.title })
         changes.add(this.convertToTempItem(currentItem))
@@ -228,7 +195,6 @@ export class WatchlistWorkflowService {
           previousItem.thumb !== currentItem.thumb ||
           JSON.stringify(previousItem.genres) !==
             JSON.stringify(currentItem.genres)
-
         if (hasChanged) {
           this.log.debug('Modified item detected', {
             guid,
@@ -246,13 +212,11 @@ export class WatchlistWorkflowService {
         }
       }
     })
-
     previousItems.forEach((item, guid) => {
       if (!currentItems.has(guid)) {
         this.log.debug('Removed item detected', { guid, title: item.title })
       }
     })
-
     if (changes.size > 0) {
       this.log.info('Detected RSS feed changes', {
         changedItemsCount: changes.size,
@@ -260,10 +224,8 @@ export class WatchlistWorkflowService {
         currentItemsCount: currentItems.size,
       })
     }
-
     return changes
   }
-
   private convertToTempItem(item: WatchlistItem): TemptRssWatchlistItem {
     return {
       title: item.title,
@@ -274,36 +236,47 @@ export class WatchlistWorkflowService {
       key: item.plexKey,
     }
   }
-
   private async addToQueue(
     items: Set<TemptRssWatchlistItem>,
     source: 'self' | 'friends',
   ) {
     let hasNewItems = false
-
+    // Check if any users have sync disabled
+    const hasUsersWithSyncDisabled =
+      await this.dbService.hasUsersWithSyncDisabled()
+    if (hasUsersWithSyncDisabled) {
+      this.log.info(
+        'Some users have sync disabled - deferring item processing to reconciliation phase',
+      )
+    }
     for (const item of items) {
       if (!this.changeQueue.has(item)) {
         this.changeQueue.add(item)
         hasNewItems = true
-
-        if (item.type.toLowerCase() === 'show') {
-          this.log.info(`Processing show ${item.title} immediately`)
-          const normalizedItem = {
-            ...item,
-            type: 'show',
+        // Only process immediately if all users have sync enabled
+        if (!hasUsersWithSyncDisabled) {
+          if (item.type.toLowerCase() === 'show') {
+            this.log.info(`Processing show ${item.title} immediately`)
+            const normalizedItem = {
+              ...item,
+              type: 'show',
+            }
+            await this.processSonarrItem(normalizedItem)
+          } else if (item.type.toLowerCase() === 'movie') {
+            this.log.info(`Processing movie ${item.title} immediately`)
+            const normalizedItem = {
+              ...item,
+              type: 'movie',
+            }
+            await this.processRadarrItem(normalizedItem)
           }
-          await this.processSonarrItem(normalizedItem)
-        } else if (item.type.toLowerCase() === 'movie') {
-          this.log.info(`Processing movie ${item.title} immediately`)
-          const normalizedItem = {
-            ...item,
-            type: 'movie',
-          }
-          await this.processRadarrItem(normalizedItem)
+        } else {
+          this.log.info(
+            `Queuing ${item.type} ${item.title} for later processing during reconciliation`,
+          )
         }
       }
     }
-
     if (hasNewItems) {
       this.lastQueueItemTime = Date.now()
       this.log.info(
@@ -317,7 +290,6 @@ export class WatchlistWorkflowService {
       }
     }
   }
-
   private async verifySonarrItem(
     item: TemptRssWatchlistItem,
   ): Promise<boolean> {
@@ -326,10 +298,8 @@ export class WatchlistWorkflowService {
         this.log.warn(`Show ${item.title} has no GUIDs to verify against`)
         return false
       }
-
       // Get all instances from the manager service
       const instances = await this.sonarrManager.getAllInstances()
-
       // Check each instance for the show
       for (const instance of instances) {
         const exists = await this.sonarrManager.verifyItemExists(
@@ -343,14 +313,12 @@ export class WatchlistWorkflowService {
           return false
         }
       }
-
       return true
     } catch (error) {
       this.log.error(`Error verifying show ${item.title} in Sonarr:`, error)
       throw error
     }
   }
-
   private async verifyRadarrItem(
     item: TemptRssWatchlistItem,
   ): Promise<boolean> {
@@ -359,10 +327,8 @@ export class WatchlistWorkflowService {
         this.log.warn(`Movie ${item.title} has no GUIDs to verify against`)
         return false
       }
-
       // Get all instances from the manager service
       const instances = await this.radarrManager.getAllInstances()
-
       // Check each instance for the movie
       for (const instance of instances) {
         const exists = await this.radarrManager.verifyItemExists(
@@ -376,20 +342,19 @@ export class WatchlistWorkflowService {
           return false
         }
       }
-
       return true
     } catch (error) {
       this.log.error(`Error verifying movie ${item.title} in Radarr:`, error)
       throw error
     }
   }
-
-  private async processRadarrItem(item: TemptRssWatchlistItem) {
+  private async processRadarrItem(
+    item: TemptRssWatchlistItem,
+  ): Promise<boolean> {
     try {
       const tmdbGuid = Array.isArray(item.guids)
         ? item.guids.find((guid) => guid.startsWith('tmdb:'))
         : undefined
-
       if (!tmdbGuid) {
         this.log.warn(
           `Movie ${item.title} has no TMDB ID, skipping Radarr processing`,
@@ -397,19 +362,16 @@ export class WatchlistWorkflowService {
             guids: item.guids,
           },
         )
-        return
+        return false // Return false to indicate item was skipped due to missing ID
       }
-
       const tmdbId = Number.parseInt(tmdbGuid.replace('tmdb:', ''), 10)
       if (Number.isNaN(tmdbId)) {
         throw new Error('Invalid TMDB ID format')
       }
-
       const shouldAdd = await this.verifyRadarrItem(item)
       if (!shouldAdd) {
-        return
+        return true // Return true to indicate item was processed but not added (exists)
       }
-
       const radarrItem: RadarrItem = {
         title: `TMDB:${tmdbId}`,
         guids: [tmdbGuid],
@@ -420,11 +382,11 @@ export class WatchlistWorkflowService {
             ? [item.genres]
             : [],
       }
-
       await this.radarrManager.routeItemToRadarr(radarrItem, item.key)
       this.log.info(
         `Successfully added movie ${item.title} to appropriate Radarr instance`,
       )
+      return true // Return true to indicate successful processing
     } catch (error) {
       this.log.error(`Error processing movie ${item.title} in Radarr:`, error)
       this.log.debug('Failed item details:', {
@@ -436,8 +398,9 @@ export class WatchlistWorkflowService {
       throw error
     }
   }
-
-  private async processSonarrItem(item: TemptRssWatchlistItem) {
+  private async processSonarrItem(
+    item: TemptRssWatchlistItem,
+  ): Promise<boolean> {
     try {
       const tvdbGuid = Array.isArray(item.guids)
         ? item.guids.find((guid) => guid.startsWith('tvdb:'))
@@ -449,19 +412,16 @@ export class WatchlistWorkflowService {
             guids: item.guids,
           },
         )
-        return
+        return false // Return false to indicate item was skipped due to missing ID
       }
-
       const tvdbId = Number.parseInt(tvdbGuid.replace('tvdb:', ''), 10)
       if (Number.isNaN(tvdbId)) {
         throw new Error('Invalid TVDB ID format')
       }
-
       const shouldAdd = await this.verifySonarrItem(item)
       if (!shouldAdd) {
-        return
+        return true // Return true to indicate item was processed but not added (exists)
       }
-
       const sonarrItem: SonarrItem = {
         title: `TVDB:${tvdbId}`,
         guids: [tvdbGuid],
@@ -476,12 +436,11 @@ export class WatchlistWorkflowService {
         series_status: 'continuing', // Default to continuing since we don't know yet
         // added will be set by Sonarr
       }
-
       await this.sonarrManager.routeItemToSonarr(sonarrItem, item.key)
-
       this.log.info(
         `Successfully added show ${item.title} to appropriate Sonarr instance`,
       )
+      return true // Return true to indicate successful processing
     } catch (error) {
       this.log.error(`Error processing show ${item.title} in Sonarr:`, error)
       this.log.debug('Failed item details:', {
@@ -493,28 +452,41 @@ export class WatchlistWorkflowService {
       throw error
     }
   }
-
-  private async initialSyncCheck() {
-    this.log.info('Performing initial sync check')
-
+  private async syncWatchlistItems() {
+    this.log.info('Performing watchlist item sync')
     try {
+      // Get all users to check their sync permissions
+      const allUsers = await this.dbService.getAllUsers()
+      const userSyncStatus = new Map<number, boolean>()
+
+      // Create a map of user ID to their can_sync status for quick lookups
+      for (const user of allUsers) {
+        userSyncStatus.set(user.id, user.can_sync !== false)
+      }
+
+      // DEBUG: Log user sync settings
+      for (const [userId, canSync] of userSyncStatus.entries()) {
+        this.log.debug(`User ${userId} can_sync setting: ${canSync}`)
+      }
+
       // Get all shows and movies
       const [shows, movies] = await Promise.all([
         this.dbService.getAllShowWatchlistItems(),
         this.dbService.getAllMovieWatchlistItems(),
       ])
-
       const allWatchlistItems = [...shows, ...movies]
-
       const [existingSeries, existingMovies] = await Promise.all([
         this.sonarrManager.fetchAllSeries(),
         this.radarrManager.fetchAllMovies(),
       ])
-
+      // Stats to track
       let showsAdded = 0
       let moviesAdded = 0
       let unmatchedShows = 0
       let unmatchedMovies = 0
+      let skippedDueToUserSetting = 0
+      let skippedDueToMissingIds = 0
+      // Create a set of all watchlist GUIDs for fast lookup
       const watchlistGuids = new Set(
         allWatchlistItems.flatMap((item) =>
           typeof item.guids === 'string'
@@ -522,7 +494,6 @@ export class WatchlistWorkflowService {
             : item.guids || [],
         ),
       )
-
       // Check unmatched items in Sonarr/Radarr
       for (const series of existingSeries) {
         const hasMatch = series.guids.some((guid) => watchlistGuids.has(guid))
@@ -534,7 +505,6 @@ export class WatchlistWorkflowService {
           })
         }
       }
-
       for (const movie of existingMovies) {
         const hasMatch = movie.guids.some((guid) => watchlistGuids.has(guid))
         if (!hasMatch) {
@@ -546,8 +516,33 @@ export class WatchlistWorkflowService {
         }
       }
 
-      // Process missing watchlist items
       for (const item of allWatchlistItems) {
+        const numericUserId =
+          typeof item.user_id === 'number'
+            ? item.user_id
+            : typeof item.user_id === 'object' &&
+                item.user_id !== null &&
+                'id' in item.user_id
+              ? (item.user_id as { id: number }).id
+              : Number.parseInt(String(item.user_id), 10)
+
+        if (Number.isNaN(numericUserId)) {
+          this.log.warn(
+            `Item "${item.title}" has invalid user_id: ${item.user_id}, skipping`,
+          )
+          continue
+        }
+
+        const canSync = userSyncStatus.get(numericUserId)
+
+        if (canSync === false) {
+          this.log.debug(
+            `Skipping item "${item.title}" during sync as user ${numericUserId} has sync disabled`,
+          )
+          skippedDueToUserSetting++
+          continue
+        }
+
         const tempItem: TemptRssWatchlistItem = {
           title: item.title,
           type: item.type,
@@ -563,7 +558,21 @@ export class WatchlistWorkflowService {
           key: item.key,
         }
 
+        // Check for missing IDs before attempting to process
         if (item.type === 'show') {
+          const tvdbGuids = Array.isArray(tempItem.guids)
+            ? tempItem.guids.filter((guid) => guid.startsWith('tvdb:'))
+            : []
+
+          if (tvdbGuids.length === 0) {
+            this.log.warn(
+              `Show ${tempItem.title} has no TVDB ID, skipping Sonarr processing`,
+              { guids: tempItem.guids },
+            )
+            skippedDueToMissingIds++
+            continue
+          }
+
           const exists = [...existingSeries].some((series) =>
             series.guids.some((existingGuid) =>
               tempItem.guids?.includes(existingGuid),
@@ -574,6 +583,19 @@ export class WatchlistWorkflowService {
             showsAdded++
           }
         } else if (item.type === 'movie') {
+          const tmdbGuids = Array.isArray(tempItem.guids)
+            ? tempItem.guids.filter((guid) => guid.startsWith('tmdb:'))
+            : []
+
+          if (tmdbGuids.length === 0) {
+            this.log.warn(
+              `Movie ${tempItem.title} has no TMDB ID, skipping Radarr processing`,
+              { guids: tempItem.guids },
+            )
+            skippedDueToMissingIds++
+            continue
+          }
+
           const exists = [...existingMovies].some((movie) =>
             movie.guids.some((existingGuid) =>
               tempItem.guids?.includes(existingGuid),
@@ -586,7 +608,7 @@ export class WatchlistWorkflowService {
         }
       }
 
-      this.log.info('Initial sync completed:', {
+      const summary = {
         added: {
           shows: showsAdded,
           movies: moviesAdded,
@@ -595,29 +617,42 @@ export class WatchlistWorkflowService {
           shows: unmatchedShows,
           movies: unmatchedMovies,
         },
-      })
+        skippedDueToUserSetting,
+        skippedDueToMissingIds,
+      }
+
+      this.log.info(`Watchlist sync completed: ${JSON.stringify(summary)}`)
 
       if (unmatchedShows > 0 || unmatchedMovies > 0) {
         this.log.warn(
           `Found ${unmatchedShows} shows and ${unmatchedMovies} movies in Sonarr/Radarr that are not in watchlists`,
         )
       }
+
+      if (skippedDueToUserSetting > 0) {
+        this.log.info(
+          `Skipped ${skippedDueToUserSetting} items due to user sync settings`,
+        )
+      }
+
+      if (skippedDueToMissingIds > 0) {
+        this.log.info(
+          `Skipped ${skippedDueToMissingIds} items due to missing required IDs (TVDB/TMDB)`,
+        )
+      }
     } catch (error) {
-      this.log.error('Error during initial sync:', error)
+      this.log.error('Error during watchlist sync:', error)
       throw error
     }
   }
-
   private startQueueProcessor() {
     if (this.queueCheckInterval) {
       clearInterval(this.queueCheckInterval)
     }
-
     this.queueCheckInterval = setInterval(async () => {
       if (this.isRefreshing) {
         return
       }
-
       const timeSinceLastItem = Date.now() - this.lastQueueItemTime
       if (
         timeSinceLastItem >= this.queueProcessDelayMs &&
@@ -625,10 +660,31 @@ export class WatchlistWorkflowService {
       ) {
         this.isRefreshing = true
         try {
-          this.log.info('Queue process delay reached, refreshing watchlists')
+          const queueSize = this.changeQueue.size
+          this.log.info(
+            'Queue process delay reached, checking sync requirements',
+          )
           this.changeQueue.clear()
-          await this.fetchWatchlists()
-          this.log.info('Watchlist refresh completed')
+
+          const hasUsersWithSyncDisabled =
+            await this.dbService.hasUsersWithSyncDisabled()
+
+          if (hasUsersWithSyncDisabled) {
+            this.log.info(
+              'Some users have sync disabled - performing full sync reconciliation',
+            )
+            // First refresh the watchlists
+            await this.fetchWatchlists()
+            // Then run full sync check
+            await this.syncWatchlistItems()
+          } else {
+            this.log.info(
+              'All users have sync enabled - performing standard watchlist refresh',
+            )
+            await this.fetchWatchlists()
+          }
+
+          this.log.info(`Queue processing completed for ${queueSize} items`)
         } catch (error) {
           this.status = 'stopped'
           this.isRunning = false
