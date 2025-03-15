@@ -20,7 +20,9 @@ jobs:
         run: npm ci
       - name: Build
         run: npm run build
-      - name: Check Formatting
-        run: npx biome format .
-      - name: Check Linting
-        run: npx biome lint .
+      - name: Setup Biome
+        uses: biomejs/setup-biome@v2
+        with:
+          version: latest
+      - name: Run Biome
+        run: biome ci .
