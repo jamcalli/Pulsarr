@@ -1,3 +1,34 @@
+/**
+ * Database Service
+ *
+ * Provides the primary interface for interacting with the application's better-sqlite3 database.
+ * This service is exposed to the application via the 'database' Fastify plugin
+ * and can be accessed through the fastify.db decorator.
+ *
+ * Responsible for:
+ * - User management (creation, retrieval, updating)
+ * - Admin user management (authentication, password handling)
+ * - Application configuration storage and retrieval
+ * - Sonarr/Radarr instance configuration and management
+ * - Genre routing rules for content distribution
+ * - Watchlist item tracking and status management
+ * - Many-to-many relationship management via junction tables
+ * - Notification creation, delivery, and history
+ * - RSS feed processing and temporary storage
+ * - Analytics and statistics generation
+ * - Genre and media metadata management
+ * - Instance content synchronization tracking
+ *
+ * Uses Knex.js query builder to interact with the better-sqlite3 database,
+ * providing a clean, consistent interface for all database operations.
+ *
+ * @example
+ * // Accessing the service in route handlers:
+ * fastify.get('/api/users', async (request, reply) => {
+ *   const users = await fastify.db.getAllUsers();
+ *   return users;
+ * });
+ */
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import knex, { type Knex } from 'knex'
 import type { Config, User } from '@root/types/config.types.js'
@@ -27,6 +58,12 @@ import type {
 export class DatabaseService {
   private readonly knex: Knex
 
+  /**
+   * Creates a new DatabaseService instance
+   *
+   * @param log - Fastify logger instance for recording database operations
+   * @param config - Fastify configuration containing database connection details
+   */
   constructor(
     private readonly log: FastifyBaseLogger,
     private readonly config: FastifyInstance['config'],
@@ -34,6 +71,15 @@ export class DatabaseService {
     this.knex = knex(DatabaseService.createKnexConfig(config.dbPath, log))
   }
 
+  /**
+   * Creates Knex configuration for better-sqlite3
+   *
+   * Sets up connection pooling, logging, and other database-specific configurations.
+   *
+   * @param dbPath - Path to the SQLite database file
+   * @param log - Logger to use for database operations
+   * @returns Knex configuration object
+   */
   private static createKnexConfig(
     dbPath: string,
     log: FastifyBaseLogger,
@@ -59,9 +105,18 @@ export class DatabaseService {
     }
   }
 
+  /**
+   * Closes the database connection
+   *
+   * Should be called during application shutdown to properly clean up resources.
+   */
   async close(): Promise<void> {
     await this.knex.destroy()
   }
+
+  //=============================================================================
+  // USER MANAGEMENT
+  //=============================================================================
 
   async createUser(
     userData: Omit<User, 'id' | 'created_at' | 'updated_at'>,
