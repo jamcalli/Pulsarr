@@ -118,6 +118,12 @@ export class DatabaseService {
   // USER MANAGEMENT
   //=============================================================================
 
+  /**
+   * Creates a new user in the database
+   *
+   * @param userData - User data excluding id and timestamps
+   * @returns Promise resolving to the created user with ID and timestamps
+   */
   async createUser(
     userData: Omit<User, 'id' | 'created_at' | 'updated_at'>,
   ): Promise<User> {
@@ -141,6 +147,12 @@ export class DatabaseService {
     return user
   }
 
+  /**
+   * Retrieves a user by ID or name
+   *
+   * @param identifier - User ID (number) or username (string)
+   * @returns Promise resolving to the user if found, undefined otherwise
+   */
   async getUser(identifier: number | string): Promise<User | undefined> {
     const row = await this.knex('users')
       .where(
@@ -166,6 +178,13 @@ export class DatabaseService {
     } satisfies User
   }
 
+  /**
+   * Updates a user's information
+   *
+   * @param id - ID of the user to update
+   * @param data - Partial user data to update
+   * @returns Promise resolving to true if the user was updated, false otherwise
+   */
   async updateUser(
     id: number,
     data: Partial<Omit<User, 'id' | 'created_at' | 'updated_at'>>,
@@ -179,6 +198,11 @@ export class DatabaseService {
     return updated > 0
   }
 
+  /**
+   * Retrieves all users in the database
+   *
+   * @returns Promise resolving to an array of all users
+   */
   async getAllUsers(): Promise<User[]> {
     const rows = await this.knex('users').select('*').orderBy('name', 'asc')
 
@@ -196,6 +220,11 @@ export class DatabaseService {
     })) satisfies User[]
   }
 
+  /**
+   * Retrieves all users with their watchlist item counts
+   *
+   * @returns Promise resolving to array of users with watchlist count property
+   */
   async getUsersWithWatchlistCount(): Promise<
     (User & { watchlist_count: number })[]
   > {
@@ -223,6 +252,12 @@ export class DatabaseService {
     })) satisfies (User & { watchlist_count: number })[]
   }
 
+  /**
+   * Creates a new admin user in the database
+   *
+   * @param userData - Admin user data including email, username, password, and role
+   * @returns Promise resolving to true if created successfully
+   */
   async createAdminUser(userData: {
     email: string
     username: string
@@ -237,6 +272,12 @@ export class DatabaseService {
     return created.length > 0
   }
 
+  /**
+   * Retrieves an admin user by email
+   *
+   * @param email - Email address of the admin user
+   * @returns Promise resolving to the admin user if found, undefined otherwise
+   */
   async getAdminUser(email: string): Promise<AdminUser | undefined> {
     return await this.knex('admin_users')
       .select('id', 'username', 'email', 'password', 'role')
@@ -244,6 +285,12 @@ export class DatabaseService {
       .first()
   }
 
+  /**
+   * Retrieves an admin user by username
+   *
+   * @param username - Username of the admin user
+   * @returns Promise resolving to the admin user if found, undefined otherwise
+   */
   async getAdminUserByUsername(
     username: string,
   ): Promise<AdminUser | undefined> {
@@ -253,11 +300,23 @@ export class DatabaseService {
       .first()
   }
 
+  /**
+   * Checks if any admin users exist in the database
+   *
+   * @returns Promise resolving to true if admin users exist, false otherwise
+   */
   async hasAdminUsers(): Promise<boolean> {
     const count = await this.knex('admin_users').count('* as count').first()
     return Boolean(count && (count.count as number) > 0)
   }
 
+  /**
+   * Updates an admin user's password
+   *
+   * @param email - Email address of the admin user
+   * @param hashedPassword - New hashed password
+   * @returns Promise resolving to true if password was updated, false otherwise
+   */
   async updateAdminPassword(
     email: string,
     hashedPassword: string,
@@ -269,6 +328,35 @@ export class DatabaseService {
     return updated > 0
   }
 
+  /**
+   * Checks if any users have sync disabled
+   *
+   * @returns Promise resolving to true if any users have sync disabled, false otherwise
+   */
+  async hasUsersWithSyncDisabled(): Promise<boolean> {
+    try {
+      const count = await this.knex('users')
+        .where({ can_sync: false })
+        .count('* as count')
+        .first()
+
+      return Number(count?.count || 0) > 0
+    } catch (error) {
+      this.log.error('Error checking for users with sync disabled:', error)
+      return true
+    }
+  }
+
+  //=============================================================================
+  // CONFIGURATION MANAGEMENT
+  //=============================================================================
+
+  /**
+   * Retrieves application configuration by ID
+   *
+   * @param id - Configuration ID (always 1)
+   * @returns Promise resolving to the configuration if found, undefined otherwise
+   */
   async getConfig(id: number): Promise<Config | undefined> {
     const config = await this.knex('configs').where({ id }).first()
     if (!config) return undefined
@@ -304,6 +392,12 @@ export class DatabaseService {
     }
   }
 
+  /**
+   * Creates a new configuration entry in the database
+   *
+   * @param config - Configuration data excluding timestamps
+   * @returns Promise resolving to the ID of the created configuration
+   */
   async createConfig(
     config: Omit<Config, 'created_at' | 'updated_at'>,
   ): Promise<number> {
@@ -354,6 +448,13 @@ export class DatabaseService {
     return id
   }
 
+  /**
+   * Updates an existing configuration entry
+   *
+   * @param id - ID of the configuration to update
+   * @param config - Partial configuration data to update
+   * @returns Promise resolving to true if the configuration was updated, false otherwise
+   */
   async updateConfig(id: number, config: Partial<Config>): Promise<boolean> {
     const updateData: Record<string, unknown> = {
       updated_at: this.timestamp,
@@ -385,6 +486,15 @@ export class DatabaseService {
     return updated > 0
   }
 
+  //=============================================================================
+  // SONARR INSTANCE MANAGEMENT
+  //=============================================================================
+
+  /**
+   * Retrieves all enabled Sonarr instances
+   *
+   * @returns Promise resolving to an array of all enabled Sonarr instances
+   */
   async getAllSonarrInstances(): Promise<SonarrInstance[]> {
     const instances = await this.knex('sonarr_instances')
       .where('is_enabled', true)
@@ -405,6 +515,11 @@ export class DatabaseService {
     }))
   }
 
+  /**
+   * Retrieves the default Sonarr instance
+   *
+   * @returns Promise resolving to the default Sonarr instance if found, null otherwise
+   */
   async getDefaultSonarrInstance(): Promise<SonarrInstance | null> {
     const instance = await this.knex('sonarr_instances')
       .where({
@@ -430,6 +545,12 @@ export class DatabaseService {
     }
   }
 
+  /**
+   * Retrieves a specific Sonarr instance by ID
+   *
+   * @param id - ID of the Sonarr instance to retrieve
+   * @returns Promise resolving to the Sonarr instance if found, null otherwise
+   */
   async getSonarrInstance(id: number): Promise<SonarrInstance | null> {
     const instance = await this.knex('sonarr_instances').where('id', id).first()
 
@@ -450,6 +571,13 @@ export class DatabaseService {
     }
   }
 
+  /**
+   * Creates a new Sonarr instance in the database
+   *
+   * @param instance - Sonarr instance data excluding ID
+   * @returns Promise resolving to the ID of the created instance
+   * @throws Error if instance creation fails
+   */
   async createSonarrInstance(
     instance: Omit<SonarrInstance, 'id'>,
   ): Promise<number> {
@@ -489,6 +617,13 @@ export class DatabaseService {
     return row.id
   }
 
+  /**
+   * Updates an existing Sonarr instance
+   *
+   * @param id - ID of the Sonarr instance to update
+   * @param updates - Partial Sonarr instance data to update
+   * @returns Promise resolving to void when complete
+   */
   async updateSonarrInstance(
     id: number,
     updates: Partial<SonarrInstance>,
@@ -535,6 +670,14 @@ export class DatabaseService {
       })
   }
 
+  /**
+   * Cleans up references to a deleted Sonarr instance
+   *
+   * Removes the deleted instance ID from synced_instances fields of other instances
+   *
+   * @param deletedId - ID of the deleted Sonarr instance
+   * @returns Promise resolving to void when complete
+   */
   async cleanupDeletedSonarrInstanceReferences(
     deletedId: number,
   ): Promise<void> {
@@ -583,6 +726,12 @@ export class DatabaseService {
     }
   }
 
+  /**
+   * Deletes a Sonarr instance and cleans up references to it
+   *
+   * @param id - ID of the Sonarr instance to delete
+   * @returns Promise resolving to void when complete
+   */
   async deleteSonarrInstance(id: number): Promise<void> {
     try {
       await this.cleanupDeletedSonarrInstanceReferences(id)
@@ -596,6 +745,15 @@ export class DatabaseService {
     }
   }
 
+  //=============================================================================
+  // SONARR GENRE ROUTING
+  //=============================================================================
+
+  /**
+   * Retrieves all Sonarr genre routing rules
+   *
+   * @returns Promise resolving to an array of all Sonarr genre routes
+   */
   async getSonarrGenreRoutes(): Promise<SonarrGenreRoute[]> {
     const routes = await this.knex('sonarr_genre_routing').select('*')
 
@@ -609,6 +767,12 @@ export class DatabaseService {
     }))
   }
 
+  /**
+   * Creates a new Sonarr genre routing rule
+   *
+   * @param route - Sonarr genre route data excluding ID
+   * @returns Promise resolving to the created genre route
+   */
   async createSonarrGenreRoute(
     route: Omit<SonarrGenreRoute, 'id'>,
   ): Promise<SonarrGenreRoute> {
@@ -634,6 +798,13 @@ export class DatabaseService {
     return createdRoute
   }
 
+  /**
+   * Updates an existing Sonarr genre routing rule
+   *
+   * @param id - ID of the genre route to update
+   * @param updates - Partial genre route data to update
+   * @returns Promise resolving to void when complete
+   */
   async updateSonarrGenreRoute(
     id: number,
     updates: Partial<SonarrGenreRoute>,
@@ -651,10 +822,25 @@ export class DatabaseService {
       })
   }
 
+  /**
+   * Deletes a Sonarr genre routing rule
+   *
+   * @param id - ID of the genre route to delete
+   * @returns Promise resolving to void when complete
+   */
   async deleteSonarrGenreRoute(id: number): Promise<void> {
     await this.knex('sonarr_genre_routing').where('id', id).delete()
   }
 
+  //=============================================================================
+  // RADARR INSTANCE MANAGEMENT
+  //=============================================================================
+
+  /**
+   * Retrieves all enabled Radarr instances
+   *
+   * @returns Promise resolving to an array of all enabled Radarr instances
+   */
   async getAllRadarrInstances(): Promise<RadarrInstance[]> {
     const instances = await this.knex('radarr_instances')
       .where('is_enabled', true)
@@ -673,6 +859,11 @@ export class DatabaseService {
     }))
   }
 
+  /**
+   * Retrieves the default Radarr instance
+   *
+   * @returns Promise resolving to the default Radarr instance if found, null otherwise
+   */
   async getDefaultRadarrInstance(): Promise<RadarrInstance | null> {
     const instance = await this.knex('radarr_instances')
       .where({
@@ -695,6 +886,12 @@ export class DatabaseService {
     }
   }
 
+  /**
+   * Retrieves a specific Radarr instance by ID
+   *
+   * @param id - ID of the Radarr instance to retrieve
+   * @returns Promise resolving to the Radarr instance if found, null otherwise
+   */
   async getRadarrInstance(id: number): Promise<RadarrInstance | null> {
     const instance = await this.knex('radarr_instances').where('id', id).first()
     if (!instance) return null
@@ -712,6 +909,13 @@ export class DatabaseService {
     }
   }
 
+  /**
+   * Creates a new Radarr instance in the database
+   *
+   * @param instance - Radarr instance data excluding ID
+   * @returns Promise resolving to the ID of the created instance
+   * @throws Error if instance creation fails
+   */
   async createRadarrInstance(
     instance: Omit<RadarrInstance, 'id'>,
   ): Promise<number> {
@@ -748,6 +952,13 @@ export class DatabaseService {
     return row.id
   }
 
+  /**
+   * Updates an existing Radarr instance
+   *
+   * @param id - ID of the Radarr instance to update
+   * @param updates - Partial Radarr instance data to update
+   * @returns Promise resolving to void when complete
+   */
   async updateRadarrInstance(
     id: number,
     updates: Partial<RadarrInstance>,
@@ -790,6 +1001,14 @@ export class DatabaseService {
       })
   }
 
+  /**
+   * Cleans up references to a deleted Radarr instance
+   *
+   * Removes the deleted instance ID from synced_instances fields of other instances
+   *
+   * @param deletedId - ID of the deleted Radarr instance
+   * @returns Promise resolving to void when complete
+   */
   async cleanupDeletedRadarrInstanceReferences(
     deletedId: number,
   ): Promise<void> {
@@ -838,6 +1057,12 @@ export class DatabaseService {
     }
   }
 
+  /**
+   * Deletes a Radarr instance and cleans up references to it
+   *
+   * @param id - ID of the Radarr instance to delete
+   * @returns Promise resolving to void when complete
+   */
   async deleteRadarrInstance(id: number): Promise<void> {
     try {
       await this.cleanupDeletedRadarrInstanceReferences(id)
@@ -851,6 +1076,15 @@ export class DatabaseService {
     }
   }
 
+  //=============================================================================
+  // RADARR GENRE ROUTING
+  //=============================================================================
+
+  /**
+   * Retrieves all Radarr genre routing rules
+   *
+   * @returns Promise resolving to an array of all Radarr genre routes
+   */
   async getRadarrGenreRoutes(): Promise<RadarrGenreRoute[]> {
     const routes = await this.knex('radarr_genre_routing').select('*')
     return routes.map((route) => ({
@@ -863,6 +1097,12 @@ export class DatabaseService {
     }))
   }
 
+  /**
+   * Creates a new Radarr genre routing rule
+   *
+   * @param route - Radarr genre route data excluding ID
+   * @returns Promise resolving to the created genre route
+   */
   async createRadarrGenreRoute(
     route: Omit<RadarrGenreRoute, 'id'>,
   ): Promise<RadarrGenreRoute> {
@@ -887,6 +1127,13 @@ export class DatabaseService {
     return createdRoute
   }
 
+  /**
+   * Updates an existing Radarr genre routing rule
+   *
+   * @param id - ID of the genre route to update
+   * @param updates - Partial genre route data to update
+   * @returns Promise resolving to void when complete
+   */
   async updateRadarrGenreRoute(
     id: number,
     updates: Partial<RadarrGenreRoute>,
@@ -904,10 +1151,27 @@ export class DatabaseService {
       })
   }
 
+  /**
+   * Deletes a Radarr genre routing rule
+   *
+   * @param id - ID of the genre route to delete
+   * @returns Promise resolving to void when complete
+   */
   async deleteRadarrGenreRoute(id: number): Promise<void> {
     await this.knex('radarr_genre_routing').where('id', id).delete()
   }
 
+  //=============================================================================
+  // WATCHLIST MANAGEMENT
+  //=============================================================================
+
+  /**
+   * Updates a watchlist item by key with given changes
+   *
+   * @param key - Unique key of the watchlist item
+   * @param updates - Fields to update on the watchlist item
+   * @returns Promise resolving to void when complete
+   */
   async updateWatchlistItem(
     key: string,
     updates: WatchlistItemUpdate,
@@ -1014,6 +1278,13 @@ export class DatabaseService {
     }
   }
 
+  /**
+   * Updates watchlist items by GUID
+   *
+   * @param guid - GUID to match against watchlist item GUIDs array
+   * @param updates - Fields to update on matching watchlist items
+   * @returns Promise resolving to the number of items updated
+   */
   async updateWatchlistItemByGuid(
     guid: string,
     updates: {
@@ -1058,6 +1329,13 @@ export class DatabaseService {
     }
   }
 
+  /**
+   * Retrieves a watchlist item for a specific user
+   *
+   * @param userId - ID of the user
+   * @param key - Unique key of the watchlist item
+   * @returns Promise resolving to the watchlist item if found, undefined otherwise
+   */
   async getWatchlistItem(
     userId: number,
     key: string,
@@ -1073,6 +1351,13 @@ export class DatabaseService {
       .first()
   }
 
+  /**
+   * Retrieves multiple watchlist items for multiple users
+   *
+   * @param userIds - Array of user IDs
+   * @param keys - Optional array of watchlist item keys to filter by
+   * @returns Promise resolving to an array of matching watchlist items
+   */
   async getBulkWatchlistItems(
     userIds: number[],
     keys: string[],
@@ -1118,6 +1403,12 @@ export class DatabaseService {
     }))
   }
 
+  /**
+   * Retrieves watchlist items by their keys
+   *
+   * @param keys - Array of watchlist item keys to retrieve
+   * @returns Promise resolving to an array of matching watchlist items
+   */
   async getWatchlistItemsByKeys(keys: string[]): Promise<WatchlistItem[]> {
     if (keys.length === 0) {
       return []
@@ -1143,6 +1434,12 @@ export class DatabaseService {
     }
   }
 
+  /**
+   * Bulk updates multiple watchlist items
+   *
+   * @param updates - Array of watchlist item updates with user ID and key
+   * @returns Promise resolving to the number of items updated
+   */
   async bulkUpdateWatchlistItems(
     updates: Array<{
       userId: number
@@ -1159,7 +1456,9 @@ export class DatabaseService {
     let updatedCount = 0
 
     try {
+      // Use transaction to ensure all updates are atomic
       await this.knex.transaction(async (trx) => {
+        // Process updates in chunks to avoid overwhelming the database
         const chunks = this.chunkArray(updates, 100)
 
         for (const chunk of chunks) {
@@ -1167,6 +1466,7 @@ export class DatabaseService {
             try {
               const { userId, key, ...updateFields } = update
 
+              // Find the current item to update
               const currentItem = await trx('watchlist_items')
                 .where({
                   user_id: userId,
@@ -1177,11 +1477,11 @@ export class DatabaseService {
 
               if (!currentItem) continue
 
-              // Process main watchlist item fields
-
+              // Separate fields for main table vs junction tables
               const mainTableFields: MainTableField = {}
               const junctionFields: JunctionTableField = {}
 
+              // Sort update fields into appropriate categories
               for (const [field, value] of Object.entries(updateFields)) {
                 if (
                   field === 'radarr_instance_id' ||
@@ -1204,6 +1504,7 @@ export class DatabaseService {
                 }
               }
 
+              // Update main table fields if any
               if (Object.keys(mainTableFields).length > 0) {
                 const updated = await trx('watchlist_items')
                   .where({
@@ -1218,6 +1519,7 @@ export class DatabaseService {
                 updatedCount += updated > 0 ? 1 : 0
               }
 
+              // Handle Radarr instance junction updates
               if ('radarr_instance_id' in junctionFields) {
                 const radarrInstanceId = junctionFields.radarr_instance_id as
                   | number
@@ -1225,10 +1527,12 @@ export class DatabaseService {
                   | undefined
 
                 if (radarrInstanceId === null) {
+                  // Remove all Radarr instances
                   await trx('watchlist_radarr_instances')
                     .where({ watchlist_id: currentItem.id })
                     .delete()
                 } else if (radarrInstanceId !== undefined) {
+                  // Check if association already exists
                   const existingAssoc = await trx('watchlist_radarr_instances')
                     .where({
                       watchlist_id: currentItem.id,
@@ -1237,6 +1541,7 @@ export class DatabaseService {
                     .first()
 
                   if (!existingAssoc) {
+                    // Create new association
                     await trx('watchlist_radarr_instances').insert({
                       watchlist_id: currentItem.id,
                       radarr_instance_id: radarrInstanceId,
@@ -1247,6 +1552,7 @@ export class DatabaseService {
                       updated_at: this.timestamp,
                     })
 
+                    // Make sure this is the only primary instance
                     await trx('watchlist_radarr_instances')
                       .where({ watchlist_id: currentItem.id })
                       .whereNot({ radarr_instance_id: radarrInstanceId })
@@ -1255,6 +1561,7 @@ export class DatabaseService {
                         updated_at: this.timestamp,
                       })
                   } else {
+                    // Update existing association
                     await trx('watchlist_radarr_instances')
                       .where({
                         watchlist_id: currentItem.id,
@@ -1270,6 +1577,7 @@ export class DatabaseService {
                         updated_at: this.timestamp,
                       })
 
+                    // Make sure this is the only primary instance
                     await trx('watchlist_radarr_instances')
                       .where({ watchlist_id: currentItem.id })
                       .whereNot({ radarr_instance_id: radarrInstanceId })
@@ -1281,6 +1589,7 @@ export class DatabaseService {
                 }
               }
 
+              // Handle Sonarr instance junction updates - similar process as Radarr
               if ('sonarr_instance_id' in junctionFields) {
                 const sonarrInstanceId = junctionFields.sonarr_instance_id as
                   | number
@@ -1344,6 +1653,7 @@ export class DatabaseService {
                 }
               }
 
+              // Record status change in history if status has changed
               if (update.status && update.status !== currentItem.status) {
                 await trx('watchlist_status_history').insert({
                   watchlist_item_id: currentItem.id,
@@ -1369,8 +1679,17 @@ export class DatabaseService {
     }
   }
 
+  /**
+   * Synchronizes genres from watchlist items to the genres table
+   *
+   * Extracts all unique genres from watchlist items and ensures they exist
+   * in the genres table for use in genre routing.
+   *
+   * @returns Promise resolving to void when complete
+   */
   async syncGenresFromWatchlist(): Promise<void> {
     try {
+      // Get all watchlist items that have genres
       const items = await this.knex('watchlist_items')
         .whereNotNull('genres')
         .where('genres', '!=', '[]')
@@ -1378,6 +1697,7 @@ export class DatabaseService {
 
       const uniqueGenres = new Set<string>()
 
+      // Extract all unique genres
       for (const row of items) {
         try {
           const parsedGenres = JSON.parse(row.genres || '[]')
@@ -1393,6 +1713,7 @@ export class DatabaseService {
         }
       }
 
+      // Prepare data for insertion or update
       const genresToInsert = Array.from(uniqueGenres).map((genre) => ({
         name: genre,
         is_custom: false,
@@ -1400,6 +1721,7 @@ export class DatabaseService {
         updated_at: this.timestamp,
       }))
 
+      // Insert genres or update timestamp if they already exist
       if (genresToInsert.length > 0) {
         await this.knex('genres')
           .insert(genresToInsert)
@@ -1412,6 +1734,13 @@ export class DatabaseService {
     }
   }
 
+  /**
+   * Adds a custom genre to the genres table
+   *
+   * @param name - Name of the genre to add
+   * @returns Promise resolving to the ID of the created genre
+   * @throws Error if genre already exists
+   */
   async addCustomGenre(name: string): Promise<number> {
     const [id] = await this.knex('genres')
       .insert({
@@ -1431,6 +1760,11 @@ export class DatabaseService {
     return id
   }
 
+  /**
+   * Retrieves all genres from the genres table
+   *
+   * @returns Promise resolving to array of all genres
+   */
   async getAllGenres(): Promise<
     Array<{ id: number; name: string; is_custom: boolean }>
   > {
@@ -1439,6 +1773,12 @@ export class DatabaseService {
       .orderBy('name', 'asc')
   }
 
+  /**
+   * Deletes a custom genre from the genres table
+   *
+   * @param id - ID of the genre to delete
+   * @returns Promise resolving to true if deleted, false otherwise
+   */
   async deleteCustomGenre(id: number): Promise<boolean> {
     const deleted = await this.knex('genres')
       .where({ id, is_custom: true })
@@ -1446,6 +1786,12 @@ export class DatabaseService {
     return deleted > 0
   }
 
+  /**
+   * Bulk updates the status of show watchlist items
+   *
+   * @param updates - Array of show status updates
+   * @returns Promise resolving to the number of items updated
+   */
   async bulkUpdateShowStatuses(
     updates: Array<{
       key: string
@@ -1464,6 +1810,11 @@ export class DatabaseService {
     }
   }
 
+  /**
+   * Retrieves all show watchlist items
+   *
+   * @returns Promise resolving to array of all show watchlist items
+   */
   async getAllShowWatchlistItems(): Promise<TokenWatchlistItem[]> {
     try {
       const items = await this.knex('watchlist_items')
@@ -1487,6 +1838,11 @@ export class DatabaseService {
     }
   }
 
+  /**
+   * Retrieves all movie watchlist items
+   *
+   * @returns Promise resolving to array of all movie watchlist items
+   */
   async getAllMovieWatchlistItems(): Promise<TokenWatchlistItem[]> {
     try {
       const items = await this.knex('watchlist_items')
@@ -1510,6 +1866,13 @@ export class DatabaseService {
     }
   }
 
+  /**
+   * Creates multiple watchlist items in the database
+   *
+   * @param items - Array of watchlist items to create
+   * @param options - Configuration options for how to handle conflicts
+   * @returns Promise resolving to void when complete
+   */
   async createWatchlistItems(
     items: Omit<WatchlistItem, 'created_at' | 'updated_at'>[],
     options: { onConflict?: 'ignore' | 'merge' } = { onConflict: 'ignore' },
@@ -1555,6 +1918,13 @@ export class DatabaseService {
     })
   }
 
+  /**
+   * Helper method to split arrays into smaller chunks for processing
+   *
+   * @param array - Array to split into chunks
+   * @param size - Maximum size of each chunk
+   * @returns Array of arrays containing the chunked data
+   */
   private chunkArray<T>(array: T[], size: number): T[][] {
     const chunks: T[][] = []
     for (let i = 0; i < array.length; i += size) {
@@ -1563,10 +1933,20 @@ export class DatabaseService {
     return chunks
   }
 
+  /**
+   * Returns the current timestamp in ISO format
+   */
   private get timestamp() {
     return new Date().toISOString()
   }
 
+  /**
+   * Creates temporary RSS items for tracking changes between syncs
+   *
+   * @param items - Array of temporary RSS items to create
+   * @param source - Source of the items ('self' or 'friends')
+   * @returns Promise resolving to void when complete
+   */
   async createTempRssItems(
     items: Array<{
       title: string
@@ -1593,6 +1973,12 @@ export class DatabaseService {
     })
   }
 
+  /**
+   * Retrieves temporary RSS items
+   *
+   * @param source - Optional source filter ('self' or 'friends')
+   * @returns Promise resolving to array of temporary RSS items
+   */
   async getTempRssItems(source?: 'self' | 'friends'): Promise<
     Array<{
       id: number
@@ -1618,10 +2004,22 @@ export class DatabaseService {
     }))
   }
 
+  /**
+   * Deletes specific temporary RSS items by ID
+   *
+   * @param ids - Array of item IDs to delete
+   * @returns Promise resolving to void when complete
+   */
   async deleteTempRssItems(ids: number[]): Promise<void> {
     await this.knex('temp_rss_items').whereIn('id', ids).delete()
   }
 
+  /**
+   * Deletes all temporary RSS items
+   *
+   * @param source - Optional source filter ('self' or 'friends')
+   * @returns Promise resolving to void when complete
+   */
   async deleteAllTempRssItems(source?: 'self' | 'friends'): Promise<void> {
     const query = this.knex('temp_rss_items')
     if (source) {
@@ -1630,6 +2028,13 @@ export class DatabaseService {
     await query.delete()
   }
 
+  /**
+   * Deletes watchlist items for a specific user
+   *
+   * @param userId - ID of the user
+   * @param keys - Array of watchlist item keys to delete
+   * @returns Promise resolving to void when complete
+   */
   async deleteWatchlistItems(userId: number, keys: string[]): Promise<void> {
     if (keys.length === 0) return
 
@@ -1642,6 +2047,12 @@ export class DatabaseService {
       .delete()
   }
 
+  /**
+   * Retrieves all watchlist items for a specific user
+   *
+   * @param userId - ID of the user
+   * @returns Promise resolving to array of all watchlist items for the user
+   */
   async getAllWatchlistItemsForUser(userId: number): Promise<WatchlistItem[]> {
     const numericUserId =
       typeof userId === 'object' ? (userId as { id: number }).id : userId
@@ -1657,6 +2068,22 @@ export class DatabaseService {
     }))
   }
 
+  //=============================================================================
+  // NOTIFICATION PROCESSING
+  //=============================================================================
+
+  /**
+   * Processes notifications for media items
+   *
+   * This function evaluates watchlist items that match a media item's GUID,
+   * checks notification preferences for each user, and creates notification records.
+   * It manages different notification types based on content type (movie/show) and
+   * handles both individual episodes and bulk season releases.
+   *
+   * @param mediaInfo - Information about the media item
+   * @param isBulkRelease - Whether this is a bulk release (e.g., full season)
+   * @returns Promise resolving to array of notification results
+   */
   async processNotifications(
     mediaInfo: {
       type: 'movie' | 'show'
@@ -1666,14 +2093,20 @@ export class DatabaseService {
     },
     isBulkRelease: boolean,
   ): Promise<NotificationResult[]> {
+    // Get all watchlist items matching this guid
     const watchlistItems = await this.getWatchlistItemsByGuid(mediaInfo.guid)
     const notifications: NotificationResult[] = []
 
+    // Process each matching watchlist item
     for (const item of watchlistItems) {
+      // Get the user for this watchlist item
       const user = await this.getUser(item.user_id)
       if (!user) continue
+
+      // Skip if user has disabled notifications
       if (!user.notify_discord && !user.notify_email) continue
 
+      // Special handling for ended shows that were already notified (unless bulk release)
       if (
         item.type === 'show' &&
         item.series_status === 'ended' &&
@@ -1683,6 +2116,7 @@ export class DatabaseService {
         continue
       }
 
+      // Determine notification type and details
       let contentType: 'movie' | 'season' | 'episode'
       let seasonNumber: number | undefined
       let episodeNumber: number | undefined
@@ -1702,6 +2136,7 @@ export class DatabaseService {
         continue
       }
 
+      // Check for existing notification to avoid duplicates
       const existingNotification = await this.knex('notifications')
         .where({
           user_id: user.id,
@@ -1730,17 +2165,20 @@ export class DatabaseService {
         continue
       }
 
+      // Update the watchlist item's notification status
       await this.knex('watchlist_items').where('id', item.id).update({
         last_notified_at: new Date().toISOString(),
         status: 'notified',
       })
 
+      // Record the status change in history
       await this.knex('watchlist_status_history').insert({
         watchlist_item_id: item.id,
         status: 'notified',
         timestamp: new Date().toISOString(),
       })
 
+      // Prepare notification data
       const notificationTitle = mediaInfo.title || item.title
       const notification: MediaNotification = {
         type: mediaInfo.type,
@@ -1749,6 +2187,7 @@ export class DatabaseService {
         posterUrl: item.thumb || undefined,
       }
 
+      // Convert IDs to numbers
       const userId =
         typeof item.user_id === 'object'
           ? (item.user_id as { id: number }).id
@@ -1757,6 +2196,7 @@ export class DatabaseService {
       const itemId =
         typeof item.id === 'string' ? Number.parseInt(item.id, 10) : item.id
 
+      // Create notification record based on content type
       if (contentType === 'movie') {
         await this.createNotificationRecord({
           watchlist_item_id: !Number.isNaN(itemId) ? itemId : null,
@@ -1811,6 +2251,7 @@ export class DatabaseService {
         })
       }
 
+      // Add to results
       notifications.push({
         user: {
           discord_id: user.discord_id,
@@ -1825,6 +2266,95 @@ export class DatabaseService {
     return notifications
   }
 
+  /**
+   * Creates a notification record in the database
+   *
+   * @param notification - Notification data to create
+   * @returns Promise resolving to the ID of the created notification
+   */
+  async createNotificationRecord(notification: {
+    watchlist_item_id: number | null
+    user_id: number | null
+    type: 'episode' | 'season' | 'movie' | 'watchlist_add'
+    title: string
+    message?: string
+    season_number?: number
+    episode_number?: number
+    sent_to_discord: boolean
+    sent_to_email: boolean
+    sent_to_webhook?: boolean
+    notification_status?: string
+  }): Promise<number> {
+    const [id] = await this.knex('notifications')
+      .insert({
+        ...notification,
+        season_number: notification.season_number || null,
+        episode_number: notification.episode_number || null,
+        notification_status: notification.notification_status || 'active',
+        sent_to_webhook: notification.sent_to_webhook || false,
+        created_at: this.timestamp,
+      })
+      .returning('id')
+
+    return id
+  }
+
+  /**
+   * Resets notification status for content items
+   *
+   * @param options - Options for filtering which notifications to reset
+   * @returns Promise resolving to the number of notifications reset
+   */
+  async resetContentNotifications(options: {
+    olderThan?: Date
+    watchlistItemId?: number
+    userId?: number
+    contentType?: string
+    seasonNumber?: number
+    episodeNumber?: number
+  }): Promise<number> {
+    const query = this.knex('notifications')
+      .where('notification_status', 'active')
+      .update({
+        notification_status: 'reset',
+        updated_at: this.timestamp,
+      })
+
+    if (options.olderThan) {
+      query.where('created_at', '<', options.olderThan.toISOString())
+    }
+
+    if (options.watchlistItemId) {
+      query.where('watchlist_item_id', options.watchlistItemId)
+    }
+
+    if (options.userId) {
+      query.where('user_id', options.userId)
+    }
+
+    if (options.contentType) {
+      query.where('type', options.contentType)
+    }
+
+    if (options.seasonNumber !== undefined) {
+      query.where('season_number', options.seasonNumber)
+    }
+
+    if (options.episodeNumber !== undefined) {
+      query.where('episode_number', options.episodeNumber)
+    }
+
+    const count = await query
+    this.log.info(`Reset ${count} notifications`)
+    return count
+  }
+
+  /**
+   * Retrieves watchlist items that match a specific GUID
+   *
+   * @param guid - GUID to match against watchlist items
+   * @returns Promise resolving to array of matching watchlist items
+   */
   async getWatchlistItemsByGuid(guid: string): Promise<TokenWatchlistItem[]> {
     const items = await this.knex('watchlist_items')
       .whereRaw('json_array_length(guids) > 0')
@@ -1842,15 +2372,31 @@ export class DatabaseService {
       }))
   }
 
+  /**
+   * Retrieves the top genres across all watchlist items
+   *
+   * This method aggregates all genres from watchlist items and counts their occurrences,
+   * returning the most popular genres. This data is valuable for understanding content
+   * preferences across the user base and can inform genre routing rules.
+   *
+   * The method parses JSON genre arrays from each watchlist item, normalizes them,
+   * and tracks occurrence counts in memory before sorting to find the most popular.
+   *
+   * @param limit - Maximum number of genres to return (default: 10)
+   * @returns Promise resolving to array of genres with their occurrence counts
+   */
   async getTopGenres(limit = 10): Promise<{ genre: string; count: number }[]> {
     try {
+      // First, retrieve all watchlist items that have genre information
       const items = await this.knex('watchlist_items')
         .whereNotNull('genres')
         .where('genres', '!=', '[]')
         .select('genres')
 
-      const genreCounts: Record<string, number> = {}
+      this.log.debug(`Processing genres from ${items.length} watchlist items`)
 
+      // Count occurrences of each genre
+      const genreCounts: Record<string, number> = {}
       for (const item of items) {
         try {
           let genres: string[] = []
@@ -1866,6 +2412,7 @@ export class DatabaseService {
             continue
           }
 
+          // Increment counts for each genre
           for (const genre of genres) {
             if (typeof genre === 'string' && genre.trim().length > 0) {
               const normalizedGenre = genre.trim()
@@ -1878,11 +2425,15 @@ export class DatabaseService {
         }
       }
 
+      // Sort genres by count and limit the results
       const sortedGenres = Object.entries(genreCounts)
         .map(([genre, count]) => ({ genre, count }))
         .sort((a, b) => b.count - a.count)
         .slice(0, limit)
 
+      this.log.info(
+        `Returning ${sortedGenres.length} top genres from ${Object.keys(genreCounts).length} total genres`,
+      )
       return sortedGenres
     } catch (error) {
       this.log.error('Error in getTopGenres:', error)
@@ -1890,6 +2441,16 @@ export class DatabaseService {
     }
   }
 
+  /**
+   * Retrieves the most watchlisted shows
+   *
+   * This query groups show-type watchlist items by their key (unique identifier)
+   * and counts how many users have each show in their watchlist. The results are
+   * sorted by popularity (count) in descending order.
+   *
+   * @param limit - Maximum number of shows to return (default: 10)
+   * @returns Promise resolving to array of shows with title, count, and thumbnail
+   */
   async getMostWatchlistedShows(
     limit = 10,
   ): Promise<{ title: string; count: number; thumb: string | null }[]> {
@@ -1901,6 +2462,8 @@ export class DatabaseService {
       .orderBy('count', 'desc')
       .limit(limit)
 
+    this.log.debug(`Retrieved ${results.length} most watchlisted shows`)
+
     return results.map((row) => ({
       title: String(row.title),
       count: Number(row.count),
@@ -1908,6 +2471,16 @@ export class DatabaseService {
     }))
   }
 
+  /**
+   * Retrieves the most watchlisted movies
+   *
+   * This query groups movie-type watchlist items by their key (unique identifier)
+   * and counts how many users have each movie in their watchlist. The results are
+   * sorted by popularity (count) in descending order.
+   *
+   * @param limit - Maximum number of movies to return (default: 10)
+   * @returns Promise resolving to array of movies with title, count, and thumbnail
+   */
   async getMostWatchlistedMovies(
     limit = 10,
   ): Promise<{ title: string; count: number; thumb: string | null }[]> {
@@ -1926,6 +2499,16 @@ export class DatabaseService {
     }))
   }
 
+  /**
+   * Retrieves users with the most watchlist items
+   *
+   * This query joins the watchlist_items table with users, then groups by user,
+   * counting how many watchlist items each user has. The results provide insights
+   * into which users are most actively using the watchlist functionality.
+   *
+   * @param limit - Maximum number of users to return (default: 10)
+   * @returns Promise resolving to array of users with name and item count
+   */
   async getUsersWithMostWatchlistItems(
     limit = 10,
   ): Promise<{ name: string; count: number }[]> {
@@ -1943,15 +2526,23 @@ export class DatabaseService {
     }))
   }
 
+  /**
+   * Retrieves the distribution of watchlist items by status
+   *
+   * This complex query combines data from both the current status in watchlist_items
+   * and the status history in watchlist_status_history. For items with history, it uses
+   * the most recent status from history; for those without history, it uses the current status.
+   *
+   * The implementation uses a subquery to find the latest timestamp for each item in the
+   * history table, then joins this with the actual history entries to get the latest status.
+   * It then combines these results with items that have no history entries.
+   *
+   * @returns Promise resolving to array of statuses with their counts
+   */
   async getWatchlistStatusDistribution(): Promise<
     { status: string; count: number }[]
   > {
-    // Define types for the query results
-    type StatusHistoryItem = {
-      status: string
-      count: number
-    }
-
+    // First, get items with history and their latest status
     const historyItems = await this.knex
       .select('h.status')
       .count('* as count')
@@ -1974,10 +2565,12 @@ export class DatabaseService {
       .groupBy('h.status')
       .orderBy('count', 'desc')
 
+    // Find all item IDs that have history records
     const itemsWithHistory = await this.knex('watchlist_status_history')
       .distinct('watchlist_item_id')
       .pluck('watchlist_item_id')
 
+    // Get items without history and their current status
     const itemsWithoutHistory = await this.knex('watchlist_items')
       .whereNotIn('id', itemsWithHistory)
       .select('status')
@@ -1985,18 +2578,26 @@ export class DatabaseService {
       .groupBy('status')
       .orderBy('count', 'desc')
 
+    // Combine both result sets
     const combinedResults = new Map<string, number>()
 
+    // Add items with history
     for (const item of historyItems) {
       combinedResults.set(String(item.status), Number(item.count))
     }
 
+    // Add items without history
     for (const item of itemsWithoutHistory) {
       const status = String(item.status)
       const currentCount = combinedResults.get(status) || 0
       combinedResults.set(status, currentCount + Number(item.count))
     }
 
+    this.log.debug(
+      `Calculated status distribution across ${combinedResults.size} statuses`,
+    )
+
+    // Convert to array and sort by count
     return Array.from(combinedResults.entries())
       .map(([status, count]) => ({
         status,
@@ -2005,6 +2606,15 @@ export class DatabaseService {
       .sort((a, b) => b.count - a.count)
   }
 
+  /**
+   * Retrieves the distribution of watchlist items by content type
+   *
+   * This query aggregates watchlist items by their type (e.g., movie, show),
+   * providing a high-level view of the content distribution across the platform.
+   * Types are normalized to lowercase to ensure consistent grouping.
+   *
+   * @returns Promise resolving to array of content types with their counts
+   */
   async getContentTypeDistribution(): Promise<
     { type: string; count: number }[]
   > {
@@ -2013,13 +2623,17 @@ export class DatabaseService {
       .count('* as count')
       .groupBy('type')
 
+    // Normalize type case and combine counts
     const typeMap: Record<string, number> = {}
-
     for (const row of results) {
       const normalizedType = String(row.type).toLowerCase()
       typeMap[normalizedType] =
         (typeMap[normalizedType] || 0) + Number(row.count)
     }
+
+    this.log.debug(
+      `Calculated content type distribution across ${Object.keys(typeMap).length} types`,
+    )
 
     return Object.entries(typeMap).map(([type, count]) => ({
       type,
@@ -2027,14 +2641,30 @@ export class DatabaseService {
     }))
   }
 
+  /**
+   * Retrieves recent activity statistics
+   *
+   * This method provides a summary of system activity over the specified period,
+   * including new watchlist items added, status changes recorded, and notifications sent.
+   * It queries three different tables and combines the results to give a complete picture
+   * of recent system activity.
+   *
+   * @param days - Number of days to look back (default: 30)
+   * @returns Promise resolving to object with activity statistics
+   */
   async getRecentActivityStats(days = 30): Promise<{
     new_watchlist_items: number
     status_changes: number
     notifications_sent: number
   }> {
+    // Calculate cutoff date for the specified period
     const cutoffDate = new Date()
     cutoffDate.setDate(cutoffDate.getDate() - days)
     const cutoffDateStr = cutoffDate.toISOString()
+
+    this.log.debug(
+      `Calculating recent activity stats for period since ${cutoffDateStr}`,
+    )
 
     // New watchlist items in last X days
     const newItems = await this.knex('watchlist_items')
@@ -2054,13 +2684,30 @@ export class DatabaseService {
       .count('* as count')
       .first()
 
-    return {
+    const stats = {
       new_watchlist_items: Number(newItems?.count || 0),
       status_changes: Number(statusChanges?.count || 0),
       notifications_sent: Number(notifications?.count || 0),
     }
+
+    this.log.debug('Computed recent activity stats:', stats)
+
+    return stats
   }
 
+  /**
+   * Retrieves activity statistics by instance
+   *
+   * This method provides a comprehensive view of how content is distributed across
+   * Sonarr and Radarr instances. It performs two separate queries - one for Sonarr
+   * instances and one for Radarr instances - joining the instance tables with the
+   * watchlist_items table to count how many items are associated with each instance.
+   *
+   * The results help identify which instances are most actively used and can inform
+   * load balancing decisions or instance management strategies.
+   *
+   * @returns Promise resolving to array of instance activity statistics
+   */
   async getInstanceActivityStats(): Promise<
     {
       instance_id: number
@@ -2069,6 +2716,9 @@ export class DatabaseService {
       item_count: number
     }[]
   > {
+    this.log.debug('Retrieving instance activity statistics')
+
+    // Get statistics for Sonarr instances
     const sonarrResults = await this.knex('watchlist_items')
       .join(
         'sonarr_instances',
@@ -2081,6 +2731,7 @@ export class DatabaseService {
       .count('watchlist_items.id as item_count')
       .groupBy('sonarr_instances.id')
 
+    // Get statistics for Radarr instances
     const radarrResults = await this.knex('watchlist_items')
       .join(
         'radarr_instances',
@@ -2093,6 +2744,7 @@ export class DatabaseService {
       .count('watchlist_items.id as item_count')
       .groupBy('radarr_instances.id')
 
+    // Format Sonarr results
     const sonarrStats = sonarrResults.map((row) => ({
       instance_id: Number(row.instance_id),
       instance_type: 'sonarr' as const,
@@ -2100,6 +2752,7 @@ export class DatabaseService {
       item_count: Number(row.item_count),
     }))
 
+    // Format Radarr results
     const radarrStats = radarrResults.map((row) => ({
       instance_id: Number(row.instance_id),
       instance_type: 'radarr' as const,
@@ -2107,11 +2760,33 @@ export class DatabaseService {
       item_count: Number(row.item_count),
     }))
 
-    return [...sonarrStats, ...radarrStats].sort(
+    // Combine and sort by item count
+    const combinedStats = [...sonarrStats, ...radarrStats].sort(
       (a, b) => b.item_count - a.item_count,
     )
+
+    this.log.debug(
+      `Retrieved activity stats for ${sonarrStats.length} Sonarr instances and ${radarrStats.length} Radarr instances`,
+    )
+
+    return combinedStats
   }
 
+  /**
+   * Retrieves metrics on average time from "grabbed" to "notified" status
+   *
+   * This complex SQL query analyzes how long it takes for content to move from being
+   * initially grabbed to the user being notified about its availability. It uses CTEs
+   * (Common Table Expressions) to find the first "grabbed" and "notified" timestamps
+   * for each watchlist item, then calculates various statistics based on the time difference.
+   *
+   * The results are grouped by content type (movie vs. show) to identify differences
+   * in processing time between these content categories.
+   *
+   * This is a critical performance metric for the content delivery pipeline.
+   *
+   * @returns Promise resolving to array of average time metrics by content type
+   */
   async getAverageTimeFromGrabbedToNotified(): Promise<
     {
       content_type: string
@@ -2122,6 +2797,9 @@ export class DatabaseService {
     }[]
   > {
     try {
+      this.log.debug('Calculating average time from grabbed to notified status')
+
+      // Define type for the raw SQL query result
       type GrabbedToNotifiedRow = {
         content_type: string
         avg_days: number
@@ -2130,8 +2808,10 @@ export class DatabaseService {
         count: number
       }
 
+      // Execute raw SQL query with CTEs for better performance and readability
       const results = await this.knex.raw<GrabbedToNotifiedRow[]>(`
     WITH grabbed_status AS (
+      -- Find the earliest "grabbed" status timestamp for each watchlist item
       SELECT
         h.watchlist_item_id,
         MIN(h.timestamp) AS first_grabbed
@@ -2140,6 +2820,7 @@ export class DatabaseService {
       GROUP BY h.watchlist_item_id
     ),
     notified_status AS (
+      -- Find the earliest "notified" status timestamp for each watchlist item
       SELECT
         h.watchlist_item_id,
         MIN(h.timestamp) AS first_notified
@@ -2147,6 +2828,7 @@ export class DatabaseService {
       WHERE h.status = 'notified'
       GROUP BY h.watchlist_item_id
     )
+    -- Join these with watchlist items and calculate time differences
     SELECT
       w.type AS content_type,
       AVG(julianday(n.first_notified) - julianday(g.first_grabbed)) AS avg_days,
@@ -2157,7 +2839,9 @@ export class DatabaseService {
     JOIN grabbed_status g ON w.id = g.watchlist_item_id
     JOIN notified_status n ON w.id = n.watchlist_item_id
     WHERE 
+      -- Ensure notified comes after grabbed (no negative times)
       n.first_notified > g.first_grabbed
+      -- Filter to just movies and shows
       AND (
         (w.type = 'movie') OR
         (w.type = 'show')
@@ -2165,19 +2849,42 @@ export class DatabaseService {
     GROUP BY w.type
   `)
 
-      return results.map((row: GrabbedToNotifiedRow) => ({
+      // Format and return the results
+      const formattedResults = results.map((row: GrabbedToNotifiedRow) => ({
         content_type: String(row.content_type),
         avg_days: Number(row.avg_days),
         min_days: Number(row.min_days),
         max_days: Number(row.max_days),
         count: Number(row.count),
       }))
+
+      this.log.debug(
+        `Calculated time metrics for ${formattedResults.length} content types`,
+      )
+
+      return formattedResults
     } catch (error) {
       this.log.error('Error calculating time from grabbed to notified:', error)
       throw error
     }
   }
 
+  /**
+   * Retrieves detailed metrics on all status transitions
+   *
+   * This comprehensive query analyzes the entire status history to identify direct
+   * transitions between different statuses (e.g., from "pending" to "requested" or
+   * from "requested" to "grabbed"). For each transition, it calculates statistics
+   * on how long these transitions typically take.
+   *
+   * The implementation uses a complex SQL query with a CTE that identifies consecutive
+   * status pairs while filtering out any intermediate statuses.
+   *
+   * This data provides deep insights into the content processing pipeline and can
+   * help identify bottlenecks or anomalies in the workflow.
+   *
+   * @returns Promise resolving to array of detailed status transition metrics
+   */
   async getDetailedStatusTransitionMetrics(): Promise<
     {
       from_status: string
@@ -2248,6 +2955,23 @@ export class DatabaseService {
     }
   }
 
+  /**
+   * Retrieves metrics on the average time from addition to availability
+   *
+   * This analysis measures how long it typically takes for content to become available
+   * after being added to a watchlist. For movies, availability is defined by the movie_status
+   * field being set to 'available'. For shows, it's defined by the series_status field
+   * being set to 'ended'.
+   *
+   * The implementation uses CTEs to identify the first addition timestamp and the first
+   * notification timestamp for each item, then calculates the time difference between them.
+   * It filters results to only include items that have reached the availability criteria.
+   *
+   * This is a key business metric that can help evaluate the overall effectiveness of the
+   * content acquisition and delivery pipeline.
+   *
+   * @returns Promise resolving to array of time-to-availability metrics by content type
+   */
   async getAverageTimeToAvailability(): Promise<
     {
       content_type: string
@@ -2257,6 +2981,7 @@ export class DatabaseService {
       count: number
     }[]
   > {
+    // Define type for the raw SQL query result
     type AvailabilityStatsRow = {
       content_type: string
       avg_days: number
@@ -2265,8 +2990,12 @@ export class DatabaseService {
       count: number
     }
 
+    this.log.debug('Calculating average time from addition to availability')
+
+    // Execute raw SQL query with CTEs for first add and first notification timestamps
     const results = await this.knex.raw<AvailabilityStatsRow[]>(`
     WITH first_added AS (
+      -- Get initial addition timestamp for each item
       SELECT
         w.id,
         w.type AS content_type,
@@ -2275,6 +3004,7 @@ export class DatabaseService {
       WHERE w.added IS NOT NULL
     ),
     first_notified AS (
+      -- Get first notification timestamp for each item
       SELECT
         h.watchlist_item_id,
         MIN(h.timestamp) AS first_notification
@@ -2282,6 +3012,7 @@ export class DatabaseService {
       WHERE h.status = 'notified'
       GROUP BY h.watchlist_item_id
     )
+    -- Join and calculate statistics on the time difference
     SELECT
       a.content_type,
       AVG(julianday(n.first_notification) - julianday(a.added)) AS avg_days,
@@ -2291,6 +3022,7 @@ export class DatabaseService {
     FROM first_added a
     JOIN first_notified n ON a.id = n.watchlist_item_id
     WHERE 
+      -- Filter to only include items that have reached availability
       (a.content_type = 'movie' AND EXISTS (
         SELECT 1 FROM watchlist_items w 
         WHERE w.id = a.id AND w.movie_status = 'available'
@@ -2303,15 +3035,37 @@ export class DatabaseService {
     GROUP BY a.content_type
   `)
 
-    return results.map((row: AvailabilityStatsRow) => ({
+    // Format and return the results
+    const formattedResults = results.map((row: AvailabilityStatsRow) => ({
       content_type: String(row.content_type),
       avg_days: Number(row.avg_days),
       min_days: Number(row.min_days),
       max_days: Number(row.max_days),
       count: Number(row.count),
     }))
+
+    this.log.debug(
+      `Calculated time-to-availability metrics for ${formattedResults.length} content types`,
+    )
+
+    return formattedResults
   }
 
+  /**
+   * Retrieves data for visualizing status flow (Sankey diagram)
+   *
+   * This method provides data suitable for creating flow visualizations (e.g., Sankey diagrams)
+   * that show how content moves through different statuses in the system. It identifies all
+   * direct status transitions and calculates both the count and average time for each transition.
+   *
+   * The SQL query uses a CTE to identify direct transitions between statuses (with no intermediate
+   * statuses) and then aggregates these to provide counts and averages.
+   *
+   * This visual representation of the content workflow can help identify common paths, bottlenecks,
+   * and optimization opportunities in the processing pipeline.
+   *
+   * @returns Promise resolving to array of status flow data points
+   */
   async getStatusFlowData(): Promise<
     {
       from_status: string
@@ -2322,6 +3076,9 @@ export class DatabaseService {
     }[]
   > {
     try {
+      this.log.debug('Retrieving status flow data for visualization')
+
+      // Define type for the raw SQL query result
       type StatusFlowRow = {
         from_status: string
         to_status: string
@@ -2330,8 +3087,10 @@ export class DatabaseService {
         avg_days: number
       }
 
+      // Execute raw SQL query to get status transition data
       const results = await this.knex.raw<StatusFlowRow[]>(`
     WITH status_transitions AS (
+      -- For each item, find all pairs of consecutive status changes
       SELECT 
         h1.status AS from_status,
         h2.status AS to_status,
@@ -2341,12 +3100,14 @@ export class DatabaseService {
       JOIN watchlist_status_history h2 ON h1.watchlist_item_id = h2.watchlist_item_id AND h2.timestamp > h1.timestamp
       JOIN watchlist_items w ON h1.watchlist_item_id = w.id
       WHERE h1.status != h2.status
+      -- Ensure there are no intermediate status changes
       AND NOT EXISTS (
         SELECT 1 FROM watchlist_status_history h3
         WHERE h3.watchlist_item_id = h1.watchlist_item_id
         AND h3.timestamp > h1.timestamp AND h3.timestamp < h2.timestamp
       )
     )
+    -- Aggregate to get counts and average times for each transition type
     SELECT 
       from_status,
       to_status,
@@ -2358,105 +3119,66 @@ export class DatabaseService {
     ORDER BY count DESC
   `)
 
-      return results.map((row: StatusFlowRow) => ({
+      // Format and return the results
+      const formattedResults = results.map((row: StatusFlowRow) => ({
         from_status: String(row.from_status),
         to_status: String(row.to_status),
         content_type: String(row.content_type),
         count: Number(row.count),
         avg_days: Number(row.avg_days),
       }))
+
+      this.log.debug(
+        `Retrieved ${formattedResults.length} status flow data points`,
+      )
+
+      return formattedResults
     } catch (error) {
       this.log.error('Error calculating status flow data:', error)
       throw error
     }
   }
 
-  async createNotificationRecord(notification: {
-    watchlist_item_id: number | null
-    user_id: number | null
-    type: 'episode' | 'season' | 'movie' | 'watchlist_add'
-    title: string
-    message?: string
-    season_number?: number
-    episode_number?: number
-    sent_to_discord: boolean
-    sent_to_email: boolean
-    sent_to_webhook?: boolean
-    notification_status?: string
-  }): Promise<number> {
-    const [id] = await this.knex('notifications')
-      .insert({
-        ...notification,
-        season_number: notification.season_number || null,
-        episode_number: notification.episode_number || null,
-        notification_status: notification.notification_status || 'active',
-        sent_to_webhook: notification.sent_to_webhook || false,
-        created_at: this.timestamp,
-      })
-      .returning('id')
-
-    return id
-  }
-
-  async resetContentNotifications(options: {
-    olderThan?: Date
-    watchlistItemId?: number
-    userId?: number
-    contentType?: string
-    seasonNumber?: number
-    episodeNumber?: number
-  }): Promise<number> {
-    const query = this.knex('notifications')
-      .where('notification_status', 'active')
-      .update({
-        notification_status: 'reset',
-        updated_at: this.timestamp,
-      })
-
-    if (options.olderThan) {
-      query.where('created_at', '<', options.olderThan.toISOString())
-    }
-
-    if (options.watchlistItemId) {
-      query.where('watchlist_item_id', options.watchlistItemId)
-    }
-
-    if (options.userId) {
-      query.where('user_id', options.userId)
-    }
-
-    if (options.contentType) {
-      query.where('type', options.contentType)
-    }
-
-    if (options.seasonNumber !== undefined) {
-      query.where('season_number', options.seasonNumber)
-    }
-
-    if (options.episodeNumber !== undefined) {
-      query.where('episode_number', options.episodeNumber)
-    }
-
-    const count = await query
-    this.log.info(`Reset ${count} notifications`)
-    return count
-  }
-
+  /**
+   * Retrieves comprehensive notification statistics
+   *
+   * This method provides detailed analytics on notifications sent through the system,
+   * broken down by notification type, delivery channel, and recipient user. It aggregates
+   * data from multiple queries to provide a complete picture of notification activity.
+   *
+   * The implementation uses four separate queries:
+   * 1. Total notifications count
+   * 2. Breakdown by notification type (movie, episode, season, etc.)
+   * 3. Breakdown by delivery channel (discord, email, webhook)
+   * 4. Breakdown by recipient user
+   *
+   * These statistics are valuable for understanding notification patterns and user engagement.
+   *
+   * @param days - Number of days to look back (default: 30)
+   * @returns Promise resolving to object with notification statistics
+   */
   async getNotificationStats(days = 30): Promise<{
     total_notifications: number
     by_type: { type: string; count: number }[]
     by_channel: { channel: string; count: number }[]
     by_user: { user_name: string; count: number }[]
   }> {
+    // Calculate cutoff date for the specified period
     const cutoffDate = new Date()
     cutoffDate.setDate(cutoffDate.getDate() - days)
     const cutoffDateStr = cutoffDate.toISOString()
 
+    this.log.debug(
+      `Gathering notification statistics for past ${days} days (since ${cutoffDateStr})`,
+    )
+
+    // Query 1: Total notifications in the period
     const totalQuery = this.knex('notifications')
       .where('created_at', '>=', cutoffDateStr)
       .count('* as count')
       .first()
 
+    // Query 2: Breakdown by notification type
     const byTypeQuery = this.knex('notifications')
       .where('created_at', '>=', cutoffDateStr)
       .select('type')
@@ -2464,29 +3186,38 @@ export class DatabaseService {
       .groupBy('type')
       .orderBy('count', 'desc')
 
+    // Query 3: Breakdown by delivery channel (using raw SQL for UNION)
     const byChannelQuery = this.knex.raw<{ channel: string; count: number }[]>(
       `
-      SELECT 
-        'discord' as channel, 
-        COUNT(*) as count 
-      FROM notifications 
-      WHERE created_at >= ? AND sent_to_discord = 1
-      UNION ALL
-      SELECT 
-        'email' as channel, 
-        COUNT(*) as count 
-      FROM notifications 
-      WHERE created_at >= ? AND sent_to_email = 1
-      UNION ALL
-      SELECT 
-        'webhook' as channel, 
-        COUNT(*) as count 
-      FROM notifications 
-      WHERE created_at >= ? AND sent_to_webhook = 1
-    `,
+    -- Count discord notifications
+    SELECT 
+      'discord' as channel, 
+      COUNT(*) as count 
+    FROM notifications 
+    WHERE created_at >= ? AND sent_to_discord = 1
+    
+    UNION ALL
+    
+    -- Count email notifications
+    SELECT 
+      'email' as channel, 
+      COUNT(*) as count 
+    FROM notifications 
+    WHERE created_at >= ? AND sent_to_email = 1
+    
+    UNION ALL
+    
+    -- Count webhook notifications
+    SELECT 
+      'webhook' as channel, 
+      COUNT(*) as count 
+    FROM notifications 
+    WHERE created_at >= ? AND sent_to_webhook = 1
+  `,
       [cutoffDateStr, cutoffDateStr, cutoffDateStr],
     )
 
+    // Query 4: Breakdown by recipient user
     const byUserQuery = this.knex('notifications')
       .join('users', 'notifications.user_id', '=', 'users.id')
       .where('notifications.created_at', '>=', cutoffDateStr)
@@ -2495,6 +3226,7 @@ export class DatabaseService {
       .groupBy('users.id')
       .orderBy('count', 'desc')
 
+    // Execute all queries in parallel for better performance
     const [total, byType, byChannel, byUser] = await Promise.all([
       totalQuery,
       byTypeQuery,
@@ -2502,7 +3234,8 @@ export class DatabaseService {
       byUserQuery,
     ])
 
-    return {
+    // Process and format the results
+    const stats = {
       total_notifications: Number(total?.count || 0),
       by_type: byType.map((row) => ({
         type: String(row.type),
@@ -2517,9 +3250,32 @@ export class DatabaseService {
         count: Number(row.count),
       })),
     }
+
+    this.log.debug('Notification statistics gathered:', {
+      total: stats.total_notifications,
+      typeCount: stats.by_type.length,
+      channelCount: stats.by_channel.length,
+      userCount: stats.by_user.length,
+    })
+
+    return stats
   }
 
-  // Radarr Junction Table Methods
+  //=============================================================================
+  // RADARR JUNCTION TABLE METHODS
+  //=============================================================================
+
+  /**
+   * Retrieves all Radarr instance IDs associated with a watchlist item
+   *
+   * This method queries the watchlist_radarr_instances junction table to find
+   * all Radarr instances that a particular watchlist item is associated with.
+   * This is essential for multi-instance deployments where content may be
+   * distributed across several Radarr instances.
+   *
+   * @param watchlistId - ID of the watchlist item
+   * @returns Promise resolving to array of Radarr instance IDs
+   */
   async getWatchlistRadarrInstanceIds(watchlistId: number): Promise<number[]> {
     try {
       const result = await this.knex('watchlist_radarr_instances')
@@ -2536,6 +3292,16 @@ export class DatabaseService {
     }
   }
 
+  /**
+   * Retrieves the instance status for a watchlist item in Radarr
+   *
+   * Queries the junction table to get detailed status information about how a specific
+   * watchlist item is configured in a particular Radarr instance.
+   *
+   * @param watchlistId - ID of the watchlist item
+   * @param instanceId - ID of the Radarr instance
+   * @returns Promise resolving to the status information if found, null otherwise
+   */
   async getWatchlistRadarrInstanceStatus(
     watchlistId: number,
     instanceId: number,
@@ -2683,7 +3449,21 @@ export class DatabaseService {
     }
   }
 
-  // Sonarr Junction Table Methods
+  //=============================================================================
+  // SONARR JUNCTION TABLE METHODS
+  //=============================================================================
+
+  /**
+   * Retrieves all Sonarr instance IDs associated with a watchlist item
+   *
+   * This method queries the watchlist_sonarr_instances junction table to find
+   * all Sonarr instances that a particular watchlist item is associated with.
+   * This is essential for multi-instance deployments where content may be
+   * distributed across several Sonarr instances.
+   *
+   * @param watchlistId - ID of the watchlist item
+   * @returns Promise resolving to array of Sonarr instance IDs
+   */
   async getWatchlistSonarrInstanceIds(watchlistId: number): Promise<number[]> {
     try {
       const result = await this.knex('watchlist_sonarr_instances')
@@ -2700,6 +3480,16 @@ export class DatabaseService {
     }
   }
 
+  /**
+   * Retrieves the instance status for a watchlist item in Sonarr
+   *
+   * Queries the junction table to get detailed status information about how a specific
+   * watchlist item is configured in a particular Sonarr instance.
+   *
+   * @param watchlistId - ID of the watchlist item
+   * @param instanceId - ID of the Sonarr instance
+   * @returns Promise resolving to the status information if found, null otherwise
+   */
   async getWatchlistSonarrInstanceStatus(
     watchlistId: number,
     instanceId: number,
@@ -2848,6 +3638,21 @@ export class DatabaseService {
     }
   }
 
+  /**
+   * Retrieves detailed content distribution statistics across all instances
+   *
+   * This comprehensive method builds a complete breakdown of how content is distributed
+   * across all Sonarr and Radarr instances. For each instance, it provides:
+   * - Total number of items
+   * - Number of items where this instance is the primary
+   * - Distribution of items by status (pending, requested, etc.)
+   * - Distribution of items by content type (movies, shows, etc.)
+   *
+   * The information is valuable for administrators to understand content allocation
+   * and load distribution across instances.
+   *
+   * @returns Promise resolving to object with instance content breakdown statistics
+   */
   async getInstanceContentBreakdown(): Promise<{
     success: boolean
     instances: Array<{
@@ -2993,6 +3798,17 @@ export class DatabaseService {
     }
   }
 
+  /**
+   * Updates the syncing status of a watchlist item in Radarr
+   *
+   * Sets whether the item is currently being synchronized with the Radarr instance,
+   * which helps prevent duplicate operations during content updates.
+   *
+   * @param watchlistId - ID of the watchlist item
+   * @param instanceId - ID of the Radarr instance
+   * @param syncing - Boolean indicating whether the item is being synced
+   * @returns Promise resolving to void when complete
+   */
   async updateRadarrSyncingStatus(
     watchlistId: number,
     instanceId: number,
@@ -3009,6 +3825,17 @@ export class DatabaseService {
       })
   }
 
+  /**
+   * Updates the syncing status of a watchlist item in Sonarr
+   *
+   * Sets whether the item is currently being synchronized with the Sonarr instance,
+   * which helps prevent duplicate operations during content updates.
+   *
+   * @param watchlistId - ID of the watchlist item
+   * @param instanceId - ID of the Sonarr instance
+   * @param syncing - Boolean indicating whether the item is being synced
+   * @returns Promise resolving to void when complete
+   */
   async updateSonarrSyncingStatus(
     watchlistId: number,
     instanceId: number,
@@ -3025,6 +3852,16 @@ export class DatabaseService {
       })
   }
 
+  /**
+   * Checks if a watchlist item is currently syncing with a Radarr instance
+   *
+   * Determines whether a synchronization operation is in progress for this item,
+   * which can be used to prevent concurrent operations that might conflict.
+   *
+   * @param watchlistId - ID of the watchlist item
+   * @param instanceId - ID of the Radarr instance
+   * @returns Promise resolving to true if the item is currently syncing, false otherwise
+   */
   async isRadarrItemSyncing(
     watchlistId: number,
     instanceId: number,
@@ -3039,6 +3876,16 @@ export class DatabaseService {
     return item ? Boolean(item.syncing) : false
   }
 
+  /**
+   * Checks if a watchlist item is currently syncing with a Sonarr instance
+   *
+   * Determines whether a synchronization operation is in progress for this item,
+   * which can be used to prevent concurrent operations that might conflict.
+   *
+   * @param watchlistId - ID of the watchlist item
+   * @param instanceId - ID of the Sonarr instance
+   * @returns Promise resolving to true if the item is currently syncing, false otherwise
+   */
   async isSonarrItemSyncing(
     watchlistId: number,
     instanceId: number,
@@ -3053,6 +3900,16 @@ export class DatabaseService {
     return item ? Boolean(item.syncing) : false
   }
 
+  /**
+   * Retrieves a Sonarr instance by its unique identifier
+   *
+   * This method finds a Sonarr instance based on a transformed URL identifier,
+   * which allows for instance lookup without knowing the exact ID in the database.
+   * The transformation strips protocol and special characters for consistent matching.
+   *
+   * @param instanceId - Transformed URL identifier of the Sonarr instance
+   * @returns Promise resolving to the Sonarr instance if found, null otherwise
+   */
   async getSonarrInstanceByIdentifier(
     instanceId: string,
   ): Promise<SonarrInstance | null> {
@@ -3083,6 +3940,16 @@ export class DatabaseService {
     return null
   }
 
+  /**
+   * Retrieves a Radarr instance by its unique identifier
+   *
+   * This method finds a Radarr instance based on a transformed URL identifier,
+   * which allows for instance lookup without knowing the exact ID in the database.
+   * The transformation strips protocol and special characters for consistent matching.
+   *
+   * @param instanceId - Transformed URL identifier of the Radarr instance
+   * @returns Promise resolving to the Radarr instance if found, null otherwise
+   */
   async getRadarrInstanceByIdentifier(
     instanceId: string,
   ): Promise<RadarrInstance | null> {
@@ -3110,19 +3977,5 @@ export class DatabaseService {
     }
 
     return null
-  }
-
-  async hasUsersWithSyncDisabled(): Promise<boolean> {
-    try {
-      const count = await this.knex('users')
-        .where({ can_sync: false })
-        .count('* as count')
-        .first()
-
-      return Number(count?.count || 0) > 0
-    } catch (error) {
-      this.log.error('Error checking for users with sync disabled:', error)
-      return true
-    }
   }
 }
