@@ -1,3 +1,0 @@
-reviews:
-  target_branches: ['master', 'develop']
-  review_status: true
