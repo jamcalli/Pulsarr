@@ -1,11 +1,9 @@
 name: CI
-
 on:
   push:
     branches: [ master, develop ]
   pull_request:
     branches: [ master, develop ]
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -23,6 +21,6 @@ jobs:
       - name: Setup Biome
         uses: biomejs/setup-biome@v2
         with:
-          version: latest
+          version: '1.9.4'
       - name: Run Biome
         run: biome ci .
