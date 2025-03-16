@@ -1,0 +1,11 @@
+language: "en-US"
+reviews:
+  profile: "balanced" 
+  target_branches: ['master', 'develop']
+  high_level_summary: true
+  review_status: true
+  auto_review:
+    enabled: true
+    drafts: false
+chat:
+  auto_reply: true
