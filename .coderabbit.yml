@@ -1,6 +1,6 @@
 language: "en-US"
 reviews:
-  profile: "balanced" 
+  profile: "chill" 
   target_branches: ['master', 'develop']
   high_level_summary: true
   review_status: true
