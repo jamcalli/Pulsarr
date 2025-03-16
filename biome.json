@@ -19,5 +19,8 @@
     "formatter": {
       "indentStyle": "space"
     }
+  },
+  "organizeImports": {
+    "enabled": false
   }
 }
