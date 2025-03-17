@@ -463,7 +463,7 @@ export const processWatchlistItems = async (
             username: user.username,
           }
         : undefined,
-      5, // Concurrency limit
+      2, // Concurrency limit
     )
 
     // Combine all items for this user
