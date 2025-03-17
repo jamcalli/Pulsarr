@@ -413,6 +413,7 @@ If you have any questions about contributing, feel free to [open an issue](https
 ## Contributors
 
 <!-- CONTRIBUTORS:START -->
+
 <!-- CONTRIBUTORS:END -->
 
 See all [contributors](https://github.com/jamcalli/pulsarr/graphs/contributors)
