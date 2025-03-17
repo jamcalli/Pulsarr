@@ -4,7 +4,7 @@
   <p>Real-time Plex watchlist monitoring, routing, and notification center</p>
   
   ![Version](https://img.shields.io/github/v/release/jamcalli/pulsarr?include_prereleases&style=flat-square)
-  ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)
+  ![License](https://img.shields.io/badge/license-GPL-blue?style=flat-square)
   ![Node](https://img.shields.io/badge/node-23.6.0-green?style=flat-square)
   ![Status](https://img.shields.io/badge/status-beta-orange?style=flat-square)
 </div>
