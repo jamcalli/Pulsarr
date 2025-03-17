@@ -341,7 +341,7 @@ Pulsarr includes built-in API documentation accessible at `/api/docs` when runni
 
 ## License
 
-Pulsarr is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
+Pulsarr is licensed under the GPL License. See the [LICENSE](LICENSE) file for more details.
 
 ## Contributors
 
