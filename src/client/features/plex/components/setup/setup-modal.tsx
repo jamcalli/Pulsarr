@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -73,6 +73,14 @@ export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
     setSelfWatchlistStatus,
     setOthersWatchlistStatus,
   ])
+
+  useEffect(() => {
+    if (open && !isSubmitting) {
+      setCurrentStep('token')
+      setSelfWatchlistStatus('idle')
+      setOthersWatchlistStatus('idle')
+    }
+  }, [open, isSubmitting, setSelfWatchlistStatus, setOthersWatchlistStatus])
 
   const handleSubmit = async () => {
     setIsSubmitting(true)
@@ -168,10 +176,13 @@ export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
     }
   }
 
+  // Only allow closing if not submitting
   const handleOpenChange = (newOpen: boolean) => {
-    if (!isSubmitting && currentStep === 'token') {
-      onOpenChange(newOpen)
+    // If trying to close during submission, prevent it
+    if (isSubmitting && !newOpen) {
+      return
     }
+    onOpenChange(newOpen)
   }
 
   return (
@@ -179,31 +190,33 @@ export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
       <DialogContent
         className="sm:max-w-md [&>button]:hidden"
         onPointerDownOutside={(e) => {
-          if (isSubmitting || currentStep === 'syncing') {
-            e.preventDefault()
-          }
+          // Always prevent closing on outside click
+          e.preventDefault()
         }}
         onEscapeKeyDown={(e) => {
-          if (isSubmitting || currentStep === 'syncing') {
-            e.preventDefault()
-          }
+          // Always prevent closing with Escape key
+          e.preventDefault()
         }}
       >
         <DialogHeader>
           <DialogTitle className="text-text">
-            {currentStep === 'token'
+            {!isSubmitting
               ? 'Enter Your Plex Token'
-              : 'Setting Up Plex Integration'}
+              : currentStep === 'syncing'
+                ? 'Setting Up Plex Integration'
+                : 'Enter Your Plex Token'}
           </DialogTitle>
           <DialogDescription>
-            {currentStep === 'token'
-              ? 'To begin using Plex features, please enter your Plex token.'
-              : 'Please wait while we configure your Plex integration...'}
+            {!isSubmitting
+              ? 'To begin the sync, please enter your Plex token.'
+              : currentStep === 'syncing'
+                ? 'Please wait while we configure your Plex integration...'
+                : 'To begin the sync, please enter your Plex token.'}
           </DialogDescription>
         </DialogHeader>
 
         <div className="py-4">
-          {currentStep === 'token' ? (
+          {!isSubmitting ? (
             <div className="space-y-4">
               <Input
                 value={plexToken}
@@ -222,8 +235,9 @@ export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
                 </Button>
               </div>
             </div>
-          ) : (
+          ) : currentStep === 'syncing' ? (
             <div className="space-y-4">
+              {/* Self watchlist progress */}
               {(selfWatchlistStatus === 'loading' ||
                 (selfWatchlistStatus === 'success' &&
                   othersWatchlistStatus === 'idle')) && (
@@ -241,6 +255,7 @@ export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
                 </div>
               )}
 
+              {/* Others watchlist progress */}
               {othersWatchlistStatus === 'loading' && (
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
@@ -256,7 +271,7 @@ export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
                 </div>
               )}
             </div>
-          )}
+          ) : null}
         </div>
       </DialogContent>
     </Dialog>
