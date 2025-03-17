@@ -1,0 +1,39 @@
+name: Update Contributors
+on:
+  pull_request_target:
+    types: [closed]
+    branches: [master, develop]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-contributors:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+      
+      - name: Generate Contributors Images
+        id: generate
+        uses: jaywcjlove/github-action-contributors@main
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          filter-author: (dependabot|renovate)
+          avatarSize: 42
+          rowTemplate: '<a href="https://github.com/{login}" title="{name}"><img width="{avatarSize}" src="{avatarUrl}"/></a>'
+          
+      - name: Update README.md
+        run: |
+          README="README.md"
+          # Find the contributors section and replace it
+          sed -i '/<!-- CONTRIBUTORS:START -->/,/<!-- CONTRIBUTORS:END -->/c\<!-- CONTRIBUTORS:START -->\n${{ steps.generate.outputs.contributors }}\n<!-- CONTRIBUTORS:END -->' $README
+          
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "docs: update contributors [skip ci]"
+          file_pattern: README.md

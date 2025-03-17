@@ -87,7 +87,7 @@ export function WatchlistStatusBadge() {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: autoStart ? JSON.stringify({ autoStart: true }) : undefined
+          body: autoStart ? JSON.stringify({ autoStart: true }) : JSON.stringify({ autoStart: false })
         }
         
         const response = await fetch('/v1/watchlist-workflow/start', requestOptions)
@@ -97,7 +97,6 @@ export function WatchlistStatusBadge() {
           throw new Error(`Failed to start Watchlist workflow: ${response.status}`)
         }
         
-        // Success toast for starting
         const autoStartMsg = autoStart ? ' with auto-start enabled' : ''
         toast({
           description: `Watchlist workflow has been started successfully${autoStartMsg}`,
@@ -105,8 +104,6 @@ export function WatchlistStatusBadge() {
         })
       }
       
-      // Don't set to idle here - we'll wait for the status to stabilize
-      // setActionStatus('idle')
     } catch (error) {
       console.error('Watchlist workflow toggle error:', error)
       setActionStatus('idle')
@@ -192,7 +189,7 @@ export function WatchlistStatusBadge() {
               </div>
             </TooltipTrigger>
             <TooltipContent side="top">
-              <p className="text-xs">Mark as ready when starting workflow</p>
+              <p className="text-xs">Auto-Start on app launch</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
