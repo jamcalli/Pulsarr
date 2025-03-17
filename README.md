@@ -413,6 +413,19 @@ If you have any questions about contributing, feel free to [open an issue](https
 ## Contributors
 
 <!-- readme: contributors -start -->
+<table>
+	<tbody>
+		<tr>
+            <td align="center">
+                <a href="https://github.com/jamcalli">
+                    <img src="https://avatars.githubusercontent.com/u/48490664?v=4" width="100;" alt="jamcalli"/>
+                    <br />
+                    <sub><b>jamcalli</b></sub>
+                </a>
+            </td>
+		</tr>
+	<tbody>
+</table>
 <!-- readme: contributors -end -->
 
 See all [contributors](https://github.com/jamcalli/pulsarr/graphs/contributors)
