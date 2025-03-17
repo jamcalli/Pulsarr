@@ -264,10 +264,10 @@ export function GeneralSettingsForm({
                     </HoverCardTrigger>
                     <HoverCardContent className="w-80">
                       <p>
-                        Buffer time in milliseconds between file quality
-                        upgrades to prevent duplicate notifications when Sonarr
-                        is upgrading the same episode within a short timeframe
-                        (2 seconds default).
+                        Buffer time between file quality upgrades to prevent
+                        duplicate notifications when Sonarr is upgrading the
+                        same episode within a short timeframe (2 seconds
+                        default).
                       </p>
                     </HoverCardContent>
                   </HoverCard>
