@@ -412,9 +412,12 @@ If you have any questions about contributing, feel free to [open an issue](https
 
 ## Contributors
 
-<!-- CONTRIBUTORS:START -->
-
-<!-- CONTRIBUTORS:END -->
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+<!-- markdownlint-restore -->
+<!-- prettier-ignore-end -->
+<!-- ALL-CONTRIBUTORS-LIST:END -->
 
 See all [contributors](https://github.com/jamcalli/pulsarr/graphs/contributors)
 
