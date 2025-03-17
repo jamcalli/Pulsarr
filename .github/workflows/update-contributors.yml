@@ -16,6 +16,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.base.ref }}
+          token: ${{ secrets.ADMIN_TOKEN }}
       
       - name: Generate Contributors Images
         id: generate
@@ -37,4 +38,3 @@ jobs:
         with:
           commit_message: "docs: update contributors [skip ci]"
           file_pattern: README.md
-          token: ${{ secrets.ADMIN_TOKEN }}
