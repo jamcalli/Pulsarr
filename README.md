@@ -1,28 +1,55 @@
-I'll create a comprehensive README.md for Pulsarr based on the provided code and your example preferences. Here's a draft that follows the style you like while highlighting all the features of your application:
+<div align="center">
+  <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/src/client/assets/images/pulsarr.svg" alt="Pulsarr Logo" width="150"/>
+  <h1>Pulsarr</h1>
+  <p>Real-time Plex watchlist monitoring, routing, and notification center</p>
+  
+  ![Version](https://img.shields.io/github/v/release/jamcalli/pulsarr?include_prereleases&style=flat-square)
+  ![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)
+  ![Node](https://img.shields.io/badge/node-23.6.0-green?style=flat-square)
+  ![Status](https://img.shields.io/badge/status-beta-orange?style=flat-square)
+</div>
 
-# Pulsarr
+Enjoy all the benefits of other content discovery systems without requiring users to use additional services.
 
-Pulsarr is a powerful integration tool that bridges Plex watchlists with Sonarr and Radarr, enabling real-time media monitoring and automated content acquisition.
+Pulsarr is an integration tool that bridges Plex watchlists with Sonarr and Radarr, enabling real-time media monitoring and automated content acquisition all from within the Plex App itself.
 
-It provides seamless watchlist synchronization, smart content routing based on genre, and comprehensive notification capabilities across multiple platforms.
+It provides user-based watchlist synchronization for yourself and for friends, smart content routing based on genre, and notification capabilities (Discord and Email).
 
-![MIT license](https://img.shields.io/badge/license-MIT-blue)
-![Status](https://img.shields.io/badge/status-beta-orange)
+(see the [Quick Start Guide](#quick-start) below to get going)
+
+<img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/src/client/assets/screenshots/Login.png" alt="Login"/>
 
 ## Features
 
 - **Real-time Watchlist Monitoring**: Monitors Plex watchlists (yours and friends') through RSS feeds to trigger automatic downloads via Sonarr and Radarr.
 - **Multi-instance Support**: Route content to different Sonarr/Radarr instances based on your needs.
 - **Genre-based Routing**: Send different genres to specific root folders, quality profiles, or completely separate instances.
-- **Instance Synchronization**: Keep multiple instances in sync (e.g., send content to both Sonarr4K and SonarrHD) while respecting genre rules. Works with both existing and newly added instances.
-- **Discord Integration**: User-friendly notification system with customizable settings via Discord bot commands.
+- **Instance Synchronization**: Keep multiple instances in sync (e.g., send content to both Sonarr4K and SonarrHD) while respecting genre rules. Works with both existing and newly added instances. Includes a sync feature for newly added instances.
+- **Discord Integration**: User-friendly notification system with customizable settings via Discord bot commands. Allows users to customize their own notification settings.
 - **Granular User Controls**: Choose which users can sync content from their watchlists.
-- **Automatic Configuration**: Self-configures webhook endpoints in Sonarr/Radarr.
-- **Smart Notification System**: Prevents notification spam with intelligent batching for season packs.
+- **Automatic Configuration**: Self-configures webhook endpoints in Sonarr/Radarr to route notifications as soon as your content is ready.
+- **Smart Notification System**: Prevents notification spam with intelligent batching for season packs and individual episodes / movies.
 - **Comprehensive Web UI**: Modern interface with detailed statistics and admin settings.
 - **API Documentation**: Built-in Scalar UI for API exploration and interaction.
 
 ## Architecture
+
+Pulsarr uses a full-stack architecture designed for reliability and performance:
+
+### Backend
+- **Fastify**: High-performance API server with plugin system
+- **SQLite**: Lightweight database for storing user, watchlist, and configuration data
+- **TypeScript**: Type-safe code for better reliability and maintainability
+
+### Frontend
+- **React**: Component-based UI for responsive user experience
+- **Tailwind CSS**: Utility-first styling for consistent design
+- **Vite**: Modern build tool for fast development and optimized production
+
+### Integration Points
+- **Plex API**: Monitors watchlist changes through RSS feeds, token syncs, and graphql calls
+- **Sonarr/Radarr APIs**: Manages content acquisition across multiple instances
+- **Discord API**: Delivers notifications through custom bot and webhooks
 
 ## How It Works
 
@@ -34,23 +61,27 @@ Pulsarr uses an intelligent workflow to process and route content:
 3. **Genre Routing**: Analyzes content genres and routes to appropriate instances based on your configured genre rules
 4. **Default Instance**: Items not matching genre rules are sent to your default Sonarr/Radarr instance
 5. **Instance Synchronization**: Automatically copies content to any synced instances while respecting genre routes
-6. **Grab Notification**: Sends configurable notifications when content is successfully queued for download
+6. **Grab Notification**: Sends configurable notifications when content is available for viewing
 
 ### Notification Flow
 The notification system is designed to be informative:
 
 1. **Webhook Reception**: Receives webhooks from Sonarr/Radarr when content is imported
-2. **Smart Queuing**: Groups multiple episodes from the same season to prevent notification spam
+2. **Smart Queuing**: Groups multiple episodes from the same season to prevent notification spam (when importing non-season packs)
 3. **Batch Processing**: Intelligently batches season packs into single notifications
 4. **User Targeting**: Identifies users who have the show in their watchlist and have enabled notifications
-5. **Multi-channel Delivery**: Sends personalized notifications via Discord DMs or webhooks
-6. **Customizable Preferences**: Each user can configure their notification preferences via Discord
+5. **Multi-channel Delivery**: Sends personalized notifications via Discord DMs, Email (coming soon), and can send global grabs via webhooks
+6. **Customizable Preferences**: Each user can configure their notification preferences via Discord, or the admin can via the UI
 
-This system ensures content is properly routed to the right instances while keeping users informed about their media with notifications.
+## Quick Start
 
-## Installation
+### Prerequisites
+- Docker (recommended for deployment)
+- Plex Pass subscription (non Plex Pass coming soon)
+- Sonarr/Radarr installation(s)
 
-### Docker Compose (Recommended)
+### Docker Installation (Recommended)
+1. Create a `.env` file with your configuration (see [Configuration](#configuration) below)
 
 ```yaml
 services:
@@ -69,19 +100,31 @@ services:
     environment:
       - NODE_ARGS=--log-both
 ```
+The logger defaults to file logging. This can be changed by modifying the NODE_ARGS in the docker compose. Accepted values are log-terminal, log-both, or log-file respectively. 
+
+3. docker compose up -d
+
+4. Navigate to the web UI (localhost:3003) to complete setup.
 
 ### Manual Installation
 
+### Prerequisites
+
+- Node.js 23.6.0 or higher (for local build)
+
 ```bash
 # Clone the repository
-git clone https://github.com/username/pulsarr.git
+git clone https://github.com/jamcalli/Pulsarr.git
 cd pulsarr
 
 # Install dependencies
 npm install
 
-# Start the server
+# Build the server
 npm run build
+
+# Run Migrations
+npm run migrate
 
 # Start the server
 npm run start:prod
@@ -89,7 +132,7 @@ npm run start:prod
 
 ## Configuration
 
-Pulsarr can be configured through environment variables or the web interface.
+Pulsarr should be configured via the web ui, however, it can also be configured by .env variables. Any value passed through the .env will supersede any values within the db config. 
 
 ### Core Configuration
 
@@ -100,23 +143,32 @@ Pulsarr can be configured through environment variables or the web interface.
 | `LogLevel` | Logging level | `info` |
 | `CookieSecured` | Serve Cookie only via https (can omit unless setting to true) | `false` |
 
+Here is how your .env should look:
+
+```
+baseUrl=http://localhost    
+port=3003                                                 
+cookieSecured=false                    
+logLevel=info                         
+```
+
 ### Dev / Other Configurations
 
 ## Example Development Environment
 
-Below is an example of a complete development environment configuration with sensitive values redacted:
+Below is an example of a complete development environment configuration:
 
 ```
 # Server Configuration
-baseUrl=http://x.x.x.x                # Local network address
+baseUrl=http://x.x.x.x                 # Local network address
 port=3003                              # Application port
 dbPath=./data/db/pulsarr.db            # SQLite database location
-cookieSecret=xxxxxxxxxxxxxxxxxxxxxxxx  # Secret key for cookies
+cookieSecret=xxxxxxxxxxxxxxxxxxxxxxxx  # Secret key for cookies (randomly generated by default)
 cookieName=pulsarr                     # Name of the cookie
 cookieSecured=false                    # Set to true for HTTPS only
-logLevel=info                          # Logging level
+logLevel=info                          # Logging level (defaults to silent. Recommended info)
 closeGraceDelay=10000                  # Shutdown grace period in ms
-rateLimitMax=100                       # Max requests per time window
+rateLimitMax=100                       # Max requests per time window 
 syncIntervalSeconds=10                 # Sync interval in seconds
 queueProcessDelaySeconds=60            # Queue processing delay in seconds
 
@@ -132,26 +184,26 @@ newEpisodeThreshold=172800000          # New episode threshold in ms (48h)
 upgradeBufferTime=2000                 # Buffer time between upgrades in ms
 
 # Sonarr Configuration
-sonarrBaseUrl=http://x.x.x.x:8989     # Sonarr instance URL
+sonarrBaseUrl=http://x.x.x.x:8989      # Sonarr instance URL
 sonarrApiKey=xxxxxxxxxxxxxxxxxxxxxxxx  # Sonarr API key
-sonarrQualityProfile='Any'             # Quality profile name
-sonarrRootFolder=                      # Root folder path (empty = default)
+sonarrQualityProfile=                  # Quality profile name (empty = default. Also accepts name or number)
+sonarrRootFolder=                      # Root folder path (empty = default. Or accepts string of the path url)
 sonarrLanguageProfileId=1              # Language profile ID
 sonarrBypassIgnored=false              # Bypass ignored setting
 sonarrSeasonMonitoring=all             # Season monitoring strategy
 sonarrTags=[]                          # Tags as JSON array
 
 # Radarr Configuration
-radarrBaseUrl=http://x.x.x.x:7878     # Radarr instance URL
+radarrBaseUrl=http://x.x.x.x:7878      # Radarr instance URL
 radarrApiKey=xxxxxxxxxxxxxxxxxxxxxxxx  # Radarr API key
-radarrQualityProfile='Any'             # Quality profile name
-radarrRootFolder=                      # Root folder path (empty = default)
+radarrQualityProfile=                  # Quality profile name (empty = default. Also accepts name or number)
+radarrRootFolder=                      # Root folder path (empty = default. Or accepts string of the path url)
 radarrLanguageProfileId=1              # Language profile ID
 radarrBypassIgnored=false              # Bypass ignored setting
 radarrTags=[]                          # Tags as JSON array
 
 # Plex Configuration
-plexTokens=["xxxxxxxxxxxxxxxxxxxx"]    # Plex authentication tokens as JSON array
+plexTokens=["xxxxxxxxxxxxxxxxxxxx"]    # Plex authentication token
 skipFriendSync=false                   # Skip syncing Plex friends
 
 # Delete Configuration
@@ -165,7 +217,7 @@ deleteFiles=true                       # Delete files from disk setting
 ## Usage
 
 1. Access the web interface at `http://your-server:3003`
-2. Log in with the default credentials (first run will prompt you to create an admin account)
+2. You will be prompted to create an Admin account. Only a single admin account can be created.
 3. Configure your Plex, Sonarr, and Radarr connections
 4. Set up Discord notifications (optional)
 5. Start the watchlist workflow
