@@ -691,7 +691,16 @@ export class PlexWatchlistService {
 
     // Fetch all users in one batch to get their sync permissions
     const users = await Promise.all(
-      userIds.map((id) => this.dbService.getUser(id)),
+      userIds.map((id) => {
+        // Ensure we're always passing a simple number, not an object
+        const numericId =
+          typeof id === 'object' && id !== null
+            ? 'id' in id
+              ? (id as { id: number }).id
+              : Number(id)
+            : Number(id)
+        return this.dbService.getUser(numericId)
+      }),
     )
 
     // Create a map of user ID to their can_sync permission
@@ -703,17 +712,26 @@ export class PlexWatchlistService {
     })
 
     return Array.from(processedItems.entries()).flatMap(([user, items]) => {
-      const canSync = userSyncPermissions.get(user.userId) !== false
+      // Make sure we have a numeric user ID
+      const numericUserId =
+        typeof user.userId === 'object' && user.userId !== null
+          ? 'id' in user.userId
+            ? (user.userId as { id: number }).id
+            : Number(user.userId)
+          : Number(user.userId)
+
+      // During initial sync, assume syncing is enabled if user not found
+      const canSync = userSyncPermissions.get(numericUserId) !== false
 
       if (!canSync) {
         this.log.info(
-          `Skipping ${items.size} items for user ${user.username} (ID: ${user.userId}) who has sync disabled`,
+          `Skipping ${items.size} items for user ${user.username} (ID: ${numericUserId}) who has sync disabled`,
         )
         return []
       }
 
       return Array.from(items).map((item) => ({
-        user_id: user.userId,
+        user_id: numericUserId,
         title: item.title,
         key: item.key,
         thumb: item.thumb,
