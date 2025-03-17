@@ -21,7 +21,7 @@ jobs:
         id: generate
         uses: jaywcjlove/github-action-contributors@main
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.ADMIN_TOKEN }}
           filter-author: (dependabot|renovate)
           avatarSize: 42
           rowTemplate: '<a href="https://github.com/{login}" title="{name}"><img width="{avatarSize}" src="{avatarUrl}"/></a>'
@@ -37,3 +37,4 @@ jobs:
         with:
           commit_message: "docs: update contributors [skip ci]"
           file_pattern: README.md
+          token: ${{ secrets.ADMIN_TOKEN }}

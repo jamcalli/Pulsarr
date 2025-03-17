@@ -1,17 +1,3 @@
-<style>
-  .responsive-img {
-    width: 40%; /* Smaller on desktop */
-    max-width: 250px;
-  }
-
-  @media (max-width: 768px) {
-    .responsive-img {
-      width: 70%; /* Larger on mobile */
-      max-width: 350px;
-    }
-  }
-</style>
-
 <div align="center">
   <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/icons/pulsarr.svg" alt="Pulsarr Logo" width="150"/>
   <h1>Pulsarr</h1>
@@ -37,6 +23,20 @@ Want to contribute? Check out our [Contributing Guidelines](#contributing).
   <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Dashboard1.png" alt="Dashboard" width="80%"/>
   <p><i>Additional <a href="#screenshots">screenshots</a> below</i></p>
 </div>
+
+## Table of Contents
+- [Features](#features)
+- [Architecture](#architecture)
+- [How It Works](#how-it-works)
+- [Quick Start](#quick-start)
+- [Notification Setup](#notification-setup)
+- [Configuration](#configuration)
+- [Usage](#usage)
+- [API Documentation](#api-documentation)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [License](#license)
+- [Support](#support)
 
 ## Features
 
@@ -174,7 +174,7 @@ npm run start:prod
 
 The webhook endpoint can be used without creating a Discord bot. Point this webhook at an admin-only channel to view notifications about who added what. You will receive webhooks like this:
 
-<img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Webhook-grab.png" class="responsive-img" alt="Webhook Grab">
+<img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Webhook-grab.png" width="400" alt="Webhook Grab">
 
 1. Create a Discord Bot
    - Go to the [Discord Developer Portal](https://discord.com/developers/applications)
@@ -214,21 +214,21 @@ The webhook endpoint can be used without creating a Discord bot. Point this webh
    - After providing all the required fields, click the 'Start' button next to the Discord Bot Settings header. 
    - Users can then use the `/notifications` command within your server. They will be prompted to enter their Plex username to create the association with their watchlist.
 
-   <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Discord-Signup.png" class="responsive-img" alt="Discord Signup">
+   <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Discord-Signup.png" width="400" alt="Discord Signup">
 
    Users can now configure their own notification preferences. These can be accessed anytime by using the `/notifications` command. 
 
-   <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Discord-Settings.png" class="responsive-img" alt="Discord Settings">
+   <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Discord-Settings.png" width="400" alt="Discord Settings">
 
-   <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Discord-Edit-Modal.png" class="responsive-img" alt="Discord Edit Modal">
+   <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Discord-Edit-Modal.png" width="400" alt="Discord Edit Modal">
 
 **IMPORTANT**: The username for the Plex Token is ALWAYS token1. Please use this when setting your own notification preferences. 
 
 When your content is available, you will receive DMs like these:
 
-<img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/DM-New-Epp.png" class="responsive-img" alt="DM New Episode">
+<img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/DM-New-Epp.png" width="400" alt="DM New Episode">
 
-<img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/DM-Season.png" class="responsive-img" alt="DM Season">
+<img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/DM-Season.png" width="400" alt="DM Season">
 
 ### Email Notifications (Coming Soon)
 Email notification support is on our roadmap but not yet implemented.
@@ -359,10 +359,6 @@ Pulsarr includes built-in API documentation accessible at `/api/docs` when runni
 - Delete Syncing
 - Unit tests... 🤮
 
-## License
-
-Pulsarr is licensed under the GPL License. See the [LICENSE](LICENSE) file for more details.
-
 ## Contributing
 
 We welcome contributions to Pulsarr! This section outlines the process for contributing to the project.
@@ -394,7 +390,7 @@ We welcome contributions to Pulsarr! This section outlines the process for contr
 
 6. **Push to Your Fork**: Push your changes to your forked repository.
 
-7. **Submit a Pull Request**: Create a pull request from your branch to the develop Pulsarr repository.
+7. **Submit a Pull Request**: Create a pull request from your branch to the develop branch of the main Pulsarr repository.
 
 ### Pull Request Guidelines
 
@@ -420,6 +416,10 @@ If you have any questions about contributing, feel free to [open an issue](https
 <!-- CONTRIBUTORS:END -->
 
 See all [contributors](https://github.com/jamcalli/pulsarr/graphs/contributors)
+
+## License
+
+Pulsarr is licensed under the GPL License. See the [LICENSE](LICENSE) file for more details.
 
 ## Acknowledgements
 
