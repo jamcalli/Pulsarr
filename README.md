@@ -9,18 +9,34 @@
   ![Status](https://img.shields.io/badge/status-beta-orange?style=flat-square)
 </div>
 
-Enjoy all the benefits of other content discovery systems without requiring users to use additional services.
-
 Pulsarr is an integration tool that bridges Plex watchlists with Sonarr and Radarr, enabling real-time media monitoring and automated content acquisition all from within the Plex App itself.
 
+Enjoy all the benefits of other content discovery systems without requiring users to use additional services.
+
 It provides user-based watchlist synchronization for yourself and for friends, smart content routing based on genre, and notification capabilities (Discord and Email).
+
+Want to contribute? Check out our [Contributing Guidelines](#contributing).
 
 (see the [Quick Start Guide](#quick-start) below to get going)
 
 <div align="center">
   <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Dashboard1.png" alt="Dashboard" width="80%"/>
-  <p><i>See <a href="#screenshots">more screenshots</a> below</i></p>
+  <p><i>Additional <a href="#screenshots">screenshots</a> below</i></p>
 </div>
+
+## Table of Contents
+- [Features](#features)
+- [Architecture](#architecture)
+- [How It Works](#how-it-works)
+- [Quick Start](#quick-start)
+- [Notification Setup](#notification-setup)
+- [Configuration](#configuration)
+- [Usage](#usage)
+- [API Documentation](#api-documentation)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [License](#license)
+- [Support](#support)
 
 ## Features
 
@@ -32,7 +48,7 @@ It provides user-based watchlist synchronization for yourself and for friends, s
 - **Granular User Controls**: Choose which users can sync content from their watchlists.
 - **Automatic Configuration**: Self-configures webhook endpoints in Sonarr/Radarr to route notifications as soon as your content is ready.
 - **Smart Notification System**: Prevents notification spam with intelligent batching for season packs and individual episodes / movies.
-- **Comprehensive Web UI**: Modern interface with detailed statistics and admin settings.
+- **Comprehensive Web UI**: Modern interface with detailed statistics and admin settings, fully mobile friendly.
 - **API Documentation**: Built-in Scalar UI for API exploration and interaction.
 
 ## Architecture
@@ -108,9 +124,9 @@ services:
       - NODE_ARGS=--log-both
 ```
 
-The logger defaults to file logging. This can be changed by modifying the NODE_ARGS in the docker compose. Accepted values are log-terminal, log-both, or log-file respectively. 
+The logger defaults to file logging. This can be changed by modifying the NODE_ARGS in the docker compose. Accepted values are `--log-terminal`, `--log-both`, or `--log-file` respectively. 
 
-3. Run Docker Compose to start the service:
+3. Pull the image and run Docker Compose to start the service:
 ```bash
 docker compose pull && docker compose up -d
 ```
@@ -158,12 +174,12 @@ npm run start:prod
 
 The webhook endpoint can be used without creating a Discord bot. Point this webhook at an admin-only channel to view notifications about who added what. You will receive webhooks like this:
 
-<img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Webhook-grab.png" width="30%" alt="Webhook Grab">
+<img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Webhook-grab.png" width="400" alt="Webhook Grab">
 
 1. Create a Discord Bot
    - Go to the [Discord Developer Portal](https://discord.com/developers/applications)
    - Click "New Application" and give it a name (e.g., "Pulsarr")
-   - Provide an icon too. Feel free to use this one:
+   - Provide an icon too. Here is one you can use:
    
      <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/icons/pulsarr-lg.png" width="250" alt="Pulsarr Logo">
    
@@ -188,38 +204,38 @@ The webhook endpoint can be used without creating a Discord bot. Point this webh
    - Select your Discord server from the dropdown
    - Authorize the permissions
 
-4. Configure Pulsarr
+4. Configure Pulsarr Discord Bot
    - In your Pulsarr configuration, add:
      - Bot Token (from step 1)
      - Client ID (found in the "General Information" tab of your Discord application)
      - Guild ID (your Discord server ID - enable Developer Mode in Discord settings, then right-click your server and "Copy ID")
 
-5. Start/Restart Pulsarr
-   - After providing all of the required fields, click the 'Start' button next to the Discord Bot Settings header. 
+5. Start Discord Bot
+   - After providing all the required fields, click the 'Start' button next to the Discord Bot Settings header. 
    - Users can then use the `/notifications` command within your server. They will be prompted to enter their Plex username to create the association with their watchlist.
 
-   <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Discord-Signup.png" width="40%" alt="Discord Signup">
+   <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Discord-Signup.png" width="400" alt="Discord Signup">
 
    Users can now configure their own notification preferences. These can be accessed anytime by using the `/notifications` command. 
 
-   <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Discord-Settings.png" width="40%" alt="Discord Settings">
+   <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Discord-Settings.png" width="400" alt="Discord Settings">
 
-   <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Discord-Edit-Modal.png" width="40%" alt="Discord Edit Modal">
+   <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Discord-Edit-Modal.png" width="400" alt="Discord Edit Modal">
 
 **IMPORTANT**: The username for the Plex Token is ALWAYS token1. Please use this when setting your own notification preferences. 
 
 When your content is available, you will receive DMs like these:
 
-<img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/DM-New-Epp.png" width="40%" alt="DM New Episode">
+<img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/DM-New-Epp.png" width="400" alt="DM New Episode">
 
-<img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/DM-Season.png" width="40%" alt="DM Season">
+<img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/DM-Season.png" width="400" alt="DM Season">
 
 ### Email Notifications (Coming Soon)
 Email notification support is on our roadmap but not yet implemented.
 
 ## Configuration
 
-Pulsarr should be configured via the web UI, however, it can also be configured by .env variables. Any value passed through the .env will supersede any values within the db config. 
+While Pulsarr is primarily configured through the web UI, you can also use environment variables in a .env file. Any values set in the .env file will override settings in the database. 
 
 ### Core Configuration
 
@@ -234,9 +250,9 @@ Here is how your .env should look:
 
 ```
 baseUrl=http://localhost    
-port=3003                                                 
-cookieSecured=false                    
-logLevel=info                         
+port=3003                                                                   
+logLevel=info
+cookieSecured=false                           
 ```
 
 ### Dev / Other Configurations
@@ -270,7 +286,7 @@ queueWaitTime=120000                   # Queue wait time in ms
 newEpisodeThreshold=172800000          # New episode threshold in ms (48h)
 upgradeBufferTime=2000                 # Buffer time between upgrades in ms
 
-# Sonarr Configuration
+# Sonarr Configuration (will seed a single instance)
 sonarrBaseUrl=http://x.x.x.x:8989      # Sonarr instance URL
 sonarrApiKey=xxxxxxxxxxxxxxxxxxxxxxxx  # Sonarr API key
 sonarrQualityProfile=                  # Quality profile name (empty = default. Also accepts name or number)
@@ -280,7 +296,7 @@ sonarrBypassIgnored=false              # Bypass ignored setting
 sonarrSeasonMonitoring=all             # Season monitoring strategy
 sonarrTags=[]                          # Tags as JSON array
 
-# Radarr Configuration
+# Radarr Configuration (will seed a single instance)
 radarrBaseUrl=http://x.x.x.x:7878      # Radarr instance URL
 radarrApiKey=xxxxxxxxxxxxxxxxxxxxxxxx  # Radarr API key
 radarrQualityProfile=                  # Quality profile name (empty = default. Also accepts name or number)
@@ -338,14 +354,72 @@ Pulsarr includes built-in API documentation accessible at `/api/docs` when runni
 ## Roadmap
 
 - Email notifications
+- Non-Plex Pass (will update watchlists on 20 minute intervals. All other functionality remains.)
+- API keys
+- Delete Syncing
+- Unit tests... 🤮
+
+## Contributing
+
+We welcome contributions to Pulsarr! This section outlines the process for contributing to the project.
+
+### Fork and Branch Naming
+
+1. **Fork the Repository**: Start by forking the Pulsarr repository to your GitHub account.
+
+2. **Branch Naming Conventions**:
+   - For new features: `features/your-feature-name`
+   - For bug fixes: `bug-fix/brief-bug-description`
+   - For documentation: `docs/what-you-are-documenting`
+   - For performance improvements: `perf/what-you-are-improving`
+
+### Development Workflow
+
+1. **Create a Branch**: Create a new branch following the naming conventions above.
+
+2. **Make Your Changes**: Implement your feature or fix the bug.
+
+3. **Write Tests**: If applicable, write tests for your changes.
+
+4. **Ensure Code Quality**:
+   - Run linting tools (npm run fix to run biome)
+   - Ensure tests pass (these are coming!)
+   - Follow the existing code style
+
+5. **Commit Your Changes**: Use clear, descriptive commit messages.
+
+6. **Push to Your Fork**: Push your changes to your forked repository.
+
+7. **Submit a Pull Request**: Create a pull request from your branch to the develop branch of the main Pulsarr repository.
+
+### Pull Request Guidelines
+
+When submitting a pull request, please:
+
+1. **Describe Your Changes**: Provide a clear description of what the changes accomplish.
+
+2. **Link Related Issues**: If your PR addresses an open issue, reference it using the GitHub issue linking syntax (e.g., "Fixes #123").
+
+3. **Include Screenshots**: If your changes include visual elements, add screenshots to help reviewers understand the context.
+
+4. **Update Documentation**: Ensure that documentation is updated to reflect your changes if necessary.
+
+5. **Be Responsive**: Be prepared to address feedback and make requested changes.
+
+### Questions?
+
+If you have any questions about contributing, feel free to [open an issue](https://github.com/jamcalli/pulsarr/issues) with the label "question".
+
+## Contributors
+
+<!-- CONTRIBUTORS:START -->
+<!-- CONTRIBUTORS:END -->
+
+See all [contributors](https://github.com/jamcalli/pulsarr/graphs/contributors)
 
 ## License
 
 Pulsarr is licensed under the GPL License. See the [LICENSE](LICENSE) file for more details.
-
-## Contributors
-
-- [jamcalli](https://github.com/jamcalli)
 
 ## Acknowledgements
 
