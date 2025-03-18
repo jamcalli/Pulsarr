@@ -141,7 +141,8 @@ docker compose pull && docker compose up -d
 ```bash
 # Clone the repository
 git clone https://github.com/jamcalli/Pulsarr.git
-cd pulsarr
+
+cd Pulsarr
 
 # Install dependencies
 npm install
@@ -286,7 +287,7 @@ queueWaitTime=120000                   # Queue wait time in ms
 newEpisodeThreshold=172800000          # New episode threshold in ms (48h)
 upgradeBufferTime=2000                 # Buffer time between upgrades in ms
 
-# Sonarr Configuration (will seed a single instance)
+# Sonarr Configuration (these will seed a single instance. Needs all the values. Only use in dev.)
 sonarrBaseUrl=http://x.x.x.x:8989      # Sonarr instance URL
 sonarrApiKey=xxxxxxxxxxxxxxxxxxxxxxxx  # Sonarr API key
 sonarrQualityProfile=                  # Quality profile name (empty = default. Also accepts name or number)
@@ -296,7 +297,7 @@ sonarrBypassIgnored=false              # Bypass ignored setting
 sonarrSeasonMonitoring=all             # Season monitoring strategy
 sonarrTags=[]                          # Tags as JSON array
 
-# Radarr Configuration (will seed a single instance)
+# Radarr Configuration (these will seed a single instance. Needs all the values. Only use in dev.)
 radarrBaseUrl=http://x.x.x.x:7878      # Radarr instance URL
 radarrApiKey=xxxxxxxxxxxxxxxxxxxxxxxx  # Radarr API key
 radarrQualityProfile=                  # Quality profile name (empty = default. Also accepts name or number)
