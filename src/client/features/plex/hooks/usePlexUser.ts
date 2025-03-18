@@ -31,6 +31,7 @@ export function usePlexUser() {
 
   const handleEditUser = (user: UserWatchlistInfo) => {
     setSelectedUser(user)
+    setSaveStatus('idle')
     setIsEditModalOpen(true)
   }
 
