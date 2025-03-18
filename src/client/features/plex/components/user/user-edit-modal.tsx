@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import React, { useEffect } from 'react'
 import { Loader2, Check } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -31,6 +31,232 @@ import type { UserWatchlistInfo } from '@/stores/configStore'
 import { plexUserSchema } from '@/features/plex/store/schemas'
 import type { PlexUserSchema } from '@/features/plex/store/schemas'
 import { useMediaQuery } from '@/hooks/use-media-query'
+
+interface FormContentProps {
+  form: ReturnType<typeof useForm<PlexUserSchema>>
+  handleSubmit: (values: PlexUserSchema) => Promise<void>
+  handleOpenChange: (open: boolean) => void
+  saveStatus: 'idle' | 'loading' | 'success' | 'error'
+  isFormDirty: boolean
+}
+
+// Extracted and memoized form content component
+const FormContent = React.memo(
+  ({
+    form,
+    handleSubmit,
+    handleOpenChange,
+    saveStatus,
+    isFormDirty,
+  }: FormContentProps) => {
+    return (
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
+          <div className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-text">Plex User Name</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Plex user name"
+                      className="bg-muted/50 cursor-not-allowed"
+                      disabled={true}
+                      readOnly
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-text">Email</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="email"
+                      placeholder="Email address"
+                      disabled={saveStatus !== 'idle'}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="alias"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-text">Alias</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="User alias (optional)"
+                      disabled={saveStatus !== 'idle'}
+                      {...field}
+                      value={field.value || ''}
+                      onChange={(e) => field.onChange(e.target.value || null)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="discord_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-text">Discord ID</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Discord ID"
+                      className="bg-muted/50 cursor-not-allowed"
+                      disabled={true}
+                      readOnly
+                      {...field}
+                      value={field.value || ''}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="notify_email"
+              render={({ field }) => {
+                const email = form.watch('email')
+                const isPlaceholderEmail = email.endsWith('@placeholder.com')
+                // If it's a placeholder email and notifications are on, turn them off
+                if (isPlaceholderEmail && field.value) {
+                  field.onChange(false)
+                }
+
+                return (
+                  <FormItem>
+                    <div className="flex items-center justify-between">
+                      <FormLabel className="text-text">
+                        Email Notifications
+                      </FormLabel>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          disabled={saveStatus !== 'idle' || isPlaceholderEmail}
+                        />
+                      </FormControl>
+                    </div>
+                    {isPlaceholderEmail && (
+                      <FormMessage>Requires valid email address</FormMessage>
+                    )}
+                  </FormItem>
+                )
+              }}
+            />
+
+            <FormField
+              control={form.control}
+              name="notify_discord"
+              render={({ field }) => {
+                const discordId = form.watch('discord_id')
+                const hasDiscordId = Boolean(discordId)
+                // If there's no Discord ID and notifications are on, turn them off
+                if (!hasDiscordId && field.value) {
+                  field.onChange(false)
+                }
+
+                return (
+                  <FormItem>
+                    <div className="flex items-center justify-between">
+                      <FormLabel className="text-text">
+                        Discord Notifications
+                      </FormLabel>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          disabled={saveStatus !== 'idle' || !hasDiscordId}
+                        />
+                      </FormControl>
+                    </div>
+                    {!hasDiscordId && (
+                      <FormMessage>Requires Discord ID</FormMessage>
+                    )}
+                  </FormItem>
+                )
+              }}
+            />
+
+            <FormField
+              control={form.control}
+              name="can_sync"
+              render={({ field }) => (
+                <FormItem>
+                  <div className="flex items-center justify-between">
+                    <FormLabel className="text-text">
+                      Can Sync Watchlist
+                    </FormLabel>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        disabled={saveStatus !== 'idle'}
+                      />
+                    </FormControl>
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="neutral"
+              onClick={() => handleOpenChange(false)}
+              disabled={saveStatus !== 'idle'}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="default"
+              disabled={saveStatus !== 'idle' || !isFormDirty}
+              className="min-w-[100px] flex items-center justify-center gap-2"
+            >
+              {saveStatus === 'loading' ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : saveStatus === 'success' ? (
+                <>
+                  <Check className="h-4 w-4" />
+                  Saved
+                </>
+              ) : (
+                'Save Changes'
+              )}
+            </Button>
+          </div>
+        </form>
+      </Form>
+    )
+  },
+)
 
 interface UserEditModalProps {
   open: boolean
@@ -90,213 +316,6 @@ export default function UserEditModal({
 
   const isFormDirty = form.formState.isDirty
 
-  const FormContent = () => (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
-        <div className="space-y-4">
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-text">Plex User Name</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Plex user name"
-                    className="bg-muted/50 cursor-not-allowed"
-                    disabled={true}
-                    readOnly
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-text">Email</FormLabel>
-                <FormControl>
-                  <Input
-                    type="email"
-                    placeholder="Email address"
-                    disabled={saveStatus !== 'idle'}
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="alias"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-text">Alias</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="User alias (optional)"
-                    disabled={saveStatus !== 'idle'}
-                    {...field}
-                    value={field.value || ''}
-                    onChange={(e) => field.onChange(e.target.value || null)}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="discord_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-text">Discord ID</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Discord ID"
-                    className="bg-muted/50 cursor-not-allowed"
-                    disabled={true}
-                    readOnly
-                    {...field}
-                    value={field.value || ''}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="notify_email"
-            render={({ field }) => {
-              const email = form.watch('email')
-              const isPlaceholderEmail = email.endsWith('@placeholder.com')
-              // If it's a placeholder email and notifications are on, turn them off
-              if (isPlaceholderEmail && field.value) {
-                field.onChange(false)
-              }
-
-              return (
-                <FormItem>
-                  <div className="flex items-center justify-between">
-                    <FormLabel className="text-text">
-                      Email Notifications
-                    </FormLabel>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        disabled={saveStatus !== 'idle' || isPlaceholderEmail}
-                      />
-                    </FormControl>
-                  </div>
-                  {isPlaceholderEmail && (
-                    <FormMessage>Requires valid email address</FormMessage>
-                  )}
-                </FormItem>
-              )
-            }}
-          />
-
-          <FormField
-            control={form.control}
-            name="notify_discord"
-            render={({ field }) => {
-              const discordId = form.watch('discord_id')
-              const hasDiscordId = Boolean(discordId)
-              // If there's no Discord ID and notifications are on, turn them off
-              if (!hasDiscordId && field.value) {
-                field.onChange(false)
-              }
-
-              return (
-                <FormItem>
-                  <div className="flex items-center justify-between">
-                    <FormLabel className="text-text">
-                      Discord Notifications
-                    </FormLabel>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        disabled={saveStatus !== 'idle' || !hasDiscordId}
-                      />
-                    </FormControl>
-                  </div>
-                  {!hasDiscordId && (
-                    <FormMessage>Requires Discord ID</FormMessage>
-                  )}
-                </FormItem>
-              )
-            }}
-          />
-
-          <FormField
-            control={form.control}
-            name="can_sync"
-            render={({ field }) => (
-              <FormItem>
-                <div className="flex items-center justify-between">
-                  <FormLabel className="text-text">
-                    Can Sync Watchlist
-                  </FormLabel>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                      disabled={saveStatus !== 'idle'}
-                    />
-                  </FormControl>
-                </div>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <div className="flex justify-end gap-2">
-          <Button
-            type="button"
-            variant="neutral"
-            onClick={() => handleOpenChange(false)}
-            disabled={saveStatus !== 'idle'}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            variant="default"
-            disabled={saveStatus !== 'idle' || !isFormDirty}
-            className="min-w-[100px] flex items-center justify-center gap-2"
-          >
-            {saveStatus === 'loading' ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Saving...
-              </>
-            ) : saveStatus === 'success' ? (
-              <>
-                <Check className="h-4 w-4" />
-                Saved
-              </>
-            ) : (
-              'Save Changes'
-            )}
-          </Button>
-        </div>
-      </form>
-    </Form>
-  )
-
   // Conditionally render Dialog or Sheet based on screen size
   if (isMobile) {
     return (
@@ -321,7 +340,13 @@ export default function UserEditModal({
             </SheetDescription>
           </SheetHeader>
           <div className="mt-6">
-            <FormContent />
+            <FormContent
+              form={form}
+              handleSubmit={handleSubmit}
+              handleOpenChange={handleOpenChange}
+              saveStatus={saveStatus}
+              isFormDirty={isFormDirty}
+            />
           </div>
         </SheetContent>
       </Sheet>
@@ -350,7 +375,13 @@ export default function UserEditModal({
             Update user details and notification preferences
           </DialogDescription>
         </DialogHeader>
-        <FormContent />
+        <FormContent
+          form={form}
+          handleSubmit={handleSubmit}
+          handleOpenChange={handleOpenChange}
+          saveStatus={saveStatus}
+          isFormDirty={isFormDirty}
+        />
       </DialogContent>
     </Dialog>
   )
