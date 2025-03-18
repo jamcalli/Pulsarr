@@ -18,6 +18,7 @@ async function init() {
         removeAdditional: 'all',
       },
     },
+    pluginTimeout: 60000,
   })
 
   await app.register(fp(serviceApp))

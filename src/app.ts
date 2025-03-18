@@ -24,13 +24,19 @@ export default async function serviceApp(
   // Load external plugins
   await fastify.register(fastifyAutoload, {
     dir: path.join(import.meta.dirname, 'plugins/external'),
-    options: { ...opts },
+    options: {
+      ...opts,
+      timeout: 30000,
+    },
   })
 
   // Load custom plugins
   fastify.register(fastifyAutoload, {
     dir: path.join(import.meta.dirname, 'plugins/custom'),
-    options: { ...opts },
+    options: {
+      ...opts,
+      timeout: 30000,
+    },
   })
 
   // Load routes
@@ -38,7 +44,10 @@ export default async function serviceApp(
     dir: path.join(import.meta.dirname, 'routes'),
     autoHooks: true,
     cascadeHooks: true,
-    options: { ...opts },
+    options: {
+      ...opts,
+      timeout: 30000,
+    },
   })
 
   // Error handler
