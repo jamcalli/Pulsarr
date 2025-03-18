@@ -316,12 +316,34 @@ export class DiscordNotificationService {
     notification: MediaNotification,
   ): Promise<boolean> {
     this.log.debug({ notification }, 'Creating media notification')
-    const payload = this.createMediaEmbed(notification)
+
+    // Look up user to get alias if available
+    let displayName = notification.username
+    try {
+      // Get all users and find the one matching the Plex username
+      const users = await this.fastify.db.getAllUsers()
+      const user = users.find((u) => u.name === notification.username)
+
+      // If the user has an alias set, use it instead of their username
+      if (user?.alias) {
+        displayName = user.alias
+        this.log.debug(
+          `Using alias "${displayName}" instead of username "${notification.username}" for webhook`,
+        )
+      }
+    } catch (error) {
+      this.log.error('Error looking up user alias for webhook:', error)
+      // Fall back to username if there's an error
+    }
+
+    // Create the media embed with the display name (alias or username)
+    const payload = this.createMediaEmbed(notification, displayName)
     return this.sendNotification(payload)
   }
 
   private createMediaEmbed(
     notification: MediaNotification,
+    displayName: string = notification.username,
   ): DiscordWebhookPayload {
     const emoji = notification.type === 'movie' ? '🎬' : '📺'
     const mediaType =
@@ -333,7 +355,7 @@ export class DiscordNotificationService {
       color: this.COLOR,
       timestamp: new Date().toISOString(),
       footer: {
-        text: `Added by ${notification.username}`,
+        text: `Added by ${displayName}`,
       },
       fields: [
         {
