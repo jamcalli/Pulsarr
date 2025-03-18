@@ -61,33 +61,52 @@ export const getWatchlist = async (
   url.searchParams.append('X-Plex-Container-Start', start.toString())
   url.searchParams.append('X-Plex-Container-Size', containerSize.toString())
 
-  const response = await fetch(url.toString(), {
-    headers: {
-      Accept: 'application/json',
-    },
-  })
+  try {
+    const response = await fetch(url.toString(), {
+      headers: {
+        Accept: 'application/json',
+      },
+    })
 
-  const contentType = response.headers.get('Content-Type')
-  if (!response.ok) {
-    if (response.status === 429) {
-      const retryAfter = response.headers.get('Retry-After')
-      const retryAfterMs = retryAfter
-        ? Number.parseInt(retryAfter, 10) * 1000
-        : 1000 * 2 ** retryCount
-      log.warn(
-        `Rate limited. Retrying after ${retryAfterMs} ms. Attempt ${retryCount + 1}`,
-      )
-      await new Promise((resolve) => setTimeout(resolve, retryAfterMs))
-      return getWatchlist(token, log, start, retryCount + 1)
+    const contentType = response.headers.get('Content-Type')
+    if (!response.ok) {
+      if (response.status === 429) {
+        const retryAfter = response.headers.get('Retry-After')
+        const retryAfterMs = retryAfter
+          ? Number.parseInt(retryAfter, 10) * 1000
+          : 1000 * 2 ** retryCount
+        log.warn(
+          `Rate limited. Retrying after ${retryAfterMs} ms. Attempt ${retryCount + 1}`,
+        )
+        await new Promise((resolve) => setTimeout(resolve, retryAfterMs))
+        return getWatchlist(token, log, start, retryCount + 1)
+      }
+      throw new Error(`Plex API error: ${response.statusText}`)
     }
-    throw new Error(`Plex API error: ${response.statusText}`)
-  }
 
-  if (contentType?.includes('application/json')) {
-    return response.json() as Promise<PlexResponse>
-  }
+    if (contentType?.includes('application/json')) {
+      const responseData = (await response.json()) as PlexResponse
 
-  throw new Error(`Unexpected content type: ${contentType}`)
+      // Ensure that MediaContainer and Metadata exist, defaults if they do not.
+      if (!responseData.MediaContainer) {
+        log.info('Plex API returned empty MediaContainer')
+        responseData.MediaContainer = { Metadata: [], totalSize: 0 }
+      }
+
+      if (!responseData.MediaContainer.Metadata) {
+        log.info('Plex API returned MediaContainer without Metadata array')
+        responseData.MediaContainer.Metadata = []
+      }
+
+      return responseData
+    }
+
+    throw new Error(`Unexpected content type: ${contentType}`)
+  } catch (error) {
+    log.error(`Error in getWatchlist: ${error}`)
+    // Incase of error eturn an empty response that matches the expected structure
+    return { MediaContainer: { Metadata: [], totalSize: 0 } }
+  }
 }
 
 export const fetchSelfWatchlist = async (
@@ -97,25 +116,40 @@ export const fetchSelfWatchlist = async (
 ): Promise<Set<TokenWatchlistItem>> => {
   const allItems = new Set<TokenWatchlistItem>()
 
+  if (!config.plexTokens || config.plexTokens.length === 0) {
+    log.warn('No Plex tokens configured')
+    return allItems
+  }
+
   for (const token of config.plexTokens) {
     let currentStart = 0
 
-    while (true) {
-      try {
+    try {
+      while (true) {
         log.debug(`Fetching watchlist for token with start: ${currentStart}`)
         const response = await getWatchlist(token, log, currentStart)
 
-        const items = response.MediaContainer.Metadata.map((metadata) => {
-          const id = metadata.key
-            .replace('/library/metadata/', '')
-            .replace('/children', '')
+        const metadata = response?.MediaContainer?.Metadata || []
+        const totalSize = response?.MediaContainer?.totalSize || 0
+
+        if (metadata.length === 0 && currentStart === 0) {
+          log.info('User has no items in their watchlist')
+          break
+        }
+
+        const items = metadata.map((metadata) => {
+          const key = metadata.key
+            ? metadata.key
+                .replace('/library/metadata/', '')
+                .replace('/children', '')
+            : `temp-${Date.now()}-${Math.random()}`
 
           return {
-            title: metadata.title,
-            id,
-            key: id,
-            thumb: metadata.thumb,
-            type: metadata.type,
+            title: metadata.title || 'Unknown Title',
+            id: key,
+            key: key,
+            thumb: metadata.thumb || null,
+            type: metadata.type || 'unknown',
             guids: [],
             genres: [],
             user_id: userId,
@@ -130,16 +164,15 @@ export const fetchSelfWatchlist = async (
           allItems.add(item as TokenWatchlistItem)
         }
 
-        if (response.MediaContainer.totalSize <= currentStart + items.length) {
+        if (totalSize <= currentStart + items.length) {
           log.debug('Completed processing all pages for current token')
           break
         }
 
         currentStart += items.length
-      } catch (err) {
-        log.error(`Error fetching watchlist: ${err}`)
-        break
       }
+    } catch (err) {
+      log.error(`Error fetching watchlist for token: ${err}`)
     }
   }
 
