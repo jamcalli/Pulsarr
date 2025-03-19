@@ -107,7 +107,7 @@ export interface Item {
   type: string
   ended?: boolean
   added?: string
-  status?: 'pending' | 'requested' | 'grabbed' | 'notified'
+  status?: 'pending' | 'requested' | 'grabbed' | 'notified' | 'removed'
   series_status?: 'continuing' | 'ended'
   genres?: string[]
   sonarr_instance_id?: number
@@ -156,7 +156,7 @@ export interface SonarrItem {
   type: string
   ended?: boolean
   added?: string
-  status?: 'pending' | 'requested' | 'grabbed' | 'notified'
+  status?: 'pending' | 'requested' | 'grabbed' | 'notified' | 'removed'
   series_status?: 'continuing' | 'ended'
   genres?: string[]
   sonarr_instance_id?: number

@@ -103,49 +103,119 @@ export class StatusService {
       userId: number
       key: string
       added?: string
-      status?: 'pending' | 'requested' | 'grabbed' | 'notified'
+      status?: 'pending' | 'requested' | 'grabbed' | 'notified' | 'removed'
       series_status?: 'continuing' | 'ended'
       sonarr_instance_id?: number
-    }> = []
+    }> = [];
+    
+    // First, check if we're getting data from any instances
+    const activeInstanceIds = new Set(
+      sonarrItems
+        .map(item => item.sonarr_instance_id)
+        .filter(id => id !== undefined && id !== null)
+    );
+    
+    if (activeInstanceIds.size === 0) {
+      this.log.warn('No active Sonarr instances detected - skipping status updates entirely');
+      return []; // Return empty updates array, maintaining current state
+    }
+    
+    // Create a map of existing Sonarr items by GUID for efficient lookup
+    const sonarrGuidMap = new Map<string, SonarrItem>();
+    for (const item of sonarrItems) {
+      for (const guid of item.guids) {
+        sonarrGuidMap.set(guid, item);
+      }
+    }
+    
     for (const item of watchlistItems) {
-      const sonarrMatch = this.findMatch(sonarrItems, item.guids)
+      // Parse guids consistently
+      const itemGuids: string[] = Array.isArray(item.guids) 
+        ? item.guids 
+        : typeof item.guids === 'string' 
+          ? JSON.parse(item.guids) 
+          : [];
+      
+      // Skip items that are already marked as removed
+      if (item.status === 'removed') {
+        continue;
+      }
+      
+      // Only consider items with associations to active instances
+      const itemInstanceId = item.sonarr_instance_id;
+      if (itemInstanceId && !activeInstanceIds.has(itemInstanceId)) {
+        // This item's instance is not reporting data - skip it
+        this.log.debug(
+          `Show "${item.title}" is associated with instance ${itemInstanceId} which is not active - skipping status check`
+        );
+        continue;
+      }
+      
+      // Check if this item exists in Sonarr at all
+      const existsInSonarr = itemGuids.some(guid => sonarrGuidMap.has(guid));
+      const hasSonarrAssociation = item.sonarr_instance_id !== null && 
+                                 item.sonarr_instance_id !== undefined;
+      
+                                 if (!existsInSonarr && hasSonarrAssociation && 
+                                  item.sonarr_instance_id !== undefined && 
+                                  activeInstanceIds.has(item.sonarr_instance_id)) {
+        // Item not found in Sonarr but has an association in database - mark as removed
+        // Only if the associated instance is active
+        updates.push({
+          userId: item.user_id,
+          key: item.key,
+          status: 'removed' as const,
+          sonarr_instance_id: undefined  // Clear instance association
+        });
+        
+        this.log.info(`Show "${item.title}" not found in Sonarr, marking as removed`);
+        continue;
+      }
+      
+      const sonarrMatch = this.findMatch(sonarrItems, item.guids);
       if (sonarrMatch) {
-        const instanceId = sonarrMatch.sonarr_instance_id || undefined
+        const instanceId = sonarrMatch.sonarr_instance_id || undefined;
         const update: {
           userId: number
           key: string
           added?: string
-          status?: 'pending' | 'requested' | 'grabbed' | 'notified'
+          status?: 'pending' | 'requested' | 'grabbed' | 'notified' | 'removed'
           series_status?: 'continuing' | 'ended'
           sonarr_instance_id?: number
         } = {
           userId: item.user_id,
           key: item.key,
-        }
+        };
+        
         if (item.added !== sonarrMatch.added) {
-          update.added = sonarrMatch.added
+          update.added = sonarrMatch.added;
         }
+        
         if (item.status !== sonarrMatch.status) {
           if (item.status !== 'notified') {
-            update.status = sonarrMatch.status
+            update.status = sonarrMatch.status;
           } else {
             this.log.debug(
               `Preventing status downgrade for show ${item.title} [${item.key}]: keeping 'notified' instead of changing to '${sonarrMatch.status}'`,
-            )
+            );
           }
         }
+        
         if (item.series_status !== sonarrMatch.series_status) {
-          update.series_status = sonarrMatch.series_status
+          update.series_status = sonarrMatch.series_status;
         }
+        
         if (item.sonarr_instance_id !== instanceId) {
-          update.sonarr_instance_id = instanceId
+          update.sonarr_instance_id = instanceId;
         }
+        
         if (Object.keys(update).length > 2) {
-          updates.push(update)
+          updates.push(update);
         }
       }
     }
-    return updates
+    
+    return updates;
   }
 
   private processMovieStatusUpdates(
@@ -156,51 +226,121 @@ export class StatusService {
       userId: number
       key: string
       added?: string
-      status?: 'pending' | 'requested' | 'grabbed' | 'notified'
+      status?: 'pending' | 'requested' | 'grabbed' | 'notified' | 'removed'
       movie_status?: 'available' | 'unavailable'
       radarr_instance_id?: number
-    }> = []
+    }> = [];
+    
+    // First, check if we're getting data from any instances
+    const activeInstanceIds = new Set(
+      radarrItems
+        .map(item => item.radarr_instance_id)
+        .filter(id => id !== undefined && id !== null)
+    );
+    
+    if (activeInstanceIds.size === 0) {
+      this.log.warn('No active Radarr instances detected - skipping status updates entirely');
+      return []; // Return empty updates array, maintaining current state
+    }
+    
+    // Create a map of existing Radarr items by GUID for efficient lookup
+    const radarrGuidMap = new Map<string, RadarrItem>();
+    for (const item of radarrItems) {
+      for (const guid of item.guids) {
+        radarrGuidMap.set(guid, item);
+      }
+    }
+    
     for (const item of watchlistItems) {
-      const radarrMatch = this.findMatch(radarrItems, item.guids)
+      // Parse guids consistently
+      const itemGuids: string[] = Array.isArray(item.guids) 
+        ? item.guids 
+        : typeof item.guids === 'string' 
+          ? JSON.parse(item.guids) 
+          : [];
+      
+      // Skip items that are already marked as removed
+      if (item.status === 'removed') {
+        continue;
+      }
+      
+      // Only consider items with associations to active instances
+      const itemInstanceId = item.radarr_instance_id;
+      if (itemInstanceId && !activeInstanceIds.has(itemInstanceId)) {
+        // This item's instance is not reporting data - skip it
+        this.log.debug(
+          `Movie "${item.title}" is associated with instance ${itemInstanceId} which is not active - skipping status check`
+        );
+        continue;
+      }
+      
+      // Check if this item exists in Radarr at all
+      const existsInRadarr = itemGuids.some(guid => radarrGuidMap.has(guid));
+      const hasRadarrAssociation = item.radarr_instance_id !== null && 
+                                  item.radarr_instance_id !== undefined;
+      
+                                  if (!existsInRadarr && hasRadarrAssociation && 
+                                    item.radarr_instance_id !== undefined && 
+                                    activeInstanceIds.has(item.radarr_instance_id)) {
+        // Item not found in Radarr but has an association in database - mark as removed
+        // Only if the associated instance is active
+        updates.push({
+          userId: item.user_id,
+          key: item.key,
+          status: 'removed' as const,
+          radarr_instance_id: undefined  // Clear instance association
+        });
+        
+        this.log.info(`Movie "${item.title}" not found in Radarr, marking as removed`);
+        continue;
+      }
+      
+      const radarrMatch = this.findMatch(radarrItems, item.guids);
       if (radarrMatch) {
-        const instanceId = radarrMatch.radarr_instance_id || undefined
+        const instanceId = radarrMatch.radarr_instance_id || undefined;
         const update: {
           userId: number
           key: string
           added?: string
-          status?: 'pending' | 'requested' | 'grabbed' | 'notified'
+          status?: 'pending' | 'requested' | 'grabbed' | 'notified' | 'removed'
           movie_status?: 'available' | 'unavailable'
           radarr_instance_id?: number
         } = {
           userId: item.user_id,
           key: item.key,
-        }
+        };
+        
         if (item.added !== radarrMatch.added) {
-          update.added = radarrMatch.added
+          update.added = radarrMatch.added;
         }
+        
         if (item.status !== radarrMatch.status) {
           if (item.status !== 'notified') {
-            update.status = radarrMatch.status
+            update.status = radarrMatch.status;
           } else {
             this.log.debug(
               `Preventing status downgrade for movie ${item.title} [${item.key}]: keeping 'notified' instead of changing to '${radarrMatch.status}'`,
-            )
+            );
           }
         }
+        
         if (item.movie_status !== radarrMatch.movie_status) {
           update.movie_status = radarrMatch.movie_status as
             | 'available'
-            | 'unavailable'
+            | 'unavailable';
         }
+        
         if (item.radarr_instance_id !== instanceId) {
-          update.radarr_instance_id = instanceId
+          update.radarr_instance_id = instanceId;
         }
+        
         if (Object.keys(update).length > 2) {
-          updates.push(update)
+          updates.push(update);
         }
       }
     }
-    return updates
+    
+    return updates;
   }
 
   // Junction table updates

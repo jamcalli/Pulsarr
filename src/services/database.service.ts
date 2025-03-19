@@ -1445,7 +1445,7 @@ export class DatabaseService {
       userId: number
       key: string
       added?: string
-      status?: 'pending' | 'requested' | 'grabbed' | 'notified'
+      status?: 'pending' | 'requested' | 'grabbed' | 'notified' | 'removed'
       series_status?: 'continuing' | 'ended'
       movie_status?: 'available' | 'unavailable'
       last_notified_at?: string
@@ -1797,7 +1797,7 @@ export class DatabaseService {
       key: string
       userId: number
       added?: string
-      status?: 'pending' | 'requested' | 'grabbed' | 'notified'
+      status?: 'pending' | 'requested' | 'grabbed' | 'notified' | 'removed'
       series_status?: 'continuing' | 'ended'
     }>,
   ): Promise<number> {

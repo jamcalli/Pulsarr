@@ -67,7 +67,7 @@ export interface Item {
   type: 'movie'
   ended?: boolean
   added?: string
-  status?: 'pending' | 'requested' | 'grabbed' | 'notified'
+  status?: 'pending' | 'requested' | 'grabbed' | 'notified' | 'removed'
   movie_status?: 'available' | 'unavailable'
   genres?: string[]
   radarr_instance_id?: number

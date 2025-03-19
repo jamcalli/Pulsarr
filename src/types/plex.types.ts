@@ -63,7 +63,7 @@ export interface Item {
   guids?: string[] | string
   genres?: string[] | string
   user_id: number
-  status: 'pending' | 'requested' | 'grabbed' | 'notified'
+  status: 'pending' | 'requested' | 'grabbed' | 'notified' | 'removed'
   series_status?: 'continuing' | 'ended'
   movie_status?: 'available' | 'unavailable'
   sonarr_instance_id?: number
