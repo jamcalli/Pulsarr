@@ -2,6 +2,9 @@ FROM node:23.6.0-alpine AS builder
 
 WORKDIR /app
 
+# Set cache dir
+ENV CACHE_DIR=/app/build-cache
+
 # Copy build essentials
 COPY package*.json ./
 COPY src ./src
@@ -16,12 +19,15 @@ RUN npm ci
 # Build
 RUN npm run build
 
-# Ensure cache directory exists for build
-RUN mkdir -p node_modules/.cache/@fastify/vite
+# Ensure cache dir
+RUN mkdir -p ${CACHE_DIR}
 
 FROM node:23.6.0-alpine
 
 WORKDIR /app
+
+# cache dir in final
+ENV CACHE_DIR=/app/build-cache
 
 # Copy package files and install dependencies
 COPY package*.json ./
@@ -30,11 +36,11 @@ RUN npm ci
 # Create necessary directories
 RUN mkdir -p /app/data/db && \
     mkdir -p /app/data/log && \
-    mkdir -p node_modules/.cache/@fastify/vite
+    mkdir -p ${CACHE_DIR}
 
 # Copy build artifacts, config, and cache
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules/.cache/@fastify/vite/vite.config.dist.json ./node_modules/.cache/@fastify/vite/
+COPY --from=builder ${CACHE_DIR} ${CACHE_DIR}
 COPY vite.config.js ./
 COPY migrations ./migrations
 COPY docker-entrypoint.sh ./
@@ -43,6 +49,8 @@ RUN chmod +x docker-entrypoint.sh
 # Set production environment
 ENV NODE_ENV=production
 
+# Make volumes
+VOLUME ${CACHE_DIR}
 VOLUME /app/data
 EXPOSE 3003
 
