@@ -18,4 +18,5 @@ export default {
       '@root': resolve(import.meta.dirname, 'src'),
     },
   },
+  cacheDir: process.env.NODE_ENV === 'production' ? false : undefined,
 }
