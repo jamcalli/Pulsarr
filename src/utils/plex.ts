@@ -753,7 +753,7 @@ export const getRssFromPlexToken = async (
 
 export const fetchWatchlistFromRss = async (
   url: string,
-  prefix: 'selfRSS' | 'otherRSS',
+  prefix: 'selfRSS' | 'friendsRSS',
   userId: number,
   log: FastifyBaseLogger,
 ): Promise<Set<Item>> => {
