@@ -33,10 +33,31 @@ export class SonarrService {
   }
 
   private constructWebhookUrl(): string {
-    const url = new URL(this.appBaseUrl)
-    url.port = this.port.toString()
+    let url: URL
+
+    try {
+      // Try to parse as a complete URL
+      url = new URL(this.appBaseUrl)
+    } catch (error) {
+      // If parsing fails, assume it's a hostname without protocol
+      url = new URL(`http://${this.appBaseUrl}`)
+    }
+
+    // If there's no explicit port in the URL already
+    if (!url.port) {
+      // For HTTPS protocol, don't add a port (use default 443)
+      if (url.protocol === 'https:') {
+        // Leave port empty
+      } else {
+        // For all other protocols (including HTTP), add the configured port
+        url.port = this.port.toString()
+      }
+    }
+
+    // Set the webhook path
     url.pathname = '/v1/notifications/webhook'
 
+    // Add instance identifier for tracking
     const urlIdentifier = this.sonarrConfig.sonarrBaseUrl
       .replace(/https?:\/\//, '')
       .replace(/[^a-zA-Z0-9]/g, '')
