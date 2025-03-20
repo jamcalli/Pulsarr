@@ -943,7 +943,7 @@ export class PlexWatchlistService {
   ): Promise<{ total: number; users: WatchlistGroup[] }> {
     const friendsItems = await fetchWatchlistFromRss(
       rssUrl,
-      'otherRSS',
+      'friendsRSS',
       1,
       this.log,
     )
@@ -1031,6 +1031,21 @@ export class PlexWatchlistService {
                 userId: user.userId,
               },
             )
+
+            // Check for existing notification to avoid duplicates
+            const existingNotification =
+              await this.dbService.getExistingWebhookNotification(
+                user.userId,
+                'watchlist_add',
+                item.title,
+              )
+
+            if (existingNotification) {
+              this.log.info(
+                `Skipping webhook notification for "${item.title}" - already sent previously to user ${user.username}`,
+              )
+              break
+            }
 
             const notificationSent =
               await this.fastify.discord.sendMediaNotification({
@@ -1178,8 +1193,22 @@ export class PlexWatchlistService {
             const isNewItem = !itemGuids.some((guid: string) =>
               userExistingGuids.has(guid.toLowerCase()),
             )
-
             if (isNewItem) {
+              // Check for existing notification to avoid duplicates
+              const existingNotification =
+                await this.dbService.getExistingWebhookNotification(
+                  friend.userId,
+                  'watchlist_add',
+                  item.title,
+                )
+
+              if (existingNotification) {
+                this.log.info(
+                  `Skipping webhook notification for "${item.title}" - already sent previously to user ${friend.username}`,
+                )
+                break
+              }
+
               const notificationSent =
                 await this.fastify.discord.sendMediaNotification({
                   username: friend.username,
