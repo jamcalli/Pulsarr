@@ -1141,35 +1141,21 @@ export class PlexWatchlistService {
     this.log.info(
       `Found ${pendingItems.length} pending RSS items to match during friend sync`,
     )
+
     let matchCount = 0
     let noMatchCount = 0
     let duplicateCount = 0
     const matchedItemIds: number[] = []
     const duplicateItemIds: number[] = []
 
-    const userIds = Array.from(userWatchlistMap.keys()).map(
-      (user) => user.userId,
-    )
-    const existingItems = await this.dbService.getBulkWatchlistItems(
-      userIds,
-      [],
-    )
-    const existingGuidsMap = new Map<number, Set<string>>()
-
-    for (const item of existingItems) {
-      if (!item.user_id) continue
-      const guids = this.safeParseArray<string>(item.guids)
-      if (!existingGuidsMap.has(item.user_id)) {
-        existingGuidsMap.set(item.user_id, new Set<string>())
-      }
-      for (const guid of guids) {
-        existingGuidsMap.get(item.user_id)?.add(guid.toLowerCase())
-      }
-    }
-
     for (const pendingItem of pendingItems) {
       const pendingGuids = this.safeParseArray<string>(pendingItem.guids)
-      let foundAnyMatch = false
+
+      this.log.debug(
+        `Processing RSS item "${pendingItem.title}" with GUIDs:`,
+        pendingGuids,
+      )
+      let foundMatch = false
 
       for (const [friend, items] of userWatchlistMap.entries()) {
         for (const item of items) {
@@ -1177,80 +1163,72 @@ export class PlexWatchlistService {
 
           const hasMatch = pendingGuids.some((pendingGuid: string) =>
             itemGuids.some(
-              (guid) => guid.toLowerCase() === pendingGuid.toLowerCase(),
+              (itemGuid: string) =>
+                itemGuid.toLowerCase() === pendingGuid.toLowerCase(),
             ),
           )
 
           if (hasMatch) {
-            foundAnyMatch = true
+            foundMatch = true
             matchCount++
             matchedItemIds.push(pendingItem.id)
 
-            const userExistingGuids =
-              existingGuidsMap.get(friend.userId) || new Set<string>()
-
-            const isNewItem = !itemGuids.some((guid: string) =>
-              userExistingGuids.has(guid.toLowerCase()),
+            this.log.info(
+              `Matched item "${pendingItem.title}" to user ${friend.username}'s item "${item.title}"`,
+              {
+                pendingGuids,
+                itemGuids,
+                userId: friend.userId,
+              },
             )
-            if (isNewItem) {
-              // Check for existing notification to avoid duplicates
-              const existingNotification =
-                await this.dbService.getExistingWebhookNotification(
-                  friend.userId,
-                  'watchlist_add',
-                  item.title,
-                )
 
-              if (existingNotification) {
-                this.log.info(
-                  `Skipping webhook notification for "${item.title}" - already sent previously to user ${friend.username}`,
-                )
-                break
-              }
-
-              const notificationSent =
-                await this.fastify.discord.sendMediaNotification({
-                  username: friend.username,
-                  title: item.title,
-                  type: item.type as 'movie' | 'show',
-                  posterUrl: item.thumb,
-                })
-
-              if (notificationSent) {
-                const itemId =
-                  typeof item.id === 'string'
-                    ? Number.parseInt(item.id, 10)
-                    : item.id
-                await this.dbService.createNotificationRecord({
-                  watchlist_item_id: !Number.isNaN(itemId) ? itemId : null,
-                  user_id: friend.userId,
-                  type: 'watchlist_add',
-                  title: item.title,
-                  message: `New ${item.type} added to watchlist`,
-                  sent_to_discord: false,
-                  sent_to_email: false,
-                  sent_to_webhook: true,
-                })
-              }
-
-              this.log.info(
-                `Sent notification for new item "${item.title}" for user ${friend.username}`,
-                {
-                  pendingGuids,
-                  itemGuids,
-                  userId: friend.userId,
-                  notificationSent,
-                },
+            // Check for existing notification to avoid duplicates
+            const existingNotification =
+              await this.dbService.getExistingWebhookNotification(
+                friend.userId,
+                'watchlist_add',
+                item.title,
               )
+
+            if (existingNotification) {
+              this.log.info(
+                `Skipping webhook notification for "${item.title}" - already sent previously to user ${friend.username}`,
+              )
+              break
+            }
+
+            const notificationSent =
+              await this.fastify.discord.sendMediaNotification({
+                username: friend.username,
+                title: item.title,
+                type: item.type as 'movie' | 'show',
+                posterUrl: item.thumb,
+              })
+
+            if (notificationSent) {
+              const itemId =
+                typeof item.id === 'string'
+                  ? Number.parseInt(item.id, 10)
+                  : item.id
+              await this.dbService.createNotificationRecord({
+                watchlist_item_id: !Number.isNaN(itemId) ? itemId : null,
+                user_id: friend.userId,
+                type: 'watchlist_add',
+                title: item.title,
+                message: `New ${item.type} added to watchlist`,
+                sent_to_discord: false,
+                sent_to_email: false,
+                sent_to_webhook: true,
+              })
             }
 
             break
           }
         }
-        if (foundAnyMatch) break
+        if (foundMatch) break
       }
 
-      if (!foundAnyMatch) {
+      if (!foundMatch) {
         noMatchCount++
 
         let existsInDatabase = false
@@ -1283,7 +1261,7 @@ export class PlexWatchlistService {
           duplicateItemIds.push(pendingItem.id)
         } else {
           this.log.warn(
-            `No matches found for friend RSS item "${pendingItem.title}" (possibly recently removed from watchlist)`,
+            `No match found for friend RSS item "${pendingItem.title}" (possibly recently removed from watchlist)`,
             {
               itemTitle: pendingItem.title,
               pendingGuids,
