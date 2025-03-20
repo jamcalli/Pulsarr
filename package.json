@@ -1,6 +1,6 @@
 {
   "name": "pulsarr",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "Plex watchlist tracker and notification center that integrates with the Arr stack",
   "main": "build/server.js",
   "type": "module",
