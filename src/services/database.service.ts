@@ -2300,6 +2300,33 @@ export class DatabaseService {
   }
 
   /**
+   * Checks if a webhook notification exists for a particular item and user
+   *
+   * This method is used to prevent duplicate webhook notifications when
+   * processing watchlist items.
+   *
+   * @param userId - ID of the user who would receive the notification
+   * @param type - Type of notification to check for
+   * @param title - Title of the content item
+   * @returns Promise resolving to the notification if found, undefined otherwise
+   */
+  async getExistingWebhookNotification(
+    userId: number,
+    type: string,
+    title: string,
+  ): Promise<{ id: number } | undefined> {
+    return await this.knex('notifications')
+      .where({
+        user_id: userId,
+        type,
+        title,
+        sent_to_webhook: true,
+      })
+      .select('id')
+      .first()
+  }
+
+  /**
    * Resets notification status for content items
    *
    * @param options - Options for filtering which notifications to reset
