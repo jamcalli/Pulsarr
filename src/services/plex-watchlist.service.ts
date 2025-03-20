@@ -71,14 +71,13 @@ export class PlexWatchlistService {
 
         const items = await fetchSelfWatchlist(tokenConfig, this.log, userId)
 
-        if (items.size > 0) {
-          const tokenUser: Friend = {
-            watchlistId: username,
-            username: username,
-            userId: userId,
-          }
-          userWatchlistMap.set(tokenUser, items)
+        // Add user to map regardless of item count
+        const tokenUser: Friend = {
+          watchlistId: username,
+          username: username,
+          userId: userId,
         }
+        userWatchlistMap.set(tokenUser, items)
       }),
     )
 
