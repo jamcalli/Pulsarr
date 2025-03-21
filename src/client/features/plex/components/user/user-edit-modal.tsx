@@ -31,16 +31,17 @@ import type { UserWatchlistInfo } from '@/stores/configStore'
 import { plexUserSchema } from '@/features/plex/store/schemas'
 import type { PlexUserSchema } from '@/features/plex/store/schemas'
 import { useMediaQuery } from '@/hooks/use-media-query'
+import type { UpdateUser } from '@root/schemas/users/users.schema'
+import type { UserStatus } from '@/features/plex/hooks/usePlexUser'
 
 interface FormContentProps {
   form: ReturnType<typeof useForm<PlexUserSchema>>
   handleSubmit: (values: PlexUserSchema) => Promise<void>
   handleOpenChange: (open: boolean) => void
-  saveStatus: 'idle' | 'loading' | 'success' | 'error'
+  saveStatus: UserStatus
   isFormDirty: boolean
 }
 
-// Extracted and memoized form content component
 const FormContent = React.memo(
   ({
     form,
@@ -262,8 +263,8 @@ interface UserEditModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   user: UserWatchlistInfo | null
-  onSave: (userId: string, updates: Partial<UserWatchlistInfo>) => Promise<void>
-  saveStatus: 'idle' | 'loading' | 'success' | 'error'
+  onSave: (userId: string, updates: UpdateUser) => Promise<void>
+  saveStatus: UserStatus
 }
 
 export default function UserEditModal({
@@ -292,7 +293,7 @@ export default function UserEditModal({
     if (user) {
       form.reset({
         name: user.name,
-        email: user.email,
+        email: user.email || '',
         alias: user.alias,
         discord_id: user.discord_id,
         notify_email: user.notify_email,
@@ -304,7 +305,19 @@ export default function UserEditModal({
 
   const handleSubmit = async (values: PlexUserSchema) => {
     if (!user) return
-    await onSave(user.id, values)
+
+    // Convert to UpdateUser type for API compatibility
+    const updates: UpdateUser = {
+      name: values.name,
+      email: values.email,
+      alias: values.alias,
+      discord_id: values.discord_id,
+      notify_email: values.notify_email,
+      notify_discord: values.notify_discord,
+      can_sync: values.can_sync,
+    }
+
+    await onSave(user.id, updates)
   }
 
   const handleOpenChange = (newOpen: boolean) => {
