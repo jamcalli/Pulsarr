@@ -29,31 +29,13 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
 import { useMediaQuery } from '@/hooks/use-media-query'
-import { z } from 'zod'
-import type { UserWatchlistInfo } from '@/stores/configStore'
-import type { Row } from '@tanstack/react-table'
-import type { PlexUserUpdates } from '@/features/plex/store/types'
-
-// Define the type for table rows
-type PlexUserTableRow = Row<UserWatchlistInfo>
-
-// Define the status type
-type BulkUpdateStatus = 'idle' | 'loading' | 'success' | 'error'
-
-// Simplified schema for bulk updates
-const bulkUpdateSchema = z.object({
-  // Clear fields
-  clearAlias: z.boolean().default(false),
-  clearDiscordId: z.boolean().default(false),
-  clearEmail: z.boolean().default(false),
-  // Toggle settings
-  setEmailNotify: z.boolean().default(false),
-  emailNotifyValue: z.boolean().default(false),
-  setDiscordNotify: z.boolean().default(false),
-  discordNotifyValue: z.boolean().default(false),
-  setCanSync: z.boolean().default(false),
-  canSyncValue: z.boolean().default(true),
-})
+import type { z } from 'zod'
+import type {
+  PlexUserUpdates,
+  PlexUserTableRow,
+  BulkUpdateStatus,
+} from '@/features/plex/store/types'
+import { bulkUpdateSchema } from '@/features/plex/store/schemas'
 
 type BulkUpdateSchema = z.infer<typeof bulkUpdateSchema>
 

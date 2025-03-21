@@ -35,3 +35,17 @@ export const plexUserSchema = z
   )
 
 export type PlexUserSchema = z.infer<typeof plexUserSchema>
+
+export const bulkUpdateSchema = z.object({
+  // Clear fields
+  clearAlias: z.boolean().default(false),
+  clearDiscordId: z.boolean().default(false),
+  clearEmail: z.boolean().default(false),
+  // Toggle settings
+  setEmailNotify: z.boolean().default(false),
+  emailNotifyValue: z.boolean().default(false),
+  setDiscordNotify: z.boolean().default(false),
+  discordNotifyValue: z.boolean().default(false),
+  setCanSync: z.boolean().default(false),
+  canSyncValue: z.boolean().default(true),
+})

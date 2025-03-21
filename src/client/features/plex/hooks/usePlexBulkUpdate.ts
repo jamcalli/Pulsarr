@@ -6,6 +6,7 @@ import type {
   PlexUserTableRow,
   PlexUserUpdates,
 } from '@/features/plex/store/types'
+import type { BulkUpdateRequest } from '@root/schemas/users/users.schema'
 
 export type BulkUpdateStatus = 'idle' | 'loading' | 'success' | 'error'
 
@@ -31,16 +32,18 @@ export function usePlexBulkUpdate() {
         setTimeout(resolve, MIN_LOADING_DELAY),
       )
 
+      const requestBody: BulkUpdateRequest = {
+        userIds,
+        updates,
+      }
+
       const [response] = await Promise.all([
         fetch('/v1/users/bulk', {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            userIds,
-            updates,
-          }),
+          body: JSON.stringify(requestBody),
         }),
         minimumLoadingTime,
       ])
