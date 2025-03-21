@@ -81,8 +81,13 @@ export class PlexWatchlistService {
       }),
     )
 
+    // Don't error out if a user has no items in their watch list.
     if (userWatchlistMap.size === 0) {
-      throw new Error('Unable to fetch watchlist items')
+      this.log.info('No items in self watchlist, returning empty result')
+      return {
+        total: 0,
+        users: [],
+      }
     }
 
     const { allKeys, userKeyMap } =
