@@ -172,6 +172,16 @@ export class PlexWatchlistService {
     }
 
     const friends = await getFriends(this.config, this.log)
+
+    // Early check for no friends
+    if (friends.size === 0) {
+      this.log.info('You do not appear to have any friends... 😢')
+      return {
+        total: 0,
+        users: [],
+      }
+    }
+
     const userMap = await this.ensureFriendUsers(friends)
 
     const friendsWithIds = new Set(
@@ -199,8 +209,17 @@ export class PlexWatchlistService {
       (userId: number) => this.dbService.getAllWatchlistItemsForUser(userId),
     )
 
-    if (userWatchlistMap.size === 0) {
+    // Only throw error if expected to have items but got none
+    if (userWatchlistMap.size === 0 && friendsWithIds.size > 0) {
       throw new Error("Unable to fetch others' watchlist items")
+    }
+
+    // If no friends or no watchlist items, return an empty result structure
+    if (userWatchlistMap.size === 0) {
+      return {
+        total: 0,
+        users: [],
+      }
     }
 
     const { allKeys, userKeyMap } =
