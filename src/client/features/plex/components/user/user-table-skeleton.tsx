@@ -2,7 +2,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { TableCell, TableRow } from '@/components/ui/table'
 
 export default function UserTableSkeletonRows({
-  colSpan = 6,
+  colSpan = 7, // Updated default to include checkbox column
 }: { colSpan?: number }) {
   const skeletonRows = Array.from({ length: 10 }, (_, i) => `skeleton-row-${i}`)
 
@@ -16,11 +16,15 @@ export default function UserTableSkeletonRows({
             </TableCell>
           ) : (
             <>
+              {/* Checkbox cell */}
+              <TableCell className="px-2 py-2 w-8">
+                <Skeleton className="h-4 w-4 rounded-sm" />
+              </TableCell>
+
               {/* Username cell - always visible */}
               <TableCell className="px-2 py-2">
                 <div className="flex flex-col space-y-1">
                   <Skeleton className="h-4 w-32" />
-                  <Skeleton className="h-3 w-16" />
                 </div>
               </TableCell>
 
