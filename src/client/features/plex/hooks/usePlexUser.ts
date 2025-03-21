@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react'
 import { useToast } from '@/hooks/use-toast'
 import { useConfigStore } from '@/stores/configStore'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
-
 import type { UserWatchlistInfo } from '@/stores/configStore'
+import type { UpdateUser } from '@root/schemas/users/users.schema'
 
 export type UserStatus = 'idle' | 'loading' | 'success' | 'error'
 
@@ -35,17 +35,36 @@ export function usePlexUser() {
     setIsEditModalOpen(true)
   }
 
-  const handleUpdateUser = async (
-    userId: string,
-    updates: Partial<UserWatchlistInfo>,
-  ) => {
+  const handleUpdateUser = async (userId: string, updates: UpdateUser) => {
     setSaveStatus('loading')
     try {
       const minimumLoadingTime = new Promise((resolve) =>
         setTimeout(resolve, MIN_LOADING_DELAY),
       )
 
-      await Promise.all([updateUser(userId, updates), minimumLoadingTime])
+      // Convert UpdateUser to Partial<UserWatchlistInfo> to match the expected type
+      const compatibleUpdates: Partial<UserWatchlistInfo> = {
+        ...(updates.name !== undefined && { name: updates.name }),
+        ...(updates.email !== undefined && {
+          email: updates.email === null ? undefined : updates.email,
+        }),
+        ...(updates.alias !== undefined && { alias: updates.alias }),
+        ...(updates.discord_id !== undefined && {
+          discord_id: updates.discord_id,
+        }),
+        ...(updates.notify_email !== undefined && {
+          notify_email: updates.notify_email,
+        }),
+        ...(updates.notify_discord !== undefined && {
+          notify_discord: updates.notify_discord,
+        }),
+        ...(updates.can_sync !== undefined && { can_sync: updates.can_sync }),
+      }
+
+      await Promise.all([
+        updateUser(userId, compatibleUpdates),
+        minimumLoadingTime,
+      ])
 
       setSaveStatus('success')
       toast({
