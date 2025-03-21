@@ -25,6 +25,20 @@ jobs:
             echo "is_prerelease=false" >> $GITHUB_OUTPUT
           fi
       
+      - name: Check branch for beta releases
+        id: check-branch
+        if: steps.check-prerelease.outputs.is_prerelease == 'true'
+        run: |
+          CURRENT_BRANCH=$(git branch --contains ${{ github.ref }} | grep -v "HEAD" | sed 's/^[ *]*//' | head -n 1)
+          echo "Current branch: $CURRENT_BRANCH"
+          if [[ "$CURRENT_BRANCH" == "develop" ]]; then
+            echo "is_valid_branch=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_valid_branch=false" >> $GITHUB_OUTPUT
+            echo "Beta releases should only be created from the develop branch"
+            exit 1
+          fi
+      
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
@@ -35,6 +49,7 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=beta,enable=${{ steps.check-prerelease.outputs.is_prerelease == 'true' }}
       
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
