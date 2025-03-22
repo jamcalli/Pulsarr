@@ -251,7 +251,8 @@ export class DatabaseService {
             }
           } catch (batchError) {
             this.log.error(`Error updating user batch: ${batchError}`)
-            failedIds.push(...batchIds)
+            // Option 2: rethrow batch errors for strict atomicity
+            throw batchError; // Force rollback
           }
         }
       })
