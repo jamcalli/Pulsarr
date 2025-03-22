@@ -74,81 +74,95 @@ const FormContent = ({
               cannot be undone.
             </AlertDescription>
           </Alert>
-          <div className="space-y-4">
-            <h3 className="text-text text-sm font-medium">Clear fields</h3>
+
+          {/* Clear fields section */}
+          <div className="space-y-4 pt-4">
+            <h3 className="text-lg font-medium text-text">Clear fields</h3>
+
             {/* Clear Alias */}
-            <FormField
-              control={form.control}
-              name="clearAlias"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                      disabled={saveStatus !== 'idle'}
-                    />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel className="text-text">Clear alias</FormLabel>
-                    <FormDescription>
-                      Remove all aliases from selected users
-                    </FormDescription>
-                  </div>
-                </FormItem>
-              )}
-            />
+            <div className="space-y-2">
+              <FormField
+                control={form.control}
+                name="clearAlias"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        disabled={saveStatus !== 'idle'}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="text-text">Clear alias</FormLabel>
+                      <FormDescription>
+                        Remove all aliases from selected users
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            </div>
+
             {/* Clear Discord ID */}
-            <FormField
-              control={form.control}
-              name="clearDiscordId"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                      disabled={saveStatus !== 'idle'}
-                    />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel className="text-text">
-                      Clear Discord IDs
-                    </FormLabel>
-                    <FormDescription>
-                      Remove all Discord IDs from selected users
-                    </FormDescription>
-                  </div>
-                </FormItem>
-              )}
-            />
+            <div className="space-y-2">
+              <FormField
+                control={form.control}
+                name="clearDiscordId"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        disabled={saveStatus !== 'idle'}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="text-text">
+                        Clear Discord IDs
+                      </FormLabel>
+                      <FormDescription>
+                        Remove all Discord IDs from selected users
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            </div>
+
             {/* Clear Email */}
-            <FormField
-              control={form.control}
-              name="clearEmail"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                  <FormControl>
-                    <Checkbox
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                      disabled={saveStatus !== 'idle'}
-                    />
-                  </FormControl>
-                  <div className="space-y-1 leading-none">
-                    <FormLabel className="text-text">
-                      Reset to placeholder emails
-                    </FormLabel>
-                    <FormDescription>
-                      Reset all email addresses to username@placeholder.com
-                    </FormDescription>
-                  </div>
-                </FormItem>
-              )}
-            />
+            <div className="space-y-2">
+              <FormField
+                control={form.control}
+                name="clearEmail"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        disabled={saveStatus !== 'idle'}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="text-text">
+                        Reset to placeholder emails
+                      </FormLabel>
+                      <FormDescription>
+                        Reset all email addresses to username@placeholder.com
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
+              />
+            </div>
           </div>
-          <div className="space-y-4 pt-2">
-            <h3 className="text-text text-sm font-medium">Set permissions</h3>
+
+          {/* Set permissions section */}
+          <div className="space-y-4 pt-4">
+            <h3 className="text-lg font-medium text-text">Set permissions</h3>
+
             {/* Email Notifications */}
             <div className="space-y-2">
               <FormField
@@ -208,6 +222,7 @@ const FormContent = ({
                 />
               )}
             </div>
+
             {/* Discord Notifications */}
             <div className="space-y-2">
               <FormField
@@ -267,6 +282,7 @@ const FormContent = ({
                 />
               )}
             </div>
+
             {/* Can Sync */}
             <div className="space-y-2">
               <FormField
@@ -424,7 +440,7 @@ export default function BulkEditModal({
       if (values.setEmailNotify) {
         updates.notify_email = false
       } else {
-        // Add this to explicitly disable notifications for placeholder emails
+        // Explicitly disable notifications for placeholder emails
         updates.notify_email = false
       }
     } else if (values.setEmailNotify) {
@@ -437,7 +453,7 @@ export default function BulkEditModal({
       if (values.setDiscordNotify) {
         updates.notify_discord = false
       } else {
-        // Add this to explicitly disable notifications without Discord ID
+        // Explicitly disable notifications without Discord ID
         updates.notify_discord = false
       }
     } else if (values.setDiscordNotify) {
