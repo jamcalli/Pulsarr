@@ -13,6 +13,7 @@ import { AspectRatio } from '@/components/ui/aspect-ratio'
 import planetDesktop from '@/assets/images/planet.webp'
 import planetMobile from '@/assets/images/planet-m.webp'
 import PulsarrIcon from '@/assets/images/pulsarr.svg'
+import { VersionDisplay } from '@/components/ui/version-display'
 
 const setFavicon = () => {
   const link =
@@ -88,6 +89,14 @@ function RootLayout() {
               >
                 Plex watchlist tracker and notification center.
               </p>
+            </div>
+
+            {/* Version display in bottom right corner */}
+            <div className="absolute bottom-2 right-2 z-10">
+              <VersionDisplay
+                className="text-xs opacity-50"
+                style={{ color: 'var(--static-text)' }}
+              />
             </div>
           </CRTOverlay>
         </div>
