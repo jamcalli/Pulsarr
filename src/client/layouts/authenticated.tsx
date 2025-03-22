@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 import WindowedLayout from './window'
 import { useProgressStore } from '@/stores/progressStore'
@@ -13,13 +13,19 @@ export default function AuthenticatedLayout({
 }: AuthenticatedLayoutProps) {
   const initialize = useProgressStore((state) => state.initialize)
   const cleanup = useProgressStore((state) => state.cleanup)
+  const initialized = useRef(false)
 
   useVersionCheck('jamcalli', 'Pulsarr')
 
   useEffect(() => {
-    initialize()
+    if (!initialized.current) {
+      initialize()
+      initialized.current = true
+    }
+
     return () => {
       cleanup()
+      initialized.current = false
     }
   }, [initialize, cleanup])
 
