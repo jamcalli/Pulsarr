@@ -104,7 +104,7 @@ export const getWatchlist = async (
     throw new Error(`Unexpected content type: ${contentType}`)
   } catch (error) {
     log.error(`Error in getWatchlist: ${error}`)
-    // Incase of error eturn an empty response that matches the expected structure
+    // Incase of error return an empty response that matches the expected structure
     return { MediaContainer: { Metadata: [], totalSize: 0 } }
   }
 }
