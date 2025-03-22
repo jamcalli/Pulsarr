@@ -221,7 +221,7 @@ export class DatabaseService {
           updated_at: this.timestamp,
         }
 
-        // For efficiency with large arrays, we'll update in batches
+        // For efficiency with large arrays, do batches
         const BATCH_SIZE = 50
         for (let i = 0; i < userIds.length; i += BATCH_SIZE) {
           const batchIds = userIds.slice(i, i + BATCH_SIZE)
@@ -237,7 +237,6 @@ export class DatabaseService {
 
             // Track failed IDs by comparing with updated count
             if (result < batchIds.length) {
-              // Find which users didn't get updated (likely don't exist)
               const updatedUsers = await trx('users')
                 .whereIn('id', batchIds)
                 .select('id')
@@ -251,8 +250,7 @@ export class DatabaseService {
             }
           } catch (batchError) {
             this.log.error(`Error updating user batch: ${batchError}`)
-            // Option 2: rethrow batch errors for strict atomicity
-            throw batchError; // Force rollback
+            throw batchError
           }
         }
       })
