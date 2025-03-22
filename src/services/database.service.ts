@@ -199,6 +199,73 @@ export class DatabaseService {
   }
 
   /**
+   * Bulk updates multiple users with the same set of changes
+   *
+   * @param userIds - Array of user IDs to update
+   * @param data - Partial user data to apply to all specified users
+   * @returns Promise resolving to object with count of updated users and array of failed IDs
+   */
+  async bulkUpdateUsers(
+    userIds: number[],
+    data: Partial<Omit<User, 'id' | 'created_at' | 'updated_at'>>,
+  ): Promise<{ updatedCount: number; failedIds: number[] }> {
+    const failedIds: number[] = []
+    let updatedCount = 0
+
+    try {
+      // Start a transaction to ensure all updates are atomic
+      await this.knex.transaction(async (trx) => {
+        // Prepare the update data with timestamp
+        const updateData = {
+          ...data,
+          updated_at: this.timestamp,
+        }
+
+        // For efficiency with large arrays, do batches
+        const BATCH_SIZE = 50
+        for (let i = 0; i < userIds.length; i += BATCH_SIZE) {
+          const batchIds = userIds.slice(i, i + BATCH_SIZE)
+
+          try {
+            // Perform the batch update
+            const result = await trx('users')
+              .whereIn('id', batchIds)
+              .update(updateData)
+
+            // Add successfully updated count
+            updatedCount += result
+
+            // Track failed IDs by comparing with updated count
+            if (result < batchIds.length) {
+              const updatedUsers = await trx('users')
+                .whereIn('id', batchIds)
+                .select('id')
+
+              const updatedIds = updatedUsers.map((user) => user.id)
+              const missingIds = batchIds.filter(
+                (id) => !updatedIds.includes(id),
+              )
+
+              failedIds.push(...missingIds)
+            }
+          } catch (batchError) {
+            this.log.error(`Error updating user batch: ${batchError}`)
+            throw batchError
+          }
+        }
+      })
+    } catch (error) {
+      this.log.error(`Error in bulk user update transaction: ${error}`)
+      return { updatedCount: 0, failedIds: userIds }
+    }
+
+    this.log.info(
+      `Bulk updated ${updatedCount} users, ${failedIds.length} failed`,
+    )
+    return { updatedCount, failedIds }
+  }
+
+  /**
    * Retrieves all users in the database
    *
    * @returns Promise resolving to an array of all users

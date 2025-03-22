@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useConfigStore } from '@/stores/configStore'
 import { usePlexUser } from '@/features/plex/hooks/usePlexUser'
+import { usePlexBulkUpdate } from '@/features/plex/hooks/usePlexBulkUpdate'
 import UserTable from '@/features/plex/components/user/user-table'
 import UserEditModal from '@/features/plex/components/user/user-edit-modal'
+import BulkEditModal from '@/features/plex/components/user/bulk-edit-modal'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
+import type { PlexUserUpdates } from '@/features/plex/store/types'
 
 export default function UserTableSection() {
   const {
@@ -16,6 +19,15 @@ export default function UserTableSection() {
     handleUpdateUser,
   } = usePlexUser()
 
+  const {
+    bulkEditModalOpen,
+    setBulkEditModalOpen,
+    updateStatus: bulkUpdateStatus,
+    selectedRows,
+    handleOpenBulkEditModal,
+    handleBulkUpdate,
+  } = usePlexBulkUpdate()
+
   const [isLoading, setIsLoading] = useState(true)
   const [minLoadingComplete, setMinLoadingComplete] = useState(false)
   const isInitialized = useConfigStore((state) => state.isInitialized)
@@ -24,7 +36,6 @@ export default function UserTableSection() {
   // Setup minimum loading time
   useEffect(() => {
     let isMounted = true
-
     const timer = setTimeout(() => {
       if (isMounted) {
         setMinLoadingComplete(true)
@@ -47,6 +58,15 @@ export default function UserTableSection() {
     }
   }, [isInitialized, minLoadingComplete])
 
+  const handleBulkUpdateWithStringIds = async (
+    userIds: string[],
+    updates: PlexUserUpdates,
+  ) => {
+    // Convert string IDs to numbers
+    const numericUserIds = userIds.map((id) => Number(id))
+    return handleBulkUpdate(numericUserIds, updates)
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between">
@@ -63,13 +83,23 @@ export default function UserTableSection() {
               users={users || []}
               onEditUser={handleEditUser}
               isLoading={isLoading}
+              onBulkEdit={handleOpenBulkEditModal}
             />
+            {/* Individual user edit modal */}
             <UserEditModal
               open={isEditModalOpen}
               onOpenChange={setIsEditModalOpen}
               user={selectedUser}
               onSave={handleUpdateUser}
               saveStatus={saveStatus}
+            />
+            {/* Bulk edit modal */}
+            <BulkEditModal
+              open={bulkEditModalOpen}
+              onOpenChange={setBulkEditModalOpen}
+              selectedRows={selectedRows}
+              onSave={handleBulkUpdateWithStringIds}
+              saveStatus={bulkUpdateStatus}
             />
           </>
         )}

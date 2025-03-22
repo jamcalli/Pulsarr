@@ -1,18 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 import { useToast } from '@/hooks/use-toast'
 import { useConfigStore } from '@/stores/configStore'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
+import { plexTokenSchema } from '@/features/plex/store/schemas'
+import type { PlexTokenSchema } from '@/features/plex/store/schemas'
+import type { Config } from '@root/schemas/config/config.schema'
 
 export type ConnectionStatus = 'idle' | 'loading' | 'success' | 'error'
-
-const plexTokenFormSchema = z.object({
-  plexToken: z.string().min(5, { message: 'Plex Token is required' }),
-})
-
-export type PlexTokenFormSchema = z.infer<typeof plexTokenFormSchema>
 
 export function usePlexConnection() {
   const { toast } = useToast()
@@ -22,8 +18,8 @@ export function usePlexConnection() {
   const [status, setStatus] = useState<ConnectionStatus>('idle')
   const [isLoading, setIsLoading] = useState(true)
 
-  const form = useForm<PlexTokenFormSchema>({
-    resolver: zodResolver(plexTokenFormSchema),
+  const form = useForm<PlexTokenSchema>({
+    resolver: zodResolver(plexTokenSchema),
     defaultValues: {
       plexToken: '',
     },
@@ -43,19 +39,18 @@ export function usePlexConnection() {
     }
   }, [config, form])
 
-  const handleUpdateToken = async (data: PlexTokenFormSchema) => {
+  const handleUpdateToken = async (data: PlexTokenSchema) => {
     setStatus('loading')
     try {
       const minimumLoadingTime = new Promise((resolve) =>
         setTimeout(resolve, MIN_LOADING_DELAY),
       )
 
-      await Promise.all([
-        updateConfig({
-          plexTokens: [data.plexToken],
-        }),
-        minimumLoadingTime,
-      ])
+      const configUpdate: Partial<Config> = {
+        plexTokens: [data.plexToken],
+      }
+
+      await Promise.all([updateConfig(configUpdate), minimumLoadingTime])
 
       setStatus('success')
       toast({
@@ -83,12 +78,12 @@ export function usePlexConnection() {
         setTimeout(resolve, MIN_LOADING_DELAY),
       )
 
-      await Promise.all([
-        updateConfig({
-          plexTokens: [],
-        }),
-        minimumLoadingTime,
-      ])
+      // Create a config update with empty plexTokens array
+      const configUpdate: Partial<Config> = {
+        plexTokens: [],
+      }
+
+      await Promise.all([updateConfig(configUpdate), minimumLoadingTime])
 
       form.reset({ plexToken: '' })
       setStatus('idle')

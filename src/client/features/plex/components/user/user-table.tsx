@@ -22,6 +22,7 @@ import {
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -48,6 +49,7 @@ import {
 } from '@/components/ui/select'
 import type { UserWatchlistInfo } from '@/stores/configStore'
 import UserTableSkeletonRows from '@/features/plex/components/user/user-table-skeleton'
+import type { PlexUserTableRow } from '@/features/plex/store/types'
 
 interface ColumnMetaType {
   className?: string
@@ -58,12 +60,14 @@ interface UserTableProps {
   users: UserWatchlistInfo[]
   onEditUser: (user: UserWatchlistInfo) => void
   isLoading?: boolean
+  onBulkEdit?: (selectedRows: PlexUserTableRow[]) => void
 }
 
 export default function UserTable({
   users,
   onEditUser,
   isLoading = false,
+  onBulkEdit,
 }: UserTableProps) {
   // Table state
   const [sorting, setSorting] = React.useState<SortingState>([])
@@ -75,6 +79,30 @@ export default function UserTable({
   const [rowSelection, setRowSelection] = React.useState({})
 
   const columns: ColumnDef<UserWatchlistInfo>[] = [
+    {
+      id: 'select',
+      header: ({ table }) => (
+        <Checkbox
+          checked={
+            table.getIsAllPageRowsSelected() ||
+            (table.getIsSomePageRowsSelected() && 'indeterminate')
+          }
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="Select all"
+          disabled={isLoading}
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label="Select row"
+          disabled={isLoading}
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false,
+    },
     {
       accessorKey: 'name',
       header: ({ column }) => {
@@ -225,42 +253,77 @@ export default function UserTable({
 
   return (
     <div className="w-full font-base text-mtext">
-      <div className="flex items-center justify-between py-4">
-        <Input
-          placeholder="Filter by username..."
-          value={(table.getColumn('name')?.getFilterValue() as string) ?? ''}
-          onChange={(event) =>
-            table.getColumn('name')?.setFilterValue(event.target.value)
-          }
-          className="w-full max-w-sm min-w-0"
-          disabled={isLoading}
-        />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="noShadow" className="ml-4" disabled={isLoading}>
-              Columns <ChevronDown className="ml-2 h-4 w-4" />
+      <div>
+        <div className="flex items-center justify-between py-4">
+          <Input
+            placeholder="Filter by username..."
+            value={(table.getColumn('name')?.getFilterValue() as string) ?? ''}
+            onChange={(event) =>
+              table.getColumn('name')?.setFilterValue(event.target.value)
+            }
+            className="w-full max-w-sm min-w-0"
+            disabled={isLoading}
+          />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="noShadow" className="ml-4" disabled={isLoading}>
+                Columns <ChevronDown className="ml-2 h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {table
+                .getAllColumns()
+                .filter((column) => column.getCanHide())
+                .map((column) => {
+                  return (
+                    <DropdownMenuCheckboxItem
+                      key={column.id}
+                      className="capitalize"
+                      checked={column.getIsVisible()}
+                      onCheckedChange={(value) =>
+                        column.toggleVisibility(!!value)
+                      }
+                    >
+                      {column.id}
+                    </DropdownMenuCheckboxItem>
+                  )
+                })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        {/* Bulk edit button that appears when rows are selected */}
+        {table.getFilteredSelectedRowModel().rows.length > 0 && onBulkEdit && (
+          <div className="pb-4">
+            <Button
+              variant="blue"
+              size="sm"
+              className="flex items-center gap-2"
+              onClick={() => {
+                onBulkEdit(table.getFilteredSelectedRowModel().rows)
+              }}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="lucide lucide-edit"
+                aria-labelledby="editIconTitle"
+              >
+                <title id="editIconTitle">Edit Icon</title>
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+              Bulk Edit ({table.getFilteredSelectedRowModel().rows.length})
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {table
-              .getAllColumns()
-              .filter((column) => column.getCanHide())
-              .map((column) => {
-                return (
-                  <DropdownMenuCheckboxItem
-                    key={column.id}
-                    className="capitalize"
-                    checked={column.getIsVisible()}
-                    onCheckedChange={(value) =>
-                      column.toggleVisibility(!!value)
-                    }
-                  >
-                    {column.id}
-                  </DropdownMenuCheckboxItem>
-                )
-              })}
-          </DropdownMenuContent>
-        </DropdownMenu>
+          </div>
+        )}
       </div>
       <div className="rounded-md">
         <Table>
