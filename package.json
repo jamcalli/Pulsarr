@@ -106,6 +106,7 @@
     "sonner": "^1.7.4",
     "tailwind-merge": "^3.0.1",
     "tailwindcss-animate": "^1.0.7",
+    "toad-scheduler": "^3.0.1",
     "tsx": "^4.19.2",
     "vaul": "^1.1.2",
     "vite": "^6.1.0",
