@@ -23,7 +23,6 @@ export const useVersionCheck = (repoOwner: string, repoName: string) => {
         const data: GitHubRelease = await response.json();
         
         // Remove 'v' prefix if present for comparison
-        // Use proper semantic versioning comparison
         const currentVersion = __APP_VERSION__.replace(/^v/, '');
         const latestVersion = data.tag_name.replace(/^v/, '');
         
@@ -44,7 +43,6 @@ export const useVersionCheck = (repoOwner: string, repoName: string) => {
         };
         
         if (isNewerVersion(currentVersion, latestVersion)) {
-        if (latestVersion !== currentVersion) {
           const handleClick = () => {
             window.open(data.html_url, '_blank', 'noopener,noreferrer');
           };
@@ -65,7 +63,6 @@ export const useVersionCheck = (repoOwner: string, repoName: string) => {
             variant: 'default',
             duration: 8000,
           });
-          
         }
       } catch (err) {
         console.error("Error checking for updates:", err);
