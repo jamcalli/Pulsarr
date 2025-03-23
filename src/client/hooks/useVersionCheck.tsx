@@ -45,6 +45,7 @@ export const useVersionCheck = (repoOwner: string, repoName: string) => {
               </div>
             ),
             variant: 'default',
+            duration: 8000,
           });
           
         }
@@ -53,6 +54,10 @@ export const useVersionCheck = (repoOwner: string, repoName: string) => {
       }
     };
 
-    checkForUpdates();
-  }, []);
+    const timeoutId = setTimeout(() => {
+      checkForUpdates();
+    }, 3000);
+    
+    return () => clearTimeout(timeoutId);
+  }, [toast, repoOwner, repoName]);
 };
