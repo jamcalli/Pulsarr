@@ -86,7 +86,7 @@ export const useProgressStore = create<ProgressState>()(
         }
       }
 
-      set({ eventSource, isConnected: true })
+      set({ eventSource })
     },
 
     cleanup: () => {
