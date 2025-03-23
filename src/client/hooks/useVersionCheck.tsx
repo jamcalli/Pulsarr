@@ -50,7 +50,11 @@ export const useVersionCheck = (repoOwner: string, repoName: string) => {
           });
         }
       } catch (err) {
-        console.error("Error checking for updates:", err);
+        if (err instanceof Error) {
+          console.error(`Error checking for updates: ${err.message}`);
+        } else {
+          console.error("Unknown error checking for updates:", err);
+        }
       }
     };
 
