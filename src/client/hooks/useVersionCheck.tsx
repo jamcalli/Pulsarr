@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useToast } from '@/hooks/use-toast'
+import semver from 'semver'
 
 declare const __APP_VERSION__: string
 
@@ -22,27 +23,11 @@ export const useVersionCheck = (repoOwner: string, repoName: string) => {
         
         const data: GitHubRelease = await response.json();
         
-        // Remove 'v' prefix if present for comparison
+        // Clean version strings for semver comparison
         const currentVersion = __APP_VERSION__.replace(/^v/, '');
         const latestVersion = data.tag_name.replace(/^v/, '');
         
-        // Simple semver comparison function
-        const isNewerVersion = (current: string, latest: string): boolean => {
-          const currentParts = current.split('.').map(Number);
-          const latestParts = latest.split('.').map(Number);
-          
-          for (let i = 0; i < Math.max(currentParts.length, latestParts.length); i++) {
-            const currentPart = currentParts[i] || 0;
-            const latestPart = latestParts[i] || 0;
-            
-            if (latestPart > currentPart) return true;
-            if (latestPart < currentPart) return false;
-          }
-          
-          return false; // Versions are equal
-        };
-        
-        if (isNewerVersion(currentVersion, latestVersion)) {
+        if (semver.gt(latestVersion, currentVersion)) {
           const handleClick = () => {
             window.open(data.html_url, '_blank', 'noopener,noreferrer');
           };
