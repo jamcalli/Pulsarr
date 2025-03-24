@@ -163,6 +163,10 @@ const schema = {
       type: 'boolean',
       default: true,
     },
+    respectUserSyncSetting: {
+      type: 'boolean',
+      default: true,
+    },
     selfRss: {
       type: 'string',
     },

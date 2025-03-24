@@ -66,6 +66,7 @@ export interface Config {
   deleteContinuingShow: boolean
   deleteIntervalDays: number
   deleteFiles: boolean
+  respectUserSyncSetting: boolean
   // RSS Config
   selfRss?: string
   friendsRss?: string

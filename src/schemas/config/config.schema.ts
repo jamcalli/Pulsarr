@@ -38,6 +38,7 @@ export const ConfigSchema = z.object({
   deleteContinuingShow: z.boolean().optional(),
   deleteIntervalDays: z.number().optional(),
   deleteFiles: z.boolean().optional(),
+  respectUserSyncSetting: z.boolean().optional(),
   selfRss: z.string().optional(),
   friendsRss: z.string().optional(),
   _isReady: z.boolean().optional(),

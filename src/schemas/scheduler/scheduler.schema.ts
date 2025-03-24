@@ -53,6 +53,37 @@ export const ErrorResponseSchema = z.object({
   error: z.string(),
 })
 
+// Schema for delete sync dry run results
+export const DeleteItemSchema = z.object({
+  title: z.string(),
+  guid: z.string(),
+  instance: z.string(),
+})
+
+export const DeletionContentTypeResultSchema = z.object({
+  deleted: z.number(),
+  skipped: z.number(),
+  items: z.array(DeleteItemSchema),
+})
+
+export const DeleteSyncResultSchema = z.object({
+  total: z.object({
+    deleted: z.number(),
+    skipped: z.number(),
+    processed: z.number(),
+  }),
+  movies: DeletionContentTypeResultSchema,
+  shows: DeletionContentTypeResultSchema,
+  safetyTriggered: z.boolean().optional(),
+  safetyMessage: z.string().optional(),
+})
+
+export const DeleteSyncDryRunResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  results: DeleteSyncResultSchema,
+})
+
 // Inferred types for exports
 export type IntervalConfig = z.infer<typeof IntervalConfigSchema>
 export type CronConfig = z.infer<typeof CronConfigSchema>
@@ -61,3 +92,11 @@ export type JobRunInfo = z.infer<typeof JobRunInfoSchema>
 export type JobStatus = z.infer<typeof JobStatusSchema>
 export type SuccessResponse = z.infer<typeof SuccessResponseSchema>
 export type ErrorResponse = z.infer<typeof ErrorResponseSchema>
+export type DeleteItem = z.infer<typeof DeleteItemSchema>
+export type DeletionContentTypeResult = z.infer<
+  typeof DeletionContentTypeResultSchema
+>
+export type DeleteSyncResult = z.infer<typeof DeleteSyncResultSchema>
+export type DeleteSyncDryRunResponse = z.infer<
+  typeof DeleteSyncDryRunResponseSchema
+>
