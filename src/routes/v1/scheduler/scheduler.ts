@@ -2,11 +2,13 @@ import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import {
   ScheduleConfigSchema,
+  ScheduleUpdateSchema,
   JobStatusSchema,
   SuccessResponseSchema,
   DeleteSyncDryRunResponseSchema,
   ErrorResponseSchema,
   type ScheduleConfig,
+  type ScheduleUpdate,
 } from '@schemas/scheduler/scheduler.schema.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
@@ -104,13 +106,13 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   // Update a job schedule
   fastify.put<{
     Params: { name: string }
-    Body: Partial<Omit<ScheduleConfig, 'name'>>
+    Body: ScheduleUpdate
   }>(
     '/schedules/:name',
     {
       schema: {
         params: z.object({ name: z.string() }),
-        body: ScheduleConfigSchema.omit({ name: true }).partial(),
+        body: ScheduleUpdateSchema,
         response: {
           200: SuccessResponseSchema,
           404: ErrorResponseSchema,

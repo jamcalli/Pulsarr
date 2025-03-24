@@ -22,6 +22,7 @@
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
+import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
 
 export class DeleteSyncService {
   /**
@@ -102,193 +103,59 @@ export class DeleteSyncService {
         `Starting delete sync operation${dryRun ? ' (DRY RUN)' : ''}`,
       )
 
-      // Skip if deletion features are not enabled in configuration
+      // Step 1: Skip if deletion features are not enabled in configuration
       if (!this.isDeleteEnabled()) {
-        this.log.info(
+        return this.createEmptyResult(
           'Delete sync is not enabled in configuration, skipping operation',
         )
-        return {
-          total: { deleted: 0, skipped: 0, processed: 0 },
-          movies: { deleted: 0, skipped: 0, items: [] },
-          shows: { deleted: 0, skipped: 0, items: [] },
-        }
       }
 
-      this.log.debug('Delete configuration:', {
-        deleteMovie: this.config.deleteMovie,
-        deleteEndedShow: this.config.deleteEndedShow,
-        deleteContinuingShow: this.config.deleteContinuingShow,
-        deleteFiles: this.config.deleteFiles,
-        respectUserSyncSetting: this.config.respectUserSyncSetting,
-        deleteSyncNotify: this.config.deleteSyncNotify,
-        dryRun: dryRun,
-      })
+      this.logDeleteConfiguration(dryRun)
 
-      // Always fetch fresh watchlist data before starting
-      this.log.info('Refreshing watchlists to ensure we have current data')
-      try {
-        await Promise.all([
-          this.fastify.plexWatchlist.getSelfWatchlist(),
-          this.fastify.plexWatchlist.getOthersWatchlists(),
-        ])
-        this.log.info('Watchlists refreshed successfully')
-      } catch (refreshError) {
-        this.log.error('Error refreshing watchlist data:', refreshError)
-
-        const result = {
-          total: { deleted: 0, skipped: 0, processed: 0 },
-          movies: { deleted: 0, skipped: 0, items: [] },
-          shows: { deleted: 0, skipped: 0, items: [] },
-          safetyTriggered: true,
-          safetyMessage: `Failed to refresh watchlist data: ${refreshError instanceof Error ? refreshError.message : String(refreshError)}`,
-        }
-
-        // Send notification about the safety trigger if enabled
-        if (this.config.deleteSyncNotify !== 'none' && this.fastify.discord) {
-          try {
-            await this.fastify.discord.sendDeleteSyncNotification(
-              result,
-              dryRun,
-            )
-          } catch (notifyError) {
-            this.log.error(
-              'Error sending delete sync notification:',
-              notifyError,
-            )
-          }
-        }
-
-        return result
+      // Step 2: Refresh watchlists to ensure current data
+      const refreshResult = await this.refreshWatchlists()
+      if (!refreshResult.success) {
+        return this.createSafetyTriggeredResult(refreshResult.message, dryRun)
       }
 
-      // Get all watchlisted content GUIDs with respect to user sync settings
-      this.log.info('Retrieving all watchlisted content')
+      // Step 3: Get all watchlisted content GUIDs
       const allWatchlistItems = await this.getAllWatchlistItems(
         this.config.respectUserSyncSetting,
       )
 
-      // Ensure we have at least some watchlist items
+      // Step 4: Ensure we have at least some watchlist items (safety check)
       if (allWatchlistItems.size === 0) {
-        const errorMsg =
-          'No watchlist items found - this could be an error condition. Aborting delete sync to prevent mass deletion.'
-        this.log.error(errorMsg)
-
-        const result = {
-          total: { deleted: 0, skipped: 0, processed: 0 },
-          movies: { deleted: 0, skipped: 0, items: [] },
-          shows: { deleted: 0, skipped: 0, items: [] },
-          safetyTriggered: true,
-          safetyMessage: errorMsg,
-        }
-
-        // Send notification about the safety trigger if enabled
-        if (this.config.deleteSyncNotify !== 'none' && this.fastify.discord) {
-          try {
-            await this.fastify.discord.sendDeleteSyncNotification(
-              result,
-              dryRun,
-            )
-          } catch (notifyError) {
-            this.log.error(
-              'Error sending delete sync notification:',
-              notifyError,
-            )
-          }
-        }
-
-        return result
+        return this.createSafetyTriggeredResult(
+          'No watchlist items found - this could be an error condition. Aborting delete sync to prevent mass deletion.',
+          dryRun,
+        )
       }
 
       this.log.info(
         `Found ${allWatchlistItems.size} unique GUIDs across all watchlists${this.config.respectUserSyncSetting ? ' (respecting user sync settings)' : ''}`,
       )
 
-      // Fetch all content from media management servers
-      this.log.info('Retrieving all content from Sonarr and Radarr instances')
-      const [existingSeries, existingMovies] = await Promise.all([
-        this.sonarrManager.fetchAllSeries(),
-        this.radarrManager.fetchAllMovies(),
-      ])
-      this.log.info(
-        `Found ${existingSeries.length} series in Sonarr and ${existingMovies.length} movies in Radarr`,
+      // Step 5: Fetch all content from media management servers
+      const { existingSeries, existingMovies } =
+        await this.fetchAllMediaContent()
+
+      // Step 6: Perform safety check for mass deletion prevention
+      const safetyResult = this.performSafetyCheck(
+        existingSeries,
+        existingMovies,
+        allWatchlistItems,
       )
 
-      // First, analyze what would be deleted to check percentages
-      const totalMediaItems = existingSeries.length + existingMovies.length
-
-      // Calculate deletion percentages by doing a count of items that would be deleted
-      let potentialMovieDeletes = 0
-      let potentialShowDeletes = 0
-
-      // Count movies not in watchlist
-      for (const movie of existingMovies) {
-        const exists = movie.guids.some((guid) => allWatchlistItems.has(guid))
-        if (!exists) {
-          potentialMovieDeletes++
-        }
+      if (!safetyResult.safe) {
+        return this.createSafetyTriggeredResult(
+          safetyResult.message,
+          dryRun,
+          existingSeries.length,
+          existingMovies.length,
+        )
       }
 
-      // Count shows not in watchlist
-      for (const show of existingSeries) {
-        const exists = show.guids.some((guid) => allWatchlistItems.has(guid))
-        if (!exists) {
-          potentialShowDeletes++
-        }
-      }
-
-      const totalPotentialDeletes = potentialMovieDeletes + potentialShowDeletes
-      const potentialDeletionPercentage =
-        totalMediaItems > 0
-          ? (totalPotentialDeletes / totalMediaItems) * 100
-          : 0
-
-      // Prevent mass deletion if percentage is too high
-      const MAX_DELETION_PERCENTAGE = this.config.maxDeletionPrevention
-
-      if (potentialDeletionPercentage > MAX_DELETION_PERCENTAGE) {
-        const abortMsg = `Safety check failed: Would delete ${totalPotentialDeletes} out of ${totalMediaItems} items (${potentialDeletionPercentage.toFixed(2)}%), which exceeds maximum allowed percentage of ${MAX_DELETION_PERCENTAGE}%.`
-        this.log.error(abortMsg)
-        this.log.error('Delete operation aborted to prevent mass deletion.')
-
-        const result = {
-          total: {
-            deleted: 0,
-            skipped: totalMediaItems,
-            processed: totalMediaItems,
-          },
-          movies: {
-            deleted: 0,
-            skipped: existingMovies.length,
-            items: [],
-          },
-          shows: {
-            deleted: 0,
-            skipped: existingSeries.length,
-            items: [],
-          },
-          safetyTriggered: true,
-          safetyMessage: abortMsg,
-        }
-
-        // Send notification about the safety trigger if enabled
-        if (this.config.deleteSyncNotify !== 'none' && this.fastify.discord) {
-          try {
-            await this.fastify.discord.sendDeleteSyncNotification(
-              result,
-              dryRun,
-            )
-          } catch (notifyError) {
-            this.log.error(
-              'Error sending delete sync notification:',
-              notifyError,
-            )
-          }
-        }
-
-        return result
-      }
-
-      // If everything is safe, proceed with the actual processing
+      // Step 7: If everything is safe, proceed with the actual processing
       const result = await this.processDeleteSync(
         existingSeries,
         existingMovies,
@@ -300,23 +167,197 @@ export class DeleteSyncService {
         `Delete sync operation ${dryRun ? 'simulation' : ''} completed successfully`,
       )
 
-      // Send notification about the delete sync results if enabled
-      if (this.config.deleteSyncNotify !== 'none' && this.fastify.discord) {
-        try {
-          await this.fastify.discord.sendDeleteSyncNotification(result, dryRun)
-        } catch (notifyError) {
-          this.log.error('Error sending delete sync notification:', notifyError)
-        }
-      }
+      // Step 8: Send notifications about results if enabled
+      await this.sendNotificationsIfEnabled(result, dryRun)
 
       return result
     } catch (error) {
-      this.log.error('Error in delete sync operation:', {
-        error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
-      })
+      this.logError('Error in delete sync operation:', error)
       throw error
     }
+  }
+
+  /**
+   * Creates an empty result object when deletion is skipped
+   */
+  private createEmptyResult(logMessage: string): DeleteSyncResult {
+    this.log.info(logMessage)
+    return {
+      total: { deleted: 0, skipped: 0, processed: 0 },
+      movies: { deleted: 0, skipped: 0, items: [] },
+      shows: { deleted: 0, skipped: 0, items: [] },
+    }
+  }
+
+  /**
+   * Creates a result object for when safety was triggered
+   */
+  private createSafetyTriggeredResult(
+    message: string,
+    dryRun: boolean,
+    seriesCount = 0,
+    moviesCount = 0,
+  ): DeleteSyncResult {
+    this.log.error(message)
+    this.log.error('Delete operation aborted to prevent mass deletion.')
+
+    const result = {
+      total: {
+        deleted: 0,
+        skipped: seriesCount + moviesCount,
+        processed: seriesCount + moviesCount,
+      },
+      movies: {
+        deleted: 0,
+        skipped: moviesCount,
+        items: [],
+      },
+      shows: {
+        deleted: 0,
+        skipped: seriesCount,
+        items: [],
+      },
+      safetyTriggered: true,
+      safetyMessage: message,
+    }
+
+    // Send notification about the safety trigger if enabled
+    this.sendNotificationsIfEnabled(result, dryRun).catch((error) => {
+      this.logError('Error sending delete sync notification:', error)
+    })
+
+    return result
+  }
+
+  /**
+   * Logs the current delete configuration
+   */
+  private logDeleteConfiguration(dryRun: boolean): void {
+    this.log.debug('Delete configuration:', {
+      deleteMovie: this.config.deleteMovie,
+      deleteEndedShow: this.config.deleteEndedShow,
+      deleteContinuingShow: this.config.deleteContinuingShow,
+      deleteFiles: this.config.deleteFiles,
+      respectUserSyncSetting: this.config.respectUserSyncSetting,
+      deleteSyncNotify: this.config.deleteSyncNotify,
+      dryRun: dryRun,
+    })
+  }
+
+  /**
+   * Refreshes all watchlists to ensure current data
+   */
+  private async refreshWatchlists(): Promise<{
+    success: boolean
+    message: string
+  }> {
+    this.log.info('Refreshing watchlists to ensure we have current data')
+    try {
+      await Promise.all([
+        this.fastify.plexWatchlist.getSelfWatchlist(),
+        this.fastify.plexWatchlist.getOthersWatchlists(),
+      ])
+      this.log.info('Watchlists refreshed successfully')
+      return { success: true, message: 'Watchlists refreshed successfully' }
+    } catch (refreshError) {
+      const errorMessage = `Failed to refresh watchlist data: ${
+        refreshError instanceof Error
+          ? refreshError.message
+          : String(refreshError)
+      }`
+      this.log.error('Error refreshing watchlist data:', refreshError)
+      return { success: false, message: errorMessage }
+    }
+  }
+
+  /**
+   * Fetches all content from media management servers
+   */
+  private async fetchAllMediaContent(): Promise<{
+    existingSeries: SonarrItem[]
+    existingMovies: RadarrItem[]
+  }> {
+    this.log.info('Retrieving all content from Sonarr and Radarr instances')
+    const [existingSeries, existingMovies] = await Promise.all([
+      this.sonarrManager.fetchAllSeries(),
+      this.radarrManager.fetchAllMovies(),
+    ])
+    this.log.info(
+      `Found ${existingSeries.length} series in Sonarr and ${existingMovies.length} movies in Radarr`,
+    )
+    return { existingSeries, existingMovies }
+  }
+
+  /**
+   * Performs safety check to prevent mass deletion
+   */
+  private performSafetyCheck(
+    existingSeries: SonarrItem[],
+    existingMovies: RadarrItem[],
+    allWatchlistItems: Set<string>,
+  ): { safe: boolean; message: string } {
+    // Calculate deletion percentages by doing a count of items that would be deleted
+    let potentialMovieDeletes = 0
+    let potentialShowDeletes = 0
+    const totalMediaItems = existingSeries.length + existingMovies.length
+
+    // Count movies not in watchlist
+    for (const movie of existingMovies) {
+      const exists = movie.guids.some((guid) => allWatchlistItems.has(guid))
+      if (!exists) {
+        potentialMovieDeletes++
+      }
+    }
+
+    // Count shows not in watchlist
+    for (const show of existingSeries) {
+      const exists = show.guids.some((guid) => allWatchlistItems.has(guid))
+      if (!exists) {
+        potentialShowDeletes++
+      }
+    }
+
+    const totalPotentialDeletes = potentialMovieDeletes + potentialShowDeletes
+    const potentialDeletionPercentage =
+      totalMediaItems > 0 ? (totalPotentialDeletes / totalMediaItems) * 100 : 0
+
+    // Prevent mass deletion if percentage is too high
+    const MAX_DELETION_PERCENTAGE = this.config.maxDeletionPrevention
+
+    if (potentialDeletionPercentage > MAX_DELETION_PERCENTAGE) {
+      return {
+        safe: false,
+        message: `Safety check failed: Would delete ${totalPotentialDeletes} out of ${totalMediaItems} items (${potentialDeletionPercentage.toFixed(2)}%), which exceeds maximum allowed percentage of ${MAX_DELETION_PERCENTAGE}%.`,
+      }
+    }
+
+    return { safe: true, message: 'Safety check passed' }
+  }
+
+  /**
+   * Sends notifications about delete sync results if enabled
+   */
+  private async sendNotificationsIfEnabled(
+    result: DeleteSyncResult,
+    dryRun: boolean,
+  ): Promise<void> {
+    if (this.config.deleteSyncNotify !== 'none' && this.fastify.discord) {
+      try {
+        await this.fastify.discord.sendDeleteSyncNotification(result, dryRun)
+      } catch (notifyError) {
+        this.log.error('Error sending delete sync notification:', notifyError)
+      }
+    }
+  }
+
+  /**
+   * Helper method to log errors with consistent format
+   */
+  private logError(message: string, error: unknown): void {
+    this.log.error(message, {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    })
   }
 
   /**
