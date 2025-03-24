@@ -20,6 +20,8 @@ export type LogLevel =
   | 'trace'
   | 'silent'
 
+export type DeleteSyncNotifyOption = 'none' | 'message' | 'webhook' | 'both'
+
 export interface Config {
   // System Config
   baseUrl: string
@@ -66,6 +68,7 @@ export interface Config {
   deleteContinuingShow: boolean
   deleteFiles: boolean
   respectUserSyncSetting: boolean
+  deleteSyncNotify: DeleteSyncNotifyOption
   // RSS Config
   selfRss?: string
   friendsRss?: string
