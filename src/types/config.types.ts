@@ -20,6 +20,8 @@ export type LogLevel =
   | 'trace'
   | 'silent'
 
+export type DeleteSyncNotifyOption = 'none' | 'message' | 'webhook' | 'both'
+
 export interface Config {
   // System Config
   baseUrl: string
@@ -64,8 +66,10 @@ export interface Config {
   deleteMovie: boolean
   deleteEndedShow: boolean
   deleteContinuingShow: boolean
-  deleteIntervalDays: number
   deleteFiles: boolean
+  respectUserSyncSetting: boolean
+  deleteSyncNotify: DeleteSyncNotifyOption
+  maxDeletionPrevention: number
   // RSS Config
   selfRss?: string
   friendsRss?: string

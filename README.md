@@ -314,8 +314,9 @@ skipFriendSync=false                   # Skip syncing Plex friends
 deleteMovie=false                      # Auto-delete movies setting
 deleteEndedShow=false                  # Auto-delete ended shows setting
 deleteContinuingShow=false             # Auto-delete continuing shows setting
-deleteIntervalDays=7                   # Days to wait before deletion
 deleteFiles=true                       # Delete files from disk setting
+deleteSyncNotify=none                  # Notify of delete sync status: 'none' | 'message' | 'webhook' | 'both'
+maxDeletionPrevention=10               # Safeguard to prevent mass deletion. % of total library to allow during delete sync
 ```
 
 ## Usage
