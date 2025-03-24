@@ -501,7 +501,6 @@ export class DatabaseService {
         deleteMovie: config.deleteMovie,
         deleteEndedShow: config.deleteEndedShow,
         deleteContinuingShow: config.deleteContinuingShow,
-        deleteIntervalDays: config.deleteIntervalDays,
         deleteFiles: config.deleteFiles,
         respectUserSyncSetting: config.respectUserSyncSetting,
         // RSS fields

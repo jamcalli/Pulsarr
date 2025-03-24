@@ -64,7 +64,6 @@ export interface Config {
   deleteMovie: boolean
   deleteEndedShow: boolean
   deleteContinuingShow: boolean
-  deleteIntervalDays: number
   deleteFiles: boolean
   respectUserSyncSetting: boolean
   // RSS Config

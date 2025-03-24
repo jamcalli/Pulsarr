@@ -314,7 +314,6 @@ skipFriendSync=false                   # Skip syncing Plex friends
 deleteMovie=false                      # Auto-delete movies setting
 deleteEndedShow=false                  # Auto-delete ended shows setting
 deleteContinuingShow=false             # Auto-delete continuing shows setting
-deleteIntervalDays=7                   # Days to wait before deletion
 deleteFiles=true                       # Delete files from disk setting
 ```
 

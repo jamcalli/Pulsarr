@@ -118,7 +118,6 @@ export class DeleteSyncService {
         deleteEndedShow: this.config.deleteEndedShow,
         deleteContinuingShow: this.config.deleteContinuingShow,
         deleteFiles: this.config.deleteFiles,
-        deleteIntervalDays: this.config.deleteIntervalDays,
         respectUserSyncSetting: this.config.respectUserSyncSetting,
         dryRun: dryRun,
       })
