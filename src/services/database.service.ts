@@ -503,6 +503,7 @@ export class DatabaseService {
         deleteContinuingShow: config.deleteContinuingShow,
         deleteFiles: config.deleteFiles,
         respectUserSyncSetting: config.respectUserSyncSetting,
+        deleteSyncNotify: config.deleteSyncNotify,
         // RSS fields
         selfRss: config.selfRss,
         friendsRss: config.friendsRss,

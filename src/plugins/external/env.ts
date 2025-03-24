@@ -37,7 +37,7 @@ const schema = {
     logLevel: {
       type: 'string',
       enum: ['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'],
-      default: 'error',
+      default: 'info',
     },
     closeGraceDelay: {
       type: 'number',
@@ -162,6 +162,11 @@ const schema = {
     respectUserSyncSetting: {
       type: 'boolean',
       default: true,
+    },
+    deleteSyncNotify: {
+      type: 'string',
+      enum: ['none', 'message', 'webhook', 'both'],
+      default: 'none',
     },
     selfRss: {
       type: 'string',

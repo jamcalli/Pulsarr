@@ -74,8 +74,9 @@ export class DeleteSyncService {
    * 3. Fetches all content from Sonarr and Radarr instances
    * 4. Identifies content that is not on any watchlist
    * 5. Deletes content based on configuration rules
+   * 6. Sends notifications about the results if enabled
    *
-   * @returns Promise resolving to void when complete
+   * @returns Promise resolving to detailed results of the delete operation
    */
   async run(dryRun = false): Promise<{
     total: {
@@ -119,6 +120,7 @@ export class DeleteSyncService {
         deleteContinuingShow: this.config.deleteContinuingShow,
         deleteFiles: this.config.deleteFiles,
         respectUserSyncSetting: this.config.respectUserSyncSetting,
+        deleteSyncNotify: this.config.deleteSyncNotify,
         dryRun: dryRun,
       })
 
@@ -132,13 +134,31 @@ export class DeleteSyncService {
         this.log.info('Watchlists refreshed successfully')
       } catch (refreshError) {
         this.log.error('Error refreshing watchlist data:', refreshError)
-        return {
+
+        const result = {
           total: { deleted: 0, skipped: 0, processed: 0 },
           movies: { deleted: 0, skipped: 0, items: [] },
           shows: { deleted: 0, skipped: 0, items: [] },
           safetyTriggered: true,
           safetyMessage: `Failed to refresh watchlist data: ${refreshError instanceof Error ? refreshError.message : String(refreshError)}`,
         }
+
+        // Send notification about the safety trigger if enabled
+        if (this.config.deleteSyncNotify !== 'none' && this.fastify.discord) {
+          try {
+            await this.fastify.discord.sendDeleteSyncNotification(
+              result,
+              dryRun,
+            )
+          } catch (notifyError) {
+            this.log.error(
+              'Error sending delete sync notification:',
+              notifyError,
+            )
+          }
+        }
+
+        return result
       }
 
       // Get all watchlisted content GUIDs with respect to user sync settings
@@ -152,13 +172,31 @@ export class DeleteSyncService {
         const errorMsg =
           'No watchlist items found - this could be an error condition. Aborting delete sync to prevent mass deletion.'
         this.log.error(errorMsg)
-        return {
+
+        const result = {
           total: { deleted: 0, skipped: 0, processed: 0 },
           movies: { deleted: 0, skipped: 0, items: [] },
           shows: { deleted: 0, skipped: 0, items: [] },
           safetyTriggered: true,
           safetyMessage: errorMsg,
         }
+
+        // Send notification about the safety trigger if enabled
+        if (this.config.deleteSyncNotify !== 'none' && this.fastify.discord) {
+          try {
+            await this.fastify.discord.sendDeleteSyncNotification(
+              result,
+              dryRun,
+            )
+          } catch (notifyError) {
+            this.log.error(
+              'Error sending delete sync notification:',
+              notifyError,
+            )
+          }
+        }
+
+        return result
       }
 
       this.log.info(
@@ -205,15 +243,14 @@ export class DeleteSyncService {
           : 0
 
       // Prevent mass deletion if percentage is too high
-      const MAX_DELETION_PERCENTAGE = 30 // 30% is the threshold - adjust as needed
+      const MAX_DELETION_PERCENTAGE = 10 // 10% is the threshold - adjust as needed
 
       if (potentialDeletionPercentage > MAX_DELETION_PERCENTAGE) {
         const abortMsg = `Safety check failed: Would delete ${totalPotentialDeletes} out of ${totalMediaItems} items (${potentialDeletionPercentage.toFixed(2)}%), which exceeds maximum allowed percentage of ${MAX_DELETION_PERCENTAGE}%.`
         this.log.error(abortMsg)
         this.log.error('Delete operation aborted to prevent mass deletion.')
 
-        // Return details about what would have been deleted without executing
-        return {
+        const result = {
           total: {
             deleted: 0,
             skipped: totalMediaItems,
@@ -232,6 +269,23 @@ export class DeleteSyncService {
           safetyTriggered: true,
           safetyMessage: abortMsg,
         }
+
+        // Send notification about the safety trigger if enabled
+        if (this.config.deleteSyncNotify !== 'none' && this.fastify.discord) {
+          try {
+            await this.fastify.discord.sendDeleteSyncNotification(
+              result,
+              dryRun,
+            )
+          } catch (notifyError) {
+            this.log.error(
+              'Error sending delete sync notification:',
+              notifyError,
+            )
+          }
+        }
+
+        return result
       }
 
       // If everything is safe, proceed with the actual processing
@@ -245,6 +299,16 @@ export class DeleteSyncService {
       this.log.info(
         `Delete sync operation ${dryRun ? 'simulation' : ''} completed successfully`,
       )
+
+      // Send notification about the delete sync results if enabled
+      if (this.config.deleteSyncNotify !== 'none' && this.fastify.discord) {
+        try {
+          await this.fastify.discord.sendDeleteSyncNotification(result, dryRun)
+        } catch (notifyError) {
+          this.log.error('Error sending delete sync notification:', notifyError)
+        }
+      }
+
       return result
     } catch (error) {
       this.log.error('Error in delete sync operation:', {
