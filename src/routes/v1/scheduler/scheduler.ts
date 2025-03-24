@@ -13,24 +13,33 @@ import {
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   // Get all job schedules
-  fastify.get(
+  fastify.get<{
+    Reply: z.infer<typeof JobStatusSchema>[]
+  }>(
     '/schedules',
     {
       schema: {
         response: {
           200: z.array(JobStatusSchema),
+          500: ErrorResponseSchema,
         },
         tags: ['Scheduler'],
       },
     },
-    async () => {
-      return await fastify.db.getAllSchedules()
+    async (request, reply) => {
+      try {
+        return await fastify.db.getAllSchedules()
+      } catch (err) {
+        fastify.log.error('Error fetching schedules:', err)
+        throw reply.internalServerError('Unable to fetch schedules')
+      }
     },
   )
 
   // Get a specific job schedule
   fastify.get<{
     Params: { name: string }
+    Reply: z.infer<typeof JobStatusSchema> | z.infer<typeof ErrorResponseSchema>
   }>(
     '/schedules/:name',
     {
@@ -39,26 +48,38 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         response: {
           200: JobStatusSchema,
           404: ErrorResponseSchema,
+          500: ErrorResponseSchema,
         },
         tags: ['Scheduler'],
       },
     },
     async (request, reply) => {
-      const { name } = request.params
-      const schedule = await fastify.db.getScheduleByName(name)
+      try {
+        const { name } = request.params
+        const schedule = await fastify.db.getScheduleByName(name)
 
-      if (!schedule) {
-        reply.status(404)
-        return { error: `Schedule "${name}" not found` }
+        if (!schedule) {
+          throw reply.notFound(`Schedule "${name}" not found`)
+        }
+
+        return schedule
+      } catch (err) {
+        if (err instanceof Error && 'statusCode' in err) {
+          throw err
+        }
+
+        fastify.log.error('Error fetching schedule:', err)
+        throw reply.internalServerError('Unable to fetch schedule')
       }
-
-      return schedule
     },
   )
 
   // Create/update a job schedule
   fastify.post<{
     Body: ScheduleConfig
+    Reply:
+      | z.infer<typeof SuccessResponseSchema>
+      | z.infer<typeof ErrorResponseSchema>
   }>(
     '/schedules',
     {
@@ -66,39 +87,63 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         body: ScheduleConfigSchema,
         response: {
           200: SuccessResponseSchema,
+          500: ErrorResponseSchema,
         },
         tags: ['Scheduler'],
       },
     },
     async (request, reply) => {
-      const scheduleData = request.body
-      const existing = await fastify.db.getScheduleByName(scheduleData.name)
+      try {
+        const scheduleData = request.body
+        const existing = await fastify.db.getScheduleByName(scheduleData.name)
 
-      if (existing) {
-        // Update existing
-        await fastify.scheduler.updateJobSchedule(
-          scheduleData.name,
-          scheduleData.config,
-          scheduleData.enabled,
-        )
-        return {
-          success: true,
-          message: `Schedule "${scheduleData.name}" updated`,
+        if (existing) {
+          // Update existing
+          const success = await fastify.scheduler.updateJobSchedule(
+            scheduleData.name,
+            scheduleData.config,
+            scheduleData.enabled,
+          )
+
+          if (!success) {
+            throw reply.internalServerError(
+              `Failed to update schedule "${scheduleData.name}"`,
+            )
+          }
+
+          return {
+            success: true,
+            message: `Schedule "${scheduleData.name}" updated`,
+          }
         }
-      }
 
-      // Create new
-      await fastify.db.createSchedule({
-        name: scheduleData.name,
-        type: scheduleData.type,
-        config: scheduleData.config,
-        enabled: scheduleData.enabled,
-        last_run: null,
-        next_run: null,
-      })
-      return {
-        success: true,
-        message: `Schedule "${scheduleData.name}" created`,
+        // Create new
+        try {
+          await fastify.db.createSchedule({
+            name: scheduleData.name,
+            type: scheduleData.type,
+            config: scheduleData.config,
+            enabled: scheduleData.enabled,
+            last_run: null,
+            next_run: null,
+          })
+          return {
+            success: true,
+            message: `Schedule "${scheduleData.name}" created`,
+          }
+        } catch (error) {
+          fastify.log.error('Error creating schedule:', error)
+          throw reply.internalServerError(
+            `Failed to create schedule "${scheduleData.name}"`,
+          )
+        }
+      } catch (err) {
+        if (err instanceof Error && 'statusCode' in err) {
+          throw err
+        }
+
+        fastify.log.error('Error processing schedule:', err)
+        throw reply.internalServerError('Unable to process schedule request')
       }
     },
   )
@@ -107,6 +152,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.put<{
     Params: { name: string }
     Body: ScheduleUpdate
+    Reply:
+      | z.infer<typeof SuccessResponseSchema>
+      | z.infer<typeof ErrorResponseSchema>
   }>(
     '/schedules/:name',
     {
@@ -116,38 +164,41 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         response: {
           200: SuccessResponseSchema,
           404: ErrorResponseSchema,
-          500: SuccessResponseSchema.extend({ success: z.literal(false) }),
+          500: ErrorResponseSchema,
         },
         tags: ['Scheduler'],
       },
     },
     async (request, reply) => {
-      const { name } = request.params
-      const updates = request.body
+      try {
+        const { name } = request.params
+        const updates = request.body
 
-      const existing = await fastify.db.getScheduleByName(name)
-      if (!existing) {
-        reply.status(404)
-        return { error: `Schedule "${name}" not found` }
-      }
+        const existing = await fastify.db.getScheduleByName(name)
+        if (!existing) {
+          throw reply.notFound(`Schedule "${name}" not found`)
+        }
 
-      const configToUpdate =
-        updates.config === undefined ? null : updates.config
+        const configToUpdate =
+          updates.config === undefined ? null : updates.config
+        const success = await fastify.scheduler.updateJobSchedule(
+          name,
+          configToUpdate,
+          updates.enabled,
+        )
 
-      const success = await fastify.scheduler.updateJobSchedule(
-        name,
-        configToUpdate,
-        updates.enabled,
-      )
+        if (!success) {
+          throw reply.internalServerError(`Failed to update schedule "${name}"`)
+        }
 
-      if (success) {
         return { success: true, message: `Schedule "${name}" updated` }
-      }
+      } catch (err) {
+        if (err instanceof Error && 'statusCode' in err) {
+          throw err
+        }
 
-      reply.status(500)
-      return {
-        success: false,
-        message: `Failed to update schedule "${name}"`,
+        fastify.log.error('Error updating schedule:', err)
+        throw reply.internalServerError('Unable to update schedule')
       }
     },
   )
@@ -155,6 +206,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   // Delete a job schedule
   fastify.delete<{
     Params: { name: string }
+    Reply:
+      | z.infer<typeof SuccessResponseSchema>
+      | z.infer<typeof ErrorResponseSchema>
   }>(
     '/schedules/:name',
     {
@@ -163,34 +217,37 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         response: {
           200: SuccessResponseSchema,
           404: ErrorResponseSchema,
-          500: SuccessResponseSchema.extend({ success: z.literal(false) }),
+          500: ErrorResponseSchema,
         },
         tags: ['Scheduler'],
       },
     },
     async (request, reply) => {
-      const { name } = request.params
+      try {
+        const { name } = request.params
 
-      const existing = await fastify.db.getScheduleByName(name)
-      if (!existing) {
-        reply.status(404)
-        return { error: `Schedule "${name}" not found` }
-      }
+        const existing = await fastify.db.getScheduleByName(name)
+        if (!existing) {
+          throw reply.notFound(`Schedule "${name}" not found`)
+        }
 
-      // Remove from scheduler
-      await fastify.scheduler.unscheduleJob(name)
+        // Remove from scheduler
+        await fastify.scheduler.unscheduleJob(name)
 
-      // Delete from database
-      const deleted = await fastify.db.deleteSchedule(name)
+        // Delete from database
+        const deleted = await fastify.db.deleteSchedule(name)
+        if (!deleted) {
+          throw reply.internalServerError(`Failed to delete schedule "${name}"`)
+        }
 
-      if (deleted) {
         return { success: true, message: `Schedule "${name}" deleted` }
-      }
+      } catch (err) {
+        if (err instanceof Error && 'statusCode' in err) {
+          throw err
+        }
 
-      reply.status(500)
-      return {
-        success: false,
-        message: `Failed to delete schedule "${name}"`,
+        fastify.log.error('Error deleting schedule:', err)
+        throw reply.internalServerError('Unable to delete schedule')
       }
     },
   )
@@ -198,6 +255,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   // Run a job immediately
   fastify.post<{
     Params: { name: string }
+    Reply:
+      | z.infer<typeof SuccessResponseSchema>
+      | z.infer<typeof ErrorResponseSchema>
   }>(
     '/schedules/:name/run',
     {
@@ -212,22 +272,28 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       },
     },
     async (request, reply) => {
-      const { name } = request.params
+      try {
+        const { name } = request.params
 
-      const existing = await fastify.db.getScheduleByName(name)
-      if (!existing) {
-        reply.status(404)
-        return { error: `Schedule "${name}" not found` }
-      }
+        const existing = await fastify.db.getScheduleByName(name)
+        if (!existing) {
+          throw reply.notFound(`Schedule "${name}" not found`)
+        }
 
-      const success = await fastify.scheduler.runJobNow(name)
+        const success = await fastify.scheduler.runJobNow(name)
+        if (!success) {
+          throw reply.internalServerError(`Failed to run job "${name}"`)
+        }
 
-      if (success) {
         return { success: true, message: `Job "${name}" executed successfully` }
-      }
+      } catch (err) {
+        if (err instanceof Error && 'statusCode' in err) {
+          throw err
+        }
 
-      reply.status(500)
-      return { error: `Failed to run job "${name}"` }
+        fastify.log.error('Error running job:', err)
+        throw reply.internalServerError('Unable to run job')
+      }
     },
   )
 
@@ -235,6 +301,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.patch<{
     Params: { name: string }
     Body: { enabled: boolean }
+    Reply:
+      | z.infer<typeof SuccessResponseSchema>
+      | z.infer<typeof ErrorResponseSchema>
   }>(
     '/schedules/:name/toggle',
     {
@@ -244,38 +313,44 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         response: {
           200: SuccessResponseSchema,
           404: ErrorResponseSchema,
-          500: SuccessResponseSchema.extend({ success: z.literal(false) }),
+          500: ErrorResponseSchema,
         },
         tags: ['Scheduler'],
       },
     },
     async (request, reply) => {
-      const { name } = request.params
-      const { enabled } = request.body
+      try {
+        const { name } = request.params
+        const { enabled } = request.body
 
-      const existing = await fastify.db.getScheduleByName(name)
-      if (!existing) {
-        reply.status(404)
-        return { error: `Schedule "${name}" not found` }
-      }
+        const existing = await fastify.db.getScheduleByName(name)
+        if (!existing) {
+          throw reply.notFound(`Schedule "${name}" not found`)
+        }
 
-      const success = await fastify.scheduler.updateJobSchedule(
-        name,
-        null,
-        enabled,
-      )
+        const success = await fastify.scheduler.updateJobSchedule(
+          name,
+          null,
+          enabled,
+        )
 
-      if (success) {
+        if (!success) {
+          throw reply.internalServerError(
+            `Failed to ${enabled ? 'enable' : 'disable'} schedule "${name}"`,
+          )
+        }
+
         return {
           success: true,
           message: `Schedule "${name}" ${enabled ? 'enabled' : 'disabled'}`,
         }
-      }
+      } catch (err) {
+        if (err instanceof Error && 'statusCode' in err) {
+          throw err
+        }
 
-      reply.status(500)
-      return {
-        success: false,
-        message: `Failed to ${enabled ? 'enable' : 'disable'} schedule "${name}"`,
+        fastify.log.error('Error toggling schedule status:', err)
+        throw reply.internalServerError('Unable to toggle schedule status')
       }
     },
   )
@@ -303,8 +378,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const schedule = await fastify.db.getScheduleByName(jobName)
 
         if (!schedule) {
-          reply.status(404)
-          return { error: `Schedule "${jobName}" not found` }
+          throw reply.notFound(`Schedule "${jobName}" not found`)
         }
 
         // Run the delete sync in dry run mode
@@ -328,12 +402,13 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           message,
           results,
         }
-      } catch (error) {
-        fastify.log.error('Error in delete sync dry run:', error)
-        reply.status(500)
-        return {
-          error: `Failed to run delete sync dry run: ${error instanceof Error ? error.message : String(error)}`,
+      } catch (err) {
+        if (err instanceof Error && 'statusCode' in err) {
+          throw err
         }
+
+        fastify.log.error('Error in delete sync dry run:', err)
+        throw reply.internalServerError('Failed to run delete sync dry run')
       }
     },
   )
