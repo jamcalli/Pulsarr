@@ -381,7 +381,6 @@ export class DiscordNotificationService {
     }
   }
 
-  // Updated to handle both media and system notifications
   async sendDirectMessage(
     discordId: string,
     notification: MediaNotification | SystemNotification,
@@ -395,16 +394,35 @@ export class DiscordNotificationService {
       let embed: DiscordEmbed
 
       if (notification.type === 'system') {
-        // Handle system notification (like delete sync)
+        // Handle system notification
+        // Define color constants for success or failure
+        const RED = 0xff0000
+        const GREEN = 0x00ff00
+
+        // Safety is triggered if any field has the name "Safety Reason" OR if the title contains "Safety Triggered"
+        // OR if the notification has the safetyTriggered property
+        const hasSafetyField = notification.embedFields.some(
+          (field) => field.name === 'Safety Reason',
+        )
+        const isSafetyTriggered =
+          notification.title.includes('Safety Triggered')
+        const hasTriggeredProperty =
+          'safetyTriggered' in notification &&
+          notification.safetyTriggered === true
+
         embed = {
           title: notification.title,
           description: 'System notification',
-          color: this.COLOR,
+          // Use red for any safety issues, green otherwise
+          color:
+            hasSafetyField || isSafetyTriggered || hasTriggeredProperty
+              ? RED
+              : GREEN,
           timestamp: new Date().toISOString(),
           fields: notification.embedFields,
         }
       } else {
-        // Handle media notification (existing logic)
+        // Handle media notification
         const emoji = notification.type === 'movie' ? '🎬' : '📺'
         let description: string
         const fields: Array<{ name: string; value: string; inline?: boolean }> =
@@ -521,6 +539,138 @@ export class DiscordNotificationService {
   }
 
   /**
+   * Create an embed for delete sync results
+   *
+   * @param results - The results of the delete sync operation
+   * @param dryRun - Whether this was a dry run
+   * @returns The created Discord embed
+   */
+  private createDeleteSyncEmbed(
+    results: {
+      total: { deleted: number; skipped: number; processed: number }
+      movies: {
+        deleted: number
+        skipped: number
+        items: Array<{ title: string; guid: string; instance: string }>
+      }
+      shows: {
+        deleted: number
+        skipped: number
+        items: Array<{ title: string; guid: string; instance: string }>
+      }
+      safetyTriggered?: boolean
+      safetyMessage?: string
+    },
+    dryRun: boolean,
+  ): DiscordEmbed {
+    let title: string
+    let description: string
+    // Use red color (0xFF0000) for safety triggers, green (0x00FF00) for successful operations
+    const RED = 0xff0000
+    const GREEN = 0x00ff00
+    const color = results.safetyTriggered === true ? RED : GREEN
+
+    if (results.safetyTriggered) {
+      title = '⚠️ Delete Sync Safety Triggered'
+      description =
+        results.safetyMessage ||
+        'A safety check prevented the delete sync operation from running.'
+    } else if (dryRun) {
+      title = '🔍 Delete Sync Simulation Results'
+      description = 'This was a dry run - no content was actually deleted.'
+    } else {
+      title = '🗑️ Delete Sync Results'
+      description =
+        "The following content was removed because it's no longer in any user's watchlist."
+    }
+
+    // Create fields for the embed
+    const fields = [
+      {
+        name: 'Summary',
+        value: `Processed: ${results.total.processed} items\nDeleted: ${results.total.deleted} items\nSkipped: ${results.total.skipped} items`,
+        inline: false,
+      },
+    ]
+
+    // Add safety message field if it exists
+    if (results.safetyTriggered && results.safetyMessage) {
+      fields.push({
+        name: 'Safety Reason',
+        value: results.safetyMessage,
+        inline: false,
+      })
+    }
+
+    // Add movies field if any were deleted
+    if (results.movies.deleted > 0) {
+      const movieList = results.movies.items
+        .slice(0, 10) // Limit to 10 items
+        .map((item) => `• ${item.title}`)
+        .join('\n')
+
+      fields.push({
+        name: `Movies (${results.movies.deleted} deleted)`,
+        value: movieList || 'None',
+        inline: false,
+      })
+
+      if (results.movies.items.length > 10) {
+        fields.push({
+          name: 'Movies (continued)',
+          value: `... and ${results.movies.items.length - 10} more`,
+          inline: false,
+        })
+      }
+    } else {
+      fields.push({
+        name: 'Movies',
+        value: 'No movies deleted',
+        inline: false,
+      })
+    }
+
+    // Add shows field if any were deleted
+    if (results.shows.deleted > 0) {
+      const showList = results.shows.items
+        .slice(0, 10) // Limit to 10 items
+        .map((item) => `• ${item.title}`)
+        .join('\n')
+
+      fields.push({
+        name: `TV Shows (${results.shows.deleted} deleted)`,
+        value: showList || 'None',
+        inline: false,
+      })
+
+      if (results.shows.items.length > 10) {
+        fields.push({
+          name: 'TV Shows (continued)',
+          value: `... and ${results.shows.items.length - 10} more`,
+          inline: false,
+        })
+      }
+    } else {
+      fields.push({
+        name: 'TV Shows',
+        value: 'No TV shows deleted',
+        inline: false,
+      })
+    }
+
+    return {
+      title,
+      description,
+      color, // Use dynamic color based on result
+      timestamp: new Date().toISOString(),
+      fields,
+      footer: {
+        text: `Delete sync operation completed at ${new Date().toLocaleString()}`,
+      },
+    }
+  }
+
+  /**
    * Send a notification about delete sync results
    *
    * @param results - The results of the delete sync operation
@@ -611,6 +761,7 @@ export class DiscordNotificationService {
                 username: adminUser.name,
                 title: embed.title || 'Delete Sync Results',
                 embedFields: embed.fields || [],
+                safetyTriggered: results.safetyTriggered,
               }
 
               this.log.debug(
@@ -650,125 +801,6 @@ export class DiscordNotificationService {
     } catch (error) {
       this.log.error('Error sending delete sync notification:', error)
       return false
-    }
-  }
-
-  /**
-   * Create an embed for delete sync results
-   *
-   * @param results - The results of the delete sync operation
-   * @param dryRun - Whether this was a dry run
-   * @returns The created Discord embed
-   */
-  private createDeleteSyncEmbed(
-    results: {
-      total: { deleted: number; skipped: number; processed: number }
-      movies: {
-        deleted: number
-        skipped: number
-        items: Array<{ title: string; guid: string; instance: string }>
-      }
-      shows: {
-        deleted: number
-        skipped: number
-        items: Array<{ title: string; guid: string; instance: string }>
-      }
-      safetyTriggered?: boolean
-      safetyMessage?: string
-    },
-    dryRun: boolean,
-  ): DiscordEmbed {
-    let title: string
-    let description: string
-
-    if (results.safetyTriggered) {
-      title = '⚠️ Delete Sync Safety Triggered'
-      description =
-        results.safetyMessage ||
-        'A safety check prevented the delete sync operation from running.'
-    } else if (dryRun) {
-      title = '🔍 Delete Sync Simulation Results'
-      description = 'This was a dry run - no content was actually deleted.'
-    } else {
-      title = '🗑️ Delete Sync Results'
-      description =
-        "The following content was removed because it's no longer in any user's watchlist."
-    }
-
-    // Create fields for the embed
-    const fields = [
-      {
-        name: 'Summary',
-        value: `Processed: ${results.total.processed} items\nDeleted: ${results.total.deleted} items\nSkipped: ${results.total.skipped} items`,
-        inline: false,
-      },
-    ]
-
-    // Add movies field if any were deleted
-    if (results.movies.deleted > 0) {
-      const movieList = results.movies.items
-        .slice(0, 10) // Limit to 10 items
-        .map((item) => `• ${item.title}`)
-        .join('\n')
-
-      fields.push({
-        name: `Movies (${results.movies.deleted} deleted)`,
-        value: movieList || 'None',
-        inline: false,
-      })
-
-      if (results.movies.items.length > 10) {
-        fields.push({
-          name: 'Movies (continued)',
-          value: `... and ${results.movies.items.length - 10} more`,
-          inline: false,
-        })
-      }
-    } else {
-      fields.push({
-        name: 'Movies',
-        value: 'No movies deleted',
-        inline: false,
-      })
-    }
-
-    // Add shows field if any were deleted
-    if (results.shows.deleted > 0) {
-      const showList = results.shows.items
-        .slice(0, 10) // Limit to 10 items
-        .map((item) => `• ${item.title}`)
-        .join('\n')
-
-      fields.push({
-        name: `TV Shows (${results.shows.deleted} deleted)`,
-        value: showList || 'None',
-        inline: false,
-      })
-
-      if (results.shows.items.length > 10) {
-        fields.push({
-          name: 'TV Shows (continued)',
-          value: `... and ${results.shows.items.length - 10} more`,
-          inline: false,
-        })
-      }
-    } else {
-      fields.push({
-        name: 'TV Shows',
-        value: 'No TV shows deleted',
-        inline: false,
-      })
-    }
-
-    return {
-      title,
-      description,
-      color: this.COLOR,
-      timestamp: new Date().toISOString(),
-      fields,
-      footer: {
-        text: `Delete sync operation completed at ${new Date().toLocaleString()}`,
-      },
     }
   }
 }

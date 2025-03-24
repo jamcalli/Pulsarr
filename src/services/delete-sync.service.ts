@@ -243,7 +243,7 @@ export class DeleteSyncService {
           : 0
 
       // Prevent mass deletion if percentage is too high
-      const MAX_DELETION_PERCENTAGE = 10 // 10% is the threshold - adjust as needed
+      const MAX_DELETION_PERCENTAGE = this.config.maxDeletionPrevention
 
       if (potentialDeletionPercentage > MAX_DELETION_PERCENTAGE) {
         const abortMsg = `Safety check failed: Would delete ${totalPotentialDeletes} out of ${totalMediaItems} items (${potentialDeletionPercentage.toFixed(2)}%), which exceeds maximum allowed percentage of ${MAX_DELETION_PERCENTAGE}%.`

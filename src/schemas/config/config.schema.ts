@@ -46,6 +46,7 @@ export const ConfigSchema = z.object({
   deleteFiles: z.boolean().optional(),
   respectUserSyncSetting: z.boolean().optional(),
   deleteSyncNotify: DeleteSyncNotifyOptionEnum.optional(),
+  maxDeletionPrevention: z.number().optional(),
   selfRss: z.string().optional(),
   friendsRss: z.string().optional(),
   _isReady: z.boolean().optional(),

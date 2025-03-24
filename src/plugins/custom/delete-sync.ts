@@ -44,6 +44,8 @@ export default fp(
       'radarr-manager',
       'database',
       'config',
+      'discord-notification-service',
+      'plex-watchlist',
     ],
   },
 )

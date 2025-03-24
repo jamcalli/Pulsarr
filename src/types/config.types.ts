@@ -69,6 +69,7 @@ export interface Config {
   deleteFiles: boolean
   respectUserSyncSetting: boolean
   deleteSyncNotify: DeleteSyncNotifyOption
+  maxDeletionPrevention: number
   // RSS Config
   selfRss?: string
   friendsRss?: string

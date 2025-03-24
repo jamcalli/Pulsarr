@@ -168,6 +168,10 @@ const schema = {
       enum: ['none', 'message', 'webhook', 'both'],
       default: 'none',
     },
+    maxDeletionPrevention: {
+      type: 'number',
+      default: 10,
+    },
     selfRss: {
       type: 'string',
     },
