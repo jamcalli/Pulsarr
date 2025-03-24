@@ -51,4 +51,5 @@ export interface SystemNotification {
   username: string
   title: string
   embedFields: Array<{ name: string; value: string; inline?: boolean }>
+  safetyTriggered?: boolean
 }

@@ -504,6 +504,7 @@ export class DatabaseService {
         deleteFiles: config.deleteFiles,
         respectUserSyncSetting: config.respectUserSyncSetting,
         deleteSyncNotify: config.deleteSyncNotify,
+        maxDeletionPrevention: config.maxDeletionPrevention || 10,
         // RSS fields
         selfRss: config.selfRss,
         friendsRss: config.friendsRss,
