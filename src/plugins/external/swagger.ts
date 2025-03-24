@@ -32,6 +32,10 @@ const createOpenapiConfig = (fastify: FastifyInstance) => {
           url: `${urlObject.protocol}//${urlObject.hostname}:${fastify.config.port}`,
           description: 'Direct Server Access (with port)',
         },
+        {
+          url: `http://localhost:${fastify.config.port}`,
+          description: 'Localhost Access (with port)',
+        },
       ],
       tags: [
         {
