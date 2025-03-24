@@ -297,7 +297,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     },
     async (_request, reply) => {
       try {
-        // Get the delete-sync job to make sure it exists
+
         const jobName = 'delete-sync'
         const schedule = await fastify.db.getScheduleByName(jobName)
 

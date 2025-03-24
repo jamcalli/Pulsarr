@@ -36,7 +36,6 @@ export const ConfigSchema = z.object({
   deleteMovie: z.boolean().optional(),
   deleteEndedShow: z.boolean().optional(),
   deleteContinuingShow: z.boolean().optional(),
-  deleteIntervalDays: z.number().optional(),
   deleteFiles: z.boolean().optional(),
   respectUserSyncSetting: z.boolean().optional(),
   selfRss: z.string().optional(),

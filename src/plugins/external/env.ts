@@ -155,10 +155,6 @@ const schema = {
       type: 'boolean',
       default: false,
     },
-    deleteIntervalDays: {
-      type: 'number',
-      default: 7,
-    },
     deleteFiles: {
       type: 'boolean',
       default: true,
