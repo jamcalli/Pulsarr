@@ -20,9 +20,9 @@ export async function up(knex: Knex): Promise<void> {
   await knex('schedules').insert([
     {
       name: 'delete-sync',
-      type: 'interval',
+      type: 'cron',
       config: JSON.stringify({ 
-        hours: 24 * 7 // Default: 7 days
+        expression: '0 1 * * 0' // Every Sunday at 1:00 AM
       }),
       enabled: false,
       created_at: knex.fn.now(),
