@@ -4,6 +4,7 @@ import {
   ScheduleConfigSchema,
   JobStatusSchema,
   SuccessResponseSchema,
+  DeleteSyncDryRunResponseSchema,
   ErrorResponseSchema,
   type ScheduleConfig,
 } from '@schemas/scheduler/scheduler.schema.js'
@@ -273,6 +274,65 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       return {
         success: false,
         message: `Failed to ${enabled ? 'enable' : 'disable'} schedule "${name}"`,
+      }
+    },
+  )
+
+  // Dry-run the delete sync job
+  fastify.post<{
+    Reply:
+      | z.infer<typeof DeleteSyncDryRunResponseSchema>
+      | z.infer<typeof ErrorResponseSchema>
+  }>(
+    '/schedules/delete-sync/dry-run',
+    {
+      schema: {
+        response: {
+          200: DeleteSyncDryRunResponseSchema,
+          404: ErrorResponseSchema,
+          500: ErrorResponseSchema,
+        },
+        tags: ['Scheduler'],
+      },
+    },
+    async (_request, reply) => {
+      try {
+        // Get the delete-sync job to make sure it exists
+        const jobName = 'delete-sync'
+        const schedule = await fastify.db.getScheduleByName(jobName)
+
+        if (!schedule) {
+          reply.status(404)
+          return { error: `Schedule "${jobName}" not found` }
+        }
+
+        // Run the delete sync in dry run mode
+        const results = await fastify.deleteSync.run(true)
+
+        // Handle safety checks if your service returns them
+        const safetyTriggered =
+          'safetyTriggered' in results && results.safetyTriggered
+        const safetyMessage =
+          'safetyMessage' in results ? results.safetyMessage : undefined
+
+        let message = ''
+        if (safetyTriggered) {
+          message = `Delete sync dry run aborted: ${safetyMessage || 'Safety check triggered'}`
+        } else {
+          message = `Delete sync dry run completed: Would delete ${results.total.deleted} items (${results.movies.deleted} movies, ${results.shows.deleted} shows)`
+        }
+
+        return {
+          success: true,
+          message,
+          results,
+        }
+      } catch (error) {
+        fastify.log.error('Error in delete sync dry run:', error)
+        reply.status(500)
+        return {
+          error: `Failed to run delete sync dry run: ${error instanceof Error ? error.message : String(error)}`,
+        }
       }
     },
   )

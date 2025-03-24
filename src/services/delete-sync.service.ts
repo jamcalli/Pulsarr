@@ -77,16 +77,40 @@ export class DeleteSyncService {
    *
    * @returns Promise resolving to void when complete
    */
-  async run(): Promise<void> {
+  async run(dryRun = false): Promise<{
+    total: {
+      deleted: number
+      skipped: number
+      processed: number
+    }
+    movies: {
+      deleted: number
+      skipped: number
+      items: Array<{ title: string; guid: string; instance: string }>
+    }
+    shows: {
+      deleted: number
+      skipped: number
+      items: Array<{ title: string; guid: string; instance: string }>
+    }
+    safetyTriggered?: boolean
+    safetyMessage?: string
+  }> {
     try {
-      this.log.info('Starting delete sync operation')
+      this.log.info(
+        `Starting delete sync operation${dryRun ? ' (DRY RUN)' : ''}`,
+      )
 
       // Skip if deletion features are not enabled in configuration
       if (!this.isDeleteEnabled()) {
         this.log.info(
           'Delete sync is not enabled in configuration, skipping operation',
         )
-        return
+        return {
+          total: { deleted: 0, skipped: 0, processed: 0 },
+          movies: { deleted: 0, skipped: 0, items: [] },
+          shows: { deleted: 0, skipped: 0, items: [] },
+        }
       }
 
       this.log.debug('Delete configuration:', {
@@ -95,13 +119,51 @@ export class DeleteSyncService {
         deleteContinuingShow: this.config.deleteContinuingShow,
         deleteFiles: this.config.deleteFiles,
         deleteIntervalDays: this.config.deleteIntervalDays,
+        respectUserSyncSetting: this.config.respectUserSyncSetting,
+        dryRun: dryRun,
       })
 
-      // Fetch all watchlisted content GUIDs for comparison
+      // Always fetch fresh watchlist data before starting
+      this.log.info('Refreshing watchlists to ensure we have current data')
+      try {
+        await Promise.all([
+          this.fastify.plexWatchlist.getSelfWatchlist(),
+          this.fastify.plexWatchlist.getOthersWatchlists(),
+        ])
+        this.log.info('Watchlists refreshed successfully')
+      } catch (refreshError) {
+        this.log.error('Error refreshing watchlist data:', refreshError)
+        return {
+          total: { deleted: 0, skipped: 0, processed: 0 },
+          movies: { deleted: 0, skipped: 0, items: [] },
+          shows: { deleted: 0, skipped: 0, items: [] },
+          safetyTriggered: true,
+          safetyMessage: `Failed to refresh watchlist data: ${refreshError instanceof Error ? refreshError.message : String(refreshError)}`,
+        }
+      }
+
+      // Get all watchlisted content GUIDs with respect to user sync settings
       this.log.info('Retrieving all watchlisted content')
-      const allWatchlistItems = await this.getAllWatchlistItems()
+      const allWatchlistItems = await this.getAllWatchlistItems(
+        this.config.respectUserSyncSetting,
+      )
+
+      // Ensure we have at least some watchlist items
+      if (allWatchlistItems.size === 0) {
+        const errorMsg =
+          'No watchlist items found - this could be an error condition. Aborting delete sync to prevent mass deletion.'
+        this.log.error(errorMsg)
+        return {
+          total: { deleted: 0, skipped: 0, processed: 0 },
+          movies: { deleted: 0, skipped: 0, items: [] },
+          shows: { deleted: 0, skipped: 0, items: [] },
+          safetyTriggered: true,
+          safetyMessage: errorMsg,
+        }
+      }
+
       this.log.info(
-        `Found ${allWatchlistItems.size} unique GUIDs across all watchlists`,
+        `Found ${allWatchlistItems.size} unique GUIDs across all watchlists${this.config.respectUserSyncSetting ? ' (respecting user sync settings)' : ''}`,
       )
 
       // Fetch all content from media management servers
@@ -114,19 +176,83 @@ export class DeleteSyncService {
         `Found ${existingSeries.length} series in Sonarr and ${existingMovies.length} movies in Radarr`,
       )
 
-      // Process and execute deletions based on configuration
-      await this.processDeleteSync(
+      // First, analyze what would be deleted to check percentages
+      const totalMediaItems = existingSeries.length + existingMovies.length
+
+      // Calculate deletion percentages by doing a count of items that would be deleted
+      let potentialMovieDeletes = 0
+      let potentialShowDeletes = 0
+
+      // Count movies not in watchlist
+      for (const movie of existingMovies) {
+        const exists = movie.guids.some((guid) => allWatchlistItems.has(guid))
+        if (!exists) {
+          potentialMovieDeletes++
+        }
+      }
+
+      // Count shows not in watchlist
+      for (const show of existingSeries) {
+        const exists = show.guids.some((guid) => allWatchlistItems.has(guid))
+        if (!exists) {
+          potentialShowDeletes++
+        }
+      }
+
+      const totalPotentialDeletes = potentialMovieDeletes + potentialShowDeletes
+      const potentialDeletionPercentage =
+        totalMediaItems > 0
+          ? (totalPotentialDeletes / totalMediaItems) * 100
+          : 0
+
+      // Prevent mass deletion if percentage is too high
+      const MAX_DELETION_PERCENTAGE = 30 // 30% is the threshold - adjust as needed
+
+      if (potentialDeletionPercentage > MAX_DELETION_PERCENTAGE) {
+        const abortMsg = `Safety check failed: Would delete ${totalPotentialDeletes} out of ${totalMediaItems} items (${potentialDeletionPercentage.toFixed(2)}%), which exceeds maximum allowed percentage of ${MAX_DELETION_PERCENTAGE}%.`
+        this.log.error(abortMsg)
+        this.log.error('Delete operation aborted to prevent mass deletion.')
+
+        // Return details about what would have been deleted without executing
+        return {
+          total: {
+            deleted: 0,
+            skipped: totalMediaItems,
+            processed: totalMediaItems,
+          },
+          movies: {
+            deleted: 0,
+            skipped: existingMovies.length,
+            items: [],
+          },
+          shows: {
+            deleted: 0,
+            skipped: existingSeries.length,
+            items: [],
+          },
+          safetyTriggered: true,
+          safetyMessage: abortMsg,
+        }
+      }
+
+      // If everything is safe, proceed with the actual processing
+      const result = await this.processDeleteSync(
         existingSeries,
         existingMovies,
         allWatchlistItems,
+        dryRun,
       )
 
-      this.log.info('Delete sync operation completed successfully')
+      this.log.info(
+        `Delete sync operation ${dryRun ? 'simulation' : ''} completed successfully`,
+      )
+      return result
     } catch (error) {
       this.log.error('Error in delete sync operation:', {
         error: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined,
       })
+      throw error
     }
   }
 
@@ -151,53 +277,102 @@ export class DeleteSyncService {
    *
    * @returns Promise resolving to Set of all GUIDs currently on any watchlist
    */
-  private async getAllWatchlistItems(): Promise<Set<string>> {
-    // Retrieve all watchlist items for both movies and shows
-    const [shows, movies] = await Promise.all([
-      this.dbService.getAllShowWatchlistItems(),
-      this.dbService.getAllMovieWatchlistItems(),
-    ])
+  private async getAllWatchlistItems(
+    respectUserSyncSetting = false,
+  ): Promise<Set<string>> {
+    try {
+      let watchlistItems = []
 
-    this.log.debug(
-      `Found ${shows.length} show watchlist items and ${movies.length} movie watchlist items`,
-    )
+      if (respectUserSyncSetting) {
+        // Get all users to check their sync permissions
+        const allUsers = await this.dbService.getAllUsers()
+        const syncEnabledUserIds = allUsers
+          .filter((user) => user.can_sync !== false)
+          .map((user) => user.id)
 
-    // Create a set of all GUIDs for efficient lookup
-    const guidSet = new Set<string>()
-    let malformedItems = 0
+        this.log.info(
+          `Found ${syncEnabledUserIds.length} users with sync enabled out of ${allUsers.length} total users`,
+        )
 
-    // Process all items to extract GUIDs
-    for (const item of [...shows, ...movies]) {
-      try {
-        // Handle GUIDs stored as either JSON string or array
-        const guids =
-          typeof item.guids === 'string'
-            ? JSON.parse(item.guids)
-            : item.guids || []
+        // Only get watchlist items from users with sync enabled
+        const [shows, movies] = await Promise.all([
+          this.dbService.getAllShowWatchlistItems().then((items) =>
+            items.filter((item) => {
+              const userId =
+                typeof item.user_id === 'object'
+                  ? (item.user_id as { id: number }).id
+                  : Number(item.user_id)
+              return syncEnabledUserIds.includes(userId)
+            }),
+          ),
+          this.dbService.getAllMovieWatchlistItems().then((items) =>
+            items.filter((item) => {
+              const userId =
+                typeof item.user_id === 'object'
+                  ? (item.user_id as { id: number }).id
+                  : Number(item.user_id)
+              return syncEnabledUserIds.includes(userId)
+            }),
+          ),
+        ])
 
-        // Add each GUID to the set for efficient lookup
-        for (const guid of guids) {
-          guidSet.add(guid)
-        }
-      } catch (error) {
-        malformedItems++
-        this.log.warn(`Malformed guids in watchlist item "${item.title}":`, {
-          error: error instanceof Error ? error.message : String(error),
-          guids: item.guids,
-        })
+        watchlistItems = [...shows, ...movies]
+        this.log.info(
+          `Found ${watchlistItems.length} watchlist items from users with sync enabled`,
+        )
+      } else {
+        // Get all watchlist items regardless of user sync settings
+        const [shows, movies] = await Promise.all([
+          this.dbService.getAllShowWatchlistItems(),
+          this.dbService.getAllMovieWatchlistItems(),
+        ])
+
+        watchlistItems = [...shows, ...movies]
+        this.log.info(
+          `Found ${watchlistItems.length} watchlist items from all users`,
+        )
       }
-    }
 
-    if (malformedItems > 0) {
-      this.log.warn(
-        `Found ${malformedItems} watchlist items with malformed GUIDs`,
+      // Create a set of unique GUIDs for efficient lookup
+      const guidSet = new Set<string>()
+      let malformedItems = 0
+
+      // Process all items to extract GUIDs
+      for (const item of watchlistItems) {
+        try {
+          // Handle GUIDs stored as either JSON string or array
+          const guids =
+            typeof item.guids === 'string'
+              ? JSON.parse(item.guids)
+              : item.guids || []
+
+          // Add each GUID to the set for efficient lookup
+          for (const guid of guids) {
+            guidSet.add(guid)
+          }
+        } catch (error) {
+          malformedItems++
+          this.log.warn(`Malformed guids in watchlist item "${item.title}":`, {
+            error: error instanceof Error ? error.message : String(error),
+            guids: item.guids,
+          })
+        }
+      }
+
+      if (malformedItems > 0) {
+        this.log.warn(
+          `Found ${malformedItems} watchlist items with malformed GUIDs`,
+        )
+      }
+
+      this.log.debug(
+        `Extracted ${guidSet.size} unique GUIDs from watchlist items`,
       )
+      return guidSet
+    } catch (error) {
+      this.log.error('Error in getAllWatchlistItems:', error)
+      throw error
     }
-
-    this.log.debug(
-      `Extracted ${guidSet.size} unique GUIDs from watchlist items`,
-    )
-    return guidSet
   }
 
   /**
@@ -216,7 +391,24 @@ export class DeleteSyncService {
     existingSeries: SonarrItem[],
     existingMovies: RadarrItem[],
     watchlistGuids: Set<string>,
-  ): Promise<void> {
+    dryRun = false,
+  ): Promise<{
+    total: {
+      deleted: number
+      skipped: number
+      processed: number
+    }
+    movies: {
+      deleted: number
+      skipped: number
+      items: Array<{ title: string; guid: string; instance: string }>
+    }
+    shows: {
+      deleted: number
+      skipped: number
+      items: Array<{ title: string; guid: string; instance: string }>
+    }
+  }> {
     let moviesDeleted = 0
     let moviesSkipped = 0
     let endedShowsDeleted = 0
@@ -224,12 +416,26 @@ export class DeleteSyncService {
     let continuingShowsDeleted = 0
     let continuingShowsSkipped = 0
 
-    this.log.info('Beginning deletion process based on configuration')
+    // Arrays to collect details about what would be deleted
+    const moviesToDelete: Array<{
+      title: string
+      guid: string
+      instance: string
+    }> = []
+    const showsToDelete: Array<{
+      title: string
+      guid: string
+      instance: string
+    }> = []
+
+    this.log.info(
+      `Beginning deletion ${dryRun ? 'analysis' : 'process'} based on configuration`,
+    )
 
     // Process movies if movie deletion is enabled
     if (this.config.deleteMovie) {
       this.log.info(
-        `Processing ${existingMovies.length} movies for potential deletion`,
+        `Processing ${existingMovies.length} movies for potential deletion${dryRun ? ' (DRY RUN)' : ''}`,
       )
 
       for (const movie of existingMovies) {
@@ -260,25 +466,47 @@ export class DeleteSyncService {
               continue
             }
 
-            // Execute the deletion operation
-            this.log.debug(
-              `Deleting movie "${movie.title}" (delete files: ${this.config.deleteFiles})`,
-            )
-            await service.deleteFromRadarr(movie, this.config.deleteFiles)
+            // Add to the list of movies to delete (or would delete in dry run)
+            moviesToDelete.push({
+              title: movie.title,
+              guid: movie.guids[0] || 'unknown',
+              instance: instanceId.toString(),
+            })
+
+            if (!dryRun) {
+              // Actually execute the deletion operation
+              this.log.debug(
+                `Deleting movie "${movie.title}" (delete files: ${this.config.deleteFiles})`,
+              )
+              await service.deleteFromRadarr(movie, this.config.deleteFiles)
+            } else {
+              this.log.info(
+                `[DRY RUN] Would delete movie "${movie.title}" from Radarr instance ${instanceId}`,
+                {
+                  title: movie.title,
+                  instanceId,
+                  deleteFiles: this.config.deleteFiles,
+                  guids: movie.guids,
+                },
+              )
+            }
+
             moviesDeleted++
 
-            this.log.info(
-              `Successfully deleted movie "${movie.title}" from Radarr instance ${instanceId}`,
-              {
-                title: movie.title,
-                instanceId,
-                deleteFiles: this.config.deleteFiles,
-                guids: movie.guids,
-              },
-            )
+            if (!dryRun) {
+              this.log.info(
+                `Successfully deleted movie "${movie.title}" from Radarr instance ${instanceId}`,
+                {
+                  title: movie.title,
+                  instanceId,
+                  deleteFiles: this.config.deleteFiles,
+                  guids: movie.guids,
+                },
+              )
+            }
           } catch (error) {
             this.log.error(
-              `Error deleting movie "${movie.title}" from instance ${movie.radarr_instance_id}:`,
+              `Error ${dryRun ? 'analyzing' : 'deleting'} movie "${movie.title}" from instance ${movie.radarr_instance_id}:`,
               {
                 error: error instanceof Error ? error.message : String(error),
                 movie: {
@@ -297,7 +525,9 @@ export class DeleteSyncService {
         deleted: moviesDeleted,
         skipped: moviesSkipped,
       }
-      this.log.info(`Movie deletion summary: ${JSON.stringify(movieSummary)}`)
+      this.log.info(
+        `Movie deletion ${dryRun ? 'analysis' : ''} summary: ${JSON.stringify(movieSummary)}`,
+      )
     } else {
       this.log.info('Movie deletion disabled in configuration, skipping')
     }
@@ -305,7 +535,7 @@ export class DeleteSyncService {
     // Process TV shows if any show deletion is enabled
     if (this.config.deleteEndedShow || this.config.deleteContinuingShow) {
       this.log.info(
-        `Processing ${existingSeries.length} TV shows for potential deletion`,
+        `Processing ${existingSeries.length} TV shows for potential deletion${dryRun ? ' (DRY RUN)' : ''}`,
       )
 
       for (const show of existingSeries) {
@@ -367,11 +597,31 @@ export class DeleteSyncService {
               continue
             }
 
-            // Execute the deletion operation
-            this.log.debug(
-              `Deleting ${isContinuing ? 'continuing' : 'ended'} show "${show.title}" (delete files: ${this.config.deleteFiles})`,
-            )
-            await service.deleteFromSonarr(show, this.config.deleteFiles)
+            // Add to the list of shows to delete (or would delete in dry run)
+            showsToDelete.push({
+              title: show.title,
+              guid: show.guids[0] || 'unknown',
+              instance: instanceId.toString(),
+            })
+
+            if (!dryRun) {
+              // Execute the deletion operation
+              this.log.debug(
+                `Deleting ${isContinuing ? 'continuing' : 'ended'} show "${show.title}" (delete files: ${this.config.deleteFiles})`,
+              )
+              await service.deleteFromSonarr(show, this.config.deleteFiles)
+            } else {
+              this.log.info(
+                `[DRY RUN] Would delete ${isContinuing ? 'continuing' : 'ended'} show "${show.title}" from Sonarr instance ${instanceId}`,
+                {
+                  title: show.title,
+                  instanceId,
+                  status: isContinuing ? 'continuing' : 'ended',
+                  deleteFiles: this.config.deleteFiles,
+                  guids: show.guids,
+                },
+              )
+            }
 
             // Update appropriate counter based on show type
             if (isContinuing) {
@@ -380,19 +630,21 @@ export class DeleteSyncService {
               endedShowsDeleted++
             }
 
-            this.log.info(
-              `Successfully deleted ${isContinuing ? 'continuing' : 'ended'} show "${show.title}" from Sonarr instance ${instanceId}`,
-              {
-                title: show.title,
-                instanceId,
-                status: isContinuing ? 'continuing' : 'ended',
-                deleteFiles: this.config.deleteFiles,
-                guids: show.guids,
-              },
-            )
+            if (!dryRun) {
+              this.log.info(
+                `Successfully deleted ${isContinuing ? 'continuing' : 'ended'} show "${show.title}" from Sonarr instance ${instanceId}`,
+                {
+                  title: show.title,
+                  instanceId,
+                  status: isContinuing ? 'continuing' : 'ended',
+                  deleteFiles: this.config.deleteFiles,
+                  guids: show.guids,
+                },
+              )
+            }
           } catch (error) {
             this.log.error(
-              `Error deleting show "${show.title}" from instance ${show.sonarr_instance_id}:`,
+              `Error ${dryRun ? 'analyzing' : 'deleting'} show "${show.title}" from instance ${show.sonarr_instance_id}:`,
               {
                 error: error instanceof Error ? error.message : String(error),
                 show: {
@@ -424,13 +676,13 @@ export class DeleteSyncService {
         },
       }
       this.log.info(
-        `TV show deletion summary: ${JSON.stringify(tvShowSummary)}`,
+        `TV show deletion ${dryRun ? 'analysis' : ''} summary: ${JSON.stringify(tvShowSummary)}`,
       )
     } else {
       this.log.info('TV show deletion disabled in configuration, skipping')
     }
 
-    // Log overall summary statistics
+    // Calculate overall summary statistics
     const totalDeleted =
       moviesDeleted + endedShowsDeleted + continuingShowsDeleted
     const totalSkipped =
@@ -440,16 +692,12 @@ export class DeleteSyncService {
       movies: {
         deleted: moviesDeleted,
         skipped: moviesSkipped,
+        items: moviesToDelete,
       },
       shows: {
-        ended: {
-          deleted: endedShowsDeleted,
-          skipped: endedShowsSkipped,
-        },
-        continuing: {
-          deleted: continuingShowsDeleted,
-          skipped: continuingShowsSkipped,
-        },
+        deleted: endedShowsDeleted + continuingShowsDeleted,
+        skipped: endedShowsSkipped + continuingShowsSkipped,
+        items: showsToDelete,
       },
       total: {
         deleted: totalDeleted,
@@ -459,7 +707,14 @@ export class DeleteSyncService {
     }
 
     this.log.info(
-      `Delete sync operation summary: ${JSON.stringify(deletionSummary)}`,
+      `Delete sync ${dryRun ? 'analysis' : 'operation'} summary: ${JSON.stringify(
+        {
+          ...deletionSummary,
+          dryRun,
+        },
+      )}`,
     )
+
+    return deletionSummary
   }
 }

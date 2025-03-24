@@ -17,25 +17,33 @@ declare module 'fastify' {
 export default fp(
   async (fastify: FastifyInstance) => {
     fastify.log.info('Initializing delete sync plugin')
-    
+
     // Create and register the delete sync service
     const service = new DeleteSyncService(fastify.log, fastify)
     fastify.decorate('deleteSync', service)
-    
+
     // Register the job handler with the scheduler
     fastify.ready().then(async () => {
       // Register the handler for the job
-      await fastify.scheduler.scheduleJob('delete-sync', async () => {
-        return await service.run()
+      await fastify.scheduler.scheduleJob('delete-sync', async (jobName) => {
+        // Run the service but don't return its result to conform to the JobHandler type
+        await service.run()
+        // The JobHandler expects void return
       })
-      
+
       fastify.log.info('Delete sync job handler registered with scheduler')
     })
-    
+
     fastify.log.info('Delete sync plugin initialized successfully')
   },
   {
     name: 'delete-sync-service',
-    dependencies: ['scheduler', 'sonarr-manager', 'radarr-manager', 'database', 'config']
-  }
+    dependencies: [
+      'scheduler',
+      'sonarr-manager',
+      'radarr-manager',
+      'database',
+      'config',
+    ],
+  },
 )

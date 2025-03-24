@@ -461,6 +461,7 @@ export class DatabaseService {
       deleteEndedShow: Boolean(config.deleteEndedShow),
       deleteContinuingShow: Boolean(config.deleteContinuingShow),
       deleteFiles: Boolean(config.deleteFiles),
+      respectUserSyncSetting: Boolean(config.respectUserSyncSetting),
       _isReady: Boolean(config._isReady),
     }
   }
@@ -502,6 +503,7 @@ export class DatabaseService {
         deleteContinuingShow: config.deleteContinuingShow,
         deleteIntervalDays: config.deleteIntervalDays,
         deleteFiles: config.deleteFiles,
+        respectUserSyncSetting: config.respectUserSyncSetting,
         // RSS fields
         selfRss: config.selfRss,
         friendsRss: config.friendsRss,
