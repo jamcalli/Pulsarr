@@ -15,14 +15,36 @@ export const CronConfigSchema = z.object({
 })
 
 // Zod schema for job configuration
-export const ScheduleConfigSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  type: z.enum(['interval', 'cron']),
-  config: z.union([IntervalConfigSchema, CronConfigSchema]),
-  enabled: z.boolean().optional().default(true),
-})
+export const ScheduleConfigSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('interval'),
+    name: z.string().min(1, 'Name is required'),
+    config: IntervalConfigSchema,
+    enabled: z.boolean().optional().default(true),
+  }),
+  z.object({
+    type: z.literal('cron'),
+    name: z.string().min(1, 'Name is required'),
+    config: CronConfigSchema,
+    enabled: z.boolean().optional().default(true),
+  }),
+])
 
-// Zod schema for job run information
+// Create schema for partial updates (without the name field)
+export const ScheduleUpdateSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('interval'),
+    config: IntervalConfigSchema.optional(),
+    enabled: z.boolean().optional(),
+  }),
+  z.object({
+    type: z.literal('cron'),
+    config: CronConfigSchema.optional(),
+    enabled: z.boolean().optional(),
+  }),
+])
+
+// Rest of your type definitions remain the same...
 export const JobRunInfoSchema = z.object({
   time: z.string(),
   status: z.enum(['completed', 'failed', 'pending']),
@@ -30,7 +52,6 @@ export const JobRunInfoSchema = z.object({
   estimated: z.boolean().optional(),
 })
 
-// Zod schema for job status response
 export const JobStatusSchema = z.object({
   id: z.number(),
   name: z.string(),
@@ -88,6 +109,7 @@ export const DeleteSyncDryRunResponseSchema = z.object({
 export type IntervalConfig = z.infer<typeof IntervalConfigSchema>
 export type CronConfig = z.infer<typeof CronConfigSchema>
 export type ScheduleConfig = z.infer<typeof ScheduleConfigSchema>
+export type ScheduleUpdate = z.infer<typeof ScheduleUpdateSchema>
 export type JobRunInfo = z.infer<typeof JobRunInfoSchema>
 export type JobStatus = z.infer<typeof JobStatusSchema>
 export type SuccessResponse = z.infer<typeof SuccessResponseSchema>
