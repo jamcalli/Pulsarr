@@ -16,7 +16,7 @@ export default function Nav({ className }: NavProps) {
       )}
     >
       {' '}
-      <div className="grid h-[50px] grid-cols-[1fr_1fr_50px] border-b-4 border-b-border dark:border-b-darkBorder">
+      <div className="grid h-[50px] grid-cols-[1fr_1fr_1fr_50px]  border-b-4 border-b-border dark:border-b-darkBorder">
         <Link
           className={
             location.pathname === '/app/dashboard'
@@ -36,6 +36,16 @@ export default function Nav({ className }: NavProps) {
           to="/app/notifications"
         >
           Notifications
+        </Link>
+        <Link
+          className={
+            location.pathname === '/app/utilities'
+              ? 'bg-black text-white flex h-full items-center justify-center uppercase'
+              : 'text-text bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border dark:border-r-darkBorder'
+          }
+          to="/app/utilities"
+        >
+          Utilities
         </Link>
         <SettingsButton />
       </div>
