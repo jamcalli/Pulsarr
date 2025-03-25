@@ -1,17 +1,29 @@
 /**
  * Type for schedule information in the Db
  */
-export interface DbSchedule {
-  id: number
-  name: string
-  type: 'interval' | 'cron'
-  config: IntervalConfig | CronConfig
-  enabled: boolean
-  last_run: JobRunInfo | null
-  next_run: JobRunInfo | null
-  created_at: string
-  updated_at: string
-}
+export type DbSchedule =
+  | {
+      id: number;
+      name: string;
+      type: 'interval';
+      config: IntervalConfig;
+      enabled: boolean;
+      last_run: JobRunInfo | null;
+      next_run: JobRunInfo | null;
+      created_at: string;
+      updated_at: string;
+    }
+  | {
+      id: number;
+      name: string;
+      type: 'cron';
+      config: CronConfig;
+      enabled: boolean;
+      last_run: JobRunInfo | null;
+      next_run: JobRunInfo | null;
+      created_at: string;
+      updated_at: string;
+    };
 
 /**
  * Type for job run status information

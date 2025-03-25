@@ -52,17 +52,36 @@ export const JobRunInfoSchema = z.object({
   estimated: z.boolean().optional(),
 })
 
-export const JobStatusSchema = z.object({
+// Define specific job types
+const IntervalJobSchema = z.object({
   id: z.number(),
   name: z.string(),
-  type: z.enum(['interval', 'cron']),
-  config: z.union([IntervalConfigSchema, CronConfigSchema]),
+  type: z.literal('interval'),
+  config: IntervalConfigSchema,
   enabled: z.boolean(),
   last_run: JobRunInfoSchema.nullable(),
   next_run: JobRunInfoSchema.nullable(),
   created_at: z.string(),
   updated_at: z.string(),
-})
+});
+
+const CronJobSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  type: z.literal('cron'),
+  config: CronConfigSchema,
+  enabled: z.boolean(),
+  last_run: JobRunInfoSchema.nullable(),
+  next_run: JobRunInfoSchema.nullable(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
+// Combine with regular union instead of discriminated union
+export const JobStatusSchema = z.union([
+  IntervalJobSchema,
+  CronJobSchema
+]);
 
 // Standard response schemas
 export const SuccessResponseSchema = z.object({
