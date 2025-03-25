@@ -1,4 +1,11 @@
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { PlayCircle, Power, Clock } from 'lucide-react'
@@ -11,22 +18,26 @@ interface ScheduledJobsTableProps {
   onToggleStatus: (name: string, currentStatus: boolean) => Promise<void>
 }
 
-export function ScheduledJobsTable({ jobs, onRunNow, onToggleStatus }: ScheduledJobsTableProps) {
+export function ScheduledJobsTable({
+  jobs,
+  onRunNow,
+  onToggleStatus,
+}: ScheduledJobsTableProps) {
   const getStatusBadge = (job: JobStatus) => {
     if (!job.enabled) {
       return <Badge variant="default">Disabled</Badge>
     }
-    
+
     if (job.last_run?.status === 'failed') {
       return <Badge variant="warn">Failed</Badge>
     }
-    
+
     return <Badge variant="default">Active</Badge>
   }
 
   const formatLastRun = (lastRun: JobStatus['last_run']) => {
     if (!lastRun?.time) return 'Never'
-    
+
     try {
       return formatDistanceToNow(parseISO(lastRun.time), { addSuffix: true })
     } catch (e) {
@@ -36,7 +47,7 @@ export function ScheduledJobsTable({ jobs, onRunNow, onToggleStatus }: Scheduled
 
   const formatNextRun = (nextRun: JobStatus['next_run']) => {
     if (!nextRun?.time) return 'Not scheduled'
-    
+
     try {
       return formatDistanceToNow(parseISO(nextRun.time), { addSuffix: true })
     } catch (e) {
@@ -48,19 +59,23 @@ export function ScheduledJobsTable({ jobs, onRunNow, onToggleStatus }: Scheduled
     if (job.type === 'interval') {
       const config = job.config
       const parts = []
-      
-      if (config.days) parts.push(`${config.days} day${config.days !== 1 ? 's' : ''}`)
-      if (config.hours) parts.push(`${config.hours} hour${config.hours !== 1 ? 's' : ''}`)
-      if (config.minutes) parts.push(`${config.minutes} minute${config.minutes !== 1 ? 's' : ''}`)
-      if (config.seconds) parts.push(`${config.seconds} second${config.seconds !== 1 ? 's' : ''}`)
-      
+
+      if (config.days)
+        parts.push(`${config.days} day${config.days !== 1 ? 's' : ''}`)
+      if (config.hours)
+        parts.push(`${config.hours} hour${config.hours !== 1 ? 's' : ''}`)
+      if (config.minutes)
+        parts.push(`${config.minutes} minute${config.minutes !== 1 ? 's' : ''}`)
+      if (config.seconds)
+        parts.push(`${config.seconds} second${config.seconds !== 1 ? 's' : ''}`)
+
       return parts.length ? `Every ${parts.join(', ')}` : 'No interval set'
     }
-    
+
     if (job.type === 'cron') {
       return `Cron: ${job.config.expression}`
     }
-    
+
     return 'Unknown schedule type'
   }
 
@@ -79,7 +94,7 @@ export function ScheduledJobsTable({ jobs, onRunNow, onToggleStatus }: Scheduled
         </TableHeader>
         <TableBody>
           {jobs.map((job, index) => (
-            <TableRow 
+            <TableRow
               key={job.name}
               className={index % 2 === 0 ? 'bg-main' : 'bg-bw'}
             >
@@ -95,7 +110,10 @@ export function ScheduledJobsTable({ jobs, onRunNow, onToggleStatus }: Scheduled
               <TableCell className="py-3 px-4 text-text">
                 {formatLastRun(job.last_run)}
                 {job.last_run?.status === 'failed' && (
-                  <div className="text-xs text-red-500 mt-1" title={job.last_run.error}>
+                  <div
+                    className="text-xs text-red-500 mt-1"
+                    title={job.last_run.error}
+                  >
                     Error: {job.last_run.error || 'Unknown error'}
                   </div>
                 )}
@@ -118,12 +136,14 @@ export function ScheduledJobsTable({ jobs, onRunNow, onToggleStatus }: Scheduled
                     <span className="ml-2">Run</span>
                   </Button>
                   <Button
-                    variant={job.enabled ? "error" : "default"}
+                    variant={job.enabled ? 'error' : 'default'}
                     size="sm"
                     onClick={() => onToggleStatus(job.name, job.enabled)}
                   >
                     <Power className="h-4 w-4" />
-                    <span className="ml-2">{job.enabled ? 'Disable' : 'Enable'}</span>
+                    <span className="ml-2">
+                      {job.enabled ? 'Disable' : 'Enable'}
+                    </span>
                   </Button>
                 </div>
               </TableCell>

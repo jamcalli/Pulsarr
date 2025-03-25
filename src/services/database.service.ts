@@ -4094,7 +4094,7 @@ export class DatabaseService {
   async getAllSchedules(): Promise<DbSchedule[]> {
     try {
       const schedules = await this.knex('schedules').select('*')
-  
+
       return schedules.map((schedule) => {
         // Parse common fields
         const commonFields = {
@@ -4103,38 +4103,39 @@ export class DatabaseService {
           enabled: Boolean(schedule.enabled),
           last_run: schedule.last_run
             ? typeof schedule.last_run === 'string'
-              ? JSON.parse(schedule.last_run) as JobRunInfo
-              : schedule.last_run as JobRunInfo
+              ? (JSON.parse(schedule.last_run) as JobRunInfo)
+              : (schedule.last_run as JobRunInfo)
             : null,
           next_run: schedule.next_run
             ? typeof schedule.next_run === 'string'
-              ? JSON.parse(schedule.next_run) as JobRunInfo
-              : schedule.next_run as JobRunInfo
+              ? (JSON.parse(schedule.next_run) as JobRunInfo)
+              : (schedule.next_run as JobRunInfo)
             : null,
           created_at: schedule.created_at,
           updated_at: schedule.updated_at,
-        };
-  
+        }
+
         // Parse the config
-        const parsedConfig = typeof schedule.config === 'string'
-          ? JSON.parse(schedule.config)
-          : schedule.config;
-  
+        const parsedConfig =
+          typeof schedule.config === 'string'
+            ? JSON.parse(schedule.config)
+            : schedule.config
+
         // Return properly typed object based on schedule type
         if (schedule.type === 'interval') {
           return {
             ...commonFields,
             type: 'interval' as const,
-            config: parsedConfig as IntervalConfig
-          };
+            config: parsedConfig as IntervalConfig,
+          }
         } else {
           return {
             ...commonFields,
             type: 'cron' as const,
-            config: parsedConfig as CronConfig
-          };
+            config: parsedConfig as CronConfig,
+          }
         }
-      });
+      })
     } catch (error) {
       this.log.error('Error fetching all schedules:', error)
       return []
@@ -4150,9 +4151,9 @@ export class DatabaseService {
   async getScheduleByName(name: string): Promise<DbSchedule | null> {
     try {
       const schedule = await this.knex('schedules').where({ name }).first()
-  
+
       if (!schedule) return null
-  
+
       // Parse common fields
       const commonFields = {
         id: schedule.id,
@@ -4160,36 +4161,37 @@ export class DatabaseService {
         enabled: Boolean(schedule.enabled),
         last_run: schedule.last_run
           ? typeof schedule.last_run === 'string'
-            ? JSON.parse(schedule.last_run) as JobRunInfo
-            : schedule.last_run as JobRunInfo
+            ? (JSON.parse(schedule.last_run) as JobRunInfo)
+            : (schedule.last_run as JobRunInfo)
           : null,
         next_run: schedule.next_run
           ? typeof schedule.next_run === 'string'
-            ? JSON.parse(schedule.next_run) as JobRunInfo
-            : schedule.next_run as JobRunInfo
+            ? (JSON.parse(schedule.next_run) as JobRunInfo)
+            : (schedule.next_run as JobRunInfo)
           : null,
         created_at: schedule.created_at,
         updated_at: schedule.updated_at,
-      };
-  
+      }
+
       // Parse the config
-      const parsedConfig = typeof schedule.config === 'string'
-        ? JSON.parse(schedule.config)
-        : schedule.config;
-  
+      const parsedConfig =
+        typeof schedule.config === 'string'
+          ? JSON.parse(schedule.config)
+          : schedule.config
+
       // Return properly typed object based on schedule type
       if (schedule.type === 'interval') {
         return {
           ...commonFields,
           type: 'interval' as const,
-          config: parsedConfig as IntervalConfig
-        };
+          config: parsedConfig as IntervalConfig,
+        }
       } else {
         return {
           ...commonFields,
           type: 'cron' as const,
-          config: parsedConfig as CronConfig
-        };
+          config: parsedConfig as CronConfig,
+        }
       }
     } catch (error) {
       this.log.error(`Error fetching schedule ${name}:`, error)
