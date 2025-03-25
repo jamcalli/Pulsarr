@@ -1,209 +1,124 @@
-import { ChevronDown, ChevronUp } from "lucide-react";
-import React, { useEffect, useRef } from "react";
+import { useState, useEffect } from 'react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { format } from 'date-fns';
 
-import { Button } from "../ui/button";
-import { Input } from "../ui/input";
-import { cn } from "@/lib/utils";
-
-interface TimeInputProps {
+interface TimeSelectorProps {
   value?: Date;
-  onChange: (date: Date) => void;
+  onChange: (date: Date, dayOfWeek?: string) => void;
   disabled?: boolean;
   className?: string;
+  dayOfWeek?: string;
 }
 
-interface TimeParts {
-  hours: number;
-  minutes: number;
-  ampm: "AM" | "PM";
-}
-
-export const TimeInput: React.FC<TimeInputProps> = ({
-  value,
-  onChange,
-  disabled = false,
-  className,
-}) => {
-  const [time, setTime] = React.useState<TimeParts>(() => {
-    const d = value ? new Date(value) : new Date();
-    const hours = d.getHours();
-    return {
-      hours: hours % 12 === 0 ? 12 : hours % 12,
-      minutes: d.getMinutes(),
-      ampm: hours >= 12 ? "PM" : "AM",
-    };
-  });
-
-  const hoursRef = useRef<HTMLInputElement | null>(null);
-  const minutesRef = useRef<HTMLInputElement | null>(null);
-
-  useEffect(() => {
-    if (value) {
-      const d = new Date(value);
-      const hours = d.getHours();
-      setTime({
-        hours: hours % 12 === 0 ? 12 : hours % 12,
-        minutes: d.getMinutes(),
-        ampm: hours >= 12 ? "PM" : "AM",
-      });
-    }
-  }, [value]);
-
-  const updateTime = (newTime: TimeParts) => {
-    if (disabled) return;
-
-    const currentDate = value ? new Date(value) : new Date();
-    const hours =
-      newTime.ampm === "PM" && newTime.hours !== 12
-        ? newTime.hours + 12
-        : newTime.ampm === "AM" && newTime.hours === 12
-          ? 0
-          : newTime.hours;
-
-    currentDate.setHours(hours);
-    currentDate.setMinutes(newTime.minutes);
-    currentDate.setSeconds(0);
-
-    onChange(currentDate);
-    setTime(newTime);
-  };
-
-  const handleInputChange =
-    (field: keyof TimeParts) => (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (disabled) return;
-
-      const value = e.target.value.replace(/\D/g, "");
-      if (!value) return;
-
-      const numValue = Number.parseInt(value, 10);
-
-      let newValue: number | string = numValue;
-      if (field === "hours") {
-        if (numValue < 1) newValue = 1;
-        else if (numValue > 12) newValue = 12;
-      } else if (field === "minutes") {
-        if (numValue < 0) newValue = 0;
-        else if (numValue > 59) newValue = 59;
-      }
-
-      updateTime({ ...time, [field]: newValue });
-    };
-
-  const handleAmPmToggle = () => {
-    if (disabled) return;
-    updateTime({ ...time, ampm: time.ampm === "AM" ? "PM" : "AM" });
-  };
-
-  const incrementHours = () => {
-    if (disabled) return;
-    const newHours = time.hours === 12 ? 1 : time.hours + 1;
-    updateTime({ ...time, hours: newHours });
-  };
-
-  const decrementHours = () => {
-    if (disabled) return;
-    const newHours = time.hours === 1 ? 12 : time.hours - 1;
-    updateTime({ ...time, hours: newHours });
-  };
-
-  const incrementMinutes = () => {
-    if (disabled) return;
-    const newMinutes = (time.minutes + 1) % 60;
-    updateTime({ ...time, minutes: newMinutes });
-  };
-
-  const decrementMinutes = () => {
-    if (disabled) return;
-    const newMinutes = (time.minutes - 1 + 60) % 60;
-    updateTime({ ...time, minutes: newMinutes });
-  };
-
-  const formatTimeValue = (value: number): string => {
-    return value.toString().padStart(2, "0");
-  };
-
-  return (
-    <div
-      className={cn(
-        "flex items-center space-x-1 rounded-md border p-1",
-        className,
-      )}
-    >
-      <div className="flex flex-col">
-        <Button
-          type="button"
-          variant="neutral"
-          size="icon"
-          className="h-5 w-5"
-          onClick={incrementHours}
-          disabled={disabled}
-        >
-          <ChevronUp className="h-3 w-3" />
-        </Button>
-        <Input
-          ref={hoursRef}
-          type="text"
-          inputMode="numeric"
-          value={formatTimeValue(time.hours)}
-          onChange={handleInputChange("hours")}
-          className="w-7 border-0 text-center focus:outline-none focus:ring-0 p-0 disabled:opacity-50"
-          disabled={disabled}
-        />
-        <Button
-          type="button"
-          variant="neutral"
-          size="icon"
-          className="h-5 w-5"
-          onClick={decrementHours}
-          disabled={disabled}
-        >
-          <ChevronDown className="h-3 w-3" />
-        </Button>
-      </div>
-      <span className="text-sm font-medium">:</span>
-      <div className="flex flex-col">
-        <Button
-          type="button"
-          variant="neutral"
-          size="icon"
-          className="h-5 w-5"
-          onClick={incrementMinutes}
-          disabled={disabled}
-        >
-          <ChevronUp className="h-3 w-3" />
-        </Button>
-        <Input
-          ref={minutesRef}
-          type="text"
-          inputMode="numeric"
-          value={formatTimeValue(time.minutes)}
-          onChange={handleInputChange("minutes")}
-          className="w-7 border-0 text-center focus:outline-none focus:ring-0 p-0 disabled:opacity-50"
-          disabled={disabled}
-        />
-        <Button
-          type="button"
-          variant="neutral"
-          size="icon"
-          className="h-5 w-5"
-          onClick={decrementMinutes}
-          disabled={disabled}
-        >
-          <ChevronDown className="h-3 w-3" />
-        </Button>
-      </div>
-      <Button
-        type="button"
-        variant="neutral"
-        size="sm"
-        className="text-xs px-2 h-8"
-        onClick={handleAmPmToggle}
-        disabled={disabled}
-      >
-        {time.ampm}
-      </Button>
-    </div>
-  );
+type DayOption = {
+  value: string;
+  label: string;
 };
 
-TimeInput.displayName = "TimeInput";
+const DAYS_OF_WEEK: DayOption[] = [
+  { value: '*', label: 'Every day' },
+  { value: '1', label: 'Monday' },
+  { value: '2', label: 'Tuesday' },
+  { value: '3', label: 'Wednesday' },
+  { value: '4', label: 'Thursday' },
+  { value: '5', label: 'Friday' },
+  { value: '6', label: 'Saturday' },
+  { value: '0', label: 'Sunday' },
+];
+
+export function TimeSelector({ 
+  value, 
+  onChange, 
+  disabled = false,
+  className,
+  dayOfWeek = '*'
+}: TimeSelectorProps) {
+  // Format the time value as "HH:MM"
+  const formatTimeValue = (date?: Date): string => {
+    if (!date) return "00:00";
+    return format(date, "HH:mm");
+  };
+  
+  const [time, setTime] = useState<string>(formatTimeValue(value));
+  const [selectedDay, setSelectedDay] = useState<string>(dayOfWeek);
+  
+  // Update time when value prop changes
+  useEffect(() => {
+    setTime(formatTimeValue(value));
+  }, [value]);
+  
+  // Update day selection when prop changes
+  useEffect(() => {
+    setSelectedDay(dayOfWeek);
+  }, [dayOfWeek]);
+  
+  const handleTimeChange = (newTimeString: string) => {
+    setTime(newTimeString);
+    
+    const [hours, minutes] = newTimeString.split(':').map(Number);
+    const newDate = value ? new Date(value) : new Date();
+    newDate.setHours(hours, minutes, 0, 0);
+    
+    onChange(newDate, selectedDay);
+  };
+  
+  const handleDayChange = (newDay: string) => {
+    setSelectedDay(newDay);
+    onChange(value || new Date(), newDay);
+  };
+  
+  return (
+    <div className={`flex gap-2 items-center ${className}`}>
+      <Select
+        value={selectedDay}
+        onValueChange={handleDayChange}
+        disabled={disabled}
+      >
+        <SelectTrigger className="font-normal focus:ring-0 w-[140px] focus:ring-offset-0">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {DAYS_OF_WEEK.map((day) => (
+            <SelectItem key={day.value} value={day.value}>
+              {day.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      
+      <Select
+        value={time}
+        onValueChange={handleTimeChange}
+        disabled={disabled}
+      >
+        <SelectTrigger className="font-normal focus:ring-0 w-[120px] focus:ring-offset-0">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <ScrollArea className="h-[15rem]">
+            {Array.from({ length: 96 }).map((_, i) => {
+              const hour = Math.floor(i / 4).toString().padStart(2, "0");
+              const minute = ((i % 4) * 15).toString().padStart(2, "0");
+              const timeValue = `${hour}:${minute}`;
+              
+              return (
+                <SelectItem key={i} value={timeValue}>
+                  {timeValue}
+                </SelectItem>
+              );
+            })}
+          </ScrollArea>
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+export default TimeSelector;
