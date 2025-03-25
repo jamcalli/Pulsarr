@@ -1,6 +1,12 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-import type { JobStatus, DeleteSyncResult } from '@root/schemas/scheduler/scheduler.schema'
+import type {
+  JobStatus,
+  DeleteSyncResult,
+} from '@root/schemas/scheduler/scheduler.schema'
+
+// Minimum loading delay for consistent UX
+const MIN_LOADING_DELAY = 500
 
 export interface UtilitiesState {
   schedules: JobStatus[] | null
@@ -8,10 +14,14 @@ export interface UtilitiesState {
   loading: {
     schedules: boolean
     deleteSyncDryRun: boolean
+    runSchedule: boolean
+    toggleSchedule: boolean
   }
   error: {
     schedules: string | null
     deleteSyncDryRun: string | null
+    runSchedule: string | null
+    toggleSchedule: string | null
   }
 
   // Fetch functions
@@ -19,6 +29,7 @@ export interface UtilitiesState {
   runDryDeleteSync: () => Promise<void>
   runScheduleNow: (name: string) => Promise<boolean>
   toggleScheduleStatus: (name: string, enabled: boolean) => Promise<boolean>
+  resetErrors: () => void
 }
 
 export const useUtilitiesStore = create<UtilitiesState>()(
@@ -27,18 +38,34 @@ export const useUtilitiesStore = create<UtilitiesState>()(
     deleteSyncDryRunResults: null,
     loading: {
       schedules: false,
-      deleteSyncDryRun: false
+      deleteSyncDryRun: false,
+      runSchedule: false,
+      toggleSchedule: false,
     },
     error: {
       schedules: null,
-      deleteSyncDryRun: null
+      deleteSyncDryRun: null,
+      runSchedule: null,
+      toggleSchedule: null,
+    },
+
+    resetErrors: () => {
+      set((state) => ({
+        ...state,
+        error: {
+          schedules: null,
+          deleteSyncDryRun: null,
+          runSchedule: null,
+          toggleSchedule: null,
+        },
+      }))
     },
 
     fetchSchedules: async () => {
       set((state) => ({
         ...state,
         loading: { ...state.loading, schedules: true },
-        error: { ...state.error, schedules: null }
+        error: { ...state.error, schedules: null },
       }))
 
       try {
@@ -48,18 +75,27 @@ export const useUtilitiesStore = create<UtilitiesState>()(
         }
 
         const data: JobStatus[] = await response.json()
-        
+
+        // Apply minimum loading time for a consistent UX
+        const minimumLoadingTime = new Promise((resolve) =>
+          setTimeout(resolve, MIN_LOADING_DELAY),
+        )
+        await minimumLoadingTime
+
         set((state) => ({
           ...state,
           schedules: data,
-          loading: { ...state.loading, schedules: false }
+          loading: { ...state.loading, schedules: false },
         }))
       } catch (err) {
         console.error('Error fetching schedules:', err)
         set((state) => ({
           ...state,
           loading: { ...state.loading, schedules: false },
-          error: { ...state.error, schedules: err instanceof Error ? err.message : 'Unknown error' }
+          error: {
+            ...state.error,
+            schedules: err instanceof Error ? err.message : 'Unknown error',
+          },
         }))
       }
     },
@@ -68,24 +104,33 @@ export const useUtilitiesStore = create<UtilitiesState>()(
       set((state) => ({
         ...state,
         loading: { ...state.loading, deleteSyncDryRun: true },
-        error: { ...state.error, deleteSyncDryRun: null }
+        error: { ...state.error, deleteSyncDryRun: null },
       }))
 
       try {
-        const response = await fetch('/v1/scheduler/schedules/delete-sync/dry-run', {
-          method: 'POST'
-        })
+        const response = await fetch(
+          '/v1/scheduler/schedules/delete-sync/dry-run',
+          {
+            method: 'POST',
+          },
+        )
 
         if (!response.ok) {
           throw new Error('Failed to run delete sync dry run')
         }
 
         const data = await response.json()
-        
+
+        // Apply minimum loading time for a consistent UX
+        const minimumLoadingTime = new Promise((resolve) =>
+          setTimeout(resolve, MIN_LOADING_DELAY),
+        )
+        await minimumLoadingTime
+
         set((state) => ({
           ...state,
           deleteSyncDryRunResults: data.results,
-          loading: { ...state.loading, deleteSyncDryRun: false }
+          loading: { ...state.loading, deleteSyncDryRun: false },
         }))
 
         return data.results
@@ -94,19 +139,26 @@ export const useUtilitiesStore = create<UtilitiesState>()(
         set((state) => ({
           ...state,
           loading: { ...state.loading, deleteSyncDryRun: false },
-          error: { 
-            ...state.error, 
-            deleteSyncDryRun: err instanceof Error ? err.message : 'Unknown error' 
-          }
+          error: {
+            ...state.error,
+            deleteSyncDryRun:
+              err instanceof Error ? err.message : 'Unknown error',
+          },
         }))
         throw err
       }
     },
 
     runScheduleNow: async (name: string) => {
+      set((state) => ({
+        ...state,
+        loading: { ...state.loading, runSchedule: true },
+        error: { ...state.error, runSchedule: null },
+      }))
+
       try {
         const response = await fetch(`/v1/scheduler/schedules/${name}/run`, {
-          method: 'POST'
+          method: 'POST',
         })
 
         if (!response.ok) {
@@ -114,25 +166,51 @@ export const useUtilitiesStore = create<UtilitiesState>()(
         }
 
         const data = await response.json()
-        
+
+        // Apply minimum loading time for a consistent UX
+        const minimumLoadingTime = new Promise((resolve) =>
+          setTimeout(resolve, MIN_LOADING_DELAY),
+        )
+        await minimumLoadingTime
+
         // Refresh schedules after running a job
         await get().fetchSchedules()
-        
+
+        set((state) => ({
+          ...state,
+          loading: { ...state.loading, runSchedule: false },
+        }))
+
         return data.success
       } catch (err) {
         console.error(`Error running schedule ${name}:`, err)
+        set((state) => ({
+          ...state,
+          loading: { ...state.loading, runSchedule: false },
+          error: {
+            ...state.error,
+            runSchedule:
+              err instanceof Error ? err.message : `Failed to run ${name}`,
+          },
+        }))
         return false
       }
     },
 
     toggleScheduleStatus: async (name: string, enabled: boolean) => {
+      set((state) => ({
+        ...state,
+        loading: { ...state.loading, toggleSchedule: true },
+        error: { ...state.error, toggleSchedule: null },
+      }))
+
       try {
         const response = await fetch(`/v1/scheduler/schedules/${name}/toggle`, {
           method: 'PATCH',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ enabled })
+          body: JSON.stringify({ enabled }),
         })
 
         if (!response.ok) {
@@ -140,15 +218,35 @@ export const useUtilitiesStore = create<UtilitiesState>()(
         }
 
         const data = await response.json()
-        
+
+        // Apply minimum loading time for a consistent UX
+        const minimumLoadingTime = new Promise((resolve) =>
+          setTimeout(resolve, MIN_LOADING_DELAY),
+        )
+        await minimumLoadingTime
+
         // Refresh schedules after toggling
         await get().fetchSchedules()
-        
+
+        set((state) => ({
+          ...state,
+          loading: { ...state.loading, toggleSchedule: false },
+        }))
+
         return data.success
       } catch (err) {
         console.error(`Error toggling schedule ${name}:`, err)
+        set((state) => ({
+          ...state,
+          loading: { ...state.loading, toggleSchedule: false },
+          error: {
+            ...state.error,
+            toggleSchedule:
+              err instanceof Error ? err.message : `Failed to toggle ${name}`,
+          },
+        }))
         return false
       }
-    }
-  }))
+    },
+  })),
 )
