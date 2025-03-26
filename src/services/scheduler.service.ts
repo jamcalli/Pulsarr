@@ -155,7 +155,7 @@ export class SchedulerService {
             },
           })
 
-          // Calculate and update next run time (for interval jobs)
+          // Calculate and update next run time
           if (type === 'interval') {
             const intervalConfig = config as IntervalConfig
             const nextRun = new Date()
@@ -167,6 +167,18 @@ export class SchedulerService {
               nextRun.setMinutes(nextRun.getMinutes() + intervalConfig.minutes)
             if (intervalConfig.seconds)
               nextRun.setSeconds(nextRun.getSeconds() + intervalConfig.seconds)
+
+            await this.fastify.db.updateSchedule(name, {
+              next_run: {
+                time: nextRun.toISOString(),
+                status: 'pending',
+                estimated: true,
+              },
+            })
+          } else if (type === 'cron') {
+            // For cron jobs, use the calculateNextCronRun method
+            const cronConfig = config as CronConfig
+            const nextRun = this.calculateNextCronRun(cronConfig.expression)
 
             await this.fastify.db.updateSchedule(name, {
               next_run: {
@@ -342,15 +354,38 @@ export class SchedulerService {
    */
   async runJobNow(name: string): Promise<boolean> {
     try {
-      const job = this.jobs.get(name)
-      if (job) {
-        await job.handler(name)
-        this.log.info(`Job ${name} executed manually`)
-        return true
+      const jobData = this.jobs.get(name)
+      if (!jobData) {
+        return false
       }
-      return false
+
+      this.log.info(`Manually running job: ${name}`)
+
+      // Run the handler
+      await jobData.handler(name)
+
+      // Update last run time
+      await this.fastify.db.updateSchedule(name, {
+        last_run: {
+          time: new Date().toISOString(),
+          status: 'completed',
+        },
+      })
+
+      this.log.info(`Job ${name} executed manually`)
+      return true
     } catch (error) {
       this.log.error(`Error executing job ${name}:`, error)
+
+      // Update with error status
+      await this.fastify.db.updateSchedule(name, {
+        last_run: {
+          time: new Date().toISOString(),
+          status: 'failed',
+          error: error instanceof Error ? error.message : String(error),
+        },
+      })
+
       return false
     }
   }
@@ -484,5 +519,48 @@ export class SchedulerService {
   stop(): void {
     this.log.info('Stopping all scheduled jobs')
     this.scheduler.stop()
+  }
+
+  /**
+   * Calculate the next run time for a cron expression
+   */
+  private calculateNextCronRun(expression: string): Date {
+    const now = new Date()
+    const nextRun = new Date(now)
+
+    // Parse the cron expression (simplified)
+    // Format: [minute] [hour] [day of month] [month] [day of week]
+    const parts = expression.split(' ').map((p) => p.trim())
+    if (parts.length !== 5) {
+      // Invalid format, just add 24 hours as fallback
+      nextRun.setHours(nextRun.getHours() + 24)
+      return nextRun
+    }
+
+    const [minute, hour, dayOfMonth, month, dayOfWeek] = parts
+
+    // Handle common patterns
+    if (minute === '*' && hour === '*') {
+      // Every minute: add 1 minute
+      nextRun.setMinutes(nextRun.getMinutes() + 1)
+    } else if (hour === '*' && minute !== '*') {
+      // Every hour at specific minute
+      nextRun.setMinutes(Number.parseInt(minute, 10))
+      if (nextRun <= now) {
+        nextRun.setHours(nextRun.getHours() + 1)
+      }
+    } else if (hour !== '*' && minute !== '*') {
+      // Specific time daily
+      nextRun.setHours(Number.parseInt(hour, 10))
+      nextRun.setMinutes(Number.parseInt(minute, 10))
+      if (nextRun <= now) {
+        nextRun.setDate(nextRun.getDate() + 1)
+      }
+    } else {
+      // For more complex patterns, add 24 hours as an estimate
+      nextRun.setHours(nextRun.getHours() + 24)
+    }
+
+    return nextRun
   }
 }
