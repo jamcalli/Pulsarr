@@ -2,7 +2,6 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Loader2, PlayCircle, AlertTriangle, Check, Power, Clock } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
-import { useState, useEffect } from 'react'
 import { 
   Form, 
   FormControl, 
@@ -21,7 +20,6 @@ import {
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { TimeSelector } from '@/components/ui/time-input'
-import { format } from 'date-fns'
 import { 
   Accordion, 
   AccordionContent, 
@@ -30,8 +28,7 @@ import {
 } from '@/components/ui/accordion'
 import { Separator } from '@/components/ui/separator'
 import { useDeleteSync } from '@/features/utilities/hooks/useDeleteSync'
-import type { IntervalConfig } from '@root/schemas/scheduler/scheduler.schema'
-import type { DeleteSyncFormValues } from '@/features/utilities/hooks/useDeleteSync'
+import type { DeleteSyncFormValues } from '@/features/utilities/hooks/useDeleteSyncForm'
 
 export function DeleteSyncForm() {
   const {
@@ -54,59 +51,6 @@ export function DeleteSyncForm() {
     handleCancel,
     handleTimeChange
   } = useDeleteSync()
-
-  // Brute force solution: add a local saving state that we control
-  const [isLocalSaving, setIsLocalSaving] = useState(false);
-  const [isCancelling, setIsCancelling] = useState(false);
-  
-  // Force the buttons to stay visible for a full 500ms when saving
-  const handleSubmit = async (data: DeleteSyncFormValues) => {
-    setIsLocalSaving(true);
-    
-    try {
-      await onSubmit(data);
-    } catch (error) {
-      console.error("Error in form submission:", error);
-    }
-    
-    // This ensures the button stays visible for at least 500ms
-    setTimeout(() => {
-      setIsLocalSaving(false);
-    }, 500);
-  };
-  
-  // Same for cancel - keep it visible for 500ms
-  const handleCancelWithDuration = () => {
-    setIsCancelling(true);
-    handleCancel();
-    setTimeout(() => {
-      setIsCancelling(false);
-    }, 500);
-  };
-  
-  // Track the dirty state separately to force button visibility 
-  const [formWasDirty, setFormWasDirty] = useState(false);
-  
-  useEffect(() => {
-    // If form becomes dirty, record that
-    if (form.formState.isDirty) {
-      setFormWasDirty(true);
-    }
-  }, [form.formState.isDirty]);
-  
-  // Only hide buttons 500ms after form is reset
-  useEffect(() => {
-    if (!form.formState.isDirty && formWasDirty && !isLocalSaving && !isCancelling) {
-      // Delay hiding the buttons
-      const timer = setTimeout(() => {
-        setFormWasDirty(false);
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [form.formState.isDirty, formWasDirty, isLocalSaving, isCancelling]);
-  
-  // Calculate if buttons should be visible
-  const showButtons = form.formState.isDirty || formWasDirty || isLocalSaving || isCancelling;
 
   return (
     <Accordion type="single" collapsible defaultValue="delete-sync" className="w-full">
@@ -259,34 +203,21 @@ export function DeleteSyncForm() {
                       )}
                     />
                   </div>
-                  {deleteSyncJob && (
+                  {deleteSyncJob && deleteSyncJob.type === 'cron' && deleteSyncJob.config?.expression && (
                     <div className="mt-2 text-xs text-muted-foreground">
-                      {deleteSyncJob.type === 'cron' && deleteSyncJob.config?.expression && (
-                        <p>Current schedule: {
-                          deleteSyncJob.config.expression === '0 0 * * * *' 
-                            ? 'Every hour'
-                            : `${format(scheduleTime || new Date(), 'h:mm a')} ${
-                                dayOfWeek === '*' 
-                                  ? 'every day' 
-                                  : `on ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][parseInt(dayOfWeek)]}`
-                              }`
-                        }</p>
-                      )}
-                      {deleteSyncJob.type === 'interval' && (
-                        <p>
-                          Current interval: {(() => {
-                            const config = deleteSyncJob.config as IntervalConfig
-                            const parts = []
-                            
-                            if (config.days) parts.push(`${config.days} day${config.days !== 1 ? 's' : ''}`)
-                            if (config.hours) parts.push(`${config.hours} hour${config.hours !== 1 ? 's' : ''}`)
-                            if (config.minutes) parts.push(`${config.minutes} minute${config.minutes !== 1 ? 's' : ''}`)
-                            if (config.seconds) parts.push(`${config.seconds} second${config.seconds !== 1 ? 's' : ''}`)
-                            
-                            return parts.length ? `Every ${parts.join(', ')}` : 'Custom interval'
-                          })()}
-                        </p>
-                      )}
+                      <p>Current schedule: {
+                        deleteSyncJob.config.expression === '0 0 * * * *' 
+                          ? 'Every hour'
+                          : `${scheduleTime ? new Intl.DateTimeFormat('en-US', {
+                              hour: 'numeric',
+                              minute: 'numeric',
+                              hour12: true
+                            }).format(scheduleTime) : ''} ${
+                              dayOfWeek === '*' 
+                                ? 'every day' 
+                                : `on ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][parseInt(dayOfWeek)]}`
+                            }`
+                      }</p>
                     </div>
                   )}
                 </div>
@@ -294,7 +225,7 @@ export function DeleteSyncForm() {
                 <Separator />
 
                 <Form {...form}>
-                  <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <h3 className="font-medium text-sm text-text mb-2">Configuration</h3>
@@ -427,6 +358,7 @@ export function DeleteSyncForm() {
                                       min={1}
                                       max={100}
                                       {...field}
+                                      value={field.value || ''}
                                       className="w-20 text-right"
                                       placeholder="10"
                                     />
@@ -440,40 +372,38 @@ export function DeleteSyncForm() {
                       </div>
                     </div>
 
-                    {/* Action buttons - ALWAYS SHOW DURING LOADING STATE */}
-                    <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-border">
-                      {showButtons && (
-                        <>
-                          <Button
-                            type="submit"
-                            disabled={(isLocalSaving || isSaving) || (!form.formState.isDirty && !formWasDirty)}
-                            className={cn(
-                              "flex items-center gap-2",
-                              "bg-blue hover:bg-blue/90"
-                            )}
-                          >
-                            {(isLocalSaving || isSaving) ? (
-                              <>
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                                Saving...
-                              </>
-                            ) : (
-                              'Save Changes'
-                            )}
-                          </Button>
-                          
-                          <Button
-                            type="button"
-                            variant="cancel"
-                            onClick={handleCancelWithDuration}
-                            disabled={isLocalSaving || isSaving || isCancelling}
-                            className="flex items-center gap-1"
-                          >
-                            <span>Cancel</span>
-                          </Button>
-                        </>
-                      )}
-                    </div>
+                    {/* Action buttons - only show while isDirty or isSaving */}
+                    {(form.formState.isDirty || isSaving) && (
+                      <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-border">
+                        <Button
+                          type="submit"
+                          disabled={isSaving || !form.formState.isDirty}
+                          className={cn(
+                            "flex items-center gap-2 min-w-[120px]",
+                            "bg-blue hover:bg-blue/90"
+                          )}
+                        >
+                          {isSaving ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Saving...
+                            </>
+                          ) : (
+                            'Save Changes'
+                          )}
+                        </Button>
+                        
+                        <Button
+                          type="button"
+                          variant="cancel"
+                          onClick={handleCancel}
+                          disabled={isSaving}
+                          className="flex items-center gap-1"
+                        >
+                          <span>Cancel</span>
+                        </Button>
+                      </div>
+                    )}
                   </form>
                 </Form>
                 
