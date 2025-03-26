@@ -52,7 +52,7 @@ export default function Nav({ className }: NavProps) {
               Utilities
             </Link>
           </div>
-          
+
           {/* Bottom row */}
           <div className="grid h-[50px] grid-cols-3 border-b-4 border-b-border dark:border-b-darkBorder">
             <Link
@@ -87,7 +87,7 @@ export default function Nav({ className }: NavProps) {
             </Link>
           </div>
         </div>
-        
+
         {/* Settings button column spans both rows */}
         <div className="row-span-2 h-full border-b-4 border-b-border dark:border-b-darkBorder">
           <SettingsButton />
