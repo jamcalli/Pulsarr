@@ -1,34 +1,40 @@
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, PlayCircle, AlertTriangle, Check, Power, Clock } from 'lucide-react'
+import {
+  Loader2,
+  PlayCircle,
+  AlertTriangle,
+  Check,
+  Power,
+  Clock,
+} from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
-import { 
-  Form, 
-  FormControl, 
-  FormField, 
-  FormItem, 
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
   FormLabel,
-  FormMessage
+  FormMessage,
 } from '@/components/ui/form'
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { TimeSelector } from '@/components/ui/time-input'
-import { 
-  Accordion, 
-  AccordionContent, 
-  AccordionItem, 
-  AccordionTrigger 
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
 } from '@/components/ui/accordion'
 import { Separator } from '@/components/ui/separator'
 import { useDeleteSync } from '@/features/utilities/hooks/useDeleteSync'
-import type { DeleteSyncFormValues } from '@/features/utilities/hooks/useDeleteSyncForm'
 
 export function DeleteSyncForm() {
   const {
@@ -49,37 +55,49 @@ export function DeleteSyncForm() {
     handleToggleStatus,
     onSubmit,
     handleCancel,
-    handleTimeChange
+    handleTimeChange,
   } = useDeleteSync()
 
   return (
-    <Accordion type="single" collapsible defaultValue="delete-sync" className="w-full">
-      <AccordionItem value="delete-sync" className="border-2 border-border rounded-base overflow-hidden">
+    <Accordion
+      type="single"
+      collapsible
+      defaultValue="delete-sync"
+      className="w-full"
+    >
+      <AccordionItem
+        value="delete-sync"
+        className="border-2 border-border rounded-base overflow-hidden"
+      >
         <AccordionTrigger className="px-6 py-4 bg-main hover:bg-main hover:no-underline">
           <div className="flex justify-between items-center w-full">
             <div>
-              <h3 className="text-lg font-medium text-text text-left">Delete Sync</h3>
-              <p className="text-sm text-text text-left">Automatically removes content when it's no longer on any watchlists</p>
+              <h3 className="text-lg font-medium text-text text-left">
+                Delete Sync
+              </h3>
+              <p className="text-sm text-text text-left">
+                Automatically removes content when it's no longer on any
+                watchlists
+              </p>
             </div>
-            <Badge 
-              variant="neutral" 
+            <Badge
+              variant="neutral"
               className={cn(
                 'px-2 py-0.5 h-7 text-sm ml-2',
-                deleteSyncJob?.enabled 
-                  ? 'bg-green-500 hover:bg-green-500 text-white' 
+                deleteSyncJob?.enabled
+                  ? 'bg-green-500 hover:bg-green-500 text-white'
                   : deleteSyncJob?.last_run?.status === 'failed'
                     ? 'bg-yellow-500 hover:bg-yellow-500 text-white'
-                    : 'bg-red-500 hover:bg-red-500 text-white'
+                    : 'bg-red-500 hover:bg-red-500 text-white',
               )}
             >
-              {!deleteSyncJob 
-                ? 'Unknown' 
-                : !deleteSyncJob.enabled 
-                  ? 'Stopped' 
+              {!deleteSyncJob
+                ? 'Unknown'
+                : !deleteSyncJob.enabled
+                  ? 'Stopped'
                   : deleteSyncJob.last_run?.status === 'failed'
                     ? 'Failed'
-                    : 'Running'
-              }
+                    : 'Running'}
             </Badge>
           </div>
         </AccordionTrigger>
@@ -101,7 +119,7 @@ export function DeleteSyncForm() {
                       size="sm"
                       onClick={handleToggleStatus}
                       disabled={isTogglingStatus || !deleteSyncJob}
-                      variant={deleteSyncJob?.enabled ? "error" : "default"}
+                      variant={deleteSyncJob?.enabled ? 'error' : 'default'}
                       className="h-8"
                     >
                       {isTogglingStatus ? (
@@ -109,9 +127,11 @@ export function DeleteSyncForm() {
                       ) : (
                         <Power className="h-4 w-4 mr-2" />
                       )}
-                      {deleteSyncJob?.enabled ? 'Stop Service' : 'Start Service'}
+                      {deleteSyncJob?.enabled
+                        ? 'Stop Service'
+                        : 'Start Service'}
                     </Button>
-                    
+
                     <Button
                       type="button"
                       size="sm"
@@ -127,7 +147,7 @@ export function DeleteSyncForm() {
                       )}
                       Run Now
                     </Button>
-                    
+
                     <Button
                       type="button"
                       size="sm"
@@ -153,13 +173,17 @@ export function DeleteSyncForm() {
                   <h3 className="font-medium text-text mb-2">Status</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                      <h3 className="font-medium text-sm text-text mb-1">Status</h3>
+                      <h3 className="font-medium text-sm text-text mb-1">
+                        Status
+                      </h3>
                       <p className="font-medium text-text">
                         {deleteSyncJob?.enabled ? 'Enabled' : 'Disabled'}
                       </p>
                     </div>
                     <div>
-                      <h3 className="font-medium text-sm text-text mb-1">Last Run</h3>
+                      <h3 className="font-medium text-sm text-text mb-1">
+                        Last Run
+                      </h3>
                       <p className="font-medium text-text flex items-center">
                         {formatLastRun(deleteSyncJob?.last_run)}
                         {deleteSyncJob?.last_run?.status === 'failed' && (
@@ -171,31 +195,35 @@ export function DeleteSyncForm() {
                       </p>
                     </div>
                     <div>
-                      <h3 className="font-medium text-sm text-text mb-1">Next Scheduled Run</h3>
+                      <h3 className="font-medium text-sm text-text mb-1">
+                        Next Scheduled Run
+                      </h3>
                       <p className="font-medium text-text">
                         {formatNextRun(deleteSyncJob?.next_run)}
                       </p>
                     </div>
                   </div>
                 </div>
-                
+
                 <Separator />
-                
+
                 {/* Schedule section */}
                 <div>
                   <div className="flex items-center gap-4">
                     <div className="flex items-center">
                       <Clock className="h-4 w-4 mr-2 text-text" />
-                      <h3 className="font-medium text-sm text-text">Schedule</h3>
+                      <h3 className="font-medium text-sm text-text">
+                        Schedule
+                      </h3>
                     </div>
-                    
+
                     <FormField
                       control={form.control}
                       name="scheduleTime"
                       render={({ field }) => (
                         <div className="flex-shrink-0">
-                          <TimeSelector 
-                            value={field.value} 
+                          <TimeSelector
+                            value={field.value}
                             onChange={handleTimeChange}
                             dayOfWeek={form.watch('dayOfWeek')}
                           />
@@ -203,32 +231,44 @@ export function DeleteSyncForm() {
                       )}
                     />
                   </div>
-                  {deleteSyncJob && deleteSyncJob.type === 'cron' && deleteSyncJob.config?.expression && (
-                    <div className="mt-2 text-xs text-muted-foreground">
-                      <p>Current schedule: {
-                        deleteSyncJob.config.expression === '0 0 * * * *' 
-                          ? 'Every hour'
-                          : `${scheduleTime ? new Intl.DateTimeFormat('en-US', {
-                              hour: 'numeric',
-                              minute: 'numeric',
-                              hour12: true
-                            }).format(scheduleTime) : ''} ${
-                              dayOfWeek === '*' 
-                                ? 'every day' 
-                                : `on ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][parseInt(dayOfWeek)]}`
-                            }`
-                      }</p>
-                    </div>
-                  )}
+                  {deleteSyncJob &&
+                    deleteSyncJob.type === 'cron' &&
+                    deleteSyncJob.config?.expression && (
+                      <div className="mt-2 text-xs text-muted-foreground">
+                        <p>
+                          Current schedule:{' '}
+                          {deleteSyncJob.config.expression === '0 0 * * * *'
+                            ? 'Every hour'
+                            : `${
+                                scheduleTime
+                                  ? new Intl.DateTimeFormat('en-US', {
+                                      hour: 'numeric',
+                                      minute: 'numeric',
+                                      hour12: true,
+                                    }).format(scheduleTime)
+                                  : ''
+                              } ${
+                                dayOfWeek === '*'
+                                  ? 'every day'
+                                  : `on ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][Number.parseInt(dayOfWeek)]}`
+                              }`}
+                        </p>
+                      </div>
+                    )}
                 </div>
 
                 <Separator />
 
                 <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <form
+                    onSubmit={form.handleSubmit(onSubmit)}
+                    className="space-y-4"
+                  >
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <h3 className="font-medium text-sm text-text mb-2">Configuration</h3>
+                        <h3 className="font-medium text-sm text-text mb-2">
+                          Configuration
+                        </h3>
                         <div className="space-y-4">
                           <FormField
                             control={form.control}
@@ -236,68 +276,78 @@ export function DeleteSyncForm() {
                             render={({ field }) => (
                               <FormItem className="flex items-center space-x-2">
                                 <FormControl>
-                                  <Switch 
-                                    checked={field.value} 
+                                  <Switch
+                                    checked={field.value}
                                     onCheckedChange={field.onChange}
                                   />
                                 </FormControl>
-                                <FormLabel className="text-text m-0">Delete Movies</FormLabel>
+                                <FormLabel className="text-text m-0">
+                                  Delete Movies
+                                </FormLabel>
                               </FormItem>
                             )}
                           />
-                          
+
                           <FormField
                             control={form.control}
                             name="deleteEndedShow"
                             render={({ field }) => (
                               <FormItem className="flex items-center space-x-2">
                                 <FormControl>
-                                  <Switch 
-                                    checked={field.value} 
+                                  <Switch
+                                    checked={field.value}
                                     onCheckedChange={field.onChange}
                                   />
                                 </FormControl>
-                                <FormLabel className="text-text m-0">Delete Ended Shows</FormLabel>
+                                <FormLabel className="text-text m-0">
+                                  Delete Ended Shows
+                                </FormLabel>
                               </FormItem>
                             )}
                           />
-                          
+
                           <FormField
                             control={form.control}
                             name="deleteContinuingShow"
                             render={({ field }) => (
                               <FormItem className="flex items-center space-x-2">
                                 <FormControl>
-                                  <Switch 
-                                    checked={field.value} 
+                                  <Switch
+                                    checked={field.value}
                                     onCheckedChange={field.onChange}
                                   />
                                 </FormControl>
-                                <FormLabel className="text-text m-0">Delete Continuing Shows</FormLabel>
+                                <FormLabel className="text-text m-0">
+                                  Delete Continuing Shows
+                                </FormLabel>
                               </FormItem>
                             )}
                           />
-                          
+
                           <FormField
                             control={form.control}
                             name="deleteFiles"
                             render={({ field }) => (
                               <FormItem className="flex items-center space-x-2">
                                 <FormControl>
-                                  <Switch 
-                                    checked={field.value} 
+                                  <Switch
+                                    checked={field.value}
                                     onCheckedChange={field.onChange}
                                   />
                                 </FormControl>
-                                <FormLabel className="text-text m-0">Delete Files</FormLabel>
+                                <FormLabel className="text-text m-0">
+                                  Delete Files
+                                </FormLabel>
                               </FormItem>
                             )}
                           />
                         </div>
                       </div>
-                      
+
                       <div>
-                        <h3 className="font-medium text-sm text-text mb-2">Safety Settings</h3>
+                        <h3 className="font-medium text-sm text-text mb-2">
+                          Safety Settings
+                        </h3>
                         <div className="space-y-4">
                           <FormField
                             control={form.control}
@@ -305,23 +355,27 @@ export function DeleteSyncForm() {
                             render={({ field }) => (
                               <FormItem className="flex items-center space-x-2">
                                 <FormControl>
-                                  <Switch 
-                                    checked={field.value} 
+                                  <Switch
+                                    checked={field.value}
                                     onCheckedChange={field.onChange}
                                   />
                                 </FormControl>
-                                <FormLabel className="text-text m-0">Respect User Sync Settings</FormLabel>
+                                <FormLabel className="text-text m-0">
+                                  Respect User Sync Settings
+                                </FormLabel>
                               </FormItem>
                             )}
                           />
-                          
+
                           <FormField
                             control={form.control}
                             name="deleteSyncNotify"
                             render={({ field }) => (
                               <FormItem className="space-y-2">
                                 <div className="flex items-center justify-between">
-                                  <FormLabel className="text-text mb-0">Notifications</FormLabel>
+                                  <FormLabel className="text-text mb-0">
+                                    Notifications
+                                  </FormLabel>
                                   <Select
                                     onValueChange={field.onChange}
                                     defaultValue={field.value}
@@ -334,8 +388,12 @@ export function DeleteSyncForm() {
                                     </FormControl>
                                     <SelectContent>
                                       <SelectItem value="none">None</SelectItem>
-                                      <SelectItem value="message">Message</SelectItem>
-                                      <SelectItem value="webhook">Webhook</SelectItem>
+                                      <SelectItem value="message">
+                                        Message
+                                      </SelectItem>
+                                      <SelectItem value="webhook">
+                                        Webhook
+                                      </SelectItem>
                                       <SelectItem value="both">Both</SelectItem>
                                     </SelectContent>
                                   </Select>
@@ -344,14 +402,16 @@ export function DeleteSyncForm() {
                               </FormItem>
                             )}
                           />
-                          
+
                           <FormField
                             control={form.control}
                             name="maxDeletionPrevention"
                             render={({ field }) => (
                               <FormItem className="space-y-2">
                                 <div className="flex items-center justify-between">
-                                  <FormLabel className="text-text mb-0">Max Deletion Prevention (%)</FormLabel>
+                                  <FormLabel className="text-text mb-0">
+                                    Max Deletion Prevention (%)
+                                  </FormLabel>
                                   <FormControl>
                                     <Input
                                       type="number"
@@ -379,8 +439,8 @@ export function DeleteSyncForm() {
                           type="submit"
                           disabled={isSaving || !form.formState.isDirty}
                           className={cn(
-                            "flex items-center gap-2 min-w-[120px]",
-                            "bg-blue hover:bg-blue/90"
+                            'flex items-center gap-2 min-w-[120px]',
+                            'bg-blue hover:bg-blue/90',
                           )}
                         >
                           {isSaving ? (
@@ -392,7 +452,7 @@ export function DeleteSyncForm() {
                             'Save Changes'
                           )}
                         </Button>
-                        
+
                         <Button
                           type="button"
                           variant="cancel"
@@ -406,7 +466,7 @@ export function DeleteSyncForm() {
                     )}
                   </form>
                 </Form>
-                
+
                 {dryRunError && (
                   <div className="mt-4 p-3 bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded border border-red-300 dark:border-red-700">
                     <div className="flex items-center">

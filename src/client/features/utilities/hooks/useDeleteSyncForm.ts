@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useToast } from '@/hooks/use-toast'
@@ -17,7 +17,7 @@ export const deleteSyncSchema = z.object({
   deleteSyncNotify: z.enum(['none', 'message', 'webhook', 'both']),
   maxDeletionPrevention: z.coerce.number().int().min(1).max(100).optional(),
   scheduleTime: z.date().optional(),
-  dayOfWeek: z.string().default('*')
+  dayOfWeek: z.string().default('*'),
 })
 
 export type DeleteSyncFormValues = z.infer<typeof deleteSyncSchema>
@@ -26,9 +26,48 @@ export type FormSaveStatus = 'idle' | 'loading' | 'success' | 'error'
 export function useDeleteSyncForm() {
   const { toast } = useToast()
   const { config, updateConfig } = useConfigStore()
-  const { setLoadingWithMinDuration } = useUtilitiesStore()
+  const { schedules, setLoadingWithMinDuration } = useUtilitiesStore()
   const [saveStatus, setSaveStatus] = useState<FormSaveStatus>('idle')
-  
+
+  // We need to use useMemo or useRef to prevent infinite updates
+  const [scheduleTime, dayOfWeek] = useMemo(() => {
+    // Default values
+    let time: Date | undefined = undefined
+    let day = '*'
+
+    // Extract schedule time and day of week from job
+    const deleteSyncJob = schedules?.find((job) => job.name === 'delete-sync')
+
+    // Parse cron expression if available
+    if (
+      deleteSyncJob &&
+      deleteSyncJob.type === 'cron' &&
+      deleteSyncJob.config?.expression
+    ) {
+      try {
+        const cronParts = deleteSyncJob.config.expression.split(' ')
+        if (cronParts.length >= 6) {
+          const hour = Number.parseInt(cronParts[2])
+          const minute = Number.parseInt(cronParts[1])
+
+          if (!isNaN(hour) && !isNaN(minute)) {
+            const date = new Date()
+            date.setHours(hour)
+            date.setMinutes(minute)
+            date.setSeconds(0)
+            date.setMilliseconds(0)
+            time = date
+            day = cronParts[5]
+          }
+        }
+      } catch (e) {
+        console.error('Failed to parse cron expression', e)
+      }
+    }
+
+    return [time, day]
+  }, [schedules])
+
   // Form with validation
   const form = useForm<DeleteSyncFormValues>({
     resolver: zodResolver(deleteSyncSchema),
@@ -41,39 +80,47 @@ export function useDeleteSyncForm() {
       deleteSyncNotify: 'none',
       maxDeletionPrevention: undefined,
       scheduleTime: undefined,
-      dayOfWeek: '*'
-    }
+      dayOfWeek: '*',
+    },
   })
 
-  // Update form values when config is loaded
+  // Use a ref to prevent unnecessary effect runs
+  const formInitializedRef = useRef(false)
+
+  // Update form values when config or schedule changes
   useEffect(() => {
-    if (config) {
-      form.reset({
-        deleteMovie: config.deleteMovie || false,
-        deleteEndedShow: config.deleteEndedShow || false,
-        deleteContinuingShow: config.deleteContinuingShow || false,
-        deleteFiles: config.deleteFiles || false,
-        respectUserSyncSetting: config.respectUserSyncSetting ?? true,
-        deleteSyncNotify: config.deleteSyncNotify || 'none',
-        maxDeletionPrevention: config.maxDeletionPrevention,
-        scheduleTime: form.getValues('scheduleTime'),
-        dayOfWeek: form.getValues('dayOfWeek')
-      }, { keepDirty: false })
+    if (config && (!formInitializedRef.current || scheduleTime)) {
+      formInitializedRef.current = true
+
+      form.reset(
+        {
+          deleteMovie: config.deleteMovie || false,
+          deleteEndedShow: config.deleteEndedShow || false,
+          deleteContinuingShow: config.deleteContinuingShow || false,
+          deleteFiles: config.deleteFiles || false,
+          respectUserSyncSetting: config.respectUserSyncSetting ?? true,
+          deleteSyncNotify: config.deleteSyncNotify || 'none',
+          maxDeletionPrevention: config.maxDeletionPrevention,
+          scheduleTime: scheduleTime || form.getValues('scheduleTime'),
+          dayOfWeek: dayOfWeek,
+        },
+        { keepDirty: false },
+      )
     }
-  }, [config, form])
+  }, [config, scheduleTime, dayOfWeek, form])
 
   // Function to handle saving configuration with minimum loading time
   const onSubmit = async (data: DeleteSyncFormValues) => {
     // Start loading state - don't reset form yet
     setSaveStatus('loading')
     setLoadingWithMinDuration(true)
-    
+
     try {
       // Create minimum loading time promise
-      const minimumLoadingTime = new Promise(resolve => 
-        setTimeout(resolve, 500)
-      );
-      
+      const minimumLoadingTime = new Promise((resolve) =>
+        setTimeout(resolve, 500),
+      )
+
       // Set up update operations
       const updateConfigPromise = updateConfig({
         deleteMovie: data.deleteMovie,
@@ -82,21 +129,21 @@ export function useDeleteSyncForm() {
         deleteFiles: data.deleteFiles,
         respectUserSyncSetting: data.respectUserSyncSetting,
         deleteSyncNotify: data.deleteSyncNotify,
-        maxDeletionPrevention: data.maxDeletionPrevention
-      });
-      
+        maxDeletionPrevention: data.maxDeletionPrevention,
+      })
+
       // Initialize schedule update promise
-      let scheduleUpdate = Promise.resolve();
-      
+      let scheduleUpdate = Promise.resolve()
+
       // Save schedule time if changed
       if (data.scheduleTime) {
-        const hours = data.scheduleTime.getHours();
-        const minutes = data.scheduleTime.getMinutes();
-        const dayOfWeek = data.dayOfWeek || '*';
-        
+        const hours = data.scheduleTime.getHours()
+        const minutes = data.scheduleTime.getMinutes()
+        const dayOfWeek = data.dayOfWeek || '*'
+
         // Create cron expression (seconds minutes hours day month weekday)
-        const cronExpression = `0 ${minutes} ${hours} * * ${dayOfWeek}`;
-        
+        const cronExpression = `0 ${minutes} ${hours} * * ${dayOfWeek}`
+
         // Update the schedule through the API endpoint
         scheduleUpdate = fetch(`/v1/scheduler/schedules/delete-sync`, {
           method: 'PUT',
@@ -106,73 +153,78 @@ export function useDeleteSyncForm() {
           body: JSON.stringify({
             type: 'cron',
             config: {
-              expression: cronExpression
-            }
+              expression: cronExpression,
+            },
           }),
-        }).then(response => {
+        }).then((response) => {
           if (!response.ok) {
-            throw new Error('Failed to update schedule');
+            throw new Error('Failed to update schedule')
           }
-          return;
-        });
+          return
+        })
       }
-      
+
       // Run all operations in parallel, including the minimum loading time
       await Promise.all([
-        updateConfigPromise, 
+        updateConfigPromise,
         scheduleUpdate,
-        minimumLoadingTime
-      ]);
-      
+        minimumLoadingTime,
+      ])
+
       // Important: We wait until after API calls complete to set success state
       setSaveStatus('success')
-      
+
       // Get latest config to prevent flickering
-      const updatedConfig = useConfigStore.getState().config || config || {} as Config;
-      
+      const updatedConfig =
+        useConfigStore.getState().config || config || ({} as Config)
+
       // Ensure form is reset with the NEW values received from the API
       // This prevents flickering back to old values
-      form.reset({
-        deleteMovie: updatedConfig.deleteMovie || false,
-        deleteEndedShow: updatedConfig.deleteEndedShow || false,
-        deleteContinuingShow: updatedConfig.deleteContinuingShow || false,
-        deleteFiles: updatedConfig.deleteFiles || false,
-        respectUserSyncSetting: updatedConfig.respectUserSyncSetting ?? true,
-        deleteSyncNotify: updatedConfig.deleteSyncNotify || 'none',
-        maxDeletionPrevention: updatedConfig.maxDeletionPrevention,
-        scheduleTime: data.scheduleTime, 
-        dayOfWeek: data.dayOfWeek
-      }, { keepDirty: false });
-      
+      form.reset(
+        {
+          deleteMovie: updatedConfig.deleteMovie || false,
+          deleteEndedShow: updatedConfig.deleteEndedShow || false,
+          deleteContinuingShow: updatedConfig.deleteContinuingShow || false,
+          deleteFiles: updatedConfig.deleteFiles || false,
+          respectUserSyncSetting: updatedConfig.respectUserSyncSetting ?? true,
+          deleteSyncNotify: updatedConfig.deleteSyncNotify || 'none',
+          maxDeletionPrevention: updatedConfig.maxDeletionPrevention,
+          scheduleTime: data.scheduleTime,
+          dayOfWeek: data.dayOfWeek,
+        },
+        { keepDirty: false },
+      )
+
       toast({
-        description: "Settings saved successfully",
-        variant: "default"
-      });
-      
+        description: 'Settings saved successfully',
+        variant: 'default',
+      })
+
       // Don't set to idle state immediately to prevent flicker
       // Let success state show for a moment
       setTimeout(() => {
-        setSaveStatus('idle');
-      }, 500);
+        setSaveStatus('idle')
+      }, 500)
     } catch (error) {
-      console.error('Failed to save configuration:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to save settings';
-      
-      setSaveStatus('error');
+      console.error('Failed to save configuration:', error)
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to save settings'
+
+      setSaveStatus('error')
       toast({
-        title: "Error",
+        title: 'Error',
         description: errorMessage,
-        variant: "destructive"
-      });
-      
+        variant: 'destructive',
+      })
+
       setTimeout(() => {
-        setSaveStatus('idle');
-      }, 1000);
+        setSaveStatus('idle')
+      }, 1000)
     } finally {
       // This matches your other components - don't change form state in finally block
-      setLoadingWithMinDuration(false);
+      setLoadingWithMinDuration(false)
     }
-  };
+  }
 
   // Function to cancel form changes
   const handleCancel = useCallback(() => {
@@ -185,19 +237,22 @@ export function useDeleteSyncForm() {
         respectUserSyncSetting: config.respectUserSyncSetting ?? true,
         deleteSyncNotify: config.deleteSyncNotify || 'none',
         maxDeletionPrevention: config.maxDeletionPrevention,
-        scheduleTime: form.getValues('scheduleTime'),
-        dayOfWeek: form.getValues('dayOfWeek')
+        scheduleTime: scheduleTime,
+        dayOfWeek: dayOfWeek,
       })
     }
-  }, [config, form])
+  }, [config, form, scheduleTime, dayOfWeek])
 
   // Handler for time input changes
-  const handleTimeChange = useCallback((newTime: Date, newDay?: string) => {
-    form.setValue('scheduleTime', newTime, { shouldDirty: true });
-    if (newDay !== undefined) {
-      form.setValue('dayOfWeek', newDay, { shouldDirty: true });
-    }
-  }, [form])
+  const handleTimeChange = useCallback(
+    (newTime: Date, newDay?: string) => {
+      form.setValue('scheduleTime', newTime, { shouldDirty: true })
+      if (newDay !== undefined) {
+        form.setValue('dayOfWeek', newDay, { shouldDirty: true })
+      }
+    },
+    [form],
+  )
 
   return {
     form,
@@ -205,6 +260,6 @@ export function useDeleteSyncForm() {
     isSaving: saveStatus === 'loading',
     onSubmit,
     handleCancel,
-    handleTimeChange
+    handleTimeChange,
   }
 }

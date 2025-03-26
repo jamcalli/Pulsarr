@@ -50,20 +50,20 @@ export const useUtilitiesStore = create<UtilitiesState>()(
       deleteSyncDryRun: false,
       runSchedule: false,
       toggleSchedule: false,
-      saveSettings: false
+      saveSettings: false,
     },
     error: {
       schedules: null,
       deleteSyncDryRun: null,
       runSchedule: null,
       toggleSchedule: null,
-      saveSettings: null
+      saveSettings: null,
     },
 
     // Loading state management that mimics your pattern in other components
     setLoadingWithMinDuration: (loading) => {
       const state = get()
-      
+
       if (loading) {
         if (!state.isLoadingRef) {
           set({
@@ -89,7 +89,7 @@ export const useUtilitiesStore = create<UtilitiesState>()(
           deleteSyncDryRun: null,
           runSchedule: null,
           toggleSchedule: null,
-          saveSettings: null
+          saveSettings: null,
         },
       }))
     },
@@ -97,7 +97,7 @@ export const useUtilitiesStore = create<UtilitiesState>()(
     fetchSchedules: async () => {
       // If we've already loaded schedules once and they're in memory,
       // don't show loading state on subsequent navigations
-      const isInitialLoad = !get().hasLoadedSchedules;
+      const isInitialLoad = !get().hasLoadedSchedules
 
       if (isInitialLoad) {
         set((state) => ({
@@ -109,19 +109,19 @@ export const useUtilitiesStore = create<UtilitiesState>()(
 
       try {
         // For initial loads, set up a minimum loading time
-        const minimumLoadingTime = isInitialLoad ? 
-          new Promise(resolve => setTimeout(resolve, MIN_LOADING_DELAY)) : 
-          Promise.resolve();
+        const minimumLoadingTime = isInitialLoad
+          ? new Promise((resolve) => setTimeout(resolve, MIN_LOADING_DELAY))
+          : Promise.resolve()
 
         // Fetch data
-        const responsePromise = fetch('/v1/scheduler/schedules');
-        
+        const responsePromise = fetch('/v1/scheduler/schedules')
+
         // Wait for both the response and (if initial load) the minimum time
         const [response] = await Promise.all([
           responsePromise,
-          minimumLoadingTime
-        ]);
-        
+          minimumLoadingTime,
+        ])
+
         if (!response.ok) {
           throw new Error('Failed to fetch schedules')
         }
@@ -156,23 +156,23 @@ export const useUtilitiesStore = create<UtilitiesState>()(
 
       try {
         // Create minimum loading time promise
-        const minimumLoadingTime = new Promise(resolve => 
-          setTimeout(resolve, MIN_LOADING_DELAY)
-        );
-        
+        const minimumLoadingTime = new Promise((resolve) =>
+          setTimeout(resolve, MIN_LOADING_DELAY),
+        )
+
         // Execute fetch
         const responsePromise = fetch(
           '/v1/scheduler/schedules/delete-sync/dry-run',
           {
             method: 'POST',
-          }
-        );
-        
+          },
+        )
+
         // Wait for both the response and the minimum loading time
         const [response] = await Promise.all([
           responsePromise,
-          minimumLoadingTime
-        ]);
+          minimumLoadingTime,
+        ])
 
         if (!response.ok) {
           throw new Error('Failed to run delete sync dry run')
@@ -211,20 +211,20 @@ export const useUtilitiesStore = create<UtilitiesState>()(
 
       try {
         // Create minimum loading time promise
-        const minimumLoadingTime = new Promise(resolve => 
-          setTimeout(resolve, MIN_LOADING_DELAY)
-        );
-        
+        const minimumLoadingTime = new Promise((resolve) =>
+          setTimeout(resolve, MIN_LOADING_DELAY),
+        )
+
         // Execute fetch
         const responsePromise = fetch(`/v1/scheduler/schedules/${name}/run`, {
           method: 'POST',
-        });
-        
+        })
+
         // Wait for both the response and the minimum loading time
         const [response] = await Promise.all([
           responsePromise,
-          minimumLoadingTime
-        ]);
+          minimumLoadingTime,
+        ])
 
         if (!response.ok) {
           throw new Error(`Failed to run schedule ${name}`)
@@ -265,24 +265,27 @@ export const useUtilitiesStore = create<UtilitiesState>()(
 
       try {
         // Create minimum loading time promise
-        const minimumLoadingTime = new Promise(resolve => 
-          setTimeout(resolve, MIN_LOADING_DELAY)
-        );
-        
+        const minimumLoadingTime = new Promise((resolve) =>
+          setTimeout(resolve, MIN_LOADING_DELAY),
+        )
+
         // Execute fetch
-        const responsePromise = fetch(`/v1/scheduler/schedules/${name}/toggle`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
+        const responsePromise = fetch(
+          `/v1/scheduler/schedules/${name}/toggle`,
+          {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ enabled }),
           },
-          body: JSON.stringify({ enabled }),
-        });
-        
+        )
+
         // Wait for both the response and the minimum loading time
         const [response] = await Promise.all([
           responsePromise,
-          minimumLoadingTime
-        ]);
+          minimumLoadingTime,
+        ])
 
         if (!response.ok) {
           throw new Error(`Failed to toggle schedule ${name}`)
