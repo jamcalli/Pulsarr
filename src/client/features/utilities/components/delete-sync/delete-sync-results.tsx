@@ -13,6 +13,12 @@ import {
   TableRow,
 } from '@/components/ui/table'
 
+interface MediaItem {
+  title: string
+  guid: string
+  instance: string
+}
+
 export function DeleteSyncResults() {
   const { deleteSyncDryRunResults, loading } = useUtilitiesStore()
   const [searchTerm, setSearchTerm] = useState('')
@@ -21,7 +27,7 @@ export function DeleteSyncResults() {
     return null
   }
 
-  const filterItems = (items: any[] | undefined) => {
+  const filterItems = (items: MediaItem[] | undefined) => {
     if (!items) return []
     if (!searchTerm) return items
 
@@ -146,7 +152,7 @@ export function DeleteSyncResults() {
                       <TableBody>
                         {filteredMovies.map((movie, index) => (
                           <TableRow
-                            key={`movie-${index}`}
+                            key={movie.guid}
                             className={index % 2 === 0 ? 'bg-main' : 'bg-bw'}
                           >
                             <TableCell className="py-3 px-4 font-medium text-text">
@@ -192,7 +198,7 @@ export function DeleteSyncResults() {
                       <TableBody>
                         {filteredShows.map((show, index) => (
                           <TableRow
-                            key={`show-${index}`}
+                            key={show.guid}
                             className={index % 2 === 0 ? 'bg-main' : 'bg-bw'}
                           >
                             <TableCell className="py-3 px-4 font-medium text-text">
