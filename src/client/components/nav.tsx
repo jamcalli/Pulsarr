@@ -11,75 +11,87 @@ export default function Nav({ className }: NavProps) {
   return (
     <nav
       className={cn(
-        'border-b-border dark:border-b-darkBorder flex flex-col h-[100px] rounded-tr-base border-b-4 bg-black text-xl w600:text-lg w400:h-20 w400:text-base portrait:rounded-none',
+        'flex flex-col h-[100px] rounded-tr-base bg-black text-lg w600:text-base w400:h-20 w400:text-sm portrait:rounded-none',
         className,
       )}
     >
-      {' '}
-      <div className="grid h-[50px] grid-cols-[1fr_1fr_1fr_50px]  border-b-4 border-b-border dark:border-b-darkBorder">
-        <Link
-          className={
-            location.pathname === '/app/dashboard'
-              ? 'bg-black text-white flex h-full items-center justify-center uppercase'
-              : 'text-text bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border dark:border-r-darkBorder'
-          }
-          to="/app/dashboard"
-        >
-          Dashboard
-        </Link>
-        <Link
-          className={
-            location.pathname === '/app/notifications'
-              ? 'bg-black text-white flex h-full items-center justify-center uppercase'
-              : 'text-text bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border dark:border-r-darkBorder'
-          }
-          to="/app/notifications"
-        >
-          Notifications
-        </Link>
-        <Link
-          className={
-            location.pathname === '/app/utilities'
-              ? 'bg-black text-white flex h-full items-center justify-center uppercase'
-              : 'text-text bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border dark:border-r-darkBorder'
-          }
-          to="/app/utilities"
-        >
-          Utilities
-        </Link>
-        <SettingsButton />
-      </div>
-      <div className="grid h-[50px] grid-cols-3">
-        <Link
-          className={
-            location.pathname === '/app/plex'
-              ? 'bg-black text-white flex h-full items-center justify-center uppercase'
-              : 'text-text bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border dark:border-r-darkBorder'
-          }
-          to="/app/plex"
-        >
-          Plex
-        </Link>
-        <Link
-          className={
-            location.pathname === '/app/sonarr'
-              ? 'bg-black text-white flex h-full items-center justify-center uppercase'
-              : 'text-text bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border dark:border-r-darkBorder'
-          }
-          to="/app/sonarr"
-        >
-          Sonarr
-        </Link>
-        <Link
-          className={
-            location.pathname === '/app/radarr'
-              ? 'bg-black text-white flex h-full items-center justify-center uppercase'
-              : 'text-text bg-main flex h-full items-center justify-center uppercase border-r-0 border-r-border dark:border-r-darkBorder'
-          }
-          to="/app/radarr"
-        >
-          Radarr
-        </Link>
+      {/* Grid container with settings button taking up right column */}
+      <div className="grid h-full grid-cols-[1fr_1fr_1fr_50px]">
+        {/* Left content container - takes up all but the settings column */}
+        <div className="col-span-3 flex flex-col">
+          {/* Top row */}
+          <div className="grid h-[50px] grid-cols-3 border-b-4 border-b-border dark:border-b-darkBorder">
+            <Link
+              className={
+                location.pathname === '/app/dashboard'
+                  ? 'bg-black text-white flex h-full items-center justify-center uppercase'
+                  : 'text-text bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border dark:border-r-darkBorder'
+              }
+              to="/app/dashboard"
+            >
+              Dashboard
+            </Link>
+            <Link
+              className={
+                location.pathname === '/app/notifications'
+                  ? 'bg-black text-white flex h-full items-center justify-center uppercase'
+                  : 'text-text bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border dark:border-r-darkBorder'
+              }
+              to="/app/notifications"
+            >
+              Notifications
+            </Link>
+            <Link
+              className={
+                location.pathname === '/app/utilities'
+                  ? 'bg-black text-white flex h-full items-center justify-center uppercase'
+                  : 'text-text bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border dark:border-r-darkBorder'
+              }
+              to="/app/utilities"
+            >
+              Utilities
+            </Link>
+          </div>
+          
+          {/* Bottom row */}
+          <div className="grid h-[50px] grid-cols-3 border-b-4 border-b-border dark:border-b-darkBorder">
+            <Link
+              className={
+                location.pathname === '/app/plex'
+                  ? 'bg-black text-white flex h-full items-center justify-center uppercase'
+                  : 'text-text bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border dark:border-r-darkBorder'
+              }
+              to="/app/plex"
+            >
+              Plex
+            </Link>
+            <Link
+              className={
+                location.pathname === '/app/sonarr'
+                  ? 'bg-black text-white flex h-full items-center justify-center uppercase'
+                  : 'text-text bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border dark:border-r-darkBorder'
+              }
+              to="/app/sonarr"
+            >
+              Sonarr
+            </Link>
+            <Link
+              className={
+                location.pathname === '/app/radarr'
+                  ? 'bg-black text-white flex h-full items-center justify-center uppercase'
+                  : 'text-text bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border dark:border-r-darkBorder'
+              }
+              to="/app/radarr"
+            >
+              Radarr
+            </Link>
+          </div>
+        </div>
+        
+        {/* Settings button column spans both rows */}
+        <div className="row-span-2 h-full border-b-4 border-b-border dark:border-b-darkBorder">
+          <SettingsButton />
+        </div>
       </div>
     </nav>
   )
