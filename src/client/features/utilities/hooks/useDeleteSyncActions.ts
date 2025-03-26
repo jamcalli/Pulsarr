@@ -25,7 +25,7 @@ import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
  * - handleDryRun: Initiates a dry run of the delete sync process, managing loading and error states.
  * - initiateRunJob: Opens the run confirmation modal for starting the delete sync job.
  * - handleRunNow: Starts the delete sync job with a built-in minimum loading delay and toast notifications.
- * - initiateToggleStatus: Initiates the toggle status operation by either executing it directly or 
+ * - initiateToggleStatus: Initiates the toggle status operation by either executing it directly or
  *   displaying a confirmation modal when enabling.
  * - handleToggleStatus: Toggles the delete sync job status with a minimum loading delay and provides feedback.
  *
