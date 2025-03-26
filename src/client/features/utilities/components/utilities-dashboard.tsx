@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { DeleteSyncForm } from '@/features/utilities/components/delete-sync/delete-sync-form'
 import { DeleteSyncSkeleton } from '@/features/utilities/components/delete-sync/delete-sync-skeleton'
-import { DeleteSyncResults } from '@/features/utilities/components/delete-sync/delete-sync-results'
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 
 export function UtilitiesDashboard() {
@@ -32,7 +31,6 @@ export function UtilitiesDashboard() {
         ) : (
           <DeleteSyncForm />
         )}
-        <DeleteSyncResults />
       </div>
     </div>
   )

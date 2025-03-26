@@ -1,4 +1,3 @@
-// useDeleteSyncForm.ts - Updated with submittedValues tracking
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -8,7 +7,7 @@ import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 import * as z from 'zod'
 import type { Config } from '@root/types/config.types'
 
-// Schema definition remains the same
+// Schema definition
 export const deleteSyncSchema = z.object({
   deleteMovie: z.boolean(),
   deleteEndedShow: z.boolean(),

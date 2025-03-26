@@ -1,10 +1,9 @@
 import { useRef } from 'react'
-import { useDeleteSyncForm } from './useDeleteSyncForm'
-import { useDeleteSyncSchedule } from './useDeleteSyncSchedule'
-import { useDeleteSyncActions } from './useDeleteSyncActions'
+import { useDeleteSyncForm } from '@/features/utilities/hooks/useDeleteSyncForm'
+import { useDeleteSyncSchedule } from '@/features/utilities/hooks/useDeleteSyncSchedule'
+import { useDeleteSyncActions } from '@/features/utilities/hooks/useDeleteSyncActions'
 
 // This hook combines the functionality of the three specialized hooks
-// for a convenient API that can be used in components
 export function useDeleteSync() {
   const hasInitializedRef = useRef(false)
 
@@ -32,8 +31,17 @@ export function useDeleteSync() {
     dryRunError,
     isTogglingStatus,
     isRunningJob,
+    showEnableConfirmation,
+    showRunConfirmation,
+    showDryRunModal,
+    pendingEnable,
+    setShowEnableConfirmation,
+    setShowRunConfirmation,
+    setShowDryRunModal,
     handleDryRun,
+    initiateRunJob,
     handleRunNow,
+    initiateToggleStatus,
     handleToggleStatus,
   } = useDeleteSyncActions()
 
@@ -63,6 +71,10 @@ export function useDeleteSync() {
     dryRunError,
     isTogglingStatus,
     isRunningJob,
+    showEnableConfirmation,
+    showRunConfirmation,
+    showDryRunModal,
+    pendingEnable,
 
     // Form methods
     onSubmit,
@@ -71,11 +83,18 @@ export function useDeleteSync() {
 
     // Action methods
     handleDryRun,
+    initiateRunJob,
     handleRunNow,
-    handleToggleStatus: () => {
+    initiateToggleStatus: () => {
       if (!deleteSyncJob) return
-      return handleToggleStatus(deleteSyncJob.enabled)
+      return initiateToggleStatus(deleteSyncJob.enabled)
     },
+    handleToggleStatus,
+
+    // Modal control
+    setShowEnableConfirmation,
+    setShowRunConfirmation,
+    setShowDryRunModal,
 
     // Utility formatters
     formatLastRun,
