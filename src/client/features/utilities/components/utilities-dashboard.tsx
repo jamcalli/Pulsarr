@@ -6,9 +6,11 @@ import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 
 export function UtilitiesDashboard() {
   const [isLoading, setIsLoading] = useState(true)
-  const loading = useUtilitiesStore(state => state.loading)
-  const hasLoadedSchedules = useUtilitiesStore(state => state.hasLoadedSchedules)
-  
+  const loading = useUtilitiesStore((state) => state.loading)
+  const hasLoadedSchedules = useUtilitiesStore(
+    (state) => state.hasLoadedSchedules,
+  )
+
   // Manage loading state to prevent flickering
   useEffect(() => {
     if (hasLoadedSchedules) {
@@ -25,7 +27,11 @@ export function UtilitiesDashboard() {
       <h2 className="mb-6 text-2xl font-bold text-text">Utilities</h2>
 
       <div className="space-y-6">
-        {isLoading || loading.schedules ? <DeleteSyncSkeleton /> : <DeleteSyncForm />}
+        {isLoading || loading.schedules ? (
+          <DeleteSyncSkeleton />
+        ) : (
+          <DeleteSyncForm />
+        )}
         <DeleteSyncResults />
       </div>
     </div>

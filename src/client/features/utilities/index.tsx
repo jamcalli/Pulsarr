@@ -19,7 +19,7 @@ export default function UtilitiesPage() {
   useEffect(() => {
     // Check if this is initial mount or if schedules need to be loaded
     if ((isInitialMount.current || !hasLoadedSchedules) && isInitialized) {
-      fetchSchedules().catch(err => {
+      fetchSchedules().catch((err) => {
         console.error('Failed to fetch schedules:', err)
       })
       isInitialMount.current = false

@@ -7,15 +7,10 @@ import { useDeleteSyncActions } from './useDeleteSyncActions'
 // for a convenient API that can be used in components
 export function useDeleteSync() {
   const hasInitializedRef = useRef(false)
-  
-  const {
-    form,
-    isSaving,
-    onSubmit,
-    handleCancel,
-    handleTimeChange
-  } = useDeleteSyncForm()
-  
+
+  const { form, isSaving, onSubmit, handleCancel, handleTimeChange } =
+    useDeleteSyncForm()
+
   const {
     scheduleTime,
     dayOfWeek,
@@ -23,9 +18,9 @@ export function useDeleteSync() {
     isLoading: isScheduleLoading,
     error,
     formatLastRun,
-    formatNextRun
+    formatNextRun,
   } = useDeleteSyncSchedule()
-  
+
   const {
     isDryRunLoading,
     dryRunError,
@@ -33,50 +28,50 @@ export function useDeleteSync() {
     isRunningJob,
     handleDryRun,
     handleRunNow,
-    handleToggleStatus
+    handleToggleStatus,
   } = useDeleteSyncActions()
-  
+
   // Check if we're on initial loading - don't show loading on navigation
   if (!hasInitializedRef.current && !isScheduleLoading) {
     hasInitializedRef.current = true
   }
-  
+
   // Only show loading skeleton on initial load, not on navigation
-  const isLoading = !hasInitializedRef.current && isScheduleLoading;
+  const isLoading = !hasInitializedRef.current && isScheduleLoading
 
   return {
     // Form state
     form,
     isSaving,
-    
+
     // Schedule state
     isLoading,
     error,
     scheduleTime,
     dayOfWeek,
     deleteSyncJob,
-    
+
     // Action state
     isDryRunLoading,
     dryRunError,
     isTogglingStatus,
     isRunningJob,
-    
+
     // Form methods
     onSubmit,
     handleCancel,
     handleTimeChange,
-    
+
     // Action methods
     handleDryRun,
     handleRunNow,
     handleToggleStatus: () => {
-      if (!deleteSyncJob) return;
-      return handleToggleStatus(deleteSyncJob.enabled);
+      if (!deleteSyncJob) return
+      return handleToggleStatus(deleteSyncJob.enabled)
     },
-    
+
     // Utility formatters
     formatLastRun,
-    formatNextRun
+    formatNextRun,
   }
 }
