@@ -43,6 +43,7 @@ export function DeleteSyncForm() {
     isDryRunLoading,
     dryRunError,
     isSaving,
+    submittedValues,
     isTogglingStatus,
     isRunningJob,
     scheduleTime,
@@ -170,7 +171,6 @@ export function DeleteSyncForm() {
 
                 {/* Status section */}
                 <div>
-                  <h3 className="font-medium text-text mb-2">Status</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <h3 className="font-medium text-sm text-text mb-1">
@@ -234,23 +234,37 @@ export function DeleteSyncForm() {
                   {deleteSyncJob &&
                     deleteSyncJob.type === 'cron' &&
                     deleteSyncJob.config?.expression && (
-                      <div className="mt-2 text-xs text-muted-foreground">
+                      <div className="mt-2 text-xs text-text">
                         <p>
                           Current schedule:{' '}
                           {deleteSyncJob.config.expression === '0 0 * * * *'
                             ? 'Every hour'
                             : `${
-                                scheduleTime
+                                isSaving &&
+                                submittedValues &&
+                                submittedValues.scheduleTime
                                   ? new Intl.DateTimeFormat('en-US', {
                                       hour: 'numeric',
                                       minute: 'numeric',
                                       hour12: true,
-                                    }).format(scheduleTime)
-                                  : ''
+                                    }).format(submittedValues.scheduleTime)
+                                  : scheduleTime
+                                    ? new Intl.DateTimeFormat('en-US', {
+                                        hour: 'numeric',
+                                        minute: 'numeric',
+                                        hour12: true,
+                                      }).format(scheduleTime)
+                                    : ''
                               } ${
-                                dayOfWeek === '*'
-                                  ? 'every day'
-                                  : `on ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][Number.parseInt(dayOfWeek)]}`
+                                isSaving &&
+                                submittedValues &&
+                                submittedValues.dayOfWeek
+                                  ? submittedValues.dayOfWeek === '*'
+                                    ? 'every day'
+                                    : `on ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][Number.parseInt(submittedValues.dayOfWeek)]}`
+                                  : dayOfWeek === '*'
+                                    ? 'every day'
+                                    : `on ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][Number.parseInt(dayOfWeek)]}`
                               }`}
                         </p>
                       </div>
@@ -277,7 +291,11 @@ export function DeleteSyncForm() {
                               <FormItem className="flex items-center space-x-2">
                                 <FormControl>
                                   <Switch
-                                    checked={field.value}
+                                    checked={
+                                      isSaving && submittedValues
+                                        ? submittedValues.deleteMovie
+                                        : field.value
+                                    }
                                     onCheckedChange={field.onChange}
                                   />
                                 </FormControl>
@@ -378,8 +396,12 @@ export function DeleteSyncForm() {
                                   </FormLabel>
                                   <Select
                                     onValueChange={field.onChange}
-                                    defaultValue={field.value}
-                                    value={field.value}
+                                    value={
+                                      isSaving && submittedValues
+                                        ? submittedValues.deleteSyncNotify
+                                        : field.value
+                                    }
+                                    disabled={isSaving} // Disable during saving
                                   >
                                     <FormControl>
                                       <SelectTrigger className="w-40">
@@ -418,9 +440,15 @@ export function DeleteSyncForm() {
                                       min={1}
                                       max={100}
                                       {...field}
-                                      value={field.value || ''}
+                                      value={
+                                        isSaving && submittedValues
+                                          ? submittedValues.maxDeletionPrevention ||
+                                            ''
+                                          : field.value || ''
+                                      }
                                       className="w-20 text-right"
                                       placeholder="10"
+                                      disabled={isSaving} // Disable during saving
                                     />
                                   </FormControl>
                                 </div>

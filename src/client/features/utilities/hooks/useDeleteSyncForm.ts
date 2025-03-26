@@ -1,3 +1,4 @@
+// useDeleteSyncForm.ts - Updated with submittedValues tracking
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -7,7 +8,7 @@ import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 import * as z from 'zod'
 import type { Config } from '@root/types/config.types'
 
-// Schema for delete sync form
+// Schema definition remains the same
 export const deleteSyncSchema = z.object({
   deleteMovie: z.boolean(),
   deleteEndedShow: z.boolean(),
@@ -26,10 +27,14 @@ export type FormSaveStatus = 'idle' | 'loading' | 'success' | 'error'
 export function useDeleteSyncForm() {
   const { toast } = useToast()
   const { config, updateConfig } = useConfigStore()
-  const { schedules, setLoadingWithMinDuration } = useUtilitiesStore()
+  const { schedules, fetchSchedules, setLoadingWithMinDuration } =
+    useUtilitiesStore()
   const [saveStatus, setSaveStatus] = useState<FormSaveStatus>('idle')
+  // Add state to track submitted values
+  const [submittedValues, setSubmittedValues] =
+    useState<DeleteSyncFormValues | null>(null)
 
-  // We need to use useMemo or useRef to prevent infinite updates
+  // Schedule time and day of week calculation stays the same
   const [scheduleTime, dayOfWeek] = useMemo(() => {
     // Default values
     let time: Date | undefined = undefined
@@ -68,7 +73,7 @@ export function useDeleteSyncForm() {
     return [time, day]
   }, [schedules])
 
-  // Form with validation
+  // Form initialization stays the same
   const form = useForm<DeleteSyncFormValues>({
     resolver: zodResolver(deleteSyncSchema),
     defaultValues: {
@@ -84,13 +89,34 @@ export function useDeleteSyncForm() {
     },
   })
 
-  // Use a ref to prevent unnecessary effect runs
   const formInitializedRef = useRef(false)
 
-  // Update form values when config or schedule changes
+  // Only initialize form when idle (not during saving)
   useEffect(() => {
-    if (config && (!formInitializedRef.current || scheduleTime)) {
+    if (
+      config &&
+      (!formInitializedRef.current || scheduleTime) &&
+      saveStatus === 'idle'
+    ) {
       formInitializedRef.current = true
+
+      // Log the values before reset to debug
+      console.log('Config before form reset:', {
+        deleteMovie: config.deleteMovie,
+        deleteEndedShow: config.deleteEndedShow,
+        deleteContinuingShow: config.deleteContinuingShow,
+        deleteFiles: config.deleteFiles,
+        respectUserSyncSetting: config.respectUserSyncSetting,
+        deleteSyncNotify: config.deleteSyncNotify, // Check this value
+        maxDeletionPrevention: config.maxDeletionPrevention,
+      })
+
+      // Ensure notification value is one of the valid enum values
+      const notifyValue =
+        config.deleteSyncNotify &&
+        ['none', 'message', 'webhook', 'both'].includes(config.deleteSyncNotify)
+          ? config.deleteSyncNotify
+          : 'none'
 
       form.reset(
         {
@@ -99,19 +125,31 @@ export function useDeleteSyncForm() {
           deleteContinuingShow: config.deleteContinuingShow || false,
           deleteFiles: config.deleteFiles || false,
           respectUserSyncSetting: config.respectUserSyncSetting ?? true,
-          deleteSyncNotify: config.deleteSyncNotify || 'none',
+          deleteSyncNotify: notifyValue,
           maxDeletionPrevention: config.maxDeletionPrevention,
           scheduleTime: scheduleTime || form.getValues('scheduleTime'),
           dayOfWeek: dayOfWeek,
         },
         { keepDirty: false },
       )
-    }
-  }, [config, scheduleTime, dayOfWeek, form])
 
-  // Function to handle saving configuration with minimum loading time
+      setTimeout(() => {
+        if (form.getValues('deleteSyncNotify') !== notifyValue) {
+          form.setValue('deleteSyncNotify', notifyValue, { shouldDirty: false })
+        }
+
+        // Then reset the form again with exactly the same values to clear dirty state
+        form.reset(form.getValues(), { keepDirty: false })
+      }, 0)
+    }
+  }, [config, scheduleTime, dayOfWeek, form, saveStatus])
+
+  // Updated onSubmit that captures submitted values
   const onSubmit = async (data: DeleteSyncFormValues) => {
-    // Start loading state - don't reset form yet
+    // Store submitted values to display during saving
+    setSubmittedValues(data)
+
+    // Start loading state
     setSaveStatus('loading')
     setLoadingWithMinDuration(true)
 
@@ -164,45 +202,49 @@ export function useDeleteSyncForm() {
         })
       }
 
-      // Run all operations in parallel, including the minimum loading time
+      // Run all operations in parallel
       await Promise.all([
         updateConfigPromise,
         scheduleUpdate,
         minimumLoadingTime,
       ])
 
-      // Important: We wait until after API calls complete to set success state
+      // Refresh schedules
+      await fetchSchedules()
+
+      // Set success state
       setSaveStatus('success')
-
-      // Get latest config to prevent flickering
-      const updatedConfig =
-        useConfigStore.getState().config || config || ({} as Config)
-
-      // Ensure form is reset with the NEW values received from the API
-      // This prevents flickering back to old values
-      form.reset(
-        {
-          deleteMovie: updatedConfig.deleteMovie || false,
-          deleteEndedShow: updatedConfig.deleteEndedShow || false,
-          deleteContinuingShow: updatedConfig.deleteContinuingShow || false,
-          deleteFiles: updatedConfig.deleteFiles || false,
-          respectUserSyncSetting: updatedConfig.respectUserSyncSetting ?? true,
-          deleteSyncNotify: updatedConfig.deleteSyncNotify || 'none',
-          maxDeletionPrevention: updatedConfig.maxDeletionPrevention,
-          scheduleTime: data.scheduleTime,
-          dayOfWeek: data.dayOfWeek,
-        },
-        { keepDirty: false },
-      )
 
       toast({
         description: 'Settings saved successfully',
         variant: 'default',
       })
 
-      // Don't set to idle state immediately to prevent flicker
-      // Let success state show for a moment
+      // After a delay to show success state, reset the form
       setTimeout(() => {
+        // Get latest config
+        const updatedConfig =
+          useConfigStore.getState().config || config || ({} as Config)
+
+        // Reset the form with the latest values
+        form.reset(
+          {
+            deleteMovie: updatedConfig.deleteMovie || false,
+            deleteEndedShow: updatedConfig.deleteEndedShow || false,
+            deleteContinuingShow: updatedConfig.deleteContinuingShow || false,
+            deleteFiles: updatedConfig.deleteFiles || false,
+            respectUserSyncSetting:
+              updatedConfig.respectUserSyncSetting ?? true,
+            deleteSyncNotify: updatedConfig.deleteSyncNotify || 'none',
+            maxDeletionPrevention: updatedConfig.maxDeletionPrevention,
+            scheduleTime: data.scheduleTime,
+            dayOfWeek: data.dayOfWeek,
+          },
+          { keepDirty: false },
+        )
+
+        // Clear submitted values
+        setSubmittedValues(null)
         setSaveStatus('idle')
       }, 500)
     } catch (error) {
@@ -217,16 +259,17 @@ export function useDeleteSyncForm() {
         variant: 'destructive',
       })
 
+      // Reset submitted values and status after error
       setTimeout(() => {
+        setSubmittedValues(null)
         setSaveStatus('idle')
       }, 1000)
     } finally {
-      // This matches your other components - don't change form state in finally block
       setLoadingWithMinDuration(false)
     }
   }
 
-  // Function to cancel form changes
+  // Cancel and time change handlers remain the same
   const handleCancel = useCallback(() => {
     if (config) {
       form.reset({
@@ -243,7 +286,6 @@ export function useDeleteSyncForm() {
     }
   }, [config, form, scheduleTime, dayOfWeek])
 
-  // Handler for time input changes
   const handleTimeChange = useCallback(
     (newTime: Date, newDay?: string) => {
       form.setValue('scheduleTime', newTime, { shouldDirty: true })
@@ -258,6 +300,7 @@ export function useDeleteSyncForm() {
     form,
     saveStatus,
     isSaving: saveStatus === 'loading',
+    submittedValues, // Export submitted values
     onSubmit,
     handleCancel,
     handleTimeChange,

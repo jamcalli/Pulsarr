@@ -8,8 +8,14 @@ import { useDeleteSyncActions } from './useDeleteSyncActions'
 export function useDeleteSync() {
   const hasInitializedRef = useRef(false)
 
-  const { form, isSaving, onSubmit, handleCancel, handleTimeChange } =
-    useDeleteSyncForm()
+  const {
+    form,
+    isSaving,
+    submittedValues,
+    onSubmit,
+    handleCancel,
+    handleTimeChange,
+  } = useDeleteSyncForm()
 
   const {
     scheduleTime,
@@ -43,6 +49,7 @@ export function useDeleteSync() {
     // Form state
     form,
     isSaving,
+    submittedValues,
 
     // Schedule state
     isLoading,
