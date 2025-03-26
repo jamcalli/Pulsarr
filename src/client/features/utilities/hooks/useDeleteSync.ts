@@ -8,9 +8,6 @@ import * as z from 'zod'
 import type { JobStatus } from '@root/schemas/scheduler/scheduler.schema'
 import { formatDistanceToNow, parseISO } from 'date-fns'
 
-// Minimum loading time for consistent UI
-const MIN_LOADING_DELAY = 500;
-
 // Schema for delete sync form
 export const deleteSyncSchema = z.object({
   deleteMovie: z.boolean(),
@@ -26,32 +23,34 @@ export const deleteSyncSchema = z.object({
 
 export type DeleteSyncFormValues = z.infer<typeof deleteSyncSchema>
 
+// Status type that mimics your other components
+type SaveStatus = 'idle' | 'loading' | 'success' | 'error';
+
 export function useDeleteSync() {
   const { toast } = useToast()
   const { 
     schedules, 
-    loading, 
-    error, 
+    loading,
+    error,
     fetchSchedules, 
     runDryDeleteSync,
     runScheduleNow,
-    toggleScheduleStatus
+    toggleScheduleStatus,
+    setLoadingWithMinDuration
   } = useUtilitiesStore()
   
   const { config, updateConfig } = useConfigStore()
   
   const [isDryRunLoading, setIsDryRunLoading] = useState(false)
   const [dryRunError, setDryRunError] = useState<string | null>(null)
-  const [isSaving, setIsSaving] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle') // Mimicking your pattern
   const [isTogglingStatus, setIsTogglingStatus] = useState(false)
   const [isRunningJob, setIsRunningJob] = useState(false)
   const [scheduleTime, setScheduleTime] = useState<Date | undefined>(undefined)
   const [dayOfWeek, setDayOfWeek] = useState<string>('*')
   
-  // This will only be true during the initial component mount
-  const [isFirstMount, setIsFirstMount] = useState(true)
-  // Track if data has been loaded at least once
-  const hasLoadedData = useRef(false)
+  // This ref tracks if we've completed the initial load
+  const hasInitializedRef = useRef(false)
 
   // Form with validation
   const form = useForm<DeleteSyncFormValues>({
@@ -69,17 +68,6 @@ export function useDeleteSync() {
     }
   })
 
-  // Set isFirstMount to false after initial minimum loading time
-  useEffect(() => {
-    if (isFirstMount) {
-      const timer = setTimeout(() => {
-        setIsFirstMount(false);
-      }, MIN_LOADING_DELAY);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [isFirstMount]);
-  
   // Get the delete-sync job from schedules
   const getDeleteSyncJob = useCallback(() => {
     if (!schedules) return null
@@ -138,23 +126,42 @@ export function useDeleteSync() {
 
   // Load schedules when component mounts
   useEffect(() => {
-    if (!schedules) {
-      fetchSchedules()
-        .then(() => {
-          hasLoadedData.current = true;
-        })
-        .catch(console.error);
-    } else {
-      hasLoadedData.current = true;
-    }
-  }, [schedules, fetchSchedules])
+    const loadData = async () => {
+      if (!schedules && !loading.schedules) {
+        try {
+          await fetchSchedules();
+          // Data is loaded now
+        } catch (error) {
+          console.error("Failed to fetch schedules:", error);
+        }
+      }
+      
+      // After a minimum delay, mark initialization as complete
+      const timer = setTimeout(() => {
+        hasInitializedRef.current = true;
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    };
+    
+    loadData();
+  }, [schedules, loading.schedules, fetchSchedules]);
 
-  // Function to run dry delete sync
+  // Function to run dry delete sync with minimum loading time
   const handleDryRun = async () => {
     setIsDryRunLoading(true)
     setDryRunError(null)
+    
     try {
-      await runDryDeleteSync()
+      // Create a minimum loading time promise
+      const minimumLoadingTime = new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Run operations in parallel
+      await Promise.all([
+        runDryDeleteSync(),
+        minimumLoadingTime
+      ]);
+      
       toast({
         description: "Dry run completed successfully",
         variant: "default"
@@ -172,11 +179,20 @@ export function useDeleteSync() {
     }
   }
 
-  // Function to run the delete-sync job
+  // Function to run the delete-sync job with minimum loading time
   const handleRunNow = async () => {
     setIsRunningJob(true)
+    
     try {
-      const success = await runScheduleNow('delete-sync')
+      // Create a minimum loading time promise
+      const minimumLoadingTime = new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Run operations in parallel and wait for both
+      const [success] = await Promise.all([
+        runScheduleNow('delete-sync'),
+        minimumLoadingTime
+      ]);
+      
       if (success) {
         toast({
           description: "Delete sync job started successfully",
@@ -197,13 +213,22 @@ export function useDeleteSync() {
     }
   }
 
-  // Function to toggle the delete-sync job status
+  // Function to toggle the delete-sync job status with minimum loading time
   const handleToggleStatus = async () => {
     if (!deleteSyncJob) return
     
     setIsTogglingStatus(true)
+    
     try {
-      const success = await toggleScheduleStatus('delete-sync', !deleteSyncJob.enabled)
+      // Create a minimum loading time promise
+      const minimumLoadingTime = new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Run operations in parallel and wait for both
+      const [success] = await Promise.all([
+        toggleScheduleStatus('delete-sync', !deleteSyncJob.enabled),
+        minimumLoadingTime
+      ]);
+      
       if (success) {
         toast({
           description: `Delete sync service ${deleteSyncJob.enabled ? "stopped" : "started"} successfully`,
@@ -224,12 +249,20 @@ export function useDeleteSync() {
     }
   }
   
-  // Function to handle saving configuration
+  // Function to handle saving configuration with minimum loading time
   const onSubmit = async (data: DeleteSyncFormValues) => {
-    setIsSaving(true)
+    // Exactly mimicking your pattern in other components
+    setSaveStatus('loading')
+    setLoadingWithMinDuration(true)
+    
     try {
-      // Update config settings
-      await updateConfig({
+      // Create minimum loading time promise
+      const minimumLoadingTime = new Promise(resolve => 
+        setTimeout(resolve, 500)
+      );
+      
+      // Set up update operations
+      const updateConfig1 = updateConfig({
         deleteMovie: data.deleteMovie,
         deleteEndedShow: data.deleteEndedShow,
         deleteContinuingShow: data.deleteContinuingShow,
@@ -237,7 +270,10 @@ export function useDeleteSync() {
         respectUserSyncSetting: data.respectUserSyncSetting,
         deleteSyncNotify: data.deleteSyncNotify,
         maxDeletionPrevention: data.maxDeletionPrevention
-      })
+      });
+      
+      // Initialize schedule update promise
+      let scheduleUpdate = Promise.resolve();
       
       // Save schedule time if changed and if we have a job ID
       if (data.scheduleTime && deleteSyncJob) {
@@ -250,7 +286,7 @@ export function useDeleteSync() {
         const cronExpression = `0 ${minutes} ${hours} * * ${dayOfWeek}`;
         
         // Update the schedule through the correct API endpoint
-        await fetch(`/v1/scheduler/schedules/delete-sync`, {
+        scheduleUpdate = fetch(`/v1/scheduler/schedules/delete-sync`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -261,34 +297,49 @@ export function useDeleteSync() {
               expression: cronExpression
             }
           }),
+        }).then(response => {
+          if (!response.ok) {
+            throw new Error('Failed to update schedule');
+          }
+          return fetchSchedules();
         });
-        
-        await fetchSchedules();
       }
+      
+      // Run all operations in parallel, including the minimum loading time
+      await Promise.all([
+        updateConfig1, 
+        scheduleUpdate,
+        minimumLoadingTime
+      ]);
       
       // Ensure form is cleaned up after successful save
       form.reset({
         ...data,
         scheduleTime: data.scheduleTime,
         dayOfWeek: data.dayOfWeek
-      }, { keepDirty: false })
+      }, { keepDirty: false });
       
+      setSaveStatus('success')
       toast({
         description: "Settings saved successfully",
         variant: "default"
-      })
+      });
     } catch (error) {
-      console.error('Failed to save configuration:', error)
-      const errorMessage = error instanceof Error ? error.message : 'Failed to save settings'
+      console.error('Failed to save configuration:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to save settings';
+      
+      setSaveStatus('error')
       toast({
         title: "Error",
         description: errorMessage,
         variant: "destructive"
-      })
+      });
     } finally {
-      setIsSaving(false)
+      // Exactly mimicking your pattern from other components
+      setLoadingWithMinDuration(false)
+      setSaveStatus('idle')
     }
-  }
+  };
 
   // Function to cancel form changes
   const handleCancel = () => {
@@ -337,9 +388,8 @@ export function useDeleteSync() {
     }
   }
 
-  // Calculate isLoading based on first mount and data status only
-  // This ensures we only show skeleton on first mount, not during page switches
-  const isLoading = isFirstMount || (loading.schedules && !hasLoadedData.current);
+  // Only show loading skeleton on initial load, not on navigation
+  const isLoading = !hasInitializedRef.current && (loading.schedules || !schedules);
 
   return {
     // State
@@ -348,7 +398,7 @@ export function useDeleteSync() {
     error: error.schedules,
     isDryRunLoading,
     dryRunError,
-    isSaving,
+    isSaving: saveStatus === 'loading' || loading.saveSettings, // Use saveStatus like other components
     isTogglingStatus,
     isRunningJob,
     scheduleTime,

@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Loader2, PlayCircle, AlertTriangle, Check, Power, Clock } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
+import { useState, useEffect } from 'react'
 import { 
   Form, 
   FormControl, 
@@ -30,6 +31,7 @@ import {
 import { Separator } from '@/components/ui/separator'
 import { useDeleteSync } from '@/features/utilities/hooks/useDeleteSync'
 import type { IntervalConfig } from '@root/schemas/scheduler/scheduler.schema'
+import type { DeleteSyncFormValues } from '@/features/utilities/hooks/useDeleteSync'
 
 export function DeleteSyncForm() {
   const {
@@ -52,6 +54,59 @@ export function DeleteSyncForm() {
     handleCancel,
     handleTimeChange
   } = useDeleteSync()
+
+  // Brute force solution: add a local saving state that we control
+  const [isLocalSaving, setIsLocalSaving] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+  
+  // Force the buttons to stay visible for a full 500ms when saving
+  const handleSubmit = async (data: DeleteSyncFormValues) => {
+    setIsLocalSaving(true);
+    
+    try {
+      await onSubmit(data);
+    } catch (error) {
+      console.error("Error in form submission:", error);
+    }
+    
+    // This ensures the button stays visible for at least 500ms
+    setTimeout(() => {
+      setIsLocalSaving(false);
+    }, 500);
+  };
+  
+  // Same for cancel - keep it visible for 500ms
+  const handleCancelWithDuration = () => {
+    setIsCancelling(true);
+    handleCancel();
+    setTimeout(() => {
+      setIsCancelling(false);
+    }, 500);
+  };
+  
+  // Track the dirty state separately to force button visibility 
+  const [formWasDirty, setFormWasDirty] = useState(false);
+  
+  useEffect(() => {
+    // If form becomes dirty, record that
+    if (form.formState.isDirty) {
+      setFormWasDirty(true);
+    }
+  }, [form.formState.isDirty]);
+  
+  // Only hide buttons 500ms after form is reset
+  useEffect(() => {
+    if (!form.formState.isDirty && formWasDirty && !isLocalSaving && !isCancelling) {
+      // Delay hiding the buttons
+      const timer = setTimeout(() => {
+        setFormWasDirty(false);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [form.formState.isDirty, formWasDirty, isLocalSaving, isCancelling]);
+  
+  // Calculate if buttons should be visible
+  const showButtons = form.formState.isDirty || formWasDirty || isLocalSaving || isCancelling;
 
   return (
     <Accordion type="single" collapsible defaultValue="delete-sync" className="w-full">
@@ -239,7 +294,7 @@ export function DeleteSyncForm() {
                 <Separator />
 
                 <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <h3 className="font-medium text-sm text-text mb-2">Configuration</h3>
@@ -385,19 +440,19 @@ export function DeleteSyncForm() {
                       </div>
                     </div>
 
-                    {/* Action buttons */}
+                    {/* Action buttons - ALWAYS SHOW DURING LOADING STATE */}
                     <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-border">
-                      {form.formState.isDirty && (
+                      {showButtons && (
                         <>
                           <Button
                             type="submit"
-                            disabled={isSaving || !form.formState.isDirty}
+                            disabled={(isLocalSaving || isSaving) || (!form.formState.isDirty && !formWasDirty)}
                             className={cn(
                               "flex items-center gap-2",
-                              form.formState.isDirty ? "bg-blue hover:bg-blue/90" : ""
+                              "bg-blue hover:bg-blue/90"
                             )}
                           >
-                            {isSaving ? (
+                            {(isLocalSaving || isSaving) ? (
                               <>
                                 <Loader2 className="h-4 w-4 animate-spin" />
                                 Saving...
@@ -410,8 +465,8 @@ export function DeleteSyncForm() {
                           <Button
                             type="button"
                             variant="cancel"
-                            onClick={handleCancel}
-                            disabled={isSaving}
+                            onClick={handleCancelWithDuration}
+                            disabled={isLocalSaving || isSaving || isCancelling}
                             className="flex items-center gap-1"
                           >
                             <span>Cancel</span>
