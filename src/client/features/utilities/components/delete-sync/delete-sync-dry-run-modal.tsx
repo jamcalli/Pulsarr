@@ -105,7 +105,9 @@ export function DeleteSyncDryRunModal({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        className={showResults ? 'sm:max-w-3xl md:max-w-4xl' : 'sm:max-w-md'}
+        className={`${showResults ? 'sm:max-w-3xl md:max-w-4xl' : 'sm:max-w-md'} ${
+          loading.deleteSyncDryRun || !showResults ? '[&>button]:hidden' : ''
+        }`}
         onPointerDownOutside={(e) => {
           // Prevent closing during loading or analysis
           if (loading.deleteSyncDryRun || !showResults) {
@@ -118,8 +120,6 @@ export function DeleteSyncDryRunModal({
             e.preventDefault()
           }
         }}
-        // We can't directly hide the close button, but we can prevent clicking it
-        // The CSS for this would be added to your global styles
       >
         <DialogHeader>
           <DialogTitle className="text-text text-xl">
@@ -245,15 +245,15 @@ export function DeleteSyncDryRunModal({
               </div>
 
               <Tabs defaultValue="movies" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 uppercase">
-                  <TabsTrigger value="movies" className="uppercase">
-                    Movies{' '}
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="movies" className="h-full py-0">
+                    <span className="uppercase">Movies</span>
                     <Badge variant="neutral" className="ml-2">
                       {filteredMovies?.length || 0}
                     </Badge>
                   </TabsTrigger>
-                  <TabsTrigger value="shows" className="uppercase">
-                    Shows{' '}
+                  <TabsTrigger value="shows" className="h-full py-0">
+                    <span className="uppercase">Shows</span>
                     <Badge variant="neutral" className="ml-2">
                       {filteredShows?.length || 0}
                     </Badge>

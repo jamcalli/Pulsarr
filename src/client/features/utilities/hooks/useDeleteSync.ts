@@ -45,7 +45,7 @@ export function useDeleteSync() {
     handleToggleStatus,
   } = useDeleteSyncActions()
 
-  // Check if we're on initial loading - don't show loading on navigation
+  // Check if on initial loading - don't show loading on navigation
   if (!hasInitializedRef.current && !isScheduleLoading) {
     hasInitializedRef.current = true
   }

@@ -127,8 +127,7 @@ export function useDeleteSyncActions() {
     setShowDryRunModal(true)
 
     try {
-      // Start dry run process - no need for minimum loading time
-      // as we're showing progress in the modal
+      // Start dry run process. Showing progress in the modal
       await runDryDeleteSync()
 
       toast({
