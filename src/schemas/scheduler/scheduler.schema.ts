@@ -63,7 +63,7 @@ const IntervalJobSchema = z.object({
   next_run: JobRunInfoSchema.nullable(),
   created_at: z.string(),
   updated_at: z.string(),
-});
+})
 
 const CronJobSchema = z.object({
   id: z.number(),
@@ -75,13 +75,10 @@ const CronJobSchema = z.object({
   next_run: JobRunInfoSchema.nullable(),
   created_at: z.string(),
   updated_at: z.string(),
-});
+})
 
 // Combine with regular union instead of discriminated union
-export const JobStatusSchema = z.union([
-  IntervalJobSchema,
-  CronJobSchema
-]);
+export const JobStatusSchema = z.union([IntervalJobSchema, CronJobSchema])
 
 // Standard response schemas
 export const SuccessResponseSchema = z.object({
