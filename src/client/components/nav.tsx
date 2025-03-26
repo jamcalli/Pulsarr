@@ -6,6 +6,13 @@ interface NavProps {
   className?: string
 }
 
+/**
+ * Renders the navigation bar with a two-row grid layout of navigation links and a settings button.
+ *
+ * The top row displays links for "Dashboard", "Notifications", and "Utilities", while the bottom row displays links for "Plex", "Sonarr", and "Radarr". Each link is styled conditionally based on the current route, highlighting the active link. A dedicated column spanning both rows hosts the settings button.
+ *
+ * @param className - Optional additional CSS classes for customizing the navigation bar.
+ */
 export default function Nav({ className }: NavProps) {
   const location = useLocation()
   return (

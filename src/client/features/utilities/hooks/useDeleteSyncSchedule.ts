@@ -3,6 +3,23 @@ import { formatDistanceToNow, parseISO } from 'date-fns'
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 import type { JobStatus } from '@root/schemas/scheduler/scheduler.schema'
 
+/**
+ * Custom React hook to manage schedule details for the "delete-sync" job.
+ *
+ * This hook retrieves scheduled jobs from the utilities store and extracts the schedule time and day of the week
+ * by parsing the cron expression of the "delete-sync" job. It also provides helper functions to convert the last and next
+ * run times into human-readable relative time strings. Additionally, it initiates the fetching of schedules if they are not
+ * already loaded.
+ *
+ * @returns An object containing:
+ * - scheduleTime: The Date object representing the scheduled execution time, or undefined if not available.
+ * - dayOfWeek: The day of the week extracted from the cron expression, or '*' by default.
+ * - deleteSyncJob: The job data for "delete-sync", or null if not found.
+ * - isLoading: Boolean indicating whether schedules are currently being loaded.
+ * - error: Any error encountered while fetching the schedules.
+ * - formatLastRun: A function that formats the last run time into a human-readable relative time string.
+ * - formatNextRun: A function that formats the next run time into a human-readable relative time string.
+ */
 export function useDeleteSyncSchedule() {
   const { schedules, loading, error, fetchSchedules } = useUtilitiesStore()
   const [scheduleTime, setScheduleTime] = useState<Date | undefined>(undefined)
