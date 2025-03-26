@@ -29,6 +29,16 @@ interface MediaItem {
   instance: string
 }
 
+/**
+ * Renders a modal dialog for analyzing and previewing deletion sync operations.
+ *
+ * The component displays a loading state with progress indicators while assessing the impact of a deletion sync on media items.
+ * Once the analysis is complete, it animates a brief finalization phase before showing the results in a tabbed interface with search functionality.
+ * The modal prevents closure while analysis is in progress and resets its internal state whenever it is opened.
+ *
+ * @param open - Indicates whether the modal is visible.
+ * @param onOpenChange - Callback to update the modal's open state; it will only trigger a change when the analysis is complete.
+ */
 export function DeleteSyncDryRunModal({
   open,
   onOpenChange,

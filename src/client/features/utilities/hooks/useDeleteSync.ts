@@ -3,7 +3,25 @@ import { useDeleteSyncForm } from '@/features/utilities/hooks/useDeleteSyncForm'
 import { useDeleteSyncSchedule } from '@/features/utilities/hooks/useDeleteSyncSchedule'
 import { useDeleteSyncActions } from '@/features/utilities/hooks/useDeleteSyncActions'
 
-// This hook combines the functionality of the three specialized hooks
+/**
+ * Combines deletion sync logic from form, schedule, and action hooks.
+ *
+ * This custom hook integrates state management and handler functions from three specialized hooks:
+ * - Form management for handling submissions, cancellations, and time input changes.
+ * - Scheduling management for tracking sync job timing, errors, and deletion actions.
+ * - Action management for executing dry runs, initiating jobs, and toggling job status.
+ *
+ * It also computes a loading state to prevent displaying a loading indicator during navigation.
+ *
+ * @returns An object containing:
+ *  - Form state: form, isSaving, submittedValues.
+ *  - Schedule state: isLoading, error, scheduleTime, dayOfWeek, deleteSyncJob.
+ *  - Action state: isDryRunLoading, dryRunError, isTogglingStatus, isRunningJob, pendingEnable.
+ *  - Form methods: onSubmit, handleCancel, handleTimeChange.
+ *  - Action methods: handleDryRun, initiateRunJob, handleRunNow, initiateToggleStatus, handleToggleStatus.
+ *  - Modal controls: setShowEnableConfirmation, setShowRunConfirmation, setShowDryRunModal.
+ *  - Utility formatters: formatLastRun, formatNextRun.
+ */
 export function useDeleteSync() {
   const hasInitializedRef = useRef(false)
 
