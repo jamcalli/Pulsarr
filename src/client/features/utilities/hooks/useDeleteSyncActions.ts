@@ -2,6 +2,35 @@ import { useState, useCallback } from 'react'
 import { useToast } from '@/hooks/use-toast'
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 
+/**
+ * Manages state and actions for the delete synchronization feature.
+ *
+ * This custom hook integrates UI state management with asynchronous operations related to
+ * delete synchronization. It handles toggling the job status, starting the delete sync job,
+ * and executing a dry run. A minimum loading delay of 500ms is applied to improve user experience,
+ * and toast notifications provide feedback on the success or failure of each operation.
+ *
+ * The returned object includes:
+ * - isDryRunLoading: Indicates if a dry run operation is in progress.
+ * - dryRunError: Contains any error message from the dry run process.
+ * - isTogglingStatus: Indicates if the toggle status operation is currently in progress.
+ * - isRunningJob: Indicates if the delete sync job is currently running.
+ * - showEnableConfirmation: Controls the visibility of the enable confirmation modal.
+ * - showRunConfirmation: Controls the visibility of the run confirmation modal.
+ * - showDryRunModal: Controls the visibility of the dry run modal.
+ * - pendingEnable: Flags if the next action is to enable the delete sync.
+ * - setShowEnableConfirmation: Function to update the enable confirmation modal state.
+ * - setShowRunConfirmation: Function to update the run confirmation modal state.
+ * - setShowDryRunModal: Function to update the dry run modal state.
+ * - handleDryRun: Initiates a dry run of the delete sync process, managing loading and error states.
+ * - initiateRunJob: Opens the run confirmation modal for starting the delete sync job.
+ * - handleRunNow: Starts the delete sync job with a built-in minimum loading delay and toast notifications.
+ * - initiateToggleStatus: Initiates the toggle status operation by either executing it directly or 
+ *   displaying a confirmation modal when enabling.
+ * - handleToggleStatus: Toggles the delete sync job status with a minimum loading delay and provides feedback.
+ *
+ * @returns An object containing state variables and action handlers for delete synchronization.
+ */
 export function useDeleteSyncActions() {
   const { toast } = useToast()
   const { runDryDeleteSync, runScheduleNow, toggleScheduleStatus } =

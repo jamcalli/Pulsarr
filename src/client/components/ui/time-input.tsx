@@ -33,6 +33,17 @@ const DAYS_OF_WEEK: DayOption[] = [
   { value: '0', label: 'Sunday' },
 ];
 
+/**
+ * A React component that renders selectable time and day options.
+ *
+ * Displays two dropdown menus: one for choosing a day of the week from a predefined list and another for selecting a time in 15-minute intervals. The displayed time is formatted as "HH:mm" from an optional date value; if no date is provided, it defaults to "00:00". When the time or day is changed, the component invokes the onChange callback with the new Date (or current date) and the selected day.
+ *
+ * @param value - Optional date used to initialize the time display.
+ * @param onChange - Callback invoked with the updated Date and selected day when a change is made.
+ * @param disabled - Optional flag to disable both dropdown menus.
+ * @param className - Optional additional CSS classes for styling.
+ * @param dayOfWeek - Optional initial day selection; defaults to '*'.
+ */
 export function TimeSelector({ 
   value, 
   onChange, 

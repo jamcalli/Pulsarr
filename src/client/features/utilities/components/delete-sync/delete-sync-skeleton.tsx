@@ -8,6 +8,16 @@ import {
 import { Clock } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
 
+/**
+ * Renders a skeleton loading UI for the "Delete Sync" feature.
+ *
+ * This component displays a collapsible accordion card with placeholder elements
+ * mimicking the layout of the Delete Sync interface. It includes skeletons for the title,
+ * description, actions, status indicators, schedule, configuration, and safety settings,
+ * providing a visual cue while the actual data is being loaded.
+ *
+ * @returns A JSX element representing the loading state of the Delete Sync feature.
+ */
 export function DeleteSyncSkeleton() {
   return (
     <Accordion
