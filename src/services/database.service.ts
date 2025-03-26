@@ -4128,12 +4128,12 @@ export class DatabaseService {
             type: 'interval' as const,
             config: parsedConfig as IntervalConfig,
           }
-        } else {
-          return {
-            ...commonFields,
-            type: 'cron' as const,
-            config: parsedConfig as CronConfig,
-          }
+        }
+
+        return {
+          ...commonFields,
+          type: 'cron' as const,
+          config: parsedConfig as CronConfig,
         }
       })
     } catch (error) {
@@ -4186,12 +4186,12 @@ export class DatabaseService {
           type: 'interval' as const,
           config: parsedConfig as IntervalConfig,
         }
-      } else {
-        return {
-          ...commonFields,
-          type: 'cron' as const,
-          config: parsedConfig as CronConfig,
-        }
+      }
+
+      return {
+        ...commonFields,
+        type: 'cron' as const,
+        config: parsedConfig as CronConfig,
       }
     } catch (error) {
       this.log.error(`Error fetching schedule ${name}:`, error)

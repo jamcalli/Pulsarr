@@ -31,7 +31,7 @@ export function useDeleteSyncSchedule() {
           const minute = Number.parseInt(cronParts[1])
           const day = cronParts[5]
 
-          if (!isNaN(hour) && !isNaN(minute)) {
+          if (Number.isFinite(hour) && Number.isFinite(minute)) {
             const date = new Date()
             date.setHours(hour)
             date.setMinutes(minute)
