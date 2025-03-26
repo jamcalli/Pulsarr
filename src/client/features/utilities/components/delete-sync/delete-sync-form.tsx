@@ -7,6 +7,8 @@ import {
   Check,
   Power,
   Clock,
+  Save,
+  X,
 } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
 import {
@@ -71,7 +73,7 @@ export function DeleteSyncForm() {
         className="border-2 border-border rounded-base overflow-hidden"
       >
         <AccordionTrigger className="px-6 py-4 bg-main hover:bg-main hover:no-underline">
-          <div className="flex justify-between items-center w-full">
+          <div className="flex justify-between items-center w-full pr-2">
             <div>
               <h3 className="text-lg font-medium text-text text-left">
                 Delete Sync
@@ -84,7 +86,7 @@ export function DeleteSyncForm() {
             <Badge
               variant="neutral"
               className={cn(
-                'px-2 py-0.5 h-7 text-sm ml-2',
+                'px-2 py-0.5 h-7 text-sm ml-2 mr-2',
                 deleteSyncJob?.enabled
                   ? 'bg-green-500 hover:bg-green-500 text-white'
                   : deleteSyncJob?.last_run?.status === 'failed'
@@ -95,10 +97,10 @@ export function DeleteSyncForm() {
               {!deleteSyncJob
                 ? 'Unknown'
                 : !deleteSyncJob.enabled
-                  ? 'Stopped'
+                  ? 'Disabled'
                   : deleteSyncJob.last_run?.status === 'failed'
                     ? 'Failed'
-                    : 'Running'}
+                    : 'Enabled'}
             </Badge>
           </div>
         </AccordionTrigger>
@@ -120,7 +122,7 @@ export function DeleteSyncForm() {
                       size="sm"
                       onClick={handleToggleStatus}
                       disabled={isTogglingStatus || !deleteSyncJob}
-                      variant={deleteSyncJob?.enabled ? 'error' : 'default'}
+                      variant={deleteSyncJob?.enabled ? 'error' : 'noShadow'}
                       className="h-8"
                     >
                       {isTogglingStatus ? (
@@ -128,9 +130,7 @@ export function DeleteSyncForm() {
                       ) : (
                         <Power className="h-4 w-4 mr-2" />
                       )}
-                      {deleteSyncJob?.enabled
-                        ? 'Stop Service'
-                        : 'Start Service'}
+                      {deleteSyncJob?.enabled ? 'Disable' : 'Enable'}
                     </Button>
 
                     <Button
@@ -138,7 +138,7 @@ export function DeleteSyncForm() {
                       size="sm"
                       onClick={handleRunNow}
                       disabled={!deleteSyncJob?.enabled || isRunningJob}
-                      variant="default"
+                      variant="noShadow"
                       className="h-8"
                     >
                       {isRunningJob ? (
@@ -172,7 +172,7 @@ export function DeleteSyncForm() {
                 {/* Status section */}
                 <div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
+                    <div className="flex flex-col items-center text-center">
                       <h3 className="font-medium text-sm text-text mb-1">
                         Status
                       </h3>
@@ -180,7 +180,7 @@ export function DeleteSyncForm() {
                         {deleteSyncJob?.enabled ? 'Enabled' : 'Disabled'}
                       </p>
                     </div>
-                    <div>
+                    <div className="flex flex-col items-center text-center">
                       <h3 className="font-medium text-sm text-text mb-1">
                         Last Run
                       </h3>
@@ -194,7 +194,7 @@ export function DeleteSyncForm() {
                         )}
                       </p>
                     </div>
-                    <div>
+                    <div className="flex flex-col items-center text-center">
                       <h3 className="font-medium text-sm text-text mb-1">
                         Next Scheduled Run
                       </h3>
@@ -446,9 +446,9 @@ export function DeleteSyncForm() {
                                             ''
                                           : field.value || ''
                                       }
-                                      className="w-20 text-right"
+                                      className="w-20 text-center"
                                       placeholder="10"
-                                      disabled={isSaving} // Disable during saving
+                                      disabled={isSaving}
                                     />
                                   </FormControl>
                                 </div>
@@ -460,27 +460,27 @@ export function DeleteSyncForm() {
                       </div>
                     </div>
 
-                    {/* Action buttons - only show while isDirty or isSaving */}
-                    {(form.formState.isDirty || isSaving) && (
-                      <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-border">
-                        <Button
-                          type="submit"
-                          disabled={isSaving || !form.formState.isDirty}
-                          className={cn(
-                            'flex items-center gap-2 min-w-[120px]',
-                            'bg-blue hover:bg-blue/90',
-                          )}
-                        >
-                          {isSaving ? (
-                            <>
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                              Saving...
-                            </>
-                          ) : (
-                            'Save Changes'
-                          )}
-                        </Button>
+                    {/* Action buttons - always show, but disable save when not dirty */}
+                    <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-border">
+                      <Button
+                        type="submit"
+                        disabled={isSaving || !form.formState.isDirty}
+                        variant={'blue'}
+                      >
+                        {isSaving ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="h-4 w-4" />
+                            <span>Save Changes</span>
+                          </>
+                        )}
+                      </Button>
 
+                      {form.formState.isDirty && (
                         <Button
                           type="button"
                           variant="cancel"
@@ -488,10 +488,11 @@ export function DeleteSyncForm() {
                           disabled={isSaving}
                           className="flex items-center gap-1"
                         >
+                          <X className="h-4 w-4" />
                           <span>Cancel</span>
                         </Button>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </form>
                 </Form>
 
