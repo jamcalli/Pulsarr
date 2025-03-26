@@ -3,6 +3,13 @@ import { DeleteSyncForm } from '@/features/utilities/components/delete-sync/dele
 import { DeleteSyncSkeleton } from '@/features/utilities/components/delete-sync/delete-sync-skeleton'
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 
+/**
+ * Renders a utilities dashboard that conditionally displays a loading skeleton or a delete sync form.
+ *
+ * This component manages a smooth transition from a loading state to the fully rendered UI. It monitors the global schedule loading state and, when schedules have loaded, applies a 100ms delay before removing the local loading state to prevent UI flickering.
+ *
+ * @returns A React element representing the utilities dashboard.
+ */
 export function UtilitiesDashboard() {
   const [isLoading, setIsLoading] = useState(true)
   const loading = useUtilitiesStore((state) => state.loading)
