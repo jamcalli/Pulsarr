@@ -250,7 +250,7 @@ export class SchedulerService {
    */
   async scheduleJob(name: string, handler: JobHandler): Promise<boolean> {
     try {
-      // Save handler reference regardless of current enabled status
+      // Save handler reference
       const existingJob = this.jobs.get(name)
 
       if (existingJob) {
@@ -263,7 +263,7 @@ export class SchedulerService {
       } else {
         // Register new handler
         this.jobs.set(name, {
-          job: null, // Will be set later if enabled
+          job: null,
           handler,
         })
         this.log.info(`Registered handler for job: ${name}`)
@@ -277,17 +277,27 @@ export class SchedulerService {
         // Use default interval of 24 hours if not specified
         const defaultConfig = { hours: 24 }
 
+        // Calculate next run time for default config
+        const nextRun = new Date()
+        nextRun.setHours(nextRun.getHours() + 24)
+
         await this.fastify.db.createSchedule({
           name,
           type: 'interval',
           config: defaultConfig,
           enabled: true,
           last_run: null,
-          next_run: null,
+          next_run: {
+            time: nextRun.toISOString(),
+            status: 'pending',
+            estimated: true,
+          },
         })
 
         schedule = await this.fastify.db.getScheduleByName(name)
-        this.log.info(`Created default schedule for job ${name}`)
+        this.log.info(
+          `Created default schedule for job ${name} with next run at ${nextRun.toISOString()}`,
+        )
       }
 
       // If enabled, create and add the job
@@ -416,12 +426,43 @@ export class SchedulerService {
         Omit<DbSchedule, 'id' | 'name' | 'created_at' | 'updated_at'>
       > = {}
 
+      // Get the configuration to use for calculating next run time
+      const configToUse = config || schedule.config
+      const typeToUse = schedule.type
+
       if (config) {
         updates.config = config
       }
 
       if (enabled !== undefined) {
         updates.enabled = enabled
+      }
+
+      // Calculate next run time based on the schedule type and config
+      let nextRun: Date | null = null
+      if (typeToUse === 'interval') {
+        const intervalConfig = configToUse as IntervalConfig
+        nextRun = new Date()
+        if (intervalConfig.days)
+          nextRun.setDate(nextRun.getDate() + intervalConfig.days)
+        if (intervalConfig.hours)
+          nextRun.setHours(nextRun.getHours() + intervalConfig.hours)
+        if (intervalConfig.minutes)
+          nextRun.setMinutes(nextRun.getMinutes() + intervalConfig.minutes)
+        if (intervalConfig.seconds)
+          nextRun.setSeconds(nextRun.getSeconds() + intervalConfig.seconds)
+      } else if (typeToUse === 'cron') {
+        const cronConfig = configToUse as CronConfig
+        nextRun = this.calculateNextCronRun(cronConfig.expression)
+      }
+
+      // Add next run time to updates if it was calculated
+      if (nextRun) {
+        updates.next_run = {
+          time: nextRun.toISOString(),
+          status: 'pending',
+          estimated: true,
+        }
       }
 
       await this.fastify.db.updateSchedule(name, updates)
