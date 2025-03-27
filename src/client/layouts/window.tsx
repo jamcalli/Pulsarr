@@ -1,24 +1,81 @@
 import type { ReactNode } from 'react'
 import Nav from '@/components/nav'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { useMediaQuery } from '@/hooks/use-media-query'
+import { Menu } from 'lucide-react'
+import { SettingsButton } from '@/components/ui/settings-button'
+import { useState } from 'react'
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 
 interface WindowedLayoutProps {
   children: ReactNode
 }
 
 export default function WindowedLayout({ children }: WindowedLayoutProps) {
+  const isMobile = useMediaQuery('(max-width: 768px)')
+  const [sheetOpen, setSheetOpen] = useState(false)
+
   return (
-    <div className="outline-border dark:outline-darkBorder grid h-[800px] max-h-[100dvh] w-[95%] max-w-6xl grid-cols-[100px_auto] rounded-base shadow-[10px_10px_0_0_#000] outline outline-4 w600:grid-cols-[70px_auto] w500:grid-cols-1 portrait:w-full portrait:grid-cols-1 portrait:h-screen portrait:max-h-screen portrait:rounded-none portrait:shadow-none portrait:outline-0">
-      <header className="border-r-border dark:border-r-darkBorder relative flex items-center justify-center rounded-l-base border-r-4 bg-main w500:hidden portrait:rounded-none portrait:border-r-0 portrait:border-b-4 portrait:h-[50px] portrait:border-b-border dark:portrait:border-b-darkBorder portrait:fixed portrait:top-0 portrait:left-0 portrait:w-full portrait:z-50">
-        <h1 className="-rotate-90 whitespace-nowrap text-[40px] font-bold tracking-[4px] smallHeight:text-[30px] smallHeight:tracking-[2px] w600:text-[30px] w600:tracking-[2px] portrait:rotate-0 portrait:text-[30px] portrait:tracking-[2px]">
+    <div
+      className={`outline-border dark:outline-darkBorder grid h-[800px] max-h-[100dvh] w-[95%] max-w-6xl 
+      ${
+        isMobile
+          ? 'grid-cols-1 w-full h-screen max-h-screen rounded-none shadow-none outline-0'
+          : 'grid-cols-[100px_auto] rounded-base shadow-[10px_10px_0_0_#000] outline outline-4'
+      }`}
+    >
+      {/* Header - always visible */}
+      <header
+        className={`border-r-border dark:border-r-darkBorder relative flex items-center justify-center bg-main
+        ${
+          isMobile
+            ? 'rounded-none border-r-0 border-b-4 h-[50px] border-b-border dark:border-b-darkBorder fixed top-0 left-0 w-full z-50'
+            : 'rounded-l-base border-r-4'
+        }`}
+      >
+        {/* Mobile Menu Button */}
+        {isMobile && (
+          <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+            <SheetTrigger asChild>
+              <button
+                type="button"
+                className="absolute left-3 top-1/2 -translate-y-1/2"
+              >
+                <Menu className="stroke-text h-6 w-6" />
+                <span className="sr-only">Menu</span>
+              </button>
+            </SheetTrigger>
+            <SheetContent side="left">
+              <Nav isMobile={true} onNavItemClick={() => setSheetOpen(false)} />
+            </SheetContent>
+          </Sheet>
+        )}
+
+        {/* Title */}
+        <h1
+          className={`whitespace-nowrap font-bold
+          ${isMobile ? 'rotate-0 text-[30px] tracking-[2px]' : '-rotate-90 text-[40px] tracking-[4px]'}`}
+        >
           <span className="text-text inline-block">Pulsarr</span>
         </h1>
+
+        {/* Mobile Settings Button */}
+        {isMobile && (
+          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+            <SettingsButton isMobile={true} />
+          </div>
+        )}
       </header>
-      <main className="dark:bg-darkBg relative flex h-[800px] max-h-[100dvh] flex-col rounded-br-base rounded-tr-base bg-bg font-semibold portrait:h-[100dvh] portrait:max-h-[100dvh] portrait:rounded-none portrait:pt-[50px] portrait:flex portrait:flex-col">
-        <Nav className="portrait:flex-shrink-0" />
-        <ScrollArea className="flex-1 h-full portrait:h-[calc(100dvh-150px)] portrait:min-h-0">
-          {children}
-        </ScrollArea>
+
+      {/* Main content area */}
+      <main
+        className={`dark:bg-darkBg relative flex flex-col bg-bg font-semibold
+        ${isMobile ? 'h-screen' : 'h-[800px] max-h-[100dvh] rounded-br-base rounded-tr-base'}`}
+      >
+        {/* Only show Nav in desktop mode */}
+        {!isMobile && <Nav isMobile={false} />}
+
+        <ScrollArea className="flex-1">{children}</ScrollArea>
       </main>
     </div>
   )
