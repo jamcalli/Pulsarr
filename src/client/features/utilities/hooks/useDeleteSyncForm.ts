@@ -213,7 +213,7 @@ export function useDeleteSyncForm() {
         variant: 'default',
       })
 
-      // Reset form first and ensure it's fully processed before changing state
+      // Reset form with updated configuration
       const updatedConfig =
         useConfigStore.getState().config || config || ({} as Config)
 
