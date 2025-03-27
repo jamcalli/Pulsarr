@@ -16,7 +16,8 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
     return (
       <nav className={cn('flex flex-col h-full w-full', className)}>
         <div className="p-4 text-2xl font-bold text-text">Navigation</div>
-        <div className="flex flex-col">
+        {/* Added overflow-y-auto to enable scrolling when content exceeds height */}
+        <div className="flex flex-col overflow-y-auto">
           <Link
             className={cn(
               'p-4 flex items-center text-lg m-2 rounded-base',
