@@ -39,6 +39,7 @@ import { Separator } from '@/components/ui/separator'
 import { useDeleteSync } from '@/features/utilities/hooks/useDeleteSync'
 import { DeleteSyncConfirmationModal } from '@/features/utilities/components/delete-sync/delete-sync-confirmation-modal'
 import { DeleteSyncDryRunModal } from '@/features/utilities/components/delete-sync/delete-sync-dry-run-modal'
+import { useMediaQuery } from '@/hooks/use-media-query'
 
 /**
  * Renders the DeleteSyncForm component that provides an interface for managing a delete synchronization job.
@@ -48,9 +49,11 @@ import { DeleteSyncDryRunModal } from '@/features/utilities/components/delete-sy
  * options and safety settings, such as toggles for deleting movies, shows, files, and setting notification preferences. Confirmation
  * modals are used to ensure that users intentionally perform sensitive actions.
  *
- * @returns The JSX element representing the delete synchronization management form.
+ * @returns A React element representing the delete synchronization management form.
  */
 export function DeleteSyncForm() {
+  const isMobile = useMediaQuery('(max-width: 768px)')
+
   const {
     form,
     error,
@@ -168,11 +171,13 @@ export function DeleteSyncForm() {
                         className="h-8"
                       >
                         {isTogglingStatus ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
-                          <Power className="h-4 w-4 mr-2" />
+                          <Power className="h-4 w-4" />
                         )}
-                        {deleteSyncJob?.enabled ? 'Disable' : 'Enable'}
+                        <span className={isMobile ? 'hidden' : 'ml-2'}>
+                          {deleteSyncJob?.enabled ? 'Disable' : 'Enable'}
+                        </span>
                       </Button>
 
                       <Button
@@ -184,11 +189,13 @@ export function DeleteSyncForm() {
                         className="h-8"
                       >
                         {isRunningJob ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
-                          <PlayCircle className="h-4 w-4 mr-2" />
+                          <PlayCircle className="h-4 w-4" />
                         )}
-                        Run Now
+                        <span className={isMobile ? 'hidden' : 'ml-2'}>
+                          Run Now
+                        </span>
                       </Button>
 
                       <Button
@@ -200,11 +207,11 @@ export function DeleteSyncForm() {
                         className="h-8"
                       >
                         {isDryRunLoading ? (
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
-                          <Check className="h-4 w-4 mr-2" />
+                          <Check className="h-4 w-4" />
                         )}
-                        Dry Run
+                        <span className="ml-2">Dry Run</span>
                       </Button>
                     </div>
                   </div>
@@ -507,26 +514,8 @@ export function DeleteSyncForm() {
                       </div>
 
                       {/* Action buttons - always show, but disable save when not dirty */}
-                      <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-border">
-                        <Button
-                          type="submit"
-                          disabled={isSaving || !form.formState.isDirty}
-                          variant={'blue'}
-                        >
-                          {isSaving ? (
-                            <>
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              Saving...
-                            </>
-                          ) : (
-                            <>
-                              <Save className="h-4 w-4 mr-2" />
-                              <span>Save Changes</span>
-                            </>
-                          )}
-                        </Button>
-
-                        {form.formState.isDirty && (
+                      <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-border">
+                        {form.formState.isDirty && !isSaving && (
                           <Button
                             type="button"
                             variant="cancel"
@@ -534,10 +523,24 @@ export function DeleteSyncForm() {
                             disabled={isSaving}
                             className="flex items-center gap-1"
                           >
-                            <X className="h-4 w-4 mr-2" />
+                            <X className="h-4 w-4" />
                             <span>Cancel</span>
                           </Button>
                         )}
+
+                        <Button
+                          type="submit"
+                          disabled={isSaving || !form.formState.isDirty}
+                          className="flex items-center gap-2"
+                          variant="blue"
+                        >
+                          {isSaving ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Save className="h-4 w-4" />
+                          )}
+                          <span>{isSaving ? 'Saving...' : 'Save Changes'}</span>
+                        </Button>
                       </div>
                     </form>
                   </Form>
