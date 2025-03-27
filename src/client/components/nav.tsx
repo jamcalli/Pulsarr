@@ -11,7 +11,7 @@ interface NavProps {
 export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
   const location = useLocation()
 
-  // Mobile navigation - list of links
+  // Mobile navigation - list of links with outline selection
   if (isMobile) {
     return (
       <nav className={cn('flex flex-col h-full w-full', className)}>
@@ -19,9 +19,9 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
         <div className="flex flex-col">
           <Link
             className={cn(
-              'p-4 flex items-center text-lg',
+              'p-4 flex items-center text-lg m-2 rounded-base',
               location.pathname === '/app/dashboard'
-                ? 'text-text font-bold border-b-2 border-b-main'
+                ? 'text-text font-bold border-2 border-border bg-main'
                 : 'text-text',
             )}
             to="/app/dashboard"
@@ -31,9 +31,9 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
           </Link>
           <Link
             className={cn(
-              'p-4 flex items-center text-lg',
+              'p-4 flex items-center text-lg m-2 rounded-base',
               location.pathname === '/app/notifications'
-                ? 'text-text font-bold border-b-2 border-b-main'
+                ? 'text-text font-bold border-2 border-border bg-main'
                 : 'text-text',
             )}
             to="/app/notifications"
@@ -43,9 +43,9 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
           </Link>
           <Link
             className={cn(
-              'p-4 flex items-center text-lg',
+              'p-4 flex items-center text-lg m-2 rounded-base',
               location.pathname === '/app/utilities'
-                ? 'text-text font-bold border-b-2 border-b-main'
+                ? 'text-text font-bold border-2 border-border bg-main'
                 : 'text-text',
             )}
             to="/app/utilities"
@@ -55,9 +55,9 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
           </Link>
           <Link
             className={cn(
-              'p-4 flex items-center text-lg',
+              'p-4 flex items-center text-lg m-2 rounded-base',
               location.pathname === '/app/plex'
-                ? 'text-text font-bold border-b-2 border-b-main'
+                ? 'text-text font-bold border-2 border-border bg-main'
                 : 'text-text',
             )}
             to="/app/plex"
@@ -67,9 +67,9 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
           </Link>
           <Link
             className={cn(
-              'p-4 flex items-center text-lg',
+              'p-4 flex items-center text-lg m-2 rounded-base',
               location.pathname === '/app/sonarr'
-                ? 'text-text font-bold border-b-2 border-b-main'
+                ? 'text-text font-bold border-2 border-border bg-main'
                 : 'text-text',
             )}
             to="/app/sonarr"
@@ -79,9 +79,9 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
           </Link>
           <Link
             className={cn(
-              'p-4 flex items-center text-lg',
+              'p-4 flex items-center text-lg m-2 rounded-base',
               location.pathname === '/app/radarr'
-                ? 'text-text font-bold border-b-2 border-b-main'
+                ? 'text-text font-bold border-2 border-border bg-main'
                 : 'text-text',
             )}
             to="/app/radarr"
@@ -94,7 +94,7 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
     )
   }
 
-  // Desktop navigation - grid layout
+  // Desktop navigation - grid layout (unchanged)
   return (
     <nav
       className={cn(
