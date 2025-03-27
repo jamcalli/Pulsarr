@@ -75,7 +75,9 @@ export default function WindowedLayout({ children }: WindowedLayoutProps) {
         {/* Only show Nav in desktop mode */}
         {!isMobile && <Nav isMobile={false} />}
 
-        <ScrollArea className="flex-1">{children}</ScrollArea>
+        <ScrollArea className="flex-1">
+          {isMobile ? <div className="pb-16">{children}</div> : children}
+        </ScrollArea>
       </main>
     </div>
   )
