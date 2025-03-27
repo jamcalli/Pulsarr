@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { AlertTriangle, Search, LoaderCircle } from 'lucide-react'
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
@@ -13,12 +14,12 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from '@/components/ui/sheet'
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+} from '@/components/ui/drawer'
 import {
   Table,
   TableBody,
@@ -28,7 +29,6 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useWatchlistProgress } from '@/hooks/useProgress'
-import { useMediaQuery } from '@/hooks/use-media-query'
 
 interface MediaItem {
   title: string
@@ -37,10 +37,10 @@ interface MediaItem {
 }
 
 /**
- * Renders a modal dialog for analysis and a sheet for displaying results of deletion sync operations.
+ * Renders a modal dialog for analysis and a drawer for displaying results of deletion sync operations.
  *
  * The component displays a loading state with progress indicators in a modal dialog while assessing the impact
- * of a deletion sync on media items. Once the analysis is complete, it switches to a sheet component to display
+ * of a deletion sync on media items. Once the analysis is complete, it switches to a drawer component to display
  * the results in a tabbed interface with search functionality, providing better handling for large datasets.
  *
  * @param open - Indicates whether the component is visible.
@@ -56,8 +56,7 @@ export function DeleteSyncDryRunModal({
   const { deleteSyncDryRunResults, loading } = useUtilitiesStore()
   const [searchTerm, setSearchTerm] = useState('')
   const [showResults, setShowResults] = useState(false)
-  const [showSheet, setShowSheet] = useState(false)
-  const isLargeScreen = useMediaQuery('(min-width: 1200px)')
+  const [showDrawer, setShowDrawer] = useState(false)
 
   // Progress tracking
   const selfWatchlistProgress = useWatchlistProgress('self-watchlist')
@@ -68,7 +67,7 @@ export function DeleteSyncDryRunModal({
   useEffect(() => {
     if (open) {
       setShowResults(false)
-      setShowSheet(false)
+      setShowDrawer(false)
       setSearchTerm('')
       setAnalyzeProgress(0)
     }
@@ -90,7 +89,7 @@ export function DeleteSyncDryRunModal({
         if (progress >= 100) {
           clearInterval(interval)
           setShowResults(true)
-          setShowSheet(true)
+          setShowDrawer(true)
         }
       }, 50)
 
@@ -115,9 +114,9 @@ export function DeleteSyncDryRunModal({
 
   const hasSafetyTriggered = deleteSyncDryRunResults?.safetyTriggered
 
-  // Handle opening and closing of the sheet
+  // Handle opening and closing of the drawer
   const handleOpenChange = (newOpen: boolean) => {
-    setShowSheet(newOpen)
+    setShowDrawer(newOpen)
     if (!newOpen) {
       onOpenChange(false)
     }
@@ -125,11 +124,11 @@ export function DeleteSyncDryRunModal({
 
   // Render the modal for loading/analysis phase
   const renderAnalysisModal = () => {
-    if (!open || showSheet) return null
+    if (!open || showDrawer) return null
 
     return (
       <Dialog
-        open={open && !showSheet}
+        open={open && !showDrawer}
         onOpenChange={(newOpen) => {
           // Only allow closing when not in loading state
           if (!loading.deleteSyncDryRun && showResults) {
@@ -223,28 +222,23 @@ export function DeleteSyncDryRunModal({
     )
   }
 
-  // Render the sheet for results display
-  const renderResultsSheet = () => {
-    if (!showSheet || !deleteSyncDryRunResults) return null
+  // Render the drawer for results display
+  const renderResultsDrawer = () => {
+    if (!showDrawer || !deleteSyncDryRunResults) return null
 
     return (
-      <Sheet open={showSheet} onOpenChange={handleOpenChange}>
-        <SheetContent
-          side={isLargeScreen ? 'right' : 'bottom'}
-          className={`${
-            isLargeScreen ? 'w-[90vw] max-w-[1200px]' : 'h-[90vh]'
-          } overflow-y-auto`}
-        >
-          <SheetHeader className="mb-6">
-            <SheetTitle className="text-text text-xl">
+      <Drawer open={showDrawer} onOpenChange={handleOpenChange}>
+        <DrawerContent className="h-[90vh]">
+          <DrawerHeader className="mb-6">
+            <DrawerTitle className="text-text text-xl">
               Delete Sync Analysis Results
-            </SheetTitle>
-            <SheetDescription>
+            </DrawerTitle>
+            <DrawerDescription>
               Preview of items that would be removed during the next delete sync
-            </SheetDescription>
-          </SheetHeader>
+            </DrawerDescription>
+          </DrawerHeader>
 
-          <div>
+          <div className="px-4 pb-6 overflow-y-auto h-[calc(90vh-120px)]">
             {hasSafetyTriggered && (
               <div className="p-4 border border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20 rounded-md flex items-start gap-3 mb-6">
                 <AlertTriangle className="h-5 w-5 text-yellow-500 flex-shrink-0 mt-0.5" />
@@ -261,27 +255,33 @@ export function DeleteSyncDryRunModal({
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <div className="bg-main px-4 py-3 rounded-md">
-                <h3 className="text-sm font-medium text-text mb-2">Total</h3>
-                <p className="text-2xl font-bold text-text">
-                  {deleteSyncDryRunResults.total.deleted}
-                </p>
-                <p className="text-sm text-text">Items would be deleted</p>
-              </div>
-              <div className="bg-main px-4 py-3 rounded-md">
-                <h3 className="text-sm font-medium text-text mb-2">Movies</h3>
-                <p className="text-2xl font-bold text-text">
-                  {deleteSyncDryRunResults.movies.deleted}
-                </p>
-                <p className="text-sm text-text">Movies would be deleted</p>
-              </div>
-              <div className="bg-main px-4 py-3 rounded-md">
-                <h3 className="text-sm font-medium text-text mb-2">Shows</h3>
-                <p className="text-2xl font-bold text-text">
-                  {deleteSyncDryRunResults.shows.deleted}
-                </p>
-                <p className="text-sm text-text">Shows would be deleted</p>
-              </div>
+              <Card>
+                <CardContent className="pt-6">
+                  <h3 className="text-sm font-medium text-text mb-2">Total</h3>
+                  <p className="text-2xl font-bold text-text">
+                    {deleteSyncDryRunResults.total.deleted}
+                  </p>
+                  <p className="text-sm text-text">Items would be deleted</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6">
+                  <h3 className="text-sm font-medium text-text mb-2">Movies</h3>
+                  <p className="text-2xl font-bold text-text">
+                    {deleteSyncDryRunResults.movies.deleted}
+                  </p>
+                  <p className="text-sm text-text">Movies would be deleted</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-6">
+                  <h3 className="text-sm font-medium text-text mb-2">Shows</h3>
+                  <p className="text-2xl font-bold text-text">
+                    {deleteSyncDryRunResults.shows.deleted}
+                  </p>
+                  <p className="text-sm text-text">Shows would be deleted</p>
+                </CardContent>
+              </Card>
             </div>
 
             <div className="relative mb-6">
@@ -318,42 +318,40 @@ export function DeleteSyncDryRunModal({
                       : 'No movies to delete'}
                   </div>
                 ) : (
-                  <div className="border-2 border-border dark:border-darkBorder rounded-md overflow-hidden">
-                    <div className="max-h-[calc(80vh-320px)] overflow-y-auto">
-                      <Table>
-                        <TableHeader className="bg-black text-white uppercase sticky top-0 z-10">
-                          <TableRow>
-                            <TableHead className="text-left py-3 px-4">
-                              Title
-                            </TableHead>
-                            <TableHead className="text-left py-3 px-4">
-                              Instance
-                            </TableHead>
-                            <TableHead className="text-left py-3 px-4">
-                              ID
-                            </TableHead>
+                  <div className="max-h-[400px] overflow-y-auto">
+                    <Table>
+                      <TableHeader className="bg-main text-text uppercase">
+                        <TableRow>
+                          <TableHead className="text-left py-3 px-4 font-medium">
+                            Title
+                          </TableHead>
+                          <TableHead className="text-left py-3 px-4 font-medium">
+                            Instance
+                          </TableHead>
+                          <TableHead className="text-left py-3 px-4 font-medium">
+                            ID
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredMovies?.map((movie, index) => (
+                          <TableRow
+                            key={movie.guid}
+                            className={index % 2 === 0 ? 'bg-main' : 'bg-bw'}
+                          >
+                            <TableCell className="py-3 px-4 font-medium text-text">
+                              {movie.title}
+                            </TableCell>
+                            <TableCell className="py-3 px-4 text-text">
+                              {movie.instance}
+                            </TableCell>
+                            <TableCell className="py-3 px-4 font-mono text-xs text-text">
+                              {movie.guid}
+                            </TableCell>
                           </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {filteredMovies?.map((movie, index) => (
-                            <TableRow
-                              key={movie.guid}
-                              className={index % 2 === 0 ? 'bg-main' : 'bg-bw'}
-                            >
-                              <TableCell className="py-3 px-4 font-medium text-text">
-                                {movie.title}
-                              </TableCell>
-                              <TableCell className="py-3 px-4 text-text">
-                                {movie.instance}
-                              </TableCell>
-                              <TableCell className="py-3 px-4 font-mono text-xs text-text">
-                                {movie.guid}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
+                        ))}
+                      </TableBody>
+                    </Table>
                   </div>
                 )}
               </TabsContent>
@@ -366,56 +364,54 @@ export function DeleteSyncDryRunModal({
                       : 'No shows to delete'}
                   </div>
                 ) : (
-                  <div className="border-2 border-border dark:border-darkBorder rounded-md overflow-hidden">
-                    <div className="max-h-[calc(80vh-320px)] overflow-y-auto">
-                      <Table>
-                        <TableHeader className="bg-black text-white uppercase sticky top-0 z-10">
-                          <TableRow>
-                            <TableHead className="text-left py-3 px-4">
-                              Title
-                            </TableHead>
-                            <TableHead className="text-left py-3 px-4">
-                              Instance
-                            </TableHead>
-                            <TableHead className="text-left py-3 px-4">
-                              ID
-                            </TableHead>
+                  <div className="max-h-[400px] overflow-y-auto">
+                    <Table>
+                      <TableHeader className="bg-main text-text uppercase">
+                        <TableRow>
+                          <TableHead className="text-left py-3 px-4 font-medium">
+                            Title
+                          </TableHead>
+                          <TableHead className="text-left py-3 px-4 font-medium">
+                            Instance
+                          </TableHead>
+                          <TableHead className="text-left py-3 px-4 font-medium">
+                            ID
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredShows?.map((show, index) => (
+                          <TableRow
+                            key={show.guid}
+                            className={index % 2 === 0 ? 'bg-main' : 'bg-bw'}
+                          >
+                            <TableCell className="py-3 px-4 font-medium text-text">
+                              {show.title}
+                            </TableCell>
+                            <TableCell className="py-3 px-4 text-text">
+                              {show.instance}
+                            </TableCell>
+                            <TableCell className="py-3 px-4 font-mono text-xs text-text">
+                              {show.guid}
+                            </TableCell>
                           </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {filteredShows?.map((show, index) => (
-                            <TableRow
-                              key={show.guid}
-                              className={index % 2 === 0 ? 'bg-main' : 'bg-bw'}
-                            >
-                              <TableCell className="py-3 px-4 font-medium text-text">
-                                {show.title}
-                              </TableCell>
-                              <TableCell className="py-3 px-4 text-text">
-                                {show.instance}
-                              </TableCell>
-                              <TableCell className="py-3 px-4 font-mono text-xs text-text">
-                                {show.guid}
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
+                        ))}
+                      </TableBody>
+                    </Table>
                   </div>
                 )}
               </TabsContent>
             </Tabs>
           </div>
-        </SheetContent>
-      </Sheet>
+        </DrawerContent>
+      </Drawer>
     )
   }
 
   return (
     <>
       {renderAnalysisModal()}
-      {renderResultsSheet()}
+      {renderResultsDrawer()}
     </>
   )
 }
