@@ -35,6 +35,7 @@ import { RadarrSyncModal } from '@/features/radarr/components/instance/radarr-sy
 import type { RadarrInstance } from '@/features/radarr/types/types'
 import { useToast } from '@/hooks/use-toast'
 import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
+import { useMediaQuery } from '@/hooks/use-media-query'
 
 interface InstanceCardProps {
   instance: RadarrInstance
@@ -46,6 +47,7 @@ export function InstanceCard({
   setShowInstanceCard,
 }: InstanceCardProps) {
   const { toast } = useToast()
+  const isMobile = useMediaQuery('(max-width: 768px)')
   const [showDeleteAlert, setShowDeleteAlert] = useState(false)
   const [showSyncModal, setShowSyncModal] = useState(false)
   const [isManualSync, setIsManualSync] = useState(false)
@@ -223,7 +225,9 @@ export function InstanceCard({
                 />
 
                 {/* Profile Settings */}
-                <div className="flex portrait:flex-col gap-4">
+                <div
+                  className={`flex ${isMobile ? 'flex-col' : 'flex-row'} gap-4`}
+                >
                   <div className="flex-1">
                     <FormField
                       control={form.control}

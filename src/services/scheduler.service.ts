@@ -569,37 +569,78 @@ export class SchedulerService {
     const now = new Date()
     const nextRun = new Date(now)
 
-    // Parse the cron expression (simplified)
-    // Format: [minute] [hour] [day of month] [month] [day of week]
-    const parts = expression.split(' ').map((p) => p.trim())
-    if (parts.length !== 5) {
-      // Invalid format, just add 24 hours as fallback
+    // Reset seconds and milliseconds
+    nextRun.setSeconds(0)
+    nextRun.setMilliseconds(0)
+
+    // Parse the cron expression and ignore seconds if present
+    const parts = expression
+      .split(' ')
+      .map((p) => p.trim())
+      .filter((p) => p.length > 0)
+
+    let minute: string
+    let hour: string
+    let dayOfWeek: string
+
+    if (parts.length >= 6) {
+      // 6-part format with seconds: [seconds] [minute] [hour] [day of month] [month] [day of week]
+      minute = parts[1]
+      hour = parts[2]
+      dayOfWeek = parts[5]
+    } else if (parts.length >= 5) {
+      // 5-part format without seconds: [minute] [hour] [day of month] [month] [day of week]
+      minute = parts[0]
+      hour = parts[1]
+      dayOfWeek = parts[4]
+    } else {
+      // Invalid format, add 24 hours as fallback
+      this.log.warn(
+        `Invalid cron expression format (${parts.length} parts): ${expression}`,
+      )
       nextRun.setHours(nextRun.getHours() + 24)
       return nextRun
     }
 
-    const [minute, hour, dayOfMonth, month, dayOfWeek] = parts
+    // Handle day of week (0-6, where 0 is Sunday)
+    if (dayOfWeek !== '*') {
+      const targetDay = Number.parseInt(dayOfWeek, 10)
+      const currentDay = now.getDay()
 
-    // Handle common patterns
-    if (minute === '*' && hour === '*') {
-      // Every minute: add 1 minute
-      nextRun.setMinutes(nextRun.getMinutes() + 1)
-    } else if (hour === '*' && minute !== '*') {
-      // Every hour at specific minute
-      nextRun.setMinutes(Number.parseInt(minute, 10))
-      if (nextRun <= now) {
-        nextRun.setHours(nextRun.getHours() + 1)
+      // Calculate days until the target day
+      let daysUntilTarget = targetDay - currentDay
+      if (daysUntilTarget <= 0) {
+        // If target day is today or already passed this week, go to next week
+        daysUntilTarget += 7
       }
-    } else if (hour !== '*' && minute !== '*') {
-      // Specific time daily
+
+      // Set the day to the next occurrence
+      nextRun.setDate(now.getDate() + daysUntilTarget)
+    }
+
+    // Set hour and minute
+    if (hour !== '*') {
       nextRun.setHours(Number.parseInt(hour, 10))
+    } else {
+      nextRun.setHours(0) // Default to midnight if wildcard
+    }
+
+    if (minute !== '*') {
       nextRun.setMinutes(Number.parseInt(minute, 10))
-      if (nextRun <= now) {
+    } else {
+      nextRun.setMinutes(0) // Default to 0 minutes if wildcard
+    }
+
+    // Check if the calculated time is in the past
+    if (nextRun <= now) {
+      // If using day of week and the time has passed today
+      if (dayOfWeek !== '*') {
+        // Move to next week
+        nextRun.setDate(nextRun.getDate() + 7)
+      } else {
+        // For daily schedules, move to next day
         nextRun.setDate(nextRun.getDate() + 1)
       }
-    } else {
-      // For more complex patterns, add 24 hours as an estimate
-      nextRun.setHours(nextRun.getHours() + 24)
     }
 
     return nextRun

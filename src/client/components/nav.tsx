@@ -3,22 +3,102 @@ import { SettingsButton } from '@/components/ui/settings-button'
 import { cn } from '@/lib/utils'
 
 interface NavProps {
+  isMobile: boolean
   className?: string
+  onNavItemClick?: () => void
 }
 
-/**
- * Renders the navigation bar with a two-row grid layout of navigation links and a settings button.
- *
- * The top row displays links for "Dashboard", "Notifications", and "Utilities", while the bottom row displays links for "Plex", "Sonarr", and "Radarr". Each link is styled conditionally based on the current route, highlighting the active link. A dedicated column spanning both rows hosts the settings button.
- *
- * @param className - Optional additional CSS classes for customizing the navigation bar.
- */
-export default function Nav({ className }: NavProps) {
+export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
   const location = useLocation()
+
+  // Mobile navigation - list of links
+  if (isMobile) {
+    return (
+      <nav className={cn('flex flex-col h-full w-full', className)}>
+        <div className="p-4 text-2xl font-bold text-text">Navigation</div>
+        <div className="flex flex-col">
+          <Link
+            className={cn(
+              'p-4 flex items-center text-lg',
+              location.pathname === '/app/dashboard'
+                ? 'text-text font-bold border-b-2 border-b-main'
+                : 'text-text',
+            )}
+            to="/app/dashboard"
+            onClick={onNavItemClick}
+          >
+            Dashboard
+          </Link>
+          <Link
+            className={cn(
+              'p-4 flex items-center text-lg',
+              location.pathname === '/app/notifications'
+                ? 'text-text font-bold border-b-2 border-b-main'
+                : 'text-text',
+            )}
+            to="/app/notifications"
+            onClick={onNavItemClick}
+          >
+            Notifications
+          </Link>
+          <Link
+            className={cn(
+              'p-4 flex items-center text-lg',
+              location.pathname === '/app/utilities'
+                ? 'text-text font-bold border-b-2 border-b-main'
+                : 'text-text',
+            )}
+            to="/app/utilities"
+            onClick={onNavItemClick}
+          >
+            Utilities
+          </Link>
+          <Link
+            className={cn(
+              'p-4 flex items-center text-lg',
+              location.pathname === '/app/plex'
+                ? 'text-text font-bold border-b-2 border-b-main'
+                : 'text-text',
+            )}
+            to="/app/plex"
+            onClick={onNavItemClick}
+          >
+            Plex
+          </Link>
+          <Link
+            className={cn(
+              'p-4 flex items-center text-lg',
+              location.pathname === '/app/sonarr'
+                ? 'text-text font-bold border-b-2 border-b-main'
+                : 'text-text',
+            )}
+            to="/app/sonarr"
+            onClick={onNavItemClick}
+          >
+            Sonarr
+          </Link>
+          <Link
+            className={cn(
+              'p-4 flex items-center text-lg',
+              location.pathname === '/app/radarr'
+                ? 'text-text font-bold border-b-2 border-b-main'
+                : 'text-text',
+            )}
+            to="/app/radarr"
+            onClick={onNavItemClick}
+          >
+            Radarr
+          </Link>
+        </div>
+      </nav>
+    )
+  }
+
+  // Desktop navigation - grid layout
   return (
     <nav
       className={cn(
-        'flex flex-col h-[100px] rounded-tr-base bg-black text-lg w600:text-base w400:h-20 w400:text-sm portrait:rounded-none',
+        'flex flex-col h-[100px] rounded-tr-base bg-black text-lg',
         className,
       )}
     >

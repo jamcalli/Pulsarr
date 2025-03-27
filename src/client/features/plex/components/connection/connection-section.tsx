@@ -17,6 +17,7 @@ import { usePlexConnection } from '@/features/plex/hooks/usePlexConnection'
 import { usePlexRssFeeds } from '@/features/plex/hooks/usePlexRssFeeds'
 import { usePlexWatchlist } from '@/features/plex/hooks/usePlexWatchlist'
 import { useWatchlistProgress } from '@/hooks/useProgress'
+import { useMediaQuery } from '@/hooks/use-media-query'
 import PlexConnectionSkeleton from '@/features/plex/components/connection/connection-section-skeleton'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 
@@ -24,6 +25,9 @@ export default function PlexConnectionSection() {
   // Connection state
   const { form, status, handleUpdateToken, handleRemoveToken } =
     usePlexConnection()
+
+  // Media query for mobile/desktop
+  const isMobile = useMediaQuery('(max-width: 768px)')
 
   // Loading state
   const [isLoading, setIsLoading] = useState(true)
@@ -96,7 +100,7 @@ export default function PlexConnectionSection() {
             onSubmit={form.handleSubmit(handleUpdateToken)}
             className="space-y-8"
           >
-            <div className="flex portrait:flex-col gap-4">
+            <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} gap-4`}>
               <div className="flex-1">
                 <div className="flex items-end space-x-2">
                   <FormField
@@ -253,7 +257,9 @@ export default function PlexConnectionSection() {
             </div>
 
             <div className="space-y-4">
-              <div className="flex portrait:flex-col gap-4">
+              <div
+                className={`flex ${isMobile ? 'flex-col' : 'flex-row'} gap-4`}
+              >
                 <FormItem className="flex-1">
                   <FormLabel className="text-text text-sm">Self Feed</FormLabel>
                   <FormControl>

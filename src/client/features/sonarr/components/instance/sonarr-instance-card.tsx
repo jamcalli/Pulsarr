@@ -43,6 +43,7 @@ import type { SonarrInstance } from '@/features/sonarr/types/types'
 import { useToast } from '@/hooks/use-toast'
 import type { SonarrInstanceSchema } from '@/features/sonarr/store/schemas'
 import { SonarrSyncModal } from '@/features/sonarr/components/instance/sonarr-sync-modal'
+import { useMediaQuery } from '@/hooks/use-media-query'
 
 interface InstanceCardProps {
   instance: SonarrInstance
@@ -54,6 +55,7 @@ export function InstanceCard({
   setShowInstanceCard,
 }: InstanceCardProps) {
   const { toast } = useToast()
+  const isMobile = useMediaQuery('(max-width: 768px)')
   const [showDeleteAlert, setShowDeleteAlert] = useState(false)
   const [showSyncModal, setShowSyncModal] = useState(false)
   const [isManualSync, setIsManualSync] = useState(false)
@@ -230,7 +232,9 @@ export function InstanceCard({
                 />
 
                 {/* Profile Settings */}
-                <div className="flex portrait:flex-col gap-4">
+                <div
+                  className={`flex ${isMobile ? 'flex-col' : 'flex-row'} gap-4`}
+                >
                   <div className="flex-1">
                     <FormField
                       control={form.control}
