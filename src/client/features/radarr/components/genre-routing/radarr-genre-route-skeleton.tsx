@@ -1,14 +1,21 @@
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useMediaQuery } from '@/hooks/use-media-query'
 
 export const GenreRouteCardSkeleton = () => {
+  const isMobile = useMediaQuery('(max-width: 768px)')
+
   return (
     <Card className="bg-bg">
-      <div className="flex flex-row items-center justify-between space-y-0 p-6 pb-2 portrait:flex-col portrait:items-start portrait:gap-4">
+      <div
+        className={`flex items-center justify-between space-y-0 p-6 pb-2 ${
+          isMobile ? 'flex-col items-start gap-4' : 'flex-row'
+        }`}
+      >
         <div className="flex items-center space-x-4">
           <Skeleton className="h-6 w-48" />
         </div>
-        <div className="flex space-x-2 portrait:w-full">
+        <div className={`flex space-x-2 ${isMobile ? 'w-full' : ''}`}>
           <Skeleton className="h-9 min-w-[5rem] flex-1" />
           <Skeleton className="h-9 min-w-[5rem] flex-1" />
         </div>
