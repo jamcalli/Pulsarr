@@ -148,7 +148,6 @@ export function useDeleteSyncForm() {
 
   const onSubmit = async (data: DeleteSyncFormValues) => {
     setSubmittedValues(data)
-
     setSaveStatus('loading')
     setLoadingWithMinDuration(true)
 
@@ -214,29 +213,31 @@ export function useDeleteSyncForm() {
         variant: 'default',
       })
 
-      setTimeout(() => {
-        const updatedConfig =
-          useConfigStore.getState().config || config || ({} as Config)
+      // Reset form first and ensure it's fully processed before changing state
+      const updatedConfig =
+        useConfigStore.getState().config || config || ({} as Config)
 
-        form.reset(
-          {
-            deleteMovie: updatedConfig.deleteMovie || false,
-            deleteEndedShow: updatedConfig.deleteEndedShow || false,
-            deleteContinuingShow: updatedConfig.deleteContinuingShow || false,
-            deleteFiles: updatedConfig.deleteFiles || false,
-            respectUserSyncSetting:
-              updatedConfig.respectUserSyncSetting ?? true,
-            deleteSyncNotify: updatedConfig.deleteSyncNotify || 'none',
-            maxDeletionPrevention: updatedConfig.maxDeletionPrevention,
-            scheduleTime: data.scheduleTime,
-            dayOfWeek: data.dayOfWeek,
-          },
-          { keepDirty: false },
-        )
+      // Apply the form reset
+      form.reset(
+        {
+          deleteMovie: updatedConfig.deleteMovie || false,
+          deleteEndedShow: updatedConfig.deleteEndedShow || false,
+          deleteContinuingShow: updatedConfig.deleteContinuingShow || false,
+          deleteFiles: updatedConfig.deleteFiles || false,
+          respectUserSyncSetting: updatedConfig.respectUserSyncSetting ?? true,
+          deleteSyncNotify: updatedConfig.deleteSyncNotify || 'none',
+          maxDeletionPrevention: updatedConfig.maxDeletionPrevention,
+          scheduleTime: data.scheduleTime,
+          dayOfWeek: data.dayOfWeek,
+        },
+        { keepDirty: false },
+      )
 
-        setSubmittedValues(null)
-        setSaveStatus('idle')
-      }, 500)
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+
+      // Only now reset the status to idle and clear submitted values
+      setSubmittedValues(null)
+      setSaveStatus('idle')
     } catch (error) {
       console.error('Failed to save configuration:', error)
       const errorMessage =
