@@ -116,12 +116,12 @@ services:
     volumes:
       - ./data:/app/data
       - .env:/app/.env
-      - /etc/localtime:/etc/localtime:ro
     restart: unless-stopped
     env_file:
       - .env
     environment:
       - NODE_ARGS=--log-both
+      - TZ=America/Los_Angeles
 ```
 
 The logger defaults to file logging. This can be changed by modifying the NODE_ARGS in the docker compose. Accepted values are `--log-terminal`, `--log-both`, or `--log-file` respectively. 
