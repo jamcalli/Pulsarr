@@ -384,7 +384,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         // Run the delete sync in dry run mode
         const results = await fastify.deleteSync.run(true)
 
-        // Handle safety checks if your service returns them
+        // Handle safety checks
         const safetyTriggered =
           'safetyTriggered' in results && results.safetyTriggered
         const safetyMessage =

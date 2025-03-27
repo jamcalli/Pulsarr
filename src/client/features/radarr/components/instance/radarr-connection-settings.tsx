@@ -18,6 +18,7 @@ import {
 import { Input } from '@/components/ui/input'
 import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
 import type { ConnectionStatus } from '@/features/radarr/types/types'
+import { useMediaQuery } from '@/hooks/use-media-query'
 
 interface ConnectionSettingsProps {
   form: UseFormReturn<RadarrInstanceSchema>
@@ -35,6 +36,7 @@ export default function ConnectionSettings({
   hasValidUrlAndKey,
   disabled = false,
 }: ConnectionSettingsProps) {
+  const isMobile = useMediaQuery('(max-width: 768px)')
   const isDisabled = disabled || testStatus === 'loading'
 
   useEffect(() => {
@@ -51,7 +53,7 @@ export default function ConnectionSettings({
     apiKeyFieldState.error?.message?.includes('test connection') || false
 
   return (
-    <div className="flex portrait:flex-col gap-4">
+    <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} gap-4`}>
       <div className="flex-1">
         <FormField
           control={form.control}
