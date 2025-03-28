@@ -409,11 +409,11 @@ Pulsarr includes built-in API documentation accessible at `/api/docs` when runni
 
 ## Roadmap
 
-- ~Email notifications~
+- ~~Email notifications~~
 - Apprise for notifications
 - Non-Plex Pass (will update watchlists on 20 minute intervals. All other functionality remains.)
 - API keys
-- ~Delete Syncing~
+- ~~Delete Syncing~~
 - Unit tests... 🤮
 
 ## Contributing
