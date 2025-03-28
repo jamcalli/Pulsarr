@@ -95,13 +95,19 @@ export function DeleteSyncSkeleton() {
                   <Clock className="h-4 w-4 mr-2 text-text" />
                   <h3 className="font-medium text-sm text-text">Schedule</h3>
                 </div>
-                
-                <div className={isMobile ? "flex flex-col items-start gap-3" : "flex items-center gap-4"}>
+
+                <div
+                  className={
+                    isMobile
+                      ? 'flex flex-col items-start gap-3'
+                      : 'flex items-center gap-4'
+                  }
+                >
                   <Skeleton className="h-10 w-40" />
                   {!isMobile && <Skeleton className="h-10 w-40" />}
                   {isMobile && <Skeleton className="h-10 w-40 mt-2" />}
                 </div>
-                
+
                 <div className="mt-2">
                   <Skeleton className="h-4 w-56" />
                 </div>
@@ -144,12 +150,20 @@ export function DeleteSyncSkeleton() {
                       <Skeleton className="h-5 w-10 rounded-full" />
                       <Skeleton className="h-5 w-40" />
                     </div>
-                    
-                    <div className={isMobile ? "flex flex-col space-y-2" : "flex items-center justify-between"}>
+
+                    <div
+                      className={
+                        isMobile
+                          ? 'flex flex-col space-y-2'
+                          : 'flex items-center justify-between'
+                      }
+                    >
                       <Skeleton className="h-5 w-32" />
-                      <Skeleton className={isMobile ? "h-9 w-full mt-2" : "h-9 w-40"} />
+                      <Skeleton
+                        className={isMobile ? 'h-9 w-full mt-2' : 'h-9 w-40'}
+                      />
                     </div>
-                    
+
                     <div className="flex items-center justify-between">
                       <Skeleton className="h-5 w-40" />
                       <Skeleton className="h-9 w-20" />
