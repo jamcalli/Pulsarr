@@ -41,14 +41,25 @@ export function useDeleteSyncSchedule() {
       deleteSyncJob.config?.expression
     ) {
       try {
-        // Parse time from cron expression (assuming format like "0 0 3 * * 1" for 3 AM on Monday)
+        // Parse time from cron expression (format: "second minute hour day-of-month month day-of-week")
         const cronParts = deleteSyncJob.config.expression.split(' ')
-        if (cronParts.length >= 6) {
-          const hour = Number.parseInt(cronParts[2])
-          const minute = Number.parseInt(cronParts[1])
-          const day = cronParts[5]
 
-          if (Number.isFinite(hour) && Number.isFinite(minute)) {
+        // Maintain compatibility with potential 5 or 6 part cron expressions
+        if (cronParts.length >= 5) {
+          // Handle both 5-part (minute hour dom month dow) and 6-part (second minute hour dom month dow) formats
+          const hourIndex = cronParts.length === 5 ? 1 : 2
+          const minuteIndex = cronParts.length === 5 ? 0 : 1
+          const dayIndex = cronParts.length === 5 ? 4 : 5
+
+          const hour = Number.parseInt(cronParts[hourIndex], 10)
+          const minute = Number.parseInt(cronParts[minuteIndex], 10)
+          const day = cronParts[dayIndex]
+
+          // Validate hours and minutes but with fallbacks to maintain compatibility
+          if (
+            (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) ||
+            (Number.isFinite(hour) && Number.isFinite(minute))
+          ) {
             const date = new Date()
             date.setHours(hour)
             date.setMinutes(minute)
@@ -56,10 +67,14 @@ export function useDeleteSyncSchedule() {
             date.setMilliseconds(0)
             setScheduleTime(date)
             setDayOfWeek(day)
+          } else {
+            console.warn('Invalid hour or minute in cron expression')
           }
+        } else {
+          console.warn('Unexpected cron format, expected at least 5 parts')
         }
       } catch (e) {
-        console.error('Failed to parse cron expression', e)
+        console.error('Failed to parse cron expression:', e)
       }
     }
   }, [deleteSyncJob])
