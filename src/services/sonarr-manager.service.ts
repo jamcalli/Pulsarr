@@ -91,20 +91,20 @@ export class SonarrManagerService {
   async fetchAllSeries(bypassExclusions = false): Promise<SonarrItem[]> {
     const allSeries: SonarrItem[] = []
     const instances = await this.fastify.db.getAllSonarrInstances()
-  
+
     for (const instance of instances) {
       try {
         const sonarrService = this.sonarrServices.get(instance.id)
-  
+
         if (!sonarrService) {
           this.log.warn(
             `Sonarr service for instance ${instance.name} not initialized`,
           )
           continue
         }
-  
+
         const instanceSeries = await sonarrService.fetchSeries(bypassExclusions)
-  
+
         for (const series of Array.from(instanceSeries)) {
           allSeries.push({
             ...series,
@@ -118,7 +118,7 @@ export class SonarrManagerService {
         )
       }
     }
-  
+
     return allSeries
   }
 

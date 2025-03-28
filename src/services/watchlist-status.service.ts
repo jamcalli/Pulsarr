@@ -57,7 +57,7 @@ export class StatusService {
       throw error
     }
   }
-  
+
   async syncRadarrStatuses(): Promise<number> {
     try {
       // Pass true to bypass exclusions (dont include the exclusions in watchlist status)
