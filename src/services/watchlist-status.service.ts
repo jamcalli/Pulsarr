@@ -30,7 +30,8 @@ export class StatusService {
 
   async syncSonarrStatuses(): Promise<number> {
     try {
-      const existingSeries = await this.sonarrManager.fetchAllSeries()
+      // Pass true to bypass exclusions (dont include the exclusions in watchlist status)
+      const existingSeries = await this.sonarrManager.fetchAllSeries(true)
       const watchlistItems = await this.dbService.getAllShowWatchlistItems()
       const dbWatchlistItems = this.convertToDbWatchlistItems(watchlistItems)
       const mainUpdates = this.processShowStatusUpdates(
@@ -56,10 +57,11 @@ export class StatusService {
       throw error
     }
   }
-
+  
   async syncRadarrStatuses(): Promise<number> {
     try {
-      const existingMovies = await this.radarrManager.fetchAllMovies()
+      // Pass true to bypass exclusions (dont include the exclusions in watchlist status)
+      const existingMovies = await this.radarrManager.fetchAllMovies(true)
       const watchlistItems = await this.dbService.getAllMovieWatchlistItems()
       const dbWatchlistItems = this.convertToDbWatchlistItems(watchlistItems)
       const mainUpdates = this.processMovieStatusUpdates(
