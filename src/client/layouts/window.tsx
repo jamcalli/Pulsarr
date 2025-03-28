@@ -5,7 +5,12 @@ import { useMediaQuery } from '@/hooks/use-media-query'
 import { Menu } from 'lucide-react'
 import { SettingsButton } from '@/components/ui/settings-button'
 import { useState } from 'react'
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetTitle,
+} from '@/components/ui/sheet'
 
 interface WindowedLayoutProps {
   children: ReactNode
@@ -46,6 +51,8 @@ export default function WindowedLayout({ children }: WindowedLayoutProps) {
               </button>
             </SheetTrigger>
             <SheetContent side="left">
+              {/* Added SheetTitle for accessibility */}
+              <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
               <Nav isMobile={true} onNavItemClick={() => setSheetOpen(false)} />
             </SheetContent>
           </Sheet>
@@ -76,7 +83,7 @@ export default function WindowedLayout({ children }: WindowedLayoutProps) {
         {!isMobile && <Nav isMobile={false} />}
 
         <ScrollArea className="flex-1">
-          {isMobile ? <div className="pb-16">{children}</div> : children}
+          {isMobile ? <div className="pb-32">{children}</div> : children}
         </ScrollArea>
       </main>
     </div>

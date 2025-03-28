@@ -258,28 +258,32 @@ export function DeleteSyncForm() {
 
                   {/* Schedule section */}
                   <div>
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center">
-                        <Clock className="h-4 w-4 mr-2 text-text" />
-                        <h3 className="font-medium text-sm text-text">
-                          Schedule
-                        </h3>
-                      </div>
-
-                      <FormField
-                        control={form.control}
-                        name="scheduleTime"
-                        render={({ field }) => (
-                          <div className="flex-shrink-0">
-                            <TimeSelector
-                              value={field.value}
-                              onChange={handleTimeChange}
-                              dayOfWeek={form.watch('dayOfWeek')}
-                            />
-                          </div>
-                        )}
-                      />
+                    <div className="flex items-center mb-3">
+                      <Clock className="h-4 w-4 mr-2 text-text" />
+                      <h3 className="font-medium text-sm text-text">
+                        Schedule
+                      </h3>
                     </div>
+
+                    <FormField
+                      control={form.control}
+                      name="scheduleTime"
+                      render={({ field }) => (
+                        <div className="flex-shrink-0">
+                          <TimeSelector
+                            value={field.value}
+                            onChange={handleTimeChange}
+                            dayOfWeek={form.watch('dayOfWeek')}
+                            className={
+                              isMobile
+                                ? 'flex-col items-start justify-start gap-3 w-full'
+                                : ''
+                            }
+                          />
+                        </div>
+                      )}
+                    />
+
                     {deleteSyncJob &&
                       deleteSyncJob.type === 'cron' &&
                       deleteSyncJob.config?.expression && (
@@ -439,7 +443,9 @@ export function DeleteSyncForm() {
                               name="deleteSyncNotify"
                               render={({ field }) => (
                                 <FormItem className="space-y-2">
-                                  <div className="flex items-center justify-between">
+                                  <div
+                                    className={`flex ${isMobile ? 'flex-col items-start gap-2' : 'items-center justify-between'}`}
+                                  >
                                     <FormLabel className="text-text mb-0">
                                       Notifications
                                     </FormLabel>
@@ -450,10 +456,14 @@ export function DeleteSyncForm() {
                                           ? submittedValues.deleteSyncNotify
                                           : field.value
                                       }
-                                      disabled={isSaving} // Disable during saving
+                                      disabled={isSaving}
                                     >
                                       <FormControl>
-                                        <SelectTrigger className="w-40">
+                                        <SelectTrigger
+                                          className={
+                                            isMobile ? 'w-full' : 'w-40'
+                                          }
+                                        >
                                           <SelectValue placeholder="Select notification type" />
                                         </SelectTrigger>
                                       </FormControl>
