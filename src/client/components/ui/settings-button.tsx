@@ -9,7 +9,11 @@ import {
 import { useState } from 'react'
 import { LogoutAlert } from '@/components/ui/logout-alert'
 
-export function SettingsButton() {
+interface SettingsButtonProps {
+  isMobile?: boolean
+}
+
+export function SettingsButton({ isMobile = false }: SettingsButtonProps) {
   const { theme, setTheme } = useTheme()
   const [showLogoutAlert, setShowLogoutAlert] = useState(false)
 
@@ -17,10 +21,17 @@ export function SettingsButton() {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <div className="flex h-full w-full items-center justify-center bg-main rounded-tr-base portrait:rounded-none cursor-pointer">
-            <Settings className="stroke-text h-6 w-6 scale-130" />
-            <span className="sr-only">Settings</span>
-          </div>
+          {isMobile ? (
+            <div className="cursor-pointer">
+              <Settings className="stroke-text h-6 w-6" />
+              <span className="sr-only">Settings</span>
+            </div>
+          ) : (
+            <div className="flex h-full w-full items-center justify-center bg-main rounded-tr-base cursor-pointer">
+              <Settings className="stroke-text h-6 w-6 scale-130" />
+              <span className="sr-only">Settings</span>
+            </div>
+          )}
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-40">
           <DropdownMenuItem onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>

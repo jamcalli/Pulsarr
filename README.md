@@ -116,12 +116,12 @@ services:
     volumes:
       - ./data:/app/data
       - .env:/app/.env
-      - /etc/localtime:/etc/localtime:ro
     restart: unless-stopped
     env_file:
       - .env
     environment:
       - NODE_ARGS=--log-both
+      - TZ=America/Los_Angeles
 ```
 
 The logger defaults to file logging. This can be changed by modifying the NODE_ARGS in the docker compose. Accepted values are `--log-terminal`, `--log-both`, or `--log-file` respectively. 
@@ -314,8 +314,9 @@ skipFriendSync=false                   # Skip syncing Plex friends
 deleteMovie=false                      # Auto-delete movies setting
 deleteEndedShow=false                  # Auto-delete ended shows setting
 deleteContinuingShow=false             # Auto-delete continuing shows setting
-deleteIntervalDays=7                   # Days to wait before deletion
 deleteFiles=true                       # Delete files from disk setting
+deleteSyncNotify=none                  # Notify of delete sync status: 'none' | 'message' | 'webhook' | 'both'
+maxDeletionPrevention=10               # Safeguard to prevent mass deletion. % of total library to allow during delete sync
 ```
 
 ## Usage
@@ -334,6 +335,59 @@ Pulsarr includes a Discord bot that allows users to manage their notification pr
 
 - `/notifications` - Configure notification settings
 
+## Delete Sync
+
+Delete Sync automatically removes content from your Sonarr/Radarr instances when it's no longer present on any user's watchlist. This completes the content lifecycle management, ensuring your libraries remain clean and optimized.
+
+### Key Features
+
+- **Selective Deletion**: Configure which content types to remove (movies, ended shows, continuing shows)
+- **File Management**: Option to delete or retain actual media files when removing content
+- **Safety Mechanisms**: Built-in protections against accidental mass deletion
+- **Scheduling**: Configurable timing for automatic cleanup operations
+- **Dry Run Mode**: Preview what would be deleted before committing changes
+
+### Configuration
+
+Navigate to the Utilities page in the Pulsarr web interface and configure your deletion preferences:
+
+- Content types to delete (movies, ended shows, continuing shows)
+- Whether to delete associated files from disk
+- User sync setting preferences (if someone isn't allowed to make requests, ignore their watchlist in the deletion process)
+- Notification preferences for deletion events (will send results to webhook, message, both, or none)
+- Maximum deletion prevention threshold (a failsafe)
+
+Set up a schedule for automatic deletion operations
+
+### Running Delete Sync
+
+You can operate Delete Sync in several ways:
+
+1. **Enable Automatic Sync**: Toggle the feature on to run on your configured schedule
+2. **Run Now**: Manually trigger the deletion process immediately
+3. **Dry Run**: Preview what would be deleted without making any changes
+
+You can configure notifications to recieve information regarding your workflow:
+
+<img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Delete-Sync-Dry.png" width="400" alt="Delete Sync Dry">
+
+<img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Delete-Sync-Error.png" width="400" alt="Delete Sync Error">
+
+
+### Safety Features
+
+Delete Sync includes several safety measures to prevent accidental data loss:
+
+- Mass deletion prevention based on configurable thresholds
+- Selective content type targeting
+- Dry run previews
+- Detailed deletion logs
+
+### Recommendations
+
+- Begin with a dry run to understand the impact on your libraries
+- Consider keeping files for ended shows that may return for future seasons
+
 ## Screenshots
 
 <div align="center">
@@ -346,6 +400,7 @@ Pulsarr includes a Discord bot that allows users to manage their notification pr
   <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Sonarr.png" alt="Sonarr" width="80%"/>
   <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Radarr.png" alt="Radarr" width="80%"/>
   <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Genre-Route.png" alt="Genre Route" width="80%"/>
+  <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Delete-Sync.png" alt="Delete Sync" width="80%"/>
 </div>
 
 ## API Documentation
@@ -354,10 +409,11 @@ Pulsarr includes built-in API documentation accessible at `/api/docs` when runni
 
 ## Roadmap
 
-- Email notifications
+- ~~Email notifications~~
+- Apprise for notifications
 - Non-Plex Pass (will update watchlists on 20 minute intervals. All other functionality remains.)
 - API keys
-- Delete Syncing
+- ~~Delete Syncing~~
 - Unit tests... 🤮
 
 ## Contributing

@@ -88,7 +88,7 @@ export class SonarrManagerService {
     }
   }
 
-  async fetchAllSeries(): Promise<SonarrItem[]> {
+  async fetchAllSeries(bypassExclusions = false): Promise<SonarrItem[]> {
     const allSeries: SonarrItem[] = []
     const instances = await this.fastify.db.getAllSonarrInstances()
 
@@ -103,7 +103,7 @@ export class SonarrManagerService {
           continue
         }
 
-        const instanceSeries = await sonarrService.fetchSeries()
+        const instanceSeries = await sonarrService.fetchSeries(bypassExclusions)
 
         for (const series of Array.from(instanceSeries)) {
           allSeries.push({

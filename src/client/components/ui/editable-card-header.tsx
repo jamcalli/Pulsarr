@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Pen, Save, Trash2, X } from 'lucide-react';
+import { useMediaQuery } from '@/hooks/use-media-query';
 
 interface EditableCardHeaderProps {
   title: string;
@@ -35,6 +36,7 @@ const EditableCardHeader = ({
 }: EditableCardHeaderProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [localTitle, setLocalTitle] = useState(title);
+  const isMobile = useMediaQuery('(max-width: 768px)');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,8 +58,8 @@ const EditableCardHeader = ({
           <div className="group/name inline-flex items-center gap-2 flex-1 min-w-0">
             {badge && (
               <Badge className={badge.className || "text-sm bg-blue"}>
-                <span className="portrait:hidden">{badge.text}</span>
-                <span className="hidden portrait:block">
+                <span className={isMobile ? "hidden" : "block"}>{badge.text}</span>
+                <span className={isMobile ? "block" : "hidden"}>
                   {badge.text === "Default" ? "D" : badge.text}
                 </span>
               </Badge>
@@ -97,7 +99,9 @@ const EditableCardHeader = ({
               </div>
             )}
           </div>
-          <div className="flex gap-2">
+  
+          {/* Desktop buttons - horizontal layout */}
+          <div className={`flex gap-2 ${isMobile ? "hidden" : "flex"}`}>
             {(isNew || isDirty) && (
               <Button
                 variant="cancel"
@@ -106,8 +110,7 @@ const EditableCardHeader = ({
                 disabled={isSaving}
                 type="button"
               >
-                <X className="h-4 w-4 portrait:block hidden" />
-                <span className="portrait:hidden">Cancel</span>
+                <span>Cancel</span>
               </Button>
             )}
             <Button
@@ -119,12 +122,12 @@ const EditableCardHeader = ({
               {isSaving ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  <span className="portrait:hidden">Saving...</span>
+                  <span>Saving...</span>
                 </>
               ) : (
                 <>
                   <Save className="h-4 w-4" />
-                  <span className="portrait:hidden">Save Changes</span>
+                  <span>Save Changes</span>
                 </>
               )}
             </Button>
@@ -134,7 +137,48 @@ const EditableCardHeader = ({
                 size="icon"
                 onClick={onDelete}
                 disabled={isSaving}
-                className="transition-opacity hidden sm:flex"
+                className="transition-opacity"
+                type="button"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+  
+          {/* Mobile buttons - vertical layout */}
+          <div className={`flex flex-col gap-2 ${isMobile ? "flex" : "hidden"}`}>
+            <Button
+              variant="blue"
+              onClick={onSave}
+              className="flex items-center justify-center"
+              disabled={!isDirty || !isValid || isSaving}
+            >
+              {isSaving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+            </Button>
+            
+            {(isNew || isDirty) && (
+              <Button
+                variant="cancel"
+                onClick={onCancel}
+                className="flex items-center justify-center"
+                disabled={isSaving}
+                type="button"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+            
+            {onDelete && !isNew && (
+              <Button
+                variant="error"
+                size="icon"
+                onClick={onDelete}
+                disabled={isSaving}
+                className="transition-opacity"
                 type="button"
               >
                 <Trash2 className="h-4 w-4" />
@@ -142,20 +186,6 @@ const EditableCardHeader = ({
             )}
           </div>
         </div>
-        {onDelete && !isNew && (
-          <div className="flex justify-end sm:hidden">
-            <Button
-              variant="error"
-              size="icon"
-              onClick={onDelete}
-              disabled={isSaving}
-              className="transition-opacity"
-              type="button"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
       </CardTitle>
     </CardHeader>
   );

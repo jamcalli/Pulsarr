@@ -10,6 +10,13 @@ const LogLevelEnum = z.enum([
   'silent',
 ])
 
+const DeleteSyncNotifyOptionEnum = z.enum([
+  'none',
+  'message',
+  'webhook',
+  'both',
+])
+
 export const ConfigSchema = z.object({
   port: z.number().optional(),
   dbPath: z.string().optional(),
@@ -36,8 +43,10 @@ export const ConfigSchema = z.object({
   deleteMovie: z.boolean().optional(),
   deleteEndedShow: z.boolean().optional(),
   deleteContinuingShow: z.boolean().optional(),
-  deleteIntervalDays: z.number().optional(),
   deleteFiles: z.boolean().optional(),
+  respectUserSyncSetting: z.boolean().optional(),
+  deleteSyncNotify: DeleteSyncNotifyOptionEnum.optional(),
+  maxDeletionPrevention: z.number().optional(),
   selfRss: z.string().optional(),
   friendsRss: z.string().optional(),
   _isReady: z.boolean().optional(),

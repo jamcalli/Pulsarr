@@ -1,15 +1,22 @@
 import { Card, CardHeader, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useMediaQuery } from '@/hooks/use-media-query'
 
 export const InstanceCardSkeleton = () => {
+  const isMobile = useMediaQuery('(max-width: 768px)')
+
   return (
     <Card className="bg-bg">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-7 portrait:flex-col portrait:items-start portrait:gap-4">
+      <CardHeader
+        className={`flex items-center justify-between space-y-0 pb-7 ${
+          isMobile ? 'flex-col items-start gap-4' : 'flex-row'
+        }`}
+      >
         <div className="flex items-center space-x-4">
           <Skeleton className="h-6 w-48" />
           <Skeleton className="h-5 w-16" />
         </div>
-        <div className="flex space-x-2 portrait:w-full">
+        <div className={`flex space-x-2 ${isMobile ? 'w-full' : ''}`}>
           <Skeleton className="h-9 min-w-[5rem] flex-1" />
           <Skeleton className="h-9 min-w-[5rem] flex-1" />
         </div>
@@ -17,7 +24,7 @@ export const InstanceCardSkeleton = () => {
       <CardContent className="space-y-8">
         {/* Connection Settings Section */}
         <div className="space-y-4">
-          <div className="flex portrait:flex-col gap-4">
+          <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} gap-4`}>
             <div className="flex-1 space-y-2">
               <Skeleton className="h-4 w-24" />
               <Skeleton className="h-10 w-full" />
@@ -33,7 +40,7 @@ export const InstanceCardSkeleton = () => {
         </div>
 
         {/* Profile Settings Section */}
-        <div className="flex portrait:flex-col gap-4">
+        <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} gap-4`}>
           <div className="flex-1 space-y-2">
             <Skeleton className="h-4 w-28" />
             <Skeleton className="h-10 w-full" />

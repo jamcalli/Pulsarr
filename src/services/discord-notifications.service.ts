@@ -13,6 +13,7 @@ import type {
   MediaNotification,
   DiscordEmbed,
   DiscordWebhookPayload,
+  SystemNotification,
 } from '@root/types/discord.types.js'
 import {
   notificationsCommand,
@@ -382,7 +383,7 @@ export class DiscordNotificationService {
 
   async sendDirectMessage(
     discordId: string,
-    notification: MediaNotification,
+    notification: MediaNotification | SystemNotification,
   ): Promise<boolean> {
     if (!this.botClient || this.botStatus !== 'running') {
       this.log.warn('Bot client not available for sending direct message')
@@ -390,92 +391,126 @@ export class DiscordNotificationService {
     }
 
     try {
-      const emoji = notification.type === 'movie' ? '🎬' : '📺'
-      let description: string
-      const fields: Array<{ name: string; value: string; inline?: boolean }> =
-        []
+      let embed: DiscordEmbed
 
-      if (notification.type === 'show' && notification.episodeDetails) {
-        const { episodeDetails } = notification
+      if (notification.type === 'system') {
+        // Handle system notification
+        // Define color constants for success or failure
+        const RED = 0xff0000
+        const GREEN = 0x00ff00
 
-        // Check if it's a single episode (has episode number) or bulk release
-        if (
-          episodeDetails.episodeNumber !== undefined &&
-          episodeDetails.seasonNumber !== undefined
-        ) {
-          // Single episode release
-          description = `New episode available for ${notification.title}! ${emoji}`
+        // Safety is triggered if any field has the name "Safety Reason" OR if the title contains "Safety Triggered"
+        // OR if the notification has the safetyTriggered property
+        const hasSafetyField = notification.embedFields.some(
+          (field) => field.name === 'Safety Reason',
+        )
+        const isSafetyTriggered =
+          notification.title.includes('Safety Triggered')
+        const hasTriggeredProperty =
+          'safetyTriggered' in notification &&
+          notification.safetyTriggered === true
 
-          // Format season and episode numbers with padding
-          const seasonNum = episodeDetails.seasonNumber
-            .toString()
-            .padStart(2, '0')
-          const episodeNum = episodeDetails.episodeNumber
-            .toString()
-            .padStart(2, '0')
-
-          // Create episode identifier
-          const episodeId = `S${seasonNum}E${episodeNum}`
-
-          // Add episode title if available
-          const episodeTitle = episodeDetails.title
-            ? ` - ${episodeDetails.title}`
-            : ''
-
-          fields.push({
-            name: 'Episode',
-            value: `${episodeId}${episodeTitle}`,
-            inline: false,
-          })
-
-          // Add overview if available
-          if (episodeDetails.overview) {
-            fields.push({
-              name: 'Overview',
-              value: episodeDetails.overview,
-              inline: false,
-            })
-          }
-
-          // Add air date if available
-          if (episodeDetails.airDateUtc) {
-            fields.push({
-              name: 'Air Date',
-              value: new Date(episodeDetails.airDateUtc).toLocaleDateString(),
-              inline: true,
-            })
-          }
-        } else if (episodeDetails.seasonNumber !== undefined) {
-          // Bulk release
-          description = `New season available for ${notification.title}! ${emoji}`
-          fields.push({
-            name: 'Season Added',
-            value: `Season ${episodeDetails.seasonNumber}`,
-            inline: true,
-          })
-        } else {
-          // Fallback description if somehow neither condition is met
-          description = `New content available for ${notification.title}! ${emoji}`
+        embed = {
+          title: notification.title,
+          description: 'System notification',
+          // Use red for any safety issues, green otherwise
+          color:
+            hasSafetyField || isSafetyTriggered || hasTriggeredProperty
+              ? RED
+              : GREEN,
+          timestamp: new Date().toISOString(),
+          fields: notification.embedFields,
         }
       } else {
-        // Movie notification
-        description = `Your movie is available to watch! ${emoji}`
-      }
+        // Handle media notification
+        const emoji = notification.type === 'movie' ? '🎬' : '📺'
+        let description: string
+        const fields: Array<{ name: string; value: string; inline?: boolean }> =
+          []
 
-      const embed: DiscordEmbed = {
-        title: notification.title,
-        description,
-        color: this.COLOR,
-        timestamp: new Date().toISOString(),
-        fields,
-      }
+        if (notification.type === 'show' && notification.episodeDetails) {
+          const { episodeDetails } = notification
 
-      if (notification.posterUrl) {
-        embed.image = {
-          url: notification.posterUrl,
+          // Check if it's a single episode (has episode number) or bulk release
+          if (
+            episodeDetails.episodeNumber !== undefined &&
+            episodeDetails.seasonNumber !== undefined
+          ) {
+            // Single episode release
+            description = `New episode available for ${notification.title}! ${emoji}`
+
+            // Format season and episode numbers with padding
+            const seasonNum = episodeDetails.seasonNumber
+              .toString()
+              .padStart(2, '0')
+            const episodeNum = episodeDetails.episodeNumber
+              .toString()
+              .padStart(2, '0')
+
+            // Create episode identifier
+            const episodeId = `S${seasonNum}E${episodeNum}`
+
+            // Add episode title if available
+            const episodeTitle = episodeDetails.title
+              ? ` - ${episodeDetails.title}`
+              : ''
+
+            fields.push({
+              name: 'Episode',
+              value: `${episodeId}${episodeTitle}`,
+              inline: false,
+            })
+
+            // Add overview if available
+            if (episodeDetails.overview) {
+              fields.push({
+                name: 'Overview',
+                value: episodeDetails.overview,
+                inline: false,
+              })
+            }
+
+            // Add air date if available
+            if (episodeDetails.airDateUtc) {
+              fields.push({
+                name: 'Air Date',
+                value: new Date(episodeDetails.airDateUtc).toLocaleDateString(),
+                inline: true,
+              })
+            }
+          } else if (episodeDetails.seasonNumber !== undefined) {
+            // Bulk release
+            description = `New season available for ${notification.title}! ${emoji}`
+            fields.push({
+              name: 'Season Added',
+              value: `Season ${episodeDetails.seasonNumber}`,
+              inline: true,
+            })
+          } else {
+            // Fallback description if somehow neither condition is met
+            description = `New content available for ${notification.title}! ${emoji}`
+          }
+        } else {
+          // Movie notification
+          description = `Your movie is available to watch! ${emoji}`
+        }
+
+        embed = {
+          title: notification.title,
+          description,
+          color: this.COLOR,
+          timestamp: new Date().toISOString(),
+          fields,
+        }
+
+        if (notification.posterUrl) {
+          embed.image = {
+            url: notification.posterUrl,
+          }
         }
       }
 
+      // Fetch the Discord user and send the message
       const user = await this.botClient.users.fetch(discordId)
       if (!user) {
         this.log.warn({ discordId }, 'Could not find Discord user')
@@ -500,6 +535,272 @@ export class DiscordNotificationService {
     if (this.botStatus === 'running') {
       this.log.debug('Registering new command with Discord')
       void this.registerCommands()
+    }
+  }
+
+  /**
+   * Create an embed for delete sync results
+   *
+   * @param results - The results of the delete sync operation
+   * @param dryRun - Whether this was a dry run
+   * @returns The created Discord embed
+   */
+  private createDeleteSyncEmbed(
+    results: {
+      total: { deleted: number; skipped: number; processed: number }
+      movies: {
+        deleted: number
+        skipped: number
+        items: Array<{ title: string; guid: string; instance: string }>
+      }
+      shows: {
+        deleted: number
+        skipped: number
+        items: Array<{ title: string; guid: string; instance: string }>
+      }
+      safetyTriggered?: boolean
+      safetyMessage?: string
+    },
+    dryRun: boolean,
+  ): DiscordEmbed {
+    let title: string
+    let description: string
+    // Use red color (0xFF0000) for safety triggers, green (0x00FF00) for successful operations
+    const RED = 0xff0000
+    const GREEN = 0x00ff00
+    const color = results.safetyTriggered === true ? RED : GREEN
+
+    if (results.safetyTriggered) {
+      title = '⚠️ Delete Sync Safety Triggered'
+      description =
+        results.safetyMessage ||
+        'A safety check prevented the delete sync operation from running.'
+    } else if (dryRun) {
+      title = '🔍 Delete Sync Simulation Results'
+      description = 'This was a dry run - no content was actually deleted.'
+    } else {
+      title = '🗑️ Delete Sync Results'
+      description =
+        "The following content was removed because it's no longer in any user's watchlist."
+    }
+
+    // Create fields for the embed
+    const fields = [
+      {
+        name: 'Summary',
+        value: `Processed: ${results.total.processed} items\nDeleted: ${results.total.deleted} items\nSkipped: ${results.total.skipped} items`,
+        inline: false,
+      },
+    ]
+
+    // Add safety message field if it exists
+    if (results.safetyTriggered && results.safetyMessage) {
+      fields.push({
+        name: 'Safety Reason',
+        value: results.safetyMessage,
+        inline: false,
+      })
+    }
+
+    // Add movies field if any were deleted
+    if (results.movies.deleted > 0) {
+      const movieList = results.movies.items
+        .slice(0, 10) // Limit to 10 items
+        .map((item) => `• ${item.title}`)
+        .join('\n')
+
+      fields.push({
+        name: `Movies (${results.movies.deleted} deleted)`,
+        value: movieList || 'None',
+        inline: false,
+      })
+
+      if (results.movies.items.length > 10) {
+        fields.push({
+          name: 'Movies (continued)',
+          value: `... and ${results.movies.items.length - 10} more`,
+          inline: false,
+        })
+      }
+    } else {
+      fields.push({
+        name: 'Movies',
+        value: 'No movies deleted',
+        inline: false,
+      })
+    }
+
+    // Add shows field if any were deleted
+    if (results.shows.deleted > 0) {
+      const showList = results.shows.items
+        .slice(0, 10) // Limit to 10 items
+        .map((item) => `• ${item.title}`)
+        .join('\n')
+
+      fields.push({
+        name: `TV Shows (${results.shows.deleted} deleted)`,
+        value: showList || 'None',
+        inline: false,
+      })
+
+      if (results.shows.items.length > 10) {
+        fields.push({
+          name: 'TV Shows (continued)',
+          value: `... and ${results.shows.items.length - 10} more`,
+          inline: false,
+        })
+      }
+    } else {
+      fields.push({
+        name: 'TV Shows',
+        value: 'No TV shows deleted',
+        inline: false,
+      })
+    }
+
+    return {
+      title,
+      description,
+      color, // Use dynamic color based on result
+      timestamp: new Date().toISOString(),
+      fields,
+      footer: {
+        text: `Delete sync operation completed at ${new Date().toLocaleString()}`,
+      },
+    }
+  }
+
+  /**
+   * Send a notification about delete sync results
+   *
+   * @param results - The results of the delete sync operation
+   * @param dryRun - Whether this was a dry run
+   * @returns Promise resolving to true if successful, false otherwise
+   */
+  async sendDeleteSyncNotification(
+    results: {
+      total: { deleted: number; skipped: number; processed: number }
+      movies: {
+        deleted: number
+        skipped: number
+        items: Array<{ title: string; guid: string; instance: string }>
+      }
+      shows: {
+        deleted: number
+        skipped: number
+        items: Array<{ title: string; guid: string; instance: string }>
+      }
+      safetyTriggered?: boolean
+      safetyMessage?: string
+    },
+    dryRun: boolean,
+  ): Promise<boolean> {
+    try {
+      // Get notification type from config
+      const notifyOption = this.fastify.config.deleteSyncNotify
+
+      if (notifyOption === 'none') {
+        this.log.debug('Delete sync notifications disabled, skipping')
+        return false
+      }
+
+      // Create the embed for notifications
+      const embed = this.createDeleteSyncEmbed(results, dryRun)
+
+      // Track successful sends
+      let successCount = 0
+
+      // Send webhook notification if configured for 'webhook' or 'both'
+      if (notifyOption === 'webhook' || notifyOption === 'both') {
+        try {
+          const payload = {
+            embeds: [embed],
+            username: 'Pulsarr Delete Sync',
+            avatar_url:
+              'https://raw.githubusercontent.com/jamcalli/Pulsarr/master/src/client/assets/images/pulsarr.png',
+          }
+
+          const webhookSent = await this.sendNotification(payload)
+          if (webhookSent) {
+            successCount++
+            this.log.info('Delete sync webhook notification sent successfully')
+          } else {
+            this.log.warn('Failed to send delete sync webhook notification')
+          }
+        } catch (webhookError) {
+          this.log.error('Error sending webhook notification:', webhookError)
+        }
+      }
+
+      // Send DM notification if configured for 'message' or 'both'
+      if (notifyOption === 'message' || notifyOption === 'both') {
+        try {
+          // Get all users to find the admin user
+          const users = await this.fastify.db.getAllUsers()
+
+          // Find the admin user with username 'token1'
+          const adminUser = users.find((user) => user.name === 'token1')
+
+          // Only send DM notifications if content was deleted or safety was triggered
+          const hasDeletedContent = results.total.deleted > 0
+          const shouldNotify = hasDeletedContent || results.safetyTriggered
+
+          if (!shouldNotify) {
+            this.log.info('Skipping DM notification as no content was deleted')
+          } else if (!adminUser || !adminUser.discord_id) {
+            // Admin not found or doesn't have a Discord ID
+            this.log.warn(
+              'Admin user (token1) not found or has no Discord ID - skipping delete sync DM notification',
+            )
+          } else {
+            // Admin exists and has a Discord ID - proceed with notification
+            try {
+              // Create system notification for the delete sync
+              const systemNotification: SystemNotification = {
+                type: 'system',
+                username: adminUser.name,
+                title: embed.title || 'Delete Sync Results',
+                embedFields: embed.fields || [],
+                safetyTriggered: results.safetyTriggered,
+              }
+
+              this.log.debug(
+                `Attempting to send DM to admin ${adminUser.name} (${adminUser.discord_id})`,
+              )
+              const dmSent = await this.sendDirectMessage(
+                adminUser.discord_id,
+                systemNotification,
+              )
+
+              if (dmSent) {
+                successCount++
+                this.log.info(
+                  `Sent delete sync DM notification to admin ${adminUser.name}`,
+                )
+              } else {
+                this.log.warn(
+                  `Failed to send DM to admin ${adminUser.name} (${adminUser.discord_id})`,
+                )
+              }
+            } catch (dmError) {
+              this.log.error(
+                `Failed to send delete sync DM notification to admin ${adminUser.name}:`,
+                dmError,
+              )
+            }
+          }
+        } catch (userError) {
+          this.log.error(
+            'Error retrieving users for DM notifications:',
+            userError,
+          )
+        }
+      }
+
+      return successCount > 0
+    } catch (error) {
+      this.log.error('Error sending delete sync notification:', error)
+      return false
     }
   }
 }
