@@ -367,6 +367,13 @@ You can operate Delete Sync in several ways:
 2. **Run Now**: Manually trigger the deletion process immediately
 3. **Dry Run**: Preview what would be deleted without making any changes
 
+You can configure notifications to recieve information regarding your workflow:
+
+<img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Delete-Sync-Dry.png" width="400" alt="Delete Sync Dry">
+
+<img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Delete-Sync-Error.png" width="400" alt="Delete Sync Error">
+
+
 ### Safety Features
 
 Delete Sync includes several safety measures to prevent accidental data loss:
@@ -393,6 +400,7 @@ Delete Sync includes several safety measures to prevent accidental data loss:
   <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Sonarr.png" alt="Sonarr" width="80%"/>
   <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Radarr.png" alt="Radarr" width="80%"/>
   <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Genre-Route.png" alt="Genre Route" width="80%"/>
+  <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Delete-Sync.png" alt="Delete Sync" width="80%"/>
 </div>
 
 ## API Documentation
@@ -401,7 +409,8 @@ Pulsarr includes built-in API documentation accessible at `/api/docs` when runni
 
 ## Roadmap
 
-- Email notifications
+- ~Email notifications~
+- Apprise for notifications
 - Non-Plex Pass (will update watchlists on 20 minute intervals. All other functionality remains.)
 - API keys
 - ~Delete Syncing~
