@@ -92,7 +92,7 @@ export class RadarrManagerService {
     }
   }
 
-  async fetchAllMovies(): Promise<RadarrItem[]> {
+  async fetchAllMovies(bypassExclusions = false): Promise<RadarrItem[]> {
     const allMovies: RadarrItem[] = []
     const instances = await this.fastify.db.getAllRadarrInstances()
 
@@ -106,7 +106,7 @@ export class RadarrManagerService {
           continue
         }
 
-        const instanceMovies = await radarrService.fetchMovies()
+        const instanceMovies = await radarrService.fetchMovies(bypassExclusions)
 
         for (const movie of Array.from(instanceMovies)) {
           allMovies.push({

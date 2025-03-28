@@ -9,6 +9,7 @@ const SonarrConfigPage = lazy(() => import('@/features/sonarr'))
 const RadarrConfigPage = lazy(() => import('@/features/radarr'))
 const NotificationsConfigPage = lazy(() => import('@/features/notifications'))
 const DashboardPage = lazy(() => import('@/features/dashboard'))
+const UtilitiesPage = lazy(() => import('@/features/utilities'))
 
 const LoadingFallback = () => null
 
@@ -75,6 +76,16 @@ export const router = createBrowserRouter([
       <AuthenticatedLayout>
         <Suspense fallback={<LoadingFallback />}>
           <DashboardPage />
+        </Suspense>
+      </AuthenticatedLayout>
+    ),
+  },
+  {
+    path: '/app/utilities',
+    element: (
+      <AuthenticatedLayout>
+        <Suspense fallback={<LoadingFallback />}>
+          <UtilitiesPage />
         </Suspense>
       </AuthenticatedLayout>
     ),

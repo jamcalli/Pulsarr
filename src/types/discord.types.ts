@@ -45,3 +45,11 @@ export interface DiscordWebhookPayload {
   avatar_url?: string
   embeds?: DiscordEmbed[]
 }
+
+export interface SystemNotification {
+  type: 'system'
+  username: string
+  title: string
+  embedFields: Array<{ name: string; value: string; inline?: boolean }>
+  safetyTriggered?: boolean
+}

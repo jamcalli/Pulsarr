@@ -37,7 +37,7 @@ const schema = {
     logLevel: {
       type: 'string',
       enum: ['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'],
-      default: 'error',
+      default: 'info',
     },
     closeGraceDelay: {
       type: 'number',
@@ -155,13 +155,22 @@ const schema = {
       type: 'boolean',
       default: false,
     },
-    deleteIntervalDays: {
-      type: 'number',
-      default: 7,
-    },
     deleteFiles: {
       type: 'boolean',
       default: true,
+    },
+    respectUserSyncSetting: {
+      type: 'boolean',
+      default: true,
+    },
+    deleteSyncNotify: {
+      type: 'string',
+      enum: ['none', 'message', 'webhook', 'both'],
+      default: 'none',
+    },
+    maxDeletionPrevention: {
+      type: 'number',
+      default: 10,
     },
     selfRss: {
       type: 'string',
