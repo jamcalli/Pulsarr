@@ -13,7 +13,7 @@ interface SettingsButtonProps {
   isMobile?: boolean
 }
 
-export function SettingsButton({ isMobile }: SettingsButtonProps = { isMobile: false }) {
+export function SettingsButton({ isMobile = false }: SettingsButtonProps) {
   const { theme, setTheme } = useTheme()
   const [showLogoutAlert, setShowLogoutAlert] = useState(false)
 
