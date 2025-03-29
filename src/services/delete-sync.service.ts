@@ -341,11 +341,27 @@ export class DeleteSyncService {
     result: DeleteSyncResult,
     dryRun: boolean,
   ): Promise<void> {
+    // Discord notification logic
     if (this.config.deleteSyncNotify !== 'none' && this.fastify.discord) {
       try {
         await this.fastify.discord.sendDeleteSyncNotification(result, dryRun)
       } catch (notifyError) {
-        this.log.error('Error sending delete sync notification:', notifyError)
+        this.log.error(
+          'Error sending delete sync Discord notification:',
+          notifyError,
+        )
+      }
+    }
+
+    // Apprise notification logic
+    if (this.fastify.apprise?.isEnabled()) {
+      try {
+        await this.fastify.apprise.sendDeleteSyncNotification(result, dryRun)
+      } catch (notifyError) {
+        this.log.error(
+          'Error sending delete sync Apprise notification:',
+          notifyError,
+        )
       }
     }
   }

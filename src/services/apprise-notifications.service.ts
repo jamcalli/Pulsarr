@@ -26,25 +26,11 @@ import type {
   MediaNotification,
   SystemNotification,
 } from '@root/types/discord.types.js'
+import type {
+  AppriseMessageType,
+  AppriseNotification,
+} from '@root/types/apprise.types.js'
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
-
-/**
- * Message types for Apprise notifications
- */
-export type AppriseMessageType = 'info' | 'success' | 'warning' | 'failure'
-
-/**
- * Notification format for Apprise
- */
-export interface AppriseNotification {
-  title: string
-  body: string
-  type?: AppriseMessageType
-  tag?: string
-  format?: 'text' | 'html' | 'markdown'
-  // Additional attributes for specific notification systems
-  [key: string]: unknown
-}
 
 export class AppriseNotificationService {
   constructor(
@@ -329,7 +315,7 @@ export class AppriseNotificationService {
           : "The following content was removed because it's no longer in any user's watchlist.\n\n"
 
       // Add summary section
-      message += `Summary:\n`
+      message += 'Summary:\n'
       message += `Processed: ${results.total.processed} items\n`
       message += `Deleted: ${results.total.deleted} items\n`
       message += `Skipped: ${results.total.skipped} items\n\n`
@@ -352,7 +338,7 @@ export class AppriseNotificationService {
           message += `... and ${results.movies.items.length - 10} more movies\n\n`
         }
       } else {
-        message += `Movies: No movies deleted\n\n`
+        message += 'Movies: No movies deleted\n\n'
       }
 
       // Add shows section
@@ -368,7 +354,7 @@ export class AppriseNotificationService {
           message += `... and ${results.shows.items.length - 10} more TV shows\n\n`
         }
       } else {
-        message += `TV Shows: No TV shows deleted\n\n`
+        message += 'TV Shows: No TV shows deleted\n\n'
       }
 
       // Add timestamp

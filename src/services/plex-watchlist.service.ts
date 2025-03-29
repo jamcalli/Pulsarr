@@ -1070,27 +1070,66 @@ export class PlexWatchlistService {
               break
             }
 
-            const notificationSent =
-              await this.fastify.discord.sendMediaNotification({
+            // Send Discord webhook notification
+            let discordSent = false
+            try {
+              discordSent = await this.fastify.discord.sendMediaNotification({
                 username: user.username,
                 title: item.title,
                 type: item.type as 'movie' | 'show',
                 posterUrl: item.thumb,
               })
+            } catch (error) {
+              this.log.error(
+                'Error sending Discord webhook notification:',
+                error,
+              )
+            }
 
-            if (notificationSent) {
+            // Send Apprise system notification (only to admin)
+            let appriseSent = false
+            if (this.fastify.apprise?.isEnabled()) {
+              try {
+                // Format as a system notification similar to the webhook format
+                appriseSent = await this.fastify.apprise.sendSystemNotification(
+                  {
+                    title: 'Watchlist Addition',
+                    username: 'System',
+                    embedFields: [
+                      { name: 'Title', value: item.title },
+                      {
+                        name: 'Type',
+                        value:
+                          typeof item.type === 'string' ? item.type : 'unknown',
+                      },
+                      { name: 'Added By', value: user.username },
+                    ],
+                    type: 'system',
+                  },
+                )
+              } catch (error) {
+                this.log.error(
+                  'Error sending Apprise system notification:',
+                  error,
+                )
+              }
+            }
+
+            // Record notification if either method succeeded
+            if (discordSent || appriseSent) {
               const itemId =
                 typeof item.id === 'string'
                   ? Number.parseInt(item.id, 10)
                   : item.id
+
               await this.dbService.createNotificationRecord({
                 watchlist_item_id: !Number.isNaN(itemId) ? itemId : null,
                 user_id: user.userId,
                 type: 'watchlist_add',
                 title: item.title,
                 message: `New ${item.type} added to watchlist (self sync)`,
-                sent_to_discord: false,
-                sent_to_apprise: false,
+                sent_to_discord: discordSent,
+                sent_to_apprise: appriseSent,
                 sent_to_webhook: true,
               })
             }
@@ -1221,27 +1260,66 @@ export class PlexWatchlistService {
               break
             }
 
-            const notificationSent =
-              await this.fastify.discord.sendMediaNotification({
+            // Send Discord webhook notification
+            let discordSent = false
+            try {
+              discordSent = await this.fastify.discord.sendMediaNotification({
                 username: friend.username,
                 title: item.title,
                 type: item.type as 'movie' | 'show',
                 posterUrl: item.thumb,
               })
+            } catch (error) {
+              this.log.error(
+                'Error sending Discord webhook notification:',
+                error,
+              )
+            }
 
-            if (notificationSent) {
+            // Send Apprise system notification (only to admin)
+            let appriseSent = false
+            if (this.fastify.apprise?.isEnabled()) {
+              try {
+                // Format as a system notification similar to the webhook format
+                appriseSent = await this.fastify.apprise.sendSystemNotification(
+                  {
+                    title: 'Watchlist Addition',
+                    username: 'System',
+                    embedFields: [
+                      { name: 'Title', value: item.title },
+                      {
+                        name: 'Type',
+                        value:
+                          typeof item.type === 'string' ? item.type : 'unknown',
+                      },
+                      { name: 'Added By', value: friend.username },
+                    ],
+                    type: 'system',
+                  },
+                )
+              } catch (error) {
+                this.log.error(
+                  'Error sending Apprise system notification:',
+                  error,
+                )
+              }
+            }
+
+            // Record notification if either method succeeded
+            if (discordSent || appriseSent) {
               const itemId =
                 typeof item.id === 'string'
                   ? Number.parseInt(item.id, 10)
                   : item.id
+
               await this.dbService.createNotificationRecord({
                 watchlist_item_id: !Number.isNaN(itemId) ? itemId : null,
                 user_id: friend.userId,
                 type: 'watchlist_add',
                 title: item.title,
                 message: `New ${item.type} added to watchlist`,
-                sent_to_discord: false,
-                sent_to_apprise: false,
+                sent_to_discord: discordSent,
+                sent_to_apprise: appriseSent,
                 sent_to_webhook: true,
               })
             }
