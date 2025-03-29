@@ -71,6 +71,14 @@ const schema = {
       type: 'string',
       default: '',
     },
+    enableApprise: {
+      type: 'boolean',
+      default: false,
+    },
+    appriseUrl: {
+      type: 'string',
+      default: 'http://localhost:8000',
+    },
     queueWaitTime: {
       type: 'number',
       default: 120000,

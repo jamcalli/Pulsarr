@@ -29,9 +29,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       const { userIds, updates } = request.body
 
       try {
-        // Check if this is a placeholder email operation
-        if (updates.email === 'placeholder@placeholder.com') {
-          // Special case: reset emails to username@placeholder.com for each user
+        // Check if this is a placeholder apprise operation
+        if (updates.apprise === 'placeholder@placeholder.com') {
+          // Special case: reset apprise to username@placeholder.com for each user
           const failedIds = []
           let updatedCount = 0
 
@@ -44,8 +44,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                 // Create a personalized update for this specific user
                 const userUpdates = {
                   ...updates, // Include all other updates
-                  email: `${user.name}@placeholder.com`, // Personalized placeholder email
-                  notify_email: false, // Always disable email notifications for placeholder emails
+                  apprise: `${user.name}@placeholder.com`, // Personalized placeholder apprise
+                  notify_apprise: false, // Always disable apprise notifications for placeholder values
                 }
 
                 // Apply the update
@@ -73,9 +73,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           }
         }
 
-        // Validate notificaiton preferences against user data
+        // Validate notification preferences against user data
         const isUpdatingNotifications =
-          updates.notify_email !== undefined ||
+          updates.notify_apprise !== undefined ||
           updates.notify_discord !== undefined
 
         if (isUpdatingNotifications) {
@@ -91,15 +91,15 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                 // Create a user-specific update object
                 const userUpdates = { ...updates }
 
-                // Validate email notification settings
-                if (updates.notify_email !== undefined) {
-                  const userEmail = user.email || ''
-                  // Only enable email notifications if user has a valid non-placeholder email
+                // Validate apprise notification settings
+                if (updates.notify_apprise !== undefined) {
+                  const userApprise = user.apprise || ''
+                  // Only enable apprise notifications if user has a valid non-placeholder apprise
                   if (
-                    updates.notify_email &&
-                    (!userEmail || userEmail.endsWith('@placeholder.com'))
+                    updates.notify_apprise &&
+                    (!userApprise || userApprise.endsWith('@placeholder.com'))
                   ) {
-                    userUpdates.notify_email = false
+                    userUpdates.notify_apprise = false
                   }
                 }
 

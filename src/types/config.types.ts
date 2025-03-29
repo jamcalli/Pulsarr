@@ -1,10 +1,10 @@
 export interface User {
   id: number
   name: string
-  email: string | null
+  apprise: string | null
   alias: string | null
   discord_id: string | null
-  notify_email: boolean
+  notify_apprise: boolean
   notify_discord: boolean
   can_sync: boolean
   created_at?: string
@@ -40,6 +40,9 @@ export interface Config {
   discordBotToken: string
   discordClientId: string
   discordGuildId: string
+  // Apprise Config
+  enableApprise: boolean
+  appriseUrl: string
   // General Notifications
   queueWaitTime: number
   newEpisodeThreshold: number
