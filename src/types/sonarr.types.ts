@@ -197,7 +197,7 @@ export interface NotificationResult {
   user: {
     discord_id: string | null | undefined
     notify_discord: boolean
-    notify_email: boolean
+    sent_to_apprise: boolean
     name: string
   }
   notification: MediaNotification

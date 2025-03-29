@@ -281,10 +281,10 @@ export class PlexWatchlistService {
         if (!user) {
           user = await this.dbService.createUser({
             name: username,
-            email: `${username}@placeholder.com`,
+            apprise: `${username}@placeholder.com`,
             alias: null,
             discord_id: null,
-            notify_email: false,
+            notify_apprise: false,
             notify_discord: false,
             can_sync: true,
           })
@@ -310,10 +310,10 @@ export class PlexWatchlistService {
         if (!user) {
           user = await this.dbService.createUser({
             name: friend.username,
-            email: `${friend.username}@placeholder.com`,
+            apprise: `${friend.username}@placeholder.com`,
             alias: null,
             discord_id: null,
-            notify_email: false,
+            notify_apprise: false,
             notify_discord: false,
             can_sync: true,
           })
@@ -1090,7 +1090,7 @@ export class PlexWatchlistService {
                 title: item.title,
                 message: `New ${item.type} added to watchlist (self sync)`,
                 sent_to_discord: false,
-                sent_to_email: false,
+                sent_to_apprise: false,
                 sent_to_webhook: true,
               })
             }
@@ -1241,7 +1241,7 @@ export class PlexWatchlistService {
                 title: item.title,
                 message: `New ${item.type} added to watchlist`,
                 sent_to_discord: false,
-                sent_to_email: false,
+                sent_to_apprise: false,
                 sent_to_webhook: true,
               })
             }

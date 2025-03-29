@@ -3,10 +3,10 @@ import { z } from 'zod'
 const UserBaseSchema = z.object({
   id: z.number(),
   name: z.string(),
-  email: z.string().nullable(),
+  apprise: z.string().nullable(),
   alias: z.string().nullable(),
   discord_id: z.string().nullable(),
-  notify_email: z.boolean(),
+  notify_apprise: z.boolean(),
   notify_discord: z.boolean(),
   can_sync: z.boolean(),
   created_at: z.string(),
