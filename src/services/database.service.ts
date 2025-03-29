@@ -2337,10 +2337,14 @@ export class DatabaseService {
       // Add to results
       notifications.push({
         user: {
-          discord_id: user.discord_id,
-          notify_discord: user.notify_discord,
-          sent_to_apprise: user.notify_apprise,
+          id: user.id,
           name: user.name,
+          apprise: user.apprise,
+          alias: user.alias,
+          discord_id: user.discord_id,
+          notify_apprise: user.notify_apprise,
+          notify_discord: user.notify_discord,
+          can_sync: user.can_sync,
         },
         notification,
       })
