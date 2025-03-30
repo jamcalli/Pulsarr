@@ -1086,30 +1086,36 @@ export class PlexWatchlistService {
               )
             }
 
-            // Send Apprise system notification (only to admin)
+            // Send Apprise watchlist addition notification
             let appriseSent = false
             if (this.fastify.apprise?.isEnabled()) {
               try {
-                // Format as a system notification similar to the webhook format
-                appriseSent = await this.fastify.apprise.sendSystemNotification(
-                  {
-                    title: 'Watchlist Addition',
-                    username: 'System',
-                    embedFields: [
-                      { name: 'Title', value: item.title },
+                // Find the admin user (token1) to notify
+                const adminUser = await this.dbService.getUser('token1')
+
+                if (adminUser) {
+                  // Create and send the watchlist notification
+                  appriseSent =
+                    await this.fastify.apprise.sendWatchlistAdditionNotification(
+                      adminUser,
                       {
-                        name: 'Type',
-                        value:
+                        title: item.title,
+                        type:
                           typeof item.type === 'string' ? item.type : 'unknown',
+                        addedBy: {
+                          name: user.username,
+                        },
+                        posterUrl: item.thumb,
                       },
-                      { name: 'Added By', value: user.username },
-                    ],
-                    type: 'system',
-                  },
-                )
+                    )
+                } else {
+                  this.log.warn(
+                    'Admin user (token1) not found - skipping watchlist addition notification',
+                  )
+                }
               } catch (error) {
                 this.log.error(
-                  'Error sending Apprise system notification:',
+                  'Error sending Apprise watchlist addition notification:',
                   error,
                 )
               }
@@ -1276,30 +1282,36 @@ export class PlexWatchlistService {
               )
             }
 
-            // Send Apprise system notification (only to admin)
+            // Send Apprise watchlist addition notification
             let appriseSent = false
             if (this.fastify.apprise?.isEnabled()) {
               try {
-                // Format as a system notification similar to the webhook format
-                appriseSent = await this.fastify.apprise.sendSystemNotification(
-                  {
-                    title: 'Watchlist Addition',
-                    username: 'System',
-                    embedFields: [
-                      { name: 'Title', value: item.title },
+                // Find the admin user (token1) to notify
+                const adminUser = await this.dbService.getUser('token1')
+
+                if (adminUser) {
+                  // Create and send the watchlist notification
+                  appriseSent =
+                    await this.fastify.apprise.sendWatchlistAdditionNotification(
+                      adminUser,
                       {
-                        name: 'Type',
-                        value:
+                        title: item.title,
+                        type:
                           typeof item.type === 'string' ? item.type : 'unknown',
+                        addedBy: {
+                          name: friend.username,
+                        },
+                        posterUrl: item.thumb,
                       },
-                      { name: 'Added By', value: friend.username },
-                    ],
-                    type: 'system',
-                  },
-                )
+                    )
+                } else {
+                  this.log.warn(
+                    'Admin user (token1) not found - skipping watchlist addition notification',
+                  )
+                }
               } catch (error) {
                 this.log.error(
-                  'Error sending Apprise system notification:',
+                  'Error sending Apprise watchlist addition notification:',
                   error,
                 )
               }
