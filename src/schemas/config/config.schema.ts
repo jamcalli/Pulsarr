@@ -33,6 +33,10 @@ export const ConfigSchema = z.object({
   discordBotToken: z.string().optional(),
   discordClientId: z.string().optional(),
   discordGuildId: z.string().optional(),
+  // Apprise Config
+  enableApprise: z.boolean().optional(),
+  appriseUrl: z.string().optional(),
+  systemAppriseUrl: z.string().optional(),
   // General Notifications
   queueWaitTime: z.number().optional(),
   newEpisodeThreshold: z.number().optional(),
