@@ -223,7 +223,7 @@ export class AppriseNotificationService {
   }
 
   /**
-   * Send a system notification to the admin (token1)
+   * Send a system notification to the configured system endpoint
    *
    * @param notification - System notification details
    * @returns Promise resolving to true if sent successfully
@@ -236,20 +236,11 @@ export class AppriseNotificationService {
     }
 
     try {
-      // Get admin user (token1)
-      const adminUser = await this.fastify.db.getUser('token1')
-
-      if (!adminUser || !adminUser.apprise) {
+      // Check if system Apprise URL is configured
+      const systemUrl = this.config.systemAppriseUrl
+      if (!systemUrl) {
         this.log.warn(
-          'Admin user (token1) not found or has no Apprise URL configured',
-        )
-        return false
-      }
-
-      // Skip if admin has notifications disabled
-      if (adminUser.notify_apprise === false) {
-        this.log.debug(
-          `Admin user ${adminUser.name} has Apprise notifications disabled, skipping system notification`,
+          'System Apprise URL not configured, skipping system notification',
         )
         return false
       }
@@ -282,9 +273,9 @@ export class AppriseNotificationService {
       htmlBody += '<div style="margin: 10px 0;">'
       for (const field of notification.embedFields) {
         htmlBody += `<div style="margin-bottom: 10px;">
-          <strong>${field.name}:</strong> 
-          <div>${field.value}</div>
-        </div>`
+        <strong>${field.name}:</strong> 
+        <div>${field.value}</div>
+      </div>`
 
         textBody += `${field.name}: ${field.value}\n\n`
       }
@@ -306,8 +297,8 @@ export class AppriseNotificationService {
           'https://raw.githubusercontent.com/jamcalli/Pulsarr/master/src/client/assets/images/pulsarr.png',
       }
 
-      // Send to admin's Apprise URL
-      return await this.sendNotification(adminUser.apprise, appriseNotification)
+      // Send to the system Apprise URL
+      return await this.sendNotification(systemUrl, appriseNotification)
     } catch (error) {
       this.log.error('Error sending system notification:', error)
       return false
@@ -330,20 +321,10 @@ export class AppriseNotificationService {
     }
 
     try {
-      // Get admin user (token1)
-      const adminUser = await this.fastify.db.getUser('token1')
-
-      if (!adminUser || !adminUser.apprise) {
+      const systemUrl = this.config.systemAppriseUrl
+      if (!systemUrl) {
         this.log.warn(
-          'Admin user (token1) not found or has no Apprise URL configured',
-        )
-        return false
-      }
-
-      // Skip if admin has notifications disabled
-      if (adminUser.notify_apprise === false) {
-        this.log.debug(
-          `Admin user ${adminUser.name} has Apprise notifications disabled, skipping delete sync notification`,
+          'System Apprise URL not configured, skipping delete sync notification',
         )
         return false
       }
@@ -486,13 +467,12 @@ export class AppriseNotificationService {
         format: 'text',
         tag: 'delete-sync',
         body_html: htmlBody,
-        // Include Pulsarr icon for notification services that support icons
         attach_url:
           'https://raw.githubusercontent.com/jamcalli/Pulsarr/master/src/client/assets/images/pulsarr.png',
       }
 
-      // Send to admin's Apprise URL
-      return await this.sendNotification(adminUser.apprise, appriseNotification)
+      // Send to the system Apprise URL
+      return await this.sendNotification(systemUrl, appriseNotification)
     } catch (error) {
       this.log.error('Error sending delete sync notification:', error)
       return false
@@ -506,36 +486,32 @@ export class AppriseNotificationService {
    * @param item - Information about the watchlist item
    * @returns Promise resolving to true if sent successfully
    */
-  async sendWatchlistAdditionNotification(
-    user: User,
-    item: {
-      title: string
-      type: string
-      addedBy: {
-        name: string
-        alias?: string | null
-      }
-      posterUrl?: string
-    },
-  ): Promise<boolean> {
-    if (!this.isEnabled() || !user.apprise) {
-      return false
+  async sendWatchlistAdditionNotification(item: {
+    title: string
+    type: string
+    addedBy: {
+      name: string
+      alias?: string | null
     }
-
-    // Skip if user has notifications disabled
-    if (user.notify_apprise === false) {
-      this.log.debug(
-        `User ${user.name} has Apprise notifications disabled, skipping watchlist addition notification`,
-      )
+    posterUrl?: string
+  }): Promise<boolean> {
+    if (!this.isEnabled()) {
       return false
     }
 
     try {
-      // Look up user to get alias if not provided
-      let displayName = item.addedBy.name
+      // Check if system Apprise URL is configured
+      const systemUrl = this.config.systemAppriseUrl
+      if (!systemUrl) {
+        this.log.warn(
+          'System Apprise URL not configured, skipping watchlist addition notification',
+        )
+        return false
+      }
 
+      // User display name logic
+      let displayName = item.addedBy.name
       if (item.addedBy.alias) {
-        // Use provided alias if it exists
         displayName = item.addedBy.alias
       } else {
         try {
@@ -590,40 +566,25 @@ export class AppriseNotificationService {
 
       // IMPORTANT: Ensure all fields are provided with valid values
       const appriseNotification: AppriseNotification = {
-        title: title || 'New Media Added', // Ensure title is never empty
-        body: textBody, // Ensure body is never empty
-        type: 'info', // CRITICAL: Always use a valid type
+        title: title || 'New Media Added',
+        body: textBody,
+        type: 'info',
         format: 'text',
         tag: 'watchlist-add',
         body_html: htmlBody,
-        // Include Pulsarr icon for notification services that support icons
         attach_url:
           'https://raw.githubusercontent.com/jamcalli/Pulsarr/master/src/client/assets/images/pulsarr.png',
       }
 
-      // Add poster URL if available - make sure it's properly set for embedding
+      // Add poster URL if available
       if (item.posterUrl) {
-        // Set the image URL for embedding in rich notifications
         appriseNotification.image = item.posterUrl
       }
 
-      // Log the notification for debugging
-      this.log.debug(
-        `Sending watchlist addition notification for "${item.title}" to ${user.name}`,
-        {
-          title: appriseNotification.title,
-          type: appriseNotification.type,
-          posterUrl: item.posterUrl ? 'provided' : 'not provided',
-        },
-      )
-
-      // Send to the user's Apprise URL
-      return await this.sendNotification(user.apprise, appriseNotification)
+      // Send to the system Apprise URL
+      return await this.sendNotification(systemUrl, appriseNotification)
     } catch (error) {
-      this.log.error(
-        `Error sending watchlist addition notification to user ${user.name}:`,
-        error,
-      )
+      this.log.error('Error sending watchlist addition notification:', error)
       return false
     }
   }

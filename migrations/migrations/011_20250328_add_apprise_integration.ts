@@ -5,6 +5,7 @@ export async function up(knex: Knex): Promise<void> {
   await knex.schema.alterTable('configs', (table) => {
     table.boolean('enableApprise').defaultTo(false)
     table.string('appriseUrl').defaultTo('http://localhost:8000')
+    table.string('systemAppriseUrl').nullable()
   })
   
   // Set default values for existing rows
@@ -58,6 +59,7 @@ export async function down(knex: Knex): Promise<void> {
   
   // Revert changes to configs table
   await knex.schema.alterTable('configs', (table) => {
+    table.dropColumn('systemAppriseUrl') // Drop the system URL first
     table.dropColumn('enableApprise')
     table.dropColumn('appriseUrl')
   })

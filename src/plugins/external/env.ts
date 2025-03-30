@@ -79,6 +79,10 @@ const schema = {
       type: 'string',
       default: 'http://localhost:8000',
     },
+    systemAppriseUrl: {
+      type: 'string',
+      default: '',
+    },
     queueWaitTime: {
       type: 'number',
       default: 120000,
