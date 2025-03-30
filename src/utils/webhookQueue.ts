@@ -250,6 +250,29 @@ export async function processQueuedWebhooks(
           )
         }
       }
+
+      if (result.user.notify_apprise) {
+        try {
+          const sent = await fastify.apprise.sendMediaNotification(
+            result.user,
+            result.notification,
+          )
+
+          fastify.log.info(
+            {
+              userId: result.user.id,
+              username: result.user.name,
+              success: sent,
+            },
+            'Sent Apprise notification',
+          )
+        } catch (error) {
+          fastify.log.error(
+            { error, userId: result.user.id },
+            'Failed to send Apprise notification',
+          )
+        }
+      }
     }
   } catch (error) {
     fastify.log.error(
