@@ -131,11 +131,11 @@ const FormContent = ({
               />
             </div>
 
-            {/* Clear Email */}
+            {/* Clear Apprise */}
             <div className="space-y-2">
               <FormField
                 control={form.control}
-                name="clearEmail"
+                name="clearApprise"
                 render={({ field }) => (
                   <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                     <FormControl>
@@ -147,10 +147,10 @@ const FormContent = ({
                     </FormControl>
                     <div className="space-y-1 leading-none">
                       <FormLabel className="text-text">
-                        Reset to placeholder emails
+                        Reset Apprise endpoints
                       </FormLabel>
                       <FormDescription>
-                        Reset all email addresses to username@placeholder.com
+                        Reset all Apprise endpoints to placeholder
                       </FormDescription>
                     </div>
                   </FormItem>
@@ -167,7 +167,7 @@ const FormContent = ({
             <div className="space-y-2">
               <FormField
                 control={form.control}
-                name="setEmailNotify"
+                name="setAppriseNotify"
                 render={({ field }) => (
                   <FormItem className="flex flex-row items-start space-x-3 space-y-0">
                     <FormControl>
@@ -175,9 +175,9 @@ const FormContent = ({
                         checked={field.value}
                         onCheckedChange={(value) => {
                           field.onChange(value)
-                          // If clearing emails and enabling notifications, show warning
-                          if (value && form.getValues('clearEmail')) {
-                            form.setValue('emailNotifyValue', false)
+                          // If clearing apprise and enabling notifications, show warning
+                          if (value && form.getValues('clearApprise')) {
+                            form.setValue('appriseNotifyValue', false)
                           }
                         }}
                         disabled={saveStatus !== 'idle'}
@@ -185,16 +185,16 @@ const FormContent = ({
                     </FormControl>
                     <div className="space-y-1 leading-none">
                       <FormLabel className="text-text">
-                        Set email notifications
+                        Set Apprise notifications
                       </FormLabel>
                     </div>
                   </FormItem>
                 )}
               />
-              {form.watch('setEmailNotify') && (
+              {form.watch('setAppriseNotify') && (
                 <FormField
                   control={form.control}
-                  name="emailNotifyValue"
+                  name="appriseNotifyValue"
                   render={({ field }) => (
                     <FormItem className="flex flex-row items-start space-x-3 space-y-0 ml-7">
                       <FormControl>
@@ -203,16 +203,16 @@ const FormContent = ({
                           onCheckedChange={field.onChange}
                           disabled={
                             saveStatus !== 'idle' ||
-                            form.getValues('clearEmail')
+                            form.getValues('clearApprise')
                           }
                         />
                       </FormControl>
                       <div className="leading-none">
                         <FormLabel className="text-text">
-                          Enable email notifications
-                          {form.getValues('clearEmail') && (
+                          Enable Apprise notifications
+                          {form.getValues('clearApprise') && (
                             <span className="text-error text-xs ml-2">
-                              (Disabled for placeholder emails)
+                              (Disabled for placeholder endpoints)
                             </span>
                           )}
                         </FormLabel>
@@ -345,8 +345,8 @@ const FormContent = ({
               saveStatus !== 'idle' ||
               (!form.getValues('clearAlias') &&
                 !form.getValues('clearDiscordId') &&
-                !form.getValues('clearEmail') &&
-                !form.getValues('setEmailNotify') &&
+                !form.getValues('clearApprise') &&
+                !form.getValues('setAppriseNotify') &&
                 !form.getValues('setDiscordNotify') &&
                 !form.getValues('setCanSync'))
             }
@@ -387,9 +387,9 @@ export default function BulkEditModal({
     defaultValues: {
       clearAlias: false,
       clearDiscordId: false,
-      clearEmail: false,
-      setEmailNotify: false,
-      emailNotifyValue: false,
+      clearApprise: false,
+      setAppriseNotify: false,
+      appriseNotifyValue: false,
       setDiscordNotify: false,
       discordNotifyValue: false,
       setCanSync: false,
@@ -400,10 +400,10 @@ export default function BulkEditModal({
   // Watch for changes to clearEmail and adjust emailNotifyValue accordingly
   useEffect(() => {
     const subscription = form.watch((value, { name }) => {
-      if (name === 'clearEmail' && value.clearEmail) {
+      if (name === 'clearApprise' && value.clearApprise) {
         // If clearing emails, disable email notifications
-        if (value.setEmailNotify) {
-          form.setValue('emailNotifyValue', false)
+        if (value.setAppriseNotify) {
+          form.setValue('appriseNotifyValue', false)
         }
       }
       if (name === 'clearDiscordId' && value.clearDiscordId) {
@@ -433,19 +433,19 @@ export default function BulkEditModal({
       updates.discord_id = null
     }
 
-    if (values.clearEmail) {
-      // Use a valid email format that will pass validation
-      updates.email = 'placeholder@placeholder.com'
-      // When resetting to placeholder emails, always disable email notifications
-      if (values.setEmailNotify) {
-        updates.notify_email = false
+    if (values.clearApprise) {
+      // Use a valid format that will pass validation
+      updates.apprise = 'placeholder@placeholder.com'
+      // When resetting to placeholder endpoints, always disable notifications
+      if (values.setAppriseNotify) {
+        updates.notify_apprise = false
       } else {
-        // Explicitly disable notifications for placeholder emails
-        updates.notify_email = false
+        // Explicitly disable notifications for placeholder endpoints
+        updates.notify_apprise = false
       }
-    } else if (values.setEmailNotify) {
-      // Only set email notifications if we're not clearing emails
-      updates.notify_email = values.emailNotifyValue
+    } else if (values.setAppriseNotify) {
+      // Only set notifications if we're not clearing endpoints
+      updates.notify_apprise = values.appriseNotifyValue
     }
 
     if (values.clearDiscordId) {
