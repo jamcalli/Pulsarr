@@ -457,6 +457,7 @@ export class DatabaseService {
       // Handle Apprise configuration
       enableApprise: Boolean(config.enableApprise),
       appriseUrl: config.appriseUrl || 'http://localhost:8000',
+      systemAppriseUrl: config.systemAppriseUrl || undefined,
       // Convert boolean fields
       cookieSecured: Boolean(config.cookieSecured),
       skipFriendSync: Boolean(config.skipFriendSync),
@@ -500,6 +501,7 @@ export class DatabaseService {
         // Apprise fields
         enableApprise: config.enableApprise || false,
         appriseUrl: config.appriseUrl || 'http://localhost:8000',
+        systemAppriseUrl: config.systemAppriseUrl || undefined,
         // Plex fields
         plexTokens: JSON.stringify(config.plexTokens || []),
         skipFriendSync: config.skipFriendSync,
@@ -551,7 +553,8 @@ export class DatabaseService {
           key === 'discordBotToken' ||
           key === 'discordClientId' ||
           key === 'discordGuildId' ||
-          key === 'appriseUrl'
+          key === 'appriseUrl' ||
+          key === 'systemAppriseUrl'
         ) {
           updateData[key] = value
         } else if (

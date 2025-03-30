@@ -43,6 +43,7 @@ export interface Config {
   // Apprise Config
   enableApprise: boolean
   appriseUrl: string
+  systemAppriseUrl: string
   // General Notifications
   queueWaitTime: number
   newEpisodeThreshold: number
