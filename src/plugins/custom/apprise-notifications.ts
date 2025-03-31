@@ -8,6 +8,8 @@ declare module 'fastify' {
   }
 }
 
+// In src/plugins/custom/apprise-notifications.ts
+
 export default fp(
   async (fastify: FastifyInstance) => {
     fastify.log.info('Initializing Apprise notification plugin')
@@ -37,57 +39,62 @@ export default fp(
     if (appriseUrl) {
       fastify.log.info(`Found Apprise URL in configuration: ${appriseUrl}`)
 
-      // Implement retry mechanism for Apprise initialization
-      const retryConnectToApprise = async (
-        maxRetries = 10,
-        retryIntervalMs = 1000, // 1 second between retries
-      ) => {
-        let retries = 0
-        let isReachable = false
+      // Function to check Apprise status
+      const checkAppriseStatus = async (): Promise<boolean> => {
+        try {
+          const statusUrl = new URL('/status', appriseUrl).toString()
 
-        while (retries < maxRetries && !isReachable) {
-          fastify.log.debug(
-            `Attempt ${retries + 1}/${maxRetries} - Pinging Apprise server to verify it is reachable`,
+          const controller = new AbortController()
+          const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 second timeout
+
+          const response = await fetch(statusUrl, {
+            method: 'GET',
+            signal: controller.signal,
+          })
+
+          clearTimeout(timeoutId)
+
+          return response.status === 200
+        } catch (error) {
+          return false
+        }
+      }
+
+      // Wait for Apprise to be ready with retries
+      const waitForApprise = async (
+        maxRetries = 10, // 10 attempts
+        retryIntervalMs = 1000, // Checking every second
+      ): Promise<boolean> => {
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          fastify.log.info(
+            `Checking Apprise availability (attempt ${attempt}/${maxRetries})`,
           )
 
-          try {
-            isReachable = await pingAppriseServer(appriseUrl)
+          const isAvailable = await checkAppriseStatus()
 
-            if (isReachable) {
-              fastify.log.info('Successfully connected to Apprise container')
-              // Set enableApprise to true directly in the runtime config
-              await fastify.updateConfig({ enableApprise: true })
-              fastify.log.info(
-                'Apprise notification service is configured and enabled',
-              )
-              fastify.log.info(`Using Apprise container at: ${appriseUrl}`)
-
-              // Emit the updated status after enabling
-              emitAppriseStatus(fastify)
-              return true
-            }
-
-            fastify.log.debug(
-              `Attempt ${retries + 1}/${maxRetries} - Could not connect to Apprise container, will retry in ${retryIntervalMs / 1000} second`,
+          if (isAvailable) {
+            fastify.log.info('Successfully connected to Apprise container')
+            await fastify.updateConfig({ enableApprise: true })
+            fastify.log.info(
+              'Apprise notification service is configured and enabled',
             )
-            retries++
+            fastify.log.info(`Using Apprise container at: ${appriseUrl}`)
 
-            // Wait before the next retry
-            await new Promise((resolve) => setTimeout(resolve, retryIntervalMs))
-          } catch (error) {
+            // Emit the updated status after enabling
+            emitAppriseStatus(fastify)
+            return true
+          }
+
+          if (attempt < maxRetries) {
             fastify.log.debug(
-              `Attempt ${retries + 1}/${maxRetries} - Error connecting to Apprise container, will retry in ${retryIntervalMs / 1000} second`,
+              `Apprise not yet available, waiting ${retryIntervalMs / 1000} second before retry...`,
             )
-            retries++
-
-            // Wait before the next retry
             await new Promise((resolve) => setTimeout(resolve, retryIntervalMs))
           }
         }
 
-        // All retries failed
         fastify.log.warn(
-          `After ${maxRetries} attempts, could not connect to Apprise container, notifications will be disabled`,
+          'Could not connect to Apprise container after maximum retries, notifications will be disabled',
         )
         await fastify.updateConfig({ enableApprise: false })
 
@@ -96,9 +103,11 @@ export default fp(
         return false
       }
 
-      // Start the retry process
-      retryConnectToApprise().catch((error) => {
-        fastify.log.error('Unexpected error in Apprise retry mechanism:', error)
+      // Start the waiting process
+      waitForApprise().catch((error) => {
+        fastify.log.error('Error in Apprise availability check:', error)
+        fastify.updateConfig({ enableApprise: false })
+        emitAppriseStatus(fastify)
       })
     } else {
       fastify.log.info(
