@@ -2,10 +2,10 @@ import { z } from 'zod'
 
 export const CreateUserSchema = z.object({
   name: z.string().min(3).max(255),
-  apprise: z.string().nullable(), // Changed from email to apprise, removed email validation to allow various Apprise URIs
+  apprise: z.string().nullable(),
   alias: z.string().min(3).max(255).nullable(),
   discord_id: z.string().nullable(),
-  notify_apprise: z.boolean().default(false), // Changed from notify_email to notify_apprise
+  notify_apprise: z.boolean().default(false),
   notify_discord: z.boolean().default(false),
   can_sync: z.boolean().default(true),
 })

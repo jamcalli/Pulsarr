@@ -29,50 +29,6 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       const { userIds, updates } = request.body
 
       try {
-        // Check if this is a placeholder apprise operation
-        if (updates.apprise === 'placeholder@placeholder.com') {
-          // Special case: reset apprise to username@placeholder.com for each user
-          const failedIds = []
-          let updatedCount = 0
-
-          // Process each user individually
-          for (const userId of userIds) {
-            try {
-              const user = await fastify.db.getUser(userId)
-
-              if (user) {
-                // Create a personalized update for this specific user
-                const userUpdates = {
-                  ...updates, // Include all other updates
-                  apprise: `${user.name}@placeholder.com`, // Personalized placeholder apprise
-                  notify_apprise: false, // Always disable apprise notifications for placeholder values
-                }
-
-                // Apply the update
-                const result = await fastify.db.updateUser(userId, userUpdates)
-
-                if (result) {
-                  updatedCount++
-                } else {
-                  failedIds.push(userId)
-                }
-              } else {
-                failedIds.push(userId)
-              }
-            } catch (err) {
-              fastify.log.error(`Error updating user ${userId}:`, err)
-              failedIds.push(userId)
-            }
-          }
-
-          return {
-            success: updatedCount > 0,
-            message: `Updated ${updatedCount} of ${userIds.length} users`,
-            updatedCount,
-            ...(failedIds.length > 0 ? { failedIds } : {}),
-          }
-        }
-
         // Validate notification preferences against user data
         const isUpdatingNotifications =
           updates.notify_apprise !== undefined ||
@@ -94,11 +50,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                 // Validate apprise notification settings
                 if (updates.notify_apprise !== undefined) {
                   const userApprise = user.apprise || ''
-                  // Only enable apprise notifications if user has a valid non-placeholder apprise
-                  if (
-                    updates.notify_apprise &&
-                    (!userApprise || userApprise.endsWith('@placeholder.com'))
-                  ) {
+                  // Only enable apprise notifications if user has a valid apprise value
+                  if (updates.notify_apprise && !userApprise) {
                     userUpdates.notify_apprise = false
                   }
                 }

@@ -22,8 +22,8 @@ export const plexUserSchema = z
       if (data.notify_discord && !data.discord_id) {
         return false
       }
-      // Cannot have email notifications with placeholder email
-      if (data.notify_apprise && data.apprise.endsWith('@placeholder.com')) {
+      // Cannot have apprise notifications without apprise endpoint
+      if (data.notify_apprise && !data.apprise) {
         return false
       }
       return true

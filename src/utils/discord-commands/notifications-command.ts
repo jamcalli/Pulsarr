@@ -150,7 +150,6 @@ function createPlexLinkModal(): ModalBuilder {
   return modal
 }
 
-// Complete replacement for createProfileEditModal function
 function createProfileEditModal(user: User): ModalBuilder {
   const modal = new ModalBuilder()
     .setCustomId('editProfileModal')
@@ -171,7 +170,7 @@ function createProfileEditModal(user: User): ModalBuilder {
     .setRequired(false)
     .setPlaceholder('Enter your Apprise URL')
 
-  if (user.apprise && !user.apprise.includes('@placeholder.com')) {
+  if (user.apprise) {
     appriseInput.setValue(user.apprise)
   }
 
@@ -192,11 +191,6 @@ async function getUser(
   try {
     const users = await context.fastify.db.getAllUsers()
     const user = users.find((u) => u.discord_id === discordId)
-    if (user) {
-      if (user.apprise?.endsWith('@placeholder.com')) {
-        user.apprise = null
-      }
-    }
     context.log.debug(
       { discordId, found: !!user },
       'Looking up user by Discord ID',
