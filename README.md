@@ -283,7 +283,7 @@ services:
     environment:
       - NODE_ARGS=--log-both
       - TZ=America/Los_Angeles
-      - APPRISE_URL=http://apprise:8000
+      - appriseUrl=http://apprise:8000
     depends_on:
       - apprise
 ```
