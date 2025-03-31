@@ -165,7 +165,7 @@ export function AppriseForm({ isInitialized }: AppriseFormProps) {
           platforms. The service status is determined at server startup and
           cannot be changed at runtime.{' '}
           <a
-            href="https://github.com/jamcalli/Pulsarr#apprise"
+            href="https://github.com/jamcalli/Pulsarr#apprise-notifications"
             target="_blank"
             rel="noopener noreferrer"
             className="text-blue-400 hover:text-blue-500 inline-flex items-center gap-1"
