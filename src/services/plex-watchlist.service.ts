@@ -1090,29 +1090,15 @@ export class PlexWatchlistService {
             let appriseSent = false
             if (this.fastify.apprise?.isEnabled()) {
               try {
-                // Find the admin user (token1) to notify
-                const adminUser = await this.dbService.getUser('token1')
-
-                if (adminUser) {
-                  // Create and send the watchlist notification
-                  appriseSent =
-                    await this.fastify.apprise.sendWatchlistAdditionNotification(
-                      adminUser,
-                      {
-                        title: item.title,
-                        type:
-                          typeof item.type === 'string' ? item.type : 'unknown',
-                        addedBy: {
-                          name: user.username,
-                        },
-                        posterUrl: item.thumb,
-                      },
-                    )
-                } else {
-                  this.log.warn(
-                    'Admin user (token1) not found - skipping watchlist addition notification',
-                  )
-                }
+                appriseSent =
+                  await this.fastify.apprise.sendWatchlistAdditionNotification({
+                    title: item.title,
+                    type: typeof item.type === 'string' ? item.type : 'unknown',
+                    addedBy: {
+                      name: user.username,
+                    },
+                    posterUrl: item.thumb,
+                  })
               } catch (error) {
                 this.log.error(
                   'Error sending Apprise watchlist addition notification:',
@@ -1286,29 +1272,15 @@ export class PlexWatchlistService {
             let appriseSent = false
             if (this.fastify.apprise?.isEnabled()) {
               try {
-                // Find the admin user (token1) to notify
-                const adminUser = await this.dbService.getUser('token1')
-
-                if (adminUser) {
-                  // Create and send the watchlist notification
-                  appriseSent =
-                    await this.fastify.apprise.sendWatchlistAdditionNotification(
-                      adminUser,
-                      {
-                        title: item.title,
-                        type:
-                          typeof item.type === 'string' ? item.type : 'unknown',
-                        addedBy: {
-                          name: friend.username,
-                        },
-                        posterUrl: item.thumb,
-                      },
-                    )
-                } else {
-                  this.log.warn(
-                    'Admin user (token1) not found - skipping watchlist addition notification',
-                  )
-                }
+                appriseSent =
+                  await this.fastify.apprise.sendWatchlistAdditionNotification({
+                    title: item.title,
+                    type: typeof item.type === 'string' ? item.type : 'unknown',
+                    addedBy: {
+                      name: friend.username,
+                    },
+                    posterUrl: item.thumb,
+                  })
               } catch (error) {
                 this.log.error(
                   'Error sending Apprise watchlist addition notification:',
