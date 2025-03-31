@@ -176,6 +176,13 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                 result.notification,
               )
             }
+
+            if (result.user.notify_apprise) {
+              await fastify.apprise.sendMediaNotification(
+                result.user,
+                result.notification,
+              )
+            }
           }
 
           return { success: true }
