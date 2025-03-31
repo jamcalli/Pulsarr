@@ -45,15 +45,15 @@ export function usePlexUser() {
       // Convert UpdateUser to Partial<UserWatchlistInfo> to match the expected type
       const compatibleUpdates: Partial<UserWatchlistInfo> = {
         ...(updates.name !== undefined && { name: updates.name }),
-        ...(updates.email !== undefined && {
-          email: updates.email === null ? undefined : updates.email,
+        ...(updates.apprise !== undefined && {
+          apprise: updates.apprise === null ? undefined : updates.apprise,
         }),
         ...(updates.alias !== undefined && { alias: updates.alias }),
         ...(updates.discord_id !== undefined && {
           discord_id: updates.discord_id,
         }),
-        ...(updates.notify_email !== undefined && {
-          notify_email: updates.notify_email,
+        ...(updates.notify_apprise !== undefined && {
+          notify_apprise: updates.notify_apprise,
         }),
         ...(updates.notify_discord !== undefined && {
           notify_discord: updates.notify_discord,

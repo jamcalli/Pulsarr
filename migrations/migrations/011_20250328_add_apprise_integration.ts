@@ -16,6 +16,39 @@ export async function up(knex: Knex): Promise<void> {
   await knex('configs')
     .whereNull('appriseUrl')
     .update({ appriseUrl: 'http://localhost:8000' })
+    
+  // Migrate deleteSyncNotify values to new format
+  // First, get all configs with the old values
+  const configs = await knex('configs').select('id', 'deleteSyncNotify')
+  
+  // Then update them with the new values
+  for (const config of configs) {
+    if (config.deleteSyncNotify) {
+      let newValue = config.deleteSyncNotify
+      
+      // Only migrate if it's one of the old values
+      if (['none', 'message', 'webhook', 'both'].includes(config.deleteSyncNotify)) {
+        // Map old values to new ones
+        switch (config.deleteSyncNotify) {
+          case 'message':
+            newValue = 'discord-message'
+            break
+          case 'webhook':
+            newValue = 'discord-webhook'
+            break
+          case 'both':
+            newValue = 'discord-both'
+            break
+          // 'none' stays as 'none'
+        }
+        
+        // Update the config with the new value
+        await knex('configs')
+          .where('id', config.id)
+          .update({ deleteSyncNotify: newValue })
+      }
+    }
+  }
   
   // 2. Modify users table to use Apprise instead of email
   await knex.schema.alterTable('users', (table) => {
@@ -43,6 +76,38 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 export async function down(knex: Knex): Promise<void> {
+  // Revert notification format changes
+  const configs = await knex('configs').select('id', 'deleteSyncNotify')
+  
+  // Then update them back to the old values
+  for (const config of configs) {
+    if (config.deleteSyncNotify) {
+      let oldValue = config.deleteSyncNotify
+      
+      // Only migrate back if it's one of the new values
+      if (['discord-message', 'discord-webhook', 'discord-both'].includes(config.deleteSyncNotify)) {
+        // Map new values back to old ones
+        switch (config.deleteSyncNotify) {
+          case 'discord-message':
+            oldValue = 'message'
+            break
+          case 'discord-webhook':
+            oldValue = 'webhook'
+            break
+          case 'discord-both':
+            oldValue = 'both'
+            break
+          // Leave other values as they are
+        }
+        
+        // Update the config with the old value
+        await knex('configs')
+          .where('id', config.id)
+          .update({ deleteSyncNotify: oldValue })
+      }
+    }
+  }
+  
   // Revert changes to notifications table
   await knex.schema.alterTable('notifications', (table) => {
     // Add back the email column

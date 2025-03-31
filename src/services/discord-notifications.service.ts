@@ -694,12 +694,15 @@ export class DiscordNotificationService {
       safetyMessage?: string
     },
     dryRun: boolean,
+    notifyOption?: string,
   ): Promise<boolean> {
     try {
-      // Get notification type from config
-      const notifyOption = this.fastify.config.deleteSyncNotify
+      // Get notification type from config or parameter
+      const notifySetting =
+        notifyOption || this.fastify.config.deleteSyncNotify || 'none'
 
-      if (notifyOption === 'none') {
+      // Skip all notifications if set to none
+      if (notifySetting === 'none') {
         this.log.debug('Delete sync notifications disabled, skipping')
         return false
       }
@@ -710,8 +713,28 @@ export class DiscordNotificationService {
       // Track successful sends
       let successCount = 0
 
-      // Send webhook notification if configured for 'webhook' or 'both'
-      if (notifyOption === 'webhook' || notifyOption === 'both') {
+      // Determine which notifications to send
+      const sendWebhook = [
+        'all',
+        'discord-only',
+        'webhook-only',
+        'discord-webhook',
+        'discord-both',
+        'webhook',
+        'both',
+      ].includes(notifySetting)
+      const sendDM = [
+        'all',
+        'discord-only',
+        'dm-only',
+        'discord-message',
+        'discord-both',
+        'message',
+        'both',
+      ].includes(notifySetting)
+
+      // Send webhook notification if configured
+      if (sendWebhook && this.config.discordWebhookUrl) {
         try {
           const payload = {
             embeds: [embed],
@@ -732,8 +755,8 @@ export class DiscordNotificationService {
         }
       }
 
-      // Send DM notification if configured for 'message' or 'both'
-      if (notifyOption === 'message' || notifyOption === 'both') {
+      // Send DM notification if configured
+      if (sendDM) {
         try {
           // Get all users to find the admin user
           const users = await this.fastify.db.getAllUsers()

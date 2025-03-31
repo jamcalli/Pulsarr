@@ -20,7 +20,19 @@ export type LogLevel =
   | 'trace'
   | 'silent'
 
-export type DeleteSyncNotifyOption = 'none' | 'message' | 'webhook' | 'both'
+export type DeleteSyncNotifyOption =
+  | 'none' // No notifications
+  | 'message' // Discord DM only (legacy)
+  | 'webhook' // Discord webhook only (legacy)
+  | 'both' // Both Discord webhook and DM (legacy)
+  | 'all' // All available notification channels
+  | 'discord-only' // Only Discord (both webhook and DM if configured)
+  | 'apprise-only' // Only Apprise
+  | 'webhook-only' // Only Discord webhook (no DMs)
+  | 'dm-only' // Only Discord DMs (no webhook)
+  | 'discord-webhook' // Equivalent to webhook-only
+  | 'discord-message' // Equivalent to dm-only
+  | 'discord-both' // Both Discord webhook and DMs, no Apprise
 
 export interface Config {
   // System Config

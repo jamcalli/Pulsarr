@@ -341,10 +341,37 @@ export class DeleteSyncService {
     result: DeleteSyncResult,
     dryRun: boolean,
   ): Promise<void> {
+    const notifySetting = this.config.deleteSyncNotify || 'none'
+
+    // Skip all notifications if set to none
+    if (notifySetting === 'none') {
+      this.log.info(
+        'Delete sync notifications disabled, skipping all notifications',
+      )
+      return
+    }
+
+    const sendDiscord = [
+      'all',
+      'discord-only',
+      'discord-webhook',
+      'discord-message',
+      'discord-both',
+      'webhook-only',
+      'dm-only',
+    ].includes(notifySetting)
+
+    const sendApprise = ['all', 'apprise-only'].includes(notifySetting)
+
     // Discord notification logic
-    if (this.config.deleteSyncNotify !== 'none' && this.fastify.discord) {
+    if (sendDiscord && this.fastify.discord) {
       try {
-        await this.fastify.discord.sendDeleteSyncNotification(result, dryRun)
+        // Pass notification preference to control webhook vs DM
+        await this.fastify.discord.sendDeleteSyncNotification(
+          result,
+          dryRun,
+          notifySetting,
+        )
       } catch (notifyError) {
         this.log.error(
           'Error sending delete sync Discord notification:',
@@ -354,7 +381,7 @@ export class DeleteSyncService {
     }
 
     // Apprise notification logic
-    if (this.fastify.apprise?.isEnabled()) {
+    if (sendApprise && this.fastify.apprise?.isEnabled()) {
       try {
         await this.fastify.apprise.sendDeleteSyncNotification(result, dryRun)
       } catch (notifyError) {
