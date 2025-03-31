@@ -77,7 +77,7 @@ const schema = {
     },
     appriseUrl: {
       type: 'string',
-      default: 'http://localhost:8000',
+      default: '',
     },
     systemAppriseUrl: {
       type: 'string',

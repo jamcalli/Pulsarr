@@ -4,7 +4,7 @@ export async function up(knex: Knex): Promise<void> {
   // 1. Add Apprise settings to configs table
   await knex.schema.alterTable('configs', (table) => {
     table.boolean('enableApprise').defaultTo(false)
-    table.string('appriseUrl').defaultTo('http://localhost:8000')
+    table.string('appriseUrl').defaultTo('')
     table.string('systemAppriseUrl').nullable()
   })
   
@@ -15,7 +15,7 @@ export async function up(knex: Knex): Promise<void> {
   
   await knex('configs')
     .whereNull('appriseUrl')
-    .update({ appriseUrl: 'http://localhost:8000' })
+    .update({ appriseUrl: '' })
     
   // Migrate deleteSyncNotify values to new format
   // First, get all configs with the old values

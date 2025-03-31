@@ -19,6 +19,20 @@ export default fp(
     // Get the Apprise URL from the config (already loaded from .env)
     const appriseUrl = fastify.config.appriseUrl || ''
 
+    // Emit initial status - before we check availability
+    emitAppriseStatus(fastify)
+
+    // Set up a periodic status interval for status
+    const statusInterval = setInterval(() => {
+      if (fastify.progress.hasActiveConnections()) {
+        emitAppriseStatus(fastify)
+      }
+    }, 1000) // 1 second
+
+    fastify.addHook('onClose', () => {
+      clearInterval(statusInterval)
+    })
+
     // Only proceed if we have an Apprise URL configured
     if (appriseUrl) {
       fastify.log.info(`Found Apprise URL in configuration: ${appriseUrl}`)
@@ -36,38 +50,53 @@ export default fp(
             'Apprise notification service is configured and enabled',
           )
           fastify.log.info(`Using Apprise container at: ${appriseUrl}`)
+
+          // Emit the updated status after enabling
+          emitAppriseStatus(fastify)
         } else {
           fastify.log.warn(
             'Could not connect to Apprise container, notifications will be disabled',
           )
           await fastify.updateConfig({ enableApprise: false })
+
+          // Emit the updated status after disabling
+          emitAppriseStatus(fastify)
         }
       } catch (error) {
         fastify.log.error('Error connecting to Apprise container:', error)
         await fastify.updateConfig({ enableApprise: false })
+
+        // Emit the updated status on error
+        emitAppriseStatus(fastify)
       }
     } else {
       fastify.log.info(
         'No Apprise URL configured, Apprise notifications will be disabled',
       )
       await fastify.updateConfig({ enableApprise: false })
+
+      // Emit the updated status when no URL configured
+      emitAppriseStatus(fastify)
     }
 
     fastify.log.info('Apprise notification plugin initialized successfully')
   },
   {
     name: 'apprise-notification-service',
-    dependencies: ['config', 'database'],
+    dependencies: ['config', 'database', 'progress'],
   },
 )
 
 /**
- * Simple ping function to check if the Apprise server is reachable
+ * Ping function to check if the Apprise server is reachable
  *
  * @param url - The Apprise server URL
  * @returns Promise resolving to true if server is reachable, false otherwise
  */
 async function pingAppriseServer(url: string): Promise<boolean> {
+  if (!url || url.trim() === '') {
+    return false
+  }
   try {
     const pingUrl = new URL('/', url).toString()
 
@@ -85,4 +114,26 @@ async function pingAppriseServer(url: string): Promise<boolean> {
   } catch (error) {
     return false
   }
+}
+
+/**
+ * Emits the current Apprise service status to the progress service
+ *
+ * @param fastify - The FastifyInstance
+ */
+function emitAppriseStatus(fastify: FastifyInstance) {
+  if (!fastify.progress.hasActiveConnections()) {
+    return
+  }
+
+  const status = fastify.config.enableApprise ? 'enabled' : 'disabled'
+  const operationId = `apprise-status-${Date.now()}`
+
+  fastify.progress.emit({
+    operationId,
+    type: 'system',
+    phase: 'info',
+    progress: 100,
+    message: `Apprise notification service: ${status}`,
+  })
 }

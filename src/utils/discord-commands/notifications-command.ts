@@ -166,10 +166,10 @@ function createProfileEditModal(user: User): ModalBuilder {
 
   const appriseInput = new TextInputBuilder()
     .setCustomId('apprise')
-    .setLabel('Apprise URL or Email')
+    .setLabel('Apprise URL')
     .setStyle(TextInputStyle.Short)
     .setRequired(false)
-    .setPlaceholder('Enter your Apprise URL or email address')
+    .setPlaceholder('Enter your Apprise URL')
 
   if (user.apprise && !user.apprise.includes('@placeholder.com')) {
     appriseInput.setValue(user.apprise)
