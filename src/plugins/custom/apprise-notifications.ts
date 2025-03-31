@@ -37,38 +37,60 @@ export default fp(
     if (appriseUrl) {
       fastify.log.info(`Found Apprise URL in configuration: ${appriseUrl}`)
 
-      // Ping the Apprise container to check if it's available
-      try {
-        fastify.log.debug('Pinging Apprise server to verify it is reachable')
-        const isReachable = await pingAppriseServer(appriseUrl)
-
-        if (isReachable) {
-          fastify.log.info('Successfully connected to Apprise container')
-          // Set enableApprise to true directly in the runtime config
-          await fastify.updateConfig({ enableApprise: true })
-          fastify.log.info(
-            'Apprise notification service is configured and enabled',
-          )
-          fastify.log.info(`Using Apprise container at: ${appriseUrl}`)
-
-          // Emit the updated status after enabling
-          emitAppriseStatus(fastify)
-        } else {
-          fastify.log.warn(
-            'Could not connect to Apprise container, notifications will be disabled',
-          )
-          await fastify.updateConfig({ enableApprise: false })
-
-          // Emit the updated status after disabling
-          emitAppriseStatus(fastify)
+      // Implement retry mechanism for Apprise initialization
+      const retryConnectToApprise = async (
+        maxRetries = 10, 
+        retryIntervalMs = 1000 // 1 second between retries
+      ) => {
+        let retries = 0;
+        let isReachable = false;
+        
+        while (retries < maxRetries && !isReachable) {
+          fastify.log.debug(`Attempt ${retries + 1}/${maxRetries} - Pinging Apprise server to verify it is reachable`)
+          
+          try {
+            isReachable = await pingAppriseServer(appriseUrl);
+            
+            if (isReachable) {
+              fastify.log.info('Successfully connected to Apprise container')
+              // Set enableApprise to true directly in the runtime config
+              await fastify.updateConfig({ enableApprise: true })
+              fastify.log.info('Apprise notification service is configured and enabled')
+              fastify.log.info(`Using Apprise container at: ${appriseUrl}`)
+              
+              // Emit the updated status after enabling
+              emitAppriseStatus(fastify)
+              return true;
+            } else {
+              fastify.log.debug(`Attempt ${retries + 1}/${maxRetries} - Could not connect to Apprise container, will retry in ${retryIntervalMs/1000} second`)
+              retries++;
+              
+              // Wait before the next retry
+              await new Promise(resolve => setTimeout(resolve, retryIntervalMs));
+            }
+          } catch (error) {
+            fastify.log.debug(`Attempt ${retries + 1}/${maxRetries} - Error connecting to Apprise container, will retry in ${retryIntervalMs/1000} second`)
+            retries++;
+            
+            // Wait before the next retry
+            await new Promise(resolve => setTimeout(resolve, retryIntervalMs));
+          }
         }
-      } catch (error) {
-        fastify.log.error('Error connecting to Apprise container:', error)
+        
+        // All retries failed
+        fastify.log.warn(`After ${maxRetries} attempts, could not connect to Apprise container, notifications will be disabled`)
         await fastify.updateConfig({ enableApprise: false })
-
-        // Emit the updated status on error
+        
+        // Emit the updated status after disabling
         emitAppriseStatus(fastify)
-      }
+        return false;
+      };
+
+      // Start the retry process
+      retryConnectToApprise().catch(error => {
+        fastify.log.error('Unexpected error in Apprise retry mechanism:', error)
+      });
+
     } else {
       fastify.log.info(
         'No Apprise URL configured, Apprise notifications will be disabled',
