@@ -28,9 +28,19 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw reply.notFound('Config not found in database')
         }
 
+        // Override the apprise settings with values from runtime config
+        // These are ephemeral and controlled by the apprise-notifications plugin
+        const mergedConfig = {
+          ...config,
+          // Read the protected apprise values directly from fastify.config
+          // systemAppriseUrl comes from the database as it can be configured by the user
+          enableApprise: fastify.config.enableApprise,
+          appriseUrl: fastify.config.appriseUrl,
+        }
+
         const response: z.infer<typeof ConfigResponseSchema> = {
           success: true,
-          config,
+          config: mergedConfig,
         }
 
         reply.status(200)
@@ -64,20 +74,48 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const configUpdate = request.body
-        const dbUpdated = await fastify.db.updateConfig(1, configUpdate)
+        // Create a copy of the config update without the protected Apprise fields
+        // but allow systemAppriseUrl to be updated
+        const { enableApprise, appriseUrl, ...safeConfigUpdate } = request.body
+
+        // If someone tries to update the protected fields, log a warning
+        if (enableApprise !== undefined || appriseUrl !== undefined) {
+          fastify.log.warn(
+            'Attempt to update protected Apprise config via API was prevented',
+            {
+              enableApprise,
+              appriseUrl: appriseUrl ? '[redacted]' : undefined,
+            },
+          )
+        }
+
+        const dbUpdated = await fastify.db.updateConfig(1, safeConfigUpdate)
         if (!dbUpdated) {
           throw reply.badRequest('Failed to update configuration')
         }
+
         const savedConfig = await fastify.db.getConfig(1)
         if (!savedConfig) {
           throw reply.notFound('No configuration found after update')
         }
-        const updatedConfig = await fastify.updateConfig(savedConfig)
+
+        // Update the runtime config with the non-Apprise fields
+        await fastify.updateConfig(safeConfigUpdate)
+
+        // For the response, merge the saved DB config with the runtime Apprise settings
+        // We use fastify.config for the protected apprise settings since it has the current values
+        // systemAppriseUrl comes from the database as it's allowed to be updated
+        const mergedConfig = {
+          ...savedConfig,
+          enableApprise: fastify.config.enableApprise,
+          appriseUrl: fastify.config.appriseUrl,
+        }
+
         const response: z.infer<typeof ConfigResponseSchema> = {
           success: true,
-          config: updatedConfig,
+          config: mergedConfig,
         }
+
         reply.status(200)
         return response
       } catch (err) {

@@ -26,8 +26,8 @@ export class AppriseNotificationService {
    * Gets the base URL for the Apprise container
    */
   private get appriseBaseUrl(): string {
-    // Default to localhost:8000 if not specified
-    return this.config.appriseUrl || 'http://localhost:8000'
+    // Default to '' if not specified
+    return this.config.appriseUrl || ''
   }
 
   /**

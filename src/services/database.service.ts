@@ -456,7 +456,7 @@ export class DatabaseService {
       upgradeBufferTime: config.upgradeBufferTime || 2000,
       // Handle Apprise configuration
       enableApprise: Boolean(config.enableApprise),
-      appriseUrl: config.appriseUrl || 'http://localhost:8000',
+      appriseUrl: config.appriseUrl || '',
       systemAppriseUrl: config.systemAppriseUrl || undefined,
       // Convert boolean fields
       cookieSecured: Boolean(config.cookieSecured),
@@ -500,7 +500,7 @@ export class DatabaseService {
         upgradeBufferTime: config.upgradeBufferTime || 2000,
         // Apprise fields
         enableApprise: config.enableApprise || false,
-        appriseUrl: config.appriseUrl || 'http://localhost:8000',
+        appriseUrl: config.appriseUrl || '',
         systemAppriseUrl: config.systemAppriseUrl || undefined,
         // Plex fields
         plexTokens: JSON.stringify(config.plexTokens || []),
