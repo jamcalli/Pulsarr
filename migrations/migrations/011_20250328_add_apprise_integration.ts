@@ -50,7 +50,13 @@ export async function up(knex: Knex): Promise<void> {
     }
   }
   
-  // 2. Modify users table to use Apprise instead of email
+  // 2. Clear all email values since they won't be valid for apprise
+  await knex('users').update({ email: null })
+  
+  // Ensure all notify_email values are false
+  await knex('users').update({ notify_email: false })
+  
+  // Modify users table to use Apprise instead of email
   await knex.schema.alterTable('users', (table) => {
     // Rename email column to apprise
     table.renameColumn('email', 'apprise')
@@ -121,6 +127,8 @@ export async function down(knex: Knex): Promise<void> {
     table.renameColumn('apprise', 'email')
     table.renameColumn('notify_apprise', 'notify_email')
   })
+  
+  // All email fields will remain null after rollback
   
   // Revert changes to configs table
   await knex.schema.alterTable('configs', (table) => {

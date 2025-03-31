@@ -281,7 +281,7 @@ export class PlexWatchlistService {
         if (!user) {
           user = await this.dbService.createUser({
             name: username,
-            apprise: `${username}@placeholder.com`,
+            apprise: null,
             alias: null,
             discord_id: null,
             notify_apprise: false,
@@ -310,7 +310,7 @@ export class PlexWatchlistService {
         if (!user) {
           user = await this.dbService.createUser({
             name: friend.username,
-            apprise: `${friend.username}@placeholder.com`,
+            apprise: null,
             alias: null,
             discord_id: null,
             notify_apprise: false,

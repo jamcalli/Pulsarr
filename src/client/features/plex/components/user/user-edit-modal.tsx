@@ -138,10 +138,10 @@ const FormContent = React.memo(
               name="notify_apprise"
               render={({ field }) => {
                 const apprise = form.watch('apprise')
-                const isPlaceholderApprise =
-                  apprise.endsWith('@placeholder.com')
-                // If it's a placeholder email and notifications are on, turn them off
-                if (isPlaceholderApprise && field.value) {
+                const hasValidApprise = !!apprise
+
+                // If no apprise endpoint and notifications are on, turn them off
+                if (!hasValidApprise && field.value) {
                   field.onChange(false)
                 }
 
@@ -155,13 +155,11 @@ const FormContent = React.memo(
                         <Switch
                           checked={field.value}
                           onCheckedChange={field.onChange}
-                          disabled={
-                            saveStatus !== 'idle' || isPlaceholderApprise
-                          }
+                          disabled={saveStatus !== 'idle' || !hasValidApprise}
                         />
                       </FormControl>
                     </div>
-                    {isPlaceholderApprise && (
+                    {!hasValidApprise && (
                       <FormMessage>Requires valid Apprise endpoint</FormMessage>
                     )}
                   </FormItem>

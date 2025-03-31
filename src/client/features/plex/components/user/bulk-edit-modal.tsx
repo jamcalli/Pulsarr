@@ -147,10 +147,10 @@ const FormContent = ({
                     </FormControl>
                     <div className="space-y-1 leading-none">
                       <FormLabel className="text-text">
-                        Reset Apprise endpoints
+                        Clear Apprise endpoints
                       </FormLabel>
                       <FormDescription>
-                        Reset all Apprise endpoints to placeholder
+                        Remove all Apprise endpoints
                       </FormDescription>
                     </div>
                   </FormItem>
@@ -163,7 +163,7 @@ const FormContent = ({
           <div className="space-y-4 pt-4">
             <h3 className="text-lg font-medium text-text">Set permissions</h3>
 
-            {/* Email Notifications */}
+            {/* Apprise Notifications */}
             <div className="space-y-2">
               <FormField
                 control={form.control}
@@ -212,7 +212,7 @@ const FormContent = ({
                           Enable Apprise notifications
                           {form.getValues('clearApprise') && (
                             <span className="text-error text-xs ml-2">
-                              (Disabled for placeholder endpoints)
+                              (Disabled without Apprise endpoint)
                             </span>
                           )}
                         </FormLabel>
@@ -397,11 +397,11 @@ export default function BulkEditModal({
     },
   })
 
-  // Watch for changes to clearEmail and adjust emailNotifyValue accordingly
+  // Watch for changes to clearApprise and adjust appriseNotifyValue accordingly
   useEffect(() => {
     const subscription = form.watch((value, { name }) => {
       if (name === 'clearApprise' && value.clearApprise) {
-        // If clearing emails, disable email notifications
+        // If clearing apprise endpoints, disable apprise notifications
         if (value.setAppriseNotify) {
           form.setValue('appriseNotifyValue', false)
         }
@@ -434,13 +434,13 @@ export default function BulkEditModal({
     }
 
     if (values.clearApprise) {
-      // Use a valid format that will pass validation
-      updates.apprise = 'placeholder@placeholder.com'
-      // When resetting to placeholder endpoints, always disable notifications
+      // Set to null to clear the apprise field
+      updates.apprise = null
+      // When clearing apprise endpoints, always disable notifications
       if (values.setAppriseNotify) {
         updates.notify_apprise = false
       } else {
-        // Explicitly disable notifications for placeholder endpoints
+        // Explicitly disable notifications without an apprise endpoint
         updates.notify_apprise = false
       }
     } else if (values.setAppriseNotify) {
