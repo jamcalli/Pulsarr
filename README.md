@@ -257,7 +257,7 @@ services:
     image: caronc/apprise:latest
     container_name: apprise
     ports:
-      - "8001:8000"
+      - "8000:8000"
     environment:
       - PUID=${PUID:-1000}
       - PGID=${PGID:-1000}
@@ -305,7 +305,7 @@ services:
     image: caronc/apprise:latest
     container_name: apprise
     ports:
-      - "8001:8000"
+      - "8000:8000"
     environment:
       - PUID=${PUID:-1000}
       - PGID=${PGID:-1000}
@@ -340,7 +340,7 @@ services:
 When using separate compose files, you'll need to add the Apprise URL to your Pulsarr `.env` file:
 
 ```
-appriseUrl=http://host-ip-address:8001
+appriseUrl=http://host-ip-address:8000
 ```
 
 Replace `host-ip-address` with your actual server IP (not localhost, as the containers won't be on the same network).
