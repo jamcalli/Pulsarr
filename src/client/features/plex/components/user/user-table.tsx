@@ -130,11 +130,11 @@ export default function UserTable({
       ),
     },
     {
-      accessorKey: 'notify_email',
-      header: () => <div className="hidden md:block">Email</div>,
+      accessorKey: 'notify_apprise',
+      header: () => <div className="hidden md:block">Apprise</div>,
       cell: ({ row }) => (
         <div className="flex justify-center w-16">
-          {row.getValue('notify_email') ? (
+          {row.getValue('notify_apprise') ? (
             <Check className="h-4 w-4 text-main" />
           ) : (
             <X className="h-4 w-4 text-error" />

@@ -281,10 +281,10 @@ export class PlexWatchlistService {
         if (!user) {
           user = await this.dbService.createUser({
             name: username,
-            email: `${username}@placeholder.com`,
+            apprise: `${username}@placeholder.com`,
             alias: null,
             discord_id: null,
-            notify_email: false,
+            notify_apprise: false,
             notify_discord: false,
             can_sync: true,
           })
@@ -310,10 +310,10 @@ export class PlexWatchlistService {
         if (!user) {
           user = await this.dbService.createUser({
             name: friend.username,
-            email: `${friend.username}@placeholder.com`,
+            apprise: `${friend.username}@placeholder.com`,
             alias: null,
             discord_id: null,
-            notify_email: false,
+            notify_apprise: false,
             notify_discord: false,
             can_sync: true,
           })
@@ -1070,27 +1070,58 @@ export class PlexWatchlistService {
               break
             }
 
-            const notificationSent =
-              await this.fastify.discord.sendMediaNotification({
+            // Send Discord webhook notification
+            let discordSent = false
+            try {
+              discordSent = await this.fastify.discord.sendMediaNotification({
                 username: user.username,
                 title: item.title,
                 type: item.type as 'movie' | 'show',
                 posterUrl: item.thumb,
               })
+            } catch (error) {
+              this.log.error(
+                'Error sending Discord webhook notification:',
+                error,
+              )
+            }
 
-            if (notificationSent) {
+            // Send Apprise watchlist addition notification
+            let appriseSent = false
+            if (this.fastify.apprise?.isEnabled()) {
+              try {
+                appriseSent =
+                  await this.fastify.apprise.sendWatchlistAdditionNotification({
+                    title: item.title,
+                    type: typeof item.type === 'string' ? item.type : 'unknown',
+                    addedBy: {
+                      name: user.username,
+                    },
+                    posterUrl: item.thumb,
+                  })
+              } catch (error) {
+                this.log.error(
+                  'Error sending Apprise watchlist addition notification:',
+                  error,
+                )
+              }
+            }
+
+            // Record notification if either method succeeded
+            if (discordSent || appriseSent) {
               const itemId =
                 typeof item.id === 'string'
                   ? Number.parseInt(item.id, 10)
                   : item.id
+
               await this.dbService.createNotificationRecord({
                 watchlist_item_id: !Number.isNaN(itemId) ? itemId : null,
                 user_id: user.userId,
                 type: 'watchlist_add',
                 title: item.title,
                 message: `New ${item.type} added to watchlist (self sync)`,
-                sent_to_discord: false,
-                sent_to_email: false,
+                sent_to_discord: discordSent,
+                sent_to_apprise: appriseSent,
                 sent_to_webhook: true,
               })
             }
@@ -1221,27 +1252,58 @@ export class PlexWatchlistService {
               break
             }
 
-            const notificationSent =
-              await this.fastify.discord.sendMediaNotification({
+            // Send Discord webhook notification
+            let discordSent = false
+            try {
+              discordSent = await this.fastify.discord.sendMediaNotification({
                 username: friend.username,
                 title: item.title,
                 type: item.type as 'movie' | 'show',
                 posterUrl: item.thumb,
               })
+            } catch (error) {
+              this.log.error(
+                'Error sending Discord webhook notification:',
+                error,
+              )
+            }
 
-            if (notificationSent) {
+            // Send Apprise watchlist addition notification
+            let appriseSent = false
+            if (this.fastify.apprise?.isEnabled()) {
+              try {
+                appriseSent =
+                  await this.fastify.apprise.sendWatchlistAdditionNotification({
+                    title: item.title,
+                    type: typeof item.type === 'string' ? item.type : 'unknown',
+                    addedBy: {
+                      name: friend.username,
+                    },
+                    posterUrl: item.thumb,
+                  })
+              } catch (error) {
+                this.log.error(
+                  'Error sending Apprise watchlist addition notification:',
+                  error,
+                )
+              }
+            }
+
+            // Record notification if either method succeeded
+            if (discordSent || appriseSent) {
               const itemId =
                 typeof item.id === 'string'
                   ? Number.parseInt(item.id, 10)
                   : item.id
+
               await this.dbService.createNotificationRecord({
                 watchlist_item_id: !Number.isNaN(itemId) ? itemId : null,
                 user_id: friend.userId,
                 type: 'watchlist_add',
                 title: item.title,
                 message: `New ${item.type} added to watchlist`,
-                sent_to_discord: false,
-                sent_to_email: false,
+                sent_to_discord: discordSent,
+                sent_to_apprise: appriseSent,
                 sent_to_webhook: true,
               })
             }
