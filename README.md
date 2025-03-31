@@ -250,8 +250,6 @@ Pulsarr supports integration with [Apprise](https://github.com/caronc/apprise) f
 Use this combined Docker Compose file to run both Pulsarr and Apprise in the same stack:
 
 ```yaml
-version: '3'
-
 services:
   apprise:
     image: caronc/apprise:latest
@@ -299,7 +297,6 @@ If you prefer to keep them separate, you can use these two compose files:
 
 **Apprise Compose (docker-compose.apprise.yml):**
 ```yaml
-version: '3'
 services:
   apprise:
     image: caronc/apprise:latest
