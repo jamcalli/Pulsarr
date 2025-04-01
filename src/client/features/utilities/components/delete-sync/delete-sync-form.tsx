@@ -107,12 +107,7 @@ export function DeleteSyncForm() {
         onOpenChange={setShowDryRunModal}
       />
 
-      <Accordion
-        type="single"
-        collapsible
-        defaultValue="delete-sync"
-        className="w-full"
-      >
+      <Accordion type="single" collapsible className="w-full">
         <AccordionItem
           value="delete-sync"
           className="border-2 border-border rounded-base overflow-hidden"

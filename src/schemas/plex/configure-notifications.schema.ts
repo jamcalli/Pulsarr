@@ -1,4 +1,3 @@
-// src/schemas/plex/configure-notifications.schema.ts
 import { z } from 'zod'
 
 const PlexNotificationConfigSchema = z.object({

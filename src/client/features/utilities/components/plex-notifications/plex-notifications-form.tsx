@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Loader2, Save, Trash2, X } from 'lucide-react'
+import { Loader2, Save, Trash2, X, Search, ServerIcon } from 'lucide-react'
 import {
   Form,
   FormControl,
@@ -21,17 +21,25 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { usePlexNotifications } from '@/features/utilities/hooks/usePlexNotifications'
+import { usePlexServerDiscovery } from '@/features/utilities/hooks/usePlexServerDiscovery'
 import { PlexNotificationsConfirmationModal } from '@/features/utilities/components/plex-notifications/plex-notifications-confirmation-modal'
 import { PlexNotificationsSkeleton } from '@/features/utilities/components/plex-notifications/plex-notifications-skeleton'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 
 /**
- * Renders a form for configuring Plex notifications.
+ * Renders a form for configuring Plex notifications with server discovery.
  *
  * This component provides an interface to set up Plex notifications in all Radarr and Sonarr instances.
  * It allows users to specify Plex connection details like token, host, port, and SSL settings.
  * The form includes a delete button to remove all Plex notifications across instances.
- *
- * @returns A React element representing the Plex notifications configuration form.
+ * Added server discovery functionality to find available Plex servers with a token.
  */
 export function PlexNotificationsForm() {
   const {
@@ -47,6 +55,7 @@ export function PlexNotificationsForm() {
     lastResults,
   } = usePlexNotifications()
 
+  const { isDiscovering, servers, discoverServers } = usePlexServerDiscovery()
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
 
   if (isLoading) {
@@ -201,6 +210,8 @@ export function PlexNotificationsForm() {
                         <h3 className="font-medium text-sm text-text mb-2">
                           Plex Connection Settings
                         </h3>
+                        
+                        {/* Plex Token Field with Discovery Button */}
                         <FormField
                           control={form.control}
                           name="plexToken"
@@ -209,16 +220,80 @@ export function PlexNotificationsForm() {
                               <FormLabel className="text-text">
                                 Plex Token
                               </FormLabel>
-                              <FormControl>
-                                <Input
-                                  {...field}
-                                  placeholder="Your Plex authentication token"
-                                />
-                              </FormControl>
+                              <div className="flex space-x-2">
+                                <FormControl>
+                                  <Input
+                                    {...field}
+                                    placeholder="Your Plex authentication token"
+                                    className="flex-1"
+                                  />
+                                </FormControl>
+                                <Button 
+                                  type="button" 
+                                  variant="noShadow"
+                                  onClick={() => discoverServers(field.value)}
+                                  disabled={isDiscovering || !field.value}
+                                >
+                                  {isDiscovering ? (
+                                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                  ) : (
+                                    <Search className="h-4 w-4 mr-2" />
+                                  )}
+                                  Find Servers
+                                </Button>
+                              </div>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
+
+                        {/* Server Selection Cards */}
+                        {servers.length > 0 && (
+                          <div className="pt-1 pb-2">
+                            <h4 className="text-sm font-medium text-text mb-3">
+                              Available Servers
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              {servers.map((server, index) => (
+                                <Card 
+                                  key={index} 
+                                  className="cursor-pointer hover:border-primary transition-colors"
+                                  onClick={() => {
+                                    form.setValue('plexHost', server.host, { shouldDirty: true });
+                                    form.setValue('plexPort', server.port, { shouldDirty: true });
+                                    form.setValue('useSsl', server.useSsl, { shouldDirty: true });
+                                  }}
+                                >
+                                  <CardHeader className="py-3 px-4">
+                                    <CardTitle className="text-base flex items-center">
+                                      <ServerIcon className="h-4 w-4 mr-2 text-primary" />
+                                      {server.name}
+                                    </CardTitle>
+                                    <CardDescription className="text-xs">
+                                      {server.local ? 'Local Connection' : 'Remote Connection'}
+                                    </CardDescription>
+                                  </CardHeader>
+                                  <CardContent className="py-0 px-4">
+                                    <p className="text-xs text-text">
+                                      {server.host}:{server.port}
+                                      {server.useSsl ? ' (SSL)' : ''}
+                                    </p>
+                                  </CardContent>
+                                  <CardFooter className="py-3 px-4">
+                                    <Button
+                                      type="button"
+                                      variant="noShadow"
+                                      size="sm"
+                                      className="w-full"
+                                    >
+                                      Select
+                                    </Button>
+                                  </CardFooter>
+                                </Card>
+                              ))}
+                            </div>
+                          </div>
+                        )}
 
                         <FormField
                           control={form.control}

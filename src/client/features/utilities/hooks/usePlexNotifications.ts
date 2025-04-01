@@ -9,6 +9,9 @@ import type {
 } from '@root/schemas/plex/configure-notifications.schema'
 import type { PlexNotificationStatusResponse } from '@root/schemas/plex/get-notification-status.schema'
 
+// Minimum loading delay
+const MIN_LOADING_DELAY = 500
+
 const plexNotificationsSchema = z.object({
   plexToken: z.string().min(1, 'Plex token is required'),
   plexHost: z.string().min(1, 'Plex host is required'),
@@ -65,7 +68,19 @@ export function usePlexNotifications() {
       setError(null)
 
       try {
-        const response = await fetch('/v1/plex/notification-status')
+        // Create a minimum loading time promise
+        const minimumLoadingTime = new Promise((resolve) =>
+          setTimeout(resolve, MIN_LOADING_DELAY),
+        )
+
+        // Execute fetch
+        const responsePromise = fetch('/v1/plex/notification-status')
+
+        // Wait for both the response and the minimum loading time
+        const [response] = await Promise.all([
+          responsePromise,
+          minimumLoadingTime,
+        ])
 
         if (!response.ok) {
           const errorData = await response.json()
@@ -98,14 +113,25 @@ export function usePlexNotifications() {
       setError(null)
 
       try {
+        // Create a minimum loading time promise
+        const minimumLoadingTime = new Promise((resolve) =>
+          setTimeout(resolve, MIN_LOADING_DELAY),
+        )
+
         // Send the request to configure Plex notifications
-        const response = await fetch('/v1/plex/configure-notifications', {
+        const responsePromise = fetch('/v1/plex/configure-notifications', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(data),
         })
+
+        // Wait for both the response and the minimum loading time
+        const [response] = await Promise.all([
+          responsePromise,
+          minimumLoadingTime,
+        ])
 
         if (!response.ok) {
           const errorData = await response.json()
@@ -157,10 +183,21 @@ export function usePlexNotifications() {
     setError(null)
 
     try {
+      // Create a minimum loading time promise
+      const minimumLoadingTime = new Promise((resolve) =>
+        setTimeout(resolve, MIN_LOADING_DELAY),
+      )
+
       // Send the request to remove Plex notifications
-      const response = await fetch('/v1/plex/remove-notifications', {
+      const responsePromise = fetch('/v1/plex/remove-notifications', {
         method: 'DELETE',
       })
+
+      // Wait for both the response and the minimum loading time
+      const [response] = await Promise.all([
+        responsePromise,
+        minimumLoadingTime,
+      ])
 
       if (!response.ok) {
         const errorData = await response.json()
