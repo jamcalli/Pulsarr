@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { usePlexNotifications } from '@/features/utilities/hooks/usePlexNotifications'
 import { PlexNotificationsConfirmationModal } from '@/features/utilities/components/plex-notifications/plex-notifications-confirmation-modal'
+import { PlexNotificationsSkeleton } from '@/features/utilities/components/plex-notifications/plex-notifications-skeleton'
 
 /**
  * Renders a form for configuring Plex notifications.
@@ -38,6 +39,7 @@ export function PlexNotificationsForm() {
     error,
     isSubmitting,
     isDeleting,
+    isLoading,
     onSubmit,
     handleCancel,
     handleDelete,
@@ -46,6 +48,10 @@ export function PlexNotificationsForm() {
   } = usePlexNotifications()
 
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
+
+  if (isLoading) {
+    return <PlexNotificationsSkeleton />
+  }
 
   return (
     <>

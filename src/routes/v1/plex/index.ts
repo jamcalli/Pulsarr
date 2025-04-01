@@ -7,6 +7,7 @@ import { rssWatchlistRoute } from '@routes/v1/plex/parse-rss.js'
 import { getGenresRoute } from '@routes/v1/plex/get-genres.js'
 import { configureNotificationsRoute } from '@routes/v1/plex/configure-notifications.js'
 import { removeNotificationsRoute } from '@routes/v1/plex/remove-notifications.js'
+import { getNotificationStatusRoute } from '@routes/v1/plex/get-notification-status.js'
 
 const plexPlugin: FastifyPluginAsyncZod = async (fastify) => {
   await fastify.register(selfWatchlistTokenRoute)
@@ -17,6 +18,7 @@ const plexPlugin: FastifyPluginAsyncZod = async (fastify) => {
   await fastify.register(getGenresRoute)
   await fastify.register(configureNotificationsRoute)
   await fastify.register(removeNotificationsRoute)
+  await fastify.register(getNotificationStatusRoute)
 }
 
 export default plexPlugin

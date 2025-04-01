@@ -617,7 +617,7 @@ export class SonarrService {
     }
   }
 
-  private async getFromSonarr<T>(endpoint: string): Promise<T> {
+  async getFromSonarr<T>(endpoint: string): Promise<T> {
     const config = this.sonarrConfig
     const url = new URL(`${config.sonarrBaseUrl}/api/v3/${endpoint}`)
     const response = await fetch(url.toString(), {
