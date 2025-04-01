@@ -678,4 +678,105 @@ export class SonarrService {
       throw new Error(`Sonarr API error: ${response.statusText}`)
     }
   }
+
+  async configurePlexNotification(
+    plexToken: string,
+    plexHost: string,
+    plexPort: number,
+    useSsl: boolean,
+  ): Promise<void> {
+    try {
+      // First, check if Plex server connection already exists
+      const existingNotifications =
+        await this.getFromSonarr<WebhookNotification[]>('notification')
+      const existingPlexNotification = existingNotifications.find(
+        (n) => n.implementation === 'PlexServer',
+      )
+
+      if (existingPlexNotification) {
+        // Update existing notification
+        await this.deleteNotification(existingPlexNotification.id)
+      }
+
+      // Create notification configuration
+      const plexConfig = {
+        onGrab: false,
+        onDownload: true,
+        onUpgrade: true,
+        onRename: true,
+        onSeriesDelete: true,
+        onEpisodeFileDelete: true,
+        onEpisodeFileDeleteForUpgrade: true,
+        onHealthIssue: false,
+        onApplicationUpdate: false,
+        supportsOnGrab: false,
+        supportsOnDownload: true,
+        supportsOnUpgrade: true,
+        supportsOnRename: true,
+        supportsOnSeriesDelete: true,
+        supportsOnEpisodeFileDelete: true,
+        supportsOnEpisodeFileDeleteForUpgrade: true,
+        supportsOnHealthIssue: false,
+        supportsOnApplicationUpdate: false,
+        includeHealthWarnings: false,
+        name: 'Plex Media Server',
+        fields: [
+          {
+            name: 'host',
+            value: plexHost,
+          },
+          {
+            name: 'port',
+            value: plexPort,
+          },
+          {
+            name: 'useSsl',
+            value: useSsl,
+          },
+          {
+            name: 'authToken',
+            value: plexToken,
+          },
+          {
+            name: 'updateLibrary',
+            value: true,
+          },
+        ],
+        implementationName: 'Plex Media Server',
+        implementation: 'PlexServer',
+        configContract: 'PlexServerSettings',
+        infoLink: 'https://wiki.servarr.com/sonarr/supported#plexserver',
+        tags: [],
+      }
+
+      // Add the notification to Sonarr
+      await this.postToSonarr('notification', plexConfig)
+      this.log.info('Successfully configured Plex notification for Sonarr')
+    } catch (error) {
+      this.log.error('Error configuring Plex notification for Sonarr:', error)
+      throw error
+    }
+  }
+
+  async removePlexNotification(): Promise<void> {
+    try {
+      // Find Plex server notification
+      const existingNotifications =
+        await this.getFromSonarr<WebhookNotification[]>('notification')
+      const existingPlexNotification = existingNotifications.find(
+        (n) => n.implementation === 'PlexServer',
+      )
+
+      if (existingPlexNotification) {
+        // Delete the notification
+        await this.deleteNotification(existingPlexNotification.id)
+        this.log.info('Successfully removed Plex notification from Sonarr')
+      } else {
+        this.log.info('No Plex notification found to remove from Sonarr')
+      }
+    } catch (error) {
+      this.log.error('Error removing Plex notification from Sonarr:', error)
+      throw error
+    }
+  }
 }

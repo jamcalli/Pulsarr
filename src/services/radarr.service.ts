@@ -719,4 +719,105 @@ export class RadarrService {
       }
     }
   }
+
+  async configurePlexNotification(
+    plexToken: string,
+    plexHost: string,
+    plexPort: number,
+    useSsl: boolean,
+  ): Promise<void> {
+    try {
+      // First, check if Plex server connection already exists
+      const existingNotifications =
+        await this.getFromRadarr<WebhookNotification[]>('notification')
+      const existingPlexNotification = existingNotifications.find(
+        (n) => n.implementation === 'PlexServer',
+      )
+
+      if (existingPlexNotification) {
+        // Update existing notification
+        await this.deleteNotification(existingPlexNotification.id)
+      }
+
+      // Create notification configuration
+      const plexConfig = {
+        onGrab: false,
+        onDownload: true,
+        onUpgrade: true,
+        onRename: true,
+        onMovieDelete: true,
+        onMovieFileDelete: true,
+        onMovieFileDeleteForUpgrade: true,
+        onHealthIssue: false,
+        onApplicationUpdate: false,
+        supportsOnGrab: false,
+        supportsOnDownload: true,
+        supportsOnUpgrade: true,
+        supportsOnRename: true,
+        supportsOnMovieDelete: true,
+        supportsOnMovieFileDelete: true,
+        supportsOnMovieFileDeleteForUpgrade: true,
+        supportsOnHealthIssue: false,
+        supportsOnApplicationUpdate: false,
+        includeHealthWarnings: false,
+        name: 'Plex Media Server',
+        fields: [
+          {
+            name: 'host',
+            value: plexHost,
+          },
+          {
+            name: 'port',
+            value: plexPort,
+          },
+          {
+            name: 'useSsl',
+            value: useSsl,
+          },
+          {
+            name: 'authToken',
+            value: plexToken,
+          },
+          {
+            name: 'updateLibrary',
+            value: true,
+          },
+        ],
+        implementationName: 'Plex Media Server',
+        implementation: 'PlexServer',
+        configContract: 'PlexServerSettings',
+        infoLink: 'https://wiki.servarr.com/radarr/supported#plexserver',
+        tags: [],
+      }
+
+      // Add the notification to Radarr
+      await this.postToRadarr('notification', plexConfig)
+      this.log.info('Successfully configured Plex notification')
+    } catch (error) {
+      this.log.error('Error configuring Plex notification:', error)
+      throw error
+    }
+  }
+
+  async removePlexNotification(): Promise<void> {
+    try {
+      // Find Plex server notification
+      const existingNotifications =
+        await this.getFromRadarr<WebhookNotification[]>('notification')
+      const existingPlexNotification = existingNotifications.find(
+        (n) => n.implementation === 'PlexServer',
+      )
+
+      if (existingPlexNotification) {
+        // Delete the notification
+        await this.deleteNotification(existingPlexNotification.id)
+        this.log.info('Successfully removed Plex notification from Radarr')
+      } else {
+        this.log.info('No Plex notification found to remove from Radarr')
+      }
+    } catch (error) {
+      this.log.error('Error removing Plex notification from Radarr:', error)
+      throw error
+    }
+  }
 }
