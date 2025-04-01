@@ -608,7 +608,7 @@ export class RadarrService {
     }
   }
 
-  private async getFromRadarr<T>(endpoint: string): Promise<T> {
+  async getFromRadarr<T>(endpoint: string): Promise<T> {
     const config = this.radarrConfig
     const url = new URL(`${config.radarrBaseUrl}/api/v3/${endpoint}`)
     const response = await fetch(url.toString(), {

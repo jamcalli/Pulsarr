@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useToast } from '@/hooks/use-toast'
@@ -7,6 +7,7 @@ import type {
   PlexNotificationConfig,
   PlexNotificationResponse,
 } from '@root/schemas/plex/configure-notifications.schema'
+import type { PlexNotificationStatusResponse } from '@root/schemas/plex/get-notification-status.schema'
 
 const plexNotificationsSchema = z.object({
   plexToken: z.string().min(1, 'Plex token is required'),
@@ -29,6 +30,7 @@ export type PlexNotificationsFormValues = PlexNotificationConfig
  * - error: Any error encountered during operations.
  * - isSubmitting: Boolean indicating if the form is being submitted.
  * - isDeleting: Boolean indicating if the configuration is being deleted.
+ * - isLoading: Boolean indicating if the status is being loaded.
  * - onSubmit: Function to handle form submission.
  * - handleCancel: Function to reset the form to its default values.
  * - handleDelete: Function to delete the configuration.
@@ -40,8 +42,10 @@ export function usePlexNotifications() {
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
-  const [lastResults, setLastResults] =
-    useState<PlexNotificationResponse | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [lastResults, setLastResults] = useState<
+    PlexNotificationResponse | PlexNotificationStatusResponse | null
+  >(null)
 
   // Initialize form with default values
   const form = useForm<PlexNotificationsFormValues>({
@@ -53,6 +57,39 @@ export function usePlexNotifications() {
       useSsl: false,
     },
   })
+
+  // Fetch current notification status on mount
+  useEffect(() => {
+    const fetchStatus = async () => {
+      setIsLoading(true)
+      setError(null)
+
+      try {
+        const response = await fetch('/v1/plex/notification-status')
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(
+            errorData.error || 'Failed to fetch Plex notification status',
+          )
+        }
+
+        const results: PlexNotificationStatusResponse = await response.json()
+        setLastResults(results)
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error
+            ? err.message
+            : 'Failed to fetch Plex notification status'
+
+        setError(errorMessage)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchStatus()
+  }, [])
 
   // Handle form submission
   const onSubmit = useCallback(
@@ -168,6 +205,7 @@ export function usePlexNotifications() {
     error,
     isSubmitting,
     isDeleting,
+    isLoading,
     onSubmit,
     handleCancel,
     handleDelete,
