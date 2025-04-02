@@ -45,7 +45,7 @@ export const configureNotificationsRoute: FastifyPluginAsyncZod = async (
           }>,
         }
 
-        // Process each Radarr instance
+        // Process each Radarr instance with timeout
         for (const instance of radarrInstances) {
           try {
             // Get the RadarrService for this instance
@@ -63,13 +63,26 @@ export const configureNotificationsRoute: FastifyPluginAsyncZod = async (
               continue
             }
 
-            // Configure Plex notification
-            await radarrService.configurePlexNotification(
+            // Configure Plex notification with timeout
+            const timeoutPromise = new Promise((_, reject) => {
+              setTimeout(() => {
+                reject(
+                  new Error(
+                    'Timeout configuring Plex notification for Radarr instance',
+                  ),
+                )
+              }, 5000) // 5 second timeout
+            })
+
+            const configurePromise = radarrService.configurePlexNotification(
               plexToken,
               plexHost,
               plexPort,
               useSsl,
             )
+
+            // Race the configuration against the timeout
+            await Promise.race([configurePromise, timeoutPromise])
 
             results.radarr.push({
               id: instance.id,
@@ -91,7 +104,7 @@ export const configureNotificationsRoute: FastifyPluginAsyncZod = async (
           }
         }
 
-        // Process each Sonarr instance
+        // Process each Sonarr instance with timeout
         for (const instance of sonarrInstances) {
           try {
             // Get the SonarrService for this instance
@@ -109,13 +122,26 @@ export const configureNotificationsRoute: FastifyPluginAsyncZod = async (
               continue
             }
 
-            // Configure Plex notification
-            await sonarrService.configurePlexNotification(
+            // Configure Plex notification with timeout
+            const timeoutPromise = new Promise((_, reject) => {
+              setTimeout(() => {
+                reject(
+                  new Error(
+                    'Timeout configuring Plex notification for Sonarr instance',
+                  ),
+                )
+              }, 5000) // 5 second timeout
+            })
+
+            const configurePromise = sonarrService.configurePlexNotification(
               plexToken,
               plexHost,
               plexPort,
               useSsl,
             )
+
+            // Race the configuration against the timeout
+            await Promise.race([configurePromise, timeoutPromise])
 
             results.sonarr.push({
               id: instance.id,

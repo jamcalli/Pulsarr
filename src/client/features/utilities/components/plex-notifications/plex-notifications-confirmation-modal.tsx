@@ -9,7 +9,6 @@ import {
   CredenzaClose,
 } from '@/components/ui/credenza'
 import { Button } from '@/components/ui/button'
-import { AlertTriangle } from 'lucide-react'
 
 interface PlexNotificationsConfirmationModalProps {
   open: boolean
@@ -21,7 +20,7 @@ interface PlexNotificationsConfirmationModalProps {
 /**
  * Renders a confirmation modal for removing Plex notifications.
  *
- * This modal displays a warning message to confirm the user's intention to remove Plex notifications
+ * This modal displays a message to confirm the user's intention to remove Plex notifications
  * from all Radarr and Sonarr instances. It provides buttons to either proceed with the removal
  * or cancel the operation.
  *
@@ -40,23 +39,16 @@ export function PlexNotificationsConfirmationModal({
     <Credenza open={open} onOpenChange={onOpenChange}>
       <CredenzaContent>
         <CredenzaHeader>
-          <CredenzaTitle className="text-text flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-yellow-500" />
+          <CredenzaTitle className="text-text">
             Remove Plex Notifications?
           </CredenzaTitle>
           <CredenzaDescription>
             This will remove Plex notifications from all your Radarr and Sonarr
-            instances. Are you sure you want to proceed?
+            instances. You'll need to reconfigure them if you want to restore
+            this functionality.
           </CredenzaDescription>
         </CredenzaHeader>
         <CredenzaBody>
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-4 rounded-md mb-4">
-            <p className="text-yellow-800 dark:text-yellow-200 text-sm">
-              This action will remove Plex notification settings from all
-              configured instances. You'll need to reconfigure them if you want
-              to restore this functionality.
-            </p>
-          </div>
           <CredenzaFooter>
             <CredenzaClose asChild>
               <Button variant="neutral">Cancel</Button>
