@@ -341,39 +341,37 @@ export class WatchlistWorkflowService {
       const isFeedEmpty = currentWatchlist.length === 0
 
       if (isFeedEmpty) {
-        this.log.warn(
-          'Self RSS feed is empty, treating as an error condition and skipping processing',
-        )
-        return // Skip processing this cycle entirely
-      }
-
-      // Check if previous state was empty or not yet initialized
-      if (this.previousSelfItems.size === 0) {
-        this.log.info(
-          `First valid self RSS feed received with ${currentWatchlist.length} items, establishing baseline`,
-        )
-        this.previousSelfItems = this.createItemMap(currentWatchlist)
-
-        // If this is the first time we're seeing content, we should process all items as new
-        if (this.hasProcessedInitialFeed.self === false) {
-          this.log.info('Processing initial items from first valid feed')
-          const allItemsAsChanges = new Set(
-            currentWatchlist.map((item) => this.convertToTempItem(item)),
+        this.log.warn('Self RSS feed is empty, skipping self feed processing')
+      } else {
+        // Check if previous state was empty or not yet initialized
+        if (this.previousSelfItems.size === 0) {
+          this.log.info(
+            `First valid self RSS feed received with ${currentWatchlist.length} items, establishing baseline`,
           )
-          await this.addToQueue(allItemsAsChanges, 'self')
-          this.hasProcessedInitialFeed.self = true
+          this.previousSelfItems = this.createItemMap(currentWatchlist)
+
+          // If this is the first time we're seeing content, we should process all items as new
+          if (this.hasProcessedInitialFeed.self === false) {
+            this.log.info('Processing initial items from first valid feed')
+            const allItemsAsChanges = new Set(
+              currentWatchlist.map((item) => this.convertToTempItem(item)),
+            )
+            await this.addToQueue(allItemsAsChanges, 'self')
+            this.hasProcessedInitialFeed.self = true
+          }
+        } else {
+          // Both current and previous feeds are valid, proceed with normal change detection
+          const currentItems = this.createItemMap(currentWatchlist)
+          const changes = this.detectChanges(
+            this.previousSelfItems,
+            currentItems,
+          )
+          if (changes.size > 0) {
+            await this.addToQueue(changes, 'self')
+          }
+          this.previousSelfItems = currentItems
         }
-
-        return
       }
-
-      // Both current and previous feeds are valid, proceed with normal change detection
-      const currentItems = this.createItemMap(currentWatchlist)
-      const changes = this.detectChanges(this.previousSelfItems, currentItems)
-      if (changes.size > 0) {
-        await this.addToQueue(changes, 'self')
-      }
-      this.previousSelfItems = currentItems
     }
 
     // Process friends RSS feed
@@ -383,41 +381,38 @@ export class WatchlistWorkflowService {
 
       if (isFeedEmpty) {
         this.log.warn(
-          'Friends RSS feed is empty, treating as an error condition and skipping processing',
+          'Friends RSS feed is empty, skipping friends feed processing',
         )
-        return // Skip processing this cycle entirely
-      }
-
-      // Check if previous state was empty or not yet initialized
-      if (this.previousFriendsItems.size === 0) {
-        this.log.info(
-          `First valid friends RSS feed received with ${currentWatchlist.length} items, establishing baseline`,
-        )
-        this.previousFriendsItems = this.createItemMap(currentWatchlist)
-
-        // If this is the first time we're seeing content, we should process all items as new
-        if (this.hasProcessedInitialFeed.friends === false) {
-          this.log.info('Processing initial items from first valid feed')
-          const allItemsAsChanges = new Set(
-            currentWatchlist.map((item) => this.convertToTempItem(item)),
+      } else {
+        // Check if previous state was empty or not yet initialized
+        if (this.previousFriendsItems.size === 0) {
+          this.log.info(
+            `First valid friends RSS feed received with ${currentWatchlist.length} items, establishing baseline`,
           )
-          await this.addToQueue(allItemsAsChanges, 'friends')
-          this.hasProcessedInitialFeed.friends = true
+          this.previousFriendsItems = this.createItemMap(currentWatchlist)
+
+          // If this is the first time we're seeing content, we should process all items as new
+          if (this.hasProcessedInitialFeed.friends === false) {
+            this.log.info('Processing initial items from first valid feed')
+            const allItemsAsChanges = new Set(
+              currentWatchlist.map((item) => this.convertToTempItem(item)),
+            )
+            await this.addToQueue(allItemsAsChanges, 'friends')
+            this.hasProcessedInitialFeed.friends = true
+          }
+        } else {
+          // Both current and previous feeds are valid, proceed with normal change detection
+          const currentItems = this.createItemMap(currentWatchlist)
+          const changes = this.detectChanges(
+            this.previousFriendsItems,
+            currentItems,
+          )
+          if (changes.size > 0) {
+            await this.addToQueue(changes, 'friends')
+          }
+          this.previousFriendsItems = currentItems
         }
-
-        return
       }
-
-      // Both current and previous feeds are valid, proceed with normal change detection
-      const currentItems = this.createItemMap(currentWatchlist)
-      const changes = this.detectChanges(
-        this.previousFriendsItems,
-        currentItems,
-      )
-      if (changes.size > 0) {
-        await this.addToQueue(changes, 'friends')
-      }
-      this.previousFriendsItems = currentItems
     }
   }
 

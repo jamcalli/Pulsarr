@@ -1,10 +1,10 @@
 export interface User {
   id: number
   name: string
-  email: string | null
+  apprise: string | null
   alias: string | null
   discord_id: string | null
-  notify_email: boolean
+  notify_apprise: boolean
   notify_discord: boolean
   can_sync: boolean
   created_at?: string
@@ -20,7 +20,19 @@ export type LogLevel =
   | 'trace'
   | 'silent'
 
-export type DeleteSyncNotifyOption = 'none' | 'message' | 'webhook' | 'both'
+export type DeleteSyncNotifyOption =
+  | 'none' // No notifications
+  | 'message' // Discord DM only (legacy)
+  | 'webhook' // Discord webhook only (legacy)
+  | 'both' // Both Discord webhook and DM (legacy)
+  | 'all' // All available notification channels
+  | 'discord-only' // Only Discord (both webhook and DM if configured)
+  | 'apprise-only' // Only Apprise
+  | 'webhook-only' // Only Discord webhook (no DMs)
+  | 'dm-only' // Only Discord DMs (no webhook)
+  | 'discord-webhook' // Equivalent to webhook-only
+  | 'discord-message' // Equivalent to dm-only
+  | 'discord-both' // Both Discord webhook and DMs, no Apprise
 
 export interface Config {
   // System Config
@@ -40,6 +52,10 @@ export interface Config {
   discordBotToken: string
   discordClientId: string
   discordGuildId: string
+  // Apprise Config
+  enableApprise: boolean
+  appriseUrl: string
+  systemAppriseUrl: string
   // General Notifications
   queueWaitTime: number
   newEpisodeThreshold: number

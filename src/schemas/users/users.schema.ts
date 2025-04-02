@@ -2,10 +2,10 @@ import { z } from 'zod'
 
 export const CreateUserSchema = z.object({
   name: z.string().min(3).max(255),
-  email: z.string().email().nullable(),
+  apprise: z.string().nullable(),
   alias: z.string().min(3).max(255).nullable(),
   discord_id: z.string().nullable(),
-  notify_email: z.boolean().default(false),
+  notify_apprise: z.boolean().default(false),
   notify_discord: z.boolean().default(false),
   can_sync: z.boolean().default(true),
 })
@@ -16,10 +16,10 @@ export const CreateUserResponseSchema = z.object({
   user: z.object({
     id: z.number(),
     name: z.string(),
-    email: z.string().nullable(),
+    apprise: z.string().nullable(),
     alias: z.string().nullable(),
     discord_id: z.string().nullable(),
-    notify_email: z.boolean(),
+    notify_apprise: z.boolean(),
     notify_discord: z.boolean(),
     can_sync: z.boolean(),
     created_at: z.string(),
@@ -35,10 +35,10 @@ export const UpdateUserResponseSchema = z.object({
   user: z.object({
     id: z.number(),
     name: z.string(),
-    email: z.string().nullable(),
+    apprise: z.string().nullable(),
     alias: z.string().nullable(),
     discord_id: z.string().nullable(),
-    notify_email: z.boolean(),
+    notify_apprise: z.boolean(),
     notify_discord: z.boolean(),
     can_sync: z.boolean(),
     created_at: z.string(),

@@ -173,10 +173,10 @@ export class DatabaseService {
     return {
       id: row.id,
       name: row.name,
-      email: row.email,
+      apprise: row.apprise,
       alias: row.alias,
       discord_id: row.discord_id,
-      notify_email: Boolean(row.notify_email),
+      notify_apprise: Boolean(row.notify_apprise),
       notify_discord: Boolean(row.notify_discord),
       can_sync: Boolean(row.can_sync),
       created_at: row.created_at,
@@ -282,10 +282,10 @@ export class DatabaseService {
     return rows.map((row) => ({
       id: row.id,
       name: row.name,
-      email: row.email,
+      apprise: row.apprise,
       alias: row.alias,
       discord_id: row.discord_id,
-      notify_email: Boolean(row.notify_email),
+      notify_apprise: Boolean(row.notify_apprise),
       notify_discord: Boolean(row.notify_discord),
       can_sync: Boolean(row.can_sync),
       created_at: row.created_at,
@@ -313,10 +313,10 @@ export class DatabaseService {
     return rows.map((row) => ({
       id: row.id,
       name: row.name,
-      email: row.email,
+      apprise: row.apprise,
       alias: row.alias,
       discord_id: row.discord_id,
-      notify_email: Boolean(row.notify_email),
+      notify_apprise: Boolean(row.notify_apprise),
       notify_discord: Boolean(row.notify_discord),
       can_sync: Boolean(row.can_sync),
       created_at: row.created_at,
@@ -454,6 +454,10 @@ export class DatabaseService {
       queueWaitTime: config.queueWaitTime || 120000,
       newEpisodeThreshold: config.newEpisodeThreshold || 172800000,
       upgradeBufferTime: config.upgradeBufferTime || 2000,
+      // Handle Apprise configuration
+      enableApprise: Boolean(config.enableApprise),
+      appriseUrl: config.appriseUrl || '',
+      systemAppriseUrl: config.systemAppriseUrl || undefined,
       // Convert boolean fields
       cookieSecured: Boolean(config.cookieSecured),
       skipFriendSync: Boolean(config.skipFriendSync),
@@ -494,6 +498,10 @@ export class DatabaseService {
         queueWaitTime: config.queueWaitTime || 120000,
         newEpisodeThreshold: config.newEpisodeThreshold || 172800000,
         upgradeBufferTime: config.upgradeBufferTime || 2000,
+        // Apprise fields
+        enableApprise: config.enableApprise || false,
+        appriseUrl: config.appriseUrl || '',
+        systemAppriseUrl: config.systemAppriseUrl || undefined,
         // Plex fields
         plexTokens: JSON.stringify(config.plexTokens || []),
         skipFriendSync: config.skipFriendSync,
@@ -544,7 +552,9 @@ export class DatabaseService {
           key === 'discordWebhookUrl' ||
           key === 'discordBotToken' ||
           key === 'discordClientId' ||
-          key === 'discordGuildId'
+          key === 'discordGuildId' ||
+          key === 'appriseUrl' ||
+          key === 'systemAppriseUrl'
         ) {
           updateData[key] = value
         } else if (
@@ -2180,7 +2190,7 @@ export class DatabaseService {
       if (!user) continue
 
       // Skip if user has disabled notifications
-      if (!user.notify_discord && !user.notify_email) continue
+      if (!user.notify_discord && !user.notify_apprise) continue
 
       // Special handling for ended shows that were already notified (unless bulk release)
       if (
@@ -2280,7 +2290,7 @@ export class DatabaseService {
           type: 'movie',
           title: notificationTitle,
           sent_to_discord: Boolean(user.notify_discord),
-          sent_to_email: Boolean(user.notify_email),
+          sent_to_apprise: Boolean(user.notify_apprise),
           sent_to_webhook: false,
         })
       } else if (contentType === 'season') {
@@ -2295,7 +2305,7 @@ export class DatabaseService {
           title: notificationTitle,
           season_number: seasonNumber,
           sent_to_discord: Boolean(user.notify_discord),
-          sent_to_email: Boolean(user.notify_email),
+          sent_to_apprise: Boolean(user.notify_apprise),
           sent_to_webhook: false,
         })
       } else if (
@@ -2322,7 +2332,7 @@ export class DatabaseService {
           season_number: episode.seasonNumber,
           episode_number: episode.episodeNumber,
           sent_to_discord: Boolean(user.notify_discord),
-          sent_to_email: Boolean(user.notify_email),
+          sent_to_apprise: Boolean(user.notify_apprise),
           sent_to_webhook: false,
         })
       }
@@ -2330,10 +2340,14 @@ export class DatabaseService {
       // Add to results
       notifications.push({
         user: {
-          discord_id: user.discord_id,
-          notify_discord: user.notify_discord,
-          notify_email: user.notify_email,
+          id: user.id,
           name: user.name,
+          apprise: user.apprise,
+          alias: user.alias,
+          discord_id: user.discord_id,
+          notify_apprise: user.notify_apprise,
+          notify_discord: user.notify_discord,
+          can_sync: user.can_sync,
         },
         notification,
       })
@@ -2357,7 +2371,7 @@ export class DatabaseService {
     season_number?: number
     episode_number?: number
     sent_to_discord: boolean
-    sent_to_email: boolean
+    sent_to_apprise: boolean
     sent_to_webhook?: boolean
     notification_status?: string
   }): Promise<number> {
@@ -3301,12 +3315,12 @@ export class DatabaseService {
     
     UNION ALL
     
-    -- Count email notifications
+    -- Count apprise notifications
     SELECT 
-      'email' as channel, 
+      'apprise' as channel, 
       COUNT(*) as count 
     FROM notifications 
-    WHERE created_at >= ? AND sent_to_email = 1
+    WHERE created_at >= ? AND sent_to_apprise = 1
     
     UNION ALL
     

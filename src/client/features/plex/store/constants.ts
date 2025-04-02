@@ -7,6 +7,3 @@ export const PLEX_STATUS = {
 
 // Minimum loading delay for UI feedback (ms)
 export const MIN_LOADING_DELAY = 500
-
-// Default values
-export const DEFAULT_EMAIL_PLACEHOLDER = '@placeholder.com'

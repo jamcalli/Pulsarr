@@ -29,53 +29,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       const { userIds, updates } = request.body
 
       try {
-        // Check if this is a placeholder email operation
-        if (updates.email === 'placeholder@placeholder.com') {
-          // Special case: reset emails to username@placeholder.com for each user
-          const failedIds = []
-          let updatedCount = 0
-
-          // Process each user individually
-          for (const userId of userIds) {
-            try {
-              const user = await fastify.db.getUser(userId)
-
-              if (user) {
-                // Create a personalized update for this specific user
-                const userUpdates = {
-                  ...updates, // Include all other updates
-                  email: `${user.name}@placeholder.com`, // Personalized placeholder email
-                  notify_email: false, // Always disable email notifications for placeholder emails
-                }
-
-                // Apply the update
-                const result = await fastify.db.updateUser(userId, userUpdates)
-
-                if (result) {
-                  updatedCount++
-                } else {
-                  failedIds.push(userId)
-                }
-              } else {
-                failedIds.push(userId)
-              }
-            } catch (err) {
-              fastify.log.error(`Error updating user ${userId}:`, err)
-              failedIds.push(userId)
-            }
-          }
-
-          return {
-            success: updatedCount > 0,
-            message: `Updated ${updatedCount} of ${userIds.length} users`,
-            updatedCount,
-            ...(failedIds.length > 0 ? { failedIds } : {}),
-          }
-        }
-
-        // Validate notificaiton preferences against user data
+        // Validate notification preferences against user data
         const isUpdatingNotifications =
-          updates.notify_email !== undefined ||
+          updates.notify_apprise !== undefined ||
           updates.notify_discord !== undefined
 
         if (isUpdatingNotifications) {
@@ -91,15 +47,12 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                 // Create a user-specific update object
                 const userUpdates = { ...updates }
 
-                // Validate email notification settings
-                if (updates.notify_email !== undefined) {
-                  const userEmail = user.email || ''
-                  // Only enable email notifications if user has a valid non-placeholder email
-                  if (
-                    updates.notify_email &&
-                    (!userEmail || userEmail.endsWith('@placeholder.com'))
-                  ) {
-                    userUpdates.notify_email = false
+                // Validate apprise notification settings
+                if (updates.notify_apprise !== undefined) {
+                  const userApprise = user.apprise || ''
+                  // Only enable apprise notifications if user has a valid apprise value
+                  if (updates.notify_apprise && !userApprise) {
+                    userUpdates.notify_apprise = false
                   }
                 }
 

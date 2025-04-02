@@ -76,14 +76,13 @@ const FormContent = React.memo(
 
             <FormField
               control={form.control}
-              name="email"
+              name="apprise"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-text">Email</FormLabel>
+                  <FormLabel className="text-text">Apprise</FormLabel>
                   <FormControl>
                     <Input
-                      type="email"
-                      placeholder="Email address"
+                      placeholder="Apprise endpoint"
                       disabled={saveStatus !== 'idle'}
                       {...field}
                     />
@@ -136,12 +135,13 @@ const FormContent = React.memo(
 
             <FormField
               control={form.control}
-              name="notify_email"
+              name="notify_apprise"
               render={({ field }) => {
-                const email = form.watch('email')
-                const isPlaceholderEmail = email.endsWith('@placeholder.com')
-                // If it's a placeholder email and notifications are on, turn them off
-                if (isPlaceholderEmail && field.value) {
+                const apprise = form.watch('apprise')
+                const hasValidApprise = !!apprise
+
+                // If no apprise endpoint and notifications are on, turn them off
+                if (!hasValidApprise && field.value) {
                   field.onChange(false)
                 }
 
@@ -149,18 +149,18 @@ const FormContent = React.memo(
                   <FormItem>
                     <div className="flex items-center justify-between">
                       <FormLabel className="text-text">
-                        Email Notifications
+                        Apprise Notifications
                       </FormLabel>
                       <FormControl>
                         <Switch
                           checked={field.value}
                           onCheckedChange={field.onChange}
-                          disabled={saveStatus !== 'idle' || isPlaceholderEmail}
+                          disabled={saveStatus !== 'idle' || !hasValidApprise}
                         />
                       </FormControl>
                     </div>
-                    {isPlaceholderEmail && (
-                      <FormMessage>Requires valid email address</FormMessage>
+                    {!hasValidApprise && (
+                      <FormMessage>Requires valid Apprise endpoint</FormMessage>
                     )}
                   </FormItem>
                 )
@@ -280,10 +280,10 @@ export default function UserEditModal({
     resolver: zodResolver(plexUserSchema),
     defaultValues: {
       name: '',
-      email: '',
+      apprise: '',
       alias: null,
       discord_id: null,
-      notify_email: false,
+      notify_apprise: false,
       notify_discord: false,
       can_sync: false,
     },
@@ -293,10 +293,10 @@ export default function UserEditModal({
     if (user) {
       form.reset({
         name: user.name,
-        email: user.email || '',
+        apprise: user.apprise || '',
         alias: user.alias,
         discord_id: user.discord_id,
-        notify_email: user.notify_email,
+        notify_apprise: user.notify_apprise,
         notify_discord: user.notify_discord,
         can_sync: user.can_sync,
       })
@@ -309,10 +309,10 @@ export default function UserEditModal({
     // Convert to UpdateUser type for API compatibility
     const updates: UpdateUser = {
       name: values.name,
-      email: values.email,
+      apprise: values.apprise,
       alias: values.alias,
       discord_id: values.discord_id,
-      notify_email: values.notify_email,
+      notify_apprise: values.notify_apprise,
       notify_discord: values.notify_discord,
       can_sync: values.can_sync,
     }
