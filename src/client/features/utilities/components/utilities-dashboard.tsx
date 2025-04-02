@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react'
 import { DeleteSyncForm } from '@/features/utilities/components/delete-sync/delete-sync-form'
 import { DeleteSyncSkeleton } from '@/features/utilities/components/delete-sync/delete-sync-skeleton'
+import { PlexNotificationsForm } from '@/features/utilities/components/plex-notifications/plex-notifications-form'
+import { PlexNotificationsSkeleton } from '@/features/utilities/components/plex-notifications/plex-notifications-skeleton'
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 
 /**
- * Renders a utilities dashboard that conditionally displays a loading skeleton or a delete sync form.
+ * Renders a utilities dashboard that displays various utility components.
  *
- * This component manages a smooth transition from a loading state to the fully rendered UI. It monitors the global schedule loading state and, when schedules have loaded, applies a 100ms delay before removing the local loading state to prevent UI flickering.
+ * This component manages a smooth transition from a loading state to the fully rendered UI.
+ * It monitors the global loading state and applies a delay before removing the local loading state
+ * to prevent UI flickering. Currently includes the DeleteSync and PlexNotifications components.
  *
  * @returns A React element representing the utilities dashboard.
  */
@@ -17,7 +21,6 @@ export function UtilitiesDashboard() {
     (state) => state.hasLoadedSchedules,
   )
 
-  // Manage loading state to prevent flickering
   useEffect(() => {
     if (hasLoadedSchedules) {
       // Add a small delay to ensure smooth transitions
@@ -37,6 +40,12 @@ export function UtilitiesDashboard() {
           <DeleteSyncSkeleton />
         ) : (
           <DeleteSyncForm />
+        )}
+
+        {isLoading || loading.schedules ? (
+          <PlexNotificationsSkeleton />
+        ) : (
+          <PlexNotificationsForm />
         )}
       </div>
     </div>

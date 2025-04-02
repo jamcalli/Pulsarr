@@ -24,12 +24,7 @@ export function DeleteSyncSkeleton() {
   const isMobile = useMediaQuery('(max-width: 768px)')
 
   return (
-    <Accordion
-      type="single"
-      collapsible
-      defaultValue="delete-sync"
-      className="w-full"
-    >
+    <Accordion type="single" collapsible className="w-full">
       <AccordionItem
         value="delete-sync"
         className="border-2 border-border rounded-base overflow-hidden"
