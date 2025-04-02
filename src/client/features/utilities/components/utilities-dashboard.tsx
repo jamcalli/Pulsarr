@@ -21,7 +21,6 @@ export function UtilitiesDashboard() {
     (state) => state.hasLoadedSchedules,
   )
 
-  // Manage loading state to prevent flickering
   useEffect(() => {
     if (hasLoadedSchedules) {
       // Add a small delay to ensure smooth transitions
