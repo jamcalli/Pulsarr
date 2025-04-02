@@ -81,6 +81,49 @@ export function usePlexNotifications() {
     form.setValue('plexToken', token)
   }, [config, form])
 
+  // Function to fetch current notification status
+  const fetchCurrentStatus = useCallback(async () => {
+    // Don't show loading state for status refresh after delete
+    try {
+      const controller = new AbortController()
+      const signal = controller.signal
+
+      // Add a timeout to prevent hanging
+      const timeoutId = setTimeout(() => controller.abort(), 5000)
+
+      const response = await fetch('/v1/plex/notification-status', {
+        signal,
+      })
+
+      clearTimeout(timeoutId)
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(
+          errorData.error || 'Failed to fetch Plex notification status',
+        )
+      }
+
+      const results =
+        (await response.json()) as ExtendedPlexNotificationStatusResponse
+      setLastResults(results)
+
+      // If we have current settings after removal (shouldn't happen, but just in case),
+      // update the form
+      if (results.success && results.config) {
+        form.reset({
+          plexToken: results.config.plexToken || config?.plexTokens?.[0] || '',
+          plexHost: results.config.plexHost || '',
+          plexPort: results.config.plexPort || 32400,
+          useSsl: results.config.useSsl || false,
+        })
+      }
+    } catch (error) {
+      // Just log the error, don't show to user since this is a background refresh
+      console.error('Error fetching notification status after deletion:', error)
+    }
+  }, [form, config])
+
   // Fetch current notification status on mount
   useEffect(() => {
     // Create an AbortController to handle cleanup
@@ -167,19 +210,27 @@ export function usePlexNotifications() {
       setIsSubmitting(true)
       setError(null)
 
+      // Create an AbortController for the timeout
+      const controller = new AbortController()
+      const signal = controller.signal
+
+      // Set a timeout to abort the request after 5 seconds
+      const timeoutId = setTimeout(() => controller.abort(), 5000)
+
       try {
         // Create a minimum loading time promise
         const minimumLoadingTime = new Promise((resolve) =>
           setTimeout(resolve, MIN_LOADING_DELAY),
         )
 
-        // Send the request to configure Plex notifications
+        // Send the request to configure Plex notifications with abort signal
         const responsePromise = fetch('/v1/plex/configure-notifications', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(data),
+          signal: signal, // Add the abort signal to the fetch request
         })
 
         // Wait for both the response and the minimum loading time
@@ -187,6 +238,9 @@ export function usePlexNotifications() {
           responsePromise,
           minimumLoadingTime,
         ])
+
+        // Clear the timeout since we got a response
+        clearTimeout(timeoutId)
 
         if (!response.ok) {
           const errorData = await response.json()
@@ -208,19 +262,34 @@ export function usePlexNotifications() {
           form.reset(data)
         }
       } catch (err) {
-        const errorMessage =
-          err instanceof Error
-            ? err.message
-            : 'Failed to configure Plex notifications'
+        // Handle timeout specifically
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          const timeoutError =
+            'Request timed out. Please check your Plex server connection and try again.'
+          setError(timeoutError)
 
-        setError(errorMessage)
+          toast({
+            title: 'Connection Timeout',
+            description: timeoutError,
+            variant: 'destructive',
+          })
+        } else {
+          // Handle other errors
+          const errorMessage =
+            err instanceof Error
+              ? err.message
+              : 'Failed to configure Plex notifications'
 
-        toast({
-          title: 'Error',
-          description: errorMessage,
-          variant: 'destructive',
-        })
+          setError(errorMessage)
+
+          toast({
+            title: 'Error',
+            description: errorMessage,
+            variant: 'destructive',
+          })
+        }
       } finally {
+        clearTimeout(timeoutId)
         setIsSubmitting(false)
       }
     },
@@ -237,15 +306,23 @@ export function usePlexNotifications() {
     setIsDeleting(true)
     setError(null)
 
+    // Create an AbortController for the timeout
+    const controller = new AbortController()
+    const signal = controller.signal
+
+    // Set a timeout to abort the request after 5 seconds
+    const timeoutId = setTimeout(() => controller.abort(), 5000)
+
     try {
       // Create a minimum loading time promise
       const minimumLoadingTime = new Promise((resolve) =>
         setTimeout(resolve, MIN_LOADING_DELAY),
       )
 
-      // Send the request to remove Plex notifications
+      // Send the request to remove Plex notifications with abort signal
       const responsePromise = fetch('/v1/plex/remove-notifications', {
         method: 'DELETE',
+        signal: signal, // Add the abort signal to the fetch request
       })
 
       // Wait for both the response and the minimum loading time
@@ -253,6 +330,9 @@ export function usePlexNotifications() {
         responsePromise,
         minimumLoadingTime,
       ])
+
+      // Clear the timeout since we got a response
+      clearTimeout(timeoutId)
 
       if (!response.ok) {
         const errorData = await response.json()
@@ -268,23 +348,41 @@ export function usePlexNotifications() {
         description: results.message,
         variant: results.success ? 'default' : 'destructive',
       })
+
+      // After successful removal, fetch the current status to update UI
+      await fetchCurrentStatus()
     } catch (err) {
-      const errorMessage =
-        err instanceof Error
-          ? err.message
-          : 'Failed to remove Plex notifications'
+      // Handle timeout specifically
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        const timeoutError =
+          'Request timed out. Please check your Plex server connection and try again.'
+        setError(timeoutError)
 
-      setError(errorMessage)
+        toast({
+          title: 'Connection Timeout',
+          description: timeoutError,
+          variant: 'destructive',
+        })
+      } else {
+        // Handle other errors
+        const errorMessage =
+          err instanceof Error
+            ? err.message
+            : 'Failed to remove Plex notifications'
 
-      toast({
-        title: 'Error',
-        description: errorMessage,
-        variant: 'destructive',
-      })
+        setError(errorMessage)
+
+        toast({
+          title: 'Error',
+          description: errorMessage,
+          variant: 'destructive',
+        })
+      }
     } finally {
+      clearTimeout(timeoutId)
       setIsDeleting(false)
     }
-  }, [toast])
+  }, [toast, fetchCurrentStatus])
 
   const initiateDelete = useCallback(() => {
     // This function is just a placeholder for the action of clicking the delete button
