@@ -14,7 +14,20 @@ export const deleteSyncSchema = z.object({
   deleteContinuingShow: z.boolean(),
   deleteFiles: z.boolean(),
   respectUserSyncSetting: z.boolean(),
-  deleteSyncNotify: z.enum(['none', 'message', 'webhook', 'both']),
+  deleteSyncNotify: z.enum([
+    'none',
+    'message',
+    'webhook',
+    'both',
+    'all',
+    'discord-only',
+    'apprise-only',
+    'webhook-only',
+    'dm-only',
+    'discord-webhook',
+    'discord-message',
+    'discord-both',
+  ]),
   maxDeletionPrevention: z.coerce.number().int().min(1).max(100).optional(),
   scheduleTime: z.date().optional(),
   dayOfWeek: z.string().default('*'),
@@ -130,11 +143,7 @@ export function useDeleteSyncForm() {
       formInitializedRef.current = true
 
       // Ensure notification value is one of the valid enum values
-      const notifyValue =
-        config.deleteSyncNotify &&
-        ['none', 'message', 'webhook', 'both'].includes(config.deleteSyncNotify)
-          ? config.deleteSyncNotify
-          : 'none'
+      const notifyValue = config.deleteSyncNotify || 'none'
 
       form.reset(
         {

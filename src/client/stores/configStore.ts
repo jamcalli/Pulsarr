@@ -5,10 +5,10 @@ import type { Config } from '@root/types/config.types'
 export interface UserWatchlistInfo {
   id: string
   name: string
-  email: string
+  apprise: string
   alias: string | null
   discord_id: string | null
-  notify_email: boolean
+  notify_apprise: boolean
   notify_discord: boolean
   can_sync: boolean
   created_at: string
@@ -173,10 +173,10 @@ export const useConfigStore = create<ConfigState>()(
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name: updates.name,
-            email: updates.email,
+            apprise: updates.apprise,
             alias: updates.alias,
             discord_id: updates.discord_id,
-            notify_email: updates.notify_email,
+            notify_apprise: updates.notify_apprise,
             notify_discord: updates.notify_discord,
             can_sync: updates.can_sync,
           }),

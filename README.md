@@ -13,7 +13,7 @@ Pulsarr is an integration tool that bridges Plex watchlists with Sonarr and Rada
 
 Enjoy all the benefits of other content discovery systems without requiring users to use additional services. All the magic happens from the pimary users Plex Token.
 
-It provides user-based watchlist synchronization for yourself and for friends, smart content routing based on genre, and notification capabilities (Discord and Email).
+It provides user-based watchlist synchronization for yourself and for friends, smart content routing based on genre, and notification capabilities (Discord and Apprise).
 
 Want to contribute? Check out our [Contributing Guidelines](#contributing).
 
@@ -45,6 +45,7 @@ Want to contribute? Check out our [Contributing Guidelines](#contributing).
 - **Genre-based Routing**: Send different genres to specific root folders, quality profiles, or completely separate instances.
 - **Instance Synchronization**: Keep multiple instances in sync (e.g., send content to both Sonarr4K and SonarrHD) while respecting genre rules. Works with both existing and newly added instances. Includes a sync feature for newly added instances.
 - **Discord Integration**: User-friendly notification system with customizable settings via Discord bot commands. Allows users to customize their own notification settings.
+- **Apprise Integration**: Apprise can be used to route notifications. Apprise supports many different notifications methods including email, SMS, Slack, Telegram, and many more. Users can configure their own Apprise settings via the Discord bot, or admins can set these up via the UI. System notifications can also be sent through Apprise. Please see [Apprise Documentation](#apprise-notifications) below on setting up Pulsarr with Apprise. 
 - **Granular User Controls**: Choose which users can sync content from their watchlists.
 - **Automatic Configuration**: Self-configures webhook endpoints in Sonarr/Radarr to route notifications as soon as your content is ready.
 - **Smart Notification System**: Prevents notification spam with intelligent batching for season packs and individual episodes / movies.
@@ -231,8 +232,165 @@ When your content is available, you will receive DMs like these:
 
 <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/DM-Season.png" width="400" alt="DM Season">
 
-### Email Notifications (Coming Soon)
-Email notification support is on our roadmap but not yet implemented.
+## Apprise Notifications
+
+Pulsarr supports integration with [Apprise](https://github.com/caronc/apprise) for enhanced notification capabilities. Apprise allows you to send notifications to a wide variety of supported services like Telegram, Slack, Discord, email services, SMS gateways, and many more from a single unified interface.
+
+### Benefits of Using Apprise
+
+- **Multiple notification channels**: Send notifications to multiple platforms simultaneously
+- **Flexible configuration**: Easy setup through URL-based notification channels
+- **Extensive service support**: Works with 80+ notification services
+- **Customizable messaging**: Send rich notifications with formatting options
+- **Centralized notification management**: Configure and manage all your notification targets in one place
+
+### Installation Options
+
+#### Option 1: Combined Docker Compose (Recommended)
+
+Use this combined Docker Compose file to run both Pulsarr and Apprise in the same stack:
+
+```yaml
+services:
+  apprise:
+    image: caronc/apprise:latest
+    container_name: apprise
+    ports:
+      - "8000:8000"
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - APPRISE_STATEFUL_MODE=simple
+      - APPRISE_WORKER_COUNT=1
+    volumes:
+      - ./config:/config
+      - ./plugin:/plugin
+      - ./attach:/attach
+    restart: unless-stopped
+    
+  pulsarr:
+    image: lakker/pulsarr:latest
+    container_name: pulsarr
+    ports:
+      - "3003:3003"
+    volumes:
+      - ./data:/app/data
+      - .env:/app/.env
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - NODE_ARGS=--log-both
+      - TZ=America/Los_Angeles
+      - appriseUrl=http://apprise:8000
+    depends_on:
+      - apprise
+```
+
+This configuration ensures:
+- Apprise starts before Pulsarr
+- Both services run in the same Docker network
+- Pulsarr can communicate with Apprise using internal Docker networking
+
+#### Option 2: Separate Docker Compose Files
+
+If you prefer to keep them separate, you can use these two compose files:
+
+**Apprise Compose (docker-compose.apprise.yml):**
+```yaml
+services:
+  apprise:
+    image: caronc/apprise:latest
+    container_name: apprise
+    ports:
+      - "8000:8000"
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - APPRISE_STATEFUL_MODE=simple
+      - APPRISE_WORKER_COUNT=1
+    volumes:
+      - ./config:/config
+      - ./plugin:/plugin
+      - ./attach:/attach
+    restart: unless-stopped
+```
+
+**Pulsarr Compose (docker-compose.yml):**
+```yaml
+services:
+  pulsarr:
+    image: lakker/pulsarr:latest
+    container_name: pulsarr
+    ports:
+      - "3003:3003"
+    volumes:
+      - ./data:/app/data
+      - .env:/app/.env
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - NODE_ARGS=--log-both
+      - TZ=America/Los_Angeles
+```
+
+When using separate compose files, you'll need to add the Apprise URL to your Pulsarr `.env` file:
+
+```sh
+appriseUrl=http://host-ip-address:8000
+```
+
+Replace `host-ip-address` with your actual server IP (not localhost, as the containers won't be on the same network).
+
+### Using Apprise with Pulsarr
+
+The Apprise integration works out of the box with no additional configuration required in the Apprise web UI. Simply:
+
+1. **Start the services** using the combined Docker Compose file:
+   ```bash
+   docker compose up -d
+   ```
+
+2. **Verify connectivity**:
+   - Access the Pulsarr web interface at `http://your-server:3003`
+   - Pulsarr will automatically detect and use the Apprise service
+   - All notifications will be routed through Apprise seamlessly
+
+The integration is pre-configured to work immediately with no additional setup steps required.
+
+### Configuring Notification Methods
+
+Users can configure their own Apprise notification methods in two ways:
+
+1. **Via Discord Bot**: 
+   - Users can use the `/notifications` command in Discord
+   - This allows them to select Apprise as their notification method
+   - Users will be notified about content availability automatically
+
+2. **Via Admin Panel**:
+   - The admin user can configure Apprise notifications
+   - Navigate to the Notifications section in the Pulsarr admin panel
+   - Set the default notification method to Apprise for the system
+
+### Notification Types Supported
+
+With Apprise integration enabled, Pulsarr will automatically send content availability notifications when:
+- New episodes of TV shows are available
+- New movies are available
+- Season packs are available
+
+All notifications are handled seamlessly through the Apprise integration without requiring additional configuration.
+
+### Troubleshooting
+
+The integration is designed to work automatically, but if you encounter issues:
+
+- **Connection Issues**: If using separate Docker Compose files, ensure the Apprise URL is correctly set in your `.env` file
+- **Cannot reach Apprise**: When using the combined Docker Compose, the service discovery is automatic. If using separate setups, verify the correct IP address is being used
+- **Service Not Starting**: Make sure both containers have started successfully with `docker compose ps`
+
+For more information about Apprise itself, refer to the [official Apprise documentation](https://github.com/caronc/apprise/wiki).
 
 ## Configuration
 
@@ -281,6 +439,11 @@ discordWebhookUrl=https://discord.com/api/webhooks/xxxx/xxxx  # Webhook URL
 discordBotToken=xxxx.xxxx.xxxx                                # Bot token
 discordClientId=xxxxxxxxxxxx                                  # Client ID
 discordGuildId=xxxxxxxxxxxx                                   # Server ID
+
+# Apprise Configuration
+appriseUrl=http://x.x.x.x:8000         # URL for the Apprise server (e.g., http://apprise:8000 for Docker networking)
+enableApprise=true                     # This is auto set by Pulsarr based on the availability of the Apprise server
+systemAppriseUrl=                      # Apprise URL for system notifications only
 
 # General Notifications
 queueWaitTime=120000                   # Queue wait time in ms
@@ -388,6 +551,32 @@ Delete Sync includes several safety measures to prevent accidental data loss:
 - Begin with a dry run to understand the impact on your libraries
 - Consider keeping files for ended shows that may return for future seasons
 
+## Plex Notifications
+
+### Automatic Library Updates
+
+Pulsarr's Plex Notifications feature automatically configures webhooks in all your connected Sonarr and Radarr instances to keep your Plex libraries fresh without manual intervention.
+
+#### Key Features
+
+- **Automatic Configuration**: Sets up notification webhooks in all connected Sonarr and Radarr instances
+- **Server Discovery**: Easily find and select your Plex server with the built-in discovery tool
+- **Content Synchronization**: Keeps your Plex libraries updated when content is added, removed, or modified
+- **Multi-Instance Support**: Works across all your Sonarr and Radarr instances simultaneously
+- **SSL Support**: Secure connections to your Plex server
+
+#### Setup Instructions
+
+1. Navigate to the **Utilities** section in the Pulsarr web interface
+2. Enter your Plex authentication token (defaults to the token provided during setup)
+3. Click "Find Servers" to automatically discover available Plex servers
+4. Select your server or manually enter your Plex host, port, and SSL settings
+5. Save your changes to automatically configure webhooks in all Sonarr and Radarr instances
+
+<img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Plex-Notifications.png" alt="Plex Notifications" width="80%"/>
+
+Once configured, anytime content is added, modified, or removed via Sonarr or Radarr, your Plex libraries will automatically refresh to reflect these changes.
+
 ## Screenshots
 
 <div align="center">
@@ -410,7 +599,7 @@ Pulsarr includes built-in API documentation accessible at `/api/docs` when runni
 ## Roadmap
 
 - ~~Email notifications~~
-- Apprise for notifications
+- ~~Apprise for notifications~~
 - Non-Plex Pass (will update watchlists on 20 minute intervals. All other functionality remains.)
 - API keys
 - ~~Delete Syncing~~

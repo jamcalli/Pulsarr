@@ -324,7 +324,7 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
               <FormItem>
                 <div className="flex items-center gap-1">
                   <FormLabel className="text-text">
-                    Discord Webhook URL
+                    System Discord Webhook URL
                   </FormLabel>
                   <HoverCard>
                     <HoverCardTrigger asChild>
@@ -332,10 +332,10 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
                     </HoverCardTrigger>
                     <HoverCardContent className="w-80">
                       <p>
-                        Discord webhook URL for sending notifications. You can
-                        create a webhook in your Discord server settings under
-                        Integrations &gt; Webhooks. Test the connection before
-                        saving.
+                        Discord webhook URL for sending system notifications.
+                        You can create a webhook in your Discord server settings
+                        under Integrations &gt; Webhooks. Test the connection
+                        before saving.
                       </p>
                     </HoverCardContent>
                   </HoverCard>

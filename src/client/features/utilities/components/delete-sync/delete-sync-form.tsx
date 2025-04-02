@@ -107,12 +107,7 @@ export function DeleteSyncForm() {
         onOpenChange={setShowDryRunModal}
       />
 
-      <Accordion
-        type="single"
-        collapsible
-        defaultValue="delete-sync"
-        className="w-full"
-      >
+      <Accordion type="single" collapsible className="w-full">
         <AccordionItem
           value="delete-sync"
           className="border-2 border-border rounded-base overflow-hidden"
@@ -461,7 +456,7 @@ export function DeleteSyncForm() {
                                       <FormControl>
                                         <SelectTrigger
                                           className={
-                                            isMobile ? 'w-full' : 'w-40'
+                                            isMobile ? 'w-full' : 'w-48'
                                           }
                                         >
                                           <SelectValue placeholder="Select notification type" />
@@ -471,14 +466,23 @@ export function DeleteSyncForm() {
                                         <SelectItem value="none">
                                           None
                                         </SelectItem>
-                                        <SelectItem value="message">
-                                          Message
+                                        <SelectItem value="discord-only">
+                                          Discord Only
+                                        </SelectItem>
+                                        <SelectItem value="apprise-only">
+                                          Apprise Only
+                                        </SelectItem>
+                                        <SelectItem value="all">
+                                          All Channels
                                         </SelectItem>
                                         <SelectItem value="webhook">
-                                          Webhook
+                                          Discord Webhook
+                                        </SelectItem>
+                                        <SelectItem value="message">
+                                          Discord DM
                                         </SelectItem>
                                         <SelectItem value="both">
-                                          Both
+                                          Discord Both
                                         </SelectItem>
                                       </SelectContent>
                                     </Select>

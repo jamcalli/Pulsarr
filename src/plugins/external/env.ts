@@ -71,6 +71,18 @@ const schema = {
       type: 'string',
       default: '',
     },
+    enableApprise: {
+      type: 'boolean',
+      default: false,
+    },
+    appriseUrl: {
+      type: 'string',
+      default: '',
+    },
+    systemAppriseUrl: {
+      type: 'string',
+      default: '',
+    },
     queueWaitTime: {
       type: 'number',
       default: 120000,

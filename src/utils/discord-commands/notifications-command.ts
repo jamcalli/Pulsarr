@@ -88,7 +88,7 @@ function createNotificationsEmbed(user: User): EmbedBuilder {
         value: [
           `**Plex Username**: ${user.name}`,
           `**Display Name**: ${user.alias || '*Not set*'}`,
-          `**Email**: ${user.email || '*Not set*'}`,
+          `**Apprise**: ${user.apprise || '*Not set*'}`,
         ].join('\n'),
         inline: false,
       },
@@ -96,7 +96,7 @@ function createNotificationsEmbed(user: User): EmbedBuilder {
         name: 'Notification Settings',
         value: [
           `**Discord**: ${user.notify_discord ? '✅ Enabled' : '❌ Disabled'}`,
-          `**Email**: ${user.notify_email ? '✅ Enabled' : '❌ Disabled'}`,
+          `**Apprise**: ${user.notify_apprise ? '✅ Enabled' : '❌ Disabled'}`,
         ].join('\n'),
         inline: false,
       },
@@ -105,15 +105,15 @@ function createNotificationsEmbed(user: User): EmbedBuilder {
 }
 
 function createActionRow(user: User): ActionRowBuilder<ButtonBuilder> {
-  // Simply check if email exists - placeholders are already converted to null
-  const hasValidEmail = !!user.email
-  const emailButtonDisabled = !hasValidEmail
+  // Simply check if apprise exists - placeholders are already converted to null
+  const hasValidApprise = !!user.apprise
+  const appriseButtonDisabled = !hasValidApprise
 
-  const emailButton = new ButtonBuilder()
-    .setCustomId('toggleEmail')
-    .setLabel(user.notify_email ? 'Disable Email' : 'Enable Email')
-    .setStyle(user.notify_email ? ButtonStyle.Success : ButtonStyle.Secondary)
-    .setDisabled(emailButtonDisabled && !user.notify_email)
+  const appriseButton = new ButtonBuilder()
+    .setCustomId('toggleApprise')
+    .setLabel(user.notify_apprise ? 'Disable Apprise' : 'Enable Apprise')
+    .setStyle(user.notify_apprise ? ButtonStyle.Success : ButtonStyle.Secondary)
+    .setDisabled(appriseButtonDisabled && !user.notify_apprise)
 
   return new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
@@ -126,7 +126,7 @@ function createActionRow(user: User): ActionRowBuilder<ButtonBuilder> {
       .setStyle(
         user.notify_discord ? ButtonStyle.Success : ButtonStyle.Secondary,
       ),
-    emailButton,
+    appriseButton,
     new ButtonBuilder()
       .setCustomId('closeSettings')
       .setLabel('Exit')
@@ -150,7 +150,6 @@ function createPlexLinkModal(): ModalBuilder {
   return modal
 }
 
-// Complete replacement for createProfileEditModal function
 function createProfileEditModal(user: User): ModalBuilder {
   const modal = new ModalBuilder()
     .setCustomId('editProfileModal')
@@ -164,21 +163,21 @@ function createProfileEditModal(user: User): ModalBuilder {
     .setValue(user.alias || '')
     .setPlaceholder('Enter a display name')
 
-  const emailInput = new TextInputBuilder()
-    .setCustomId('email')
-    .setLabel('Email Address')
+  const appriseInput = new TextInputBuilder()
+    .setCustomId('apprise')
+    .setLabel('Apprise URL')
     .setStyle(TextInputStyle.Short)
     .setRequired(false)
-    .setPlaceholder('Enter your email address')
+    .setPlaceholder('Enter your Apprise URL')
 
-  if (user.email && !user.email.includes('@placeholder.com')) {
-    emailInput.setValue(user.email)
+  if (user.apprise) {
+    appriseInput.setValue(user.apprise)
   }
 
   // Add components to modal
   modal.addComponents(
     new ActionRowBuilder<TextInputBuilder>().addComponents(aliasInput),
-    new ActionRowBuilder<TextInputBuilder>().addComponents(emailInput),
+    new ActionRowBuilder<TextInputBuilder>().addComponents(appriseInput),
   )
 
   return modal
@@ -192,11 +191,6 @@ async function getUser(
   try {
     const users = await context.fastify.db.getAllUsers()
     const user = users.find((u) => u.discord_id === discordId)
-    if (user) {
-      if (user.email?.endsWith('@placeholder.com')) {
-        user.email = null
-      }
-    }
     context.log.debug(
       { discordId, found: !!user },
       'Looking up user by Discord ID',
@@ -368,14 +362,14 @@ export async function handleNotificationButtons(
       break
     }
 
-    case 'toggleEmail': {
+    case 'toggleApprise': {
       await interaction.deferUpdate()
-      const emailUpdated = await updateUser(
+      const appriseUpdated = await updateUser(
         user.id,
-        { notify_email: !user.notify_email },
+        { notify_apprise: !user.notify_apprise },
         context,
       )
-      if (emailUpdated) {
+      if (appriseUpdated) {
         const updatedUser = await getUser(interaction.user.id, context)
         if (updatedUser) {
           await showSettingsForm(interaction, updatedUser, context)
@@ -590,7 +584,7 @@ export async function handleProfileEditModal(
   context: CommandContext,
 ) {
   const alias = interaction.fields.getTextInputValue('alias')
-  const email = interaction.fields.getTextInputValue('email')
+  const apprise = interaction.fields.getTextInputValue('apprise')
 
   context.log.info(
     { userId: interaction.user.id },
@@ -613,7 +607,7 @@ export async function handleProfileEditModal(
     }
 
     context.log.debug(
-      { userId: user.id, alias, email },
+      { userId: user.id, alias, apprise },
       'Updating user profile',
     )
 
@@ -623,7 +617,7 @@ export async function handleProfileEditModal(
       user.id,
       {
         alias: alias || null,
-        email: email || null,
+        apprise: apprise || null,
       },
       context,
     )

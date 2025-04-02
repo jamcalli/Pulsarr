@@ -195,10 +195,14 @@ export interface MediaNotification {
 
 export interface NotificationResult {
   user: {
-    discord_id: string | null | undefined
+    apprise: string | null
+    discord_id: string | null
+    notify_apprise: boolean
     notify_discord: boolean
-    notify_email: boolean
     name: string
+    id: number
+    alias: string | null
+    can_sync: boolean
   }
   notification: MediaNotification
 }
