@@ -12,7 +12,6 @@ export const PlexServerSchema = z.object({
   port: z.number(),
   useSsl: z.boolean(),
   local: z.boolean(),
-  // Add additional fields for descriptive purposes if needed
   description: z.string().optional(),
 })
 
@@ -23,9 +22,11 @@ export const PlexServerResponseSchema = z.object({
   servers: z.array(PlexServerSchema),
 })
 
-// Schema for error responses
+// Schema for error responses - matches Fastify sensible's error format
 export const PlexServerErrorSchema = z.object({
+  statusCode: z.number(),
   error: z.string(),
+  message: z.string(),
 })
 
 // Type exports
