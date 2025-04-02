@@ -19,12 +19,7 @@ import { Separator } from '@/components/ui/separator'
  */
 export function PlexNotificationsSkeleton() {
   return (
-    <Accordion
-      type="single"
-      collapsible
-      defaultValue="plex-notifications"
-      className="w-full"
-    >
+    <Accordion type="single" collapsible className="w-full">
       <AccordionItem
         value="plex-notifications"
         className="border-2 border-border rounded-base overflow-hidden"
@@ -36,7 +31,8 @@ export function PlexNotificationsSkeleton() {
                 Plex Notifications
               </h3>
               <p className="text-sm text-text text-left">
-                Configure Plex notifications in your Radarr and Sonarr instances
+                Configure Sonarr and Radarr to notify Plex of content added,
+                removed, or modified
               </p>
             </div>
             <Skeleton className="h-7 w-20 rounded-full" />
