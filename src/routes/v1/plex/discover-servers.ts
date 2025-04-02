@@ -6,7 +6,7 @@ import {
   PlexServerErrorSchema,
 } from '@schemas/plex/discover-servers.schema.js'
 
-// Define types for Plex API responses
+// Types for Plex API responses
 interface PlexResourceConnection {
   uri: string
   address: string
@@ -22,6 +22,12 @@ interface PlexResource {
   connections: PlexResourceConnection[]
 }
 
+// Error with additional properties that might be on Fastify errors
+interface FastifyErrorResponse {
+  statusCode?: number
+  error?: string
+}
+
 export const discoverServersRoute: FastifyPluginAsync = async (fastify) => {
   fastify.post<{
     Body: z.infer<typeof PlexTokenSchema>
@@ -34,6 +40,8 @@ export const discoverServersRoute: FastifyPluginAsync = async (fastify) => {
         response: {
           200: PlexServerResponseSchema,
           400: PlexServerErrorSchema,
+          401: PlexServerErrorSchema,
+          403: PlexServerErrorSchema,
           500: PlexServerErrorSchema,
         },
         tags: ['Plex'],
@@ -67,6 +75,16 @@ export const discoverServersRoute: FastifyPluginAsync = async (fastify) => {
         })
 
         if (!response.ok) {
+          // Handle authentication/authorization errors specifically
+          if (response.status === 401) {
+            throw reply.unauthorized(
+              'Invalid Plex token or unauthorized access',
+            )
+          }
+          if (response.status === 403) {
+            throw reply.forbidden('Access to Plex resources is forbidden')
+          }
+
           throw new Error(
             `Failed to fetch Plex servers: ${response.statusText}`,
           )
@@ -136,11 +154,31 @@ export const discoverServersRoute: FastifyPluginAsync = async (fastify) => {
           servers: serverOptions,
           message: `Found ${serverOptions.length} Plex servers`,
         }
-      } catch (err) {
+      } catch (err: unknown) {
         fastify.log.error('Error discovering Plex servers:', err)
 
-        if (err instanceof Error && err.message.includes('Bad Request')) {
-          throw reply.badRequest(err.message)
+        // Check if it's a Fastify error response
+        const fastifyError = err as FastifyErrorResponse
+        if (fastifyError.statusCode && fastifyError.error) {
+          throw err
+        }
+
+        if (err instanceof Error) {
+          if (err.message.includes('Bad Request')) {
+            throw reply.badRequest(err.message)
+          }
+
+          // Handle potential auth errors from other sources
+          if (
+            err.message.includes('Unauthorized') ||
+            err.message.includes('Invalid token')
+          ) {
+            throw reply.unauthorized(err.message)
+          }
+
+          if (err.message.includes('Forbidden')) {
+            throw reply.forbidden(err.message)
+          }
         }
 
         throw reply.internalServerError(
