@@ -383,7 +383,7 @@ export class DeleteSyncService {
     // Apprise notification logic
     if (sendApprise && this.fastify.apprise?.isEnabled()) {
       try {
-        await this.fastify.apprise.sendDeleteSyncNotification(result, dryRun)
+        await this.fastify.apprise?.sendDeleteSyncNotification(result, dryRun)
       } catch (notifyError) {
         this.log.error(
           'Error sending delete sync Apprise notification:',
