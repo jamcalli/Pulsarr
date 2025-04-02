@@ -83,6 +83,10 @@ export function usePlexNotifications() {
 
   // Fetch current notification status on mount
   useEffect(() => {
+    // Create an AbortController to handle cleanup
+    const abortController = new AbortController()
+    const signal = abortController.signal
+
     const fetchStatus = async () => {
       setIsLoading(true)
       setError(null)
@@ -93,14 +97,19 @@ export function usePlexNotifications() {
           setTimeout(resolve, MIN_LOADING_DELAY),
         )
 
-        // Execute fetch
-        const responsePromise = fetch('/v1/plex/notification-status')
+        // Execute fetch with the abort signal
+        const responsePromise = fetch('/v1/plex/notification-status', {
+          signal,
+        })
 
         // Wait for both the response and the minimum loading time
         const [response] = await Promise.all([
           responsePromise,
           minimumLoadingTime,
         ])
+
+        // Check if the request was aborted before proceeding
+        if (signal.aborted) return
 
         if (!response.ok) {
           const errorData = await response.json()
@@ -111,6 +120,10 @@ export function usePlexNotifications() {
 
         const results =
           (await response.json()) as ExtendedPlexNotificationStatusResponse
+
+        // Check if the request was aborted before setting state
+        if (signal.aborted) return
+
         setLastResults(results)
 
         // If we have current settings, populate the form
@@ -124,6 +137,9 @@ export function usePlexNotifications() {
           })
         }
       } catch (err) {
+        // Don't update state if the request was aborted or component unmounted
+        if (signal.aborted) return
+
         const errorMessage =
           err instanceof Error
             ? err.message
@@ -131,11 +147,18 @@ export function usePlexNotifications() {
 
         setError(errorMessage)
       } finally {
-        setIsLoading(false)
+        // Don't update state if the request was aborted or component unmounted
+        if (!signal.aborted) {
+          setIsLoading(false)
+        }
       }
     }
 
     fetchStatus()
+
+    return () => {
+      abortController.abort()
+    }
   }, [form, config])
 
   // Handle form submission
