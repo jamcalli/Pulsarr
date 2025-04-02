@@ -1,6 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify'
 import type { z } from 'zod'
-import { randomUUID } from 'node:crypto'
 import {
   PlexTokenSchema,
   PlexServerResponseSchema,
@@ -25,7 +24,7 @@ interface PlexResource {
 
 export const discoverServersRoute: FastifyPluginAsync = async (fastify) => {
   fastify.post<{
-    Body: z.infer<typeof PlexTokenSchema>,
+    Body: z.infer<typeof PlexTokenSchema>
     Reply: z.infer<typeof PlexServerResponseSchema>
   }>(
     '/discover-servers',
@@ -47,9 +46,6 @@ export const discoverServersRoute: FastifyPluginAsync = async (fastify) => {
         if (!plexToken) {
           throw reply.badRequest('Plex token is required')
         }
-
-        // Generate a simple client ID
-        const clientId = `pulsarr-${randomUUID()}`
 
         fastify.log.info('Discovering Plex servers using provided token')
 
@@ -76,13 +72,7 @@ export const discoverServersRoute: FastifyPluginAsync = async (fastify) => {
           )
         }
 
-        const rawResponse = await response.json()
-        
-        // Temporary logging for testing purposes
-        fastify.log.info('Raw Plex API response:')
-        fastify.log.info(JSON.stringify(rawResponse, null, 2))
-        
-        const resources = rawResponse as PlexResource[]
+        const resources = (await response.json()) as PlexResource[]
 
         // Extract server options from resources
         const serverOptions = []
@@ -105,18 +95,19 @@ export const discoverServersRoute: FastifyPluginAsync = async (fastify) => {
             try {
               const url = new URL(connection.uri)
               const isSecure = url.protocol === 'https:'
-              
+
               // Add option with direct Plex URL (secure)
               if (url.hostname) {
                 serverOptions.push({
                   name: `${server.name} (${url.hostname})`,
                   host: url.hostname,
-                  port: connection.port || Number.parseInt(url.port, 10) || 32400,
+                  port:
+                    connection.port || Number.parseInt(url.port, 10) || 32400,
                   useSsl: true,
                   local: connection.local || false,
                 })
               }
-              
+
               // Add option with direct IP address (non-secure by default)
               if (connection.address) {
                 serverOptions.push({
@@ -147,15 +138,15 @@ export const discoverServersRoute: FastifyPluginAsync = async (fastify) => {
         }
       } catch (err) {
         fastify.log.error('Error discovering Plex servers:', err)
-        
+
         if (err instanceof Error && err.message.includes('Bad Request')) {
           throw reply.badRequest(err.message)
         }
-        
+
         throw reply.internalServerError(
           err instanceof Error
             ? err.message
-            : 'Failed to discover Plex servers'
+            : 'Failed to discover Plex servers',
         )
       }
     },
