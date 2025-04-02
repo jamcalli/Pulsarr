@@ -71,12 +71,7 @@ export function PlexNotificationsForm() {
         isSubmitting={isDeleting}
       />
 
-      <Accordion
-        type="single"
-        collapsible
-        defaultValue="plex-notifications"
-        className="w-full"
-      >
+      <Accordion type="single" collapsible className="w-full">
         <AccordionItem
           value="plex-notifications"
           className="border-2 border-border rounded-base overflow-hidden"
@@ -88,8 +83,8 @@ export function PlexNotificationsForm() {
                   Plex Notifications
                 </h3>
                 <p className="text-sm text-text text-left">
-                  Configure Plex notifications in your Radarr and Sonarr
-                  instances
+                  Configure Sonarr and Radarr to notify Plex of content added,
+                  removed, or modified
                 </p>
               </div>
               <Badge
@@ -210,7 +205,7 @@ export function PlexNotificationsForm() {
                         <h3 className="font-medium text-sm text-text mb-2">
                           Plex Connection Settings
                         </h3>
-                        
+
                         {/* Plex Token Field with Discovery Button */}
                         <FormField
                           control={form.control}
@@ -228,8 +223,8 @@ export function PlexNotificationsForm() {
                                     className="flex-1"
                                   />
                                 </FormControl>
-                                <Button 
-                                  type="button" 
+                                <Button
+                                  type="button"
                                   variant="noShadow"
                                   onClick={() => discoverServers(field.value)}
                                   disabled={isDiscovering || !field.value}
@@ -255,13 +250,19 @@ export function PlexNotificationsForm() {
                             </h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                               {servers.map((server, index) => (
-                                <Card 
-                                  key={index} 
+                                <Card
+                                  key={index}
                                   className="cursor-pointer hover:border-primary transition-colors"
                                   onClick={() => {
-                                    form.setValue('plexHost', server.host, { shouldDirty: true });
-                                    form.setValue('plexPort', server.port, { shouldDirty: true });
-                                    form.setValue('useSsl', server.useSsl, { shouldDirty: true });
+                                    form.setValue('plexHost', server.host, {
+                                      shouldDirty: true,
+                                    })
+                                    form.setValue('plexPort', server.port, {
+                                      shouldDirty: true,
+                                    })
+                                    form.setValue('useSsl', server.useSsl, {
+                                      shouldDirty: true,
+                                    })
                                   }}
                                 >
                                   <CardHeader className="py-3 px-4">
@@ -270,7 +271,9 @@ export function PlexNotificationsForm() {
                                       {server.name}
                                     </CardTitle>
                                     <CardDescription className="text-xs">
-                                      {server.local ? 'Local Connection' : 'Remote Connection'}
+                                      {server.local
+                                        ? 'Local Connection'
+                                        : 'Remote Connection'}
                                     </CardDescription>
                                   </CardHeader>
                                   <CardContent className="py-0 px-4">

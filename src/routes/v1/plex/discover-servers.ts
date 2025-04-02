@@ -1,63 +1,51 @@
-import { z } from 'zod'
 import type { FastifyPluginAsync } from 'fastify'
+import type { z } from 'zod'
 import { randomUUID } from 'node:crypto'
+import {
+  PlexTokenSchema,
+  PlexServerResponseSchema,
+  PlexServerErrorSchema,
+} from '@schemas/plex/discover-servers.schema.js'
 
 // Define types for Plex API responses
 interface PlexResourceConnection {
-  uri: string;
-  address: string;
-  port: number;
-  protocol?: string;
-  local: boolean;
+  uri: string
+  address: string
+  port: number
+  protocol?: string
+  local: boolean
 }
 
 interface PlexResource {
-  name: string;
-  owned: boolean;
-  provides: string[] | string;
-  connections: PlexResourceConnection[];
+  name: string
+  owned: boolean
+  provides: string[] | string
+  connections: PlexResourceConnection[]
 }
 
-// Schema for the token request
-const PlexTokenSchema = z.object({
-  plexToken: z.string().min(1, 'Plex token is required'),
-})
-
-// Schema for server discovery response
-const PlexServerResponseSchema = z.object({
-  success: z.boolean(),
-  message: z.string().optional(),
-  servers: z.array(z.object({
-    name: z.string(),
-    host: z.string(),
-    port: z.number(),
-    useSsl: z.boolean(),
-    local: z.boolean(),
-  })),
-})
-
-const plugin: FastifyPluginAsync = async (fastify) => {
-  fastify.post(
+export const discoverServersRoute: FastifyPluginAsync = async (fastify) => {
+  fastify.post<{
+    Body: z.infer<typeof PlexTokenSchema>,
+    Reply: z.infer<typeof PlexServerResponseSchema>
+  }>(
     '/discover-servers',
     {
       schema: {
         body: PlexTokenSchema,
         response: {
           200: PlexServerResponseSchema,
-          400: z.object({ error: z.string() }),
-          500: z.object({ error: z.string() }),
+          400: PlexServerErrorSchema,
+          500: PlexServerErrorSchema,
         },
         tags: ['Plex'],
       },
     },
     async (request, reply) => {
       try {
-        const { plexToken } = request.body as { plexToken: string }
+        const { plexToken } = request.body
 
         if (!plexToken) {
-          return reply.code(400).send({ 
-            error: 'Plex token is required' 
-          })
+          throw reply.badRequest('Plex token is required')
         }
 
         // Generate a simple client ID
@@ -70,58 +58,88 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         url.searchParams.append('includeHttps', '1')
         url.searchParams.append('includeRelay', '0')
         url.searchParams.append('includeIPv6', '0')
-        
+
         const response = await fetch(url.toString(), {
           method: 'GET',
           headers: {
-            'Accept': 'application/json',
+            Accept: 'application/json',
             'X-Plex-Token': plexToken,
             'X-Plex-Client-Identifier': 'pulsarr',
             'X-Plex-Product': 'Pulsarr',
-            'X-Plex-Platform': 'Web'
-          }
+            'X-Plex-Platform': 'Web',
+          },
         })
-        
+
         if (!response.ok) {
-          throw new Error(`Failed to fetch Plex servers: ${response.statusText}`)
+          throw new Error(
+            `Failed to fetch Plex servers: ${response.statusText}`,
+          )
         }
+
+        const rawResponse = await response.json()
         
-        const resources = await response.json() as PlexResource[]
+        // Temporary logging for testing purposes
+        fastify.log.info('Raw Plex API response:')
+        fastify.log.info(JSON.stringify(rawResponse, null, 2))
         
+        const resources = rawResponse as PlexResource[]
+
         // Extract server options from resources
         const serverOptions = []
-        
+
         // Filter resources that provide server functionality and are owned by the user
-        const serverResources = resources.filter(r => 
-          r.provides && 
-          (Array.isArray(r.provides) ? r.provides.includes('server') : r.provides.split(',').includes('server')) && 
-          r.owned
+        const serverResources = resources.filter(
+          (r) =>
+            r.provides &&
+            (Array.isArray(r.provides)
+              ? r.provides.includes('server')
+              : r.provides.split(',').includes('server')) &&
+            r.owned,
         )
-        
+
         for (const server of serverResources) {
           // For each server, add all viable connection options
           for (const connection of server.connections || []) {
             if (!connection.uri) continue
-            
+
             try {
               const url = new URL(connection.uri)
               const isSecure = url.protocol === 'https:'
               
-              serverOptions.push({
-                name: `${server.name} (${connection.address || url.hostname})`,
-                host: connection.address || url.hostname,
-                port: connection.port || parseInt(url.port, 10) || (isSecure ? 443 : 80),
-                useSsl: isSecure,
-                local: connection.local || false,
-              })
+              // Add option with direct Plex URL (secure)
+              if (url.hostname) {
+                serverOptions.push({
+                  name: `${server.name} (${url.hostname})`,
+                  host: url.hostname,
+                  port: connection.port || Number.parseInt(url.port, 10) || 32400,
+                  useSsl: true,
+                  local: connection.local || false,
+                })
+              }
+              
+              // Add option with direct IP address (non-secure by default)
+              if (connection.address) {
+                serverOptions.push({
+                  name: `${server.name} (${connection.address})`,
+                  host: connection.address,
+                  port: connection.port || 32400,
+                  useSsl: false,
+                  local: connection.local || false,
+                })
+              }
             } catch (e) {
-              fastify.log.warn(`Invalid server connection URI: ${connection.uri}`, e)
+              fastify.log.warn(
+                `Invalid server connection URI: ${connection.uri}`,
+                e,
+              )
             }
           }
         }
 
-        fastify.log.info(`Found ${serverOptions.length} Plex server connection options`)
-        
+        fastify.log.info(
+          `Found ${serverOptions.length} Plex server connection options`,
+        )
+
         return {
           success: true,
           servers: serverOptions,
@@ -130,12 +148,16 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       } catch (err) {
         fastify.log.error('Error discovering Plex servers:', err)
         
-        return reply.code(500).send({ 
-          error: err instanceof Error ? err.message : 'Failed to discover Plex servers' 
-        })
+        if (err instanceof Error && err.message.includes('Bad Request')) {
+          throw reply.badRequest(err.message)
+        }
+        
+        throw reply.internalServerError(
+          err instanceof Error
+            ? err.message
+            : 'Failed to discover Plex servers'
+        )
       }
     },
   )
 }
-
-export default plugin
