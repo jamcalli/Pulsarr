@@ -3,23 +3,35 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useToast } from '@/hooks/use-toast'
 import { z } from 'zod'
-import type {
-  PlexNotificationConfig,
-  PlexNotificationResponse,
-} from '@root/schemas/plex/configure-notifications.schema'
+import { useConfigStore } from '@/stores/configStore'
+import type { PlexNotificationResponse } from '@root/schemas/plex/configure-notifications.schema'
 import type { PlexNotificationStatusResponse } from '@root/schemas/plex/get-notification-status.schema'
 
 // Minimum loading delay
 const MIN_LOADING_DELAY = 500
 
+// Extended status response type with config
+interface ExtendedPlexNotificationStatusResponse
+  extends PlexNotificationStatusResponse {
+  config?: {
+    plexToken?: string
+    plexHost?: string
+    plexPort?: number
+    useSsl?: boolean
+  }
+}
+
+// Schema for the form
 const plexNotificationsSchema = z.object({
-  plexToken: z.string().min(1, 'Plex token is required'),
+  plexToken: z.string().optional(),
   plexHost: z.string().min(1, 'Plex host is required'),
   plexPort: z.coerce.number().int().positive().default(32400),
   useSsl: z.boolean().default(false),
 })
 
-export type PlexNotificationsFormValues = PlexNotificationConfig
+export type PlexNotificationsFormValues = z.infer<
+  typeof plexNotificationsSchema
+>
 
 /**
  * Custom hook to handle Plex notifications form state and operations.
@@ -42,12 +54,13 @@ export type PlexNotificationsFormValues = PlexNotificationConfig
  */
 export function usePlexNotifications() {
   const { toast } = useToast()
+  const config = useConfigStore((state) => state.config)
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [lastResults, setLastResults] = useState<
-    PlexNotificationResponse | PlexNotificationStatusResponse | null
+    PlexNotificationResponse | ExtendedPlexNotificationStatusResponse | null
   >(null)
 
   // Initialize form with default values
@@ -60,6 +73,12 @@ export function usePlexNotifications() {
       useSsl: false,
     },
   })
+
+  // Populate Plex token from config store when config changes
+  useEffect(() => {
+    const token = config?.plexTokens?.[0] || ''
+    form.setValue('plexToken', token)
+  }, [config, form])
 
   // Fetch current notification status on mount
   useEffect(() => {
@@ -89,8 +108,20 @@ export function usePlexNotifications() {
           )
         }
 
-        const results: PlexNotificationStatusResponse = await response.json()
+        const results =
+          (await response.json()) as ExtendedPlexNotificationStatusResponse
         setLastResults(results)
+
+        // If we have current settings, populate the form
+        if (results.success && results.config) {
+          form.reset({
+            plexToken:
+              results.config.plexToken || config?.plexTokens?.[0] || '',
+            plexHost: results.config.plexHost || '',
+            plexPort: results.config.plexPort || 32400,
+            useSsl: results.config.useSsl || false,
+          })
+        }
       } catch (err) {
         const errorMessage =
           err instanceof Error
@@ -104,7 +135,7 @@ export function usePlexNotifications() {
     }
 
     fetchStatus()
-  }, [])
+  }, [form, config])
 
   // Handle form submission
   const onSubmit = useCallback(
@@ -231,7 +262,6 @@ export function usePlexNotifications() {
     }
   }, [toast])
 
-  // Function to prepare for deletion (typically used with confirmation modal)
   const initiateDelete = useCallback(() => {
     // This function is just a placeholder for the action of clicking the delete button
     // The actual deletion happens in handleDelete

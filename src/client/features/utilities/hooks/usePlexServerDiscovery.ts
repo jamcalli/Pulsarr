@@ -1,17 +1,19 @@
 import { useState, useCallback } from 'react'
 import { useToast } from '@/hooks/use-toast'
-
-// Interface for a Plex server
-export interface PlexServer {
-  name: string
-  host: string
-  port: number
-  useSsl: boolean
-  local: boolean
-}
+import type { PlexServer } from '@root/schemas/plex/discover-servers.schema'
 
 /**
  * A hook for discovering Plex servers using a token
+ *
+ * This hook manages the state and API interactions for discovering Plex servers.
+ * It handles the loading state, error handling, and provides a function to initiate
+ * server discovery using a Plex token.
+ *
+ * @returns An object containing:
+ * - isDiscovering: Boolean indicating if discovery is in progress
+ * - error: Any error that occurred during discovery
+ * - servers: Array of discovered Plex servers
+ * - discoverServers: Function to initiate server discovery with a token
  */
 export function usePlexServerDiscovery() {
   const { toast } = useToast()
@@ -34,6 +36,10 @@ export function usePlexServerDiscovery() {
       setIsDiscovering(true)
       setError(null)
 
+      // Set up a timeout for the request
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 5000) // 5-second timeout
+
       try {
         const response = await fetch('/v1/plex/discover-servers', {
           method: 'POST',
@@ -41,7 +47,11 @@ export function usePlexServerDiscovery() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ plexToken: token }),
+          signal: controller.signal,
         })
+
+        // Clear the timeout since we got a response
+        clearTimeout(timeoutId)
 
         if (!response.ok) {
           const errorData = await response.json()
@@ -53,20 +63,34 @@ export function usePlexServerDiscovery() {
         if (data.success && data.servers && data.servers.length > 0) {
           setServers(data.servers)
           toast({
-            description: `Found ${data.servers.length} Plex servers`,
+            description: `Found ${data.servers.length} Plex server connection options`,
             variant: 'default',
           })
           return data.servers
-        } else {
-          setServers([])
+        }
+
+        setServers([])
+        toast({
+          title: 'No Servers Found',
+          description: 'No Plex servers were found with the provided token',
+          variant: 'destructive',
+        })
+        return []
+      } catch (err) {
+        // Handle timeout specifically
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          const timeoutError =
+            'Request timed out. Please check your token and try again.'
+          setError(timeoutError)
           toast({
-            title: 'No Servers Found',
-            description: 'No Plex servers were found with the provided token',
+            title: 'Timeout Error',
+            description: timeoutError,
             variant: 'destructive',
           })
           return []
         }
-      } catch (err) {
+
+        // Handle other errors
         const errorMessage =
           err instanceof Error ? err.message : 'Failed to discover Plex servers'
 
@@ -78,6 +102,7 @@ export function usePlexServerDiscovery() {
         })
         return []
       } finally {
+        clearTimeout(timeoutId)
         setIsDiscovering(false)
       }
     },

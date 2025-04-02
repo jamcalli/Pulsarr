@@ -39,7 +39,7 @@ import {
  * This component provides an interface to set up Plex notifications in all Radarr and Sonarr instances.
  * It allows users to specify Plex connection details like token, host, port, and SSL settings.
  * The form includes a delete button to remove all Plex notifications across instances.
- * Added server discovery functionality to find available Plex servers with a token.
+ * Server discovery functionality finds available Plex servers with a token.
  */
 export function PlexNotificationsForm() {
   const {
@@ -146,7 +146,7 @@ export function PlexNotificationsForm() {
                       <p className="text-sm text-text">{lastResults.message}</p>
 
                       {/* Radarr instances */}
-                      {lastResults.results.radarr.length > 0 && (
+                      {lastResults.results?.radarr?.length > 0 && (
                         <div className="mt-3">
                           <h4 className="font-medium text-sm text-text">
                             Radarr Instances
@@ -169,7 +169,7 @@ export function PlexNotificationsForm() {
                       )}
 
                       {/* Sonarr instances */}
-                      {lastResults.results.sonarr.length > 0 && (
+                      {lastResults.results?.sonarr?.length > 0 && (
                         <div className="mt-3">
                           <h4 className="font-medium text-sm text-text">
                             Sonarr Instances
@@ -226,7 +226,11 @@ export function PlexNotificationsForm() {
                                 <Button
                                   type="button"
                                   variant="noShadow"
-                                  onClick={() => discoverServers(field.value)}
+                                  onClick={() => {
+                                    if (field.value) {
+                                      discoverServers(field.value)
+                                    }
+                                  }}
                                   disabled={isDiscovering || !field.value}
                                 >
                                   {isDiscovering ? (
@@ -251,7 +255,7 @@ export function PlexNotificationsForm() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                               {servers.map((server, index) => (
                                 <Card
-                                  key={index}
+                                  key={`${server.host}-${server.port}-${index}`}
                                   className="cursor-pointer hover:border-primary transition-colors"
                                   onClick={() => {
                                     form.setValue('plexHost', server.host, {
@@ -274,6 +278,7 @@ export function PlexNotificationsForm() {
                                       {server.local
                                         ? 'Local Connection'
                                         : 'Remote Connection'}
+                                      {server.useSsl && ', Secure'}
                                     </CardDescription>
                                   </CardHeader>
                                   <CardContent className="py-0 px-4">
