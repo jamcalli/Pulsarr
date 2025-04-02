@@ -22,10 +22,15 @@ interface PlexResource {
   connections: PlexResourceConnection[]
 }
 
-// Error with additional properties that might be on Fastify errors
-interface FastifyErrorResponse {
-  statusCode?: number
-  error?: string
+// Helper class to carry HTTP status information
+class PlexApiError extends Error {
+  status: number
+
+  constructor(message: string, status: number) {
+    super(message)
+    this.status = status
+    this.name = 'PlexApiError'
+  }
 }
 
 export const discoverServersRoute: FastifyPluginAsync = async (fastify) => {
@@ -42,6 +47,7 @@ export const discoverServersRoute: FastifyPluginAsync = async (fastify) => {
           400: PlexServerErrorSchema,
           401: PlexServerErrorSchema,
           403: PlexServerErrorSchema,
+          404: PlexServerErrorSchema,
           500: PlexServerErrorSchema,
         },
         tags: ['Plex'],
@@ -75,18 +81,10 @@ export const discoverServersRoute: FastifyPluginAsync = async (fastify) => {
         })
 
         if (!response.ok) {
-          // Handle authentication/authorization errors specifically
-          if (response.status === 401) {
-            throw reply.unauthorized(
-              'Invalid Plex token or unauthorized access',
-            )
-          }
-          if (response.status === 403) {
-            throw reply.forbidden('Access to Plex resources is forbidden')
-          }
-
-          throw new Error(
+          // Pass along the HTTP status code with the error
+          throw new PlexApiError(
             `Failed to fetch Plex servers: ${response.statusText}`,
+            response.status,
           )
         }
 
@@ -157,35 +155,51 @@ export const discoverServersRoute: FastifyPluginAsync = async (fastify) => {
       } catch (err: unknown) {
         fastify.log.error('Error discovering Plex servers:', err)
 
-        // Check if it's a Fastify error response
-        const fastifyError = err as FastifyErrorResponse
-        if (fastifyError.statusCode && fastifyError.error) {
+        // Handle Fastify-specific errors
+        if (
+          typeof err === 'object' &&
+          err !== null &&
+          'statusCode' in err &&
+          'error' in err
+        ) {
           throw err
         }
 
-        if (err instanceof Error) {
-          if (err.message.includes('Bad Request')) {
+        // Handle our PlexApiError
+        if (err instanceof PlexApiError) {
+          // Map HTTP status codes to appropriate Fastify replies
+          const status = err.status
+
+          if (status === 400) {
             throw reply.badRequest(err.message)
           }
 
-          // Handle potential auth errors from other sources
-          if (
-            err.message.includes('Unauthorized') ||
-            err.message.includes('Invalid token')
-          ) {
+          if (status === 401) {
             throw reply.unauthorized(err.message)
           }
 
-          if (err.message.includes('Forbidden')) {
+          if (status === 403) {
             throw reply.forbidden(err.message)
           }
+
+          if (status === 404) {
+            throw reply.notFound(err.message)
+          }
+
+          if (status >= 500) {
+            throw reply.internalServerError(err.message)
+          }
+
+          // For any other client errors (default case)
+          throw reply.badRequest(err.message)
         }
 
-        throw reply.internalServerError(
-          err instanceof Error
-            ? err.message
-            : 'Failed to discover Plex servers',
-        )
+        // Default error handling for unexpected errors
+        if (err instanceof Error) {
+          throw reply.internalServerError(err.message)
+        }
+
+        throw reply.internalServerError('Failed to discover Plex servers')
       }
     },
   )
