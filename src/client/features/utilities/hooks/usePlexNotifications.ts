@@ -34,23 +34,24 @@ export type PlexNotificationsFormValues = z.infer<
 >
 
 /**
- * Custom hook to handle Plex notifications form state and operations.
+ * Custom React hook for managing the form and state related to Plex notifications configuration.
  *
- * This hook manages the form for Plex notification configuration across Radarr and Sonarr instances.
- * It handles form validation, submission, cancellation, and deletion of the configuration.
- * The hook communicates with the server endpoints to configure or remove Plex notifications.
+ * This hook handles initialization, validation, submission, cancellation, and deletion of the Plex
+ * notifications configuration. It fetches the current notification status on mount and updates the
+ * form with any existing settings. Additionally, it communicates with server endpoints to configure
+ * or remove Plex notifications while managing related loading and error states.
  *
  * @returns An object containing:
- * - form: The React Hook Form instance.
- * - error: Any error encountered during operations.
- * - isSubmitting: Boolean indicating if the form is being submitted.
- * - isDeleting: Boolean indicating if the configuration is being deleted.
- * - isLoading: Boolean indicating if the status is being loaded.
- * - onSubmit: Function to handle form submission.
+ * - form: The React Hook Form instance managing the form state.
+ * - error: A string describing any error encountered during an operation.
+ * - isSubmitting: Boolean indicating whether the form is currently being submitted.
+ * - isDeleting: Boolean indicating whether a deletion operation is in progress.
+ * - isLoading: Boolean indicating whether the configuration status is being loaded.
+ * - onSubmit: Function to handle the form submission.
  * - handleCancel: Function to reset the form to its default values.
- * - handleDelete: Function to delete the configuration.
- * - initiateDelete: Function to start the delete confirmation flow.
- * - lastResults: The results from the last successful operation.
+ * - handleDelete: Function to delete the Plex notifications configuration.
+ * - initiateDelete: Function to trigger the delete confirmation flow.
+ * - lastResults: The response data from the last successful operation.
  */
 export function usePlexNotifications() {
   const { toast } = useToast()
