@@ -13,7 +13,7 @@ Pulsarr is an integration tool that bridges Plex watchlists with Sonarr and Rada
 
 Enjoy all the benefits of other content discovery systems without requiring users to use additional services. All the magic happens from the pimary users Plex Token.
 
-It provides user-based watchlist synchronization for yourself and for friends, smart content routing based on genre, and notification capabilities (Discord and Email).
+It provides user-based watchlist synchronization for yourself and for friends, smart content routing based on genre, and notification capabilities (Discord and Apprise).
 
 Want to contribute? Check out our [Contributing Guidelines](#contributing).
 
@@ -45,6 +45,7 @@ Want to contribute? Check out our [Contributing Guidelines](#contributing).
 - **Genre-based Routing**: Send different genres to specific root folders, quality profiles, or completely separate instances.
 - **Instance Synchronization**: Keep multiple instances in sync (e.g., send content to both Sonarr4K and SonarrHD) while respecting genre rules. Works with both existing and newly added instances. Includes a sync feature for newly added instances.
 - **Discord Integration**: User-friendly notification system with customizable settings via Discord bot commands. Allows users to customize their own notification settings.
+- **Apprise Integration**: Apprise can be used to route notifications. Apprise supports many different notifications methods including, email, SMS, Slack, Telegram, and many more. Users can configure their own Apprise settings via the Discord bot, or admins can set these up via the UI. System notifications can also be sent through Apprise. Please see [Apprise Documentation](#apprise-notifications) below on setting up Pulsarr with Apprise. 
 - **Granular User Controls**: Choose which users can sync content from their watchlists.
 - **Automatic Configuration**: Self-configures webhook endpoints in Sonarr/Radarr to route notifications as soon as your content is ready.
 - **Smart Notification System**: Prevents notification spam with intelligent batching for season packs and individual episodes / movies.
