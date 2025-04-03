@@ -4,7 +4,7 @@ import type {
   RouterPlugin,
   RoutingContext,
   RoutingDecision,
-} from '../types/router.types.js'
+} from '@root/types/router.types.js'
 
 export default function createGenreRouterPlugin(
   fastify: FastifyInstance,
@@ -13,7 +13,7 @@ export default function createGenreRouterPlugin(
     name: 'Genre Router',
     description: 'Routes content based on genre matching rules',
     enabled: true,
-    order: 50, // Middle priority
+    order: 50,
 
     async evaluateRouting(
       item: ContentItem,
@@ -28,11 +28,14 @@ export default function createGenreRouterPlugin(
         return null
       }
 
-      // Use the injected fastify instance
+      // Get the appropriate type of rules
       const isMovie = context.contentType === 'movie'
-      const genreRoutes = isMovie
-        ? await fastify.db.getRadarrGenreRoutes()
-        : await fastify.db.getSonarrGenreRoutes()
+      const rules = await fastify.db.getRouterRulesByType('genre');
+      
+      // Filter to only rules for the current content type
+      const contentTypeRules = rules.filter(rule => 
+        rule.target_type === (isMovie ? 'radarr' : 'sonarr')
+      );
 
       const itemGenres = new Set(
         Array.isArray(item.genres)
@@ -43,31 +46,29 @@ export default function createGenreRouterPlugin(
       )
 
       // Find matching genre routes
-      const matchingRoutes = genreRoutes.filter((route) =>
-        itemGenres.has(route.genre),
-      )
+      const matchingRules = contentTypeRules.filter((rule) => {
 
-      if (matchingRoutes.length === 0) {
+        const genreValue = rule.criteria.genre;
+        
+        // Make sure the genre value is a string
+        if (typeof genreValue === 'string') {
+          return itemGenres.has(genreValue);
+        }
+        
+        return false; // Skip if genre is not a string
+      });
+
+      if (matchingRules.length === 0) {
         return null
       }
 
       // Convert to routing decisions
-      return matchingRoutes.map((route) => {
-        // Determine the right instance ID based on content type
-        let instanceId: number
-        if (isMovie) {
-          // For movies, use RadarrGenreRoute
-          instanceId = (route as { radarrInstanceId: number }).radarrInstanceId
-        } else {
-          // For shows, use SonarrGenreRoute
-          instanceId = (route as { sonarrInstanceId: number }).sonarrInstanceId
-        }
-
+      return matchingRules.map((rule) => {
         return {
-          instanceId,
-          qualityProfile: route.qualityProfile,
-          rootFolder: route.rootFolder,
-          weight: 50,
+          instanceId: rule.target_instance_id,
+          qualityProfile: rule.quality_profile,
+          rootFolder: rule.root_folder,
+          weight: rule.order,
         }
       })
     },
