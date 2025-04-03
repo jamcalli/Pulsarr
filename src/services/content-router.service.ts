@@ -90,9 +90,45 @@ export class ContentRouterService {
       userId?: number
       userName?: string
       syncing?: boolean
+      forcedInstanceId?: number
     } = {},
   ): Promise<void> {
     const contentType = item.type.toLowerCase() as 'movie' | 'show'
+
+    // Handle forced routing first if a specific instance ID is provided
+    if (options.forcedInstanceId !== undefined) {
+      this.log.info(
+        `Forced routing of "${item.title}" to instance ID ${options.forcedInstanceId}`,
+      )
+
+      try {
+        if (contentType === 'movie') {
+          await this.fastify.radarrManager.routeItemToRadarr(
+            item as RadarrItem,
+            key,
+            options.forcedInstanceId,
+            options.syncing,
+          )
+        } else {
+          await this.fastify.sonarrManager.routeItemToSonarr(
+            item as SonarrItem,
+            key,
+            options.forcedInstanceId,
+            options.syncing,
+          )
+        }
+        this.log.info(
+          `Successfully force-routed "${item.title}" to instance ${options.forcedInstanceId}`,
+        )
+        return
+      } catch (error) {
+        this.log.error(
+          `Error force-routing "${item.title}" to instance ${options.forcedInstanceId}:`,
+          error,
+        )
+        throw error
+      }
+    }
 
     this.log.info(`Routing ${contentType} "${item.title}" using plugin system`)
 

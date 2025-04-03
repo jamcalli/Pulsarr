@@ -856,14 +856,41 @@ export class StatusService {
     instanceId: number,
   ): Promise<boolean> {
     try {
-      await this.radarrManager.routeItemToRadarr(
-        matchingMovie,
-        item.key,
-        instanceId,
-        true,
-      )
+      // Get user information
+      const userId =
+        typeof item.user_id === 'number' ? item.user_id : Number(item.user_id)
+
+      // First check if the user exists and can sync
+      let userName: string | undefined
+      let canSync = true
+
+      if (!Number.isNaN(userId)) {
+        const user = await this.dbService.getUser(userId)
+        if (user) {
+          userName = user.name
+          canSync = user.can_sync !== false
+        }
+      }
+
+      // If user cannot sync, don't route the item
+      if (!canSync) {
+        this.log.debug(
+          `Skipping movie ${item.title} sync as user ${userId} has sync disabled`,
+        )
+        return false
+      }
+
+      // Use the content router but with forced destination instanceId
+      // This is a special case for syncing between instances
+      await this.fastify.contentRouter.routeContent(matchingMovie, item.key, {
+        userId,
+        userName,
+        syncing: true,
+        forcedInstanceId: instanceId,
+      })
+
       this.log.debug(
-        `Copied movie ${item.title} to Radarr instance ${instanceId}`,
+        `Copied movie ${item.title} to Radarr instance ${instanceId} via content router`,
       )
       return true
     } catch (error) {
@@ -1161,14 +1188,41 @@ export class StatusService {
     instanceId: number,
   ): Promise<boolean> {
     try {
-      await this.sonarrManager.routeItemToSonarr(
-        matchingSeries,
-        item.key,
-        instanceId,
-        true,
-      )
+      // Get user information if available
+      const userId =
+        typeof item.user_id === 'number' ? item.user_id : Number(item.user_id)
+
+      // First check if the user exists and can sync
+      let userName: string | undefined
+      let canSync = true
+
+      if (!Number.isNaN(userId)) {
+        const user = await this.dbService.getUser(userId)
+        if (user) {
+          userName = user.name
+          canSync = user.can_sync !== false
+        }
+      }
+
+      // If user cannot sync, don't route the item
+      if (!canSync) {
+        this.log.debug(
+          `Skipping show ${item.title} sync as user ${userId} has sync disabled`,
+        )
+        return false
+      }
+
+      // Use the content router but with forced destination instanceId
+      // This is a special case for syncing between instances
+      await this.fastify.contentRouter.routeContent(matchingSeries, item.key, {
+        userId,
+        userName,
+        syncing: true,
+        forcedInstanceId: instanceId,
+      })
+
       this.log.debug(
-        `Copied show ${item.title} to Sonarr instance ${instanceId}`,
+        `Copied show ${item.title} to Sonarr instance ${instanceId} via content router`,
       )
       return true
     } catch (error) {
