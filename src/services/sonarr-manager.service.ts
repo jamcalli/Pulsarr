@@ -127,6 +127,8 @@ export class SonarrManagerService {
     key: string,
     targetInstanceId?: number,
     syncing = false,
+    overrideRootFolder?: string,
+    overrideQualityProfile?: number | string | null,
   ): Promise<void> {
     if (targetInstanceId !== undefined) {
       const targetService = this.sonarrServices.get(targetInstanceId)
@@ -143,27 +145,35 @@ export class SonarrManagerService {
           throw new Error(`Sonarr instance ${targetInstanceId} not found`)
         }
 
-        let targetQualityProfileId: number | undefined = undefined
+        // Use the override parameters if provided, otherwise fall back to instance defaults
+        const rootFolder =
+          overrideRootFolder || instance.rootFolder || undefined
+        let qualityProfileId: number | undefined = undefined
 
-        const isNumericQualityProfile = (
-          value: string | number | null,
-        ): value is number => {
-          if (value === null) return false
-          if (typeof value === 'number') return true
-          return /^\d+$/.test(value)
-        }
-
-        if (
-          instance.qualityProfile &&
-          isNumericQualityProfile(instance.qualityProfile)
-        ) {
-          targetQualityProfileId = Number(instance.qualityProfile)
+        if (overrideQualityProfile !== undefined) {
+          if (typeof overrideQualityProfile === 'number') {
+            qualityProfileId = overrideQualityProfile
+          } else if (
+            typeof overrideQualityProfile === 'string' &&
+            /^\d+$/.test(overrideQualityProfile)
+          ) {
+            qualityProfileId = Number(overrideQualityProfile)
+          }
+        } else if (instance.qualityProfile !== null) {
+          if (typeof instance.qualityProfile === 'number') {
+            qualityProfileId = instance.qualityProfile
+          } else if (
+            typeof instance.qualityProfile === 'string' &&
+            /^\d+$/.test(instance.qualityProfile)
+          ) {
+            qualityProfileId = Number(instance.qualityProfile)
+          }
         }
 
         await targetService.addToSonarr(
           sonarrItem,
-          instance.rootFolder || undefined,
-          targetQualityProfileId,
+          rootFolder,
+          qualityProfileId,
         )
 
         await this.fastify.db.updateWatchlistItem(key, {
@@ -172,7 +182,7 @@ export class SonarrManagerService {
         })
 
         this.log.info(
-          `Successfully routed item to instance ${targetInstanceId} with quality profile ${targetQualityProfileId ?? 'default'}`,
+          `Successfully routed item to instance ${targetInstanceId} with quality profile ${qualityProfileId ?? 'default'}`,
         )
         return
       } catch (error) {
