@@ -99,6 +99,14 @@ export class WatchlistWorkflowService {
     return this.fastify.plexWatchlist
   }
 
+  // Add this getter in WatchlistWorkflowService class
+  /**
+   * Access to content router service
+   */
+  private get contentRouter() {
+    return this.fastify.contentRouter
+  }
+
   /**
    * Access to Sonarr manager service
    */
@@ -658,7 +666,7 @@ export class WatchlistWorkflowService {
    * Process a movie watchlist item and add it to Radarr
    *
    * Extracts the TMDB ID, verifies the item doesn't already exist,
-   * and routes it to the appropriate Radarr instance.
+   * and routes it using the content router.
    *
    * @param item - Movie watchlist item to process
    * @returns Promise resolving to true if processed successfully
@@ -706,15 +714,18 @@ export class WatchlistWorkflowService {
             : [],
       }
 
-      // Add to Radarr
-      await this.radarrManager.routeItemToRadarr(radarrItem, item.key)
+      // Use content router to route the item
+      await this.contentRouter.routeContent(radarrItem, item.key, {
+        syncing: false,
+      })
+
       this.log.info(
-        `Successfully added movie ${item.title} to appropriate Radarr instance`,
+        `Successfully routed movie ${item.title} via content router`,
       )
 
       return true
     } catch (error) {
-      this.log.error(`Error processing movie ${item.title} in Radarr:`, error)
+      this.log.error(`Error processing movie ${item.title}:`, error)
       this.log.debug('Failed item details:', {
         title: item.title,
         guids: item.guids,
@@ -729,7 +740,7 @@ export class WatchlistWorkflowService {
    * Process a show watchlist item and add it to Sonarr
    *
    * Extracts the TVDB ID, verifies the item doesn't already exist,
-   * and routes it to the appropriate Sonarr instance.
+   * and routes it using the content router.
    *
    * @param item - Show watchlist item to process
    * @returns Promise resolving to true if processed successfully
@@ -780,11 +791,12 @@ export class WatchlistWorkflowService {
         series_status: 'continuing', // Default to continuing since we don't know yet
       }
 
-      // Add to Sonarr
-      await this.sonarrManager.routeItemToSonarr(sonarrItem, item.key)
-      this.log.info(
-        `Successfully added show ${item.title} to appropriate Sonarr instance`,
-      )
+      // Use content router to route the item
+      await this.contentRouter.routeContent(sonarrItem, item.key, {
+        syncing: false,
+      })
+
+      this.log.info(`Successfully routed show ${item.title} via content router`)
 
       return true
     } catch (error) {
@@ -947,7 +959,31 @@ export class WatchlistWorkflowService {
 
           // Add to Sonarr if not exists
           if (!exists) {
-            await this.processSonarrItem(tempItem)
+            // Create a proper Sonarr item
+            const tvdbId = Number.parseInt(
+              tvdbGuids[0].replace('tvdb:', ''),
+              10,
+            )
+            const sonarrItem: SonarrItem = {
+              title: `TVDB:${tvdbId}`,
+              guids: tvdbGuids,
+              type: 'show',
+              ended: false,
+              genres: Array.isArray(tempItem.genres)
+                ? tempItem.genres
+                : typeof tempItem.genres === 'string'
+                  ? [tempItem.genres]
+                  : [],
+              status: 'pending',
+              series_status: 'continuing',
+            }
+
+            // Pass user id to the router
+            await this.contentRouter.routeContent(sonarrItem, tempItem.key, {
+              userId: numericUserId,
+              syncing: false,
+            })
+
             showsAdded++
           }
         }
@@ -976,7 +1012,28 @@ export class WatchlistWorkflowService {
 
           // Add to Radarr if not exists
           if (!exists) {
-            await this.processRadarrItem(tempItem)
+            // Create a proper Radarr item
+            const tmdbId = Number.parseInt(
+              tmdbGuids[0].replace('tmdb:', ''),
+              10,
+            )
+            const radarrItem: RadarrItem = {
+              title: `TMDB:${tmdbId}`,
+              guids: tmdbGuids,
+              type: 'movie',
+              genres: Array.isArray(tempItem.genres)
+                ? tempItem.genres
+                : typeof tempItem.genres === 'string'
+                  ? [tempItem.genres]
+                  : [],
+            }
+
+            // Pass user id to the router
+            await this.contentRouter.routeContent(radarrItem, tempItem.key, {
+              userId: numericUserId,
+              syncing: false,
+            })
+
             moviesAdded++
           }
         }
