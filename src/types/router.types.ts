@@ -31,3 +31,27 @@ export interface RouterPlugin {
     context: RoutingContext,
   ): Promise<RoutingDecision[] | null>
 }
+
+export interface RouterRule {
+  id: number
+  name: string
+  type: string
+  criteria: Record<string, CriteriaValue>
+  target_type: 'sonarr' | 'radarr'
+  target_instance_id: number
+  root_folder?: string | null
+  quality_profile?: number | null
+  order: number
+  enabled: boolean
+  metadata?: Record<string, CriteriaValue> | null
+  created_at: string
+  updated_at: string
+}
+
+export type CriteriaValue =
+  | string
+  | number
+  | boolean
+  | string[]
+  | number[]
+  | null
