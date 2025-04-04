@@ -185,6 +185,50 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     },
   )
 
+  fastify.get<{
+    Params: { targetType: 'sonarr' | 'radarr' }
+    Reply: z.infer<typeof ContentRouterRuleListResponseSchema>
+  }>(
+    '/rules/target/:targetType',
+    {
+      schema: {
+        params: z.object({
+          targetType: z.enum(['sonarr', 'radarr']),
+        }),
+        response: {
+          200: ContentRouterRuleListResponseSchema,
+          400: ContentRouterRuleErrorSchema,
+          500: ContentRouterRuleErrorSchema,
+        },
+        tags: ['Content Router'],
+      },
+    },
+    async (request, reply) => {
+      try {
+        const { targetType } = request.params
+
+        const rules = await fastify.db.getRouterRulesByTargetType(targetType)
+
+        const response = {
+          success: true,
+          message: `Router rules for target type '${targetType}' retrieved successfully`,
+          rules,
+        }
+
+        return response
+      } catch (err) {
+        if (err instanceof Error && 'statusCode' in err) {
+          throw err
+        }
+        fastify.log.error(
+          `Error retrieving router rules for target '${request.params.targetType}':`,
+          err,
+        )
+        throw reply.internalServerError('Unable to retrieve router rules')
+      }
+    },
+  )
+
   // Create a router rule
   fastify.post<{
     Body: z.infer<typeof ContentRouterRuleSchema>
