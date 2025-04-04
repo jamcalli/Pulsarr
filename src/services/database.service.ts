@@ -4519,6 +4519,48 @@ export class DatabaseService {
   }
 
   /**
+   * Retrieves router rules filtered by target type ('sonarr' or 'radarr')
+   *
+   * @param targetType - The target type ('sonarr' or 'radarr')
+   * @returns Promise resolving to array of matching router rules
+   */
+  async getRouterRulesByTargetType(
+    targetType: 'sonarr' | 'radarr',
+  ): Promise<RouterRule[]> {
+    try {
+      const rules = await this.knex('router_rules')
+        .select('*')
+        .where('target_type', targetType)
+        .orderBy('order', 'desc')
+        .orderBy('id', 'asc')
+
+      this.log.debug(
+        `Found ${rules.length} router rules for target type: ${targetType}`,
+      )
+
+      return rules.map((rule) => ({
+        ...rule,
+        enabled: Boolean(rule.enabled),
+        criteria:
+          typeof rule.criteria === 'string'
+            ? JSON.parse(rule.criteria)
+            : rule.criteria,
+        metadata: rule.metadata
+          ? typeof rule.metadata === 'string'
+            ? JSON.parse(rule.metadata)
+            : rule.metadata
+          : null,
+      }))
+    } catch (error) {
+      this.log.error(
+        `Error fetching router rules by target type ${targetType}:`,
+        error,
+      )
+      throw error
+    }
+  }
+
+  /**
    * Toggles the enabled state of a router rule
    *
    * @param id - ID of the router rule to toggle

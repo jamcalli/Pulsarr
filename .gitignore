@@ -30,3 +30,6 @@ config.json
 
 # vscode
 .vscode/
+
+# repomix
+repomix*
