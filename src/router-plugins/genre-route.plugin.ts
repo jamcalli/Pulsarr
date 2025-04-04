@@ -30,12 +30,12 @@ export default function createGenreRouterPlugin(
 
       // Get the appropriate type of rules
       const isMovie = context.contentType === 'movie'
-      const rules = await fastify.db.getRouterRulesByType('genre');
-      
+      const rules = await fastify.db.getRouterRulesByType('genre')
+
       // Filter to only rules for the current content type
-      const contentTypeRules = rules.filter(rule => 
-        rule.target_type === (isMovie ? 'radarr' : 'sonarr')
-      );
+      const contentTypeRules = rules.filter(
+        (rule) => rule.target_type === (isMovie ? 'radarr' : 'sonarr'),
+      )
 
       const itemGenres = new Set(
         Array.isArray(item.genres)
@@ -47,16 +47,15 @@ export default function createGenreRouterPlugin(
 
       // Find matching genre routes
       const matchingRules = contentTypeRules.filter((rule) => {
+        const genreValue = rule.criteria.genre
 
-        const genreValue = rule.criteria.genre;
-        
         // Make sure the genre value is a string
         if (typeof genreValue === 'string') {
-          return itemGenres.has(genreValue);
+          return itemGenres.has(genreValue)
         }
-        
-        return false; // Skip if genre is not a string
-      });
+
+        return false // Skip if genre is not a string
+      })
 
       if (matchingRules.length === 0) {
         return null

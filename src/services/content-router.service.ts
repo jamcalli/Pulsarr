@@ -130,7 +130,7 @@ export class ContentRouterService {
       }
     }
 
-    this.log.info(`Routing ${contentType} "${item.title}" using plugin system`)
+    this.log.info(`Routing ${contentType} "${item.title}"`)
 
     const context: RoutingContext = {
       userId: options.userId,
