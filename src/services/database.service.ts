@@ -4315,6 +4315,10 @@ export class DatabaseService {
     }
   }
 
+  //=============================================================================
+  // CONTENT ROUTER SECTION
+  //=============================================================================
+
   /**
    * Retrieves all router rules
    *
@@ -4328,6 +4332,7 @@ export class DatabaseService {
 
     return rules.map((rule) => ({
       ...rule,
+      enabled: Boolean(rule.enabled),
       criteria:
         typeof rule.criteria === 'string'
           ? JSON.parse(rule.criteria)
@@ -4353,6 +4358,7 @@ export class DatabaseService {
 
     return {
       ...rule,
+      enabled: Boolean(rule.enabled),
       criteria:
         typeof rule.criteria === 'string'
           ? JSON.parse(rule.criteria)
@@ -4386,6 +4392,7 @@ export class DatabaseService {
 
     return rules.map((rule) => ({
       ...rule,
+      enabled: Boolean(rule.enabled),
       criteria:
         typeof rule.criteria === 'string'
           ? JSON.parse(rule.criteria)
@@ -4498,6 +4505,7 @@ export class DatabaseService {
 
     return rules.map((rule) => ({
       ...rule,
+      enabled: Boolean(rule.enabled),
       criteria:
         typeof rule.criteria === 'string'
           ? JSON.parse(rule.criteria)
