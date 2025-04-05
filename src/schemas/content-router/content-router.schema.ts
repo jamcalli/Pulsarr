@@ -7,6 +7,10 @@ export const CriteriaValueSchema = z.union([
   z.boolean(),
   z.array(z.string()),
   z.array(z.number()),
+  z.object({
+    min: z.number().optional(),
+    max: z.number().optional(),
+  }),
   z.null(),
 ])
 

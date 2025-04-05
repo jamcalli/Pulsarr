@@ -54,4 +54,5 @@ export type CriteriaValue =
   | boolean
   | string[]
   | number[]
+  | { min?: number; max?: number }
   | null
