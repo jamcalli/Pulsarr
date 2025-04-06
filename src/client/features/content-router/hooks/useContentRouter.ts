@@ -25,15 +25,22 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
     setError(null)
 
     try {
-      const response = await fetch(
-        `/v1/content-router/rules/target/${targetType}`,
+      // Implement minimum loading time of 500ms
+      const minimumLoadingTime = new Promise((resolve) =>
+        setTimeout(resolve, 500),
       )
+
+      const [response] = await Promise.all([
+        fetch(`/v1/content-router/rules/target/${targetType}`),
+        minimumLoadingTime,
+      ])
 
       if (!response.ok) {
         throw new Error(`Failed to fetch ${targetType} routing rules`)
       }
 
       const data = (await response.json()) as ContentRouterRuleListResponse
+
       setRules(data.rules)
       return data.rules
     } catch (err) {
@@ -61,6 +68,11 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
       setError(null)
 
       try {
+        // Implement minimum loading time
+        const minimumLoadingTime = new Promise((resolve) =>
+          setTimeout(resolve, 500),
+        )
+
         const response = await fetch('/v1/content-router/rules', {
           method: 'POST',
           headers: {
@@ -75,12 +87,17 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
 
         const data = (await response.json()) as ContentRouterRuleResponse
 
+        // Wait for both operations to complete
+        await minimumLoadingTime
+
         // Update local state
         setRules((prevRules) => [...prevRules, data.rule])
 
         toast({
           title: 'Success',
-          description: `${rule.type.charAt(0).toUpperCase() + rule.type.slice(1)} routing rule created successfully`,
+          description: `${
+            rule.type.charAt(0).toUpperCase() + rule.type.slice(1)
+          } routing rule created successfully`,
         })
 
         return data.rule
@@ -110,6 +127,11 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
       setError(null)
 
       try {
+        // Implement minimum loading time
+        const minimumLoadingTime = new Promise((resolve) =>
+          setTimeout(resolve, 500),
+        )
+
         const response = await fetch(`/v1/content-router/rules/${id}`, {
           method: 'PUT',
           headers: {
@@ -123,6 +145,9 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
         }
 
         const data = (await response.json()) as ContentRouterRuleResponse
+
+        // Wait for both operations to complete
+        await minimumLoadingTime
 
         // Update local state
         setRules((prevRules) =>
