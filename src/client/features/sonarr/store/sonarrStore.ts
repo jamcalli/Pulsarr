@@ -50,7 +50,7 @@ export interface SonarrState {
   // Actions
   initialize: (force?: boolean) => Promise<void>
   setLoadingWithMinDuration: (loading: boolean) => void
-  setContentRouterInitialized: (initialized: boolean) => void;
+  setContentRouterInitialized: (initialized: boolean) => void
 
   // Instance operations
   fetchInstances: () => Promise<void>
