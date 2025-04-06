@@ -4422,19 +4422,25 @@ export class DatabaseService {
       updated_at: this.timestamp,
     }
 
-    const [id] = await this.knex('router_rules')
+    const [createdRule] = await this.knex('router_rules')
       .insert(insertData)
-      .returning('id')
+      .returning('*')
 
-    if (!id) throw new Error('Failed to create router rule')
+    if (!createdRule) throw new Error('Failed to create router rule')
 
-    const createdRule = await this.getRouterRuleById(id)
-    if (!createdRule)
-      throw new Error(
-        `Failed to retrieve newly created router rule with ID ${id}`,
-      )
-
-    return createdRule
+    return {
+      ...createdRule,
+      enabled: Boolean(createdRule.enabled),
+      criteria:
+        typeof createdRule.criteria === 'string'
+          ? JSON.parse(createdRule.criteria)
+          : createdRule.criteria,
+      metadata: createdRule.metadata
+        ? typeof createdRule.metadata === 'string'
+          ? JSON.parse(createdRule.metadata)
+          : createdRule.metadata
+        : null,
+    }
   }
 
   /**
@@ -4442,12 +4448,12 @@ export class DatabaseService {
    *
    * @param id - ID of the router rule to update
    * @param updates - Partial router rule data to update
-   * @returns Promise resolving to true if updated, false otherwise
+   * @returns Promise resolving to the updated router rule
    */
   async updateRouterRule(
     id: number,
     updates: Partial<Omit<RouterRule, 'id' | 'created_at' | 'updated_at'>>,
-  ): Promise<boolean> {
+  ): Promise<RouterRule> {
     const updateData: Record<string, unknown> = {
       ...updates,
       updated_at: this.timestamp,
@@ -4463,11 +4469,30 @@ export class DatabaseService {
         : null
     }
 
-    const updated = await this.knex('router_rules')
+    const [updatedRule] = await this.knex('router_rules')
       .where('id', id)
       .update(updateData)
+      .returning('*')
 
-    return updated > 0
+    if (!updatedRule) {
+      throw new Error(
+        `Router rule with ID ${id} not found or could not be updated`,
+      )
+    }
+
+    return {
+      ...updatedRule,
+      enabled: Boolean(updatedRule.enabled),
+      criteria:
+        typeof updatedRule.criteria === 'string'
+          ? JSON.parse(updatedRule.criteria)
+          : updatedRule.criteria,
+      metadata: updatedRule.metadata
+        ? typeof updatedRule.metadata === 'string'
+          ? JSON.parse(updatedRule.metadata)
+          : updatedRule.metadata
+        : null,
+    }
   }
 
   /**
@@ -4478,7 +4503,6 @@ export class DatabaseService {
    */
   async deleteRouterRule(id: number): Promise<boolean> {
     const deleted = await this.knex('router_rules').where('id', id).delete()
-
     return deleted > 0
   }
 
@@ -4565,14 +4589,35 @@ export class DatabaseService {
    *
    * @param id - ID of the router rule to toggle
    * @param enabled - New enabled state (true to enable, false to disable)
-   * @returns Promise resolving to true if updated, false otherwise
+   * @returns Promise resolving to the updated router rule
    */
-  async toggleRouterRule(id: number, enabled: boolean): Promise<boolean> {
-    const updated = await this.knex('router_rules').where('id', id).update({
-      enabled,
-      updated_at: this.timestamp,
-    })
+  async toggleRouterRule(id: number, enabled: boolean): Promise<RouterRule> {
+    const [updatedRule] = await this.knex('router_rules')
+      .where('id', id)
+      .update({
+        enabled,
+        updated_at: this.timestamp,
+      })
+      .returning('*')
 
-    return updated > 0
+    if (!updatedRule) {
+      throw new Error(
+        `Router rule with ID ${id} not found or could not be updated`,
+      )
+    }
+
+    return {
+      ...updatedRule,
+      enabled: Boolean(updatedRule.enabled),
+      criteria:
+        typeof updatedRule.criteria === 'string'
+          ? JSON.parse(updatedRule.criteria)
+          : updatedRule.criteria,
+      metadata: updatedRule.metadata
+        ? typeof updatedRule.metadata === 'string'
+          ? JSON.parse(updatedRule.metadata)
+          : updatedRule.metadata
+        : null,
+    }
   }
 }

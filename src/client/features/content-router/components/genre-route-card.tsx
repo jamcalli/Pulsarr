@@ -21,18 +21,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useEffect, useRef, useCallback } from 'react'
 
-// Import types from the backend schema
-import type {
-  ContentRouterRule,
-  ContentRouterRuleUpdate,
-  // Criteria - Not explicitly used here, but could be if needed
-} from '@root/schemas/content-router/content-router.schema'
-
-// Specific Store types and hooks
-import type { RadarrInstance } from '@/features/radarr/store/radarrStore'
-import type { SonarrInstance } from '@/features/sonarr/store/sonarrStore'
-
-// --- Form Schema (Using the simpler structure from user's code) ---
+// Define the schema for content router genre rule form
 const GenreRouteFormSchema = z.object({
   name: z.string().min(2, {
     message: 'Route name must be at least 2 characters.',
@@ -41,32 +30,28 @@ const GenreRouteFormSchema = z.object({
     message: 'Genre is required.',
   }),
   target_instance_id: z.number().positive({
-    // Ensure positive ID
     message: 'Instance selection is required.',
   }),
   root_folder: z.string().min(1, {
     message: 'Root folder is required.',
   }),
   quality_profile: z.string().min(1, {
-    // Keep as string for form
     message: 'Quality Profile is required',
   }),
   enabled: z.boolean().default(true),
 })
 
 type GenreRouteFormValues = z.infer<typeof GenreRouteFormSchema>
-// --- End Form Schema ---
 
 interface GenreRouteCardProps {
-  route: ContentRouterRule | Partial<ContentRouterRule>
+  route: any // This could be further typed with ContentRouterRule type
   isNew?: boolean
   onCancel: () => void
-  onSave: (data: ContentRouterRule | ContentRouterRuleUpdate) => Promise<void>
+  onSave: (data: any) => Promise<void>
   onRemove?: () => void
   isSaving: boolean
   onGenreDropdownOpen: () => Promise<void>
-  // Pass instances and genres as props again, as fetching them here is complex with conditional hooks
-  instances: (RadarrInstance | SonarrInstance)[]
+  instances: any[]
   genres: string[]
   contentType: 'radarr' | 'sonarr'
 }
@@ -79,8 +64,8 @@ const GenreRouteCard = ({
   onRemove,
   isSaving,
   onGenreDropdownOpen,
-  instances = [], // Provide default empty array
-  genres = [], // Provide default empty array
+  instances = [],
+  genres = [],
   contentType,
 }: GenreRouteCardProps) => {
   const cardRef = useRef<HTMLDivElement>(null)
@@ -93,15 +78,6 @@ const GenreRouteCard = ({
     return ''
   }, [route?.criteria?.genre])
 
-  // Calculate default instance ID safely
-  const getDefaultInstanceId = useCallback(() => {
-    const currentInstances = Array.isArray(instances) ? instances : []
-    return (
-      route?.target_instance_id ??
-      (currentInstances.length > 0 ? (currentInstances[0]?.id ?? 0) : 0)
-    )
-  }, [instances, route?.target_instance_id])
-
   // Set up the form with either existing route data or defaults
   const form = useForm<GenreRouteFormValues>({
     resolver: zodResolver(GenreRouteFormSchema),
@@ -110,7 +86,9 @@ const GenreRouteCard = ({
         route?.name ||
         `New ${contentType === 'radarr' ? 'Movie' : 'Show'} Genre Route`,
       genre: getInitialGenre(),
-      target_instance_id: getDefaultInstanceId(),
+      target_instance_id:
+        route?.target_instance_id ||
+        (instances.length > 0 ? instances[0].id : 0),
       root_folder: route?.root_folder || '',
       quality_profile: route?.quality_profile?.toString() || '',
       enabled: route?.enabled !== false, // Default to true if not specified
@@ -119,27 +97,26 @@ const GenreRouteCard = ({
   })
 
   const resetForm = useCallback(() => {
-    const defaultInstanceId = getDefaultInstanceId()
     form.reset({
       name:
         route?.name ||
         `New ${contentType === 'radarr' ? 'Movie' : 'Show'} Genre Route`,
       genre: getInitialGenre(),
-      target_instance_id: route?.target_instance_id ?? defaultInstanceId,
+      target_instance_id:
+        route?.target_instance_id ||
+        (instances.length > 0 ? instances[0].id : 0),
       root_folder: route?.root_folder || '',
       quality_profile: route?.quality_profile?.toString() || '',
       enabled: route?.enabled !== false,
     })
-  }, [form, route, contentType, getDefaultInstanceId, getInitialGenre])
+  }, [form, route, contentType, instances, getInitialGenre])
 
   // Reset form when route ID changes or instances become available (for existing routes)
   useEffect(() => {
     if (!isNew && (route?.id || instances.length > 0)) {
       resetForm()
     }
-    // Only run when route.id or instances change for existing cards
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [route?.id, isNew, instances]) // Dependency on instances is important
+  }, [route?.id, isNew, instances, resetForm])
 
   // Scroll effect for new cards
   useEffect(() => {
@@ -156,9 +133,7 @@ const GenreRouteCard = ({
     if (isNew) {
       onGenreDropdownOpen()
     }
-    // Only run for new cards
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isNew])
+  }, [isNew, onGenreDropdownOpen])
 
   // Trigger validation on mount for new cards
   useEffect(() => {
@@ -192,14 +167,11 @@ const GenreRouteCard = ({
   )
 
   // Get the currently selected instance
-  const getSelectedInstance = useCallback(
-    () => {
-      const currentInstances = Array.isArray(instances) ? instances : []
-      const currentTargetId = form.watch('target_instance_id')
-      return currentInstances.find((inst) => inst.id === currentTargetId)
-    },
-    [instances, form], // Depend on instances and form
-  )
+  const getSelectedInstance = useCallback(() => {
+    return instances.find(
+      (inst) => inst.id === form.watch('target_instance_id'),
+    )
+  }, [instances, form])
 
   const selectedInstance = getSelectedInstance()
 
@@ -207,7 +179,7 @@ const GenreRouteCard = ({
   const handleSubmit = async (data: GenreRouteFormValues) => {
     try {
       // Transform form data into the format expected by the content router
-      const routeData: ContentRouterRule | ContentRouterRuleUpdate = {
+      const routeData = {
         name: data.name,
         type: 'genre',
         criteria: {
@@ -221,7 +193,7 @@ const GenreRouteCard = ({
           : null,
         root_folder: data.root_folder,
         enabled: data.enabled,
-        order: (route as ContentRouterRule)?.order ?? 50, // Default order value
+        order: route?.order ?? 50, // Default order value
       }
 
       if (isNew) {
@@ -241,11 +213,6 @@ const GenreRouteCard = ({
     resetForm()
     onCancel()
   }
-
-  // Use a generic skeleton or handle loading state in the parent
-  // if (instancesLoading && !isNew) {
-  //   return <GenreRouteCardSkeleton />;
-  // }
 
   return (
     <div className="relative" ref={cardRef}>
@@ -268,7 +235,7 @@ const GenreRouteCard = ({
               isDirty={form.formState.isDirty}
               isValid={form.formState.isValid}
               onSave={form.handleSubmit(handleSubmit)}
-              onCancel={handleCancel} // Use the corrected cancel handler
+              onCancel={handleCancel}
               onDelete={onRemove}
               onTitleChange={setTitleValue}
             />
@@ -286,8 +253,7 @@ const GenreRouteCard = ({
                           value={field.value}
                           onValueChange={field.onChange}
                           onOpenChange={(open) => {
-                            // Fetch genres only when dropdown is opened for existing cards
-                            if (open && !isNew) onGenreDropdownOpen()
+                            if (open) onGenreDropdownOpen()
                           }}
                         >
                           <FormControl>
@@ -296,13 +262,11 @@ const GenreRouteCard = ({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {(Array.isArray(genres) ? genres : []).map(
-                              (genre) => (
-                                <SelectItem key={genre} value={genre}>
-                                  {genre}
-                                </SelectItem>
-                              ),
-                            )}
+                            {genres.map((genre) => (
+                              <SelectItem key={genre} value={genre}>
+                                {genre}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -328,16 +292,14 @@ const GenreRouteCard = ({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {(Array.isArray(instances) ? instances : []).map(
-                              (instance) => (
-                                <SelectItem
-                                  key={instance.id}
-                                  value={instance.id.toString()}
-                                >
-                                  {instance.name}
-                                </SelectItem>
-                              ),
-                            )}
+                            {instances.map((instance) => (
+                              <SelectItem
+                                key={instance.id}
+                                value={instance.id.toString()}
+                              >
+                                {instance.name}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -354,7 +316,7 @@ const GenreRouteCard = ({
                       <FormItem>
                         <FormLabel className="text-text">Root Folder</FormLabel>
                         <Select
-                          value={field.value || ''}
+                          value={field.value}
                           onValueChange={field.onChange}
                           disabled={
                             !selectedInstance?.data?.rootFolders?.length
@@ -373,7 +335,7 @@ const GenreRouteCard = ({
                           </FormControl>
                           <SelectContent>
                             {selectedInstance?.data?.rootFolders?.map(
-                              (folder) => (
+                              (folder: { path: string }) => (
                                 <SelectItem
                                   key={folder.path}
                                   value={folder.path}
@@ -417,7 +379,7 @@ const GenreRouteCard = ({
                           </FormControl>
                           <SelectContent>
                             {selectedInstance?.data?.qualityProfiles?.map(
-                              (profile) => (
+                              (profile: { id: number; name: string }) => (
                                 <SelectItem
                                   key={profile.id}
                                   value={profile.id.toString()}
