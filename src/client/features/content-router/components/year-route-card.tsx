@@ -330,7 +330,7 @@ const YearRouteCard = ({
                               <RadioGroupItem value="exact" id="exact" />
                               <label
                                 htmlFor="exact"
-                                className="text-sm font-medium"
+                                className="text-sm text-text font-medium"
                               >
                                 Exact Year
                               </label>
@@ -339,7 +339,7 @@ const YearRouteCard = ({
                               <RadioGroupItem value="range" id="range" />
                               <label
                                 htmlFor="range"
-                                className="text-sm font-medium"
+                                className="text-sm text-text font-medium"
                               >
                                 Year Range
                               </label>
@@ -348,7 +348,7 @@ const YearRouteCard = ({
                               <RadioGroupItem value="list" id="list" />
                               <label
                                 htmlFor="list"
-                                className="text-sm font-medium"
+                                className="text-sm text-text font-medium"
                               >
                                 Year List
                               </label>

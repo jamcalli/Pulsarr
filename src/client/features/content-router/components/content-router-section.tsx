@@ -1,5 +1,6 @@
 // src/client/features/content-router/components/content-router-section.tsx
-import { useState, useCallback } from 'react'
+
+import { useState, useCallback, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { useContentRouter } from '@/features/content-router/hooks/useContentRouter'
@@ -7,6 +8,7 @@ import GenreRouteCard from '@/features/content-router/components/genre-route-car
 import YearRouteCard from '@/features/content-router/components/year-route-card'
 import DeleteRouteAlert from '@/features/content-router/components/delete-route-alert'
 import RouteTypeSelectionModal from '@/features/content-router/components/content-route-type-modal'
+import ContentRouteCardSkeleton from '@/features/content-router/components/content-route-skeleton'
 import type { RouteType } from '@/features/content-router/components/content-route-type-modal'
 import type {
   ContentRouterRule,
@@ -49,6 +51,13 @@ const ContentRouterSection = ({
   const [deleteConfirmationRuleId, setDeleteConfirmationRuleId] = useState<
     number | null
   >(null)
+
+  // Fetch rules on component mount
+  useEffect(() => {
+    fetchRules().catch((error) => {
+      console.error(`Failed to fetch ${targetType} routing rules:`, error)
+    })
+  }, [fetchRules, targetType])
 
   const addRoute = () => {
     setShowTypeModal(true)
@@ -248,7 +257,19 @@ const ContentRouterSection = ({
         contentType={targetType}
       />
 
-      {!hasExistingRoutes && !showRouteCard ? (
+      {isLoading && rules.length === 0 && !showRouteCard ? (
+        <div className="grid gap-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-bold text-text">
+              {targetType === 'radarr' ? 'Radarr' : 'Sonarr'} Content Routes
+            </h2>
+          </div>
+          <div className="grid gap-4">
+            <ContentRouteCardSkeleton />
+            <ContentRouteCardSkeleton />
+          </div>
+        </div>
+      ) : !hasExistingRoutes && !showRouteCard ? (
         <div className="grid gap-6">
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-bold text-text">
@@ -276,6 +297,15 @@ const ContentRouterSection = ({
 
             {/* Local (unsaved) routes */}
             {localRules.map((rule) => renderRouteCard(rule, true))}
+
+            {/* Show skeleton for loading states when updating */}
+            {isLoading &&
+              Object.keys(savingRules).length > 0 &&
+              rules.length === 0 && (
+                <div className="opacity-40 pointer-events-none">
+                  <ContentRouteCardSkeleton />
+                </div>
+              )}
           </div>
         </>
       )}
