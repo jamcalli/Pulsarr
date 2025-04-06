@@ -41,6 +41,7 @@ export interface SonarrState {
   isInitialized: boolean
   instancesLoading: boolean
   error: string | null
+  contentRouterInitialized: boolean
 
   // Loading management
   isLoadingRef: boolean
@@ -49,6 +50,7 @@ export interface SonarrState {
   // Actions
   initialize: (force?: boolean) => Promise<void>
   setLoadingWithMinDuration: (loading: boolean) => void
+  setContentRouterInitialized: (initialized: boolean) => void;
 
   // Instance operations
   fetchInstances: () => Promise<void>
@@ -84,6 +86,7 @@ export const useSonarrStore = create<SonarrState>()(
     error: null,
     isLoadingRef: false,
     isInitialMount: true,
+    contentRouterInitialized: false,
 
     setLoadingWithMinDuration: (loading) => {
       const state = get()
@@ -107,6 +110,10 @@ export const useSonarrStore = create<SonarrState>()(
           })
         }, 500)
       }
+    },
+
+    setContentRouterInitialized: (initialized) => {
+      set({ contentRouterInitialized: initialized })
     },
 
     fetchInstances: async () => {

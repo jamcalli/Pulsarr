@@ -39,6 +39,7 @@ export interface RadarrState {
   isInitialized: boolean
   instancesLoading: boolean
   error: string | null
+  contentRouterInitialized: boolean
 
   // Loading management
   isLoadingRef: boolean
@@ -57,6 +58,7 @@ export interface RadarrState {
     updates: Partial<RadarrInstance>,
   ) => Promise<void>
   deleteInstance: (id: number) => Promise<void>
+  setContentRouterInitialized: (initialized: boolean) => void;
 
   // Genre operations
   fetchGenres: () => Promise<void>
@@ -82,6 +84,7 @@ export const useRadarrStore = create<RadarrState>()(
     error: null,
     isLoadingRef: false,
     isInitialMount: true,
+    contentRouterInitialized: false,
 
     setLoadingWithMinDuration: (loading) => {
       const state = get()
@@ -105,6 +108,10 @@ export const useRadarrStore = create<RadarrState>()(
           })
         }, 500)
       }
+    },
+
+    setContentRouterInitialized: (initialized) => {
+      set({ contentRouterInitialized: initialized })
     },
 
     fetchInstances: async () => {

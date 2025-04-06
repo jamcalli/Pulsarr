@@ -6,23 +6,26 @@ export function useRadarrContentRouterAdapter() {
   const instances = useRadarrStore((state) => state.instances)
   const genres = useRadarrStore((state) => state.genres)
   const fetchGenres = useRadarrStore((state) => state.fetchGenres)
+  const contentRouterInitialized = useRadarrStore((state) => state.contentRouterInitialized)
+  const setContentRouterInitialized = useRadarrStore((state) => state.setContentRouterInitialized)
 
   const contentRouter = useContentRouter({ targetType: 'radarr' })
 
-  const handleGenreDropdownOpen = useCallback(async () => {
-    if (!genres?.length) {
-      try {
-        await fetchGenres()
-      } catch (error) {
-        console.error('Failed to fetch genres:', error)
-      }
+  const fetchRules = useCallback(async () => {
+    if (contentRouterInitialized) {
+      return contentRouter.rules;
     }
-  }, [genres, fetchGenres])
+    
+    const result = await contentRouter.fetchRules();
+    setContentRouterInitialized(true);
+    return result;
+  }, [contentRouter, contentRouterInitialized, setContentRouterInitialized]);
 
   return {
     ...contentRouter,
+    fetchRules,
     instances,
     genres,
-    handleGenreDropdownOpen,
+    handleGenreDropdownOpen: fetchGenres,
   }
 }

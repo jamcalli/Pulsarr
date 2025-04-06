@@ -192,6 +192,12 @@ const YearRouteCard = ({
     }
   }, [isNew])
 
+  useEffect(() => {
+    if (isNew) {
+      setTimeout(() => form.trigger(), 0)
+    }
+  }, [form, isNew])
+
   // Title value setter
   const setTitleValue = useCallback(
     (title: string) => {
