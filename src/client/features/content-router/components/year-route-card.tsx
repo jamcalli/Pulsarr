@@ -242,9 +242,15 @@ const YearRouteCard = ({
           .split(',')
           .map((y) => Number.parseInt(y.trim()))
           .filter((y) => !isNaN(y))
+      } else {
+        // Default fallback to ensure year is always assigned
+        year = new Date().getFullYear()
       }
 
-      const routeData: ContentRouterRule | ContentRouterRuleUpdate = {
+      const routeData: Omit<
+        ContentRouterRule,
+        'id' | 'created_at' | 'updated_at'
+      > = {
         name: data.name,
         type: 'year',
         criteria: {
@@ -252,19 +258,26 @@ const YearRouteCard = ({
         },
         target_type: contentType,
         target_instance_id: data.target_instance_id,
-        quality_profile: data.quality_profile,
+        // Convert quality_profile from string to number or null
+        quality_profile: data.quality_profile
+          ? Number.parseInt(data.quality_profile, 10)
+          : null,
         root_folder: data.root_folder,
         enabled: data.enabled,
-        order: 50, // Default order value
+        order: route.order ?? 50, // Use existing order or default to 50
       }
 
+      // If this is a new route, we want to create a new rule
+      // If it's an existing route, we want to update it
       if (isNew) {
-        delete (routeData as any).id
-        delete (routeData as any).created_at
-        delete (routeData as any).updated_at
+        await onSave(routeData)
+      } else {
+        // For updates, we need to include the ID
+        const updateData: ContentRouterRuleUpdate = {
+          ...routeData,
+        }
+        await onSave(updateData)
       }
-
-      await onSave(routeData)
     } catch (error) {
       console.error('Failed to save year route:', error)
     }
@@ -362,7 +375,9 @@ const YearRouteCard = ({
                               max="2100"
                               {...field}
                               onChange={(e) =>
-                                field.onChange(Number.parseInt(e.target.value) || '')
+                                field.onChange(
+                                  Number.parseInt(e.target.value) || '',
+                                )
                               }
                             />
                           </FormControl>
