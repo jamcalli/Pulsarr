@@ -72,7 +72,7 @@ const YearCriteriaSchema = z
         const years = data.years
           .split(',')
           .map((y) => Number.parseInt(y.trim()))
-          .filter((y) => !isNaN(y))
+          .filter((y) => !Number.isNaN(y))
         return years.length > 0 && years.every((y) => y >= 1900 && y <= 2100)
       }
       return true

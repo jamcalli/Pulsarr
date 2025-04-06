@@ -58,7 +58,7 @@ export interface RadarrState {
     updates: Partial<RadarrInstance>,
   ) => Promise<void>
   deleteInstance: (id: number) => Promise<void>
-  setContentRouterInitialized: (initialized: boolean) => void;
+  setContentRouterInitialized: (initialized: boolean) => void
 
   // Genre operations
   fetchGenres: () => Promise<void>

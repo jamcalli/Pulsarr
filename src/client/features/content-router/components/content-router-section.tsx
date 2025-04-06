@@ -15,7 +15,6 @@ import type {
 import { useRadarrContentRouterAdapter } from '@/features/radarr/hooks/content-router/useRadarrContentRouterAdapater'
 import { useSonarrContentRouterAdapter } from '@/features/sonarr/hooks/content-router/useSonarrContentRouterAdapter'
 
-
 interface TempRule {
   tempId: string
   name: string
@@ -39,17 +38,19 @@ const ContentRouterSection = ({
   onGenreDropdownOpen,
 }: ContentRouterSectionProps) => {
   const { toast } = useToast()
-  
+
   // Use the appropriate adapter based on targetType
-  const contentRouter = targetType === 'radarr' 
-    ? useRadarrContentRouterAdapter() 
-    : useSonarrContentRouterAdapter()
+  const contentRouter =
+    targetType === 'radarr'
+      ? useRadarrContentRouterAdapter()
+      : useSonarrContentRouterAdapter()
 
   const [showRouteCard, setShowRouteCard] = useState(false)
   const [showTypeModal, setShowTypeModal] = useState(false)
   const [selectedType, setSelectedType] = useState<RouteType | null>(null)
 
-  const { rules, isLoading, createRule, updateRule, deleteRule, fetchRules } = contentRouter
+  const { rules, isLoading, createRule, updateRule, deleteRule, fetchRules } =
+    contentRouter
 
   // Local state to manage UI behavior
   const [localRules, setLocalRules] = useState<TempRule[]>([])
