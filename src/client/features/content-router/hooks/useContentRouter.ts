@@ -16,63 +16,62 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
   const [isLoading, setIsLoading] = useState(false)
   const [rules, setRules] = useState<ContentRouterRule[]>([])
   const [error, setError] = useState<string | null>(null)
+  
 
-  /**
-   * Fetch all rules for the specified target type
-   */
-  const fetchRules = useCallback(async () => {
-    setIsLoading(true)
-    setError(null)
+/**
+ * Fetch all rules for the specified target type
+ */
+const fetchRules = useCallback(async () => {
+  setIsLoading(true)
+  setError(null)
 
-    try {
-      // Implement minimum loading time of 500ms
-      const minimumLoadingTime = new Promise((resolve) =>
-        setTimeout(resolve, 500),
-      )
+  try {
+    // Implement minimum loading time of 500ms
+    const minimumLoadingTime = new Promise((resolve) =>
+      setTimeout(resolve, 500)
+    )
+    
+    const [response] = await Promise.all([
+      fetch(`/v1/content-router/rules/target/${targetType}`),
+      minimumLoadingTime
+    ])
 
-      const [response] = await Promise.all([
-        fetch(`/v1/content-router/rules/target/${targetType}`),
-        minimumLoadingTime,
-      ])
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch ${targetType} routing rules`)
-      }
-
-      const data = (await response.json()) as ContentRouterRuleListResponse
-
-      setRules(data.rules)
-      return data.rules
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-      setError(errorMessage)
-      toast({
-        title: 'Error',
-        description: `Failed to fetch ${targetType} routing rules: ${errorMessage}`,
-        variant: 'destructive',
-      })
-      return []
-    } finally {
-      setIsLoading(false)
+    if (!response.ok) {
+      throw new Error(`Failed to fetch ${targetType} routing rules`)
     }
-  }, [targetType, toast])
+
+    const data = (await response.json()) as ContentRouterRuleListResponse
+    
+    setRules(data.rules)
+    return data.rules
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+    setError(errorMessage)
+    toast({
+      title: 'Error',
+      description: `Failed to fetch ${targetType} routing rules: ${errorMessage}`,
+      variant: 'destructive',
+    })
+    return []
+  } finally {
+    setIsLoading(false)
+  }
+}, [targetType, toast])
 
   /**
    * Create a new routing rule
    */
   const createRule = useCallback(
-    async (
-      rule: Omit<ContentRouterRule, 'id' | 'created_at' | 'updated_at'>,
-    ) => {
+    async (rule: Omit<ContentRouterRule, 'id' | 'created_at' | 'updated_at'>) => {
       setIsLoading(true)
       setError(null)
-
+  
       try {
         // Implement minimum loading time
         const minimumLoadingTime = new Promise((resolve) =>
-          setTimeout(resolve, 500),
+          setTimeout(resolve, 500)
         )
-
+  
         const response = await fetch('/v1/content-router/rules', {
           method: 'POST',
           headers: {
@@ -80,30 +79,29 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
           },
           body: JSON.stringify(rule),
         })
-
+  
         if (!response.ok) {
           throw new Error('Failed to create routing rule')
         }
-
+  
         const data = (await response.json()) as ContentRouterRuleResponse
-
+        
         // Wait for both operations to complete
         await minimumLoadingTime
-
+        
         // Update local state
         setRules((prevRules) => [...prevRules, data.rule])
-
+  
         toast({
           title: 'Success',
           description: `${
             rule.type.charAt(0).toUpperCase() + rule.type.slice(1)
           } routing rule created successfully`,
         })
-
+  
         return data.rule
       } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : 'Unknown error'
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error'
         setError(errorMessage)
         toast({
           title: 'Error',
@@ -115,7 +113,7 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
         setIsLoading(false)
       }
     },
-    [toast],
+    [toast]
   )
 
   /**
@@ -125,13 +123,13 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
     async (id: number, updates: ContentRouterRuleUpdate) => {
       setIsLoading(true)
       setError(null)
-
+  
       try {
         // Implement minimum loading time
         const minimumLoadingTime = new Promise((resolve) =>
-          setTimeout(resolve, 500),
+          setTimeout(resolve, 500)
         )
-
+  
         const response = await fetch(`/v1/content-router/rules/${id}`, {
           method: 'PUT',
           headers: {
@@ -139,30 +137,29 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
           },
           body: JSON.stringify(updates),
         })
-
+  
         if (!response.ok) {
           throw new Error('Failed to update routing rule')
         }
-
+  
         const data = (await response.json()) as ContentRouterRuleResponse
-
+        
         // Wait for both operations to complete
         await minimumLoadingTime
-
+  
         // Update local state
         setRules((prevRules) =>
-          prevRules.map((rule) => (rule.id === id ? data.rule : rule)),
+          prevRules.map((rule) => (rule.id === id ? data.rule : rule))
         )
-
+  
         toast({
           title: 'Success',
           description: 'Routing rule updated successfully',
         })
-
+  
         return data.rule
       } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : 'Unknown error'
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error'
         setError(errorMessage)
         toast({
           title: 'Error',
@@ -174,7 +171,7 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
         setIsLoading(false)
       }
     },
-    [toast],
+    [toast]
   )
 
   /**
@@ -184,28 +181,35 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
     async (id: number) => {
       setIsLoading(true)
       setError(null)
-
+  
       try {
+        // Implement minimum loading time
+        const minimumLoadingTime = new Promise((resolve) =>
+          setTimeout(resolve, 500)
+        )
+  
         const response = await fetch(`/v1/content-router/rules/${id}`, {
           method: 'DELETE',
         })
-
+  
         if (!response.ok) {
           throw new Error('Failed to delete routing rule')
         }
-
+        
+        // Wait for minimum loading time to complete
+        await minimumLoadingTime
+  
         // Update local state
         setRules((prevRules) => prevRules.filter((rule) => rule.id !== id))
-
+  
         toast({
           title: 'Success',
           description: 'Routing rule deleted successfully',
         })
-
+  
         return true
       } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : 'Unknown error'
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error'
         setError(errorMessage)
         toast({
           title: 'Error',
@@ -217,7 +221,7 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
         setIsLoading(false)
       }
     },
-    [toast],
+    [toast]
   )
 
   /**

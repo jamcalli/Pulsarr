@@ -1,5 +1,3 @@
-// src/client/features/content-router/components/content-router-section.tsx
-
 import { useState, useCallback, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
@@ -14,6 +12,9 @@ import type {
   ContentRouterRule,
   ContentRouterRuleUpdate,
 } from '@root/schemas/content-router/content-router.schema'
+import { useRadarrContentRouterAdapter } from '@/features/radarr/hooks/content-router/useRadarrContentRouterAdapater'
+import { useSonarrContentRouterAdapter } from '@/features/sonarr/hooks/content-router/useSonarrContentRouterAdapter'
+
 
 interface TempRule {
   tempId: string
@@ -38,12 +39,17 @@ const ContentRouterSection = ({
   onGenreDropdownOpen,
 }: ContentRouterSectionProps) => {
   const { toast } = useToast()
-  const { rules, isLoading, createRule, updateRule, deleteRule, fetchRules } =
-    useContentRouter({ targetType })
+  
+  // Use the appropriate adapter based on targetType
+  const contentRouter = targetType === 'radarr' 
+    ? useRadarrContentRouterAdapter() 
+    : useSonarrContentRouterAdapter()
 
   const [showRouteCard, setShowRouteCard] = useState(false)
   const [showTypeModal, setShowTypeModal] = useState(false)
   const [selectedType, setSelectedType] = useState<RouteType | null>(null)
+
+  const { rules, isLoading, createRule, updateRule, deleteRule, fetchRules } = contentRouter
 
   // Local state to manage UI behavior
   const [localRules, setLocalRules] = useState<TempRule[]>([])
