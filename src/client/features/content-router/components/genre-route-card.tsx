@@ -18,40 +18,28 @@ import {
 import EditableCardHeader from '@/components/ui/editable-card-header'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 import { useEffect, useRef, useCallback } from 'react'
-
-// Define the schema for content router genre rule form
-const GenreRouteFormSchema = z.object({
-  name: z.string().min(2, {
-    message: 'Route name must be at least 2 characters.',
-  }),
-  genre: z.string().min(1, {
-    message: 'Genre is required.',
-  }),
-  target_instance_id: z.number().positive({
-    message: 'Instance selection is required.',
-  }),
-  root_folder: z.string().min(1, {
-    message: 'Root folder is required.',
-  }),
-  quality_profile: z.string().min(1, {
-    message: 'Quality Profile is required',
-  }),
-  enabled: z.boolean().default(true),
-})
-
-type GenreRouteFormValues = z.infer<typeof GenreRouteFormSchema>
+import {
+  GenreRouteFormSchema,
+  type GenreRouteFormValues,
+} from '@/features/content-router/schemas/content-router.schema'
+import { useToast } from '@/hooks/use-toast'
+import type {
+  ContentRouterRule,
+  ContentRouterRuleUpdate,
+} from '@root/schemas/content-router/content-router.schema'
+import type { RadarrInstance } from '@root/types/radarr.types'
+import type { SonarrInstance } from '@root/types/sonarr.types'
 
 interface GenreRouteCardProps {
-  route: any // This could be further typed with ContentRouterRule type
+  route: ContentRouterRule | Partial<ContentRouterRule>
   isNew?: boolean
   onCancel: () => void
-  onSave: (data: any) => Promise<void>
+  onSave: (data: ContentRouterRule | ContentRouterRuleUpdate) => Promise<void>
   onRemove?: () => void
   isSaving: boolean
   onGenreDropdownOpen: () => Promise<void>
-  instances: any[]
+  instances: (RadarrInstance | SonarrInstance)[]
   genres: string[]
   contentType: 'radarr' | 'sonarr'
 }
@@ -69,8 +57,8 @@ const GenreRouteCard = ({
   contentType,
 }: GenreRouteCardProps) => {
   const cardRef = useRef<HTMLDivElement>(null)
+  const { toast } = useToast()
 
-  // Helper to extract genre from criteria
   const getInitialGenre = useCallback(() => {
     if (route?.criteria?.genre && typeof route.criteria.genre === 'string') {
       return route.criteria.genre
@@ -78,7 +66,6 @@ const GenreRouteCard = ({
     return ''
   }, [route?.criteria?.genre])
 
-  // Set up the form with either existing route data or defaults
   const form = useForm<GenreRouteFormValues>({
     resolver: zodResolver(GenreRouteFormSchema),
     defaultValues: {
@@ -91,7 +78,7 @@ const GenreRouteCard = ({
         (instances.length > 0 ? instances[0].id : 0),
       root_folder: route?.root_folder || '',
       quality_profile: route?.quality_profile?.toString() || '',
-      enabled: route?.enabled !== false, // Default to true if not specified
+      enabled: route?.enabled !== false,
     },
     mode: 'all',
   })
@@ -111,14 +98,12 @@ const GenreRouteCard = ({
     })
   }, [form, route, contentType, instances, getInitialGenre])
 
-  // Reset form when route ID changes or instances become available (for existing routes)
   useEffect(() => {
     if (!isNew && (route?.id || instances.length > 0)) {
       resetForm()
     }
   }, [route?.id, isNew, instances, resetForm])
 
-  // Scroll effect for new cards
   useEffect(() => {
     if (isNew && cardRef.current) {
       cardRef.current.scrollIntoView({
@@ -128,21 +113,18 @@ const GenreRouteCard = ({
     }
   }, [isNew])
 
-  // Fetch genre list when dropdown opens for an existing card, or on mount for new card
   useEffect(() => {
     if (isNew) {
       onGenreDropdownOpen()
     }
   }, [isNew, onGenreDropdownOpen])
 
-  // Trigger validation on mount for new cards
   useEffect(() => {
     if (isNew) {
       setTimeout(() => form.trigger(), 0)
     }
   }, [form, isNew])
 
-  // Title value setter
   const setTitleValue = useCallback(
     (title: string) => {
       form.setValue('name', title, { shouldDirty: true })
@@ -150,11 +132,10 @@ const GenreRouteCard = ({
     [form],
   )
 
-  // Instance change handler
   const handleInstanceChange = useCallback(
     (value: string) => {
       const instanceId = Number.parseInt(value, 10)
-      if (!isNaN(instanceId)) {
+      if (!Number.isNaN(instanceId)) {
         form.setValue('target_instance_id', instanceId)
         form.setValue('root_folder', '', { shouldDirty: true })
         form.setValue('quality_profile', '', {
@@ -166,7 +147,6 @@ const GenreRouteCard = ({
     [form],
   )
 
-  // Get the currently selected instance
   const getSelectedInstance = useCallback(() => {
     return instances.find(
       (inst) => inst.id === form.watch('target_instance_id'),
@@ -175,11 +155,9 @@ const GenreRouteCard = ({
 
   const selectedInstance = getSelectedInstance()
 
-  // Handle form submission
   const handleSubmit = async (data: GenreRouteFormValues) => {
     try {
-      // Transform form data into the format expected by the content router
-      const routeData = {
+      const routeData: Partial<ContentRouterRule> = {
         name: data.name,
         type: 'genre',
         criteria: {
@@ -187,25 +165,45 @@ const GenreRouteCard = ({
         },
         target_type: contentType,
         target_instance_id: data.target_instance_id,
-        // Convert quality_profile back to number or null
         quality_profile: data.quality_profile
           ? Number(data.quality_profile)
           : null,
         root_folder: data.root_folder,
         enabled: data.enabled,
-        order: route?.order ?? 50, // Default order value
+        order: route?.order ?? 50,
       }
 
       if (isNew) {
-        delete (routeData as any).id
-        delete (routeData as any).created_at
-        delete (routeData as any).updated_at
+        routeData.id = undefined
+        routeData.created_at = undefined
+        routeData.updated_at = undefined
+        await onSave(
+          routeData as Omit<
+            ContentRouterRule,
+            'id' | 'created_at' | 'updated_at'
+          >,
+        )
+      } else {
+        const updatePayload: ContentRouterRuleUpdate = {
+          name: data.name,
+          criteria: { genre: data.genre },
+          target_instance_id: data.target_instance_id,
+          quality_profile: data.quality_profile
+            ? Number(data.quality_profile)
+            : null,
+          root_folder: data.root_folder,
+          enabled: data.enabled,
+          order: route?.order ?? 50,
+        }
+        await onSave(updatePayload)
       }
-
-      await onSave(routeData)
     } catch (error) {
       console.error('Failed to save genre route:', error)
-      // TODO: Add user feedback (toast?)
+      toast({
+        title: 'Error',
+        description: `Failed to save genre route: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: 'destructive',
+      })
     }
   }
 
@@ -250,7 +248,7 @@ const GenreRouteCard = ({
                       <FormItem>
                         <FormLabel className="text-text">Genre</FormLabel>
                         <Select
-                          value={field.value}
+                          value={field.value || ''}
                           onValueChange={field.onChange}
                           onOpenChange={(open) => {
                             if (open) onGenreDropdownOpen()
@@ -316,7 +314,7 @@ const GenreRouteCard = ({
                       <FormItem>
                         <FormLabel className="text-text">Root Folder</FormLabel>
                         <Select
-                          value={field.value}
+                          value={field.value || ''}
                           onValueChange={field.onChange}
                           disabled={
                             !selectedInstance?.data?.rootFolders?.length
