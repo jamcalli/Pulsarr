@@ -1,7 +1,6 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
-// Removed unused import: useContentRouter
 import GenreRouteCard from '@/features/content-router/components/genre-route-card'
 import YearRouteCard from '@/features/content-router/components/year-route-card'
 import DeleteRouteAlert from '@/features/content-router/components/delete-route-alert'
@@ -11,80 +10,70 @@ import type { RouteType } from '@/features/content-router/components/content-rou
 import type {
   ContentRouterRule,
   ContentRouterRuleUpdate,
-  Criteria, // Import Criteria type
+  Criteria,
 } from '@root/schemas/content-router/content-router.schema'
 import { useRadarrContentRouterAdapter } from '@/features/radarr/hooks/content-router/useRadarrContentRouterAdapater'
 import { useSonarrContentRouterAdapter } from '@/features/sonarr/hooks/content-router/useSonarrContentRouterAdapter'
-// Import specific instance types
 import type { RadarrInstance } from '@root/types/radarr.types'
 import type { SonarrInstance } from '@root/types/sonarr.types'
 
-// More specific type for temporary rules, based on ContentRouterRule
-interface TempRule
-  extends Partial<Omit<ContentRouterRule, 'id' | 'created_at' | 'updated_at'>> {
+type TempRule = Partial<
+  Omit<ContentRouterRule, 'id' | 'created_at' | 'updated_at'>
+> & {
   tempId: string
-  name: string // Ensure name is required for display
-  type: string // Type is required for rendering correct card
-  target_type: 'radarr' | 'sonarr' // target_type is required
-  criteria: Criteria // Use imported Criteria type
+  name: string
+  type: string
+  target_type: 'radarr' | 'sonarr'
+  criteria: Criteria
 }
 
-interface ContentRouterSectionProps {
+type ContentRouterSectionProps = {
   targetType: 'radarr' | 'sonarr'
-  instances: (RadarrInstance | SonarrInstance)[] // Use specific types
+  instances: (RadarrInstance | SonarrInstance)[]
   genres: string[]
   onGenreDropdownOpen: () => Promise<void>
 }
 
-const ContentRouterSection = ({
+export const ContentRouterSection = ({
   targetType,
   instances,
   genres,
   onGenreDropdownOpen,
 }: ContentRouterSectionProps) => {
   const { toast } = useToast()
-
-  // Use the appropriate adapter based on targetType
   const contentRouter =
     targetType === 'radarr'
       ? useRadarrContentRouterAdapter()
       : useSonarrContentRouterAdapter()
 
-  const [_showRouteCard, setShowRouteCard] = useState(false)
-  const [showTypeModal, setShowTypeModal] = useState(false)
-  const [_selectedType, setSelectedType] = useState<RouteType | null>(null) // Keep track of selected type for adding
-
   const { rules, isLoading, createRule, updateRule, deleteRule, fetchRules } =
     contentRouter
 
-  // Local state to manage UI behavior
+  const [showTypeModal, setShowTypeModal] = useState(false)
   const [localRules, setLocalRules] = useState<TempRule[]>([])
-  const [savingRules, setSavingRules] = useState<{ [key: string]: boolean }>({})
+  const [savingRules, setSavingRules] = useState<Record<string, boolean>>({})
   const [deleteConfirmationRuleId, setDeleteConfirmationRuleId] = useState<
     number | null
   >(null)
 
-  // Fetch rules on component mount
-  useEffect(() => {
-    fetchRules().catch((error) => {
-      console.error(`Failed to fetch ${targetType} routing rules:`, error)
-      // Optionally show a toast for fetch errors
-      toast({
-        title: 'Error',
-        description: `Failed to load ${targetType} routing rules.`,
-        variant: 'destructive',
-      })
-    })
-  }, [fetchRules, targetType, toast]) // Added toast dependency
+  const isMounted = useRef(false)
 
-  const addRoute = () => {
-    setShowTypeModal(true)
-  }
+  useEffect(() => {
+    if (!isMounted.current) {
+      isMounted.current = true
+      fetchRules().catch((error) => {
+        console.error(`Failed to fetch ${targetType} routing rules:`, error)
+        toast({
+          title: 'Error',
+          description: `Failed to load ${targetType} routing rules.`,
+          variant: 'destructive',
+        })
+      })
+    }
+  }, [fetchRules, targetType, toast])
 
   const handleTypeSelect = (type: RouteType) => {
-    setSelectedType(type) // Store selected type
-    setShowRouteCard(true) // Keep showing card area
-    handleAddRule(type) // Add the rule of the selected type
+    handleAddRule(type)
   }
 
   const handleAddRule = useCallback(
@@ -95,12 +84,12 @@ const ContentRouterSection = ({
         {
           tempId: `temp-${Date.now()}`,
           name: `New ${targetType === 'radarr' ? 'Movie' : 'Show'} ${type.charAt(0).toUpperCase() + type.slice(1)} Route`,
-          type: type, // Use selected type
+          type: type,
           target_type: targetType,
           target_instance_id: defaultInstance?.id || 0,
-          criteria: {}, // Start with empty criteria
+          criteria: {},
           root_folder: '',
-          quality_profile: undefined, // Use undefined for optional number|null
+          quality_profile: undefined,
           enabled: true,
           order: 50,
         },
@@ -114,15 +103,12 @@ const ContentRouterSection = ({
       tempId: string,
       data: Omit<ContentRouterRule, 'id' | 'created_at' | 'updated_at'>,
     ) => {
-      // Use specific type
       setSavingRules((prev) => ({ ...prev, [tempId]: true }))
       try {
-        const minimumLoadingTime = new Promise((resolve) =>
-          setTimeout(resolve, 500),
-        )
-
-        await Promise.all([createRule(data), minimumLoadingTime])
-
+        await Promise.all([
+          createRule(data),
+          new Promise((resolve) => setTimeout(resolve, 500)),
+        ])
         setLocalRules((prev) => prev.filter((r) => r.tempId !== tempId))
         toast({
           title: 'Success',
@@ -137,7 +123,7 @@ const ContentRouterSection = ({
       } finally {
         setSavingRules((prev) => {
           const updated = { ...prev }
-          delete updated[tempId] // Use delete operator here is fine for state object keys
+          delete updated[tempId]
           return updated
         })
       }
@@ -149,10 +135,10 @@ const ContentRouterSection = ({
     async (id: number, data: ContentRouterRuleUpdate) => {
       setSavingRules((prev) => ({ ...prev, [id]: true }))
       try {
-        const minimumLoadingTime = new Promise((resolve) =>
-          setTimeout(resolve, 500),
-        )
-        await Promise.all([updateRule(id, data), minimumLoadingTime])
+        await Promise.all([
+          updateRule(id, data),
+          new Promise((resolve) => setTimeout(resolve, 500)),
+        ])
         toast({
           title: 'Success',
           description: 'Route updated successfully',
@@ -166,7 +152,7 @@ const ContentRouterSection = ({
       } finally {
         setSavingRules((prev) => {
           const updated = { ...prev }
-          delete updated[id.toString()] // Use delete operator here is fine for state object keys
+          delete updated[id.toString()]
           return updated
         })
       }
@@ -195,11 +181,7 @@ const ContentRouterSection = ({
 
   const handleCancelLocalRule = useCallback((tempId: string) => {
     setLocalRules((prev) => prev.filter((r) => r.tempId !== tempId))
-    setShowRouteCard(false) // Hide the card area if the only local rule is cancelled
-    setSelectedType(null) // Reset selected type
   }, [])
-
-  const hasExistingRoutes = rules.length > 0
 
   const renderRouteCard = (
     rule: ContentRouterRule | TempRule,
@@ -208,8 +190,6 @@ const ContentRouterSection = ({
     const ruleId = isNew
       ? (rule as TempRule).tempId
       : (rule as ContentRouterRule).id
-
-    // Type assertion for clarity, though 'type' should exist on both
     const ruleType = (rule as ContentRouterRule | TempRule).type
 
     switch (ruleType) {
@@ -217,10 +197,8 @@ const ContentRouterSection = ({
         return (
           <GenreRouteCard
             key={ruleId}
-            // Pass rule explicitly typed
             route={rule as ContentRouterRule | Partial<ContentRouterRule>}
             isNew={isNew}
-            // Ensure data type matches expected input for onSave
             onSave={(data: ContentRouterRule | ContentRouterRuleUpdate) =>
               isNew
                 ? handleSaveNewRule(
@@ -235,12 +213,9 @@ const ContentRouterSection = ({
                     data as ContentRouterRuleUpdate,
                   )
             }
-            onCancel={() => {
-              if (isNew) {
-                handleCancelLocalRule((rule as TempRule).tempId)
-              }
-              // Note: Existing items don't have a specific 'cancel' - they reset via EditableCardHeader
-            }}
+            onCancel={() =>
+              isNew && handleCancelLocalRule((rule as TempRule).tempId)
+            }
             onRemove={
               isNew
                 ? undefined
@@ -248,7 +223,7 @@ const ContentRouterSection = ({
                     setDeleteConfirmationRuleId((rule as ContentRouterRule).id)
             }
             onGenreDropdownOpen={onGenreDropdownOpen}
-            isSaving={!!savingRules[ruleId.toString()]} // Ensure key is string
+            isSaving={!!savingRules[ruleId.toString()]}
             instances={instances}
             genres={genres}
             contentType={targetType}
@@ -258,16 +233,11 @@ const ContentRouterSection = ({
         return (
           <YearRouteCard
             key={ruleId}
-            // Pass rule explicitly typed
             route={rule as ContentRouterRule | Partial<ContentRouterRule>}
             isNew={isNew}
-            onCancel={() => {
-              if (isNew) {
-                handleCancelLocalRule((rule as TempRule).tempId)
-              }
-              // Note: Existing items don't have a specific 'cancel' - they reset via EditableCardHeader
-            }}
-            // Ensure data type matches expected input for onSave
+            onCancel={() =>
+              isNew && handleCancelLocalRule((rule as TempRule).tempId)
+            }
             onSave={(data: ContentRouterRule | ContentRouterRuleUpdate) =>
               isNew
                 ? handleSaveNewRule(
@@ -288,16 +258,49 @@ const ContentRouterSection = ({
                 : () =>
                     setDeleteConfirmationRuleId((rule as ContentRouterRule).id)
             }
-            isSaving={!!savingRules[ruleId.toString()]} // Ensure key is string
+            isSaving={!!savingRules[ruleId.toString()]}
             instances={instances}
             contentType={targetType}
           />
         )
       default:
-        // Optionally log unknown rule types
         console.warn(`Unknown rule type encountered: ${ruleType}`)
         return null
     }
+  }
+
+  if (isLoading && !rules.length && !localRules.length) {
+    return (
+      <div className="grid gap-6">
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold text-text">
+            {targetType === 'radarr' ? 'Radarr' : 'Sonarr'} Content Routes
+          </h2>
+        </div>
+        <div className="grid gap-4">
+          <ContentRouteCardSkeleton />
+          <ContentRouteCardSkeleton />
+        </div>
+      </div>
+    )
+  }
+
+  if (!rules.length && !localRules.length) {
+    return (
+      <div className="grid gap-6">
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold text-text">
+            {targetType === 'radarr' ? 'Radarr' : 'Sonarr'} Content Routes
+          </h2>
+        </div>
+        <div className="text-center py-8 text-text">
+          <p>No content routes configured</p>
+          <Button onClick={() => setShowTypeModal(true)} className="mt-4">
+            Add Your First Route
+          </Button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -309,63 +312,26 @@ const ContentRouterSection = ({
         contentType={targetType}
       />
 
-      {/* Loading State */}
-      {isLoading && !hasExistingRoutes && localRules.length === 0 ? (
-        <div className="grid gap-6">
-          <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold text-text">
-              {targetType === 'radarr' ? 'Radarr' : 'Sonarr'} Content Routes
-            </h2>
-          </div>
-          <div className="grid gap-4">
-            <ContentRouteCardSkeleton />
-            <ContentRouteCardSkeleton />
-          </div>
-        </div>
-      ) : !hasExistingRoutes && localRules.length === 0 /* Empty State */ ? (
-        <div className="grid gap-6">
-          <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold text-text">
-              {targetType === 'radarr' ? 'Radarr' : 'Sonarr'} Content Routes
-            </h2>
-          </div>
-          <div className="text-center py-8 text-text">
-            <p>No content routes configured</p>
-            <Button onClick={addRoute} className="mt-4">
-              Add Your First Route
-            </Button>
-          </div>
-        </div> /* Routes Display */
-      ) : (
-        <>
-          <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold text-text">
-              {targetType === 'radarr' ? 'Radarr' : 'Sonarr'} Content Routes
-            </h2>
-            <Button onClick={addRoute}>Add Route</Button>
-          </div>
-          <div className="grid gap-4">
-            {/* Saved routes */}
-            {rules.map((rule) => renderRouteCard(rule))}
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-text">
+          {targetType === 'radarr' ? 'Radarr' : 'Sonarr'} Content Routes
+        </h2>
+        <Button onClick={() => setShowTypeModal(true)}>Add Route</Button>
+      </div>
 
-            {/* Local (unsaved) routes */}
-            {localRules.map((rule) => renderRouteCard(rule, true))}
+      <div className="grid gap-4">
+        {rules.map((rule) => renderRouteCard(rule))}
+        {localRules.map((rule) => renderRouteCard(rule, true))}
+        {isLoading &&
+          Object.keys(savingRules).some((key) => !key.startsWith('temp-')) &&
+          !rules.length &&
+          !localRules.length && (
+            <div className="opacity-40 pointer-events-none">
+              <ContentRouteCardSkeleton />
+            </div>
+          )}
+      </div>
 
-            {/* Show skeleton for loading states when *updating* existing rules and list is empty */}
-            {isLoading &&
-              Object.keys(savingRules).some(
-                (key) => !key.startsWith('temp-'),
-              ) && // Check if saving non-temp rule
-              rules.length === 0 &&
-              localRules.length === 0 && ( // Only if list becomes empty during save
-                <div className="opacity-40 pointer-events-none">
-                  <ContentRouteCardSkeleton />
-                </div>
-              )}
-          </div>
-        </>
-      )}
-      {/* Delete Confirmation */}
       <DeleteRouteAlert
         open={deleteConfirmationRuleId !== null}
         onOpenChange={() => setDeleteConfirmationRuleId(null)}

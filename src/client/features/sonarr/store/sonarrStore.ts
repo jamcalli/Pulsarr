@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-//import type { SonarrInstance, SonarrGenreRoute } from '@/types/sonarr.types'
 import type { RootFolder, QualityProfile } from '@root/types/sonarr.types'
+import type { ContentRouterRule } from '@root/schemas/content-router/content-router.schema'
 
 export interface SonarrGenreRoute {
   id: number
@@ -42,6 +42,7 @@ export interface SonarrState {
   instancesLoading: boolean
   error: string | null
   contentRouterInitialized: boolean
+  contentRouterRules: ContentRouterRule[]
 
   // Loading management
   isLoadingRef: boolean
@@ -87,6 +88,7 @@ export const useSonarrStore = create<SonarrState>()(
     isLoadingRef: false,
     isInitialMount: true,
     contentRouterInitialized: false,
+    contentRouterRules: [],
 
     setLoadingWithMinDuration: (loading) => {
       const state = get()
@@ -231,7 +233,6 @@ export const useSonarrStore = create<SonarrState>()(
       }
     },
 
-    // Update initialize to include fetchGenres
     initialize: async (force = false) => {
       const state = get()
       if (!state.isInitialized || force) {
@@ -240,14 +241,17 @@ export const useSonarrStore = create<SonarrState>()(
         }
 
         try {
-          await Promise.all([
-            state.fetchInstances(),
-            state.fetchGenreRoutes(),
-            state.fetchGenres(),
-          ])
-          set({ isInitialized: true })
+          await Promise.all([state.fetchInstances(), state.fetchGenres()])
+
+          set({
+            isInitialized: true,
+            error: null,
+          })
         } catch (error) {
-          set({ error: 'Failed to initialize Sonarr' })
+          set({
+            error: 'Failed to initialize',
+            isInitialized: false,
+          })
           console.error('Initialization error:', error)
         } finally {
           if (state.isInitialMount) {
