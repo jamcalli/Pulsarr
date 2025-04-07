@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import type { RootFolder, QualityProfile } from '@root/types/radarr.types'
+import type { ContentRouterRule } from '@root/schemas/content-router/content-router.schema'
 
 export interface RadarrGenreRoute {
   id: number
@@ -40,6 +41,7 @@ export interface RadarrState {
   instancesLoading: boolean
   error: string | null
   contentRouterInitialized: boolean
+  contentRouterRules: ContentRouterRule[]
 
   // Loading management
   isLoadingRef: boolean
@@ -59,6 +61,7 @@ export interface RadarrState {
   ) => Promise<void>
   deleteInstance: (id: number) => Promise<void>
   setContentRouterInitialized: (initialized: boolean) => void
+  setContentRouterRules: (rules: ContentRouterRule[]) => void
 
   // Genre operations
   fetchGenres: () => Promise<void>
@@ -85,6 +88,11 @@ export const useRadarrStore = create<RadarrState>()(
     isLoadingRef: false,
     isInitialMount: true,
     contentRouterInitialized: false,
+    contentRouterRules: [],
+
+    setContentRouterRules: (rules: ContentRouterRule[]) => {
+      set({ contentRouterRules: rules })
+    },
 
     setLoadingWithMinDuration: (loading) => {
       const state = get()
@@ -237,14 +245,24 @@ export const useRadarrStore = create<RadarrState>()(
         }
 
         try {
+          // Run initial fetches in parallel
           await Promise.all([
             state.fetchInstances(),
-            state.fetchGenreRoutes(),
             state.fetchGenres(),
+            state.fetchGenreRoutes(), // Always fetch routes during initialization
           ])
-          set({ isInitialized: true })
+
+          set({
+            isInitialized: true,
+            contentRouterInitialized: true,
+            error: null,
+          })
         } catch (error) {
-          set({ error: 'Failed to initialize Radarr' })
+          set({
+            error: 'Failed to initialize',
+            isInitialized: false,
+            contentRouterInitialized: false,
+          })
           console.error('Initialization error:', error)
         } finally {
           if (state.isInitialMount) {
