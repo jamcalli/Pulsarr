@@ -1,12 +1,10 @@
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type {
   Item as SonarrItem,
-  SonarrGenreRoute,
   SonarrInstance,
 } from '@root/types/sonarr.types.js'
 import type {
   Item as RadarrItem,
-  RadarrGenreRoute,
   RadarrInstance,
 } from '@root/types/radarr.types.js'
 import type { DatabaseWatchlistItem } from '@root/types/watchlist-status.types.js'
@@ -42,13 +40,11 @@ export class StatusService {
       if (mainUpdates.length > 0) {
         updateCount = await this.dbService.bulkUpdateWatchlistItems(mainUpdates)
       }
-      const genreRoutes = await this.dbService.getSonarrGenreRoutes()
-      const defaultInstance = await this.dbService.getDefaultSonarrInstance()
+
+      // Process junction updates for Sonarr items
       const junctionUpdates = await this.processShowJunctionUpdates(
         existingSeries,
         dbWatchlistItems,
-        genreRoutes,
-        defaultInstance,
       )
       updateCount += junctionUpdates
       return updateCount
@@ -72,13 +68,11 @@ export class StatusService {
       if (mainUpdates.length > 0) {
         updateCount = await this.dbService.bulkUpdateWatchlistItems(mainUpdates)
       }
-      const genreRoutes = await this.dbService.getRadarrGenreRoutes()
-      const defaultInstance = await this.dbService.getDefaultRadarrInstance()
+
+      // Process junction updates for Radarr items
       const junctionUpdates = await this.processMovieJunctionUpdates(
         existingMovies,
         dbWatchlistItems,
-        genreRoutes,
-        defaultInstance,
       )
       updateCount += junctionUpdates
       return updateCount
@@ -205,132 +199,139 @@ export class StatusService {
     return updates
   }
 
-  // Junction table updates
+  // Junction table updates for Sonarr
   private async processShowJunctionUpdates(
     sonarrItems: SonarrItem[],
     watchlistItems: DatabaseWatchlistItem[],
-    genreRoutes: SonarrGenreRoute[],
-    defaultInstance: SonarrInstance | null,
   ): Promise<number> {
     let updateCount = 0
+
+    // Group items by Sonarr instance
+    const instanceItemMap = new Map<number, SonarrItem[]>()
+
+    for (const series of sonarrItems) {
+      if (!series.sonarr_instance_id) continue
+
+      if (!instanceItemMap.has(series.sonarr_instance_id)) {
+        instanceItemMap.set(series.sonarr_instance_id, [])
+      }
+
+      instanceItemMap.get(series.sonarr_instance_id)?.push(series)
+    }
+
+    // Process each watchlist item
     for (const item of watchlistItems) {
       try {
         if (item.id === undefined) {
           this.log.debug(`Skipping show ${item.title} with undefined ID`)
           continue
         }
-        const matchingSeries = sonarrItems.filter((series) =>
-          this.isGuidMatch(series.guids, item.guids),
-        )
-        if (matchingSeries.length === 0) continue
-        const currentInstanceIds =
-          await this.dbService.getWatchlistSonarrInstanceIds(item.id)
-        const itemGenres = this.parseGenres(item.genres)
-        const targetInstanceIds = new Set<number>()
-        for (const route of genreRoutes) {
-          if (itemGenres.includes(route.genre)) {
-            targetInstanceIds.add(route.sonarrInstanceId)
-          }
-        }
-        if (targetInstanceIds.size === 0 && defaultInstance) {
-          targetInstanceIds.add(defaultInstance.id)
-          const syncedInstances = Array.isArray(defaultInstance.syncedInstances)
-            ? defaultInstance.syncedInstances
-            : typeof defaultInstance.syncedInstances === 'string'
-              ? JSON.parse(defaultInstance.syncedInstances || '[]')
-              : []
-          for (const syncedId of syncedInstances) {
-            targetInstanceIds.add(syncedId)
-          }
-        }
-        for (const series of matchingSeries) {
-          const instanceId = series.sonarr_instance_id
-          if (!instanceId) continue
-          if (targetInstanceIds.has(instanceId)) {
+
+        // Find instances where this show exists
+        const existingInstances: number[] = []
+
+        for (const [instanceId, instanceItems] of instanceItemMap.entries()) {
+          const matchingSeries = instanceItems.filter((series) =>
+            this.isGuidMatch(series.guids, item.guids),
+          )
+
+          if (matchingSeries.length > 0) {
+            existingInstances.push(instanceId)
+
+            // Check if junction table needs to be updated
+            const currentInstanceIds =
+              await this.dbService.getWatchlistSonarrInstanceIds(item.id)
+
+            // Add to junction table if not already there
             if (!currentInstanceIds.includes(instanceId)) {
               await this.dbService.addWatchlistToSonarrInstance(
                 item.id,
                 instanceId,
-                series.status || 'pending',
+                matchingSeries[0].status || 'pending',
                 currentInstanceIds.length === 0,
               )
               updateCount++
               this.log.debug(
-                `Added show ${item.title} to Sonarr instance ${instanceId}`,
+                `Added show ${item.title} to Sonarr instance ${instanceId} in junction table`,
               )
             } else {
+              // Update status if needed
               const currentStatus =
                 await this.dbService.getWatchlistSonarrInstanceStatus(
                   item.id,
                   instanceId,
                 )
+
               if (
                 currentStatus &&
-                currentStatus.status !== series.status &&
+                currentStatus.status !== matchingSeries[0].status &&
                 !(
                   currentStatus.status === 'notified' &&
-                  series.status !== 'notified'
+                  matchingSeries[0].status !== 'notified'
                 )
               ) {
                 await this.dbService.updateWatchlistSonarrInstanceStatus(
                   item.id,
                   instanceId,
-                  series.status || 'pending',
+                  matchingSeries[0].status || 'pending',
                   currentStatus.status === 'notified'
                     ? currentStatus.last_notified_at
                     : null,
                 )
                 updateCount++
                 this.log.debug(
-                  `Updated show ${item.title} status in Sonarr instance ${instanceId}`,
+                  `Updated show ${item.title} status in Sonarr instance ${instanceId} junction table`,
                 )
               }
             }
           }
         }
-        const instancesToRemove = currentInstanceIds.filter(
-          (id) => !targetInstanceIds.has(id),
-        )
-        if (instancesToRemove.length > 0) {
-          if (targetInstanceIds.size > 0) {
-            const validInstanceIds = Array.from(targetInstanceIds)
-            let needNewPrimary = false
-            for (const instanceId of instancesToRemove) {
-              const status =
-                await this.dbService.getWatchlistSonarrInstanceStatus(
-                  item.id,
-                  instanceId,
-                )
-              if (status?.is_primary) {
-                needNewPrimary = true
-              }
+
+        // Get all instances this item is currently associated with
+        if (item.id !== undefined) {
+          const numericId =
+            typeof item.id === 'string' ? Number(item.id) : item.id
+          const currentInstanceIds =
+            await this.dbService.getWatchlistSonarrInstanceIds(numericId)
+
+          // Clean up instances where the show no longer exists
+          for (const instanceId of currentInstanceIds) {
+            if (!existingInstances.includes(instanceId)) {
               await this.dbService.removeWatchlistFromSonarrInstance(
-                item.id,
+                numericId,
                 instanceId,
               )
               updateCount++
               this.log.debug(
-                `Removed show ${item.title} from Sonarr instance ${instanceId} (genre routing)`,
+                `Removed show ${item.title} from Sonarr instance ${instanceId} in junction table (no longer exists there)`,
               )
             }
-            if (needNewPrimary && validInstanceIds.length > 0) {
-              await this.dbService.setPrimarySonarrInstance(
-                item.id,
-                validInstanceIds[0],
-              )
-              updateCount++
-            }
-          } else {
-            for (const instanceId of instancesToRemove) {
-              await this.dbService.removeWatchlistFromSonarrInstance(
-                item.id,
-                instanceId,
-              )
-              updateCount++
-              this.log.debug(
-                `Removed show ${item.title} from Sonarr instance ${instanceId} (no genre matches)`,
-              )
-            }
+          }
+        }
+
+        // Ensure a primary instance is set if there are any instances
+        if (existingInstances.length > 0 && item.id !== undefined) {
+          const numericId =
+            typeof item.id === 'string' ? Number(item.id) : item.id
+          const currentInstanceStatuses = await Promise.all(
+            existingInstances.map((id) =>
+              this.dbService.getWatchlistSonarrInstanceStatus(numericId, id),
+            ),
+          )
+
+          const hasPrimary = currentInstanceStatuses.some(
+            (status) => status?.is_primary,
+          )
+
+          if (!hasPrimary && existingInstances.length > 0) {
+            await this.dbService.setPrimarySonarrInstance(
+              numericId,
+              existingInstances[0],
+            )
+            updateCount++
+            this.log.debug(
+              `Set Sonarr instance ${existingInstances[0]} as primary for show ${item.title}`,
+            )
           }
         }
       } catch (error) {
@@ -340,134 +341,143 @@ export class StatusService {
         )
       }
     }
+
     return updateCount
   }
 
+  // Junction table updates for Radarr
   private async processMovieJunctionUpdates(
     radarrItems: RadarrItem[],
     watchlistItems: DatabaseWatchlistItem[],
-    genreRoutes: RadarrGenreRoute[],
-    defaultInstance: RadarrInstance | null,
   ): Promise<number> {
     let updateCount = 0
+
+    // Group items by Radarr instance
+    const instanceItemMap = new Map<number, RadarrItem[]>()
+
+    for (const movie of radarrItems) {
+      if (!movie.radarr_instance_id) continue
+
+      if (!instanceItemMap.has(movie.radarr_instance_id)) {
+        instanceItemMap.set(movie.radarr_instance_id, [])
+      }
+
+      instanceItemMap.get(movie.radarr_instance_id)?.push(movie)
+    }
+
+    // Process each watchlist item
     for (const item of watchlistItems) {
       try {
         if (item.id === undefined) {
           this.log.debug(`Skipping movie ${item.title} with undefined ID`)
           continue
         }
-        const matchingMovies = radarrItems.filter((movie) =>
-          this.isGuidMatch(movie.guids, item.guids),
-        )
-        if (matchingMovies.length === 0) continue
-        const currentInstanceIds =
-          await this.dbService.getWatchlistRadarrInstanceIds(item.id)
-        const itemGenres = this.parseGenres(item.genres)
-        const targetInstanceIds = new Set<number>()
-        for (const route of genreRoutes) {
-          if (itemGenres.includes(route.genre)) {
-            targetInstanceIds.add(route.radarrInstanceId)
-          }
-        }
-        if (targetInstanceIds.size === 0 && defaultInstance) {
-          targetInstanceIds.add(defaultInstance.id)
-          const syncedInstances = Array.isArray(defaultInstance.syncedInstances)
-            ? defaultInstance.syncedInstances
-            : typeof defaultInstance.syncedInstances === 'string'
-              ? JSON.parse(defaultInstance.syncedInstances || '[]')
-              : []
-          for (const syncedId of syncedInstances) {
-            targetInstanceIds.add(syncedId)
-          }
-        }
-        for (const movie of matchingMovies) {
-          const instanceId = movie.radarr_instance_id
-          if (!instanceId) continue
-          if (targetInstanceIds.has(instanceId)) {
+
+        // Find instances where this movie exists
+        const existingInstances: number[] = []
+
+        for (const [instanceId, instanceItems] of instanceItemMap.entries()) {
+          const matchingMovies = instanceItems.filter((movie) =>
+            this.isGuidMatch(movie.guids, item.guids),
+          )
+
+          if (matchingMovies.length > 0) {
+            existingInstances.push(instanceId)
+
+            // Check if junction table needs to be updated
+            const currentInstanceIds =
+              await this.dbService.getWatchlistRadarrInstanceIds(item.id)
+
+            // Add to junction table if not already there
             if (!currentInstanceIds.includes(instanceId)) {
               await this.dbService.addWatchlistToRadarrInstance(
                 item.id,
                 instanceId,
-                movie.status || 'pending',
+                matchingMovies[0].status || 'pending',
                 currentInstanceIds.length === 0,
               )
               updateCount++
               this.log.debug(
-                `Added movie ${item.title} to Radarr instance ${instanceId}`,
+                `Added movie ${item.title} to Radarr instance ${instanceId} in junction table`,
               )
             } else {
+              // Update status if needed
               const currentStatus =
                 await this.dbService.getWatchlistRadarrInstanceStatus(
                   item.id,
                   instanceId,
                 )
+
               if (
                 currentStatus &&
-                currentStatus.status !== movie.status &&
+                currentStatus.status !== matchingMovies[0].status &&
                 !(
                   currentStatus.status === 'notified' &&
-                  movie.status !== 'notified'
+                  matchingMovies[0].status !== 'notified'
                 )
               ) {
                 await this.dbService.updateWatchlistRadarrInstanceStatus(
                   item.id,
                   instanceId,
-                  movie.status || 'pending',
+                  matchingMovies[0].status || 'pending',
                   currentStatus.status === 'notified'
                     ? currentStatus.last_notified_at
                     : null,
                 )
                 updateCount++
                 this.log.debug(
-                  `Updated movie ${item.title} status in Radarr instance ${instanceId}`,
+                  `Updated movie ${item.title} status in Radarr instance ${instanceId} junction table`,
                 )
               }
             }
           }
         }
-        const instancesToRemove = currentInstanceIds.filter(
-          (id) => !targetInstanceIds.has(id),
-        )
-        if (instancesToRemove.length > 0) {
-          if (targetInstanceIds.size > 0) {
-            const validInstanceIds = Array.from(targetInstanceIds)
-            let needNewPrimary = false
-            for (const instanceId of instancesToRemove) {
-              const status =
-                await this.dbService.getWatchlistRadarrInstanceStatus(
-                  item.id,
-                  instanceId,
-                )
-              if (status?.is_primary) {
-                needNewPrimary = true
-              }
+
+        // Get all instances this item is currently associated with
+        if (item.id !== undefined) {
+          const numericId =
+            typeof item.id === 'string' ? Number(item.id) : item.id
+          const currentInstanceIds =
+            await this.dbService.getWatchlistRadarrInstanceIds(numericId)
+
+          // Clean up instances where the movie no longer exists
+          for (const instanceId of currentInstanceIds) {
+            if (!existingInstances.includes(instanceId)) {
               await this.dbService.removeWatchlistFromRadarrInstance(
-                item.id,
+                numericId,
                 instanceId,
               )
               updateCount++
               this.log.debug(
-                `Removed movie ${item.title} from Radarr instance ${instanceId} (genre routing)`,
+                `Removed movie ${item.title} from Radarr instance ${instanceId} in junction table (no longer exists there)`,
               )
             }
-            if (needNewPrimary && validInstanceIds.length > 0) {
-              await this.dbService.setPrimaryRadarrInstance(
-                item.id,
-                validInstanceIds[0],
-              )
-              updateCount++
-            }
-          } else {
-            for (const instanceId of instancesToRemove) {
-              await this.dbService.removeWatchlistFromRadarrInstance(
-                item.id,
-                instanceId,
-              )
-              updateCount++
-              this.log.debug(
-                `Removed movie ${item.title} from Radarr instance ${instanceId} (no genre matches)`,
-              )
-            }
+          }
+        }
+
+        // Ensure a primary instance is set if there are any instances
+        if (existingInstances.length > 0 && item.id !== undefined) {
+          const numericId =
+            typeof item.id === 'string' ? Number(item.id) : item.id
+          const currentInstanceStatuses = await Promise.all(
+            existingInstances.map((id) =>
+              this.dbService.getWatchlistRadarrInstanceStatus(numericId, id),
+            ),
+          )
+
+          const hasPrimary = currentInstanceStatuses.some(
+            (status) => status?.is_primary,
+          )
+
+          if (!hasPrimary && existingInstances.length > 0) {
+            await this.dbService.setPrimaryRadarrInstance(
+              numericId,
+              existingInstances[0],
+            )
+            updateCount++
+            this.log.debug(
+              `Set Radarr instance ${existingInstances[0]} as primary for movie ${item.title}`,
+            )
           }
         }
       } catch (error) {
@@ -477,6 +487,7 @@ export class StatusService {
         )
       }
     }
+
     return updateCount
   }
 
@@ -589,27 +600,24 @@ export class StatusService {
       if (!instance) {
         throw new Error(`Radarr instance ${instanceId} not found`)
       }
+
       const defaultInstance = await this.dbService.getDefaultRadarrInstance()
-      this.log.debug(
-        `Instance syncedInstances: ${JSON.stringify(instance.syncedInstances)}`,
-      )
-      this.log.debug(`Instance isDefault: ${instance.isDefault}`)
-      if (defaultInstance) {
-        this.log.debug(`Default instance ID: ${defaultInstance.id}`)
-        this.log.debug(
-          `Default instance syncedInstances: ${JSON.stringify(defaultInstance.syncedInstances)}`,
-        )
-      }
+
+      // Determine if this instance should receive content from the default instance
       const shouldSyncFromDefault =
         defaultInstance &&
         defaultInstance.id !== instanceId &&
         Array.isArray(defaultInstance.syncedInstances) &&
         defaultInstance.syncedInstances.includes(instanceId)
+
       this.log.debug(
         `Should sync from default to this instance: ${shouldSyncFromDefault}`,
       )
 
+      // Get all watchlist items
       const watchlistItems = await this.dbService.getAllMovieWatchlistItems()
+
+      // Deduplicate by GUID to get unique media items
       const uniqueByGuid = new Map<string, (typeof watchlistItems)[0]>()
       for (const item of watchlistItems) {
         const guids = Array.isArray(item.guids)
@@ -626,10 +634,15 @@ export class StatusService {
         `Deduplicated watchlist items from ${watchlistItems.length} to ${uniqueWatchlistItems.length} unique media items`,
       )
 
+      // Get all existing movies across all instances to check for duplicates
       const allExistingMovies = await this.radarrManager.fetchAllMovies()
+
+      // Get movies already in the target instance
       const existingMoviesInInstance = allExistingMovies.filter(
         (movie) => movie.radarr_instance_id === instanceId,
       )
+
+      // Create a map of GUIDs for quick lookup
       const existingGuidMap = new Map<string, boolean>()
       for (const movie of existingMoviesInInstance) {
         const guids = Array.isArray(movie.guids)
@@ -641,12 +654,9 @@ export class StatusService {
           existingGuidMap.set(guid, true)
         }
       }
-      this.log.debug(
-        `Found ${uniqueWatchlistItems.length} unique movies to evaluate for sync`,
-      )
-      const genreRoutes = await this.dbService.getRadarrGenreRoutes()
-      this.log.debug(`Found ${genreRoutes.length} genre routes for Radarr`)
 
+      // Now that we have the content router, items should be routed based on
+      // router rules rather than explicit genre matching
       const itemsToCopy: Array<{
         item: (typeof watchlistItems)[0]
         matchingMovie: RadarrItem
@@ -655,26 +665,19 @@ export class StatusService {
       for (const item of uniqueWatchlistItems) {
         try {
           if (item.id === undefined) continue
+
           const numericId =
             typeof item.id === 'string' ? Number(item.id) : item.id
+
+          // Check if this item is already in the target instance
           const currentInstanceIds =
             await this.dbService.getWatchlistRadarrInstanceIds(numericId)
           if (currentInstanceIds.includes(instanceId)) continue
+
+          // Items should be copied if they're in the default instance and this instance is synced
           let shouldBeInInstance = false
-          const itemGenres = this.parseGenres(item.genres)
-          for (const route of genreRoutes) {
-            if (
-              route.radarrInstanceId === instanceId &&
-              itemGenres.includes(route.genre)
-            ) {
-              shouldBeInInstance = true
-              this.log.debug(
-                `Movie ${item.title} matches genre route: ${route.genre}`,
-              )
-              break
-            }
-          }
-          if (!shouldBeInInstance && shouldSyncFromDefault) {
+
+          if (shouldSyncFromDefault) {
             if (
               defaultInstance &&
               currentInstanceIds.includes(defaultInstance.id)
@@ -685,12 +688,15 @@ export class StatusService {
               )
             }
           }
+
+          // Also check if this item is in any instance that syncs to this one
           if (!shouldBeInInstance) {
             const syncedInstances = Array.isArray(instance.syncedInstances)
               ? instance.syncedInstances
               : typeof instance.syncedInstances === 'string'
                 ? JSON.parse(instance.syncedInstances || '[]')
                 : []
+
             for (const syncedId of syncedInstances) {
               const isInSyncedInstance = currentInstanceIds.includes(syncedId)
               if (isInSyncedInstance) {
@@ -702,15 +708,19 @@ export class StatusService {
               }
             }
           }
+
           if (shouldBeInInstance) {
+            // Check if the item actually exists in the target instance but isn't in the junction table
             const itemGuids = Array.isArray(item.guids)
               ? item.guids
               : typeof item.guids === 'string'
                 ? JSON.parse(item.guids || '[]')
                 : []
+
             const alreadyExists = itemGuids.some((guid: string) =>
               existingGuidMap.has(guid),
             )
+
             if (alreadyExists) {
               this.log.debug(
                 `Movie ${item.title} exists in Radarr instance ${instanceId} but not in junction table, updating database`,
@@ -723,6 +733,8 @@ export class StatusService {
               )
               continue
             }
+
+            // Find a matching movie in other instances that we can copy
             const matchingMovie = this.findMatch(allExistingMovies, item.guids)
             if (matchingMovie) {
               itemsToCopy.push({
@@ -921,27 +933,24 @@ export class StatusService {
       if (!instance) {
         throw new Error(`Sonarr instance ${instanceId} not found`)
       }
+
       const defaultInstance = await this.dbService.getDefaultSonarrInstance()
-      this.log.debug(
-        `Instance syncedInstances: ${JSON.stringify(instance.syncedInstances)}`,
-      )
-      this.log.debug(`Instance isDefault: ${instance.isDefault}`)
-      if (defaultInstance) {
-        this.log.debug(`Default instance ID: ${defaultInstance.id}`)
-        this.log.debug(
-          `Default instance syncedInstances: ${JSON.stringify(defaultInstance.syncedInstances)}`,
-        )
-      }
+
+      // Determine if this instance should receive content from the default instance
       const shouldSyncFromDefault =
         defaultInstance &&
         defaultInstance.id !== instanceId &&
         Array.isArray(defaultInstance.syncedInstances) &&
         defaultInstance.syncedInstances.includes(instanceId)
+
       this.log.debug(
         `Should sync from default to this instance: ${shouldSyncFromDefault}`,
       )
 
+      // Get all watchlist items
       const watchlistItems = await this.dbService.getAllShowWatchlistItems()
+
+      // Deduplicate by GUID to get unique media items
       const uniqueByGuid = new Map<string, (typeof watchlistItems)[0]>()
       for (const item of watchlistItems) {
         const guids = Array.isArray(item.guids)
@@ -958,10 +967,15 @@ export class StatusService {
         `Deduplicated watchlist items from ${watchlistItems.length} to ${uniqueWatchlistItems.length} unique media items`,
       )
 
+      // Get all existing series across all instances to check for duplicates
       const allExistingSeries = await this.sonarrManager.fetchAllSeries()
+
+      // Get series already in the target instance
       const existingSeriesInInstance = allExistingSeries.filter(
         (series) => series.sonarr_instance_id === instanceId,
       )
+
+      // Create a map of GUIDs for quick lookup
       const existingGuidMap = new Map<string, boolean>()
       for (const series of existingSeriesInInstance) {
         const guids = Array.isArray(series.guids)
@@ -973,12 +987,8 @@ export class StatusService {
           existingGuidMap.set(guid, true)
         }
       }
-      this.log.debug(
-        `Found ${uniqueWatchlistItems.length} unique shows to evaluate for sync`,
-      )
-      const genreRoutes = await this.dbService.getSonarrGenreRoutes()
-      this.log.debug(`Found ${genreRoutes.length} genre routes for Sonarr`)
 
+      // Items should be routed based on router rules rather than explicit genre matching
       const itemsToCopy: Array<{
         item: (typeof watchlistItems)[0]
         matchingSeries: SonarrItem
@@ -987,26 +997,19 @@ export class StatusService {
       for (const item of uniqueWatchlistItems) {
         try {
           if (item.id === undefined) continue
+
           const numericId =
             typeof item.id === 'string' ? Number(item.id) : item.id
+
+          // Check if this item is already in the target instance
           const currentInstanceIds =
             await this.dbService.getWatchlistSonarrInstanceIds(numericId)
           if (currentInstanceIds.includes(instanceId)) continue
+
+          // Items should be copied if they're in the default instance and this instance is synced
           let shouldBeInInstance = false
-          const itemGenres = this.parseGenres(item.genres)
-          for (const route of genreRoutes) {
-            if (
-              route.sonarrInstanceId === instanceId &&
-              itemGenres.includes(route.genre)
-            ) {
-              shouldBeInInstance = true
-              this.log.debug(
-                `Show ${item.title} matches genre route: ${route.genre}`,
-              )
-              break
-            }
-          }
-          if (!shouldBeInInstance && shouldSyncFromDefault) {
+
+          if (shouldSyncFromDefault) {
             if (
               defaultInstance &&
               currentInstanceIds.includes(defaultInstance.id)
@@ -1017,12 +1020,15 @@ export class StatusService {
               )
             }
           }
+
+          // Also check if this item is in any instance that syncs to this one
           if (!shouldBeInInstance) {
             const syncedInstances = Array.isArray(instance.syncedInstances)
               ? instance.syncedInstances
               : typeof instance.syncedInstances === 'string'
                 ? JSON.parse(instance.syncedInstances || '[]')
                 : []
+
             for (const syncedId of syncedInstances) {
               const isInSyncedInstance = currentInstanceIds.includes(syncedId)
               if (isInSyncedInstance) {
@@ -1034,15 +1040,19 @@ export class StatusService {
               }
             }
           }
+
           if (shouldBeInInstance) {
+            // Check if the item actually exists in the target instance but isn't in the junction table
             const itemGuids = Array.isArray(item.guids)
               ? item.guids
               : typeof item.guids === 'string'
                 ? JSON.parse(item.guids || '[]')
                 : []
+
             const alreadyExists = itemGuids.some((guid: string) =>
               existingGuidMap.has(guid),
             )
+
             if (alreadyExists) {
               this.log.debug(
                 `Show ${item.title} exists in Sonarr instance ${instanceId} but not in junction table, updating database`,
@@ -1055,6 +1065,8 @@ export class StatusService {
               )
               continue
             }
+
+            // Find a matching series in other instances that we can copy
             const matchingSeries = this.findMatch(allExistingSeries, item.guids)
             if (matchingSeries) {
               itemsToCopy.push({

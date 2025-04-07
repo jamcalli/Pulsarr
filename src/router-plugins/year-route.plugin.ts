@@ -24,7 +24,8 @@ function processYearCriteria(year: number, criteria: CriteriaValue): boolean {
     Array.isArray(criteria) &&
     criteria.every((item) => typeof item === 'number')
   ) {
-    return criteria.includes(year)
+    // Type assertion to help TypeScript understand this is a number array
+    return (criteria as number[]).includes(year)
   }
 
   // Handle object criteria
@@ -179,7 +180,8 @@ export default function createYearRouterPlugin(
         }
 
         // Check if the year matches the criteria
-        return processYearCriteria(releaseYear, yearCriteria)
+        // We already checked above that releaseYear is not undefined
+        return processYearCriteria(releaseYear as number, yearCriteria)
       })
 
       if (matchingRules.length === 0) {
