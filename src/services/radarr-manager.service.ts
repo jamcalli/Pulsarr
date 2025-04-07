@@ -127,205 +127,70 @@ export class RadarrManagerService {
   async routeItemToRadarr(
     item: RadarrItem,
     key: string,
-    targetInstanceId?: number,
+    instanceId?: number,
     syncing = false,
-    overrideRootFolder?: string,
-    overrideQualityProfile?: number | string | null,
+    rootFolder?: string,
+    qualityProfile?: number | string | null,
   ): Promise<void> {
-    if (targetInstanceId !== undefined) {
-      const targetService = this.radarrServices.get(targetInstanceId)
-      if (!targetService) {
-        throw new Error(`Radarr service ${targetInstanceId} not found`)
-      }
-
-      const radarrItem = this.prepareRadarrItem(item)
-
-      try {
-        const instance =
-          await this.fastify.db.getRadarrInstance(targetInstanceId)
-        if (!instance) {
-          throw new Error(`Radarr instance ${targetInstanceId} not found`)
-        }
-
-        // Use the override parameters if provided, otherwise fall back to instance defaults
-        const rootFolder =
-          overrideRootFolder || instance.rootFolder || undefined
-        let qualityProfileId: number | undefined = undefined
-
-        if (overrideQualityProfile !== undefined) {
-          if (typeof overrideQualityProfile === 'number') {
-            qualityProfileId = overrideQualityProfile
-          } else if (
-            typeof overrideQualityProfile === 'string' &&
-            /^\d+$/.test(overrideQualityProfile)
-          ) {
-            qualityProfileId = Number(overrideQualityProfile)
-          }
-        } else if (instance.qualityProfile !== null) {
-          if (typeof instance.qualityProfile === 'number') {
-            qualityProfileId = instance.qualityProfile
-          } else if (
-            typeof instance.qualityProfile === 'string' &&
-            /^\d+$/.test(instance.qualityProfile)
-          ) {
-            qualityProfileId = Number(instance.qualityProfile)
-          }
-        }
-
-        await targetService.addToRadarr(
-          radarrItem,
-          rootFolder,
-          qualityProfileId,
-        )
-
-        await this.fastify.db.updateWatchlistItem(key, {
-          radarr_instance_id: targetInstanceId,
-          syncing: syncing,
-        })
-
-        this.log.info(
-          `Successfully routed item to instance ${targetInstanceId} with quality profile ${qualityProfileId ?? 'default'}`,
-        )
-        return
-      } catch (error) {
-        this.log.error(
-          `Failed to add item to instance ${targetInstanceId}:`,
-          error,
-        )
-        throw error
-      }
+    // If no specific instance is provided, we can't route the item
+    if (instanceId === undefined) {
+      throw new Error('No Radarr instance ID provided for routing')
     }
 
-    const itemGenres = new Set(
-      Array.isArray(item.genres)
-        ? item.genres
-        : typeof item.genres === 'string'
-          ? [item.genres]
-          : [],
-    )
+    const radarrService = this.radarrServices.get(instanceId)
+    if (!radarrService) {
+      throw new Error(`Radarr service ${instanceId} not found`)
+    }
 
-    const genreRoutes = await this.fastify.db.getRadarrGenreRoutes()
-    const instances = await this.fastify.db.getAllRadarrInstances()
+    const radarrItem = this.prepareRadarrItem(item)
 
-    const genreMatches = genreRoutes.filter((route) =>
-      itemGenres.has(route.genre),
-    )
-
-    if (genreMatches.length > 0) {
-      for (const match of genreMatches) {
-        this.log.info(
-          `Processing genre route "${match.name}" for genre "${match.genre}"`,
-        )
-        const radarrService = this.radarrServices.get(match.radarrInstanceId)
-        if (!radarrService) {
-          this.log.warn(
-            `Radarr service ${match.radarrInstanceId} not found for genre route "${match.name}"`,
-          )
-          continue
-        }
-
-        const radarrItem = this.prepareRadarrItem(item)
-
-        try {
-          await radarrService.addToRadarr(
-            radarrItem,
-            match.rootFolder,
-            match.qualityProfile,
-          )
-          await this.fastify.db.updateWatchlistItem(key, {
-            radarr_instance_id: match.radarrInstanceId,
-          })
-          this.log.info(
-            `Successfully routed item to genre-specific instance ${match.radarrInstanceId} using route "${match.name}"`,
-          )
-        } catch (error) {
-          this.log.error(
-            `Failed to add item to genre-specific instance ${match.radarrInstanceId} using route "${match.name}":`,
-            error,
-          )
-        }
-      }
-    } else {
-      const defaultInstance = await this.fastify.db.getDefaultRadarrInstance()
-      if (!defaultInstance) {
-        throw new Error('No default Radarr instance configured')
+    try {
+      const instance = await this.fastify.db.getRadarrInstance(instanceId)
+      if (!instance) {
+        throw new Error(`Radarr instance ${instanceId} not found`)
       }
 
-      const syncedInstanceIds = new Set([
-        defaultInstance.id,
-        ...(defaultInstance.syncedInstances || []),
-      ])
+      // Use the provided parameters if available, otherwise fall back to instance defaults
+      const targetRootFolder = rootFolder || instance.rootFolder || undefined
+      let targetQualityProfileId: number | undefined = undefined
 
-      const syncedInstances = instances.filter((instance) =>
-        syncedInstanceIds.has(instance.id),
+      if (qualityProfile !== undefined) {
+        if (typeof qualityProfile === 'number') {
+          targetQualityProfileId = qualityProfile
+        } else if (
+          typeof qualityProfile === 'string' &&
+          /^\d+$/.test(qualityProfile)
+        ) {
+          targetQualityProfileId = Number(qualityProfile)
+        }
+      } else if (instance.qualityProfile !== null) {
+        if (typeof instance.qualityProfile === 'number') {
+          targetQualityProfileId = instance.qualityProfile
+        } else if (
+          typeof instance.qualityProfile === 'string' &&
+          /^\d+$/.test(instance.qualityProfile)
+        ) {
+          targetQualityProfileId = Number(instance.qualityProfile)
+        }
+      }
+
+      await radarrService.addToRadarr(
+        radarrItem,
+        targetRootFolder,
+        targetQualityProfileId,
       )
 
-      const targetInstances =
-        syncedInstances.length > 0 ? syncedInstances : [defaultInstance]
+      await this.fastify.db.updateWatchlistItem(key, {
+        radarr_instance_id: instanceId,
+        syncing: syncing,
+      })
 
-      for (const instance of targetInstances) {
-        const radarrService = this.radarrServices.get(instance.id)
-        if (!radarrService) {
-          this.log.warn(`Radarr service ${instance.id} not found`)
-          continue
-        }
-
-        const radarrItem = this.prepareRadarrItem(item)
-
-        try {
-          const matchingRoute = genreRoutes.find(
-            (route) =>
-              route.radarrInstanceId === instance.id &&
-              itemGenres.has(route.genre),
-          )
-
-          if (matchingRoute) {
-            this.log.info(
-              `Using genre route "${matchingRoute.name}" for default instance routing`,
-            )
-          }
-
-          const targetRootFolder =
-            matchingRoute?.rootFolder || instance.rootFolder
-          let targetQualityProfileId: number | undefined = undefined
-
-          const isNumericQualityProfile = (
-            value: string | number | null,
-          ): value is number => {
-            if (value === null) return false
-            if (typeof value === 'number') return true
-            return /^\d+$/.test(value)
-          }
-
-          if (matchingRoute?.qualityProfile) {
-            if (isNumericQualityProfile(matchingRoute.qualityProfile)) {
-              targetQualityProfileId = Number(matchingRoute.qualityProfile)
-            }
-          } else if (instance.qualityProfile) {
-            if (isNumericQualityProfile(instance.qualityProfile)) {
-              targetQualityProfileId = Number(instance.qualityProfile)
-            }
-          }
-
-          await radarrService.addToRadarr(
-            radarrItem,
-            targetRootFolder || undefined,
-            targetQualityProfileId,
-          )
-
-          await this.fastify.db.updateWatchlistItem(key, {
-            radarr_instance_id: instance.id,
-          })
-          this.log.info(
-            `Successfully routed item to instance ${instance.id} with quality profile ${targetQualityProfileId ?? 'default'}`,
-          )
-        } catch (error) {
-          this.log.error(
-            `Failed to add item to instance ${instance.id}:`,
-            error,
-          )
-        }
-      }
+      this.log.info(
+        `Successfully routed item to instance ${instanceId} with quality profile ${targetQualityProfileId ?? 'default'}`,
+      )
+    } catch (error) {
+      this.log.error(`Failed to add item to instance ${instanceId}:`, error)
+      throw error
     }
   }
 
@@ -414,30 +279,6 @@ export class RadarrManagerService {
       await radarrService.initialize(instance)
       this.radarrServices.set(id, radarrService)
     }
-  }
-
-  async addGenreRoute(
-    route: Omit<RadarrGenreRoute, 'id'>,
-  ): Promise<RadarrGenreRoute> {
-    this.log.info(
-      `Adding new genre route "${route.name}" for genre "${route.genre}"`,
-    )
-    return this.fastify.db.createRadarrGenreRoute(route)
-  }
-
-  async removeGenreRoute(id: number): Promise<void> {
-    this.log.info(`Removing genre route ${id}`)
-    await this.fastify.db.deleteRadarrGenreRoute(id)
-  }
-
-  async updateGenreRoute(
-    id: number,
-    updates: Partial<RadarrGenreRoute>,
-  ): Promise<void> {
-    this.log.info(
-      `Updating genre route ${id}${updates.name ? ` to name "${updates.name}"` : ''}`,
-    )
-    await this.fastify.db.updateRadarrGenreRoute(id, updates)
   }
 
   async getRadarrInstance(id: number): Promise<RadarrInstance | null> {
