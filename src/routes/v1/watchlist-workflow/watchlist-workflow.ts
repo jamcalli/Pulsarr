@@ -38,9 +38,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         try {
           // Start the workflow
-          fastify.watchlistWorkflow.startWorkflow().catch((err) => {
-            fastify.log.error('Error in background workflow startup:', err)
-          })
+          await fastify.watchlistWorkflow.startWorkflow()
 
           // Check if autoStart parameter is provided and is true
           if (request.body?.autoStart === true) {
@@ -82,6 +80,15 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           }
           return response
         } catch (startErr) {
+          // This is where we need to check if it's a real error or just RSS fallback
+          if (fastify.watchlistWorkflow.getStatus() === 'running') {
+            const response: z.infer<typeof WatchlistWorkflowResponseSchema> = {
+              success: true,
+              status: 'starting',
+              message: 'Watchlist workflow is starting in manual sync mode',
+            }
+            return response
+          }
           return reply.internalServerError('Failed to start Watchlist workflow')
         }
       } catch (err) {

@@ -264,11 +264,16 @@ export default function PlexConnectionSection() {
                   <FormLabel className="text-text text-sm">Self Feed</FormLabel>
                   <FormControl>
                     <Input
-                      value={config?.selfRss || ''}
+                      value={
+                        config?.selfRss
+                          ? config.selfRss
+                          : 'RSS feeds are unavailable. This feature requires Plex Pass.'
+                      }
                       placeholder="Generate RSS feeds to view URL"
                       type="text"
                       readOnly
-                      className="w-full"
+                      disabled={!config?.selfRss}
+                      className={`w-full ${!config?.selfRss ? 'cursor-not-allowed' : ''}`}
                     />
                   </FormControl>
                 </FormItem>
@@ -279,11 +284,16 @@ export default function PlexConnectionSection() {
                   </FormLabel>
                   <FormControl>
                     <Input
-                      value={config?.friendsRss || ''}
+                      value={
+                        config?.friendsRss
+                          ? config.friendsRss
+                          : 'RSS feeds are unavailable. This feature requires Plex Pass.'
+                      }
                       placeholder="Generate RSS feeds to view URL"
                       type="text"
                       readOnly
-                      className="w-full"
+                      disabled={!config?.friendsRss}
+                      className={`w-full ${!config?.friendsRss ? 'cursor-not-allowed' : ''}`}
                     />
                   </FormControl>
                 </FormItem>
