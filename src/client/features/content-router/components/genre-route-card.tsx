@@ -6,6 +6,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import GenreMultiSelect from '@/components/ui/genre-multi-select'
 import { cn } from '@/lib/utils'
 import {
   Form,
@@ -266,26 +267,9 @@ const GenreRouteCard = ({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-text">Genre</FormLabel>
-                        <Select
-                          value={field.value || ''}
-                          onValueChange={field.onChange}
-                          onOpenChange={(open) => {
-                            if (open) onGenreDropdownOpen()
-                          }}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select genre" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {genres.map((genre) => (
-                              <SelectItem key={genre} value={genre}>
-                                {genre}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <FormControl>
+                          <GenreMultiSelect field={field} genres={genres} />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}

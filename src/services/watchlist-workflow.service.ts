@@ -525,13 +525,12 @@ export class WatchlistWorkflowService {
   ): Promise<void> {
     let hasNewItems = false
 
-    // Check if any users have sync disabled
-    const hasUsersWithSyncDisabled =
-      await this.dbService.hasUsersWithSyncDisabled()
+    // Check if processing should be deferred (includes both sync disabled and user routing rules)
+    const shouldDefer = await this.shouldDeferProcessing()
 
-    if (hasUsersWithSyncDisabled) {
+    if (shouldDefer) {
       this.log.info(
-        'Some users have sync disabled - deferring item processing to reconciliation phase',
+        'Deferring item processing to reconciliation phase due to sync settings or user routing rules',
       )
     }
 
@@ -541,8 +540,8 @@ export class WatchlistWorkflowService {
         this.changeQueue.add(item)
         hasNewItems = true
 
-        // Only process immediately if all users have sync enabled
-        if (!hasUsersWithSyncDisabled) {
+        // Only process immediately if we don't need to defer
+        if (!shouldDefer) {
           if (item.type.toLowerCase() === 'show') {
             this.log.info(`Processing show ${item.title} immediately`)
             const normalizedItem = {
@@ -1107,26 +1106,23 @@ export class WatchlistWorkflowService {
         try {
           const queueSize = this.changeQueue.size
           this.log.info(
-            'Queue process delay reached, checking sync requirements',
+            'Queue process delay reached, checking processing requirements',
           )
           this.changeQueue.clear()
 
-          // Check if any users have sync disabled
-          const hasUsersWithSyncDisabled =
-            await this.dbService.hasUsersWithSyncDisabled()
+          // Check if we need to defer processing
+          const shouldDefer = await this.shouldDeferProcessing()
 
-          if (hasUsersWithSyncDisabled) {
+          if (shouldDefer) {
             this.log.info(
-              'Some users have sync disabled - performing full sync reconciliation',
+              'Performing full sync reconciliation due to sync settings or user routing rules',
             )
             // First refresh the watchlists
             await this.fetchWatchlists()
             // Then run full sync check
             await this.syncWatchlistItems()
           } else {
-            this.log.info(
-              'All users have sync enabled - performing standard watchlist refresh',
-            )
+            this.log.info('Performing standard watchlist refresh')
             await this.fetchWatchlists()
           }
 
@@ -1145,5 +1141,22 @@ export class WatchlistWorkflowService {
         }
       }
     }, 10000) // Check every 10 seconds
+  }
+
+  /**
+   * Checks if processing should be deferred to reconciliation phase
+   *
+   * @returns Promise<boolean> True if processing should be deferred
+   */
+  private async shouldDeferProcessing(): Promise<boolean> {
+    // Check if any users have sync disabled
+    const hasUsersWithSyncDisabled =
+      await this.dbService.hasUsersWithSyncDisabled()
+
+    // Check if any user routing rules exist
+    const userRoutingRules = await this.fastify.db.getRouterRulesByType('user')
+    const hasUserRoutingRules = userRoutingRules.length > 0
+
+    return hasUsersWithSyncDisabled || hasUserRoutingRules
   }
 }

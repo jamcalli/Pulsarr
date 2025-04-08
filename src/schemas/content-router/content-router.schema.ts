@@ -1,6 +1,17 @@
 import { z } from 'zod'
 
-// Define schema for CriteriaValue (matching your existing type definition)
+// Define UserCriteria schema
+export const UserCriteriaSchema = z.object({
+  ids: z.union([z.number(), z.array(z.number())]).optional(),
+  names: z.union([z.string(), z.array(z.string())]).optional(),
+})
+
+// Define GenreCriteria schema
+export const GenreCriteriaSchema = z.object({
+  genre: z.union([z.string(), z.array(z.string())])
+})
+
+// Define schema for CriteriaValue
 export const CriteriaValueSchema = z.union([
   z.string(),
   z.number(),
@@ -11,6 +22,8 @@ export const CriteriaValueSchema = z.union([
     min: z.number().optional(),
     max: z.number().optional(),
   }),
+  UserCriteriaSchema,
+  GenreCriteriaSchema,
   z.null(),
 ])
 
