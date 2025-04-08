@@ -8,12 +8,14 @@ import type {
 } from '@root/types/router.types.js'
 
 /**
- * Determines whether a given value qualifies as a UserCriteria object.
+ * Determines whether the given value conforms to the UserCriteria structure.
  *
- * This type guard verifies that the value is a non-null object and contains at least one of the properties `ids` or `names`. If present, the property `ids` must be either a number or an array of numbers, and the property `names` must be either a string or an array of strings.
+ * This type guard validates that the input is a non-null object containing at least one of the
+ * properties `ids` or `names`. If the `ids` property is present, it must be either a number or an array
+ * of numbers. Similarly, if the `names` property is present, it must be a string or an array of strings.
  *
- * @param value - The value to test for a valid UserCriteria structure.
- * @returns True if the value satisfies the UserCriteria requirements, false otherwise.
+ * @param value - The value to validate as a UserCriteria.
+ * @returns True if the value satisfies the UserCriteria structure, false otherwise.
  */
 function isUserCriteria(value: unknown): value is UserCriteria {
   if (!value || typeof value !== 'object') return false

@@ -8,14 +8,14 @@ import type {
 } from '@root/types/router.types.js'
 
 /**
- * Determines whether the given value conforms to the GenreCriteria interface.
+ * Checks if the provided value adheres to the GenreCriteria structure.
  *
- * This type guard verifies that the value is a non-null object containing a
- * "genre" property. The "genre" property must be either a string or an array
- * in which every element is a string.
+ * This type guard verifies that the input is a non-null object containing a "genre" property.
+ * The "genre" property must be either a string or an array solely composed of strings.
+ * It returns true if the value meets these criteria, enabling type narrowing in TypeScript.
  *
- * @param value - The value to validate.
- * @returns True if the value is a valid GenreCriteria object; otherwise, false.
+ * @param value - The value to evaluate.
+ * @returns True if the value conforms to GenreCriteria; otherwise, false.
  */
 function isGenreCriteria(value: unknown): value is GenreCriteria {
   if (!value || typeof value !== 'object') return false
