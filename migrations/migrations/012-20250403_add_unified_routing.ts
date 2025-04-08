@@ -1,12 +1,12 @@
 import type { Knex } from 'knex'
 
 /**
- * Creates the unified `router_rules` table and migrates genre routing data from legacy tables.
+ * Creates the unified router_rules table, sets up cascading delete triggers, and migrates genre routing data.
  *
- * This migration function sets up a new table to store routing rules for various plugin types by defining
- * the necessary columns and indexes. It then moves existing routes from the `sonarr_genre_routing` and
- * `radarr_genre_routing` tables into `router_rules`, converting the genre information into a JSON structure
- * within the `criteria` column. After successfully migrating the data, the function drops the old routing tables.
+ * This asynchronous migration function creates the new router_rules table with the required columns and indexes to store
+ * routing rules for multiple plugin types. It also defines triggers to cascade deletions from sonarr and radarr instances.
+ * The function migrates genre routing entries from the legacy sonarr_genre_routing and radarr_genre_routing tables—converting
+ * genre data into a JSON structure in the criteria column—and then drops the old tables.
  */
 export async function up(knex: Knex): Promise<void> {
   // Create the router_rules table

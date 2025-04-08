@@ -3,16 +3,16 @@ import { useRadarrStore } from '@/features/radarr/store/radarrStore'
 import { useContentRouter } from '@/features/content-router/hooks/useContentRouter'
 
 /**
- * Custom hook that integrates Radarr store state with Radarr-specific content router functionalities.
+ * Custom hook that integrates the Radarr store state with a Radarr-specific content router.
  *
- * This hook retrieves Radarr instances and genres from the store, sets up a content router configured for Radarr,
- * and provides a memoized asynchronous function to fetch routing rules. It also returns a handler to trigger fetching genres.
+ * Retrieves Radarr instances and genres from the store, initializes a content router with the target type "radarr",
+ * and provides a memoized asynchronous function to fetch routing rules. Also exposes a handler to trigger genre fetching.
  *
- * @returns An object that spreads content router methods and includes:
+ * @returns An object combining content router methods with:
  *  - fetchRules: An async function that retrieves routing rules.
  *  - instances: The Radarr instances from the store.
  *  - genres: The genre data from the store.
- *  - handleGenreDropdownOpen: A function to initiate fetching genres.
+ *  - handleGenreDropdownOpen: A callback to initiate genre fetching.
  */
 export function useRadarrContentRouterAdapter() {
   const instances = useRadarrStore((state) => state.instances)
