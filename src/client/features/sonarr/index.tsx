@@ -7,13 +7,12 @@ import InstanceCardSkeleton from '@/features/sonarr/components/instance/sonarr-c
 import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
 
 /**
- * Renders the Sonarr configuration page for managing Sonarr instances and their associated genres.
+ * Renders the configuration page for managing Sonarr instances.
  *
- * This component initializes itself using the Sonarr store, conditionally rendering different UI states based on
- * whether instances are loading, if only a placeholder instance exists, or if real instances are present. It also provides
- * functionality for adding a new instance and fetching genre data asynchronously when the genre dropdown is opened.
- *
- * @returns A React element representing the Sonarr configuration interface, or null if the component hasn't been initialized.
+ * The component fetches state from the Sonarr store and triggers initialization on first mount.
+ * It conditionally displays either a loading skeleton, a prompt to add the first instance, or a list of existing instance cards.
+ * Additionally, it incorporates a ContentRouterSection that handles routing and displays genre information,
+ * with genre data being fetched asynchronously when the dropdown is opened.
  */
 export default function SonarrConfigPage() {
   const instances = useSonarrStore((state) => state.instances)

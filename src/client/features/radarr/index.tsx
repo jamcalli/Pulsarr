@@ -7,13 +7,11 @@ import InstanceCardSkeleton from '@/features/radarr/components/instance/radarr-c
 import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
 
 /**
- * Renders the Radarr configuration page.
+ * Renders the configuration page for managing Radarr instances.
  *
- * This component manages the configuration and display of Radarr instances by retrieving data such as instances
- * and genres from a global store. It ensures initialization occurs on the first render and lazily fetches genre
- * data when the associated dropdown is opened. Depending on the loading state and the presence of real or placeholder
- * instances, it conditionally displays a loading skeleton, an instance list with options to add new instances, or a prompt
- * to configure the first Radarr instance.
+ * This component integrates with the Radarr store to initialize state, manage instance and genre data, and conditionally render the UI based on the current state. It initializes the store once, fetches genres asynchronously when needed, and displays either a loading skeleton, a prompt to add an instance, or a list of configured instances (including an option to add a new one).
+ *
+ * If the store is not fully initialized, the component returns null.
  */
 export default function RadarrConfigPage() {
   // Get these from the store

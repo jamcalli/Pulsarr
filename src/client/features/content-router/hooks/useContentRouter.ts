@@ -12,22 +12,20 @@ export interface UseContentRouterParams {
 }
 
 /**
- * Custom React hook to manage content routing rules.
+ * Custom React hook to manage content routing rules for a specific target.
  *
- * This hook handles state and operations for content routing rules based on a specific target type
- * (e.g. "radarr" or "sonarr"). It manages the fetching, creation, updating, deletion, and toggling
- * of rules, while maintaining loading and error states and providing user feedback via toast notifications.
+ * This hook maintains state for routing rules, loading status, and errors. It provides functions to fetch, create, update, delete, and toggle routing rules through backend API calls, using toast notifications for user feedback.
  *
- * @param targetType - The target for which to manage routing rules.
+ * @param targetType - Specifies the target content router (e.g., "radarr" or "sonarr") for which rules are managed.
  * @returns An object containing:
  *  - rules: The current list of routing rules.
  *  - isLoading: A flag indicating if an operation is in progress.
- *  - error: An error message, if any operation fails.
- *  - fetchRules: Function to retrieve all routing rules.
- *  - createRule: Function to create a new routing rule.
- *  - updateRule: Function to update an existing routing rule.
- *  - deleteRule: Function to delete a routing rule.
- *  - toggleRule: Function to toggle the enabled state of a routing rule.
+ *  - error: An error message if an operation fails.
+ *  - fetchRules: Function to retrieve routing rules.
+ *  - createRule: Function to add a new routing rule.
+ *  - updateRule: Function to modify an existing routing rule.
+ *  - deleteRule: Function to remove a routing rule.
+ *  - toggleRule: Function to enable or disable a routing rule.
  */
 export function useContentRouter({ targetType }: UseContentRouterParams) {
   const { toast } = useToast()

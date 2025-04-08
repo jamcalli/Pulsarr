@@ -13,18 +13,19 @@ import {
 } from '@root/types/content-lookup.types.js'
 
 /**
- * Determines whether a given year satisfies the specified criteria.
+ * Evaluates if a given year satisfies the specified criteria.
  *
  * The criteria can be one of the following:
- * - A single number, where the year must exactly match.
- * - An array of numbers, where the year must be one of the provided values.
- * - An object with optional `min` and `max` properties, where the year must be within the inclusive range.
+ * - A number: the year must exactly match the criteria.
+ * - An array of numbers: the year is valid if it is included in the array.
+ * - An object with optional `min` and/or `max` properties: the year is valid if it falls within the range.
+ *   Missing values default to open-ended bounds (negative infinity for `min`, positive infinity for `max`).
  *
- * Returns false if the criteria are not in a recognized format.
+ * Returns false if the criteria does not match any expected format.
  *
  * @param year - The year to evaluate.
- * @param criteria - The criteria to compare against, either as a number, number array, or an object with range boundaries.
- * @returns True if the year meets the criteria, false otherwise.
+ * @param criteria - The criteria against which to evaluate the year. It may be a number, an array of numbers, or an object with optional `min` and/or `max` properties.
+ * @returns True if the year meets the criteria; otherwise, false.
  */
 function processYearCriteria(year: number, criteria: CriteriaValue): boolean {
   // Handle single number
@@ -64,19 +65,17 @@ function processYearCriteria(year: number, criteria: CriteriaValue): boolean {
 }
 
 /**
- * Creates a Fastify plugin for routing content based on release year.
+ * Creates a router plugin that routes content based on its release year.
  *
- * The plugin defines an asynchronous evaluation method that:
- * - Retrieves year-based routing rules from the database.
- * - Determines the content type (movie or TV show) and extracts the corresponding ID from
- *   the content item's GUIDs.
- * - Looks up the release year using the appropriate external service (Radarr for movies, Sonarr for TV shows).
- * - Filters rules based on the release year and converts matching rules into routing decision objects.
- * 
- * The plugin is pre-configured with metadata such as name, description, and order, and it returns
- * routing decisions as an array if valid rules are found; otherwise, it returns null.
+ * The plugin retrieves year-based routing rules from the database and evaluates a content item by:
+ * - Extracting a unique identifier (TMDB for movies, TVDB for TV shows) from the item's GUIDs.
+ * - Fetching the release year using a Radarr service for movies or a Sonarr service for TV shows.
+ * - Filtering the routing rules based on whether the content's release year matches the rule criteria.
  *
- * @returns A RouterPlugin object with an asynchronous routing evaluation method.
+ * If no applicable rules are found or if the identifier or release year cannot be determined, the evaluation returns null.
+ *
+ * @remarks
+ * The provided Fastify instance must be configured with the necessary database, Radarr, and Sonarr services.
  */
 export default function createYearRouterPlugin(
   fastify: FastifyInstance,

@@ -13,14 +13,14 @@ import {
 } from '@root/types/content-lookup.types.js'
 
 /**
- * Extracts the original language name from a Radarr or Sonarr lookup response.
+ * Extracts the original language name from a Radarr or Sonarr API response.
  *
- * This helper handles responses that may be a single object or an array of objects. If an array is provided, the first element is used.
- * The function validates that the response conforms to the expected structure and checks for the existence of an original language name.
- * It returns the language name if present; otherwise, it returns undefined.
+ * The response may be a single lookup result or an array of results. This function checks whether the provided response
+ * contains an object with a valid `originalLanguage.name` property. If found, it returns the language name; otherwise,
+ * it returns undefined.
  *
- * @param response - The API response containing language details, either as a single lookup response, an array of responses, or an unknown type.
- * @returns The original language name if found; otherwise, undefined.
+ * @param response - A lookup response, an array of lookup responses, or any other type.
+ * @returns The extracted language name, or undefined if the language cannot be determined.
  */
 function extractLanguageName(
   response:
@@ -64,15 +64,18 @@ function extractLanguageName(
 }
 
 /**
- * Creates a Fastify router plugin for routing content based on its original language.
+ * Creates a Fastify plugin to route content based on its original language.
  *
- * The returned plugin includes metadata (name, description, enabled status, and execution order) and an
- * asynchronous evaluateRouting method. This method retrieves language-based routing rules, extracts a valid
- * identifier from the content item's GUIDs, and uses a lookup service (Radarr for movies, Sonarr for series)
- * to determine the item's original language. It then filters the routing rules by matching the original language
- * (using a case-insensitive comparison) and returns a list of routing decisions or null if no applicable rules are found.
+ * The plugin provides an asynchronous method that:
+ * - Retrieves language-based routing rules from the database.
+ * - Determines the content identifier from the item's GUIDs.
+ * - Uses the appropriate lookup service (Radarr for movies, Sonarr for series) to fetch language details.
+ * - Safely extracts the original language name from the API response.
+ * - Filters and converts matching rules into routing decisions.
  *
- * @returns A RouterPlugin object implementing language-based routing logic.
+ * If the ID extraction fails, a lookup service is unavailable, the language cannot be determined, or no matching rules exist, the evaluation method logs a warning and returns null.
+ *
+ * @returns A router plugin object containing metadata and an evaluation method for language-based routing.
  */
 export default function createLanguageRouterPlugin(
   fastify: FastifyInstance,

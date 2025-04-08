@@ -19,19 +19,15 @@ interface DeleteRouteAlertProps {
 }
 
 /**
- * Renders a confirmation dialog for deleting a route.
+ * Renders a confirmation dialog to delete a specific route.
  *
- * This component displays a modal alert that asks the user to confirm the deletion of a specified route,
- * with the text dynamically reflecting the provided route type and name. It offers options to cancel or
- * proceed with the deletion.
+ * The alert displays a title and descriptive message incorporating the route type and name, warning that deletion is irreversible. It offers options to cancel (which updates the alert's visibility) or confirm the deletion.
  *
- * @param open - Indicates whether the alert is visible.
- * @param onOpenChange - Callback to update the dialog's visibility.
- * @param onConfirm - Function executed when the user confirms deletion; typically returns a Promise.
+ * @param open - Controls whether the alert is visible.
+ * @param onOpenChange - Callback to update the alert's open state.
+ * @param onConfirm - Callback invoked when the deletion is confirmed.
  * @param routeName - The name of the route to be deleted.
- * @param routeType - The type of the route, defaults to "routing rule".
- *
- * @returns A JSX element representing the deletion confirmation dialog.
+ * @param routeType - The type of the route; defaults to "routing rule".
  */
 export function DeleteRouteAlert({
   open,

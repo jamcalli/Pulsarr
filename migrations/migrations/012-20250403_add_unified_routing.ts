@@ -1,12 +1,12 @@
 import type { Knex } from 'knex'
 
 /**
- * Creates the unified `router_rules` table and migrates genre routing data from legacy tables.
+ * Migrates legacy genre routing data into a unified routing system.
  *
- * This migration function sets up a new table to store routing rules for various plugin types by defining
- * the necessary columns and indexes. It then moves existing routes from the `sonarr_genre_routing` and
- * `radarr_genre_routing` tables into `router_rules`, converting the genre information into a JSON structure
- * within the `criteria` column. After successfully migrating the data, the function drops the old routing tables.
+ * This function creates a new `router_rules` table designed to consolidate routes from both the
+ * `sonarr_genre_routing` and `radarr_genre_routing` tables. It maps existing genre routing values,
+ * including wrapping genre data in a JSON structure, sets default priorities and statuses,
+ * and then drops the legacy routing tables.
  */
 export async function up(knex: Knex): Promise<void> {
   // Create the router_rules table
@@ -75,11 +75,12 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Reverts the unified routing migration by restoring the original genre routing tables.
+ * Rolls back the unified routing migration.
  *
- * This function recreates the `sonarr_genre_routing` and `radarr_genre_routing` tables with their original schema and
- * constraints, migrates genre routing data from the unified `router_rules` table back into these tables based on the target type,
- * and finally drops the `router_rules` table.
+ * This function reverts the changes made by the unified routing migration by:
+ * - Recreating the original 'sonarr_genre_routing' and 'radarr_genre_routing' tables with their columns, constraints, and indexes.
+ * - Migrating data from the unified 'router_rules' table back into the genre-specific tables based on the target system (Sonarr or Radarr). It parses the JSON in the 'criteria' field to extract the genre.
+ * - Dropping the 'router_rules' table.
  */
 export async function down(knex: Knex): Promise<void> {
   // First recreate the original genre routing tables

@@ -240,13 +240,13 @@ export interface SonarrSeriesLookupResponse {
 export type ApiResponse = unknown
 
 /**
- * Determines if the provided API response is from Radarr.
+ * Determines whether the specified API response is a Radarr movie lookup response.
  *
- * This type guard checks that the response is a non-null object containing a "tmdbId" property and lacking a "tvdbId" property,
- * indicating that it represents a Radarr movie lookup response.
+ * This type guard verifies that the response is a non-null object containing a 'tmdbId' property 
+ * while not including a 'tvdbId' property, distinguishing it from a Sonarr response.
  *
- * @param response - The API response to check.
- * @returns True if the response is identified as a Radarr API response, false otherwise.
+ * @param response - The API response to evaluate.
+ * @returns True if the response conforms to Radarr response structure, false otherwise.
  */
 export function isRadarrResponse(
   response: ApiResponse,
@@ -261,13 +261,13 @@ export function isRadarrResponse(
 }
 
 /**
- * Checks if the provided API response is a Sonarr series lookup response.
+ * Determines whether the provided API response is a Sonarr response.
  *
- * This type guard verifies that the response is a non-null object containing the `tvdbId` property,
- * which identifies it as a valid Sonarr response.
+ * This type guard confirms the response is a non-null object with a 'tvdbId' property,
+ * which indicates that it complies with the SonarrSeriesLookupResponse structure.
  *
- * @param response - The API response object to evaluate.
- * @returns True if the response is recognized as a Sonarr series lookup response, otherwise false.
+ * @param response - The API response to evaluate.
+ * @returns True if the response is identified as a Sonarr response; otherwise, false.
  */
 export function isSonarrResponse(
   response: ApiResponse,
@@ -281,13 +281,13 @@ export function isSonarrResponse(
 }
 
 /**
- * Extracts the numeric year from an API response.
+ * Extracts the year from a Radarr or Sonarr API response.
  *
- * This function checks whether the input object includes a valid numeric "year" property.
- * It supports responses from Radarr, Sonarr, or any generic API response.
+ * This function checks if the provided response is a valid object that contains a numeric `year` property.
+ * If the `year` exists and is a number, it is returned; otherwise, the function returns undefined.
  *
- * @param response - The API response potentially containing a "year" field.
- * @returns The year as a number if present and valid; otherwise, undefined.
+ * @param response - The API response containing media metadata.
+ * @returns The value of the `year` property if it exists and is a number, otherwise undefined.
  */
 export function extractYear(
   response:
