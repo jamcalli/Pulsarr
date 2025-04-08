@@ -87,6 +87,13 @@ export default fp(
   },
 )
 
+/**
+ * Emits the current watchlist workflow status as a progress event.
+ *
+ * If there are active progress connections, this function retrieves the workflow status and determines the
+ * synchronization mode—using "manual" if an RSS fallback is enabled, or "rss" otherwise. It then emits a progress
+ * event with a unique operation ID, a status message, and metadata indicating the sync mode and RSS availability.
+ */
 function emitWatchlistWorkflowStatus(fastify: FastifyInstance) {
   if (!fastify.progress.hasActiveConnections()) {
     return

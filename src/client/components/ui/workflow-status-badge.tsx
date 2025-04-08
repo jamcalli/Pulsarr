@@ -10,6 +10,17 @@ import { Label } from '@/components/ui/label'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useConfigStore } from '@/stores/configStore'
 
+/**
+ * Renders a watchlist workflow status badge with interactive controls to manage the workflow.
+ *
+ * This component displays the current workflow status as a styled badge and a toggle button that starts or stops
+ * the workflow via API calls. It shows a loader during state transitions, updates the badge style accordingly, and
+ * displays toast notifications based on the success or failure of the action. When the workflow is running, the badge
+ * also shows the current synchronization mode ("Manual Sync" or "RSS"). An auto-start toggle is available when the
+ * workflow is stopped or beginning to start.
+ *
+ * @remark A minimum loading delay of 500ms is enforced to ensure smooth UI feedback during status transitions.
+ */
 export function WatchlistStatusBadge() {
   const { status, syncMode } = useWatchlistStatus()
   const { toast } = useToast()
