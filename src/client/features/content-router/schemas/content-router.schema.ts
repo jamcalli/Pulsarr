@@ -4,9 +4,10 @@ export const GenreRouteFormSchema = z.object({
   name: z.string().min(2, {
     message: 'Route name must be at least 2 characters.',
   }),
-  genre: z.string().min(1, {
-    message: 'Genre is required.',
-  }),
+  genre: z.union([
+    z.string().min(1, { message: 'Genre is required.' }),
+    z.array(z.string().min(1, { message: 'Each genre must not be empty.' })),
+  ]),
   target_instance_id: z.number().positive({
     message: 'Instance selection is required.',
   }),
@@ -113,3 +114,30 @@ export const LanguageRouteFormSchema = z.object({
 })
 
 export type LanguageRouteFormValues = z.infer<typeof LanguageRouteFormSchema>
+
+export const UserCriteriaFormSchema = z.object({
+  ids: z
+    .union([z.number().positive(), z.array(z.number().positive())])
+    .optional(),
+  names: z.union([z.string().min(1), z.array(z.string().min(1))]).optional(),
+})
+
+export const UserRouteFormSchema = z.object({
+  name: z.string().min(2, {
+    message: 'Route name must be at least 2 characters.',
+  }),
+  target_instance_id: z.number().min(1, {
+    message: 'Instance selection is required.',
+  }),
+  root_folder: z.string().min(1, {
+    message: 'Root folder is required.',
+  }),
+  quality_profile: z.string().min(1, {
+    message: 'Quality Profile is required',
+  }),
+  enabled: z.boolean().default(true),
+  userCriteria: UserCriteriaFormSchema,
+  order: z.number().int().min(1).max(100).default(50),
+})
+
+export type UserRouteFormValues = z.infer<typeof UserRouteFormSchema>

@@ -4,7 +4,22 @@ import type {
   RouterPlugin,
   RoutingContext,
   RoutingDecision,
+  GenreCriteria,
 } from '@root/types/router.types.js'
+
+/**
+ * Type guard to check if a value is a GenreCriteria object
+ */
+function isGenreCriteria(value: unknown): value is GenreCriteria {
+  if (!value || typeof value !== 'object') return false
+  const criteria = value as GenreCriteria
+  return (
+    'genre' in criteria &&
+    (typeof criteria.genre === 'string' ||
+      (Array.isArray(criteria.genre) &&
+        criteria.genre.every((g) => typeof g === 'string')))
+  )
+}
 
 /**
  * Creates a router plugin for genre-based content routing.
@@ -49,24 +64,23 @@ export default function createGenreRouterPlugin(
         (rule) => rule.target_type === (isMovie ? 'radarr' : 'sonarr'),
       )
 
-      const itemGenres = new Set(
-        Array.isArray(item.genres)
-          ? item.genres
-          : typeof item.genres === 'string'
-            ? [item.genres]
-            : [],
-      )
+      const itemGenres = new Set(item.genres)
 
       // Find matching genre routes
       const matchingRules = contentTypeRules.filter((rule) => {
-        const genreValue = rule.criteria.genre
-
-        // Make sure the genre value is a string
-        if (typeof genreValue === 'string') {
-          return itemGenres.has(genreValue)
+        if (!isGenreCriteria(rule.criteria)) {
+          return false
         }
 
-        return false // Skip if genre is not a string
+        const genreValue = rule.criteria.genre
+
+        if (Array.isArray(genreValue)) {
+          // Match if any of the rule's genres match any of the item's genres
+          return genreValue.some((genre) => itemGenres.has(genre))
+        }
+
+        // Single genre match
+        return itemGenres.has(genreValue)
       })
 
       if (matchingRules.length === 0) {
@@ -74,14 +88,12 @@ export default function createGenreRouterPlugin(
       }
 
       // Convert to routing decisions
-      return matchingRules.map((rule) => {
-        return {
-          instanceId: rule.target_instance_id,
-          qualityProfile: rule.quality_profile,
-          rootFolder: rule.root_folder,
-          weight: rule.order,
-        }
-      })
+      return matchingRules.map((rule) => ({
+        instanceId: rule.target_instance_id,
+        qualityProfile: rule.quality_profile,
+        rootFolder: rule.root_folder,
+        weight: rule.order,
+      }))
     },
   }
 }

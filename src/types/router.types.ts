@@ -48,6 +48,15 @@ export interface RouterRule {
   updated_at: string
 }
 
+export interface UserCriteria {
+  ids?: number | number[]
+  names?: string | string[]
+}
+
+export interface GenreCriteria {
+  genre: string | string[]
+}
+
 export type CriteriaValue =
   | string
   | number
@@ -55,4 +64,6 @@ export type CriteriaValue =
   | string[]
   | number[]
   | { min?: number; max?: number }
+  | UserCriteria
+  | GenreCriteria
   | null
