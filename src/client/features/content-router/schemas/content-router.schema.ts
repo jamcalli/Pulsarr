@@ -17,6 +17,7 @@ export const GenreRouteFormSchema = z.object({
     message: 'Quality Profile is required',
   }),
   enabled: z.boolean().default(true),
+  order: z.number().int().min(1).max(100).default(50),
 })
 
 export type GenreRouteFormValues = z.infer<typeof GenreRouteFormSchema>
@@ -85,6 +86,7 @@ export const YearRouteFormSchema = z.object({
   }),
   enabled: z.boolean().default(true),
   yearCriteria: YearCriteriaFormSchema,
+  order: z.number().int().min(1).max(100).default(50),
 })
 
 export type YearRouteFormValues = z.infer<typeof YearRouteFormSchema>

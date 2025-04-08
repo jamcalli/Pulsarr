@@ -50,10 +50,18 @@ const ContentRouterSection = ({
 
   const [_showRouteCard, setShowRouteCard] = useState(false)
   const [showTypeModal, setShowTypeModal] = useState(false)
+  const [togglingRuleId, _setTogglingRuleId] = useState<number | null>(null)
   const [_selectedType, setSelectedType] = useState<RouteType | null>(null)
 
-  const { rules, isLoading, createRule, updateRule, deleteRule, fetchRules } =
-    contentRouter
+  const {
+    rules,
+    isLoading,
+    createRule,
+    updateRule,
+    deleteRule,
+    fetchRules,
+    toggleRule,
+  } = contentRouter
 
   // Local state to manage UI behavior
   const [localRules, setLocalRules] = useState<TempRule[]>([])
@@ -84,10 +92,27 @@ const ContentRouterSection = ({
   }
 
   const handleTypeSelect = (type: RouteType) => {
-    setSelectedType(type) // Store selected type
-    setShowRouteCard(true) // Keep showing card area
-    handleAddRule(type) // Add the rule of the selected type
+    setSelectedType(type)
+    setShowRouteCard(true)
+    handleAddRule(type)
   }
+
+  const handleToggleRuleEnabled = useCallback(
+    async (id: number, enabled: boolean) => {
+      try {
+        await toggleRule(id, enabled)
+      } catch (error) {
+        toast({
+          title: 'Error',
+          description: `Failed to ${enabled ? 'enable' : 'disable'} route. Please try again.`,
+          variant: 'destructive',
+        })
+
+        fetchRules().catch(console.error)
+      }
+    },
+    [toggleRule, toast, fetchRules],
+  )
 
   const handleAddRule = useCallback(
     (type: RouteType) => {
@@ -211,8 +236,10 @@ const ContentRouterSection = ({
       ? (rule as TempRule).tempId
       : (rule as ContentRouterRule).id
 
-    // Type assertion for clarity, though 'type' should exist on both
     const ruleType = (rule as ContentRouterRule | TempRule).type
+
+    const isToggling =
+      !isNew && togglingRuleId === (rule as ContentRouterRule).id
 
     switch (ruleType) {
       case 'genre':
@@ -249,6 +276,9 @@ const ContentRouterSection = ({
                 : () =>
                     setDeleteConfirmationRuleId((rule as ContentRouterRule).id)
             }
+            // Pass toggle handler and toggling state
+            onToggleEnabled={handleToggleRuleEnabled}
+            isTogglingState={isToggling}
             onGenreDropdownOpen={onGenreDropdownOpen}
             isSaving={!!savingRules[ruleId.toString()]} // Ensure key is string
             instances={instances}
@@ -290,6 +320,9 @@ const ContentRouterSection = ({
                 : () =>
                     setDeleteConfirmationRuleId((rule as ContentRouterRule).id)
             }
+            // Pass toggle handler and toggling state
+            onToggleEnabled={handleToggleRuleEnabled}
+            isTogglingState={isToggling}
             isSaving={!!savingRules[ruleId.toString()]} // Ensure key is string
             instances={instances}
             contentType={targetType}
@@ -311,8 +344,12 @@ const ContentRouterSection = ({
         contentType={targetType}
       />
 
-      {/* Loading State */}
-      {isLoading && !hasExistingRoutes && localRules.length === 0 ? (
+      {isLoading &&
+      rules.length === 0 &&
+      !localRules.length ? // Initially loading and don't know if there are rules
+      // Show nothing specific (just the container)
+      null : isLoading && hasExistingRoutes ? (
+        // Loading with existing rules - show skeletons
         <div className="grid gap-6">
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-bold text-text">
@@ -324,7 +361,8 @@ const ContentRouterSection = ({
             <ContentRouteCardSkeleton />
           </div>
         </div>
-      ) : !hasExistingRoutes && localRules.length === 0 /* Empty State */ ? (
+      ) : !hasExistingRoutes && localRules.length === 0 ? (
+        // Empty state - no rules
         <div className="grid gap-6">
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-bold text-text">
@@ -337,8 +375,9 @@ const ContentRouterSection = ({
               Add Your First Route
             </Button>
           </div>
-        </div> /* Routes Display */
+        </div>
       ) : (
+        // Display routes
         <>
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-bold text-text">
@@ -367,6 +406,7 @@ const ContentRouterSection = ({
           </div>
         </>
       )}
+
       {/* Delete Confirmation */}
       <DeleteRouteAlert
         open={deleteConfirmationRuleId !== null}

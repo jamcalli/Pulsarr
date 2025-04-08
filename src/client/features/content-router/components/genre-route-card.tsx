@@ -14,8 +14,9 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from '@/components/ui/form'
-import EditableCardHeader from '@/components/ui/editable-card-header'
+import { Slider } from '@/components/ui/slider'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect, useRef, useCallback } from 'react'
@@ -30,6 +31,7 @@ import type {
 } from '@root/schemas/content-router/content-router.schema'
 import type { RadarrInstance } from '@root/types/radarr.types'
 import type { SonarrInstance } from '@root/types/sonarr.types'
+import RouteCardHeader from '@/components/ui/route-card-header'
 
 interface GenreRouteCardProps {
   route: ContentRouterRule | Partial<ContentRouterRule>
@@ -37,7 +39,9 @@ interface GenreRouteCardProps {
   onCancel: () => void
   onSave: (data: ContentRouterRule | ContentRouterRuleUpdate) => Promise<void>
   onRemove?: () => void
+  onToggleEnabled?: (id: number, enabled: boolean) => Promise<void>
   isSaving: boolean
+  isTogglingState?: boolean
   onGenreDropdownOpen: () => Promise<void>
   instances: (RadarrInstance | SonarrInstance)[]
   genres: string[]
@@ -50,7 +54,9 @@ const GenreRouteCard = ({
   onCancel,
   onSave,
   onRemove,
+  onToggleEnabled,
   isSaving,
+  isTogglingState = false,
   onGenreDropdownOpen,
   instances = [],
   genres = [],
@@ -79,6 +85,7 @@ const GenreRouteCard = ({
       root_folder: route?.root_folder || '',
       quality_profile: route?.quality_profile?.toString() || '',
       enabled: route?.enabled !== false,
+      order: route?.order ?? 50,
     },
     mode: 'all',
   })
@@ -95,6 +102,7 @@ const GenreRouteCard = ({
       root_folder: route?.root_folder || '',
       quality_profile: route?.quality_profile?.toString() || '',
       enabled: route?.enabled !== false,
+      order: route?.order ?? 50,
     })
   }, [form, route, contentType, instances, getInitialGenre])
 
@@ -131,6 +139,12 @@ const GenreRouteCard = ({
     },
     [form],
   )
+
+  const handleToggleEnabled = async () => {
+    if (onToggleEnabled && route.id) {
+      await onToggleEnabled(route.id, !form.watch('enabled'))
+    }
+  }
 
   const handleInstanceChange = useCallback(
     (value: string) => {
@@ -170,7 +184,7 @@ const GenreRouteCard = ({
           : null,
         root_folder: data.root_folder,
         enabled: data.enabled,
-        order: route?.order ?? 50,
+        order: data.order,
       }
 
       if (isNew) {
@@ -193,7 +207,7 @@ const GenreRouteCard = ({
             : null,
           root_folder: data.root_folder,
           enabled: data.enabled,
-          order: route?.order ?? 50,
+          order: data.order,
         }
         await onSave(updatePayload)
       }
@@ -226,12 +240,17 @@ const GenreRouteCard = ({
       <Card className="bg-bg">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)}>
-            <EditableCardHeader
+            <RouteCardHeader
               title={form.watch('name')}
               isNew={isNew}
               isSaving={isSaving}
               isDirty={form.formState.isDirty}
               isValid={form.formState.isValid}
+              enabled={form.watch('enabled')}
+              isTogglingState={isTogglingState}
+              onToggleEnabled={
+                !isNew && route.id ? handleToggleEnabled : undefined
+              }
               onSave={form.handleSubmit(handleSubmit)}
               onCancel={handleCancel}
               onDelete={onRemove}
@@ -305,6 +324,38 @@ const GenreRouteCard = ({
                     )}
                   />
                 </div>
+
+                {/* Weight/Priority Slider */}
+                <FormField
+                  control={form.control}
+                  name="order"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="flex items-center justify-between">
+                        <FormLabel className="text-text">
+                          Priority Weight
+                        </FormLabel>
+                        <span className="text-sm text-text text-muted-foreground">
+                          {field.value}
+                        </span>
+                      </div>
+                      <FormControl>
+                        <Slider
+                          defaultValue={[field.value]}
+                          min={1}
+                          max={100}
+                          step={1}
+                          onValueChange={(vals) => field.onChange(vals[0])}
+                        />
+                      </FormControl>
+                      <FormDescription className="text-xs">
+                        Higher values give this route greater priority (1-100)
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
                 {/* Second Row */}
                 <div className="grid gap-4 md:grid-cols-2">
                   <FormField

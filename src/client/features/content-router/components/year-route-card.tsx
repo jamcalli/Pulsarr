@@ -15,8 +15,9 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from '@/components/ui/form'
-import EditableCardHeader from '@/components/ui/editable-card-header'
+import { Slider } from '@/components/ui/slider'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect, useRef, useCallback } from 'react'
@@ -33,6 +34,7 @@ import type {
 } from '@root/schemas/content-router/content-router.schema'
 import type { RadarrInstance } from '@root/types/radarr.types'
 import type { SonarrInstance } from '@root/types/sonarr.types'
+import RouteCardHeader from '@/components/ui/route-card-header'
 
 interface YearRouteCardProps {
   route: ContentRouterRule | Partial<ContentRouterRule>
@@ -40,7 +42,9 @@ interface YearRouteCardProps {
   onCancel: () => void
   onSave: (data: ContentRouterRule | ContentRouterRuleUpdate) => Promise<void>
   onRemove?: () => void
+  onToggleEnabled?: (id: number, enabled: boolean) => Promise<void>
   isSaving: boolean
+  isTogglingState?: boolean
   instances: (RadarrInstance | SonarrInstance)[]
   contentType: 'radarr' | 'sonarr'
 }
@@ -51,7 +55,9 @@ const YearRouteCard = ({
   onCancel,
   onSave,
   onRemove,
+  onToggleEnabled,
   isSaving,
+  isTogglingState = false,
   instances,
   contentType,
 }: YearRouteCardProps) => {
@@ -95,6 +101,7 @@ const YearRouteCard = ({
       quality_profile: route?.quality_profile?.toString() || '',
       enabled: route?.enabled !== false,
       yearCriteria: getInitialCriteria(),
+      order: route?.order ?? 50,
     },
     mode: 'all',
   })
@@ -107,6 +114,7 @@ const YearRouteCard = ({
       quality_profile: route?.quality_profile?.toString() || '',
       enabled: route?.enabled !== false,
       yearCriteria: getInitialCriteria(),
+      order: route?.order ?? 50,
     })
   }, [form, route, instances, getInitialCriteria])
 
@@ -164,6 +172,13 @@ const YearRouteCard = ({
   const selectedInstance = getSelectedInstance()
   const matchType = form.watch('yearCriteria.matchType')
 
+  // Add handler for toggle enabled
+  const handleToggleEnabled = async () => {
+    if (onToggleEnabled && route.id) {
+      await onToggleEnabled(route.id, !form.watch('enabled'))
+    }
+  }
+
   const handleSubmit = async (data: YearRouteFormValues) => {
     try {
       const yearCriteria = data.yearCriteria
@@ -213,7 +228,7 @@ const YearRouteCard = ({
           : null,
         root_folder: data.root_folder,
         enabled: data.enabled,
-        order: route?.order ?? 50,
+        order: data.order, // Include order in the data
       }
       if (isNew) {
         routeData.id = undefined
@@ -235,7 +250,7 @@ const YearRouteCard = ({
             : null,
           root_folder: data.root_folder,
           enabled: data.enabled,
-          order: route?.order ?? 50,
+          order: data.order, // Include order in the update payload
         }
         await onSave(updatePayload)
       }
@@ -263,12 +278,17 @@ const YearRouteCard = ({
       <Card className="bg-bg">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)}>
-            <EditableCardHeader
+            <RouteCardHeader
               title={form.watch('name')}
               isNew={isNew}
               isSaving={isSaving}
               isDirty={form.formState.isDirty}
               isValid={form.formState.isValid}
+              enabled={form.watch('enabled')}
+              isTogglingState={isTogglingState}
+              onToggleEnabled={
+                !isNew && route.id ? handleToggleEnabled : undefined
+              }
               onSave={form.handleSubmit(handleSubmit)}
               onCancel={onCancel}
               onDelete={onRemove}
@@ -446,6 +466,37 @@ const YearRouteCard = ({
                     />
                   )}
                 </div>
+
+                {/* Weight/Priority Slider */}
+                <FormField
+                  control={form.control}
+                  name="order"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="flex items-center justify-between">
+                        <FormLabel className="text-text">
+                          Priority Weight
+                        </FormLabel>
+                        <span className="text-sm text-text text-muted-foreground">
+                          {field.value}
+                        </span>
+                      </div>
+                      <FormControl>
+                        <Slider
+                          defaultValue={[field.value]}
+                          min={1}
+                          max={100}
+                          step={1}
+                          onValueChange={(vals) => field.onChange(vals[0])}
+                        />
+                      </FormControl>
+                      <FormDescription className="text-xs">
+                        Higher values give this route greater priority (1-100)
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 {/* Second Row - Instance Selection */}
                 <div className="grid gap-4 md:grid-cols-2">
