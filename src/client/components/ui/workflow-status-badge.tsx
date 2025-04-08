@@ -11,7 +11,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useConfigStore } from '@/stores/configStore'
 
 export function WatchlistStatusBadge() {
-  const status = useWatchlistStatus()
+  const { status, syncMode } = useWatchlistStatus()
   const { toast } = useToast()
   const [actionStatus, setActionStatus] = useState<'idle' | 'loading'>('idle')
   const [currentAction, setCurrentAction] = useState<'start' | 'stop' | null>(null)
@@ -97,9 +97,10 @@ export function WatchlistStatusBadge() {
           throw new Error(`Failed to start Watchlist workflow: ${response.status}`)
         }
         
+        const data = await response.json()
         const autoStartMsg = autoStart ? ' with auto-start enabled' : ''
         toast({
-          description: `Watchlist workflow has been started successfully${autoStartMsg}`,
+          description: `${data.message}${autoStartMsg}`,
           variant: 'default',
         })
       }
@@ -138,6 +139,11 @@ export function WatchlistStatusBadge() {
         className={cn('px-2 py-0.5 h-7 text-sm', getBadgeVariant())}
       >
         {status.charAt(0).toUpperCase() + status.slice(1)}
+        {status === 'running' && (
+          <span className="ml-1 text-xs opacity-75">
+            ({syncMode === 'manual' ? 'Manual Sync' : 'RSS'})
+          </span>
+        )}
       </Badge>
       
       <Button

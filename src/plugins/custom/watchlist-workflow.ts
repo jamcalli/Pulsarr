@@ -82,6 +82,7 @@ export default fp(
       'sync',
       'config',
       'progress',
+      'scheduler',
     ],
   },
 )
@@ -92,6 +93,9 @@ function emitWatchlistWorkflowStatus(fastify: FastifyInstance) {
   }
 
   const status = fastify.watchlistWorkflow.getStatus()
+  const syncMode = fastify.watchlistWorkflow.getIsUsingRssFallback()
+    ? 'manual'
+    : 'rss'
   const operationId = `watchlist-workflow-status-${Date.now()}`
 
   fastify.progress.emit({
@@ -100,5 +104,9 @@ function emitWatchlistWorkflowStatus(fastify: FastifyInstance) {
     phase: 'info',
     progress: 100,
     message: `Watchlist workflow status: ${status}`,
+    metadata: {
+      syncMode,
+      rssAvailable: !fastify.watchlistWorkflow.getIsUsingRssFallback(),
+    },
   })
 }
