@@ -239,7 +239,15 @@ export interface SonarrSeriesLookupResponse {
 // Define a type for unknown responses
 export type ApiResponse = unknown
 
-// Type guard to check if an API response is from Radarr
+/**
+ * Determines if the provided API response is from Radarr.
+ *
+ * This type guard checks that the response is a non-null object containing a "tmdbId" property and lacking a "tvdbId" property,
+ * indicating that it represents a Radarr movie lookup response.
+ *
+ * @param response - The API response to check.
+ * @returns True if the response is identified as a Radarr API response, false otherwise.
+ */
 export function isRadarrResponse(
   response: ApiResponse,
 ): response is RadarrMovieLookupResponse {
@@ -252,7 +260,15 @@ export function isRadarrResponse(
   )
 }
 
-// Type guard to check if an API response is from Sonarr
+/**
+ * Checks if the provided API response is a Sonarr series lookup response.
+ *
+ * This type guard verifies that the response is a non-null object containing the `tvdbId` property,
+ * which identifies it as a valid Sonarr response.
+ *
+ * @param response - The API response object to evaluate.
+ * @returns True if the response is recognized as a Sonarr series lookup response, otherwise false.
+ */
 export function isSonarrResponse(
   response: ApiResponse,
 ): response is SonarrSeriesLookupResponse {
@@ -264,7 +280,15 @@ export function isSonarrResponse(
   )
 }
 
-// Helper function to extract year from either response type
+/**
+ * Extracts the numeric year from an API response.
+ *
+ * This function checks whether the input object includes a valid numeric "year" property.
+ * It supports responses from Radarr, Sonarr, or any generic API response.
+ *
+ * @param response - The API response potentially containing a "year" field.
+ * @returns The year as a number if present and valid; otherwise, undefined.
+ */
 export function extractYear(
   response:
     | RadarrMovieLookupResponse

@@ -12,7 +12,20 @@ import {
   extractYear,
 } from '@root/types/content-lookup.types.js'
 
-// Type guard and handler for year criteria
+/**
+ * Determines whether a given year satisfies the specified criteria.
+ *
+ * The criteria can be one of the following:
+ * - A single number, where the year must exactly match.
+ * - An array of numbers, where the year must be one of the provided values.
+ * - An object with optional `min` and `max` properties, where the year must be within the inclusive range.
+ *
+ * Returns false if the criteria are not in a recognized format.
+ *
+ * @param year - The year to evaluate.
+ * @param criteria - The criteria to compare against, either as a number, number array, or an object with range boundaries.
+ * @returns True if the year meets the criteria, false otherwise.
+ */
 function processYearCriteria(year: number, criteria: CriteriaValue): boolean {
   // Handle single number
   if (typeof criteria === 'number') {
@@ -50,6 +63,21 @@ function processYearCriteria(year: number, criteria: CriteriaValue): boolean {
   return false
 }
 
+/**
+ * Creates a Fastify plugin for routing content based on release year.
+ *
+ * The plugin defines an asynchronous evaluation method that:
+ * - Retrieves year-based routing rules from the database.
+ * - Determines the content type (movie or TV show) and extracts the corresponding ID from
+ *   the content item's GUIDs.
+ * - Looks up the release year using the appropriate external service (Radarr for movies, Sonarr for TV shows).
+ * - Filters rules based on the release year and converts matching rules into routing decision objects.
+ * 
+ * The plugin is pre-configured with metadata such as name, description, and order, and it returns
+ * routing decisions as an array if valid rules are found; otherwise, it returns null.
+ *
+ * @returns A RouterPlugin object with an asynchronous routing evaluation method.
+ */
 export default function createYearRouterPlugin(
   fastify: FastifyInstance,
 ): RouterPlugin {

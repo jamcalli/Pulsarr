@@ -1,5 +1,13 @@
 import type { Knex } from 'knex'
 
+/**
+ * Creates the unified `router_rules` table and migrates genre routing data from legacy tables.
+ *
+ * This migration function sets up a new table to store routing rules for various plugin types by defining
+ * the necessary columns and indexes. It then moves existing routes from the `sonarr_genre_routing` and
+ * `radarr_genre_routing` tables into `router_rules`, converting the genre information into a JSON structure
+ * within the `criteria` column. After successfully migrating the data, the function drops the old routing tables.
+ */
 export async function up(knex: Knex): Promise<void> {
   // Create the router_rules table
   await knex.schema.createTable('router_rules', (table) => {
@@ -66,6 +74,13 @@ export async function up(knex: Knex): Promise<void> {
   await knex.schema.dropTable('radarr_genre_routing')
 }
 
+/**
+ * Reverts the unified routing migration by restoring the original genre routing tables.
+ *
+ * This function recreates the `sonarr_genre_routing` and `radarr_genre_routing` tables with their original schema and
+ * constraints, migrates genre routing data from the unified `router_rules` table back into these tables based on the target type,
+ * and finally drops the `router_rules` table.
+ */
 export async function down(knex: Knex): Promise<void> {
   // First recreate the original genre routing tables
   await knex.schema.createTable('sonarr_genre_routing', (table) => {
