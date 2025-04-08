@@ -115,17 +115,13 @@ export const LanguageRouteFormSchema = z.object({
 
 export type LanguageRouteFormValues = z.infer<typeof LanguageRouteFormSchema>
 
-export const UserCriteriaFormSchema = z.object({
-  ids: z
-    .union([z.number().positive(), z.array(z.number().positive())])
-    .optional(),
-  names: z.union([z.string().min(1), z.array(z.string().min(1))]).optional(),
-})
-
 export const UserRouteFormSchema = z.object({
   name: z.string().min(2, {
     message: 'Route name must be at least 2 characters.',
   }),
+  users: z
+    .union([z.string(), z.array(z.string())])
+    .transform((val) => (Array.isArray(val) ? val : [val])),
   target_instance_id: z.number().min(1, {
     message: 'Instance selection is required.',
   }),
@@ -136,7 +132,6 @@ export const UserRouteFormSchema = z.object({
     message: 'Quality Profile is required',
   }),
   enabled: z.boolean().default(true),
-  userCriteria: UserCriteriaFormSchema,
   order: z.number().int().min(1).max(100).default(50),
 })
 

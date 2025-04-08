@@ -6,7 +6,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import GenreMultiSelect from '@/components/ui/genre-multi-select'
+import UserMultiSelect from '@/components/ui/user-multi-select'
 import { cn } from '@/lib/utils'
 import {
   Form,
@@ -22,8 +22,8 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect, useRef, useCallback } from 'react'
 import {
-  GenreRouteFormSchema,
-  type GenreRouteFormValues,
+  UserRouteFormSchema,
+  type UserRouteFormValues,
 } from '@/features/content-router/schemas/content-router.schema'
 import { useToast } from '@/hooks/use-toast'
 import type {
@@ -34,7 +34,7 @@ import type { RadarrInstance } from '@root/types/radarr.types'
 import type { SonarrInstance } from '@root/types/sonarr.types'
 import RouteCardHeader from '@/components/ui/route-card-header'
 
-interface GenreRouteCardProps {
+interface UserRouteCardProps {
   route: ContentRouterRule | Partial<ContentRouterRule>
   isNew?: boolean
   onCancel: () => void
@@ -43,13 +43,12 @@ interface GenreRouteCardProps {
   onToggleEnabled?: (id: number, enabled: boolean) => Promise<void>
   isSaving: boolean
   isTogglingState?: boolean
-  onGenreDropdownOpen: () => Promise<void>
+  onUserDropdownOpen?: () => Promise<void>
   instances: (RadarrInstance | SonarrInstance)[]
-  genres: string[]
   contentType: 'radarr' | 'sonarr'
 }
 
-const GenreRouteCard = ({
+const UserRouteCard = ({
   route,
   isNew = false,
   onCancel,
@@ -58,31 +57,30 @@ const GenreRouteCard = ({
   onToggleEnabled,
   isSaving,
   isTogglingState = false,
-  onGenreDropdownOpen,
+  onUserDropdownOpen,
   instances = [],
-  genres = [],
   contentType,
-}: GenreRouteCardProps) => {
+}: UserRouteCardProps) => {
   const cardRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
 
-  const getInitialGenre = useCallback(() => {
-    if (route?.criteria?.genre) {
+  const getInitialUsers = useCallback(() => {
+    if (route?.criteria?.users) {
       // Handle both string and array types
-      return Array.isArray(route.criteria.genre)
-        ? route.criteria.genre
-        : [route.criteria.genre]
+      return Array.isArray(route.criteria.users)
+        ? route.criteria.users.map((u) => u.toString())
+        : [route.criteria.users.toString()]
     }
     return []
-  }, [route?.criteria?.genre])
+  }, [route?.criteria?.users])
 
-  const form = useForm<GenreRouteFormValues>({
-    resolver: zodResolver(GenreRouteFormSchema),
+  const form = useForm<UserRouteFormValues>({
+    resolver: zodResolver(UserRouteFormSchema),
     defaultValues: {
       name:
         route?.name ||
-        `New ${contentType === 'radarr' ? 'Movie' : 'Show'} Genre Route`,
-      genre: getInitialGenre() as string[],
+        `New ${contentType === 'radarr' ? 'Movie' : 'Show'} User Route`,
+      users: getInitialUsers(),
       target_instance_id:
         route?.target_instance_id ||
         (instances.length > 0 ? instances[0].id : 0),
@@ -98,8 +96,8 @@ const GenreRouteCard = ({
     form.reset({
       name:
         route?.name ||
-        `New ${contentType === 'radarr' ? 'Movie' : 'Show'} Genre Route`,
-      genre: getInitialGenre() as string[],
+        `New ${contentType === 'radarr' ? 'Movie' : 'Show'} User Route`,
+      users: getInitialUsers(),
       target_instance_id:
         route?.target_instance_id ||
         (instances.length > 0 ? instances[0].id : 0),
@@ -108,7 +106,7 @@ const GenreRouteCard = ({
       enabled: route?.enabled !== false,
       order: route?.order ?? 50,
     })
-  }, [form, route, contentType, instances, getInitialGenre])
+  }, [form, route, contentType, instances, getInitialUsers])
 
   useEffect(() => {
     if (!isNew && (route?.id || instances.length > 0)) {
@@ -126,10 +124,10 @@ const GenreRouteCard = ({
   }, [isNew])
 
   useEffect(() => {
-    if (isNew) {
-      onGenreDropdownOpen()
+    if (isNew && onUserDropdownOpen) {
+      onUserDropdownOpen()
     }
-  }, [isNew, onGenreDropdownOpen])
+  }, [isNew, onUserDropdownOpen])
 
   useEffect(() => {
     if (isNew) {
@@ -173,13 +171,13 @@ const GenreRouteCard = ({
 
   const selectedInstance = getSelectedInstance()
 
-  const handleSubmit = async (data: GenreRouteFormValues) => {
+  const handleSubmit = async (data: UserRouteFormValues) => {
     try {
       const routeData: Partial<ContentRouterRule> = {
         name: data.name,
-        type: 'genre',
+        type: 'user',
         criteria: {
-          genre: data.genre,
+          users: data.users,
         },
         target_type: contentType,
         target_instance_id: data.target_instance_id,
@@ -204,7 +202,7 @@ const GenreRouteCard = ({
       } else {
         const updatePayload: ContentRouterRuleUpdate = {
           name: data.name,
-          criteria: { genre: data.genre },
+          criteria: { users: data.users },
           target_instance_id: data.target_instance_id,
           quality_profile: data.quality_profile
             ? Number(data.quality_profile)
@@ -216,10 +214,10 @@ const GenreRouteCard = ({
         await onSave(updatePayload)
       }
     } catch (error) {
-      console.error('Failed to save genre route:', error)
+      console.error('Failed to save user route:', error)
       toast({
         title: 'Error',
-        description: `Failed to save genre route: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        description: `Failed to save user route: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: 'destructive',
       })
     }
@@ -266,12 +264,12 @@ const GenreRouteCard = ({
                 <div className="grid gap-4 md:grid-cols-2">
                   <FormField
                     control={form.control}
-                    name="genre"
+                    name="users"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-text">Genre</FormLabel>
+                        <FormLabel className="text-text">Users</FormLabel>
                         <FormControl>
-                          <GenreMultiSelect field={field} genres={genres} />
+                          <UserMultiSelect field={field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -440,4 +438,4 @@ const GenreRouteCard = ({
   )
 }
 
-export default GenreRouteCard
+export default UserRouteCard

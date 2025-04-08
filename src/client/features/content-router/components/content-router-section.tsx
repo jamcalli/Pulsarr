@@ -7,6 +7,7 @@ import LanguageRouteCard from '@/features/content-router/components/language-rou
 import DeleteRouteAlert from '@/features/content-router/components/delete-route-alert'
 import RouteTypeSelectionModal from '@/features/content-router/components/content-route-type-modal'
 import ContentRouteCardSkeleton from '@/features/content-router/components/content-route-skeleton'
+import UserRouteCard from '@/features/content-router/components/user-route-card'
 import type { RouteType } from '@/features/content-router/components/content-route-type-modal'
 import type {
   ContentRouterRule,
@@ -367,8 +368,45 @@ const ContentRouterSection = ({
             contentType={targetType}
           />
         )
+      case 'user':
+        return (
+          <UserRouteCard
+            key={ruleId}
+            route={rule as ContentRouterRule | Partial<ContentRouterRule>}
+            isNew={isNew}
+            onSave={(data: ContentRouterRule | ContentRouterRuleUpdate) =>
+              isNew
+                ? handleSaveNewRule(
+                    (rule as TempRule).tempId,
+                    data as Omit<
+                      ContentRouterRule,
+                      'id' | 'created_at' | 'updated_at'
+                    >,
+                  )
+                : handleUpdateRule(
+                    (rule as ContentRouterRule).id,
+                    data as ContentRouterRuleUpdate,
+                  )
+            }
+            onCancel={() => {
+              if (isNew) {
+                handleCancelLocalRule((rule as TempRule).tempId)
+              }
+            }}
+            onRemove={
+              isNew
+                ? undefined
+                : () =>
+                    setDeleteConfirmationRuleId((rule as ContentRouterRule).id)
+            }
+            onToggleEnabled={handleToggleRuleEnabled}
+            isSaving={!!savingRules[ruleId.toString()]}
+            isTogglingState={isToggling}
+            instances={instances}
+            contentType={targetType}
+          />
+        )
       default:
-        // Optionally log unknown rule types
         console.warn(`Unknown rule type encountered: ${ruleType}`)
         return null
     }
