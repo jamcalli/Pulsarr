@@ -12,7 +12,16 @@ import {
   isSonarrResponse,
 } from '@root/types/content-lookup.types.js'
 
-// Helper to safely extract the language name from various API responses
+/**
+ * Extracts the original language name from a Radarr or Sonarr lookup response.
+ *
+ * This helper handles responses that may be a single object or an array of objects. If an array is provided, the first element is used.
+ * The function validates that the response conforms to the expected structure and checks for the existence of an original language name.
+ * It returns the language name if present; otherwise, it returns undefined.
+ *
+ * @param response - The API response containing language details, either as a single lookup response, an array of responses, or an unknown type.
+ * @returns The original language name if found; otherwise, undefined.
+ */
 function extractLanguageName(
   response:
     | RadarrMovieLookupResponse
@@ -54,6 +63,17 @@ function extractLanguageName(
   return undefined
 }
 
+/**
+ * Creates a Fastify router plugin for routing content based on its original language.
+ *
+ * The returned plugin includes metadata (name, description, enabled status, and execution order) and an
+ * asynchronous evaluateRouting method. This method retrieves language-based routing rules, extracts a valid
+ * identifier from the content item's GUIDs, and uses a lookup service (Radarr for movies, Sonarr for series)
+ * to determine the item's original language. It then filters the routing rules by matching the original language
+ * (using a case-insensitive comparison) and returns a list of routing decisions or null if no applicable rules are found.
+ *
+ * @returns A RouterPlugin object implementing language-based routing logic.
+ */
 export default function createLanguageRouterPlugin(
   fastify: FastifyInstance,
 ): RouterPlugin {

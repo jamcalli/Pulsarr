@@ -6,6 +6,18 @@ import type {
   RoutingDecision,
 } from '@root/types/router.types.js'
 
+/**
+ * Creates a router plugin for genre-based content routing.
+ *
+ * The returned plugin includes metadata and an asynchronous `evaluateRouting` method. This method:
+ * - Returns null if the content item lacks genres.
+ * - Retrieves genre routing rules from the database.
+ * - Filters rules based on the content type (using "radarr" for movies and "sonarr" for others).
+ * - Converts the content item's genres into a set for efficient matching.
+ * - Maps matching rules to routing decisions with properties such as instanceId, qualityProfile, rootFolder, and weight.
+ *
+ * @returns A router plugin configured for genre-based routing.
+ */
 export default function createGenreRouterPlugin(
   fastify: FastifyInstance,
 ): RouterPlugin {
