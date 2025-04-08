@@ -33,15 +33,12 @@ interface RouteTypeSelectionModalProps {
 /**
  * Modal dialog for selecting a routing type.
  *
- * Renders a dialog with a dropdown list to choose a routing option based on content type.
- * The component offers two options ("Genre Route" and "Year Route") with descriptions that adapt
- * between movies (for 'radarr') and shows (for 'sonarr'). Selecting an option and clicking "Continue"
- * triggers the provided callback with the selected route type and closes the modal.
+ * Renders a modal with a dropdown for choosing one of four routing options: "Genre Route", "Year Route", "Language Route", or "User Route". The option descriptions are tailored based on the provided content type ('radarr' for movies or 'sonarr' for shows). When an option is selected, clicking "Continue" invokes the onTypeSelect callback with the chosen route type and closes the modal.
  *
- * @param open - Indicates if the modal is open.
+ * @param open - Controls whether the modal is visible.
  * @param onOpenChange - Callback to update the modal's open state.
- * @param onTypeSelect - Callback invoked with the selected route type when the user clicks "Continue".
- * @param contentType - Specifies the content type ('radarr' for movies or 'sonarr' for shows) to customize option descriptions.
+ * @param onTypeSelect - Callback invoked with the selected routing option when "Continue" is clicked.
+ * @param contentType - Specifies the content type (e.g., 'radarr' for movies or 'sonarr' for shows) to customize option descriptions.
  *
  * @returns A React element representing the route type selection modal.
  */
