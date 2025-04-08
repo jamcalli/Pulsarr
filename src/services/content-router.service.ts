@@ -90,13 +90,19 @@ export class ContentRouterService {
       userId?: number
       userName?: string
       syncing?: boolean
+      syncTargetInstanceId?: number
       forcedInstanceId?: number
     } = {},
-  ): Promise<void> {
+  ): Promise<{ routedInstances: number[] }> {
     const contentType = item.type.toLowerCase() as 'movie' | 'show'
+    const routedInstances: number[] = []
 
     // Handle forced routing first if a specific instance ID is provided
-    if (options.forcedInstanceId !== undefined) {
+    // but not if we're syncing with a target instance (to respect routing rules during sync)
+    if (
+      options.forcedInstanceId !== undefined &&
+      !(options.syncing && options.syncTargetInstanceId !== undefined)
+    ) {
       this.log.info(
         `Forced routing of "${item.title}" to instance ID ${options.forcedInstanceId}`,
       )
@@ -120,7 +126,8 @@ export class ContentRouterService {
         this.log.info(
           `Successfully force-routed "${item.title}" to instance ${options.forcedInstanceId}`,
         )
-        return
+        routedInstances.push(options.forcedInstanceId)
+        return { routedInstances }
       } catch (error) {
         this.log.error(
           `Error force-routing "${item.title}" to instance ${options.forcedInstanceId}:`,
@@ -130,7 +137,9 @@ export class ContentRouterService {
       }
     }
 
-    this.log.info(`Routing ${contentType} "${item.title}"`)
+    this.log.info(
+      `Routing ${contentType} "${item.title}"${options.syncing ? ' during sync operation' : ''}`,
+    )
 
     const context: RoutingContext = {
       userId: options.userId,
@@ -138,6 +147,7 @@ export class ContentRouterService {
       itemKey: key,
       contentType,
       syncing: options.syncing,
+      syncTargetInstanceId: options.syncTargetInstanceId,
     }
 
     // Collect all decisions from enabled plugins
@@ -162,11 +172,44 @@ export class ContentRouterService {
     }
 
     if (allDecisions.length === 0) {
-      this.log.warn(
-        `No routing decisions returned from any plugin for "${item.title}", using default routing`,
-      )
-      await this.routeUsingDefault(item, key, contentType, options.syncing)
-      return
+      // If no routing decisions but we have a sync target, use it as fallback
+      if (options.syncing && options.syncTargetInstanceId !== undefined) {
+        this.log.info(
+          `No routing decisions returned from any plugin for "${item.title}" during sync, using sync target instance ${options.syncTargetInstanceId}`,
+        )
+
+        try {
+          if (contentType === 'movie') {
+            await this.fastify.radarrManager.routeItemToRadarr(
+              item as RadarrItem,
+              key,
+              options.syncTargetInstanceId,
+              options.syncing,
+            )
+          } else {
+            await this.fastify.sonarrManager.routeItemToSonarr(
+              item as SonarrItem,
+              key,
+              options.syncTargetInstanceId,
+              options.syncing,
+            )
+          }
+          routedInstances.push(options.syncTargetInstanceId)
+        } catch (error) {
+          this.log.error(
+            `Error routing "${item.title}" to sync target instance ${options.syncTargetInstanceId}:`,
+            error,
+          )
+        }
+      } else {
+        // Fall back to default routing for non-sync operations
+        this.log.warn(
+          `No routing decisions returned from any plugin for "${item.title}", using default routing`,
+        )
+        await this.routeUsingDefault(item, key, contentType, options.syncing)
+      }
+
+      return { routedInstances }
     }
 
     // Sort decisions by weight for logging/tracking purposes
@@ -221,6 +264,7 @@ export class ContentRouterService {
           )
         }
         routeCount++
+        routedInstances.push(decision.instanceId)
       } catch (routeError) {
         this.log.error(
           `Error routing "${item.title}" to instance ${decision.instanceId}:`,
@@ -229,9 +273,22 @@ export class ContentRouterService {
       }
     }
 
+    // Special handling for sync operations where target instance wasn't in the routing decisions
+    if (
+      options.syncing &&
+      options.syncTargetInstanceId !== undefined &&
+      !routedInstances.includes(options.syncTargetInstanceId)
+    ) {
+      this.log.info(
+        `Sync target instance ${options.syncTargetInstanceId} was not included in routing decisions for "${item.title}". Routing rules prevented sync to this instance.`,
+      )
+    }
+
     this.log.info(
       `Successfully routed "${item.title}" to ${routeCount} instances`,
     )
+
+    return { routedInstances }
   }
 
   private async routeUsingDefault(

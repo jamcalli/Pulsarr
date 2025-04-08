@@ -17,6 +17,7 @@ export interface RoutingContext {
   itemKey: string
   contentType: 'movie' | 'show'
   syncing?: boolean
+  syncTargetInstanceId?: number
 }
 
 export interface RouterPlugin {
