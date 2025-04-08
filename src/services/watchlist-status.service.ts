@@ -892,19 +892,31 @@ export class StatusService {
         return false
       }
 
-      // Use the content router but with forced destination instanceId
-      // This is a special case for syncing between instances
-      await this.fastify.contentRouter.routeContent(matchingMovie, item.key, {
-        userId,
-        userName,
-        syncing: true,
-        forcedInstanceId: instanceId,
-      })
-
-      this.log.debug(
-        `Copied movie ${item.title} to Radarr instance ${instanceId} via content router`,
+      // Use the content router with syncTargetInstanceId instead of forcedInstanceId
+      // to respect routing rules during sync operations
+      const routingResult = await this.fastify.contentRouter.routeContent(
+        matchingMovie,
+        item.key,
+        {
+          userId,
+          userName,
+          syncing: true,
+          syncTargetInstanceId: instanceId, // Use sync target instead of forced instance
+        },
       )
-      return true
+
+      // Check if the item was routed to the target instance
+      if (routingResult.routedInstances.includes(instanceId)) {
+        this.log.debug(
+          `Copied movie ${item.title} to Radarr instance ${instanceId} via content router`,
+        )
+        return true
+      }
+
+      this.log.info(
+        `Movie ${item.title} was not routed to Radarr instance ${instanceId} due to routing rules`,
+      )
+      return false
     } catch (error) {
       this.log.error(
         `Error copying movie ${item.title} to instance ${instanceId}: ${error}`,
@@ -1224,19 +1236,31 @@ export class StatusService {
         return false
       }
 
-      // Use the content router but with forced destination instanceId
-      // This is a special case for syncing between instances
-      await this.fastify.contentRouter.routeContent(matchingSeries, item.key, {
-        userId,
-        userName,
-        syncing: true,
-        forcedInstanceId: instanceId,
-      })
-
-      this.log.debug(
-        `Copied show ${item.title} to Sonarr instance ${instanceId} via content router`,
+      // Use the content router with syncTargetInstanceId instead of forcedInstanceId
+      // to respect routing rules during sync operations
+      const routingResult = await this.fastify.contentRouter.routeContent(
+        matchingSeries,
+        item.key,
+        {
+          userId,
+          userName,
+          syncing: true,
+          syncTargetInstanceId: instanceId, // Use sync target instead of forced instance
+        },
       )
-      return true
+
+      // Check if the item was routed to the target instance
+      if (routingResult.routedInstances.includes(instanceId)) {
+        this.log.debug(
+          `Copied show ${item.title} to Sonarr instance ${instanceId} via content router`,
+        )
+        return true
+      }
+
+      this.log.info(
+        `Show ${item.title} was not routed to Sonarr instance ${instanceId} due to routing rules`,
+      )
+      return false
     } catch (error) {
       this.log.error(
         `Error copying show ${item.title} to instance ${instanceId}: ${error}`,
