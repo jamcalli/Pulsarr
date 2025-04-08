@@ -67,10 +67,13 @@ const GenreRouteCard = ({
   const { toast } = useToast()
 
   const getInitialGenre = useCallback(() => {
-    if (route?.criteria?.genre && typeof route.criteria.genre === 'string') {
-      return route.criteria.genre
+    if (route?.criteria?.genre) {
+      // Handle both string and array types
+      return Array.isArray(route.criteria.genre) 
+        ? route.criteria.genre 
+        : [route.criteria.genre];
     }
-    return ''
+    return [];
   }, [route?.criteria?.genre])
 
   const form = useForm<GenreRouteFormValues>({
@@ -79,7 +82,7 @@ const GenreRouteCard = ({
       name:
         route?.name ||
         `New ${contentType === 'radarr' ? 'Movie' : 'Show'} Genre Route`,
-      genre: getInitialGenre(),
+      genre: getInitialGenre() as string[],
       target_instance_id:
         route?.target_instance_id ||
         (instances.length > 0 ? instances[0].id : 0),
@@ -96,7 +99,7 @@ const GenreRouteCard = ({
       name:
         route?.name ||
         `New ${contentType === 'radarr' ? 'Movie' : 'Show'} Genre Route`,
-      genre: getInitialGenre(),
+      genre: getInitialGenre() as string[],
       target_instance_id:
         route?.target_instance_id ||
         (instances.length > 0 ? instances[0].id : 0),
