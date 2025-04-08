@@ -1,13 +1,25 @@
 import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { useRadarrStore } from '@/features/radarr/store/radarrStore'
-import RadarrGenreRouting from '@/features/radarr/components/genre-routing/radarr-genre-routing'
+import ContentRouterSection from '@/features/content-router/components/content-router-section'
 import { InstanceCard } from '@/features/radarr/components/instance/radarr-instance-card'
 import InstanceCardSkeleton from '@/features/radarr/components/instance/radarr-card-skeleton'
 import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
 
+/**
+ * Renders the Radarr configuration page.
+ *
+ * This component manages the configuration and display of Radarr instances by retrieving data such as instances
+ * and genres from a global store. It ensures initialization occurs on the first render and lazily fetches genre
+ * data when the associated dropdown is opened. Depending on the loading state and the presence of real or placeholder
+ * instances, it conditionally displays a loading skeleton, an instance list with options to add new instances, or a prompt
+ * to configure the first Radarr instance.
+ */
 export default function RadarrConfigPage() {
+  // Get these from the store
   const instances = useRadarrStore((state) => state.instances)
+  const genres = useRadarrStore((state) => state.genres) // Add this
+  const fetchGenres = useRadarrStore((state) => state.fetchGenres) // Add this
   const instancesLoading = useRadarrStore((state) => state.instancesLoading)
   const isInitialized = useRadarrStore((state) => state.isInitialized)
   const initialize = useRadarrStore((state) => state.initialize)
@@ -21,6 +33,13 @@ export default function RadarrConfigPage() {
       hasInitializedRef.current = true
     }
   }, [initialize])
+
+  // You can also create this as a separate function to reuse
+  const handleGenreDropdownOpen = async () => {
+    if (!genres.length) {
+      await fetchGenres()
+    }
+  }
 
   const addInstance = () => {
     setShowInstanceCard(true)
@@ -47,7 +66,12 @@ export default function RadarrConfigPage() {
           <div className="grid gap-4">
             <InstanceCardSkeleton />
           </div>
-          <RadarrGenreRouting />
+          <ContentRouterSection
+            targetType="radarr"
+            instances={instances}
+            genres={genres}
+            onGenreDropdownOpen={handleGenreDropdownOpen}
+          />
         </div>
       </div>
     )
@@ -66,7 +90,12 @@ export default function RadarrConfigPage() {
               Add Your First Instance
             </Button>
           </div>
-          <RadarrGenreRouting />
+          <ContentRouterSection
+            targetType="radarr"
+            instances={instances}
+            genres={genres}
+            onGenreDropdownOpen={handleGenreDropdownOpen}
+          />
         </div>
       ) : (
         <div className="grid gap-6">
@@ -100,7 +129,12 @@ export default function RadarrConfigPage() {
               />
             )}
           </div>
-          <RadarrGenreRouting />
+          <ContentRouterSection
+            targetType="radarr"
+            instances={instances}
+            genres={genres}
+            onGenreDropdownOpen={handleGenreDropdownOpen}
+          />
         </div>
       )}
     </div>

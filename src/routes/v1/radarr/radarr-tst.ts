@@ -14,15 +14,6 @@ const RadarrInstanceSchema = z.object({
   syncedInstances: z.array(z.number()).optional(),
 })
 
-// Zod schema for Genre Route with name field
-const GenreRouteSchema = z.object({
-  radarrInstanceId: z.number().min(1, 'Radarr Instance ID is required'),
-  name: z.string().min(1, 'Name is required'),
-  genre: z.string().min(1, 'Genre is required'),
-  rootFolder: z.string().min(1, 'Root folder is required'),
-  qualityProfile: z.union([z.string(), z.number()]).nullable(),
-})
-
 const plugin: FastifyPluginAsync = async (fastify) => {
   // Get all instances
   fastify.get<{
@@ -100,83 +91,6 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const { id } = request.params
       await fastify.radarrManager.removeInstance(id)
-      reply.status(204)
-    },
-  )
-
-  // Genre Routes
-  fastify.get<{
-    Reply: Array<z.infer<typeof GenreRouteSchema> & { id: number }>
-  }>(
-    '/genre-routes',
-    {
-      schema: {
-        response: {
-          200: z.array(GenreRouteSchema.extend({ id: z.number() })),
-        },
-        tags: ['Radarr Configuration'],
-      },
-    },
-    async () => {
-      return await fastify.db.getRadarrGenreRoutes()
-    },
-  )
-
-  fastify.post<{
-    Body: z.infer<typeof GenreRouteSchema>
-    Reply: z.infer<typeof GenreRouteSchema> & { id: number }
-  }>(
-    '/genre-routes',
-    {
-      schema: {
-        body: GenreRouteSchema,
-        response: {
-          201: GenreRouteSchema.extend({ id: z.number() }),
-        },
-        tags: ['Radarr Configuration'],
-      },
-    },
-    async (request, reply) => {
-      const routeData = request.body
-      const createdRoute = await fastify.radarrManager.addGenreRoute(routeData)
-      reply.status(201)
-      return createdRoute
-    },
-  )
-
-  fastify.put<{
-    Params: { id: number }
-    Body: Partial<z.infer<typeof GenreRouteSchema>>
-  }>(
-    '/genre-routes/:id',
-    {
-      schema: {
-        params: z.object({ id: z.coerce.number() }),
-        body: GenreRouteSchema.partial(),
-        tags: ['Radarr Configuration'],
-      },
-    },
-    async (request, reply) => {
-      const { id } = request.params
-      const updates = request.body
-      await fastify.radarrManager.updateGenreRoute(id, updates)
-      reply.status(204)
-    },
-  )
-
-  fastify.delete<{
-    Params: { id: number }
-  }>(
-    '/genre-routes/:id',
-    {
-      schema: {
-        params: z.object({ id: z.coerce.number() }),
-        tags: ['Radarr Configuration'],
-      },
-    },
-    async (request, reply) => {
-      const { id } = request.params
-      await fastify.radarrManager.removeGenreRoute(id)
       reply.status(204)
     },
   )

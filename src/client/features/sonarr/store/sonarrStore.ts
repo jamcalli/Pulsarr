@@ -1,16 +1,7 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-//import type { SonarrInstance, SonarrGenreRoute } from '@/types/sonarr.types'
 import type { RootFolder, QualityProfile } from '@root/types/sonarr.types'
-
-export interface SonarrGenreRoute {
-  id: number
-  name: string
-  sonarrInstanceId: number
-  genre: string
-  rootFolder: string
-  qualityProfile: string
-}
+import type { ContentRouterRule } from '@root/schemas/content-router/content-router.schema'
 
 export interface SonarrInstance {
   id: number
@@ -36,11 +27,12 @@ export interface SonarrInstanceData {
 export interface SonarrState {
   // State
   instances: SonarrInstance[]
-  genreRoutes: SonarrGenreRoute[]
   genres: string[]
   isInitialized: boolean
   instancesLoading: boolean
   error: string | null
+  contentRouterInitialized: boolean
+  contentRouterRules: ContentRouterRule[]
 
   // Loading management
   isLoadingRef: boolean
@@ -49,6 +41,7 @@ export interface SonarrState {
   // Actions
   initialize: (force?: boolean) => Promise<void>
   setLoadingWithMinDuration: (loading: boolean) => void
+  setContentRouterInitialized: (initialized: boolean) => void
 
   // Instance operations
   fetchInstances: () => Promise<void>
@@ -62,28 +55,20 @@ export interface SonarrState {
 
   // Genre operations
   fetchGenres: () => Promise<void>
-  fetchGenreRoutes: () => Promise<void>
-  createGenreRoute: (
-    route: Omit<SonarrGenreRoute, 'id'>,
-  ) => Promise<SonarrGenreRoute>
-  updateGenreRoute: (
-    id: number,
-    updates: Partial<Omit<SonarrGenreRoute, 'id'>>,
-  ) => Promise<void>
-  deleteGenreRoute: (id: number) => Promise<void>
 }
 
 export const useSonarrStore = create<SonarrState>()(
   devtools((set, get) => ({
     // Initial state
     instances: [],
-    genreRoutes: [],
     genres: [],
     isInitialized: false,
     instancesLoading: false,
     error: null,
     isLoadingRef: false,
     isInitialMount: true,
+    contentRouterInitialized: false,
+    contentRouterRules: [],
 
     setLoadingWithMinDuration: (loading) => {
       const state = get()
@@ -107,6 +92,10 @@ export const useSonarrStore = create<SonarrState>()(
           })
         }, 500)
       }
+    },
+
+    setContentRouterInitialized: (initialized) => {
+      set({ contentRouterInitialized: initialized })
     },
 
     fetchInstances: async () => {
@@ -224,7 +213,6 @@ export const useSonarrStore = create<SonarrState>()(
       }
     },
 
-    // Update initialize to include fetchGenres
     initialize: async (force = false) => {
       const state = get()
       if (!state.isInitialized || force) {
@@ -233,14 +221,19 @@ export const useSonarrStore = create<SonarrState>()(
         }
 
         try {
-          await Promise.all([
-            state.fetchInstances(),
-            state.fetchGenreRoutes(),
-            state.fetchGenres(),
-          ])
-          set({ isInitialized: true })
+          await Promise.all([state.fetchInstances(), state.fetchGenres()])
+
+          set({
+            isInitialized: true,
+            contentRouterInitialized: true,
+            error: null,
+          })
         } catch (error) {
-          set({ error: 'Failed to initialize Sonarr' })
+          set({
+            error: 'Failed to initialize',
+            isInitialized: false,
+            contentRouterInitialized: false,
+          })
           console.error('Initialization error:', error)
         } finally {
           if (state.isInitialMount) {
@@ -310,86 +303,6 @@ export const useSonarrStore = create<SonarrState>()(
         }))
       } catch (error) {
         console.error('Failed to delete instance:', error)
-        throw error
-      }
-    },
-
-    fetchGenreRoutes: async () => {
-      try {
-        const response = await fetch('/v1/sonarr/genre-routes')
-        if (!response.ok) {
-          throw new Error('Failed to fetch Sonarr genre routes')
-        }
-        const routes = await response.json()
-        set({ genreRoutes: Array.isArray(routes) ? routes : [] })
-      } catch (error) {
-        console.error('Error fetching Sonarr genre routes:', error)
-        set({ genreRoutes: [] })
-        throw error
-      }
-    },
-
-    createGenreRoute: async (route) => {
-      try {
-        const response = await fetch('/v1/sonarr/genre-routes', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(route),
-        })
-
-        if (!response.ok) {
-          throw new Error('Failed to create Sonarr genre route')
-        }
-
-        const createdRoute = await response.json()
-        set((state) => ({
-          genreRoutes: [...state.genreRoutes, createdRoute],
-        }))
-        return createdRoute
-      } catch (error) {
-        console.error('Failed to create genre route:', error)
-        throw error
-      }
-    },
-
-    updateGenreRoute: async (id, updates) => {
-      try {
-        const response = await fetch(`/v1/sonarr/genre-routes/${id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(updates),
-        })
-
-        if (!response.ok) {
-          throw new Error('Failed to update Sonarr genre route')
-        }
-
-        await get().fetchGenreRoutes()
-      } catch (error) {
-        console.error('Failed to update genre route:', error)
-        throw error
-      }
-    },
-
-    deleteGenreRoute: async (id) => {
-      try {
-        const response = await fetch(`/v1/sonarr/genre-routes/${id}`, {
-          method: 'DELETE',
-        })
-
-        if (!response.ok) {
-          throw new Error('Failed to delete Sonarr genre route')
-        }
-
-        set((state) => ({
-          genreRoutes: state.genreRoutes.filter((route) => route.id !== id),
-        }))
-      } catch (error) {
-        console.error('Failed to delete genre route:', error)
         throw error
       }
     },

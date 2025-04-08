@@ -2,7 +2,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useMediaQuery } from '@/hooks/use-media-query'
 
-export const GenreRouteCardSkeleton = () => {
+export const ContentRouteCardSkeleton = () => {
   const isMobile = useMediaQuery('(max-width: 768px)')
 
   return (
@@ -50,4 +50,4 @@ export const GenreRouteCardSkeleton = () => {
   )
 }
 
-export default GenreRouteCardSkeleton
+export default ContentRouteCardSkeleton
