@@ -10,8 +10,19 @@ import { Label } from '@/components/ui/label'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useConfigStore } from '@/stores/configStore'
 
+/**
+ * Renders a watchlist workflow status badge with interactive controls to manage the workflow.
+ *
+ * This component displays the current workflow status as a styled badge and a toggle button that starts or stops
+ * the workflow via API calls. It shows a loader during state transitions, updates the badge style accordingly, and
+ * displays toast notifications based on the success or failure of the action. When the workflow is running, the badge
+ * also shows the current synchronization mode ("Manual Sync" or "RSS"). An auto-start toggle is available when the
+ * workflow is stopped or beginning to start.
+ *
+ * @remark A minimum loading delay of 500ms is enforced to ensure smooth UI feedback during status transitions.
+ */
 export function WatchlistStatusBadge() {
-  const status = useWatchlistStatus()
+  const { status, syncMode } = useWatchlistStatus()
   const { toast } = useToast()
   const [actionStatus, setActionStatus] = useState<'idle' | 'loading'>('idle')
   const [currentAction, setCurrentAction] = useState<'start' | 'stop' | null>(null)
@@ -97,9 +108,10 @@ export function WatchlistStatusBadge() {
           throw new Error(`Failed to start Watchlist workflow: ${response.status}`)
         }
         
+        const data = await response.json()
         const autoStartMsg = autoStart ? ' with auto-start enabled' : ''
         toast({
-          description: `Watchlist workflow has been started successfully${autoStartMsg}`,
+          description: `${data.message}${autoStartMsg}`,
           variant: 'default',
         })
       }
@@ -138,6 +150,11 @@ export function WatchlistStatusBadge() {
         className={cn('px-2 py-0.5 h-7 text-sm', getBadgeVariant())}
       >
         {status.charAt(0).toUpperCase() + status.slice(1)}
+        {status === 'running' && (
+          <span className="ml-1 text-xs opacity-75">
+            ({syncMode === 'manual' ? 'Manual Sync' : 'RSS'})
+          </span>
+        )}
       </Badge>
       
       <Button

@@ -1,9 +1,17 @@
+export type WorkflowMetadata = {
+  syncMode: 'manual' | 'rss'
+  rssAvailable: boolean
+}
+
+export type ProgressMetadata = WorkflowMetadata | Record<string, never>
+
 export interface ProgressEvent {
   operationId: string
   type: 'self-watchlist' | 'others-watchlist' | 'rss-feed' | 'system' | 'sync'
   phase: string
   progress: number
   message: string
+  metadata?: ProgressMetadata
 }
 
 export interface ProgressService {
