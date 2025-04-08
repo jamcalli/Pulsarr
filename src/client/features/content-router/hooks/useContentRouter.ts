@@ -23,17 +23,10 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
   const fetchRules = useCallback(async () => {
     setIsLoading(true)
     setError(null)
-
     try {
-      // Implement minimum loading time of 500ms
-      const minimumLoadingTime = new Promise((resolve) =>
-        setTimeout(resolve, 500),
+      const response = await fetch(
+        `/v1/content-router/rules/target/${targetType}`,
       )
-
-      const [response] = await Promise.all([
-        fetch(`/v1/content-router/rules/target/${targetType}`),
-        minimumLoadingTime,
-      ])
 
       if (!response.ok) {
         throw new Error(`Failed to fetch ${targetType} routing rules`)
@@ -42,6 +35,12 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
       const data = (await response.json()) as ContentRouterRuleListResponse
 
       setRules(data.rules)
+
+      // If rules exist, keep loading state for minimum duration
+      if (data.rules.length > 0) {
+        await new Promise((resolve) => setTimeout(resolve, 500))
+      }
+
       return data.rules
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
@@ -123,7 +122,6 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
    */
   const updateRule = useCallback(
     async (id: number, updates: ContentRouterRuleUpdate) => {
-      setIsLoading(true)
       setError(null)
 
       try {
@@ -170,8 +168,6 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
           variant: 'destructive',
         })
         throw err
-      } finally {
-        setIsLoading(false)
       }
     },
     [toast],
@@ -186,11 +182,6 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
       setError(null)
 
       try {
-        // Implement minimum loading time
-        const minimumLoadingTime = new Promise((resolve) =>
-          setTimeout(resolve, 500),
-        )
-
         const response = await fetch(`/v1/content-router/rules/${id}`, {
           method: 'DELETE',
         })
@@ -198,9 +189,6 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
         if (!response.ok) {
           throw new Error('Failed to delete routing rule')
         }
-
-        // Wait for minimum loading time to complete
-        await minimumLoadingTime
 
         // Update local state
         setRules((prevRules) => prevRules.filter((rule) => rule.id !== id))
@@ -233,9 +221,6 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
    */
   const toggleRule = useCallback(
     async (id: number, enabled: boolean) => {
-      setIsLoading(true)
-      setError(null)
-
       try {
         const response = await fetch(`/v1/content-router/rules/${id}/toggle`, {
           method: 'PATCH',
@@ -249,7 +234,6 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
           throw new Error('Failed to toggle routing rule')
         }
 
-        // Update local state
         setRules((prevRules) =>
           prevRules.map((rule) =>
             rule.id === id ? { ...rule, enabled } : rule,
@@ -272,8 +256,6 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
           variant: 'destructive',
         })
         throw err
-      } finally {
-        setIsLoading(false)
       }
     },
     [toast],

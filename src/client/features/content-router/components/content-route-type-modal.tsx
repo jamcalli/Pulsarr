@@ -6,7 +6,13 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { useState } from 'react'
 
 export type RouteType = 'genre' | 'year' // Add more route types as needed
@@ -15,7 +21,6 @@ interface RouteTypeOption {
   id: RouteType
   title: string
   description: string
-  icon: React.ReactNode
 }
 
 interface RouteTypeSelectionModalProps {
@@ -38,21 +43,11 @@ export function RouteTypeSelectionModal({
       id: 'genre',
       title: 'Genre Route',
       description: `Route ${contentType === 'radarr' ? 'movies' : 'shows'} based on their genre`,
-      icon: (
-        <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
-          <span className="text-lg font-semibold">G</span>
-        </div>
-      ),
     },
     {
       id: 'year',
       title: 'Year Route',
       description: `Route ${contentType === 'radarr' ? 'movies' : 'shows'} based on release year`,
-      icon: (
-        <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
-          <span className="text-lg font-semibold">Y</span>
-        </div>
-      ),
     },
     // Add more route types here
   ]
@@ -62,6 +57,13 @@ export function RouteTypeSelectionModal({
       onTypeSelect(selectedType)
       onOpenChange(false)
     }
+  }
+
+  // Get the selected option title for display in the trigger
+  const getSelectedOptionTitle = () => {
+    if (!selectedType) return ''
+    const option = routeTypeOptions.find((opt) => opt.id === selectedType)
+    return option ? option.title : ''
   }
 
   return (
@@ -74,26 +76,35 @@ export function RouteTypeSelectionModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 py-4">
-          {routeTypeOptions.map((option) => (
-            <Card
-              key={option.id}
-              className={`p-4 cursor-pointer ${
-                selectedType === option.id ? 'border-2 border-primary' : ''
-              }`}
-              onClick={() => setSelectedType(option.id)}
+        <div className="py-4">
+          <div className="space-y-2">
+            <div className="text-sm font-medium text-text">Route Type</div>
+            <Select
+              value={selectedType || ''}
+              onValueChange={(value) => setSelectedType(value as RouteType)}
             >
-              <div className="flex items-center gap-4">
-                {option.icon}
-                <div>
-                  <h3 className="font-medium text-text">{option.title}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {option.description}
-                  </p>
-                </div>
-              </div>
-            </Card>
-          ))}
+              <SelectTrigger>
+                <SelectValue placeholder="Select a route type">
+                  {getSelectedOptionTitle()}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {routeTypeOptions.map((option) => (
+                  <SelectItem key={option.id} value={option.id}>
+                    {option.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedType && (
+              <p className="text-xs text-text text-muted-foreground mt-1">
+                {
+                  routeTypeOptions.find((opt) => opt.id === selectedType)
+                    ?.description
+                }
+              </p>
+            )}
+          </div>
         </div>
 
         <div className="flex justify-end gap-2">
