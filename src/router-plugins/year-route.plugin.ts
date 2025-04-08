@@ -72,7 +72,7 @@ function processYearCriteria(year: number, criteria: CriteriaValue): boolean {
  *   the content item's GUIDs.
  * - Looks up the release year using the appropriate external service (Radarr for movies, Sonarr for TV shows).
  * - Filters rules based on the release year and converts matching rules into routing decision objects.
- * 
+ *
  * The plugin is pre-configured with metadata such as name, description, and order, and it returns
  * routing decisions as an array if valid rules are found; otherwise, it returns null.
  *

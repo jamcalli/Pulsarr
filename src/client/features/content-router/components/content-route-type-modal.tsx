@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/select'
 import { useState } from 'react'
 
-export type RouteType = 'genre' | 'year' // Add more route types as needed
+export type RouteType = 'genre' | 'year' | 'language' // Add more route types as needed
 
 interface RouteTypeOption {
   id: RouteType
@@ -63,6 +63,11 @@ export function RouteTypeSelectionModal({
       id: 'year',
       title: 'Year Route',
       description: `Route ${contentType === 'radarr' ? 'movies' : 'shows'} based on release year`,
+    },
+    {
+      id: 'language',
+      title: 'Language Route',
+      description: `Route ${contentType === 'radarr' ? 'movies' : 'shows'} based on their original language`,
     },
     // Add more route types here
   ]

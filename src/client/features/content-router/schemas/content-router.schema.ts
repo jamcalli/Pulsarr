@@ -91,3 +91,25 @@ export const YearRouteFormSchema = z.object({
 
 export type YearRouteFormValues = z.infer<typeof YearRouteFormSchema>
 export type YearCriteriaFormValues = z.infer<typeof YearCriteriaFormSchema>
+
+export const LanguageRouteFormSchema = z.object({
+  name: z.string().min(2, {
+    message: 'Route name must be at least 2 characters.',
+  }),
+  language: z.string().min(1, {
+    message: 'Language is required.',
+  }),
+  target_instance_id: z.number().positive({
+    message: 'Instance selection is required.',
+  }),
+  root_folder: z.string().min(1, {
+    message: 'Root folder is required.',
+  }),
+  quality_profile: z.string().min(1, {
+    message: 'Quality Profile is required',
+  }),
+  enabled: z.boolean().default(true),
+  order: z.number().int().min(1).max(100).default(50),
+})
+
+export type LanguageRouteFormValues = z.infer<typeof LanguageRouteFormSchema>
