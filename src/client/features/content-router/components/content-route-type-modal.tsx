@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/select'
 import { useState } from 'react'
 
-export type RouteType = 'genre' | 'year' | 'language' // Add more route types as needed
+export type RouteType = 'genre' | 'year' | 'language' | 'user'
 
 interface RouteTypeOption {
   id: RouteType
@@ -69,7 +69,11 @@ export function RouteTypeSelectionModal({
       title: 'Language Route',
       description: `Route ${contentType === 'radarr' ? 'movies' : 'shows'} based on their original language`,
     },
-    // Add more route types here
+    {
+      id: 'user',
+      title: 'User Route',
+      description: `Route ${contentType === 'radarr' ? 'movies' : 'shows'} based on the requesting user`,
+    },
   ]
 
   const handleContinue = () => {
@@ -128,7 +132,7 @@ export function RouteTypeSelectionModal({
         </div>
 
         <div className="flex justify-end gap-2">
-          <Button variant="neutralnoShadow" onClick={() => onOpenChange(false)}>
+          <Button variant="neutral" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button disabled={!selectedType} onClick={handleContinue}>

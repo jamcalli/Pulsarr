@@ -8,7 +8,7 @@ export const UserCriteriaSchema = z.object({
 
 // Define GenreCriteria schema
 export const GenreCriteriaSchema = z.object({
-  genre: z.union([z.string(), z.array(z.string())])
+  genre: z.union([z.string(), z.array(z.string())]),
 })
 
 // Define schema for CriteriaValue
