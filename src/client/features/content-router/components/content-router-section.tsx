@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import GenreRouteCard from '@/features/content-router/components/genre-route-card'
 import YearRouteCard from '@/features/content-router/components/year-route-card'
+import LanguageRouteCard from '@/features/content-router/components/language-route-card'
 import DeleteRouteAlert from '@/features/content-router/components/delete-route-alert'
 import RouteTypeSelectionModal from '@/features/content-router/components/content-route-type-modal'
 import ContentRouteCardSkeleton from '@/features/content-router/components/content-route-skeleton'
@@ -328,6 +329,44 @@ const ContentRouterSection = ({
             contentType={targetType}
           />
         )
+      case 'language':
+        return (
+          <LanguageRouteCard
+            key={ruleId}
+            route={rule as ContentRouterRule | Partial<ContentRouterRule>}
+            isNew={isNew}
+            onCancel={() => {
+              if (isNew) {
+                handleCancelLocalRule((rule as TempRule).tempId)
+              }
+            }}
+            onSave={(data: ContentRouterRule | ContentRouterRuleUpdate) =>
+              isNew
+                ? handleSaveNewRule(
+                    (rule as TempRule).tempId,
+                    data as Omit<
+                      ContentRouterRule,
+                      'id' | 'created_at' | 'updated_at'
+                    >,
+                  )
+                : handleUpdateRule(
+                    (rule as ContentRouterRule).id,
+                    data as ContentRouterRuleUpdate,
+                  )
+            }
+            onRemove={
+              isNew
+                ? undefined
+                : () =>
+                    setDeleteConfirmationRuleId((rule as ContentRouterRule).id)
+            }
+            onToggleEnabled={handleToggleRuleEnabled}
+            isTogglingState={isToggling}
+            isSaving={!!savingRules[ruleId.toString()]}
+            instances={instances}
+            contentType={targetType}
+          />
+        )
       default:
         // Optionally log unknown rule types
         console.warn(`Unknown rule type encountered: ${ruleType}`)
@@ -421,7 +460,10 @@ const ContentRouterSection = ({
             : rules.find((r) => r.id === deleteConfirmationRuleId)?.type ===
                 'year'
               ? 'year route'
-              : 'routing rule'
+              : rules.find((r) => r.id === deleteConfirmationRuleId)?.type ===
+                  'language'
+                ? 'language route'
+                : 'routing rule'
         }
       />
     </div>
