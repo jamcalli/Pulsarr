@@ -24,6 +24,7 @@ const GenreMultiSelect = ({
       defaultValue={Array.isArray(field.value) ? field.value : field.value ? [field.value] : []}
       placeholder="Select genre(s)"
       modalPopover={true}
+      maxCount={2}
     />
   )
 }
