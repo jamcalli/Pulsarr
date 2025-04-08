@@ -7,6 +7,16 @@ interface UserMultiSelectProps {
   field: ControllerRenderProps<any, any>
 }
 
+/**
+ * Renders a multi-select input for choosing users.
+ *
+ * The component integrates with a configuration store to fetch user data and initialize the store if needed.
+ * It maps each user to an option where the label displays the user's name and, if available, their alias, and the value is the user's ID.
+ * The underlying MultiSelect component is controlled by the provided form field, updating its state by returning a single value
+ * when one user is selected or an array when multiple users are selected.
+ *
+ * @param field - The react-hook-form controller field that manages the user selection state.
+ */
 export function UserMultiSelect({ field }: UserMultiSelectProps) {
   const users = useConfigStore((state) => state.users)
   const fetchUserData = useConfigStore((state) => state.fetchUserData)
