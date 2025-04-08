@@ -193,7 +193,11 @@ export default function createLanguageRouterPlugin(
         const ruleLanguage = rule.criteria.originalLanguage
 
         // Ensure the criterion value is a non-empty string
-        if (typeof ruleLanguage !== 'string' || ruleLanguage.trim() === '') {
+        if (
+          !originalLanguageName ||
+          typeof ruleLanguage !== 'string' ||
+          ruleLanguage.trim() === ''
+        ) {
           return false
         }
 

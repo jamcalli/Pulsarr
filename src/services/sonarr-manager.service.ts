@@ -130,22 +130,29 @@ export class SonarrManagerService {
     rootFolder?: string,
     qualityProfile?: number | string | null,
   ): Promise<void> {
-    // If no specific instance is provided, we can't route the item
-    if (instanceId === undefined) {
-      throw new Error('No Sonarr instance ID provided for routing')
+    // If no specific instance is provided, try to get the default instance
+    let targetInstanceId = instanceId
+    if (targetInstanceId === undefined) {
+      const defaultInstance = await this.fastify.db.getDefaultSonarrInstance()
+      if (!defaultInstance) {
+        throw new Error(
+          'No Sonarr instance ID provided and no default instance found',
+        )
+      }
+      targetInstanceId = defaultInstance.id
     }
 
-    const sonarrService = this.sonarrServices.get(instanceId)
+    const sonarrService = this.sonarrServices.get(targetInstanceId)
     if (!sonarrService) {
-      throw new Error(`Sonarr service ${instanceId} not found`)
+      throw new Error(`Sonarr service ${targetInstanceId} not found`)
     }
 
     const sonarrItem = this.prepareSonarrItem(item)
 
     try {
-      const instance = await this.fastify.db.getSonarrInstance(instanceId)
+      const instance = await this.fastify.db.getSonarrInstance(targetInstanceId)
       if (!instance) {
-        throw new Error(`Sonarr instance ${instanceId} not found`)
+        throw new Error(`Sonarr instance ${targetInstanceId} not found`)
       }
 
       // Use the provided parameters if available, otherwise fall back to instance defaults
@@ -179,15 +186,18 @@ export class SonarrManagerService {
       )
 
       await this.fastify.db.updateWatchlistItem(key, {
-        sonarr_instance_id: instanceId,
+        sonarr_instance_id: targetInstanceId,
         syncing: syncing,
       })
 
       this.log.info(
-        `Successfully routed item to instance ${instanceId} with quality profile ${targetQualityProfileId ?? 'default'}`,
+        `Successfully routed item to instance ${targetInstanceId} with quality profile ${targetQualityProfileId ?? 'default'}`,
       )
     } catch (error) {
-      this.log.error(`Failed to add item to instance ${instanceId}:`, error)
+      this.log.error(
+        `Failed to add item to instance ${targetInstanceId}:`,
+        error,
+      )
       throw error
     }
   }
