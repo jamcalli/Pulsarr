@@ -1,11 +1,9 @@
-// src/router-plugins/language-route.plugin.ts
 import type { FastifyInstance } from 'fastify'
 import type {
   ContentItem,
   RouterPlugin,
   RoutingContext,
   RoutingDecision,
-  CriteriaValue, // Ensure this type is correctly defined/imported
 } from '@root/types/router.types.js'
 import {
   type RadarrMovieLookupResponse,
@@ -14,16 +12,13 @@ import {
   isSonarrResponse,
 } from '@root/types/content-lookup.types.js'
 
-// Define ApiResponse as unknown if it's not already defined elsewhere
-type ApiResponse = unknown
-
 // Helper to safely extract the language name from various API responses
 function extractLanguageName(
   response:
     | RadarrMovieLookupResponse
     | SonarrSeriesLookupResponse
-    | ApiResponse // Use the generic ApiResponse type
-    | Array<RadarrMovieLookupResponse | SonarrSeriesLookupResponse>, // Handle array responses
+    | unknown
+    | Array<RadarrMovieLookupResponse | SonarrSeriesLookupResponse>,
 ): string | undefined {
   let targetResponse:
     | RadarrMovieLookupResponse
@@ -36,7 +31,6 @@ function extractLanguageName(
   }
   // Handle single object response
   else if (!Array.isArray(response) && response) {
-    // Cast to the expected union type for type checking
     targetResponse = response as
       | RadarrMovieLookupResponse
       | SonarrSeriesLookupResponse
@@ -60,33 +54,35 @@ function extractLanguageName(
   return undefined
 }
 
-// Factory function to create the Language Router Plugin
 export default function createLanguageRouterPlugin(
   fastify: FastifyInstance,
 ): RouterPlugin {
   return {
     name: 'Language Router',
     description: 'Routes content based on original language',
-    enabled: true, // Enabled by default
-    order: 50, // Priority relative to other plugins
+    enabled: true,
+    order: 50,
 
     async evaluateRouting(
       item: ContentItem,
       context: RoutingContext,
     ): Promise<RoutingDecision[] | null> {
-      const contentType = context.contentType
-      const isMovie = contentType === 'movie'
+      const isMovie = context.contentType === 'movie'
 
+      // First check if there are any language-based rules for this content type
       const rules = await fastify.db.getRouterRulesByType('language')
 
+      // Filter to only rules for the current content type
       const contentTypeRules = rules.filter(
         (rule) => rule.target_type === (isMovie ? 'radarr' : 'sonarr'),
       )
 
+      // If no rules exist, skip the expensive API calls
       if (contentTypeRules.length === 0) {
         return null
       }
 
+      // Extract the ID
       let itemId: number | undefined
 
       if (Array.isArray(item.guids)) {
@@ -103,14 +99,17 @@ export default function createLanguageRouterPlugin(
         }
       }
 
+      // If we couldn't find an ID, we can't determine the language
       if (!itemId || Number.isNaN(itemId)) {
         fastify.log.warn(
-          `Language Router: Couldn't extract ${isMovie ? 'TMDB' : 'TVDB'} ID from item "${item.title}"`,
-          { guids: item.guids },
+          `Language Router: Couldn't extract ID from item "${item.title}"`,
         )
         return null
       }
+
+      // Fetch the language information based on content type
       let originalLanguageName: string | undefined
+
       try {
         if (isMovie) {
           const lookupService = fastify.radarrManager.getRadarrService(1)
@@ -120,32 +119,33 @@ export default function createLanguageRouterPlugin(
             )
             return null
           }
-          const apiResponse = await lookupService.getFromRadarr<ApiResponse>(
+
+          const apiResponse = await lookupService.getFromRadarr<unknown>(
             `movie/lookup/tmdb?tmdbId=${itemId}`,
           )
           originalLanguageName = extractLanguageName(
             apiResponse as
               | RadarrMovieLookupResponse
               | RadarrMovieLookupResponse[]
-              | ApiResponse,
+              | unknown,
           )
         } else {
-          const lookupService = fastify.sonarrManager.getSonarrService(1) // Get Sonarr service
+          const lookupService = fastify.sonarrManager.getSonarrService(1)
           if (!lookupService) {
             fastify.log.warn(
               'Language Router: No Sonarr service available for language lookup',
             )
             return null
           }
-          // *** FIXED: Construct endpoint string directly in the call ***
-          const apiResponse = await lookupService.getFromSonarr<ApiResponse>(
-            `series/lookup?term=tvdb:${itemId}`, // Construct endpoint inline
+
+          const apiResponse = await lookupService.getFromSonarr<unknown>(
+            `series/lookup?term=tvdb:${itemId}`,
           )
           originalLanguageName = extractLanguageName(
             apiResponse as
               | SonarrSeriesLookupResponse
               | SonarrSeriesLookupResponse[]
-              | ApiResponse,
+              | unknown,
           )
         }
       } catch (error) {
@@ -153,14 +153,13 @@ export default function createLanguageRouterPlugin(
           `Language Router: Error fetching language information for ${item.title}:`,
           error,
         )
-        return null // Return null on API error
+        return null
       }
 
-      // 7. If the language couldn't be determined from the API response, stop processing
+      // If we couldn't determine the language, skip routing
       if (!originalLanguageName) {
         fastify.log.warn(
           `Language Router: Couldn't determine original language for "${item.title}"`,
-          { itemId },
         )
         return null
       }
@@ -169,9 +168,8 @@ export default function createLanguageRouterPlugin(
         `Language Router: Found language "${originalLanguageName}" for "${item.title}"`,
       )
 
-      // 8. Filter the rules to find ones matching the extracted language
+      // Find matching language routes
       const matchingRules = contentTypeRules.filter((rule) => {
-        // Access the language criterion from the rule's JSON criteria
         const ruleLanguage = rule.criteria.originalLanguage
 
         // Ensure the criterion value is a non-empty string
@@ -183,25 +181,19 @@ export default function createLanguageRouterPlugin(
         return originalLanguageName.toLowerCase() === ruleLanguage.toLowerCase()
       })
 
-      // 9. If no rules match the language, stop processing
       if (matchingRules.length === 0) {
-        fastify.log.info(
-          `Language Router: No matching language rules found for "${originalLanguageName}"`,
-        )
         return null
       }
 
-      fastify.log.info(
-        `Language Router: Found ${matchingRules.length} matching rule(s) for language "${originalLanguageName}"`,
-      )
-
-      // 10. Convert the matching rules into routing decisions
-      return matchingRules.map((rule) => ({
-        instanceId: rule.target_instance_id,
-        qualityProfile: rule.quality_profile,
-        rootFolder: rule.root_folder,
-        weight: rule.order, // Use the rule's order property as the weight
-      }))
+      // Convert to routing decisions
+      return matchingRules.map((rule) => {
+        return {
+          instanceId: rule.target_instance_id,
+          qualityProfile: rule.quality_profile,
+          rootFolder: rule.root_folder,
+          weight: rule.order,
+        }
+      })
     },
   }
 }
