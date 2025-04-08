@@ -60,6 +60,7 @@ import type {
   IntervalConfig,
   CronConfig,
 } from '@root/types/scheduler.types.js'
+import type { RouterRule } from '@root/types/router.types.js'
 
 export class DatabaseService {
   private readonly knex: Knex
@@ -832,93 +833,6 @@ export class DatabaseService {
   }
 
   //=============================================================================
-  // SONARR GENRE ROUTING
-  //=============================================================================
-
-  /**
-   * Retrieves all Sonarr genre routing rules
-   *
-   * @returns Promise resolving to an array of all Sonarr genre routes
-   */
-  async getSonarrGenreRoutes(): Promise<SonarrGenreRoute[]> {
-    const routes = await this.knex('sonarr_genre_routing').select('*')
-
-    return routes.map((route) => ({
-      id: route.id,
-      sonarrInstanceId: route.sonarr_instance_id,
-      name: route.name,
-      genre: route.genre,
-      rootFolder: route.root_folder,
-      qualityProfile: route.quality_profile,
-    }))
-  }
-
-  /**
-   * Creates a new Sonarr genre routing rule
-   *
-   * @param route - Sonarr genre route data excluding ID
-   * @returns Promise resolving to the created genre route
-   */
-  async createSonarrGenreRoute(
-    route: Omit<SonarrGenreRoute, 'id'>,
-  ): Promise<SonarrGenreRoute> {
-    const [createdRoute] = await this.knex('sonarr_genre_routing')
-      .insert({
-        sonarr_instance_id: route.sonarrInstanceId,
-        name: route.name,
-        genre: route.genre,
-        root_folder: route.rootFolder,
-        quality_profile: route.qualityProfile,
-        created_at: this.timestamp,
-        updated_at: this.timestamp,
-      })
-      .returning([
-        'id',
-        'name',
-        'sonarr_instance_id as sonarrInstanceId',
-        'genre',
-        'root_folder as rootFolder',
-        'quality_profile as qualityProfile',
-      ])
-
-    return createdRoute
-  }
-
-  /**
-   * Updates an existing Sonarr genre routing rule
-   *
-   * @param id - ID of the genre route to update
-   * @param updates - Partial genre route data to update
-   * @returns Promise resolving to void when complete
-   */
-  async updateSonarrGenreRoute(
-    id: number,
-    updates: Partial<SonarrGenreRoute>,
-  ): Promise<void> {
-    await this.knex('sonarr_genre_routing')
-      .where('id', id)
-      .update({
-        ...(updates.name && { name: updates.name }),
-        ...(updates.genre && { genre: updates.genre }),
-        ...(updates.rootFolder && { root_folder: updates.rootFolder }),
-        ...(updates.qualityProfile && {
-          quality_profile: updates.qualityProfile,
-        }),
-        updated_at: this.timestamp,
-      })
-  }
-
-  /**
-   * Deletes a Sonarr genre routing rule
-   *
-   * @param id - ID of the genre route to delete
-   * @returns Promise resolving to void when complete
-   */
-  async deleteSonarrGenreRoute(id: number): Promise<void> {
-    await this.knex('sonarr_genre_routing').where('id', id).delete()
-  }
-
-  //=============================================================================
   // RADARR INSTANCE MANAGEMENT
   //=============================================================================
 
@@ -1160,91 +1074,6 @@ export class DatabaseService {
       this.log.error(`Error deleting Radarr instance ${id}:`, error)
       throw error
     }
-  }
-
-  //=============================================================================
-  // RADARR GENRE ROUTING
-  //=============================================================================
-
-  /**
-   * Retrieves all Radarr genre routing rules
-   *
-   * @returns Promise resolving to an array of all Radarr genre routes
-   */
-  async getRadarrGenreRoutes(): Promise<RadarrGenreRoute[]> {
-    const routes = await this.knex('radarr_genre_routing').select('*')
-    return routes.map((route) => ({
-      id: route.id,
-      radarrInstanceId: route.radarr_instance_id,
-      name: route.name,
-      genre: route.genre,
-      rootFolder: route.root_folder,
-      qualityProfile: route.quality_profile,
-    }))
-  }
-
-  /**
-   * Creates a new Radarr genre routing rule
-   *
-   * @param route - Radarr genre route data excluding ID
-   * @returns Promise resolving to the created genre route
-   */
-  async createRadarrGenreRoute(
-    route: Omit<RadarrGenreRoute, 'id'>,
-  ): Promise<RadarrGenreRoute> {
-    const [createdRoute] = await this.knex('radarr_genre_routing')
-      .insert({
-        radarr_instance_id: route.radarrInstanceId,
-        name: route.name,
-        genre: route.genre,
-        root_folder: route.rootFolder,
-        quality_profile: route.qualityProfile,
-        created_at: this.timestamp,
-        updated_at: this.timestamp,
-      })
-      .returning([
-        'id',
-        'name',
-        'radarr_instance_id as radarrInstanceId',
-        'genre',
-        'root_folder as rootFolder',
-        'quality_profile as qualityProfile',
-      ])
-    return createdRoute
-  }
-
-  /**
-   * Updates an existing Radarr genre routing rule
-   *
-   * @param id - ID of the genre route to update
-   * @param updates - Partial genre route data to update
-   * @returns Promise resolving to void when complete
-   */
-  async updateRadarrGenreRoute(
-    id: number,
-    updates: Partial<RadarrGenreRoute>,
-  ): Promise<void> {
-    await this.knex('radarr_genre_routing')
-      .where('id', id)
-      .update({
-        ...(updates.name && { name: updates.name }),
-        ...(updates.genre && { genre: updates.genre }),
-        ...(updates.rootFolder && { root_folder: updates.rootFolder }),
-        ...(updates.qualityProfile && {
-          quality_profile: updates.qualityProfile,
-        }),
-        updated_at: this.timestamp,
-      })
-  }
-
-  /**
-   * Deletes a Radarr genre routing rule
-   *
-   * @param id - ID of the genre route to delete
-   * @returns Promise resolving to void when complete
-   */
-  async deleteRadarrGenreRoute(id: number): Promise<void> {
-    await this.knex('radarr_genre_routing').where('id', id).delete()
   }
 
   //=============================================================================
@@ -4311,6 +4140,312 @@ export class DatabaseService {
     } catch (error) {
       this.log.error(`Error deleting schedule ${name}:`, error)
       return false
+    }
+  }
+
+  //=============================================================================
+  // CONTENT ROUTER SECTION
+  //=============================================================================
+
+  /**
+   * Retrieves all router rules
+   *
+   * @returns Promise resolving to array of all router rules
+   */
+  async getAllRouterRules(): Promise<RouterRule[]> {
+    const rules = await this.knex('router_rules')
+      .select('*')
+      .orderBy('order', 'desc')
+      .orderBy('id', 'asc')
+
+    return rules.map((rule) => ({
+      ...rule,
+      enabled: Boolean(rule.enabled),
+      criteria:
+        typeof rule.criteria === 'string'
+          ? JSON.parse(rule.criteria)
+          : rule.criteria,
+      metadata: rule.metadata
+        ? typeof rule.metadata === 'string'
+          ? JSON.parse(rule.metadata)
+          : rule.metadata
+        : null,
+    }))
+  }
+
+  /**
+   * Retrieves a router rule by ID
+   *
+   * @param id - ID of the router rule to retrieve
+   * @returns Promise resolving to the router rule if found, null otherwise
+   */
+  async getRouterRuleById(id: number): Promise<RouterRule | null> {
+    const rule = await this.knex('router_rules').where('id', id).first()
+
+    if (!rule) return null
+
+    return {
+      ...rule,
+      enabled: Boolean(rule.enabled),
+      criteria:
+        typeof rule.criteria === 'string'
+          ? JSON.parse(rule.criteria)
+          : rule.criteria,
+      metadata: rule.metadata
+        ? typeof rule.metadata === 'string'
+          ? JSON.parse(rule.metadata)
+          : rule.metadata
+        : null,
+    }
+  }
+
+  /**
+   * Retrieves all router rules of a specific type
+   *
+   * @param type - Type of router rules to retrieve (e.g., 'genre', 'user')
+   * @param enabledOnly - Whether to retrieve only enabled rules (default: true)
+   * @returns Promise resolving to array of matching router rules
+   */
+  async getRouterRulesByType(
+    type: string,
+    enabledOnly = true,
+  ): Promise<RouterRule[]> {
+    const query = this.knex('router_rules').select('*').where('type', type)
+
+    if (enabledOnly) {
+      query.where('enabled', true)
+    }
+
+    const rules = await query.orderBy('order', 'desc').orderBy('id', 'asc')
+
+    return rules.map((rule) => ({
+      ...rule,
+      enabled: Boolean(rule.enabled),
+      criteria:
+        typeof rule.criteria === 'string'
+          ? JSON.parse(rule.criteria)
+          : rule.criteria,
+      metadata: rule.metadata
+        ? typeof rule.metadata === 'string'
+          ? JSON.parse(rule.metadata)
+          : rule.metadata
+        : null,
+    }))
+  }
+
+  /**
+   * Creates a new router rule
+   *
+   * @param rule - Router rule data excluding ID and timestamps
+   * @returns Promise resolving to the created router rule
+   */
+  async createRouterRule(
+    rule: Omit<RouterRule, 'id' | 'created_at' | 'updated_at'>,
+  ): Promise<RouterRule> {
+    const insertData = {
+      ...rule,
+      criteria: JSON.stringify(rule.criteria),
+      metadata: rule.metadata ? JSON.stringify(rule.metadata) : null,
+      created_at: this.timestamp,
+      updated_at: this.timestamp,
+    }
+
+    const [createdRule] = await this.knex('router_rules')
+      .insert(insertData)
+      .returning('*')
+
+    if (!createdRule) throw new Error('Failed to create router rule')
+
+    return {
+      ...createdRule,
+      enabled: Boolean(createdRule.enabled),
+      criteria:
+        typeof createdRule.criteria === 'string'
+          ? JSON.parse(createdRule.criteria)
+          : createdRule.criteria,
+      metadata: createdRule.metadata
+        ? typeof createdRule.metadata === 'string'
+          ? JSON.parse(createdRule.metadata)
+          : createdRule.metadata
+        : null,
+    }
+  }
+
+  /**
+   * Updates an existing router rule
+   *
+   * @param id - ID of the router rule to update
+   * @param updates - Partial router rule data to update
+   * @returns Promise resolving to the updated router rule
+   */
+  async updateRouterRule(
+    id: number,
+    updates: Partial<Omit<RouterRule, 'id' | 'created_at' | 'updated_at'>>,
+  ): Promise<RouterRule> {
+    const updateData: Record<string, unknown> = {
+      ...updates,
+      updated_at: this.timestamp,
+    }
+
+    if (updates.criteria !== undefined) {
+      updateData.criteria = JSON.stringify(updates.criteria)
+    }
+
+    if (updates.metadata !== undefined) {
+      updateData.metadata = updates.metadata
+        ? JSON.stringify(updates.metadata)
+        : null
+    }
+
+    const [updatedRule] = await this.knex('router_rules')
+      .where('id', id)
+      .update(updateData)
+      .returning('*')
+
+    if (!updatedRule) {
+      throw new Error(
+        `Router rule with ID ${id} not found or could not be updated`,
+      )
+    }
+
+    return {
+      ...updatedRule,
+      enabled: Boolean(updatedRule.enabled),
+      criteria:
+        typeof updatedRule.criteria === 'string'
+          ? JSON.parse(updatedRule.criteria)
+          : updatedRule.criteria,
+      metadata: updatedRule.metadata
+        ? typeof updatedRule.metadata === 'string'
+          ? JSON.parse(updatedRule.metadata)
+          : updatedRule.metadata
+        : null,
+    }
+  }
+
+  /**
+   * Deletes a router rule
+   *
+   * @param id - ID of the router rule to delete
+   * @returns Promise resolving to true if deleted, false otherwise
+   */
+  async deleteRouterRule(id: number): Promise<boolean> {
+    const deleted = await this.knex('router_rules').where('id', id).delete()
+    return deleted > 0
+  }
+
+  /**
+   * Retrieves router rules by target type and instance
+   *
+   * @param targetType - Target type ('sonarr' or 'radarr')
+   * @param instanceId - ID of the target instance
+   * @returns Promise resolving to array of matching router rules
+   */
+  async getRouterRulesByTarget(
+    targetType: 'sonarr' | 'radarr',
+    instanceId: number,
+  ): Promise<RouterRule[]> {
+    const rules = await this.knex('router_rules')
+      .select('*')
+      .where({
+        target_type: targetType,
+        target_instance_id: instanceId,
+        enabled: true,
+      })
+      .orderBy('order', 'desc')
+      .orderBy('id', 'asc')
+
+    return rules.map((rule) => ({
+      ...rule,
+      enabled: Boolean(rule.enabled),
+      criteria:
+        typeof rule.criteria === 'string'
+          ? JSON.parse(rule.criteria)
+          : rule.criteria,
+      metadata: rule.metadata
+        ? typeof rule.metadata === 'string'
+          ? JSON.parse(rule.metadata)
+          : rule.metadata
+        : null,
+    }))
+  }
+
+  /**
+   * Retrieves router rules filtered by target type ('sonarr' or 'radarr')
+   *
+   * @param targetType - The target type ('sonarr' or 'radarr')
+   * @returns Promise resolving to array of matching router rules
+   */
+  async getRouterRulesByTargetType(
+    targetType: 'sonarr' | 'radarr',
+  ): Promise<RouterRule[]> {
+    try {
+      const rules = await this.knex('router_rules')
+        .select('*')
+        .where('target_type', targetType)
+        .orderBy('order', 'desc')
+        .orderBy('id', 'asc')
+
+      this.log.debug(
+        `Found ${rules.length} router rules for target type: ${targetType}`,
+      )
+
+      return rules.map((rule) => ({
+        ...rule,
+        enabled: Boolean(rule.enabled),
+        criteria:
+          typeof rule.criteria === 'string'
+            ? JSON.parse(rule.criteria)
+            : rule.criteria,
+        metadata: rule.metadata
+          ? typeof rule.metadata === 'string'
+            ? JSON.parse(rule.metadata)
+            : rule.metadata
+          : null,
+      }))
+    } catch (error) {
+      this.log.error(
+        `Error fetching router rules by target type ${targetType}:`,
+        error,
+      )
+      throw error
+    }
+  }
+
+  /**
+   * Toggles the enabled state of a router rule
+   *
+   * @param id - ID of the router rule to toggle
+   * @param enabled - New enabled state (true to enable, false to disable)
+   * @returns Promise resolving to the updated router rule
+   */
+  async toggleRouterRule(id: number, enabled: boolean): Promise<RouterRule> {
+    const [updatedRule] = await this.knex('router_rules')
+      .where('id', id)
+      .update({
+        enabled,
+        updated_at: this.timestamp,
+      })
+      .returning('*')
+
+    if (!updatedRule) {
+      throw new Error(
+        `Router rule with ID ${id} not found or could not be updated`,
+      )
+    }
+
+    return {
+      ...updatedRule,
+      enabled: Boolean(updatedRule.enabled),
+      criteria:
+        typeof updatedRule.criteria === 'string'
+          ? JSON.parse(updatedRule.criteria)
+          : updatedRule.criteria,
+      metadata: updatedRule.metadata
+        ? typeof updatedRule.metadata === 'string'
+          ? JSON.parse(updatedRule.metadata)
+          : updatedRule.metadata
+        : null,
     }
   }
 }
