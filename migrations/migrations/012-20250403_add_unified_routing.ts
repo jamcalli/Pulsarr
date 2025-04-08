@@ -31,6 +31,27 @@ export async function up(knex: Knex): Promise<void> {
     table.index('target_instance_id')
   })
   
+  // Create triggers to maintain referential integrity with cascading deletes
+  await knex.raw(`
+    CREATE TRIGGER fk_router_rules_sonarr_delete
+    BEFORE DELETE ON sonarr_instances
+    FOR EACH ROW
+    BEGIN
+      DELETE FROM router_rules 
+      WHERE target_type = 'sonarr' AND target_instance_id = OLD.id;
+    END;
+  `)
+
+  await knex.raw(`
+    CREATE TRIGGER fk_router_rules_radarr_delete
+    BEFORE DELETE ON radarr_instances
+    FOR EACH ROW
+    BEGIN
+      DELETE FROM router_rules 
+      WHERE target_type = 'radarr' AND target_instance_id = OLD.id;
+    END;
+  `)
+  
   // Migrate Sonarr genre routes to the new table
   const sonarrRoutes = await knex('sonarr_genre_routing').select('*')
   
@@ -82,6 +103,10 @@ export async function up(knex: Knex): Promise<void> {
  * and finally drops the `router_rules` table.
  */
 export async function down(knex: Knex): Promise<void> {
+  // Drop the triggers first
+  await knex.raw('DROP TRIGGER IF EXISTS fk_router_rules_sonarr_delete')
+  await knex.raw('DROP TRIGGER IF EXISTS fk_router_rules_radarr_delete')
+
   // First recreate the original genre routing tables
   await knex.schema.createTable('sonarr_genre_routing', (table) => {
     table.increments('id').primary()
