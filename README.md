@@ -40,10 +40,18 @@ Want to contribute? Check out our [Contributing Guidelines](#contributing).
 
 ## Features
 
-- **Real-time Watchlist Monitoring**: Monitors Plex watchlists (yours and friends') through RSS feeds to trigger automatic downloads via Sonarr and Radarr.
-- **Multi-instance Support**: Route content to different Sonarr/Radarr instances based on your needs.
-- **Genre-based Routing**: Send different genres to specific root folders, quality profiles, or completely separate instances.
-- **Instance Synchronization**: Keep multiple instances in sync (e.g., send content to both Sonarr4K and SonarrHD) while respecting genre rules. Works with both existing and newly added instances. Includes a sync feature for newly added instances.
+- **Real-time & Interval-based Watchlist Monitoring**: 
+  - Real-time monitoring through RSS feeds for Plex Pass users
+  - 20-minute interval polling for non-Plex Pass users
+  - All other features remain identical regardless of Plex Pass status
+- **Smart Content Routing**:
+  - Route content to different Sonarr/Radarr instances based on rules
+  - Multiple routing methods including:
+    - Genre-based routing
+    - Language-based routing
+    - User-based routing
+    - Year-based routing
+  - Extensible plugin architecture for future routing capabilities
 - **Discord Integration**: User-friendly notification system with customizable settings via Discord bot commands. Allows users to customize their own notification settings.
 - **Apprise Integration**: Apprise can be used to route notifications. Apprise supports many different notifications methods including email, SMS, Slack, Telegram, and many more. Users can configure their own Apprise settings via the Discord bot, or admins can set these up via the UI. System notifications can also be sent through Apprise. Please see [Apprise Documentation](#apprise-notifications) below on setting up Pulsarr with Apprise. 
 - **Granular User Controls**: Choose which users can sync content from their watchlists.
@@ -76,12 +84,16 @@ Pulsarr uses a full-stack architecture designed for reliability and performance:
 ### Content Routing
 Pulsarr uses an intelligent workflow to process and route content:
 
-1. **RSS Detection**: Continuously monitors Plex RSS feeds for new watchlist items
+1. **Content Detection**: 
+   - Plex Pass: Real-time monitoring via RSS feeds
+   - Non-Plex Pass: Regular polling every 20 minutes
 2. **User Permissions**: Verifies if the user has sync permissions enabled
-3. **Genre Routing**: Analyzes content genres and routes to appropriate instances based on your configured genre rules
-4. **Default Instance**: Items not matching genre rules are sent to your default Sonarr/Radarr instance
-5. **Instance Synchronization**: Automatically copies content to any synced instances while respecting genre routes
-6. **Grab Notification**: Sends configurable notifications when content is available for viewing
+3. **Content Analysis**: 
+   - Evaluates content metadata (genres, language, etc.)
+   - Applies configured routing rules
+   - Determines optimal target instance
+4. **Instance Management**: Routes content to appropriate instances based on rules
+5. **Notification System**: Sends configurable notifications when content is available
 
 ### Notification Flow
 The notification system is designed to be informative:
