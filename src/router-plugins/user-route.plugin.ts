@@ -36,12 +36,12 @@ function isUserCriteria(value: unknown): value is UserCriteria {
 /**
  * Creates a router plugin for user-based content routing.
  *
- * The returned plugin includes metadata and an asynchronous `evaluateRouting` method. This method:
- * - Returns null if no user information is available in the context
- * - Retrieves user routing rules from the database
- * - Filters rules based on the content type (using "radarr" for movies and "sonarr" for others)
- * - Matches rules based on user ID or username arrays
- * - Maps matching rules to routing decisions
+ * The returned plugin provides metadata and an asynchronous `evaluateRouting` method that computes routing
+ * decisions based on user-specific criteria. The `evaluateRouting` method:
+ * - Returns null if neither a user ID nor a username is provided in the context.
+ * - Retrieves user routing rules from the database and filters them by content type (using "radarr" for movies and "sonarr" for other content).
+ * - Evaluates and matches rules based on the provided user ID or username against the defined criteria.
+ * - Maps any matching rules into routing decisions containing instance ID, quality profile, root folder, and weight.
  *
  * @returns A router plugin configured for user-based routing.
  */
