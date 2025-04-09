@@ -88,11 +88,15 @@ export default fp(
 )
 
 /**
- * Emits the current watchlist workflow status as a progress event.
+ * Emits a progress event with the current watchlist workflow status.
  *
- * If there are active progress connections, this function retrieves the workflow status and determines the
- * synchronization mode—using "manual" if an RSS fallback is enabled, or "rss" otherwise. It then emits a progress
- * event with a unique operation ID, a status message, and metadata indicating the sync mode and RSS availability.
+ * If there are active progress connections, the function retrieves the workflow status and determines
+ * the synchronization mode—using "manual" if an RSS fallback is enabled, or "rss" otherwise. It generates
+ * a unique operation ID based on the current time and emits a progress event with a status message and metadata
+ * that includes the sync mode and RSS availability.
+ *
+ * @remarks
+ * The event is only emitted when active progress connections are present on the Fastify instance.
  */
 function emitWatchlistWorkflowStatus(fastify: FastifyInstance) {
   if (!fastify.progress.hasActiveConnections()) {
