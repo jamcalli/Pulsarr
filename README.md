@@ -148,52 +148,9 @@ docker compose pull && docker compose up -d
 
 #### Unraid Installation
 
-1. Add the following template to your Unraid server:
+Pulsarr is being added to the Unraid Community Applications (CA) store. Once approved, you'll be able to install it directly from the Apps tab in Unraid.
 
-```xml
-<?xml version="1.0"?>
-<Container version="2">
-  <Name>Pulsarr</Name>
-  <Repository>lakker/pulsarr:latest</Repository>
-  <Registry>https://github.com/jamcalli/Pulsarr</Registry>
-  <Network>bridge</Network>
-  <MyIP/>
-  <Shell>sh</Shell>
-  <Privileged>false</Privileged>
-  <Support>https://github.com/jamcalli/Pulsarr/issues</Support>
-  <Project>https://github.com/jamcalli/Pulsarr</Project>
-  <Overview>Pulsarr (https://github.com/jamcalli/Pulsarr) is an integration tool that bridges Plex watchlists with Sonarr and Radarr, enabling real-time media monitoring and automated content acquisition all from within the Plex App itself.</Overview>
-  <Category>HomeAutomation: MediaServer:Video Status:Stable</Category>
-  <WebUI>http://[IP]:[PORT:3003]/</WebUI>
-  <TemplateURL/>
-  <Icon>https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/icons/pulsarr.png</Icon>
-  <ExtraParams/>
-  <PostArgs/>
-  <CPUset/>
-  <DateInstalled>1743168512</DateInstalled>
-  <DonateText/>
-  <DonateLink/>
-  <Requires>Plex Pass, Sonarr and Radarr</Requires>
-  <Config Name="WebUI" Target="3003" Default="3003" Mode="tcp" Description="Port to access the UI" Type="Port" Display="always" Required="false" Mask="false">3003</Config>
-  <Config Name="Base URL" Target="baseUrl" Default="http://localhost" Mode="" Description="Important: Your base URL is what clients like Sonarr and Radarr should use in order to access Pulsarr (without the port)" Type="Variable" Display="always" Required="false" Mask="false">http://localhost</Config>
-  <Config Name="Log Level" Target="logLevel" Default="info" Mode="" Description="Logging Level. Possible values: [silent, info]" Type="Variable" Display="always" Required="false" Mask="false">info</Config>
-  <Config Name="App Config Path" Target="/app/data" Default="/mnt/user/appdata/pulsarr" Mode="rw" Description="" Type="Path" Display="always" Required="false" Mask="false">/mnt/user/appdata/pulsarr</Config>
-  <Config Name="NODE_ARGS" Target="NODE_ARGS" Default="--log-terminal" Mode="" Description="Additional NODE_ARGS" Type="Variable" Display="always" Required="false" Mask="false">--log-terminal</Config>
-  <Config Name="Timezone" Target="TZ" Default="America/Los_Angeles" Mode="" Description="Timezone in TZ format (see wikipedia to find the correct timezone https://en.wikipedia.org/wiki/List_of_tz_database_time_zones)" Type="Variable" Display="always" Required="false" Mask="false">America/Los_Angeles</Config>
-</Container>
-```
-
-2. Configure the template variables:
-   - `WebUI`: Port to access the Pulsarr interface (default: 3003)
-   - `Base URL`: URL that Sonarr/Radarr will use to access Pulsarr
-   - `Log Level`: Logging verbosity (silent or info)
-   - `App Config Path`: Location for Pulsarr data storage
-   - `NODE_ARGS`: Logging output options (--log-terminal, --log-file, or --log-both)
-   - `Timezone`: Your local timezone
-
-3. Click "Apply" to create the container
-
-4. Access the web UI at `http://your-server:3003` to complete setup
+In the meantime, you can install using the Docker Installation method above.
 
 #### Manual Installation
 
