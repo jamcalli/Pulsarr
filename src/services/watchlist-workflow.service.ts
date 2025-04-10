@@ -30,11 +30,13 @@ import type {
 } from '@root/types/plex.types.js'
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
+import type { IntervalConfig } from '@root/types/scheduler.types.js'
 
 /** Represents the current state of the watchlist workflow */
 type WorkflowStatus = 'stopped' | 'running' | 'starting' | 'stopping'
 
 export class WatchlistWorkflowService {
+  private readonly MANUAL_SYNC_JOB_NAME = 'manual-watchlist-sync'
   /** Current workflow status */
   private status: WorkflowStatus = 'stopped'
 
@@ -68,6 +70,9 @@ export class WatchlistWorkflowService {
   /** Flag to track if the workflow is actually running (may differ from status) */
   private isRunning = false
 
+  /** Flag to indicate if using RSS fallback */
+  private isUsingRssFallback = false
+
   /**
    * Creates a new WatchlistWorkflowService instance
    *
@@ -97,6 +102,14 @@ export class WatchlistWorkflowService {
    */
   private get plexService() {
     return this.fastify.plexWatchlist
+  }
+
+  // Add this getter in WatchlistWorkflowService class
+  /**
+   * Access to content router service
+   */
+  private get contentRouter() {
+    return this.fastify.contentRouter
   }
 
   /**
@@ -137,6 +150,14 @@ export class WatchlistWorkflowService {
   }
 
   /**
+   * Get the current RSS fallback status
+   * @returns boolean indicating if the service is using RSS fallback
+   */
+  public getIsUsingRssFallback(): boolean {
+    return this.isUsingRssFallback
+  }
+
+  /**
    * Start the watchlist workflow
    *
    * Initializes connections to Plex, fetches watchlists, sets up RSS feeds,
@@ -145,47 +166,54 @@ export class WatchlistWorkflowService {
    * @returns Promise resolving to true if started successfully, false otherwise
    */
   async startWorkflow(): Promise<boolean> {
-    if (this.status !== 'stopped') {
-      this.log.warn(`Workflow already ${this.status}, skipping start`)
-      return false
-    }
-
-    this.log.info('Starting Watchlist Workflow Service...')
-    this.status = 'starting'
-
     try {
+      // Set status to starting immediately
+      this.status = 'starting'
+      this.isRunning = false
+
+      // Clean up any existing manual sync jobs from previous runs
+      await this.cleanupExistingManualSync()
+
       // Verify Plex connectivity
       await this.plexService.pingPlex()
       this.log.info('Plex connection verified')
 
-      // Fetch initial watchlists
-      await this.fetchWatchlists()
-
-      // Sync existing watchlist items
-      await this.syncWatchlistItems()
-
-      // Generate and save RSS feeds
+      // Try to generate RSS feeds first
       const rssFeeds = await this.plexService.generateAndSaveRssFeeds()
+
       if ('error' in rssFeeds) {
-        throw new Error(`Failed to generate RSS feeds: ${rssFeeds.error}`)
+        this.log.warn(
+          'Failed to generate RSS feeds, falling back to manual sync',
+        )
+        await this.setupManualSyncFallback()
+        this.isUsingRssFallback = true
+      } else {
+        // Initialize RSS monitoring if feeds were generated successfully
+        await this.initializeRssSnapshots()
+        this.startRssCheck()
+        this.isUsingRssFallback = false
       }
 
-      // Initialize RSS snapshots
-      await this.initializeRssSnapshots()
+      // Initial sync regardless of method
+      await this.fetchWatchlists()
+      await this.syncWatchlistItems()
 
-      // Start monitoring processes
-      this.startRssCheck()
+      // Start queue processor
       this.startQueueProcessor()
 
-      // Update status
+      // Update status to running after everything is initialized
       this.status = 'running'
       this.isRunning = true
-      this.log.info('Watchlist workflow running')
+
+      this.log.info(
+        `Watchlist workflow running in ${this.isUsingRssFallback ? 'manual sync' : 'RSS'} mode`,
+      )
 
       return true
     } catch (error) {
       this.status = 'stopped'
       this.isRunning = false
+
       this.log.error('Error in Watchlist workflow:', error)
       throw error
     }
@@ -217,6 +245,14 @@ export class WatchlistWorkflowService {
     if (this.queueCheckInterval) {
       clearInterval(this.queueCheckInterval)
       this.queueCheckInterval = null
+    }
+
+    if (this.isUsingRssFallback) {
+      try {
+        await this.cleanupExistingManualSync()
+      } catch (error) {
+        this.log.error('Error cleaning up manual sync during shutdown:', error)
+      }
     }
 
     // Clear any pending changes
@@ -517,13 +553,12 @@ export class WatchlistWorkflowService {
   ): Promise<void> {
     let hasNewItems = false
 
-    // Check if any users have sync disabled
-    const hasUsersWithSyncDisabled =
-      await this.dbService.hasUsersWithSyncDisabled()
+    // Check if processing should be deferred (includes both sync disabled and user routing rules)
+    const shouldDefer = await this.shouldDeferProcessing()
 
-    if (hasUsersWithSyncDisabled) {
+    if (shouldDefer) {
       this.log.info(
-        'Some users have sync disabled - deferring item processing to reconciliation phase',
+        'Deferring item processing to reconciliation phase due to sync settings or user routing rules',
       )
     }
 
@@ -533,8 +568,8 @@ export class WatchlistWorkflowService {
         this.changeQueue.add(item)
         hasNewItems = true
 
-        // Only process immediately if all users have sync enabled
-        if (!hasUsersWithSyncDisabled) {
+        // Only process immediately if we don't need to defer
+        if (!shouldDefer) {
           if (item.type.toLowerCase() === 'show') {
             this.log.info(`Processing show ${item.title} immediately`)
             const normalizedItem = {
@@ -658,7 +693,7 @@ export class WatchlistWorkflowService {
    * Process a movie watchlist item and add it to Radarr
    *
    * Extracts the TMDB ID, verifies the item doesn't already exist,
-   * and routes it to the appropriate Radarr instance.
+   * and routes it using the content router.
    *
    * @param item - Movie watchlist item to process
    * @returns Promise resolving to true if processed successfully
@@ -706,15 +741,18 @@ export class WatchlistWorkflowService {
             : [],
       }
 
-      // Add to Radarr
-      await this.radarrManager.routeItemToRadarr(radarrItem, item.key)
+      // Use content router to route the item
+      await this.contentRouter.routeContent(radarrItem, item.key, {
+        syncing: false,
+      })
+
       this.log.info(
-        `Successfully added movie ${item.title} to appropriate Radarr instance`,
+        `Successfully routed movie ${item.title} via content router`,
       )
 
       return true
     } catch (error) {
-      this.log.error(`Error processing movie ${item.title} in Radarr:`, error)
+      this.log.error(`Error processing movie ${item.title}:`, error)
       this.log.debug('Failed item details:', {
         title: item.title,
         guids: item.guids,
@@ -729,7 +767,7 @@ export class WatchlistWorkflowService {
    * Process a show watchlist item and add it to Sonarr
    *
    * Extracts the TVDB ID, verifies the item doesn't already exist,
-   * and routes it to the appropriate Sonarr instance.
+   * and routes it using the content router.
    *
    * @param item - Show watchlist item to process
    * @returns Promise resolving to true if processed successfully
@@ -780,11 +818,12 @@ export class WatchlistWorkflowService {
         series_status: 'continuing', // Default to continuing since we don't know yet
       }
 
-      // Add to Sonarr
-      await this.sonarrManager.routeItemToSonarr(sonarrItem, item.key)
-      this.log.info(
-        `Successfully added show ${item.title} to appropriate Sonarr instance`,
-      )
+      // Use content router to route the item
+      await this.contentRouter.routeContent(sonarrItem, item.key, {
+        syncing: false,
+      })
+
+      this.log.info(`Successfully routed show ${item.title} via content router`)
 
       return true
     } catch (error) {
@@ -947,7 +986,31 @@ export class WatchlistWorkflowService {
 
           // Add to Sonarr if not exists
           if (!exists) {
-            await this.processSonarrItem(tempItem)
+            // Create a proper Sonarr item
+            const tvdbId = Number.parseInt(
+              tvdbGuids[0].replace('tvdb:', ''),
+              10,
+            )
+            const sonarrItem: SonarrItem = {
+              title: `TVDB:${tvdbId}`,
+              guids: tvdbGuids,
+              type: 'show',
+              ended: false,
+              genres: Array.isArray(tempItem.genres)
+                ? tempItem.genres
+                : typeof tempItem.genres === 'string'
+                  ? [tempItem.genres]
+                  : [],
+              status: 'pending',
+              series_status: 'continuing',
+            }
+
+            // Pass user id to the router
+            await this.contentRouter.routeContent(sonarrItem, tempItem.key, {
+              userId: numericUserId,
+              syncing: false,
+            })
+
             showsAdded++
           }
         }
@@ -976,7 +1039,28 @@ export class WatchlistWorkflowService {
 
           // Add to Radarr if not exists
           if (!exists) {
-            await this.processRadarrItem(tempItem)
+            // Create a proper Radarr item
+            const tmdbId = Number.parseInt(
+              tmdbGuids[0].replace('tmdb:', ''),
+              10,
+            )
+            const radarrItem: RadarrItem = {
+              title: `TMDB:${tmdbId}`,
+              guids: tmdbGuids,
+              type: 'movie',
+              genres: Array.isArray(tempItem.genres)
+                ? tempItem.genres
+                : typeof tempItem.genres === 'string'
+                  ? [tempItem.genres]
+                  : [],
+            }
+
+            // Pass user id to the router
+            await this.contentRouter.routeContent(radarrItem, tempItem.key, {
+              userId: numericUserId,
+              syncing: false,
+            })
+
             moviesAdded++
           }
         }
@@ -1050,26 +1134,23 @@ export class WatchlistWorkflowService {
         try {
           const queueSize = this.changeQueue.size
           this.log.info(
-            'Queue process delay reached, checking sync requirements',
+            'Queue process delay reached, checking processing requirements',
           )
           this.changeQueue.clear()
 
-          // Check if any users have sync disabled
-          const hasUsersWithSyncDisabled =
-            await this.dbService.hasUsersWithSyncDisabled()
+          // Check if we need to defer processing
+          const shouldDefer = await this.shouldDeferProcessing()
 
-          if (hasUsersWithSyncDisabled) {
+          if (shouldDefer) {
             this.log.info(
-              'Some users have sync disabled - performing full sync reconciliation',
+              'Performing full sync reconciliation due to sync settings or user routing rules',
             )
             // First refresh the watchlists
             await this.fetchWatchlists()
             // Then run full sync check
             await this.syncWatchlistItems()
           } else {
-            this.log.info(
-              'All users have sync enabled - performing standard watchlist refresh',
-            )
+            this.log.info('Performing standard watchlist refresh')
             await this.fetchWatchlists()
           }
 
@@ -1088,5 +1169,77 @@ export class WatchlistWorkflowService {
         }
       }
     }, 10000) // Check every 10 seconds
+  }
+
+  /**
+   * Checks if processing should be deferred to reconciliation phase
+   *
+   * @returns Promise<boolean> True if processing should be deferred
+   */
+  private async shouldDeferProcessing(): Promise<boolean> {
+    // Check if any users have sync disabled
+    const hasUsersWithSyncDisabled =
+      await this.dbService.hasUsersWithSyncDisabled()
+
+    // Check if any user routing rules exist
+    const userRoutingRules = await this.fastify.db.getRouterRulesByType('user')
+    const hasUserRoutingRules = userRoutingRules.length > 0
+
+    return hasUsersWithSyncDisabled || hasUserRoutingRules
+  }
+
+  private async setupManualSyncFallback(): Promise<void> {
+    if (this.rssCheckInterval) {
+      clearInterval(this.rssCheckInterval)
+      this.rssCheckInterval = null
+    }
+
+    try {
+      await this.fastify.scheduler.scheduleJob(
+        this.MANUAL_SYNC_JOB_NAME,
+        async (jobName: string) => {
+          try {
+            this.log.info('Starting manual watchlist reconciliation')
+            await this.fetchWatchlists()
+            await this.syncWatchlistItems()
+            this.log.info('Manual watchlist reconciliation completed')
+          } catch (error) {
+            this.log.error('Error in manual watchlist reconciliation:', error)
+          }
+        },
+      )
+
+      await this.fastify.scheduler.updateJobSchedule(
+        this.MANUAL_SYNC_JOB_NAME,
+        {
+          minutes: 20,
+        } as IntervalConfig,
+        true,
+      )
+
+      this.log.info('Manual sync reconciliation scheduled for every 20 minutes')
+    } catch (error) {
+      this.log.error('Error setting up manual sync fallback:', error)
+      throw error
+    }
+  }
+
+  private async cleanupExistingManualSync(): Promise<void> {
+    try {
+      const existingSchedule = await this.fastify.db.getScheduleByName(
+        this.MANUAL_SYNC_JOB_NAME,
+      )
+
+      if (existingSchedule) {
+        this.log.info(
+          'Found existing manual sync job from previous run, cleaning up',
+        )
+        await this.fastify.scheduler.unscheduleJob(this.MANUAL_SYNC_JOB_NAME)
+        await this.fastify.db.deleteSchedule(this.MANUAL_SYNC_JOB_NAME)
+        this.log.info('Successfully cleaned up existing manual sync job')
+      }
+    } catch (error) {
+      this.log.error('Error cleaning up existing manual sync job:', error)
+    }
   }
 }
