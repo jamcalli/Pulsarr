@@ -21,6 +21,15 @@ import { useMediaQuery } from '@/hooks/use-media-query'
 import PlexConnectionSkeleton from '@/features/plex/components/connection/connection-section-skeleton'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 
+/**
+ * Renders the Plex integration UI for managing connection credentials, watchlist statistics, and RSS feed generation.
+ *
+ * This component displays a form enabling users to update or remove their Plex token, refresh watchlist data, and generate RSS feeds.
+ * It manages loading state with a minimum delay and conditionally renders a skeleton until initialization is complete.
+ * Responsive design adjustments ensure proper layout on mobile devices.
+ *
+ * @returns The Plex connection section component.
+ */
 export default function PlexConnectionSection() {
   // Connection state
   const { form, status, handleUpdateToken, handleRemoveToken } =
@@ -264,11 +273,16 @@ export default function PlexConnectionSection() {
                   <FormLabel className="text-text text-sm">Self Feed</FormLabel>
                   <FormControl>
                     <Input
-                      value={config?.selfRss || ''}
+                      value={
+                        config?.selfRss
+                          ? config.selfRss
+                          : 'RSS feeds are unavailable. This feature requires Plex Pass.'
+                      }
                       placeholder="Generate RSS feeds to view URL"
                       type="text"
                       readOnly
-                      className="w-full"
+                      disabled={!config?.selfRss}
+                      className={`w-full ${!config?.selfRss ? 'cursor-not-allowed' : ''}`}
                     />
                   </FormControl>
                 </FormItem>
@@ -279,11 +293,16 @@ export default function PlexConnectionSection() {
                   </FormLabel>
                   <FormControl>
                     <Input
-                      value={config?.friendsRss || ''}
+                      value={
+                        config?.friendsRss
+                          ? config.friendsRss
+                          : 'RSS feeds are unavailable. This feature requires Plex Pass.'
+                      }
                       placeholder="Generate RSS feeds to view URL"
                       type="text"
                       readOnly
-                      className="w-full"
+                      disabled={!config?.friendsRss}
+                      className={`w-full ${!config?.friendsRss ? 'cursor-not-allowed' : ''}`}
                     />
                   </FormControl>
                 </FormItem>

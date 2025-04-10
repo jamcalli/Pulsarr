@@ -1,15 +1,7 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import type { RootFolder, QualityProfile } from '@root/types/radarr.types'
-
-export interface RadarrGenreRoute {
-  id: number
-  name: string
-  radarrInstanceId: number
-  genre: string
-  rootFolder: string
-  qualityProfile: string
-}
+import type { ContentRouterRule } from '@root/schemas/content-router/content-router.schema'
 
 export interface RadarrInstance {
   id: number
@@ -34,11 +26,12 @@ export interface RadarrInstanceData {
 export interface RadarrState {
   // State
   instances: RadarrInstance[]
-  genreRoutes: RadarrGenreRoute[]
   genres: string[]
   isInitialized: boolean
   instancesLoading: boolean
   error: string | null
+  contentRouterInitialized: boolean
+  contentRouterRules: ContentRouterRule[]
 
   // Loading management
   isLoadingRef: boolean
@@ -57,31 +50,29 @@ export interface RadarrState {
     updates: Partial<RadarrInstance>,
   ) => Promise<void>
   deleteInstance: (id: number) => Promise<void>
+  setContentRouterInitialized: (initialized: boolean) => void
+  setContentRouterRules: (rules: ContentRouterRule[]) => void
 
   // Genre operations
   fetchGenres: () => Promise<void>
-  fetchGenreRoutes: () => Promise<void>
-  createGenreRoute: (
-    route: Omit<RadarrGenreRoute, 'id'>,
-  ) => Promise<RadarrGenreRoute>
-  updateGenreRoute: (
-    id: number,
-    updates: Partial<Omit<RadarrGenreRoute, 'id'>>,
-  ) => Promise<void>
-  deleteGenreRoute: (id: number) => Promise<void>
 }
 
 export const useRadarrStore = create<RadarrState>()(
   devtools((set, get) => ({
     // Initial state
     instances: [],
-    genreRoutes: [],
     genres: [],
     isInitialized: false,
     instancesLoading: false,
     error: null,
     isLoadingRef: false,
     isInitialMount: true,
+    contentRouterInitialized: false,
+    contentRouterRules: [],
+
+    setContentRouterRules: (rules: ContentRouterRule[]) => {
+      set({ contentRouterRules: rules })
+    },
 
     setLoadingWithMinDuration: (loading) => {
       const state = get()
@@ -105,6 +96,10 @@ export const useRadarrStore = create<RadarrState>()(
           })
         }, 500)
       }
+    },
+
+    setContentRouterInitialized: (initialized) => {
+      set({ contentRouterInitialized: initialized })
     },
 
     fetchInstances: async () => {
@@ -230,14 +225,20 @@ export const useRadarrStore = create<RadarrState>()(
         }
 
         try {
-          await Promise.all([
-            state.fetchInstances(),
-            state.fetchGenreRoutes(),
-            state.fetchGenres(),
-          ])
-          set({ isInitialized: true })
+          // Run initial fetches in parallel
+          await Promise.all([state.fetchInstances(), state.fetchGenres()])
+
+          set({
+            isInitialized: true,
+            contentRouterInitialized: true,
+            error: null,
+          })
         } catch (error) {
-          set({ error: 'Failed to initialize Radarr' })
+          set({
+            error: 'Failed to initialize',
+            isInitialized: false,
+            contentRouterInitialized: false,
+          })
           console.error('Initialization error:', error)
         } finally {
           if (state.isInitialMount) {
@@ -307,86 +308,6 @@ export const useRadarrStore = create<RadarrState>()(
         }))
       } catch (error) {
         console.error('Failed to delete instance:', error)
-        throw error
-      }
-    },
-
-    fetchGenreRoutes: async () => {
-      try {
-        const response = await fetch('/v1/radarr/genre-routes')
-        if (!response.ok) {
-          throw new Error('Failed to fetch Radarr genre routes')
-        }
-        const routes = await response.json()
-        set({ genreRoutes: Array.isArray(routes) ? routes : [] })
-      } catch (error) {
-        console.error('Error fetching Radarr genre routes:', error)
-        set({ genreRoutes: [] })
-        throw error
-      }
-    },
-
-    createGenreRoute: async (route) => {
-      try {
-        const response = await fetch('/v1/radarr/genre-routes', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(route),
-        })
-
-        if (!response.ok) {
-          throw new Error('Failed to create Radarr genre route')
-        }
-
-        const createdRoute = await response.json()
-        set((state) => ({
-          genreRoutes: [...state.genreRoutes, createdRoute],
-        }))
-        return createdRoute
-      } catch (error) {
-        console.error('Failed to create genre route:', error)
-        throw error
-      }
-    },
-
-    updateGenreRoute: async (id, updates) => {
-      try {
-        const response = await fetch(`/v1/radarr/genre-routes/${id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(updates),
-        })
-
-        if (!response.ok) {
-          throw new Error('Failed to update Radarr genre route')
-        }
-
-        await get().fetchGenreRoutes()
-      } catch (error) {
-        console.error('Failed to update genre route:', error)
-        throw error
-      }
-    },
-
-    deleteGenreRoute: async (id) => {
-      try {
-        const response = await fetch(`/v1/radarr/genre-routes/${id}`, {
-          method: 'DELETE',
-        })
-
-        if (!response.ok) {
-          throw new Error('Failed to delete Radarr genre route')
-        }
-
-        set((state) => ({
-          genreRoutes: state.genreRoutes.filter((route) => route.id !== id),
-        }))
-      } catch (error) {
-        console.error('Failed to delete genre route:', error)
         throw error
       }
     },
