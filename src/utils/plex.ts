@@ -540,29 +540,76 @@ const toItemsBatch = async (
     totalItems: number
     username: string
   },
-  concurrencyLimit = 5,
+  initialConcurrencyLimit = 5,
 ): Promise<Map<TokenWatchlistItem, Set<Item>>> => {
   const results = new Map<TokenWatchlistItem, Set<Item>>()
   const queue = [...items]
   let processingCount = 0
   let batchCompletedCount = 0
+  let isRateLimited = false
+  let currentConcurrencyLimit = initialConcurrencyLimit
+  let consecutiveRateLimits = 0
+  let cooldownTime = 2000 // Start with 2 seconds
 
   // Process items in batches with controlled concurrency
   while (queue.length > 0 || processingCount > 0) {
+    // If rate limited, pause all processing with adaptive cooldown
+    if (isRateLimited) {
+      // Increase cooldown time if we've had multiple consecutive rate limits
+      const adaptiveCooldown =
+        consecutiveRateLimits > 1
+          ? Math.min(cooldownTime * 1.5, 30000) // Exponential up to 30s max
+          : cooldownTime
+
+      // Add slight randomization (±10%)
+      const finalCooldown = adaptiveCooldown * (0.9 + Math.random() * 0.2)
+
+      if (progressTracker) {
+        progressTracker.progress.emit({
+          operationId: progressTracker.operationId,
+          type: progressTracker.type,
+          phase: 'processing',
+          progress: Math.min(
+            95,
+            Math.floor((batchCompletedCount / items.length) * 90) + 5,
+          ),
+          message: `Rate limited by Plex API. Cooling down for ${Math.round(finalCooldown / 1000)} seconds...`,
+        })
+      }
+      log.warn(
+        `Rate limit detected, pausing all requests for ${Math.round(finalCooldown / 1000)} seconds`,
+      )
+      await new Promise((resolve) => setTimeout(resolve, finalCooldown))
+      isRateLimited = false
+
+      // After cooldown, reduce concurrency based on consecutive rate limits
+      if (consecutiveRateLimits > 1) {
+        currentConcurrencyLimit = Math.max(
+          1,
+          Math.floor(currentConcurrencyLimit * 0.6),
+        )
+      } else {
+        currentConcurrencyLimit = Math.max(1, currentConcurrencyLimit - 1)
+      }
+
+      log.info(
+        `Adjusted concurrency to ${currentConcurrencyLimit} after cooldown`,
+      )
+      continue
+    }
+
     // Start processing new items up to the concurrency limit
-    while (queue.length > 0 && processingCount < concurrencyLimit) {
+    while (queue.length > 0 && processingCount < currentConcurrencyLimit) {
       const item = queue.shift()
       if (item) {
         processingCount++
-
-        // Process this item asynchronously
         toItemsSingle(config, log, item)
           .then((itemSet) => {
             results.set(item, itemSet)
             processingCount--
             batchCompletedCount++
+            consecutiveRateLimits = 0 // Reset on success
 
-            // Update progress if tracking is enabled
             if (progressTracker) {
               const totalCompletedItems =
                 progressTracker.completedItems + batchCompletedCount
@@ -581,17 +628,28 @@ const toItemsBatch = async (
             }
           })
           .catch((error) => {
-            log.error(`Error processing item ${item.title}:`, error)
-            results.set(item, new Set())
+            if (
+              error.message?.includes('429') ||
+              error.message?.toLowerCase().includes('rate limit')
+            ) {
+              // Put the item back in the queue
+              queue.unshift(item)
+              isRateLimited = true
+              consecutiveRateLimits++
+              cooldownTime = Math.min(cooldownTime * 1.5, 30000) // Increase cooldown for next time
+            } else {
+              log.error(`Error processing item ${item.title}:`, error)
+              results.set(item, new Set())
+              batchCompletedCount++
+            }
             processingCount--
-            batchCompletedCount++
           })
       }
     }
 
-    // Wait a bit before checking again if we're at the concurrency limit
+    // Small delay between checks to avoid busy waiting
     if (
-      processingCount >= concurrencyLimit ||
+      processingCount >= currentConcurrencyLimit ||
       (processingCount > 0 && queue.length === 0)
     ) {
       await new Promise((resolve) => setTimeout(resolve, 50))
