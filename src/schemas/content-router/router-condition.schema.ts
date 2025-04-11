@@ -2,20 +2,25 @@ import { z } from 'zod'
 
 // Define a schema for basic condition (non-group)
 export const ConditionSchema = z.object({
-  id: z.number().optional(), // Only present when updating
+  id: z.number().optional(),
   predicate_type: z.string().min(1, 'Predicate type is required'),
   operator: z.string().min(1, 'Operator is required'),
-  value: z.any(), // Value depends on predicate type
+  value: z.any(),
   group_id: z.number().nullable().optional(),
+  parent_group_id: z.number().nullable().optional(),
+  group_operator: z.string().nullable().optional(),
   order_index: z.number().optional(),
 })
 
 // Define a schema for group condition
 export const GroupConditionSchema = z.object({
-  id: z.number().optional(), // Only present when updating
+  id: z.number().optional(),
   predicate_type: z.literal('group'),
+  operator: z.string().nullable().optional(),
+  value: z.any().nullable().optional(),
   group_operator: z.enum(['AND', 'OR', 'NOT']),
   parent_group_id: z.number().nullable().optional(),
+  group_id: z.number().nullable().optional(),
   order_index: z.number().optional(),
 })
 
@@ -74,14 +79,14 @@ export const RouterRuleWithConditionsResponseSchema = z.object({
         rule_id: z.number(),
         predicate_type: z.string(),
         operator: z.string(),
-        value: z.string(), // JSON string
+        value: z.any(), // We handle parsing in the route handler
         group_id: z.number().nullable(),
         group_operator: z.string().nullable(),
         parent_group_id: z.number().nullable(),
         order_index: z.number(),
         created_at: z.string(),
         updated_at: z.string(),
-      })
+      }),
     ),
   }),
 })
@@ -96,7 +101,11 @@ export const RouterRuleErrorSchema = z.object({
 export type Condition = z.infer<typeof ConditionSchema>
 export type GroupCondition = z.infer<typeof GroupConditionSchema>
 export type RouterCondition = z.infer<typeof RouterConditionSchema>
-export type RouterRuleWithConditions = z.infer<typeof RouterRuleWithConditionsSchema>
+export type RouterRuleWithConditions = z.infer<
+  typeof RouterRuleWithConditionsSchema
+>
 export type RouterRuleUpdate = z.infer<typeof RouterRuleUpdateSchema>
-export type RouterRuleWithConditionsResponse = z.infer<typeof RouterRuleWithConditionsResponseSchema>
+export type RouterRuleWithConditionsResponse = z.infer<
+  typeof RouterRuleWithConditionsResponseSchema
+>
 export type RouterRuleError = z.infer<typeof RouterRuleErrorSchema>

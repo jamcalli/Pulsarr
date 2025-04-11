@@ -99,8 +99,9 @@ export const ContentRouterPluginsResponseSchema = z.object({
     z.object({
       name: z.string(),
       description: z.string(),
-      enabled: z.boolean(),
-      order: z.number(),
+      displayName: z.string(),
+      supportedOperators: z.array(z.string()),
+      valueType: z.string(),
     }),
   ),
 })

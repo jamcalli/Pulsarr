@@ -19,15 +19,7 @@ export default fp(
     fastify.log.info('Initializing content router plugin')
 
     const routerService = new ContentRouterService(fastify.log, fastify)
-
     fastify.decorate('contentRouter', routerService)
-
-    const predicatePlugins = routerService.getLoadedPredicatePlugins()
-    const pluginNames = predicatePlugins.map((p) => p.name).join(', ')
-
-    fastify.log.info(
-      `Content router initialized with predicate plugins: ${pluginNames}`,
-    )
   },
   {
     name: 'content-router',

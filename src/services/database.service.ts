@@ -4215,6 +4215,7 @@ export class DatabaseService {
     rule: {
       name: string
       description?: string
+      type: string
       target_type: 'sonarr' | 'radarr'
       target_instance_id: number
       quality_profile?: number | null
@@ -4223,15 +4224,24 @@ export class DatabaseService {
       enabled?: boolean
       query_type?: 'legacy' | 'query-builder'
     },
-    conditions: Array<{
-      predicate_type: string
-      operator: string
-      value: any
-      group_id?: number | null
-      group_operator?: string | null
-      parent_group_id?: number | null
-      order_index?: number
-    }> = [],
+    conditions: Array<
+      | {
+          predicate_type: 'group'
+          group_operator: 'AND' | 'OR' | 'NOT'
+          id?: number
+          parent_group_id?: number | null
+          order_index?: number
+        }
+      | {
+          predicate_type: string
+          operator: string
+          value: any
+          group_id?: number | null
+          group_operator?: string | null
+          parent_group_id?: number | null
+          order_index?: number
+        }
+    > = [],
   ): Promise<CompleteRouterRule> {
     try {
       return await this.knex.transaction(async (trx) => {
@@ -4280,19 +4290,65 @@ export class DatabaseService {
           for (let i = 0; i < conditions.length; i++) {
             const condition = conditions[i]
 
-            await trx('router_conditions').insert({
-              rule_id: ruleId,
-              predicate_type: condition.predicate_type,
-              operator: condition.operator,
-              value: JSON.stringify(condition.value),
-              group_id: condition.group_id || defaultGroupId,
-              group_operator: condition.group_operator || null,
-              parent_group_id: condition.parent_group_id || null,
-              order_index:
-                condition.order_index !== undefined ? condition.order_index : i,
-              created_at: timestamp,
-              updated_at: timestamp,
-            })
+            // Type guard to check if condition is a group
+            type GroupCondition = {
+              predicate_type: 'group'
+              group_operator: 'AND' | 'OR' | 'NOT'
+              id?: number
+              parent_group_id?: number | null
+              order_index?: number
+            }
+
+            type RegularCondition = {
+              predicate_type: string
+              operator: string
+              value: any
+              group_id?: number | null
+              group_operator?: string | null
+              parent_group_id?: number | null
+              order_index?: number
+            }
+
+            const isGroupCondition = (
+              condition: GroupCondition | RegularCondition,
+            ): condition is GroupCondition => {
+              return condition.predicate_type === 'group'
+            }
+
+            // Build the insert data based on condition type
+            const insertData = isGroupCondition(condition)
+              ? {
+                  rule_id: ruleId,
+                  predicate_type: 'group',
+                  operator: 'EQUALS',
+                  value: JSON.stringify(true),
+                  group_id: null,
+                  group_operator: condition.group_operator,
+                  parent_group_id: condition.parent_group_id || null,
+                  order_index:
+                    condition.order_index !== undefined
+                      ? condition.order_index
+                      : i,
+                  created_at: timestamp,
+                  updated_at: timestamp,
+                }
+              : {
+                  rule_id: ruleId,
+                  predicate_type: condition.predicate_type,
+                  operator: condition.operator,
+                  value: JSON.stringify(condition.value),
+                  group_id: condition.group_id || defaultGroupId,
+                  group_operator: condition.group_operator || null,
+                  parent_group_id: condition.parent_group_id || null,
+                  order_index:
+                    condition.order_index !== undefined
+                      ? condition.order_index
+                      : i,
+                  created_at: timestamp,
+                  updated_at: timestamp,
+                }
+
+            await trx('router_conditions').insert(insertData)
           }
         }
 
@@ -4497,6 +4553,207 @@ export class DatabaseService {
       return deleted > 0
     } catch (error) {
       this.log.error(`Error deleting router rule ${id}:`, error)
+      throw error
+    }
+  }
+
+  /**
+   * Get all router rules by their type (predicate type)
+   *
+   * @param type - The rule type (e.g., 'genre', 'language', etc.)
+   * @param enabledOnly - Whether to include only enabled rules
+   * @returns Promise resolving to array of router rules with their conditions
+   */
+  async getRouterRulesByType(
+    type: string,
+    enabledOnly = true,
+  ): Promise<CompleteRouterRule[]> {
+    try {
+      // Query rules by type
+      const query = this.knex('router_rules').where('type', type)
+
+      if (enabledOnly) {
+        query.where('enabled', true)
+      }
+
+      const rules = await query.orderBy('weight', 'desc').orderBy('id', 'asc')
+
+      if (rules.length === 0) {
+        return []
+      }
+
+      // Get all rule IDs
+      const ruleIds = rules.map((rule) => rule.id)
+
+      // Get conditions for these rules
+      const conditions = await this.knex('router_conditions')
+        .whereIn('rule_id', ruleIds)
+        .orderBy('order_index', 'asc')
+
+      // Group conditions by rule ID
+      const conditionsByRuleId = conditions.reduce<
+        Record<number, RouterCondition[]>
+      >((acc, condition) => {
+        if (!acc[condition.rule_id]) {
+          acc[condition.rule_id] = []
+        }
+        acc[condition.rule_id].push(condition)
+        return acc
+      }, {})
+
+      // Combine rules with their conditions
+      const completeRules = rules.map((rule) => ({
+        ...rule,
+        criteria:
+          typeof rule.criteria === 'string'
+            ? JSON.parse(rule.criteria)
+            : rule.criteria || {},
+        enabled: Boolean(rule.enabled),
+        conditions: conditionsByRuleId[rule.id] || [],
+      }))
+
+      return completeRules
+    } catch (error) {
+      this.log.error(`Error getting router rules by type ${type}:`, error)
+      throw error
+    }
+  }
+
+  /**
+   * Gets all router rules
+   *
+   * @returns Promise resolving to array of all router rules with their conditions
+   */
+  async getAllRouterRules(): Promise<CompleteRouterRule[]> {
+    try {
+      // Get all rules
+      const rules = await this.knex('router_rules')
+        .orderBy('weight', 'desc')
+        .orderBy('id', 'asc')
+
+      if (rules.length === 0) {
+        return []
+      }
+
+      // Get the rule IDs
+      const ruleIds = rules.map((rule) => rule.id)
+
+      // Get all conditions for these rules
+      const conditions = await this.knex('router_conditions')
+        .whereIn('rule_id', ruleIds)
+        .orderBy('order_index', 'asc')
+
+      // Group conditions by rule_id
+      const conditionsByRuleId = conditions.reduce<
+        Record<number, RouterCondition[]>
+      >((acc, condition) => {
+        if (!acc[condition.rule_id]) {
+          acc[condition.rule_id] = []
+        }
+        acc[condition.rule_id].push(condition)
+        return acc
+      }, {})
+
+      // Combine rules with their conditions
+      const completeRules = rules.map((rule) => ({
+        ...rule,
+        criteria:
+          typeof rule.criteria === 'string'
+            ? JSON.parse(rule.criteria)
+            : rule.criteria || {},
+        enabled: Boolean(rule.enabled),
+        conditions: conditionsByRuleId[rule.id] || [],
+      }))
+
+      return completeRules
+    } catch (error) {
+      this.log.error('Error getting all router rules:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Gets router rules by target (instance type and ID)
+   *
+   * @param targetType - 'sonarr' or 'radarr'
+   * @param instanceId - ID of the instance
+   * @returns Promise resolving to array of router rules with their conditions
+   */
+  async getRouterRulesByTarget(
+    targetType: 'sonarr' | 'radarr',
+    instanceId: number,
+  ): Promise<CompleteRouterRule[]> {
+    try {
+      // Query for rules targeting this instance
+      const rules = await this.knex('router_rules')
+        .where({
+          target_type: targetType,
+          target_instance_id: instanceId,
+        })
+        .orderBy('weight', 'desc')
+        .orderBy('id', 'asc')
+
+      if (rules.length === 0) {
+        return []
+      }
+
+      // Get the rule IDs
+      const ruleIds = rules.map((rule) => rule.id)
+
+      // Get all conditions for these rules
+      const conditions = await this.knex('router_conditions')
+        .whereIn('rule_id', ruleIds)
+        .orderBy('order_index', 'asc')
+
+      // Group conditions by rule_id
+      const conditionsByRuleId = conditions.reduce<
+        Record<number, RouterCondition[]>
+      >((acc, condition) => {
+        if (!acc[condition.rule_id]) {
+          acc[condition.rule_id] = []
+        }
+        acc[condition.rule_id].push(condition)
+        return acc
+      }, {})
+
+      // Combine rules with their conditions
+      const completeRules = rules.map((rule) => ({
+        ...rule,
+        criteria:
+          typeof rule.criteria === 'string'
+            ? JSON.parse(rule.criteria)
+            : rule.criteria || {},
+        enabled: Boolean(rule.enabled),
+        conditions: conditionsByRuleId[rule.id] || [],
+      }))
+
+      return completeRules
+    } catch (error) {
+      this.log.error(
+        `Error getting router rules for ${targetType} instance ${instanceId}:`,
+        error,
+      )
+      throw error
+    }
+  }
+
+  /**
+   * Toggles a router rule's enabled status
+   *
+   * @param id - ID of the rule to toggle
+   * @param enabled - New enabled status
+   * @returns Promise resolving to true if successful, false otherwise
+   */
+  async toggleRouterRule(id: number, enabled: boolean): Promise<boolean> {
+    try {
+      const updated = await this.knex('router_rules').where('id', id).update({
+        enabled,
+        updated_at: new Date().toISOString(),
+      })
+
+      return updated > 0
+    } catch (error) {
+      this.log.error(`Error toggling router rule ${id}:`, error)
       throw error
     }
   }
