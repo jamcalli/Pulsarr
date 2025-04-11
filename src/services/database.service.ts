@@ -60,7 +60,10 @@ import type {
   IntervalConfig,
   CronConfig,
 } from '@root/types/scheduler.types.js'
-import type { RouterRule } from '@root/types/router.types.js'
+import type {
+  CompleteRouterRule,
+  RouterCondition,
+} from '@root/types/router-query.types.js'
 
 export class DatabaseService {
   private readonly knex: Knex
@@ -4148,264 +4151,57 @@ export class DatabaseService {
   //=============================================================================
 
   /**
-   * Retrieves all router rules
-   *
-   * @returns Promise resolving to array of all router rules
+   * Get all router rules by target type with their conditions
    */
-  async getAllRouterRules(): Promise<RouterRule[]> {
-    const rules = await this.knex('router_rules')
-      .select('*')
-      .orderBy('order', 'desc')
-      .orderBy('id', 'asc')
-
-    return rules.map((rule) => ({
-      ...rule,
-      enabled: Boolean(rule.enabled),
-      criteria:
-        typeof rule.criteria === 'string'
-          ? JSON.parse(rule.criteria)
-          : rule.criteria,
-      metadata: rule.metadata
-        ? typeof rule.metadata === 'string'
-          ? JSON.parse(rule.metadata)
-          : rule.metadata
-        : null,
-    }))
-  }
-
-  /**
-   * Retrieves a router rule by ID
-   *
-   * @param id - ID of the router rule to retrieve
-   * @returns Promise resolving to the router rule if found, null otherwise
-   */
-  async getRouterRuleById(id: number): Promise<RouterRule | null> {
-    const rule = await this.knex('router_rules').where('id', id).first()
-
-    if (!rule) return null
-
-    return {
-      ...rule,
-      enabled: Boolean(rule.enabled),
-      criteria:
-        typeof rule.criteria === 'string'
-          ? JSON.parse(rule.criteria)
-          : rule.criteria,
-      metadata: rule.metadata
-        ? typeof rule.metadata === 'string'
-          ? JSON.parse(rule.metadata)
-          : rule.metadata
-        : null,
-    }
-  }
-
-  /**
-   * Retrieves all router rules of a specific type
-   *
-   * @param type - Type of router rules to retrieve (e.g., 'genre', 'user')
-   * @param enabledOnly - Whether to retrieve only enabled rules (default: true)
-   * @returns Promise resolving to array of matching router rules
-   */
-  async getRouterRulesByType(
-    type: string,
-    enabledOnly = true,
-  ): Promise<RouterRule[]> {
-    const query = this.knex('router_rules').select('*').where('type', type)
-
-    if (enabledOnly) {
-      query.where('enabled', true)
-    }
-
-    const rules = await query.orderBy('order', 'desc').orderBy('id', 'asc')
-
-    return rules.map((rule) => ({
-      ...rule,
-      enabled: Boolean(rule.enabled),
-      criteria:
-        typeof rule.criteria === 'string'
-          ? JSON.parse(rule.criteria)
-          : rule.criteria,
-      metadata: rule.metadata
-        ? typeof rule.metadata === 'string'
-          ? JSON.parse(rule.metadata)
-          : rule.metadata
-        : null,
-    }))
-  }
-
-  /**
-   * Creates a new router rule
-   *
-   * @param rule - Router rule data excluding ID and timestamps
-   * @returns Promise resolving to the created router rule
-   */
-  async createRouterRule(
-    rule: Omit<RouterRule, 'id' | 'created_at' | 'updated_at'>,
-  ): Promise<RouterRule> {
-    const insertData = {
-      ...rule,
-      criteria: JSON.stringify(rule.criteria),
-      metadata: rule.metadata ? JSON.stringify(rule.metadata) : null,
-      created_at: this.timestamp,
-      updated_at: this.timestamp,
-    }
-
-    const [createdRule] = await this.knex('router_rules')
-      .insert(insertData)
-      .returning('*')
-
-    if (!createdRule) throw new Error('Failed to create router rule')
-
-    return {
-      ...createdRule,
-      enabled: Boolean(createdRule.enabled),
-      criteria:
-        typeof createdRule.criteria === 'string'
-          ? JSON.parse(createdRule.criteria)
-          : createdRule.criteria,
-      metadata: createdRule.metadata
-        ? typeof createdRule.metadata === 'string'
-          ? JSON.parse(createdRule.metadata)
-          : createdRule.metadata
-        : null,
-    }
-  }
-
-  /**
-   * Updates an existing router rule
-   *
-   * @param id - ID of the router rule to update
-   * @param updates - Partial router rule data to update
-   * @returns Promise resolving to the updated router rule
-   */
-  async updateRouterRule(
-    id: number,
-    updates: Partial<Omit<RouterRule, 'id' | 'created_at' | 'updated_at'>>,
-  ): Promise<RouterRule> {
-    const updateData: Record<string, unknown> = {
-      ...updates,
-      updated_at: this.timestamp,
-    }
-
-    if (updates.criteria !== undefined) {
-      updateData.criteria = JSON.stringify(updates.criteria)
-    }
-
-    if (updates.metadata !== undefined) {
-      updateData.metadata = updates.metadata
-        ? JSON.stringify(updates.metadata)
-        : null
-    }
-
-    const [updatedRule] = await this.knex('router_rules')
-      .where('id', id)
-      .update(updateData)
-      .returning('*')
-
-    if (!updatedRule) {
-      throw new Error(
-        `Router rule with ID ${id} not found or could not be updated`,
-      )
-    }
-
-    return {
-      ...updatedRule,
-      enabled: Boolean(updatedRule.enabled),
-      criteria:
-        typeof updatedRule.criteria === 'string'
-          ? JSON.parse(updatedRule.criteria)
-          : updatedRule.criteria,
-      metadata: updatedRule.metadata
-        ? typeof updatedRule.metadata === 'string'
-          ? JSON.parse(updatedRule.metadata)
-          : updatedRule.metadata
-        : null,
-    }
-  }
-
-  /**
-   * Deletes a router rule
-   *
-   * @param id - ID of the router rule to delete
-   * @returns Promise resolving to true if deleted, false otherwise
-   */
-  async deleteRouterRule(id: number): Promise<boolean> {
-    const deleted = await this.knex('router_rules').where('id', id).delete()
-    return deleted > 0
-  }
-
-  /**
-   * Retrieves router rules by target type and instance
-   *
-   * @param targetType - Target type ('sonarr' or 'radarr')
-   * @param instanceId - ID of the target instance
-   * @returns Promise resolving to array of matching router rules
-   */
-  async getRouterRulesByTarget(
+  async getRulesByTargetType(
     targetType: 'sonarr' | 'radarr',
-    instanceId: number,
-  ): Promise<RouterRule[]> {
-    const rules = await this.knex('router_rules')
-      .select('*')
-      .where({
-        target_type: targetType,
-        target_instance_id: instanceId,
-        enabled: true,
-      })
-      .orderBy('order', 'desc')
-      .orderBy('id', 'asc')
-
-    return rules.map((rule) => ({
-      ...rule,
-      enabled: Boolean(rule.enabled),
-      criteria:
-        typeof rule.criteria === 'string'
-          ? JSON.parse(rule.criteria)
-          : rule.criteria,
-      metadata: rule.metadata
-        ? typeof rule.metadata === 'string'
-          ? JSON.parse(rule.metadata)
-          : rule.metadata
-        : null,
-    }))
-  }
-
-  /**
-   * Retrieves router rules filtered by target type ('sonarr' or 'radarr')
-   *
-   * @param targetType - The target type ('sonarr' or 'radarr')
-   * @returns Promise resolving to array of matching router rules
-   */
-  async getRouterRulesByTargetType(
-    targetType: 'sonarr' | 'radarr',
-  ): Promise<RouterRule[]> {
+  ): Promise<CompleteRouterRule[]> {
     try {
+      // First get all rules for the target type
       const rules = await this.knex('router_rules')
-        .select('*')
         .where('target_type', targetType)
-        .orderBy('order', 'desc')
+        .where('enabled', true)
+        .orderBy('weight', 'desc')
         .orderBy('id', 'asc')
 
-      this.log.debug(
-        `Found ${rules.length} router rules for target type: ${targetType}`,
-      )
+      if (rules.length === 0) {
+        return []
+      }
 
-      return rules.map((rule) => ({
+      // Get the rule IDs
+      const ruleIds = rules.map((rule) => rule.id)
+
+      // Get all conditions for these rules
+      const conditions = await this.knex('router_conditions')
+        .whereIn('rule_id', ruleIds)
+        .orderBy('order_index', 'asc')
+
+      // Group conditions by rule_id
+      const conditionsByRuleId = conditions.reduce<
+        Record<number, RouterCondition[]>
+      >((acc, condition) => {
+        if (!acc[condition.rule_id]) {
+          acc[condition.rule_id] = []
+        }
+        acc[condition.rule_id].push(condition)
+        return acc
+      }, {})
+
+      // Combine rules with their conditions
+      const completeRules = rules.map((rule) => ({
         ...rule,
-        enabled: Boolean(rule.enabled),
         criteria:
           typeof rule.criteria === 'string'
             ? JSON.parse(rule.criteria)
-            : rule.criteria,
-        metadata: rule.metadata
-          ? typeof rule.metadata === 'string'
-            ? JSON.parse(rule.metadata)
-            : rule.metadata
-          : null,
+            : rule.criteria || {},
+        enabled: Boolean(rule.enabled),
+        conditions: conditionsByRuleId[rule.id] || [],
       }))
+
+      return completeRules
     } catch (error) {
       this.log.error(
-        `Error fetching router rules by target type ${targetType}:`,
+        `Error getting router rules by target type ${targetType}:`,
         error,
       )
       throw error
@@ -4413,39 +4209,295 @@ export class DatabaseService {
   }
 
   /**
-   * Toggles the enabled state of a router rule
-   *
-   * @param id - ID of the router rule to toggle
-   * @param enabled - New enabled state (true to enable, false to disable)
-   * @returns Promise resolving to the updated router rule
+   * Creates a new router rule with conditions
    */
-  async toggleRouterRule(id: number, enabled: boolean): Promise<RouterRule> {
-    const [updatedRule] = await this.knex('router_rules')
-      .where('id', id)
-      .update({
-        enabled,
-        updated_at: this.timestamp,
+  async createRouterRule(
+    rule: {
+      name: string
+      description?: string
+      target_type: 'sonarr' | 'radarr'
+      target_instance_id: number
+      quality_profile?: number | null
+      root_folder?: string | null
+      weight?: number
+      enabled?: boolean
+      query_type?: 'legacy' | 'query-builder'
+    },
+    conditions: Array<{
+      predicate_type: string
+      operator: string
+      value: any
+      group_id?: number | null
+      group_operator?: string | null
+      parent_group_id?: number | null
+      order_index?: number
+    }> = [],
+  ): Promise<CompleteRouterRule> {
+    try {
+      return await this.knex.transaction(async (trx) => {
+        const timestamp = new Date().toISOString()
+
+        // Create the rule
+        const [ruleId] = await trx('router_rules')
+          .insert({
+            name: rule.name,
+            description: rule.description || null,
+            target_type: rule.target_type,
+            target_instance_id: rule.target_instance_id,
+            quality_profile: rule.quality_profile || null,
+            root_folder: rule.root_folder || null,
+            weight: rule.weight || 50,
+            enabled: rule.enabled !== undefined ? rule.enabled : true,
+            query_type: rule.query_type || 'query-builder',
+            criteria: JSON.stringify({}), // Empty criteria for new query-builder rules
+            created_at: timestamp,
+            updated_at: timestamp,
+          })
+          .returning('id')
+
+        // Create a default group if conditions are provided
+        let defaultGroupId: number | null = null
+
+        if (conditions.length > 0) {
+          // Create a default group
+          const [groupConditionId] = await trx('router_conditions')
+            .insert({
+              rule_id: ruleId,
+              predicate_type: 'group',
+              operator: 'EQUALS',
+              value: JSON.stringify(true),
+              group_operator: 'AND',
+              parent_group_id: null,
+              order_index: 0,
+              created_at: timestamp,
+              updated_at: timestamp,
+            })
+            .returning('id')
+
+          defaultGroupId = groupConditionId
+
+          // Insert each condition
+          for (let i = 0; i < conditions.length; i++) {
+            const condition = conditions[i]
+
+            await trx('router_conditions').insert({
+              rule_id: ruleId,
+              predicate_type: condition.predicate_type,
+              operator: condition.operator,
+              value: JSON.stringify(condition.value),
+              group_id: condition.group_id || defaultGroupId,
+              group_operator: condition.group_operator || null,
+              parent_group_id: condition.parent_group_id || null,
+              order_index:
+                condition.order_index !== undefined ? condition.order_index : i,
+              created_at: timestamp,
+              updated_at: timestamp,
+            })
+          }
+        }
+
+        // Return the complete rule
+        const createdRule = await this.getRouterRuleById(ruleId)
+        if (!createdRule) {
+          throw new Error(`Failed to retrieve created rule with ID ${ruleId}`)
+        }
+
+        return createdRule
       })
-      .returning('*')
-
-    if (!updatedRule) {
-      throw new Error(
-        `Router rule with ID ${id} not found or could not be updated`,
-      )
+    } catch (error) {
+      this.log.error(`Error creating router rule:`, error)
+      throw error
     }
+  }
 
-    return {
-      ...updatedRule,
-      enabled: Boolean(updatedRule.enabled),
-      criteria:
-        typeof updatedRule.criteria === 'string'
-          ? JSON.parse(updatedRule.criteria)
-          : updatedRule.criteria,
-      metadata: updatedRule.metadata
-        ? typeof updatedRule.metadata === 'string'
-          ? JSON.parse(updatedRule.metadata)
-          : updatedRule.metadata
-        : null,
+  /**
+   * Gets a router rule by ID with all its conditions
+   */
+  async getRouterRuleById(id: number): Promise<CompleteRouterRule | null> {
+    try {
+      // Get the rule
+      const rule = await this.knex('router_rules').where('id', id).first()
+
+      if (!rule) {
+        return null
+      }
+
+      // Get all conditions for the rule
+      const conditions = await this.knex('router_conditions')
+        .where('rule_id', id)
+        .orderBy('order_index', 'asc')
+
+      // Return the complete rule
+      return {
+        ...rule,
+        criteria:
+          typeof rule.criteria === 'string'
+            ? JSON.parse(rule.criteria)
+            : rule.criteria || {},
+        enabled: Boolean(rule.enabled),
+        conditions,
+      }
+    } catch (error) {
+      this.log.error(`Error getting router rule by ID ${id}:`, error)
+      throw error
+    }
+  }
+
+  /**
+   * Updates a router rule's conditions
+   */
+  async updateRouterRuleConditions(
+    ruleId: number,
+    conditions: Array<{
+      id?: number
+      predicate_type: string
+      operator: string
+      value: any
+      group_id?: number | null
+      group_operator?: string | null
+      parent_group_id?: number | null
+      order_index?: number
+    }>,
+  ): Promise<CompleteRouterRule | null> {
+    try {
+      return await this.knex.transaction(async (trx) => {
+        // Check if the rule exists
+        const rule = await trx('router_rules').where('id', ruleId).first()
+
+        if (!rule) {
+          return null
+        }
+
+        const timestamp = new Date().toISOString()
+
+        // Get existing conditions
+        const existingConditions = await trx('router_conditions')
+          .where('rule_id', ruleId)
+          .select('id')
+
+        const existingIds = new Set(existingConditions.map((c) => c.id))
+        const processedIds = new Set<number>()
+
+        // Process each condition
+        for (const condition of conditions) {
+          // If condition has an ID, it's an update
+          if ('id' in condition && condition.id) {
+            if (existingIds.has(condition.id)) {
+              // Update existing condition
+              await trx('router_conditions')
+                .where('id', condition.id)
+                .update({
+                  predicate_type: condition.predicate_type,
+                  operator: condition.operator,
+                  value: JSON.stringify(condition.value),
+                  group_id: condition.group_id,
+                  group_operator: condition.group_operator,
+                  parent_group_id: condition.parent_group_id,
+                  order_index: condition.order_index,
+                  updated_at: timestamp,
+                })
+
+              processedIds.add(condition.id)
+            }
+          } else {
+            // Create new condition
+            await trx('router_conditions').insert({
+              rule_id: ruleId,
+              predicate_type: condition.predicate_type,
+              operator: condition.operator,
+              value: JSON.stringify(condition.value),
+              group_id: condition.group_id || null,
+              group_operator: condition.group_operator || null,
+              parent_group_id: condition.parent_group_id || null,
+              order_index: condition.order_index || 0,
+              created_at: timestamp,
+              updated_at: timestamp,
+            })
+          }
+        }
+
+        // Delete conditions that weren't processed
+        const idsToDelete = Array.from(existingIds).filter(
+          (id) => !processedIds.has(id),
+        )
+
+        if (idsToDelete.length > 0) {
+          await trx('router_conditions').whereIn('id', idsToDelete).delete()
+        }
+
+        // Update the rule's timestamp
+        await trx('router_rules').where('id', ruleId).update({
+          updated_at: timestamp,
+        })
+
+        // Return the updated rule
+        const updatedRule = await this.getRouterRuleById(ruleId)
+
+        if (!updatedRule) {
+          throw new Error(`Failed to retrieve updated rule with ID ${ruleId}`)
+        }
+
+        return updatedRule
+      })
+    } catch (error) {
+      this.log.error(`Error updating conditions for rule ID ${ruleId}:`, error)
+      throw error
+    }
+  }
+
+  /**
+   * Updates a router rule
+   */
+  async updateRouterRule(
+    id: number,
+    updates: {
+      name?: string
+      description?: string | null
+      target_instance_id?: number
+      quality_profile?: number | null
+      root_folder?: string | null
+      weight?: number
+      enabled?: boolean
+    },
+  ): Promise<CompleteRouterRule | null> {
+    try {
+      // Check if the rule exists
+      const rule = await this.knex('router_rules').where('id', id).first()
+
+      if (!rule) {
+        return null
+      }
+
+      // Update the rule
+      const timestamp = new Date().toISOString()
+
+      await this.knex('router_rules')
+        .where('id', id)
+        .update({
+          ...updates,
+          updated_at: timestamp,
+        })
+
+      // Return the updated rule
+      return this.getRouterRuleById(id)
+    } catch (error) {
+      this.log.error(`Error updating router rule ${id}:`, error)
+      throw error
+    }
+  }
+
+  /**
+   * Deletes a router rule and all its conditions
+   */
+  async deleteRouterRule(id: number): Promise<boolean> {
+    try {
+      // The foreign key constraint will cascade and delete the conditions
+      const deleted = await this.knex('router_rules').where('id', id).delete()
+
+      return deleted > 0
+    } catch (error) {
+      this.log.error(`Error deleting router rule ${id}:`, error)
+      throw error
     }
   }
 }
