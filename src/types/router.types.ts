@@ -47,6 +47,7 @@ export interface RouterRule {
   metadata?: Record<string, CriteriaValue> | null
   created_at: string
   updated_at: string
+  query_type: 'legacy' | 'query-builder'
 }
 
 export interface UserCriteria {
