@@ -206,7 +206,13 @@ export class ContentRouterService {
         this.log.warn(
           `No routing decisions returned from any plugin for "${item.title}", using default routing`,
         )
-        await this.routeUsingDefault(item, key, contentType, options.syncing)
+        const defaultRoutedInstances = await this.routeUsingDefault(
+          item,
+          key,
+          contentType,
+          options.syncing,
+        )
+        routedInstances.push(...defaultRoutedInstances)
       }
 
       return { routedInstances }
@@ -291,26 +297,200 @@ export class ContentRouterService {
     return { routedInstances }
   }
 
+  /**
+   * Routes an item using the default instance and handles syncing to other instances
+   *
+   * This method is called when no specific routing rules matched the item.
+   * It routes the item to the default instance, and if the default instance
+   * is configured to sync with other instances, it routes the item to those instances as well.
+   *
+   * @param item - Content item to route
+   * @param key - Unique key of the watchlist item
+   * @param contentType - Type of content ('movie' or 'show')
+   * @param syncing - Whether this routing is part of a sync operation
+   * @returns Promise resolving to an array of instance IDs the item was routed to
+   */
   private async routeUsingDefault(
     item: ContentItem,
     key: string,
     contentType: 'movie' | 'show',
     syncing?: boolean,
-  ): Promise<void> {
-    if (contentType === 'movie') {
-      await this.fastify.radarrManager.routeItemToRadarr(
-        item as RadarrItem,
-        key,
-        undefined,
-        syncing,
-      )
-    } else {
-      await this.fastify.sonarrManager.routeItemToSonarr(
-        item as SonarrItem,
-        key,
-        undefined,
-        syncing,
-      )
+  ): Promise<number[]> {
+    try {
+      const routedInstances: number[] = []
+
+      if (contentType === 'movie') {
+        // Get the default Radarr instance
+        const defaultInstance = await this.fastify.db.getDefaultRadarrInstance()
+
+        if (!defaultInstance) {
+          this.log.warn('No default Radarr instance found for routing')
+          return routedInstances
+        }
+
+        // Route to the default instance first
+        await this.fastify.radarrManager.routeItemToRadarr(
+          item as RadarrItem,
+          key,
+          defaultInstance.id,
+          syncing,
+        )
+        routedInstances.push(defaultInstance.id)
+
+        // Check if default instance has synced instances
+        const syncedInstanceIds = Array.isArray(defaultInstance.syncedInstances)
+          ? defaultInstance.syncedInstances
+          : typeof defaultInstance.syncedInstances === 'string'
+            ? JSON.parse(defaultInstance.syncedInstances || '[]')
+            : []
+
+        if (syncedInstanceIds.length > 0) {
+          this.log.info(
+            `Default Radarr instance ${defaultInstance.id} is configured to sync with ${syncedInstanceIds.length} other instance(s), adding item to synced instances`,
+          )
+
+          // Get existing Radarr instances
+          const allInstances = await this.fastify.db.getAllRadarrInstances()
+
+          // Map instance IDs to instances for easy lookup
+          const instanceMap = new Map(
+            allInstances.map((instance) => [instance.id, instance]),
+          )
+
+          // Process each synced instance
+          for (const syncedId of syncedInstanceIds) {
+            if (routedInstances.includes(syncedId)) {
+              this.log.debug(
+                `Skipping already routed Radarr instance ${syncedId}`,
+              )
+              continue
+            }
+
+            const syncedInstance = instanceMap.get(syncedId)
+            if (!syncedInstance) {
+              this.log.warn(`Synced Radarr instance ${syncedId} not found`)
+              continue
+            }
+
+            try {
+              // Convert rootFolder from string|null|undefined to string|undefined
+              const rootFolder =
+                syncedInstance.rootFolder === null
+                  ? undefined
+                  : syncedInstance.rootFolder
+
+              // Convert qualityProfile if needed
+              const qualityProfile = syncedInstance.qualityProfile
+
+              this.log.info(
+                `Routing item "${item.title}" to synced Radarr instance ${syncedId}`,
+              )
+              await this.fastify.radarrManager.routeItemToRadarr(
+                item as RadarrItem,
+                key,
+                syncedId,
+                syncing,
+                rootFolder,
+                qualityProfile,
+              )
+              routedInstances.push(syncedId)
+            } catch (syncError) {
+              this.log.error(
+                `Error routing to synced Radarr instance ${syncedId}:`,
+                syncError,
+              )
+            }
+          }
+        }
+      } else {
+        // Get the default Sonarr instance
+        const defaultInstance = await this.fastify.db.getDefaultSonarrInstance()
+
+        if (!defaultInstance) {
+          this.log.warn('No default Sonarr instance found for routing')
+          return routedInstances
+        }
+
+        // Route to the default instance first
+        await this.fastify.sonarrManager.routeItemToSonarr(
+          item as SonarrItem,
+          key,
+          defaultInstance.id,
+          syncing,
+        )
+        routedInstances.push(defaultInstance.id)
+
+        // Check if default instance has synced instances
+        const syncedInstanceIds = Array.isArray(defaultInstance.syncedInstances)
+          ? defaultInstance.syncedInstances
+          : typeof defaultInstance.syncedInstances === 'string'
+            ? JSON.parse(defaultInstance.syncedInstances || '[]')
+            : []
+
+        if (syncedInstanceIds.length > 0) {
+          this.log.info(
+            `Default Sonarr instance ${defaultInstance.id} is configured to sync with ${syncedInstanceIds.length} other instance(s), adding item to synced instances`,
+          )
+
+          // Get existing Sonarr instances
+          const allInstances = await this.fastify.db.getAllSonarrInstances()
+
+          // Map instance IDs to instances for easy lookup
+          const instanceMap = new Map(
+            allInstances.map((instance) => [instance.id, instance]),
+          )
+
+          // Process each synced instance
+          for (const syncedId of syncedInstanceIds) {
+            if (routedInstances.includes(syncedId)) {
+              this.log.debug(
+                `Skipping already routed Sonarr instance ${syncedId}`,
+              )
+              continue
+            }
+
+            const syncedInstance = instanceMap.get(syncedId)
+            if (!syncedInstance) {
+              this.log.warn(`Synced Sonarr instance ${syncedId} not found`)
+              continue
+            }
+
+            try {
+              // Convert rootFolder from string|null|undefined to string|undefined
+              const rootFolder =
+                syncedInstance.rootFolder === null
+                  ? undefined
+                  : syncedInstance.rootFolder
+
+              // Convert qualityProfile if needed
+              const qualityProfile = syncedInstance.qualityProfile
+
+              this.log.info(
+                `Routing item "${item.title}" to synced Sonarr instance ${syncedId}`,
+              )
+              await this.fastify.sonarrManager.routeItemToSonarr(
+                item as SonarrItem,
+                key,
+                syncedId,
+                syncing,
+                rootFolder,
+                qualityProfile,
+              )
+              routedInstances.push(syncedId)
+            } catch (syncError) {
+              this.log.error(
+                `Error routing to synced Sonarr instance ${syncedId}:`,
+                syncError,
+              )
+            }
+          }
+        }
+      }
+
+      return routedInstances
+    } catch (error) {
+      this.log.error(`Error in routeUsingDefault: ${error}`)
+      return []
     }
   }
 
