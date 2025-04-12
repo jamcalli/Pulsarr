@@ -4,34 +4,7 @@ import type {
   RouterPlugin,
   RoutingContext,
   RoutingDecision,
-  UserCriteria,
 } from '@root/types/router.types.js'
-
-/**
- * Determines whether the given value conforms to the UserCriteria structure.
- *
- * This type guard validates that the input is a non-null object containing at least one of the
- * properties `ids` or `names`. If the `ids` property is present, it must be either a number or an array
- * of numbers. Similarly, if the `names` property is present, it must be a string or an array of strings.
- *
- * @param value - The value to validate as a UserCriteria.
- * @returns True if the value satisfies the UserCriteria structure, false otherwise.
- */
-function isUserCriteria(value: unknown): value is UserCriteria {
-  if (!value || typeof value !== 'object') return false
-  const criteria = value as UserCriteria
-  return (
-    ('ids' in criteria || 'names' in criteria) &&
-    (!('ids' in criteria) ||
-      typeof criteria.ids === 'number' ||
-      (Array.isArray(criteria.ids) &&
-        criteria.ids.every((id) => typeof id === 'number'))) &&
-    (!('names' in criteria) ||
-      typeof criteria.names === 'string' ||
-      (Array.isArray(criteria.names) &&
-        criteria.names.every((name) => typeof name === 'string')))
-  )
-}
 
 /**
  * Creates a router plugin for user-based content routing.
@@ -74,36 +47,26 @@ export default function createUserRouterPlugin(
 
       // Find matching rules based on user criteria
       const matchingRules = contentTypeRules.filter((rule) => {
-        const userCriteria = rule.criteria.users
-
-        if (!isUserCriteria(userCriteria)) {
+        // Check if rule.criteria has a users property
+        if (!rule.criteria || !rule.criteria.users) {
           return false
         }
 
-        // Handle user IDs
-        if (context.userId && userCriteria.ids) {
-          const criteriaIds = Array.isArray(userCriteria.ids)
-            ? userCriteria.ids
-            : [userCriteria.ids]
+        const usersArray = Array.isArray(rule.criteria.users)
+          ? rule.criteria.users
+          : [rule.criteria.users]
 
-          const contextIds = Array.isArray(context.userId)
-            ? context.userId
-            : [context.userId]
-
-          return contextIds.some((id) => criteriaIds.includes(id))
+        // Check if context.userId matches any user in the list
+        if (context.userId) {
+          const userIdStr = context.userId.toString()
+          if (usersArray.includes(userIdStr)) {
+            return true
+          }
         }
 
-        // Handle usernames
-        if (context.userName && userCriteria.names) {
-          const criteriaNames = Array.isArray(userCriteria.names)
-            ? userCriteria.names
-            : [userCriteria.names]
-
-          const contextNames = Array.isArray(context.userName)
-            ? context.userName
-            : [context.userName]
-
-          return contextNames.some((name) => criteriaNames.includes(name))
+        // Check if context.userName matches any user in the list
+        if (context.userName && usersArray.includes(context.userName)) {
+          return true
         }
 
         return false
