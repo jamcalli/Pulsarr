@@ -10,6 +10,8 @@ import type {
 } from '@root/types/router.types.js'
 import type { SonarrItem } from '@root/types/sonarr.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
+import type { RadarrInstance } from '@root/types/radarr.types.js'
+import type { SonarrInstance } from '@root/types/sonarr.types.js'
 
 export class ContentRouterService {
   private plugins: RouterPlugin[] = []
@@ -206,7 +208,16 @@ export class ContentRouterService {
         this.log.warn(
           `No routing decisions returned from any plugin for "${item.title}", using default routing`,
         )
-        await this.routeUsingDefault(item, key, contentType, options.syncing)
+        const defaultRoutedInstances = await this.routeUsingDefault(
+          item,
+          key,
+          contentType,
+          options.syncing,
+        )
+        this.log.debug(
+          `Default routing returned ${defaultRoutedInstances.length} instances: [${defaultRoutedInstances.join(', ')}]`,
+        )
+        routedInstances.push(...defaultRoutedInstances)
       }
 
       return { routedInstances }
@@ -291,26 +302,208 @@ export class ContentRouterService {
     return { routedInstances }
   }
 
+  /**
+   * Routes an item using the default instance and handles syncing to other instances
+   *
+   * This method is called when no specific routing rules matched the item.
+   * It routes the item to the default instance, and if the default instance
+   * is configured to sync with other instances, it routes the item to those instances as well.
+   *
+   * @param item - Content item to route
+   * @param key - Unique key of the watchlist item
+   * @param contentType - Type of content ('movie' or 'show')
+   * @param syncing - Whether this routing is part of a sync operation
+   * @returns Promise resolving to an array of instance IDs the item was routed to.
+   *          The array will contain the default instance ID first (if successful),
+   *          followed by any synced instance IDs that were successfully routed to.
+   *          Returns an empty array if routing fails.
+   */
   private async routeUsingDefault(
     item: ContentItem,
     key: string,
     contentType: 'movie' | 'show',
     syncing?: boolean,
+  ): Promise<number[]> {
+    try {
+      const routedInstances: number[] = []
+
+      if (contentType === 'movie') {
+        // Handle routing for Radarr
+        await this.routeUsingDefaultHelper<RadarrInstance, RadarrItem>(
+          item as RadarrItem,
+          key,
+          'radarr',
+          routedInstances,
+          syncing,
+        )
+      } else {
+        // Handle routing for Sonarr
+        await this.routeUsingDefaultHelper<SonarrInstance, SonarrItem>(
+          item as SonarrItem,
+          key,
+          'sonarr',
+          routedInstances,
+          syncing,
+        )
+      }
+
+      return routedInstances
+    } catch (error) {
+      this.log.error(`Error in routeUsingDefault for ${item.title}: ${error}`, {
+        item_title: item.title,
+        content_type: contentType,
+        error_message: error instanceof Error ? error.message : String(error),
+        error_stack: error instanceof Error ? error.stack : undefined,
+      })
+      // Return empty array to avoid cascading failures
+      return []
+    }
+  }
+
+  /**
+   * Helper method that implements the common logic for routing to default and synced instances
+   *
+   * @param item - The content item to route (either RadarrItem or SonarrItem)
+   * @param key - Unique key of the watchlist item
+   * @param instanceType - Type of instance ('radarr' or 'sonarr')
+   * @param routedInstances - Array to collect successfully routed instance IDs
+   * @param syncing - Whether this routing is part of a sync operation
+   */
+  private async routeUsingDefaultHelper<
+    T extends RadarrInstance | SonarrInstance,
+    I extends RadarrItem | SonarrItem,
+  >(
+    item: I,
+    key: string,
+    instanceType: 'radarr' | 'sonarr',
+    routedInstances: number[],
+    syncing?: boolean,
   ): Promise<void> {
-    if (contentType === 'movie') {
-      await this.fastify.radarrManager.routeItemToRadarr(
-        item as RadarrItem,
-        key,
-        undefined,
-        syncing,
+    // Get default instance based on type
+    const defaultInstance =
+      instanceType === 'radarr'
+        ? await this.fastify.db.getDefaultRadarrInstance()
+        : await this.fastify.db.getDefaultSonarrInstance()
+
+    if (!defaultInstance) {
+      this.log.warn(
+        `No default ${instanceType.charAt(0).toUpperCase() + instanceType.slice(1)} instance found for routing`,
       )
-    } else {
-      await this.fastify.sonarrManager.routeItemToSonarr(
-        item as SonarrItem,
-        key,
-        undefined,
-        syncing,
+      return
+    }
+
+    // Route to default instance
+    try {
+      if (instanceType === 'radarr') {
+        await this.fastify.radarrManager.routeItemToRadarr(
+          item as RadarrItem,
+          key,
+          defaultInstance.id,
+          syncing,
+        )
+      } else {
+        await this.fastify.sonarrManager.routeItemToSonarr(
+          item as SonarrItem,
+          key,
+          defaultInstance.id,
+          syncing,
+        )
+      }
+      routedInstances.push(defaultInstance.id)
+    } catch (error) {
+      this.log.error(
+        `Error routing "${item.title}" to default ${instanceType} instance ${defaultInstance.id}:`,
+        error,
       )
+      // Continue processing synced instances even if default instance fails
+    }
+
+    // Check for synced instances
+    const syncedInstanceIds = Array.isArray(defaultInstance.syncedInstances)
+      ? defaultInstance.syncedInstances
+      : typeof defaultInstance.syncedInstances === 'string'
+        ? JSON.parse(defaultInstance.syncedInstances || '[]')
+        : []
+
+    if (syncedInstanceIds.length === 0) {
+      return
+    }
+
+    const capitalizedType =
+      instanceType.charAt(0).toUpperCase() + instanceType.slice(1)
+    this.log.info(
+      `Default ${capitalizedType} instance ${defaultInstance.id} is configured to sync with ${syncedInstanceIds.length} other instance(s), adding item to synced instances`,
+    )
+
+    // Get all instances based on type
+    const allInstances =
+      instanceType === 'radarr'
+        ? await this.fastify.db.getAllRadarrInstances()
+        : await this.fastify.db.getAllSonarrInstances()
+
+    // Map instance IDs to instances for easy lookup
+    const instanceMap = new Map(
+      allInstances.map((instance) => [instance.id, instance]),
+    )
+
+    // Process each synced instance
+    for (const syncedId of syncedInstanceIds) {
+      if (routedInstances.includes(syncedId)) {
+        this.log.debug(
+          `Skipping already routed ${capitalizedType} instance ${syncedId}`,
+        )
+        continue
+      }
+
+      const syncedInstance = instanceMap.get(syncedId) as T | undefined
+      if (!syncedInstance) {
+        this.log.warn(
+          `Synced ${capitalizedType} instance ${syncedId} not found`,
+        )
+        continue
+      }
+
+      try {
+        // Convert rootFolder from string|null|undefined to string|undefined
+        const rootFolder =
+          syncedInstance.rootFolder === null
+            ? undefined
+            : syncedInstance.rootFolder
+
+        // Use the quality profile from the synced instance
+        const qualityProfile = syncedInstance.qualityProfile
+
+        this.log.info(
+          `Routing item "${item.title}" to synced ${capitalizedType} instance ${syncedId}`,
+        )
+
+        if (instanceType === 'radarr') {
+          await this.fastify.radarrManager.routeItemToRadarr(
+            item as RadarrItem,
+            key,
+            syncedId,
+            syncing,
+            rootFolder,
+            qualityProfile,
+          )
+        } else {
+          await this.fastify.sonarrManager.routeItemToSonarr(
+            item as SonarrItem,
+            key,
+            syncedId,
+            syncing,
+            rootFolder,
+            qualityProfile,
+          )
+        }
+        routedInstances.push(syncedId)
+      } catch (syncError) {
+        this.log.error(
+          `Error routing to synced ${capitalizedType} instance ${syncedId}:`,
+          syncError,
+        )
+        // Continue processing other synced instances even if one fails
+      }
     }
   }
 
