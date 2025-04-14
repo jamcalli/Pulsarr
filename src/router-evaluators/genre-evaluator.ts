@@ -6,8 +6,8 @@ import type {
   RoutingEvaluator,
   Condition,
   ConditionGroup,
-  ComparisonOperator,
-  RouterRule,
+  FieldInfo,
+  OperatorInfo,
 } from '@root/types/router.types.js'
 
 // Type guard for string array
@@ -28,10 +28,89 @@ function isValidGenreValue(value: unknown): value is string | string[] {
 export default function createGenreEvaluator(
   fastify: FastifyInstance,
 ): RoutingEvaluator {
+  // Define metadata about the supported fields and operators
+  const supportedFields: FieldInfo[] = [
+    {
+      name: 'genres',
+      description: 'Genre categories of the content',
+      valueTypes: ['string', 'string[]'],
+    },
+    {
+      name: 'genre',
+      description: 'Alternative field name for content genres',
+      valueTypes: ['string', 'string[]'],
+    },
+  ]
+
+  const supportedOperators: Record<string, OperatorInfo[]> = {
+    genres: [
+      {
+        name: 'contains',
+        description: 'Content genre list contains this genre',
+        valueTypes: ['string'],
+      },
+      {
+        name: 'in',
+        description: 'Content has at least one of these genres',
+        valueTypes: ['string[]'],
+        valueFormat: 'Array of genre names, e.g. ["Action", "Thriller"]',
+      },
+      {
+        name: 'notContains',
+        description: "Content genre list doesn't contain this genre",
+        valueTypes: ['string'],
+      },
+      {
+        name: 'notIn',
+        description: "Content doesn't have any of these genres",
+        valueTypes: ['string[]'],
+        valueFormat: 'Array of genre names, e.g. ["Horror", "Comedy"]',
+      },
+      {
+        name: 'equals',
+        description: 'Content genres exactly match the provided genres',
+        valueTypes: ['string', 'string[]'],
+        valueFormat: 'Single genre or array of all expected genres',
+      },
+    ],
+    genre: [
+      {
+        name: 'contains',
+        description: 'Content genre list contains this genre',
+        valueTypes: ['string'],
+      },
+      {
+        name: 'in',
+        description: 'Content has at least one of these genres',
+        valueTypes: ['string[]'],
+        valueFormat: 'Array of genre names, e.g. ["Action", "Thriller"]',
+      },
+      {
+        name: 'notContains',
+        description: "Content genre list doesn't contain this genre",
+        valueTypes: ['string'],
+      },
+      {
+        name: 'notIn',
+        description: "Content doesn't have any of these genres",
+        valueTypes: ['string[]'],
+        valueFormat: 'Array of genre names, e.g. ["Horror", "Comedy"]',
+      },
+      {
+        name: 'equals',
+        description: 'Content genres exactly match the provided genres',
+        valueTypes: ['string', 'string[]'],
+        valueFormat: 'Single genre or array of all expected genres',
+      },
+    ],
+  }
+
   return {
     name: 'Genre Router',
     description: 'Routes content based on genre matching rules',
     priority: 80,
+    supportedFields,
+    supportedOperators,
 
     async canEvaluate(
       item: ContentItem,

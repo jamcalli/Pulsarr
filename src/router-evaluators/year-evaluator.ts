@@ -6,7 +6,6 @@ import type {
   RoutingEvaluator,
   Condition,
   ConditionGroup,
-  ComparisonOperator,
   FieldInfo,
   OperatorInfo,
 } from '@root/types/router.types.js'
