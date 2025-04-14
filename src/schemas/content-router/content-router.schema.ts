@@ -3,23 +3,24 @@ import { z } from 'zod'
 // Base schemas for conditions
 const ComparisonOperatorSchema = z.enum([
   'equals',
-  'not_equals',
+  'notEquals',
   'contains',
-  'not_contains',
+  'notContains',
   'in',
-  'not_in',
-  'greater_than',
-  'less_than',
+  'notIn',
+  'greaterThan',
+  'lessThan',
   'between',
 ])
 
+// Define schemas recursively for nested conditions
 const ConditionSchema: z.ZodType = z.lazy(() =>
   z.object({
     field: z.string(),
     operator: ComparisonOperatorSchema,
-    value: z.unknown(),
+    value: z.unknown(), // Allow any value type to support different evaluators
     negate: z.boolean().optional().default(false),
-  })
+  }),
 )
 
 const ConditionGroupSchema: z.ZodType = z.lazy(() =>
@@ -27,7 +28,7 @@ const ConditionGroupSchema: z.ZodType = z.lazy(() =>
     operator: z.enum(['AND', 'OR']),
     conditions: z.array(z.union([ConditionSchema, ConditionGroupSchema])),
     negate: z.boolean().optional().default(false),
-  })
+  }),
 )
 
 // Base router rule schema
@@ -45,11 +46,13 @@ const BaseRouterRuleSchema = z.object({
 // Plugin schema
 export const ContentRouterPluginsResponseSchema = z.object({
   success: z.boolean(),
-  plugins: z.array(z.object({
-    name: z.string(),
-    description: z.string().optional(),
-    version: z.string().optional()
-  }))
+  plugins: z.array(
+    z.object({
+      name: z.string(),
+      description: z.string().optional(),
+      version: z.string().optional(),
+    }),
+  ),
 })
 
 // Schema for creating a new rule
@@ -90,8 +93,11 @@ export const ContentRouterRuleSuccessSchema = z.object({
 export const ContentRouterRuleErrorSchema = z.object({
   success: z.literal(false),
   message: z.string(),
+  rules: z.array(RouterRuleSchema).optional(),
 })
 
 // Export types
 export type ContentRouterRule = z.infer<typeof RouterRuleSchema>
-export type ContentRouterRuleUpdate = z.infer<typeof ContentRouterRuleUpdateSchema>
+export type ContentRouterRuleUpdate = z.infer<
+  typeof ContentRouterRuleUpdateSchema
+>
