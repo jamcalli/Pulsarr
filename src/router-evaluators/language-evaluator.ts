@@ -6,6 +6,8 @@ import type {
   RoutingEvaluator,
   Condition,
   ConditionGroup,
+  FieldInfo,
+  OperatorInfo,
 } from '@root/types/router.types.js'
 import {
   isRadarrResponse,
@@ -15,6 +17,71 @@ import {
 export default function createLanguageEvaluator(
   fastify: FastifyInstance,
 ): RoutingEvaluator {
+  // Define metadata about the supported fields and operators
+  const supportedFields: FieldInfo[] = [
+    {
+      name: 'language',
+      description: 'Original language of the content',
+      valueTypes: ['string', 'string[]'],
+    },
+    {
+      name: 'originalLanguage',
+      description: 'Original language of the content (alternative field name)',
+      valueTypes: ['string', 'string[]'],
+    },
+  ]
+
+  const supportedOperators: Record<string, OperatorInfo[]> = {
+    language: [
+      {
+        name: 'equals',
+        description: 'Language matches exactly',
+        valueTypes: ['string'],
+      },
+      {
+        name: 'notEquals',
+        description: 'Language does not match',
+        valueTypes: ['string'],
+      },
+      {
+        name: 'contains',
+        description: 'Language name contains this string',
+        valueTypes: ['string'],
+      },
+      {
+        name: 'in',
+        description: 'Language is one of the provided values',
+        valueTypes: ['string[]'],
+        valueFormat:
+          'Array of language names, e.g. ["English", "French", "Japanese"]',
+      },
+    ],
+    originalLanguage: [
+      {
+        name: 'equals',
+        description: 'Language matches exactly',
+        valueTypes: ['string'],
+      },
+      {
+        name: 'notEquals',
+        description: 'Language does not match',
+        valueTypes: ['string'],
+      },
+      {
+        name: 'contains',
+        description: 'Language name contains this string',
+        valueTypes: ['string'],
+      },
+      {
+        name: 'in',
+        description: 'Language is one of the provided values',
+        valueTypes: ['string[]'],
+        valueFormat:
+          'Array of language names, e.g. ["English", "French", "Japanese"]',
+      },
+    ],
+  }
+
   // Define this as a normal function - it will be part of the evaluator due to index signature
   function hasLanguageData(item: ContentItem): boolean {
     if (item.metadata) {
@@ -42,6 +109,8 @@ export default function createLanguageEvaluator(
     name: 'Language Router',
     description: 'Routes content based on original language',
     priority: 65,
+    supportedFields,
+    supportedOperators,
 
     // Allow these helper methods to be accessed - they're part of the evaluator
     hasLanguageData,

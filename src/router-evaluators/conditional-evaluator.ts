@@ -6,6 +6,8 @@ import type {
   RoutingEvaluator,
   Condition,
   ConditionGroup,
+  FieldInfo,
+  OperatorInfo,
 } from '@root/types/router.types.js'
 
 // Type guard for Condition
@@ -38,10 +40,37 @@ function isValidCondition(value: unknown): value is Condition | ConditionGroup {
 export default function createConditionalEvaluator(
   fastify: FastifyInstance,
 ): RoutingEvaluator {
+  // Define metadata about the supported fields and operators
+  const supportedFields: FieldInfo[] = [
+    {
+      name: 'condition',
+      description: 'Complex condition structure for advanced routing',
+      valueTypes: ['object'],
+    },
+  ]
+
+  // Define a separate type for logical operators
+  const supportedOperators: Record<string, OperatorInfo[]> = {
+    condition: [
+      {
+        name: 'equals',
+        description: 'Condition structure matches exactly',
+        valueTypes: ['object'],
+      },
+      {
+        name: 'contains',
+        description: 'Condition structure contains the specified rules',
+        valueTypes: ['object'],
+      },
+    ],
+  }
+
   return {
     name: 'Conditional Router',
     description: 'Routes content based on complex conditional rules',
     priority: 100, // Highest priority - evaluate conditional rules first
+    supportedFields,
+    supportedOperators,
 
     async canEvaluate(
       item: ContentItem,

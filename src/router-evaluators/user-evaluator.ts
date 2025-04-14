@@ -6,16 +6,81 @@ import type {
   RoutingEvaluator,
   Condition,
   ConditionGroup,
-  ComparisonOperator,
+  FieldInfo,
+  OperatorInfo,
 } from '@root/types/router.types.js'
 
 export default function createUserEvaluator(
   fastify: FastifyInstance,
 ): RoutingEvaluator {
+  // Define metadata about the supported fields and operators
+  const supportedFields: FieldInfo[] = [
+    {
+      name: 'user',
+      description: 'The user requesting the content',
+      valueTypes: ['string', 'number', 'string[]', 'number[]'],
+    },
+    {
+      name: 'userId',
+      description: 'The numeric ID of the requesting user',
+      valueTypes: ['number', 'string', 'number[]', 'string[]'],
+    },
+    {
+      name: 'userName',
+      description: 'The username of the requesting user',
+      valueTypes: ['string', 'string[]'],
+    },
+  ]
+
+  const supportedOperators: Record<string, OperatorInfo[]> = {
+    user: [
+      {
+        name: 'equals',
+        description: 'User matches exactly (by ID or username)',
+        valueTypes: ['string', 'number'],
+      },
+      {
+        name: 'in',
+        description: 'User is one of the provided values',
+        valueTypes: ['string[]', 'number[]'],
+        valueFormat:
+          'Array of user IDs or usernames, e.g. ["admin", "john", 42]',
+      },
+    ],
+    userId: [
+      {
+        name: 'equals',
+        description: 'User ID matches exactly',
+        valueTypes: ['number', 'string'],
+      },
+      {
+        name: 'in',
+        description: 'User ID is one of the provided values',
+        valueTypes: ['number[]', 'string[]'],
+        valueFormat: 'Array of user IDs, e.g. [1, 2, 3] or ["1", "2", "3"]',
+      },
+    ],
+    userName: [
+      {
+        name: 'equals',
+        description: 'Username matches exactly',
+        valueTypes: ['string'],
+      },
+      {
+        name: 'in',
+        description: 'Username is one of the provided values',
+        valueTypes: ['string[]'],
+        valueFormat: 'Array of usernames, e.g. ["admin", "john", "sarah"]',
+      },
+    ],
+  }
+
   return {
     name: 'User Router',
     description: 'Routes content based on requesting users',
     priority: 75,
+    supportedFields,
+    supportedOperators,
 
     async canEvaluate(
       item: ContentItem,
