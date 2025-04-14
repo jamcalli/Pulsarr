@@ -57,6 +57,7 @@ export type ComparisonOperator =
   | 'in'
   | 'notIn'
   | 'regex'
+  | 'between'
 
 // Base condition interface
 export interface Condition {
@@ -73,7 +74,27 @@ export interface ConditionGroup {
   negate?: boolean
 }
 
-// Core interface for routing evaluators
+/**
+ * Information about a supported field in a router evaluator
+ */
+export interface FieldInfo {
+  name: string
+  description: string
+  valueTypes: string[]
+}
+
+/**
+ * Information about a supported operator in a router evaluator
+ */
+export interface OperatorInfo {
+  name: ComparisonOperator
+  description: string
+  valueTypes: string[]
+  valueFormat?: string // Additional hints about expected format
+}
+
+// Then extend the RoutingEvaluator interface with these properties:
+
 export interface RoutingEvaluator {
   name: string
   description: string
@@ -97,6 +118,10 @@ export interface RoutingEvaluator {
 
   // Helps ContentRouterService determine which fields this evaluator handles
   canEvaluateConditionField?(field: string): boolean
+
+  // New metadata properties for self-describing evaluators
+  supportedFields?: FieldInfo[]
+  supportedOperators?: Record<string, OperatorInfo[]>
 
   // Optional helper methods can be defined in individual evaluators
   // but they won't be called directly by the ContentRouterService
