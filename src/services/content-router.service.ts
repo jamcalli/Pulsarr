@@ -6,6 +6,8 @@ import type {
   RoutingEvaluator,
   Condition,
   ConditionGroup,
+  FieldInfo,
+  OperatorInfo,
 } from '@root/types/router.types.js'
 import type { SonarrItem } from '@root/types/sonarr.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
@@ -645,6 +647,31 @@ export class ContentRouterService {
       name: e.name,
       description: e.description,
       priority: e.priority,
+    }))
+  }
+
+  /**
+   * Returns metadata about all loaded evaluators, including their supported fields and operators
+   *
+   * This method provides detailed information about the capabilities of each evaluator
+   * that is loaded into the content router. The information can be used to build dynamic
+   * UI elements for creating and editing router rules.
+   *
+   * @returns An array of evaluator metadata objects
+   */
+  getEvaluatorsMetadata(): Array<{
+    name: string
+    description: string
+    priority: number
+    supportedFields?: FieldInfo[]
+    supportedOperators?: Record<string, OperatorInfo[]>
+  }> {
+    return this.evaluators.map((evaluator) => ({
+      name: evaluator.name,
+      description: evaluator.description,
+      priority: evaluator.priority,
+      supportedFields: evaluator.supportedFields || [],
+      supportedOperators: evaluator.supportedOperators || {},
     }))
   }
 }

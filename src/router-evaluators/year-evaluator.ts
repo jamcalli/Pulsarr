@@ -7,6 +7,8 @@ import type {
   Condition,
   ConditionGroup,
   ComparisonOperator,
+  FieldInfo,
+  OperatorInfo,
 } from '@root/types/router.types.js'
 import { extractYear } from '@root/types/content-lookup.types.js'
 
@@ -48,10 +50,65 @@ function isValidYearValue(
 export default function createYearEvaluator(
   fastify: FastifyInstance,
 ): RoutingEvaluator {
+  // Define metadata about the supported fields and operators
+  const supportedFields: FieldInfo[] = [
+    {
+      name: 'year',
+      description: 'Release year of the content',
+      valueTypes: ['number', 'number[]', 'object'],
+    },
+  ]
+
+  const supportedOperators: Record<string, OperatorInfo[]> = {
+    year: [
+      {
+        name: 'equals',
+        description: 'Year matches exactly',
+        valueTypes: ['number'],
+      },
+      {
+        name: 'notEquals',
+        description: 'Year does not match',
+        valueTypes: ['number'],
+      },
+      {
+        name: 'greaterThan',
+        description: 'Year is greater than value',
+        valueTypes: ['number'],
+      },
+      {
+        name: 'lessThan',
+        description: 'Year is less than value',
+        valueTypes: ['number'],
+      },
+      {
+        name: 'in',
+        description: 'Year is one of the provided values',
+        valueTypes: ['number[]'],
+        valueFormat: 'Array of years, e.g. [1980, 1981, 1982]',
+      },
+      {
+        name: 'notIn',
+        description: 'Year is not any of the provided values',
+        valueTypes: ['number[]'],
+        valueFormat: 'Array of years, e.g. [1980, 1981, 1982]',
+      },
+      {
+        name: 'between',
+        description: 'Year is within a range (inclusive)',
+        valueTypes: ['object'],
+        valueFormat:
+          'Object with min and/or max properties, e.g. { min: 1980, max: 1989 }',
+      },
+    ],
+  }
+
   return {
     name: 'Year Router',
     description: 'Routes content based on release year',
     priority: 70,
+    supportedFields,
+    supportedOperators,
 
     async canEvaluate(
       item: ContentItem,
