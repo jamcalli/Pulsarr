@@ -336,96 +336,90 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     },
   )
 
-  // Create a router rule
-  fastify.post<{
-    Body: z.infer<typeof ContentRouterRuleSchema>
-    Reply: z.infer<typeof ContentRouterRuleResponseSchema>
-  }>(
-    '/rules',
-    {
-      schema: {
-        body: ContentRouterRuleSchema,
-        response: {
-          201: ContentRouterRuleResponseSchema,
-          400: ContentRouterRuleErrorSchema,
-          500: ContentRouterRuleErrorSchema,
-        },
-        tags: ['Content Router'],
+// Create a router rule
+fastify.post<{
+  Body: z.infer<typeof ContentRouterRuleSchema>
+  Reply: z.infer<typeof ContentRouterRuleResponseSchema>
+}>(
+  '/rules',
+  {
+    schema: {
+      body: ContentRouterRuleSchema,
+      response: {
+        201: ContentRouterRuleResponseSchema,
+        400: ContentRouterRuleErrorSchema,
+        500: ContentRouterRuleErrorSchema,
       },
+      tags: ['Content Router'],
     },
-    async (request, reply) => {
-      try {
-        const ruleData = request.body
+  },
+  async (request, reply) => {
+    try {
+      const ruleData = request.body
 
-        // Use RuleBuilder to create a properly structured rule
-        const builtRule = RuleBuilder.createRule({
-          name: ruleData.name,
-          target_type: ruleData.target_type,
-          target_instance_id: ruleData.target_instance_id,
-          condition: ruleData.condition,
-          root_folder: ruleData.root_folder,
-          quality_profile:
-            typeof ruleData.quality_profile === 'string'
-              ? Number.parseInt(ruleData.quality_profile, 10)
-              : ruleData.quality_profile,
-          order: ruleData.order ?? 50,
-          enabled: ruleData.enabled ?? true,
-        })
+      // Use RuleBuilder to create a properly structured rule
+      const builtRule = RuleBuilder.createRule({
+        name: ruleData.name,
+        target_type: ruleData.target_type,
+        target_instance_id: ruleData.target_instance_id,
+        condition: ruleData.condition,
+        root_folder: ruleData.root_folder,
+        quality_profile: typeof ruleData.quality_profile === 'string'
+          ? Number.parseInt(ruleData.quality_profile, 10)
+          : ruleData.quality_profile,
+        order: ruleData.order ?? 50,
+        enabled: ruleData.enabled ?? true,
+      })
 
-        // Prepare the rule for database insertion, ensuring required fields have values
-        const formattedRuleData: Omit<
-          RouterRule,
-          'id' | 'created_at' | 'updated_at'
-        > = {
-          name: builtRule.name,
-          type: 'conditional',
-          criteria: { condition: builtRule.condition },
-          target_type: builtRule.target_type,
-          target_instance_id: builtRule.target_instance_id,
-          root_folder: builtRule.root_folder || null,
-          quality_profile: builtRule.quality_profile || null,
-          order: builtRule.order || 50,
-          enabled: builtRule.enabled !== undefined ? builtRule.enabled : true,
-          metadata: null,
-        }
-
-        const createdRule = await fastify.db.createRouterRule(formattedRuleData)
-
-        // Format the response to match the expected structure
-        const criteria =
-          typeof createdRule.criteria === 'string'
-            ? JSON.parse(createdRule.criteria)
-            : createdRule.criteria || {}
-
-        const formattedRule = {
-          id: createdRule.id,
-          name: createdRule.name,
-          target_type: createdRule.target_type,
-          target_instance_id: createdRule.target_instance_id,
-          root_folder: createdRule.root_folder || undefined,
-          quality_profile:
-            createdRule.quality_profile !== null
-              ? createdRule.quality_profile
-              : undefined,
-          order: createdRule.order,
-          enabled: Boolean(createdRule.enabled),
-          condition: criteria.condition,
-          created_at: createdRule.created_at,
-          updated_at: createdRule.updated_at,
-        }
-
-        reply.status(201)
-        return {
-          success: true,
-          message: 'Router rule created successfully',
-          rule: formattedRule,
-        }
-      } catch (err) {
-        fastify.log.error('Error creating router rule:', err)
-        throw reply.internalServerError('Unable to create router rule')
+      // Prepare the rule for database insertion, ensuring required fields have values
+      const formattedRuleData: Omit<RouterRule, 'id' | 'created_at' | 'updated_at'> = {
+        name: builtRule.name,
+        type: 'conditional',
+        criteria: { condition: builtRule.condition },
+        target_type: builtRule.target_type,
+        target_instance_id: builtRule.target_instance_id,
+        root_folder: builtRule.root_folder || null,
+        quality_profile: builtRule.quality_profile || null,
+        order: builtRule.order || 50, 
+        enabled: builtRule.enabled !== undefined ? builtRule.enabled : true,
+        metadata: null,
       }
-    },
-  )
+
+      const createdRule = await fastify.db.createRouterRule(formattedRuleData)
+
+      // Format the response to match the expected structure
+      const criteria = typeof createdRule.criteria === 'string' 
+        ? JSON.parse(createdRule.criteria) 
+        : createdRule.criteria || {}
+        
+      const formattedRule = {
+        id: createdRule.id,
+        name: createdRule.name,
+        target_type: createdRule.target_type,
+        target_instance_id: createdRule.target_instance_id,
+        root_folder: createdRule.root_folder || undefined,
+        quality_profile: createdRule.quality_profile !== null 
+          ? createdRule.quality_profile 
+          : undefined,
+        order: createdRule.order,
+        enabled: Boolean(createdRule.enabled),
+        condition: criteria.condition,
+        created_at: createdRule.created_at,
+        updated_at: createdRule.updated_at,
+      }
+
+      reply.status(201)
+      return {
+        success: true,
+        message: 'Router rule created successfully',
+        rule: formattedRule,
+      }
+    } catch (err) {
+      fastify.log.error('Error creating router rule:', err)
+      throw reply.internalServerError('Unable to create router rule')
+    }
+  }
+)
 
   // Update a router rule
   fastify.put<{

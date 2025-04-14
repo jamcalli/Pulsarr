@@ -91,9 +91,7 @@ export const ContentRouterRuleSuccessSchema = z.object({
 })
 
 export const ContentRouterRuleErrorSchema = z.object({
-  success: z.literal(false),
   message: z.string(),
-  rules: z.array(RouterRuleSchema).optional(),
 })
 
 // Export types
