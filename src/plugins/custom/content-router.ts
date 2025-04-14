@@ -18,7 +18,7 @@ export default fp(
     fastify.decorate('contentRouter', routerService)
 
     const pluginNames = routerService
-      .getLoadedPlugins()
+      .getLoadedEvaluators()
       .map((p) => p.name)
       .join(', ')
     fastify.log.info(`Content router initialized with plugins: ${pluginNames}`)
