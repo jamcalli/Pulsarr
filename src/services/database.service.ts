@@ -60,7 +60,15 @@ import type {
   IntervalConfig,
   CronConfig,
 } from '@root/types/scheduler.types.js'
-import type { RouterRule } from '@root/types/router.types.js'
+import type {
+  RouterRule,
+  Condition,
+  ConditionGroup,
+} from '@root/types/router.types.js'
+import type {
+  RadarrMovieLookupResponse,
+  SonarrSeriesLookupResponse,
+} from '@root/types/content-lookup.types.js'
 
 export class DatabaseService {
   private readonly knex: Knex
@@ -4426,6 +4434,145 @@ export class DatabaseService {
         enabled,
         updated_at: this.timestamp,
       })
+      .returning('*')
+
+    if (!updatedRule) {
+      throw new Error(
+        `Router rule with ID ${id} not found or could not be updated`,
+      )
+    }
+
+    return {
+      ...updatedRule,
+      enabled: Boolean(updatedRule.enabled),
+      criteria:
+        typeof updatedRule.criteria === 'string'
+          ? JSON.parse(updatedRule.criteria)
+          : updatedRule.criteria,
+      metadata: updatedRule.metadata
+        ? typeof updatedRule.metadata === 'string'
+          ? JSON.parse(updatedRule.metadata)
+          : updatedRule.metadata
+        : null,
+    }
+  }
+
+  /**
+   * Creates a conditional router rule
+   */
+  async createConditionalRule(rule: {
+    name: string
+    target_type: 'sonarr' | 'radarr'
+    target_instance_id: number
+    condition: Condition | ConditionGroup
+    root_folder?: string | null
+    quality_profile?: number | null
+    order?: number
+    enabled?: boolean
+    metadata?: RadarrMovieLookupResponse | SonarrSeriesLookupResponse | null
+  }): Promise<RouterRule> {
+    const criteria = {
+      condition: rule.condition,
+    }
+
+    const insertData = {
+      name: rule.name,
+      type: 'conditional',
+      criteria: JSON.stringify(criteria),
+      target_type: rule.target_type,
+      target_instance_id: rule.target_instance_id,
+      root_folder: rule.root_folder,
+      quality_profile: rule.quality_profile,
+      order: rule.order ?? 50,
+      enabled: rule.enabled ?? true,
+      metadata: rule.metadata ? JSON.stringify(rule.metadata) : null,
+      created_at: this.timestamp,
+      updated_at: this.timestamp,
+    }
+
+    const [createdRule] = await this.knex('router_rules')
+      .insert(insertData)
+      .returning('*')
+
+    if (!createdRule) throw new Error('Failed to create router rule')
+
+    return {
+      ...createdRule,
+      enabled: Boolean(createdRule.enabled),
+      criteria:
+        typeof createdRule.criteria === 'string'
+          ? JSON.parse(createdRule.criteria)
+          : createdRule.criteria,
+      metadata: createdRule.metadata
+        ? typeof createdRule.metadata === 'string'
+          ? JSON.parse(createdRule.metadata)
+          : createdRule.metadata
+        : null,
+    }
+  }
+
+  /**
+   * Updates a conditional router rule
+   */
+  async updateConditionalRule(
+    id: number,
+    updates: {
+      name?: string
+      condition?: Condition | ConditionGroup
+      target_instance_id?: number
+      root_folder?: string | null
+      quality_profile?: number | null
+      order?: number
+      enabled?: boolean
+      metadata?: RadarrMovieLookupResponse | SonarrSeriesLookupResponse | null
+    },
+  ): Promise<RouterRule> {
+    // Get current rule to preserve existing data
+    const currentRule = await this.getRouterRuleById(id)
+    if (!currentRule) {
+      throw new Error(`Router rule with ID ${id} not found`)
+    }
+
+    const updateData: Record<string, unknown> = {
+      updated_at: this.timestamp,
+    }
+
+    // Update basic fields
+    if (updates.name !== undefined) updateData.name = updates.name
+    if (updates.target_instance_id !== undefined)
+      updateData.target_instance_id = updates.target_instance_id
+    if (updates.root_folder !== undefined)
+      updateData.root_folder = updates.root_folder
+    if (updates.quality_profile !== undefined)
+      updateData.quality_profile = updates.quality_profile
+    if (updates.order !== undefined) updateData.order = updates.order
+    if (updates.enabled !== undefined) updateData.enabled = updates.enabled
+
+    // Update condition within criteria
+    if (updates.condition !== undefined) {
+      const currentCriteria =
+        typeof currentRule.criteria === 'string'
+          ? JSON.parse(currentRule.criteria)
+          : currentRule.criteria
+
+      const newCriteria = {
+        ...currentCriteria,
+        condition: updates.condition,
+      }
+
+      updateData.criteria = JSON.stringify(newCriteria)
+    }
+
+    // Update metadata
+    if (updates.metadata !== undefined) {
+      updateData.metadata = updates.metadata
+        ? JSON.stringify(updates.metadata)
+        : null
+    }
+
+    const [updatedRule] = await this.knex('router_rules')
+      .where('id', id)
+      .update(updateData)
       .returning('*')
 
     if (!updatedRule) {
