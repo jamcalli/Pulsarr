@@ -23,14 +23,14 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         const plugins = fastify.contentRouter.getLoadedEvaluators()
-
+  
         return {
           success: true,
-          plugins,
+          plugins: plugins || [], // Ensure empty array if null
         }
       } catch (err) {
         fastify.log.error('Error retrieving router plugins:', err)
-        throw reply.internalServerError('Unable to retrieve router plugins')
+        throw reply.internalServerError('Unable to retrieve router rules')
       }
     },
   )
