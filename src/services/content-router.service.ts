@@ -1,20 +1,24 @@
-import { resolve, join, dirname } from 'node:path'
-import { readdir } from 'node:fs/promises'
-import { fileURLToPath } from 'node:url'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type {
   ContentItem,
-  RouterPlugin,
   RoutingContext,
   RoutingDecision,
+  RoutingEvaluator,
+  Condition,
+  ConditionGroup,
 } from '@root/types/router.types.js'
 import type { SonarrItem } from '@root/types/sonarr.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
-import type { RadarrInstance } from '@root/types/radarr.types.js'
-import type { SonarrInstance } from '@root/types/sonarr.types.js'
+import { resolve, join, dirname } from 'node:path'
+import { readdir } from 'node:fs/promises'
+import { fileURLToPath } from 'node:url'
+import type {
+  RadarrMovieLookupResponse,
+  SonarrSeriesLookupResponse,
+} from '@root/types/content-lookup.types.js'
 
 export class ContentRouterService {
-  private plugins: RouterPlugin[] = []
+  private evaluators: RoutingEvaluator[] = []
 
   constructor(
     private readonly log: FastifyBaseLogger,
@@ -23,65 +27,66 @@ export class ContentRouterService {
 
   async initialize(): Promise<void> {
     try {
-      // Determine the router plugins directory path
+      // Dynamically load all evaluators from the evaluators directory
       const __filename = fileURLToPath(import.meta.url)
       const __dirname = dirname(__filename)
       const projectRoot = resolve(__dirname, '..')
-      const pluginsDir = join(projectRoot, 'router-plugins')
+      const evaluatorsDir = join(projectRoot, 'router-evaluators')
 
-      this.log.info(`Loading router plugins from: ${pluginsDir}`)
+      this.log.info(`Loading router evaluators from: ${evaluatorsDir}`)
 
-      // Load all plugins from the directory
-      const files = await readdir(pluginsDir)
+      const files = await readdir(evaluatorsDir)
 
       for (const file of files) {
         if (file.endsWith('.js')) {
           try {
-            // Construct full path to plugin file
-            const pluginPath = join(pluginsDir, file)
+            const evaluatorPath = join(evaluatorsDir, file)
+            const evaluatorModule = await import(`file://${evaluatorPath}`)
 
-            // Use dynamic import to load the plugin module
-            const pluginModule = await import(`file://${pluginPath}`)
+            if (typeof evaluatorModule.default === 'function') {
+              const evaluator = evaluatorModule.default(this.fastify)
 
-            if (typeof pluginModule.default === 'function') {
-              // It's a factory function, call it with fastify instance
-              const plugin = pluginModule.default(this.fastify)
-
-              if (this.validatePlugin(plugin)) {
-                this.plugins.push(plugin)
-                this.log.info(`Loaded router plugin: ${plugin.name}`)
+              if (this.isValidEvaluator(evaluator)) {
+                this.evaluators.push(evaluator)
+                this.log.info(`Loaded router evaluator: ${evaluator.name}`)
               } else {
                 this.log.warn(
-                  `Invalid plugin found: ${file}, missing required methods or properties`,
+                  `Invalid evaluator found: ${file}, missing required methods or properties`,
                 )
               }
-            } else {
-              this.log.warn(`Plugin ${file} does not export a factory function`)
             }
-          } catch (pluginError) {
-            this.log.error(`Error loading plugin ${file}:`, pluginError)
+          } catch (err) {
+            this.log.error(`Error loading evaluator ${file}:`, err)
           }
         }
       }
 
-      // Sort plugins by their order property
-      this.plugins.sort((a, b) => b.order - a.order)
+      // Sort evaluators by priority (highest first)
+      this.evaluators.sort((a, b) => b.priority - a.priority)
 
-      this.log.info(`Successfully loaded ${this.plugins.length} router plugins`)
+      this.log.info(
+        `Successfully loaded ${this.evaluators.length} router evaluators`,
+      )
     } catch (error) {
       this.log.error('Error initializing content router:', error)
       throw error
     }
   }
 
-  private validatePlugin(plugin: RouterPlugin) {
+  private isValidEvaluator(evaluator: unknown): evaluator is RoutingEvaluator {
     return (
-      plugin &&
-      typeof plugin.name === 'string' &&
-      typeof plugin.description === 'string' &&
-      typeof plugin.enabled === 'boolean' &&
-      typeof plugin.order === 'number' &&
-      typeof plugin.evaluateRouting === 'function'
+      evaluator !== null &&
+      typeof evaluator === 'object' &&
+      'name' in evaluator &&
+      'description' in evaluator &&
+      'priority' in evaluator &&
+      'canEvaluate' in evaluator &&
+      'evaluate' in evaluator &&
+      typeof (evaluator as RoutingEvaluator).name === 'string' &&
+      typeof (evaluator as RoutingEvaluator).description === 'string' &&
+      typeof (evaluator as RoutingEvaluator).priority === 'number' &&
+      typeof (evaluator as RoutingEvaluator).canEvaluate === 'function' &&
+      typeof (evaluator as RoutingEvaluator).evaluate === 'function'
     )
   }
 
@@ -99,8 +104,7 @@ export class ContentRouterService {
     const contentType = item.type.toLowerCase() as 'movie' | 'show'
     const routedInstances: number[] = []
 
-    // Handle forced routing first if a specific instance ID is provided
-    // but not if we're syncing with a target instance (to respect routing rules during sync)
+    // Handle forced routing first if specified
     if (
       options.forcedInstanceId !== undefined &&
       !(options.syncing && options.syncTargetInstanceId !== undefined)
@@ -125,9 +129,7 @@ export class ContentRouterService {
             options.syncing,
           )
         }
-        this.log.info(
-          `Successfully force-routed "${item.title}" to instance ${options.forcedInstanceId}`,
-        )
+
         routedInstances.push(options.forcedInstanceId)
         return { routedInstances }
       } catch (error) {
@@ -152,23 +154,31 @@ export class ContentRouterService {
       syncTargetInstanceId: options.syncTargetInstanceId,
     }
 
-    // Collect all decisions from enabled plugins
+    // First, enrich the item with metadata if needed
+    const enrichedItem = await this.enrichItemMetadata(item, context)
+
+    // Now evaluate all applicable routing evaluators with the enriched item
     const allDecisions: RoutingDecision[] = []
+    const processedInstanceIds = new Set<number>()
 
-    for (const plugin of this.plugins.filter((p) => p.enabled)) {
+    for (const evaluator of this.evaluators) {
       try {
-        const decisions = await plugin.evaluateRouting(item, context)
+        // Check if this evaluator applies to this content
+        const canEvaluate = await evaluator.canEvaluate(enrichedItem, context)
+        if (!canEvaluate) continue
 
+        // Get routing decisions from this evaluator
+        const decisions = await evaluator.evaluate(enrichedItem, context)
         if (decisions && decisions.length > 0) {
           this.log.debug(
-            `Plugin "${plugin.name}" returned ${decisions.length} routing decisions for "${item.title}"`,
+            `Evaluator "${evaluator.name}" returned ${decisions.length} routing decisions for "${item.title}"`,
           )
           allDecisions.push(...decisions)
         }
-      } catch (pluginError) {
+      } catch (evaluatorError) {
         this.log.error(
-          `Error in plugin "${plugin.name}" when routing "${item.title}":`,
-          pluginError,
+          `Error in evaluator "${evaluator.name}" when routing "${item.title}":`,
+          evaluatorError,
         )
       }
     }
@@ -177,7 +187,7 @@ export class ContentRouterService {
       // If no routing decisions but we have a sync target, use it as fallback
       if (options.syncing && options.syncTargetInstanceId !== undefined) {
         this.log.info(
-          `No routing decisions returned from any plugin for "${item.title}" during sync, using sync target instance ${options.syncTargetInstanceId}`,
+          `No routing decisions returned for "${item.title}" during sync, using sync target instance ${options.syncTargetInstanceId}`,
         )
 
         try {
@@ -206,7 +216,7 @@ export class ContentRouterService {
       } else {
         // Fall back to default routing for non-sync operations
         this.log.warn(
-          `No routing decisions returned from any plugin for "${item.title}", using default routing`,
+          `No routing decisions returned for "${item.title}", using default routing`,
         )
         const defaultRoutedInstances = await this.routeUsingDefault(
           item,
@@ -214,23 +224,16 @@ export class ContentRouterService {
           contentType,
           options.syncing,
         )
-        this.log.debug(
-          `Default routing returned ${defaultRoutedInstances.length} instances: [${defaultRoutedInstances.join(', ')}]`,
-        )
         routedInstances.push(...defaultRoutedInstances)
       }
 
       return { routedInstances }
     }
 
-    // Sort decisions by weight for logging/tracking purposes
-    allDecisions.sort((a, b) => b.weight - a.weight)
+    // Sort decisions by priority (highest first)
+    allDecisions.sort((a, b) => b.priority - a.priority)
 
-    // Track which instances we've already routed to for this item to avoid duplicates
-    const processedInstanceIds = new Set<number>()
-    let routeCount = 0
-
-    // Execute ALL routing decisions, processing highest weight ones first
+    // Execute all routing decisions, processing highest priority ones first
     for (const decision of allDecisions) {
       // Skip if we've already routed to this instance
       if (processedInstanceIds.has(decision.instanceId)) {
@@ -243,7 +246,7 @@ export class ContentRouterService {
       processedInstanceIds.add(decision.instanceId)
 
       this.log.info(
-        `Routing "${item.title}" to instance ID ${decision.instanceId} with weight ${decision.weight}`,
+        `Routing "${item.title}" to instance ID ${decision.instanceId} with priority ${decision.priority}`,
       )
 
       try {
@@ -274,7 +277,6 @@ export class ContentRouterService {
             decision.qualityProfile,
           )
         }
-        routeCount++
         routedInstances.push(decision.instanceId)
       } catch (routeError) {
         this.log.error(
@@ -296,28 +298,194 @@ export class ContentRouterService {
     }
 
     this.log.info(
-      `Successfully routed "${item.title}" to ${routeCount} instances`,
+      `Successfully routed "${item.title}" to ${routedInstances.length} instances`,
     )
 
     return { routedInstances }
   }
 
   /**
-   * Routes an item using the default instance and handles syncing to other instances
-   *
-   * This method is called when no specific routing rules matched the item.
-   * It routes the item to the default instance, and if the default instance
-   * is configured to sync with other instances, it routes the item to those instances as well.
-   *
-   * @param item - Content item to route
-   * @param key - Unique key of the watchlist item
-   * @param contentType - Type of content ('movie' or 'show')
-   * @param syncing - Whether this routing is part of a sync operation
-   * @returns Promise resolving to an array of instance IDs the item was routed to.
-   *          The array will contain the default instance ID first (if successful),
-   *          followed by any synced instance IDs that were successfully routed to.
-   *          Returns an empty array if routing fails.
+   * Enriches a content item with full metadata by making API calls
+   * This happens once per routing operation to avoid duplicate API calls
    */
+  private async enrichItemMetadata(
+    item: ContentItem,
+    context: RoutingContext,
+  ): Promise<ContentItem> {
+    const isMovie = context.contentType === 'movie'
+
+    // Skip if we can't extract an ID
+    if (!Array.isArray(item.guids) || item.guids.length === 0) {
+      return item
+    }
+
+    // Extract ID from guids
+    let itemId: number | undefined
+
+    if (isMovie) {
+      const tmdbGuid = item.guids.find((guid) => guid.startsWith('tmdb:'))
+      if (tmdbGuid) {
+        itemId = Number.parseInt(tmdbGuid.replace('tmdb:', ''), 10)
+      }
+    } else {
+      const tvdbGuid = item.guids.find((guid) => guid.startsWith('tvdb:'))
+      if (tvdbGuid) {
+        itemId = Number.parseInt(tvdbGuid.replace('tvdb:', ''), 10)
+      }
+    }
+
+    if (!itemId || Number.isNaN(itemId)) {
+      this.log.debug(
+        `Couldn't extract ID from item "${item.title}", skipping metadata enrichment`,
+      )
+      return item
+    }
+
+    try {
+      // Fetch full metadata from API
+      if (isMovie) {
+        const lookupService = this.fastify.radarrManager.getRadarrService(1)
+        if (!lookupService) {
+          this.log.warn('No Radarr service available for metadata lookup')
+          return item
+        }
+
+        const apiResponse = await lookupService.getFromRadarr<
+          RadarrMovieLookupResponse | RadarrMovieLookupResponse[]
+        >(`movie/lookup/tmdb?tmdbId=${itemId}`)
+
+        let movieMetadata: RadarrMovieLookupResponse | undefined
+
+        if (Array.isArray(apiResponse) && apiResponse.length > 0) {
+          movieMetadata = apiResponse[0]
+        } else if (!Array.isArray(apiResponse)) {
+          movieMetadata = apiResponse
+        }
+
+        if (movieMetadata) {
+          return {
+            ...item,
+            metadata: movieMetadata,
+          }
+        }
+      } else {
+        const lookupService = this.fastify.sonarrManager.getSonarrService(1)
+        if (!lookupService) {
+          this.log.warn('No Sonarr service available for metadata lookup')
+          return item
+        }
+
+        const apiResponse = await lookupService.getFromSonarr<
+          SonarrSeriesLookupResponse | SonarrSeriesLookupResponse[]
+        >(`series/lookup?term=tvdb:${itemId}`)
+
+        let seriesMetadata: SonarrSeriesLookupResponse | undefined
+
+        if (Array.isArray(apiResponse) && apiResponse.length > 0) {
+          seriesMetadata = apiResponse[0]
+        } else if (!Array.isArray(apiResponse)) {
+          seriesMetadata = apiResponse
+        }
+
+        if (seriesMetadata) {
+          return {
+            ...item,
+            metadata: seriesMetadata,
+          }
+        }
+      }
+    } catch (error) {
+      this.log.error(`Error enriching metadata for "${item.title}":`, error)
+    }
+
+    return item
+  }
+
+  /**
+   * Evaluates a condition against a content item
+   * This delegates to the appropriate evaluator based on the condition field
+   */
+  evaluateCondition(
+    condition: Condition | ConditionGroup,
+    item: ContentItem,
+    context: RoutingContext,
+  ): boolean {
+    // Handle negation wrapper
+    const result = this._evaluateCondition(condition, item, context)
+    return condition.negate ? !result : result
+  }
+
+  private _evaluateCondition(
+    condition: Condition | ConditionGroup,
+    item: ContentItem,
+    context: RoutingContext,
+  ): boolean {
+    // Handle group condition - evaluate nested conditions with logical operator
+    if ('conditions' in condition) {
+      return this.evaluateGroupCondition(condition, item, context)
+    }
+
+    // For single conditions, find an evaluator that can handle this field
+    const { field } = condition as Condition
+
+    // Try to find an evaluator that explicitly handles this field
+    for (const evaluator of this.evaluators) {
+      if (
+        evaluator.evaluateCondition &&
+        evaluator.canEvaluateConditionField &&
+        evaluator.canEvaluateConditionField(field)
+      ) {
+        return evaluator.evaluateCondition(condition, item, context)
+      }
+    }
+
+    // If no specific handler, try any evaluator with condition support
+    for (const evaluator of this.evaluators) {
+      if (evaluator.evaluateCondition) {
+        try {
+          return evaluator.evaluateCondition(condition, item, context)
+        } catch (e) {
+          // Ignore errors, try the next evaluator
+        }
+      }
+    }
+
+    this.log.warn(`No evaluator found for condition field: ${field}`)
+    return false
+  }
+
+  /**
+   * Evaluates a group condition with logical operators
+   */
+  private evaluateGroupCondition(
+    group: ConditionGroup,
+    item: ContentItem,
+    context: RoutingContext,
+  ): boolean {
+    if (!group.conditions || group.conditions.length === 0) {
+      return false
+    }
+
+    if (group.operator === 'AND') {
+      // All conditions must be true
+      for (const condition of group.conditions) {
+        if (!this.evaluateCondition(condition, item, context)) {
+          return false
+        }
+      }
+      return true
+    }
+
+    // OR - at least one condition must be true
+    for (const condition of group.conditions) {
+      if (this.evaluateCondition(condition, item, context)) {
+        return true
+      }
+    }
+    return false
+  }
+
+  // Default routing method - similar to your existing implementation
   private async routeUsingDefault(
     item: ContentItem,
     key: string,
@@ -328,196 +496,155 @@ export class ContentRouterService {
       const routedInstances: number[] = []
 
       if (contentType === 'movie') {
-        // Handle routing for Radarr
-        await this.routeUsingDefaultHelper<RadarrInstance, RadarrItem>(
-          item as RadarrItem,
-          key,
-          'radarr',
-          routedInstances,
-          syncing,
-        )
+        // Get default Radarr instance
+        const defaultInstance = await this.fastify.db.getDefaultRadarrInstance()
+        if (!defaultInstance) {
+          this.log.warn('No default Radarr instance found for routing')
+          return []
+        }
+
+        // Route to default instance
+        try {
+          await this.fastify.radarrManager.routeItemToRadarr(
+            item as RadarrItem,
+            key,
+            defaultInstance.id,
+            syncing,
+          )
+          routedInstances.push(defaultInstance.id)
+        } catch (error) {
+          this.log.error(
+            `Error routing "${item.title}" to default Radarr instance ${defaultInstance.id}:`,
+            error,
+          )
+        }
+
+        // Handle synced instances
+        const syncedInstanceIds = Array.isArray(defaultInstance.syncedInstances)
+          ? defaultInstance.syncedInstances
+          : typeof defaultInstance.syncedInstances === 'string'
+            ? JSON.parse(defaultInstance.syncedInstances || '[]')
+            : []
+
+        if (syncedInstanceIds.length > 0) {
+          const allInstances = await this.fastify.db.getAllRadarrInstances()
+          const instanceMap = new Map(
+            allInstances.map((instance) => [instance.id, instance]),
+          )
+
+          for (const syncedId of syncedInstanceIds) {
+            if (routedInstances.includes(syncedId)) continue
+
+            const syncedInstance = instanceMap.get(syncedId)
+            if (!syncedInstance) continue
+
+            try {
+              const rootFolder =
+                syncedInstance.rootFolder === null
+                  ? undefined
+                  : syncedInstance.rootFolder
+
+              await this.fastify.radarrManager.routeItemToRadarr(
+                item as RadarrItem,
+                key,
+                syncedId,
+                syncing,
+                rootFolder,
+                syncedInstance.qualityProfile,
+              )
+              routedInstances.push(syncedId)
+            } catch (error) {
+              this.log.error(
+                `Error routing "${item.title}" to synced Radarr instance ${syncedId}:`,
+                error,
+              )
+            }
+          }
+        }
       } else {
-        // Handle routing for Sonarr
-        await this.routeUsingDefaultHelper<SonarrInstance, SonarrItem>(
-          item as SonarrItem,
-          key,
-          'sonarr',
-          routedInstances,
-          syncing,
-        )
+        // Similar implementation for Sonarr
+        const defaultInstance = await this.fastify.db.getDefaultSonarrInstance()
+        if (!defaultInstance) {
+          this.log.warn('No default Sonarr instance found for routing')
+          return []
+        }
+
+        // Route to default instance
+        try {
+          await this.fastify.sonarrManager.routeItemToSonarr(
+            item as SonarrItem,
+            key,
+            defaultInstance.id,
+            syncing,
+          )
+          routedInstances.push(defaultInstance.id)
+        } catch (error) {
+          this.log.error(
+            `Error routing "${item.title}" to default Sonarr instance ${defaultInstance.id}:`,
+            error,
+          )
+        }
+
+        // Handle synced instances
+        const syncedInstanceIds = Array.isArray(defaultInstance.syncedInstances)
+          ? defaultInstance.syncedInstances
+          : typeof defaultInstance.syncedInstances === 'string'
+            ? JSON.parse(defaultInstance.syncedInstances || '[]')
+            : []
+
+        if (syncedInstanceIds.length > 0) {
+          const allInstances = await this.fastify.db.getAllSonarrInstances()
+          const instanceMap = new Map(
+            allInstances.map((instance) => [instance.id, instance]),
+          )
+
+          for (const syncedId of syncedInstanceIds) {
+            if (routedInstances.includes(syncedId)) continue
+
+            const syncedInstance = instanceMap.get(syncedId)
+            if (!syncedInstance) continue
+
+            try {
+              const rootFolder =
+                syncedInstance.rootFolder === null
+                  ? undefined
+                  : syncedInstance.rootFolder
+
+              await this.fastify.sonarrManager.routeItemToSonarr(
+                item as SonarrItem,
+                key,
+                syncedId,
+                syncing,
+                rootFolder,
+                syncedInstance.qualityProfile,
+              )
+              routedInstances.push(syncedId)
+            } catch (error) {
+              this.log.error(
+                `Error routing "${item.title}" to synced Sonarr instance ${syncedId}:`,
+                error,
+              )
+            }
+          }
+        }
       }
 
       return routedInstances
     } catch (error) {
-      this.log.error(`Error in routeUsingDefault for ${item.title}: ${error}`, {
-        item_title: item.title,
-        content_type: contentType,
-        error_message: error instanceof Error ? error.message : String(error),
-        error_stack: error instanceof Error ? error.stack : undefined,
-      })
-      // Return empty array to avoid cascading failures
+      this.log.error(`Error in default routing for ${item.title}:`, error)
       return []
     }
   }
 
-  /**
-   * Helper method that implements the common logic for routing to default and synced instances
-   *
-   * @param item - The content item to route (either RadarrItem or SonarrItem)
-   * @param key - Unique key of the watchlist item
-   * @param instanceType - Type of instance ('radarr' or 'sonarr')
-   * @param routedInstances - Array to collect successfully routed instance IDs
-   * @param syncing - Whether this routing is part of a sync operation
-   */
-  private async routeUsingDefaultHelper<
-    T extends RadarrInstance | SonarrInstance,
-    I extends RadarrItem | SonarrItem,
-  >(
-    item: I,
-    key: string,
-    instanceType: 'radarr' | 'sonarr',
-    routedInstances: number[],
-    syncing?: boolean,
-  ): Promise<void> {
-    // Get default instance based on type
-    const defaultInstance =
-      instanceType === 'radarr'
-        ? await this.fastify.db.getDefaultRadarrInstance()
-        : await this.fastify.db.getDefaultSonarrInstance()
-
-    if (!defaultInstance) {
-      this.log.warn(
-        `No default ${instanceType.charAt(0).toUpperCase() + instanceType.slice(1)} instance found for routing`,
-      )
-      return
-    }
-
-    // Route to default instance
-    try {
-      if (instanceType === 'radarr') {
-        await this.fastify.radarrManager.routeItemToRadarr(
-          item as RadarrItem,
-          key,
-          defaultInstance.id,
-          syncing,
-        )
-      } else {
-        await this.fastify.sonarrManager.routeItemToSonarr(
-          item as SonarrItem,
-          key,
-          defaultInstance.id,
-          syncing,
-        )
-      }
-      routedInstances.push(defaultInstance.id)
-    } catch (error) {
-      this.log.error(
-        `Error routing "${item.title}" to default ${instanceType} instance ${defaultInstance.id}:`,
-        error,
-      )
-      // Continue processing synced instances even if default instance fails
-    }
-
-    // Check for synced instances
-    const syncedInstanceIds = Array.isArray(defaultInstance.syncedInstances)
-      ? defaultInstance.syncedInstances
-      : typeof defaultInstance.syncedInstances === 'string'
-        ? JSON.parse(defaultInstance.syncedInstances || '[]')
-        : []
-
-    if (syncedInstanceIds.length === 0) {
-      return
-    }
-
-    const capitalizedType =
-      instanceType.charAt(0).toUpperCase() + instanceType.slice(1)
-    this.log.info(
-      `Default ${capitalizedType} instance ${defaultInstance.id} is configured to sync with ${syncedInstanceIds.length} other instance(s), adding item to synced instances`,
-    )
-
-    // Get all instances based on type
-    const allInstances =
-      instanceType === 'radarr'
-        ? await this.fastify.db.getAllRadarrInstances()
-        : await this.fastify.db.getAllSonarrInstances()
-
-    // Map instance IDs to instances for easy lookup
-    const instanceMap = new Map(
-      allInstances.map((instance) => [instance.id, instance]),
-    )
-
-    // Process each synced instance
-    for (const syncedId of syncedInstanceIds) {
-      if (routedInstances.includes(syncedId)) {
-        this.log.debug(
-          `Skipping already routed ${capitalizedType} instance ${syncedId}`,
-        )
-        continue
-      }
-
-      const syncedInstance = instanceMap.get(syncedId) as T | undefined
-      if (!syncedInstance) {
-        this.log.warn(
-          `Synced ${capitalizedType} instance ${syncedId} not found`,
-        )
-        continue
-      }
-
-      try {
-        // Convert rootFolder from string|null|undefined to string|undefined
-        const rootFolder =
-          syncedInstance.rootFolder === null
-            ? undefined
-            : syncedInstance.rootFolder
-
-        // Use the quality profile from the synced instance
-        const qualityProfile = syncedInstance.qualityProfile
-
-        this.log.info(
-          `Routing item "${item.title}" to synced ${capitalizedType} instance ${syncedId}`,
-        )
-
-        if (instanceType === 'radarr') {
-          await this.fastify.radarrManager.routeItemToRadarr(
-            item as RadarrItem,
-            key,
-            syncedId,
-            syncing,
-            rootFolder,
-            qualityProfile,
-          )
-        } else {
-          await this.fastify.sonarrManager.routeItemToSonarr(
-            item as SonarrItem,
-            key,
-            syncedId,
-            syncing,
-            rootFolder,
-            qualityProfile,
-          )
-        }
-        routedInstances.push(syncedId)
-      } catch (syncError) {
-        this.log.error(
-          `Error routing to synced ${capitalizedType} instance ${syncedId}:`,
-          syncError,
-        )
-        // Continue processing other synced instances even if one fails
-      }
-    }
-  }
-
-  getLoadedPlugins(): {
+  getLoadedEvaluators(): Array<{
     name: string
     description: string
-    enabled: boolean
-    order: number
-  }[] {
-    return this.plugins.map((p) => ({
-      name: p.name,
-      description: p.description,
-      enabled: p.enabled,
-      order: p.order,
+    priority: number
+  }> {
+    return this.evaluators.map((e) => ({
+      name: e.name,
+      description: e.description,
+      priority: e.priority,
     }))
   }
 }
