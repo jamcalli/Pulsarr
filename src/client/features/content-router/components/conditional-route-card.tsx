@@ -24,6 +24,7 @@ import {
   ConditionalRouteFormSchema,
   type ConditionalRouteFormValues,
   type IConditionGroup,
+  type ICondition,
 } from '@/features/content-router/schemas/content-router.schema'
 import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
@@ -91,25 +92,199 @@ const ConditionalRouteCard = ({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Enhanced fetchEvaluatorMetadata with better initialization
+  const fetchEvaluatorMetadata = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
+      const response = await fetch('/v1/content-router/plugins/metadata', {
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch evaluator metadata: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (!data.evaluators || !Array.isArray(data.evaluators) || data.evaluators.length === 0) {
+        throw new Error('No evaluator metadata available. The server response was empty or invalid.');
+      }
+      
+      setEvaluatorMetadata(data.evaluators);
+      
+      // Now immediately create at least one initial condition with actual values
+      const allFields: string[] = [];
+      
+      // Collect all available fields from metadata
+      for (const evaluator of data.evaluators) {
+        if (evaluator.supportedFields) {
+          for (const field of evaluator.supportedFields) {
+            if (!allFields.includes(field.name)) {
+              allFields.push(field.name);
+            }
+          }
+        }
+      }
+      
+      if (allFields.length > 0) {
+        // Get the current form values
+        const formValues = form.getValues();
+        const hasExistingConditions = formValues.condition?.conditions?.length > 0;
+        
+        // Check if we need to update any condition fields
+        let needsUpdate = false;
+        let updatedConditions: (ICondition | IConditionGroup)[] = [];
+        
+        if (hasExistingConditions) {
+          // Process existing conditions to ensure they have valid fields
+          updatedConditions = formValues.condition.conditions.map(condition => {
+            if (
+              condition && 
+              typeof condition === 'object' && 
+              !('conditions' in condition) && 
+              (!condition.field || allFields.indexOf(condition.field) === -1)
+            ) {
+              needsUpdate = true;
+              
+              // Get first field and its operators
+              const firstField = allFields[0];
+              let firstOperator = '';
+              
+              // Find first available operator for this field
+              for (const evaluator of data.evaluators) {
+                if (evaluator.supportedOperators?.[firstField]) {
+                  const operators = evaluator.supportedOperators[firstField];
+                  if (operators.length > 0) {
+                    firstOperator = operators[0].name;
+                    break;
+                  }
+                }
+              }
+              
+              // Return updated condition with valid field and operator
+              return {
+                ...(condition as ICondition),
+                field: firstField,
+                operator: firstOperator,
+                value: ''
+              };
+            }
+            return condition;
+          });
+          
+          if (needsUpdate) {
+            // Update the form with properly initialized conditions
+            form.setValue('condition', {
+              ...formValues.condition,
+              conditions: updatedConditions
+            }, { shouldValidate: true });
+          }
+        } else {
+          // If no conditions exist, create a new one with the first field and operator
+          const firstField = allFields[0];
+          let firstOperator = '';
+          
+          // Find first available operator for this field
+          for (const evaluator of data.evaluators) {
+            if (evaluator.supportedOperators?.[firstField]) {
+              const operators = evaluator.supportedOperators[firstField];
+              if (operators.length > 0) {
+                firstOperator = operators[0].name;
+                break;
+              }
+            }
+          }
+          
+          // Create initial condition with valid field and operator
+          const initialCondition: IConditionGroup = {
+            operator: 'AND',
+            conditions: [
+              {
+                field: firstField,
+                operator: firstOperator,
+                value: '',
+                negate: false
+              }
+            ],
+            negate: false
+          };
+          
+          // Set the form value with this initial condition
+          form.setValue('condition', initialCondition, { shouldValidate: true });
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching evaluator metadata:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load condition options. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Improved getInitialConditionValue to use evaluator metadata if available
   const getInitialConditionValue = useCallback((): IConditionGroup => {
     // Check if route has criteria with condition
-    if (route?.criteria && 'condition' in route.criteria) {
-      return route.criteria.condition as IConditionGroup
+    if (route?.criteria && 'condition' in route.criteria && route.criteria.condition) {
+      return route.criteria.condition as IConditionGroup;
     }
-    // Default to an empty AND condition group
-    return {
+    
+    // Get available fields from evaluator metadata
+    const availableFields: string[] = [];
+    let firstOperator = '';
+    
+    if (evaluatorMetadata.length > 0) {
+      // Collect all available fields
+      for (const evaluator of evaluatorMetadata) {
+        if (evaluator.supportedFields) {
+          for (const field of evaluator.supportedFields) {
+            if (!availableFields.includes(field.name)) {
+              availableFields.push(field.name);
+            }
+          }
+        }
+      }
+      
+      // Try to get first operator for the first field
+      if (availableFields.length > 0) {
+        const firstField = availableFields[0];
+        for (const evaluator of evaluatorMetadata) {
+          if (evaluator.supportedOperators?.[firstField]) {
+            const operators = evaluator.supportedOperators[firstField];
+            if (operators.length > 0) {
+              firstOperator = operators[0].name;
+              break;
+            }
+          }
+        }
+      }
+    }
+    
+    // Pick the first available field if any
+    const initialField = availableFields.length > 0 ? availableFields[0] : '';
+    
+    // Default to an empty AND condition group with a proper initial field and operator
+    const initialCondition: IConditionGroup = {
       operator: 'AND',
       conditions: [
         {
-          field: '',
-          operator: '',
+          field: initialField,
+          operator: firstOperator,
           value: '',
           negate: false,
-        },
+        }
       ],
       negate: false,
-    }
-  }, [route])
+    };
+    
+    return initialCondition;
+  }, [route, evaluatorMetadata]);
 
   const form = useForm<ConditionalRouteFormValues>({
     resolver: zodResolver(ConditionalRouteFormSchema),
@@ -132,28 +307,24 @@ const ConditionalRouteCard = ({
     mode: 'all',
   })
 
-  // Fetch available evaluator metadata when the component loads
+  // Fetch evaluator metadata on component mount
   useEffect(() => {
-    const fetchEvaluatorMetadata = async () => {
-      setLoading(true)
-      setError(null)
-      try {
-        const response = await fetch('/v1/content-router/plugins/metadata')
-        if (!response.ok) {
-          throw new Error('Failed to fetch evaluator metadata')
-        }
-        const data = await response.json()
-        setEvaluatorMetadata(data.evaluators || [])
-      } catch (err) {
-        setError('Failed to load condition options. Please try again later.')
-        console.error('Error fetching evaluator metadata:', err)
-      } finally {
-        setLoading(false)
+    fetchEvaluatorMetadata();
+  }, []);
+
+  // Make sure the form has valid conditions when metadata changes
+  useEffect(() => {
+    if (evaluatorMetadata.length > 0) {
+      // Check if form needs initialization with metadata-based values
+      const formValues = form.getValues();
+      const hasConditions = formValues.condition?.conditions?.length > 0;
+      
+      if (!hasConditions) {
+        // If no conditions, initialize with the values from getInitialConditionValue
+        form.setValue('condition', getInitialConditionValue(), { shouldValidate: true });
       }
     }
-
-    fetchEvaluatorMetadata()
-  }, [])
+  }, [evaluatorMetadata, form, getInitialConditionValue]);
 
   const resetForm = useCallback(() => {
     form.reset({
@@ -368,13 +539,53 @@ const ConditionalRouteCard = ({
                           </TooltipProvider>
                         </div>
                         <FormControl>
-                          <div className="border rounded-md p-4 bg-card/50">
-                            <ConditionGroupComponent
-                              value={field.value}
-                              onChange={field.onChange}
-                              evaluatorMetadata={evaluatorMetadata}
-                              isLoading={loading}
-                            />
+                          <div className="border rounded-md p-4 bg-card/50 relative">
+                            {loading && (
+                              <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-10 rounded-md">
+                                <div className="text-center space-y-2">
+                                  <div className="animate-spin h-6 w-6 border-2 border-primary rounded-full border-t-transparent mx-auto"></div>
+                                  <p className="text-sm">Loading condition options...</p>
+                                </div>
+                              </div>
+                            )}
+                            {error && (
+                              <Alert variant="destructive" className="mb-4">
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertDescription className="flex justify-between items-center">
+                                  <span>{error}</span>
+                                  <Button 
+                                    variant="noShadow" 
+                                    size="sm" 
+                                    onClick={() => {
+                                      setError(null);
+                                      fetchEvaluatorMetadata();
+                                    }}
+                                  >
+                                    Retry
+                                  </Button>
+                                </AlertDescription>
+                              </Alert>
+                            )}
+                            {!evaluatorMetadata.length && !loading && !error ? (
+                              <div className="text-center py-8">
+                                <p>No condition types available. Please check your connection.</p>
+                                <Button 
+                                  onClick={fetchEvaluatorMetadata}
+                                  variant="noShadow" 
+                                  size="sm"
+                                  className="mt-2"
+                                >
+                                  Refresh Conditions
+                                </Button>
+                              </div>
+                            ) : (
+                              <ConditionGroupComponent
+                                value={field.value}
+                                onChange={field.onChange}
+                                evaluatorMetadata={evaluatorMetadata}
+                                isLoading={loading}
+                              />
+                            )}
                           </div>
                         </FormControl>
                         <FormDescription className="text-xs">
