@@ -26,6 +26,7 @@ import {
   type IConditionGroup,
 } from '@/features/content-router/schemas/content-router.schema'
 import { useToast } from '@/hooks/use-toast'
+import { Button } from '@/components/ui/button'
 import type {
   ContentRouterRule,
   ContentRouterRuleUpdate,
@@ -33,11 +34,17 @@ import type {
 import type { RadarrInstance } from '@root/types/radarr.types'
 import type { SonarrInstance } from '@root/types/sonarr.types'
 import RouteCardHeader from '@/components/ui/route-card-header'
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, HelpCircle } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import ConditionGroupComponent from './condition-group'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import type { EvaluatorMetadata } from './condition-builder'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 // Define criteria interface to match backend schema
 interface Criteria {
@@ -94,9 +101,9 @@ const ConditionalRouteCard = ({
       operator: 'AND',
       conditions: [
         {
-          field: 'year',
-          operator: 'equals',
-          value: new Date().getFullYear(),
+          field: '',
+          operator: '',
+          value: '',
           negate: false,
         },
       ],
@@ -318,6 +325,21 @@ const ConditionalRouteCard = ({
                   </Alert>
                 )}
 
+                {/* Quick help guide for new users */}
+                {isNew && (
+                  <Alert variant="default">
+                    <div className="flex items-center">
+                      <HelpCircle className="h-4 w-4 mr-2" />
+                      <AlertDescription>
+                        <p className="text-sm">
+                          Build conditions below to determine when content should be routed to this instance. 
+                          Start by selecting a field, then an operator, and finally enter a value.
+                        </p>
+                      </AlertDescription>
+                    </div>
+                  </Alert>
+                )}
+
                 {/* Condition Builder Section */}
                 <div className="space-y-4">
                   <FormField
@@ -325,9 +347,26 @@ const ConditionalRouteCard = ({
                     name="condition"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-text">
-                          Condition Rules
-                        </FormLabel>
+                        <div className="flex items-center space-x-2">
+                          <FormLabel className="text-text">
+                            Condition Rules
+                          </FormLabel>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="noShadow" size="icon" className="h-6 w-6 p-0">
+                                  <HelpCircle className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  Build conditions that determine when this route should be used. 
+                                  You can combine multiple conditions with AND/OR logic.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
                         <FormControl>
                           <div className="border rounded-md p-4 bg-card/50">
                             <ConditionGroupComponent
@@ -339,8 +378,7 @@ const ConditionalRouteCard = ({
                           </div>
                         </FormControl>
                         <FormDescription className="text-xs">
-                          Build complex conditions to determine when this route
-                          should be applied
+                          Content that matches these conditions will be routed to the selected instance
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -355,9 +393,26 @@ const ConditionalRouteCard = ({
                   render={({ field }) => (
                     <FormItem>
                       <div className="flex items-center justify-between">
-                        <FormLabel className="text-text">
-                          Priority Weight
-                        </FormLabel>
+                        <div className="flex items-center space-x-2">
+                          <FormLabel className="text-text">
+                            Priority Weight
+                          </FormLabel>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="noShadow" size="icon" className="h-6 w-6 p-0">
+                                  <HelpCircle className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  Higher values give this route greater priority.
+                                  When multiple routes match, the one with the highest priority is used.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
                         <span className="text-sm text-text text-muted-foreground">
                           {field.value}
                         </span>
