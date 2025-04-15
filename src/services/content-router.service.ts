@@ -19,7 +19,18 @@ import type {
   SonarrSeriesLookupResponse,
 } from '@root/types/content-lookup.types.js'
 
+/**
+ * ContentRouterService is responsible for routing content items to Radarr or Sonarr instances
+ * based on configurable rule evaluators. It implements a flexible, pluggable routing system
+ * where multiple evaluators can be loaded dynamically.
+ *
+ * The service loads routing evaluators, applies them to content items, and determines
+ * which instances should receive the content based on priority-weighted decisions.
+ */
 export class ContentRouterService {
+  /**
+   * Collection of loaded routing evaluators that will be applied to content
+   */
   private evaluators: RoutingEvaluator[] = []
 
   constructor(
@@ -27,6 +38,11 @@ export class ContentRouterService {
     private readonly fastify: FastifyInstance,
   ) {}
 
+  /**
+   * Initialize the router service by loading all evaluators from the router-evaluators directory.
+   * Each evaluator is loaded, validated, and stored for later use. Evaluators are sorted by
+   * priority so higher priority evaluators are executed first.
+   */
   async initialize(): Promise<void> {
     try {
       // Dynamically load all evaluators from the evaluators directory
@@ -42,12 +58,15 @@ export class ContentRouterService {
       for (const file of files) {
         if (file.endsWith('.js')) {
           try {
+            // Import each evaluator file dynamically
             const evaluatorPath = join(evaluatorsDir, file)
             const evaluatorModule = await import(`file://${evaluatorPath}`)
 
+            // Each evaluator module should export a factory function that takes fastify as a parameter
             if (typeof evaluatorModule.default === 'function') {
               const evaluator = evaluatorModule.default(this.fastify)
 
+              // Validate the evaluator has all required methods and properties
               if (this.isValidEvaluator(evaluator)) {
                 this.evaluators.push(evaluator)
                 this.log.info(`Loaded router evaluator: ${evaluator.name}`)
@@ -63,7 +82,7 @@ export class ContentRouterService {
         }
       }
 
-      // Sort evaluators by priority (highest first)
+      // Sort evaluators by priority (highest first) so they execute in priority order
       this.evaluators.sort((a, b) => b.priority - a.priority)
 
       this.log.info(
@@ -75,6 +94,13 @@ export class ContentRouterService {
     }
   }
 
+  /**
+   * Validates that an evaluator has all the required methods and properties.
+   * This type guard ensures we only load properly structured evaluators.
+   *
+   * @param evaluator - The potential evaluator to validate
+   * @returns true if the evaluator is valid, false otherwise
+   */
   private isValidEvaluator(evaluator: unknown): evaluator is RoutingEvaluator {
     return (
       evaluator !== null &&
@@ -92,6 +118,22 @@ export class ContentRouterService {
     )
   }
 
+  /**
+   * The main routing method that routes a content item to one or more instances.
+   * It applies all applicable evaluators, collects their routing decisions,
+   * and processes them in priority order.
+   *
+   * Several routing strategies are supported:
+   * 1. Forced routing to a specific instance
+   * 2. Evaluator-based routing where rules determine destination instances
+   * 3. Sync-target routing when syncing operations are in progress
+   * 4. Default instance fallback routing when no specific rules match
+   *
+   * @param item - The content item to route
+   * @param key - Unique identifier for the watchlist item
+   * @param options - Additional routing options like userIds, sync info, etc.
+   * @returns Promise resolving to the list of instance IDs the item was routed to
+   */
   async routeContent(
     item: ContentItem,
     key: string,
@@ -103,11 +145,12 @@ export class ContentRouterService {
       forcedInstanceId?: number
     } = {},
   ): Promise<{ routedInstances: number[] }> {
+    // Normalize content type to lowercase for consistency
     const contentType = item.type.toLowerCase() as 'movie' | 'show'
     const routedInstances: number[] = []
 
-    // Handle forced routing first if specified
-    // but not if we're syncing with a target instance (to respect routing rules during sync)
+    // Step 1: Handle forced routing if specified
+    // Skip forced routing during sync operations with target instance to respect routing rules
     if (
       options.forcedInstanceId !== undefined &&
       !(options.syncing && options.syncTargetInstanceId !== undefined)
@@ -117,6 +160,7 @@ export class ContentRouterService {
       )
 
       try {
+        // Route directly to the forced instance based on content type
         if (contentType === 'movie') {
           await this.fastify.radarrManager.routeItemToRadarr(
             item as RadarrItem,
@@ -147,6 +191,7 @@ export class ContentRouterService {
       `Routing ${contentType} "${item.title}"${options.syncing ? ' during sync operation' : ''}`,
     )
 
+    // Prepare context for evaluators with all the information they need
     const context: RoutingContext = {
       userId: options.userId,
       userName: options.userName,
@@ -156,18 +201,18 @@ export class ContentRouterService {
       syncTargetInstanceId: options.syncTargetInstanceId,
     }
 
-    // Now evaluate all applicable routing evaluators with the enriched item
+    // Step 2: Evaluate all applicable evaluators to get routing decisions
     const allDecisions: RoutingDecision[] = []
-    const processedInstanceIds = new Set<number>()
+    const processedInstanceIds = new Set<number>() // Track instances we've routed to
 
     // Collect all decisions from all evaluators
     for (const evaluator of this.evaluators) {
       try {
-        // Check if this evaluator applies to this content
+        // Only apply evaluators that are relevant for this content
         const canEvaluate = await evaluator.canEvaluate(item, context)
         if (!canEvaluate) continue
 
-        // Get routing decisions from this evaluator
+        // Get decisions from this evaluator
         const decisions = await evaluator.evaluate(item, context)
         if (decisions && decisions.length > 0) {
           this.log.debug(
@@ -183,8 +228,9 @@ export class ContentRouterService {
       }
     }
 
+    // Step 3: Handle case where no evaluator returned any decisions
     if (allDecisions.length === 0) {
-      // If no routing decisions but we have a sync target, use it as fallback
+      // 3a: If syncing with target instance, use that as fallback
       if (options.syncing && options.syncTargetInstanceId !== undefined) {
         this.log.info(
           `No routing decisions returned for "${item.title}" during sync, using sync target instance ${options.syncTargetInstanceId}`,
@@ -213,11 +259,13 @@ export class ContentRouterService {
             error,
           )
         }
-      } else {
-        // Fall back to default routing for non-sync operations
+      }
+      // 3b: For normal operations, fall back to default instance routing
+      else {
         this.log.warn(
           `No routing decisions returned for "${item.title}", using default routing`,
         )
+        // Default routing will handle routing to default instance and any synced instances
         const defaultRoutedInstances = await this.routeUsingDefault(
           item,
           key,
@@ -230,15 +278,17 @@ export class ContentRouterService {
       return { routedInstances }
     }
 
-    // Sort decisions by priority (highest first)
+    // Step 4: Process decisions from evaluators
+
+    // Sort decisions by priority (highest first) to ensure we process most important rules first
+    // This is crucial since we only route to each instance once (using the highest priority rule)
     allDecisions.sort((a, b) => (b.priority || 50) - (a.priority || 50))
 
     let routeCount = 0
 
-    // Execute ALL routing decisions, processing highest priority ones first
-    // but only use one decision per instance (the highest priority one)
+    // Process each decision in priority order
     for (const decision of allDecisions) {
-      // Skip if we've already routed to this instance
+      // Skip if we've already routed to this instance - only use highest priority decision per instance
       if (processedInstanceIds.has(decision.instanceId)) {
         this.log.debug(
           `Skipping duplicate routing to instance ${decision.instanceId} for "${item.title}"`,
@@ -246,6 +296,7 @@ export class ContentRouterService {
         continue
       }
 
+      // Mark this instance as processed to prevent lower priority rules for same instance
       processedInstanceIds.add(decision.instanceId)
 
       this.log.info(
@@ -253,6 +304,7 @@ export class ContentRouterService {
       )
 
       try {
+        // Route to the appropriate instance based on content type
         if (contentType === 'movie') {
           // Convert rootFolder from string|null|undefined to string|undefined
           const rootFolder =
@@ -290,7 +342,8 @@ export class ContentRouterService {
       }
     }
 
-    // Special handling for sync operations where target instance wasn't in the routing decisions
+    // Step 5: Special handling for sync operations
+    // Log if sync target wasn't included in routing decisions (rules prevented sync)
     if (
       options.syncing &&
       options.syncTargetInstanceId !== undefined &&
@@ -309,8 +362,13 @@ export class ContentRouterService {
   }
 
   /**
-   * Enriches a content item with full metadata by making API calls
-   * This happens once per routing operation to avoid duplicate API calls
+   * Enriches a content item with additional metadata by making API calls to Radarr/Sonarr.
+   * This is used to provide evaluators with more information for making routing decisions.
+   * The enrichment happens once per routing operation to avoid duplicate API calls.
+   *
+   * @param item - The content item to enrich
+   * @param context - Routing context with content type and other info
+   * @returns Promise with the enriched content item
    */
   private async enrichItemMetadata(
     item: ContentItem,
@@ -318,12 +376,12 @@ export class ContentRouterService {
   ): Promise<ContentItem> {
     const isMovie = context.contentType === 'movie'
 
-    // Skip if we can't extract an ID
+    // Skip if we can't extract an ID from the item
     if (!Array.isArray(item.guids) || item.guids.length === 0) {
       return item
     }
 
-    // Extract ID from guids
+    // Extract appropriate ID based on content type (tmdb for movies, tvdb for shows)
     let itemId: number | undefined
 
     if (isMovie) {
@@ -338,6 +396,7 @@ export class ContentRouterService {
       }
     }
 
+    // Skip enrichment if we couldn't extract a valid ID
     if (!itemId || Number.isNaN(itemId)) {
       this.log.debug(
         `Couldn't extract ID from item "${item.title}", skipping metadata enrichment`,
@@ -346,26 +405,30 @@ export class ContentRouterService {
     }
 
     try {
-      // Fetch full metadata from API
+      // Fetch metadata from appropriate API based on content type
       if (isMovie) {
+        // Get Radarr service for movie lookups
         const lookupService = this.fastify.radarrManager.getRadarrService(1)
         if (!lookupService) {
           this.log.warn('No Radarr service available for metadata lookup')
           return item
         }
 
+        // Call Radarr API to get movie details
         const apiResponse = await lookupService.getFromRadarr<
           RadarrMovieLookupResponse | RadarrMovieLookupResponse[]
         >(`movie/lookup/tmdb?tmdbId=${itemId}`)
 
         let movieMetadata: RadarrMovieLookupResponse | undefined
 
+        // Handle both array and single object responses
         if (Array.isArray(apiResponse) && apiResponse.length > 0) {
           movieMetadata = apiResponse[0]
         } else if (!Array.isArray(apiResponse)) {
           movieMetadata = apiResponse
         }
 
+        // Add metadata to the item if found
         if (movieMetadata) {
           return {
             ...item,
@@ -373,24 +436,28 @@ export class ContentRouterService {
           }
         }
       } else {
+        // Get Sonarr service for TV show lookups
         const lookupService = this.fastify.sonarrManager.getSonarrService(1)
         if (!lookupService) {
           this.log.warn('No Sonarr service available for metadata lookup')
           return item
         }
 
+        // Call Sonarr API to get show details
         const apiResponse = await lookupService.getFromSonarr<
           SonarrSeriesLookupResponse | SonarrSeriesLookupResponse[]
         >(`series/lookup?term=tvdb:${itemId}`)
 
         let seriesMetadata: SonarrSeriesLookupResponse | undefined
 
+        // Handle both array and single object responses
         if (Array.isArray(apiResponse) && apiResponse.length > 0) {
           seriesMetadata = apiResponse[0]
         } else if (!Array.isArray(apiResponse)) {
           seriesMetadata = apiResponse
         }
 
+        // Add metadata to the item if found
         if (seriesMetadata) {
           return {
             ...item,
@@ -402,29 +469,46 @@ export class ContentRouterService {
       this.log.error(`Error enriching metadata for "${item.title}":`, error)
     }
 
+    // Return original item if enrichment failed
     return item
   }
 
   /**
-   * Evaluates a condition against a content item
-   * This delegates to the appropriate evaluator based on the condition field
+   * Evaluates a condition against a content item.
+   * Handles negation by inverting the result if the condition has a negate flag.
+   * This method serves as the public interface for condition evaluation.
+   *
+   * @param condition - The condition or condition group to evaluate
+   * @param item - The content item to evaluate against
+   * @param context - Routing context for additional information
+   * @returns boolean indicating whether the condition is satisfied
    */
   evaluateCondition(
     condition: Condition | ConditionGroup,
     item: ContentItem,
     context: RoutingContext,
   ): boolean {
-    // Handle negation wrapper
+    // Handle negation wrapper by inverting the result if condition.negate is true
     const result = this._evaluateCondition(condition, item, context)
     return condition.negate ? !result : result
   }
 
+  /**
+   * Internal implementation of condition evaluation.
+   * Distinguishes between single conditions and condition groups,
+   * delegating evaluation to appropriate methods.
+   *
+   * @param condition - The condition or condition group to evaluate
+   * @param item - The content item to evaluate against
+   * @param context - Routing context for additional information
+   * @returns boolean indicating whether the condition is satisfied
+   */
   private _evaluateCondition(
     condition: Condition | ConditionGroup,
     item: ContentItem,
     context: RoutingContext,
   ): boolean {
-    // Handle group condition - evaluate nested conditions with logical operator
+    // Handle group condition (contains nested conditions with AND/OR operator)
     if ('conditions' in condition) {
       return this.evaluateGroupCondition(condition, item, context)
     }
@@ -432,7 +516,7 @@ export class ContentRouterService {
     // For single conditions, find an evaluator that can handle this field
     const { field } = condition as Condition
 
-    // Try to find an evaluator that explicitly handles this field
+    // First try to find an evaluator that explicitly handles this field
     for (const evaluator of this.evaluators) {
       if (
         evaluator.evaluateCondition &&
@@ -443,7 +527,7 @@ export class ContentRouterService {
       }
     }
 
-    // If no specific handler, try any evaluator with condition support
+    // If no specific field handler found, try any evaluator with condition support
     for (const evaluator of this.evaluators) {
       if (evaluator.evaluateCondition) {
         try {
@@ -454,42 +538,67 @@ export class ContentRouterService {
       }
     }
 
+    // Log warning if no evaluator could handle this field
     this.log.warn(`No evaluator found for condition field: ${field}`)
     return false
   }
 
   /**
-   * Evaluates a group condition with logical operators
+   * Evaluates a group of conditions connected by a logical operator (AND/OR).
+   * For AND, all conditions must be true; for OR, at least one must be true.
+   *
+   * @param group - The condition group to evaluate
+   * @param item - The content item to evaluate against
+   * @param context - Routing context for additional information
+   * @returns boolean indicating whether the condition group is satisfied
    */
   private evaluateGroupCondition(
     group: ConditionGroup,
     item: ContentItem,
     context: RoutingContext,
   ): boolean {
+    // Empty condition group is always false
     if (!group.conditions || group.conditions.length === 0) {
       return false
     }
 
+    // For AND operator, all conditions must be true
     if (group.operator === 'AND') {
-      // All conditions must be true
+      // Short-circuit by returning false as soon as any condition is false
       for (const condition of group.conditions) {
         if (!this.evaluateCondition(condition, item, context)) {
           return false
         }
       }
+      // If we reached here, all conditions were true
       return true
     }
 
-    // OR - at least one condition must be true
+    // For OR operator, at least one condition must be true
+    // Short-circuit by returning true as soon as any condition is true
     for (const condition of group.conditions) {
       if (this.evaluateCondition(condition, item, context)) {
         return true
       }
     }
+    // If we reached here, no conditions were true
     return false
   }
 
-  // Default routing method - similar to your existing implementation
+  /**
+   * Default routing method used when no evaluator rules match.
+   * Routes content to the default instance for its type (Radarr/Sonarr),
+   * and also to any instances that are configured as "synced instances" for the default.
+   *
+   * This provides a fallback routing strategy that ensures content still reaches
+   * appropriate instances even when no specific rules apply.
+   *
+   * @param item - The content item to route
+   * @param key - Unique identifier for the watchlist item
+   * @param contentType - Type of content ('movie' or 'show')
+   * @param syncing - Whether this is part of a sync operation
+   * @returns Promise resolving to array of instance IDs the item was routed to
+   */
   private async routeUsingDefault(
     item: ContentItem,
     key: string,
@@ -499,15 +608,16 @@ export class ContentRouterService {
     try {
       const routedInstances: number[] = []
 
+      // Handle movies and shows differently since they use different managers
       if (contentType === 'movie') {
-        // Get default Radarr instance
+        // Step 1: Get the default Radarr instance
         const defaultInstance = await this.fastify.db.getDefaultRadarrInstance()
         if (!defaultInstance) {
           this.log.warn('No default Radarr instance found for routing')
           return []
         }
 
-        // Route to default instance
+        // Step 2: Route to the default instance
         try {
           await this.fastify.radarrManager.routeItemToRadarr(
             item as RadarrItem,
@@ -523,31 +633,39 @@ export class ContentRouterService {
           )
         }
 
-        // Handle synced instances
+        // Step 3: Check for and route to synced instances
+        // Parse the syncedInstances from the default instance (handling various formats)
         const syncedInstanceIds = Array.isArray(defaultInstance.syncedInstances)
           ? defaultInstance.syncedInstances
           : typeof defaultInstance.syncedInstances === 'string'
             ? JSON.parse(defaultInstance.syncedInstances || '[]')
             : []
 
+        // Only proceed if there are synced instances
         if (syncedInstanceIds.length > 0) {
+          // Get all Radarr instances to look up details
           const allInstances = await this.fastify.db.getAllRadarrInstances()
           const instanceMap = new Map(
             allInstances.map((instance) => [instance.id, instance]),
           )
 
+          // Process each synced instance
           for (const syncedId of syncedInstanceIds) {
+            // Skip if we've already routed to this instance
             if (routedInstances.includes(syncedId)) continue
 
+            // Get the synced instance details
             const syncedInstance = instanceMap.get(syncedId)
-            if (!syncedInstance) continue
+            if (!syncedInstance) continue // Skip if instance not found
 
             try {
+              // Get the root folder for this instance (handling null case)
               const rootFolder =
                 syncedInstance.rootFolder === null
                   ? undefined
                   : syncedInstance.rootFolder
 
+              // Route to the synced instance with its specific settings
               await this.fastify.radarrManager.routeItemToRadarr(
                 item as RadarrItem,
                 key,
@@ -562,18 +680,20 @@ export class ContentRouterService {
                 `Error routing "${item.title}" to synced Radarr instance ${syncedId}:`,
                 error,
               )
+              // Continue with other synced instances even if one fails
             }
           }
         }
       } else {
-        // Similar implementation for Sonarr
+        // TV shows - Similar implementation as movies but using Sonarr
+        // Step 1: Get the default Sonarr instance
         const defaultInstance = await this.fastify.db.getDefaultSonarrInstance()
         if (!defaultInstance) {
           this.log.warn('No default Sonarr instance found for routing')
           return []
         }
 
-        // Route to default instance
+        // Step 2: Route to default instance
         try {
           await this.fastify.sonarrManager.routeItemToSonarr(
             item as SonarrItem,
@@ -589,7 +709,7 @@ export class ContentRouterService {
           )
         }
 
-        // Handle synced instances
+        // Step 3: Handle synced instances like with Radarr
         const syncedInstanceIds = Array.isArray(defaultInstance.syncedInstances)
           ? defaultInstance.syncedInstances
           : typeof defaultInstance.syncedInstances === 'string'
@@ -640,6 +760,12 @@ export class ContentRouterService {
     }
   }
 
+  /**
+   * Returns information about all loaded evaluators.
+   * This is primarily used for API responses and logging.
+   *
+   * @returns Array of evaluator metadata (name, description, priority)
+   */
   getLoadedEvaluators(): Array<{
     name: string
     description: string
@@ -653,13 +779,11 @@ export class ContentRouterService {
   }
 
   /**
-   * Returns metadata about all loaded evaluators, including their supported fields and operators
+   * Returns detailed metadata about all loaded evaluators, including their supported
+   * fields and operators. This information is valuable for UIs that need to present
+   * rule creation options dynamically based on available evaluators.
    *
-   * This method provides detailed information about the capabilities of each evaluator
-   * that is loaded into the content router. The information can be used to build dynamic
-   * UI elements for creating and editing router rules.
-   *
-   * @returns An array of evaluator metadata objects
+   * @returns Array of detailed evaluator metadata
    */
   getEvaluatorsMetadata(): Array<{
     name: string
