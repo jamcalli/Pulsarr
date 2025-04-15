@@ -107,6 +107,7 @@ export class ContentRouterService {
     const routedInstances: number[] = []
 
     // Handle forced routing first if specified
+    // but not if we're syncing with a target instance (to respect routing rules during sync)
     if (
       options.forcedInstanceId !== undefined &&
       !(options.syncing && options.syncTargetInstanceId !== undefined)
@@ -131,7 +132,6 @@ export class ContentRouterService {
             options.syncing,
           )
         }
-
         routedInstances.push(options.forcedInstanceId)
         return { routedInstances }
       } catch (error) {
@@ -156,21 +156,19 @@ export class ContentRouterService {
       syncTargetInstanceId: options.syncTargetInstanceId,
     }
 
-    // First, enrich the item with metadata if needed
-    const enrichedItem = await this.enrichItemMetadata(item, context)
-
     // Now evaluate all applicable routing evaluators with the enriched item
     const allDecisions: RoutingDecision[] = []
     const processedInstanceIds = new Set<number>()
 
+    // Collect all decisions from all evaluators
     for (const evaluator of this.evaluators) {
       try {
         // Check if this evaluator applies to this content
-        const canEvaluate = await evaluator.canEvaluate(enrichedItem, context)
+        const canEvaluate = await evaluator.canEvaluate(item, context)
         if (!canEvaluate) continue
 
         // Get routing decisions from this evaluator
-        const decisions = await evaluator.evaluate(enrichedItem, context)
+        const decisions = await evaluator.evaluate(item, context)
         if (decisions && decisions.length > 0) {
           this.log.debug(
             `Evaluator "${evaluator.name}" returned ${decisions.length} routing decisions for "${item.title}"`,
@@ -233,9 +231,12 @@ export class ContentRouterService {
     }
 
     // Sort decisions by priority (highest first)
-    allDecisions.sort((a, b) => b.priority - a.priority)
+    allDecisions.sort((a, b) => (b.priority || 50) - (a.priority || 50))
 
-    // Execute all routing decisions, processing highest priority ones first
+    let routeCount = 0
+
+    // Execute ALL routing decisions, processing highest priority ones first
+    // but only use one decision per instance (the highest priority one)
     for (const decision of allDecisions) {
       // Skip if we've already routed to this instance
       if (processedInstanceIds.has(decision.instanceId)) {
@@ -248,7 +249,7 @@ export class ContentRouterService {
       processedInstanceIds.add(decision.instanceId)
 
       this.log.info(
-        `Routing "${item.title}" to instance ID ${decision.instanceId} with priority ${decision.priority}`,
+        `Routing "${item.title}" to instance ID ${decision.instanceId} with priority ${decision.priority || 50}`,
       )
 
       try {
@@ -279,6 +280,7 @@ export class ContentRouterService {
             decision.qualityProfile,
           )
         }
+        routeCount++
         routedInstances.push(decision.instanceId)
       } catch (routeError) {
         this.log.error(
@@ -300,7 +302,7 @@ export class ContentRouterService {
     }
 
     this.log.info(
-      `Successfully routed "${item.title}" to ${routedInstances.length} instances`,
+      `Successfully routed "${item.title}" to ${routeCount} instances`,
     )
 
     return { routedInstances }

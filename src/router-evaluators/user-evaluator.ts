@@ -140,12 +140,12 @@ export default function createUserEvaluator(
         return null
       }
 
-      // Convert matching rules to routing decisions
+      // Convert matching rules to routing decisions - ALL matches
       return matchingRules.map((rule) => ({
         instanceId: rule.target_instance_id,
         qualityProfile: rule.quality_profile,
         rootFolder: rule.root_folder,
-        priority: rule.order,
+        priority: rule.order || 50, // Default to 50 if not specified
       }))
     },
 

@@ -174,7 +174,7 @@ export default function createGenreEvaluator(
         instanceId: rule.target_instance_id,
         qualityProfile: rule.quality_profile,
         rootFolder: rule.root_folder,
-        priority: rule.order,
+        priority: rule.order || 50, // Default to 50 if not specified
       }))
     },
 
