@@ -58,6 +58,7 @@ interface MultiSelectProps
   modalPopover?: boolean
   asChild?: boolean
   className?: string
+  onDropdownOpen?: () => Promise<void>
 }
 
 export const MultiSelect = React.forwardRef<
@@ -76,6 +77,7 @@ export const MultiSelect = React.forwardRef<
       modalPopover = false,
       asChild = false,
       className,
+      onDropdownOpen,
       ...props
     },
     ref,
@@ -134,7 +136,12 @@ export const MultiSelect = React.forwardRef<
     return (
       <Popover
         open={isPopoverOpen}
-        onOpenChange={setIsPopoverOpen}
+        onOpenChange={async (open) => {
+          if (open && onDropdownOpen) {
+            await onDropdownOpen()
+          }
+          setIsPopoverOpen(open)
+        }}
         modal={modalPopover}
       >
         <PopoverTrigger asChild>
