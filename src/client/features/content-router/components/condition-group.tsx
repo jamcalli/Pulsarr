@@ -1,30 +1,32 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { Button } from '@/components/ui/button'
-import { PlusCircle, Trash2, LayoutList } from 'lucide-react'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Switch } from '@/components/ui/switch'
-import { Label } from '@/components/ui/label'
-import ConditionBuilder from './condition-builder'
-import type { EvaluatorMetadata } from './condition-builder'
+} from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { PlusCircle, Trash2, LayoutList } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import ConditionBuilder from './condition-builder';
+import type { EvaluatorMetadata } from './condition-builder';
 import type {
   ICondition,
   IConditionGroup,
-} from '@/features/content-router/schemas/content-router.schema'
+} from '@/features/content-router/schemas/content-router.schema';
 
 interface ConditionGroupComponentProps {
-  value: IConditionGroup
-  onChange: (value: IConditionGroup) => void
-  onRemove?: () => void
-  evaluatorMetadata: EvaluatorMetadata[]
-  isLoading?: boolean
-  level?: number
+  value: IConditionGroup;
+  onChange: (value: IConditionGroup) => void;
+  onRemove?: () => void;
+  evaluatorMetadata: EvaluatorMetadata[];
+  genres?: string[];
+  onGenreDropdownOpen?: () => Promise<void>;
+  isLoading?: boolean;
+  level?: number;
 }
 
 const ConditionGroupComponent = ({
@@ -32,23 +34,25 @@ const ConditionGroupComponent = ({
   onChange,
   onRemove,
   evaluatorMetadata,
+  genres = [],
+  onGenreDropdownOpen,
   isLoading = false,
   level = 0,
 }: ConditionGroupComponentProps) => {
   // Helper to get all supported fields from metadata
   const getAllFields = (evaluatorMetadata: EvaluatorMetadata[]): string[] => {
-    const fieldNames: string[] = []
+    const fieldNames: string[] = [];
     for (const evaluator of evaluatorMetadata) {
       if (evaluator.supportedFields) {
         for (const field of evaluator.supportedFields) {
           if (!fieldNames.includes(field.name)) {
-            fieldNames.push(field.name)
+            fieldNames.push(field.name);
           }
         }
       }
     }
-    return fieldNames
-  }
+    return fieldNames;
+  };
 
   // Initialize conditions with proper fields when metadata is loaded
   const initializeConditionsWithFields = useCallback(() => {
@@ -95,7 +99,7 @@ const ConditionGroupComponent = ({
         conditions: updatedConditions
       });
     }
-  }, [value, evaluatorMetadata, onChange, getAllFields]);
+  }, [value, evaluatorMetadata, onChange]);
 
   // Initialize conditions when metadata is loaded
   useEffect(() => {
@@ -107,65 +111,65 @@ const ConditionGroupComponent = ({
   // Create an empty condition with the first available field from metadata
   const createEmptyCondition = (): ICondition => {
     // Get available fields
-    const availableFields = getAllFields(evaluatorMetadata)
+    const availableFields = getAllFields(evaluatorMetadata);
     
     // Use first available field if exists, otherwise empty string
-    const initialField = availableFields.length > 0 ? availableFields[0] : ''
+    const initialField = availableFields.length > 0 ? availableFields[0] : '';
     
     return {
       field: initialField,
       operator: '',
       value: '',
       negate: false,
-    }
-  }
+    };
+  };
 
   // Create an empty group with one empty condition
   const createEmptyGroup = (): IConditionGroup => ({
     operator: 'AND',
     conditions: [createEmptyCondition()],
     negate: false,
-  })
+  });
 
   // Handle toggling the negate flag
   const handleToggleNegate = () => {
     onChange({
       ...value,
       negate: !value.negate,
-    })
-  }
+    });
+  };
 
   // Handle changing the logical operator (AND/OR)
   const handleOperatorChange = (newOperator: 'AND' | 'OR') => {
     onChange({
       ...value,
       operator: newOperator,
-    })
-  }
+    });
+  };
 
   // Add a new empty condition to the group
   const handleAddCondition = () => {
-    const newCondition = createEmptyCondition()
+    const newCondition = createEmptyCondition();
     
     // Ensure value.conditions is an array before spreading
-    const currentConditions = Array.isArray(value.conditions) ? value.conditions : []
+    const currentConditions = Array.isArray(value.conditions) ? value.conditions : [];
     
     onChange({
       ...value,
       conditions: [...currentConditions, newCondition],
-    })
-  }
+    });
+  };
 
   // Add a new nested condition group to the group
   const handleAddGroup = () => {
     // Ensure value.conditions is an array before spreading
-    const currentConditions = Array.isArray(value.conditions) ? value.conditions : []
+    const currentConditions = Array.isArray(value.conditions) ? value.conditions : [];
     
     onChange({
       ...value,
       conditions: [...currentConditions, createEmptyGroup()],
-    })
-  }
+    });
+  };
 
   // Update a specific condition in the group
   const handleUpdateCondition = (
@@ -174,21 +178,21 @@ const ConditionGroupComponent = ({
   ) => {
     // Ensure value.conditions is an array before modifying
     if (!Array.isArray(value.conditions)) {
-      const newConditions = [updatedCondition]
+      const newConditions = [updatedCondition];
       onChange({
         ...value,
         conditions: newConditions,
-      })
-      return
+      });
+      return;
     }
     
-    const newConditions = [...value.conditions]
-    newConditions[index] = updatedCondition
+    const newConditions = [...value.conditions];
+    newConditions[index] = updatedCondition;
     onChange({
       ...value,
       conditions: newConditions,
-    })
-  }
+    });
+  };
 
   // Remove a condition from the group
   const handleRemoveCondition = (index: number) => {
@@ -197,21 +201,21 @@ const ConditionGroupComponent = ({
       onChange({
         ...value,
         conditions: [createEmptyCondition()],
-      })
-      return
+      });
+      return;
     }
     
-    const newConditions = value.conditions.filter((_, i) => i !== index)
+    const newConditions = value.conditions.filter((_, i) => i !== index);
     onChange({
       ...value,
       conditions:
         newConditions.length > 0 ? newConditions : [createEmptyCondition()],
-    })
-  }
+    });
+  };
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 border-l-2 pl-4 border-muted">
         <div className="flex justify-between">
           <Skeleton className="h-10 w-[30%]" />
           <div>
@@ -220,7 +224,7 @@ const ConditionGroupComponent = ({
         </div>
         <Skeleton className="h-24 w-full" />
       </div>
-    )
+    );
   }
 
   // Generate border color based on nesting level
@@ -231,12 +235,12 @@ const ConditionGroupComponent = ({
       'border-accent',
       'border-fun',
       'border-green',
-    ]
-    return colors[level % colors.length]
-  }
+    ];
+    return colors[level % colors.length];
+  };
 
   // Ensure value.conditions is always an array
-  const conditions = Array.isArray(value.conditions) ? value.conditions : []
+  const conditions = Array.isArray(value.conditions) ? value.conditions : [];
 
   return (
     <div className={`border-l-2 pl-4 ${getLevelColor()}`}>
@@ -289,6 +293,8 @@ const ConditionGroupComponent = ({
                   }
                   onRemove={() => handleRemoveCondition(index)}
                   evaluatorMetadata={evaluatorMetadata}
+                  genres={genres}
+                  onGenreDropdownOpen={onGenreDropdownOpen}
                   isLoading={isLoading}
                   level={level + 1}
                 />
@@ -301,11 +307,13 @@ const ConditionGroupComponent = ({
                   }
                   onRemove={() => handleRemoveCondition(index)}
                   evaluatorMetadata={evaluatorMetadata}
+                  genres={genres}
+                  onGenreDropdownOpen={onGenreDropdownOpen}
                   isLoading={isLoading}
                 />
               )}
             </div>
-          )
+          );
         })}
       </div>
 
@@ -322,7 +330,7 @@ const ConditionGroupComponent = ({
         </Button>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default ConditionGroupComponent
+export default ConditionGroupComponent;

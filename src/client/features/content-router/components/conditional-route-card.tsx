@@ -1,13 +1,13 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'
-import { cn } from '@/lib/utils'
+} from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 import {
   Form,
   FormControl,
@@ -16,59 +16,67 @@ import {
   FormLabel,
   FormMessage,
   FormDescription,
-} from '@/components/ui/form'
-import { Slider } from '@/components/ui/slider'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+} from '@/components/ui/form';
+import { Slider } from '@/components/ui/slider';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
   ConditionalRouteFormSchema,
   type ConditionalRouteFormValues,
   type IConditionGroup,
   type ICondition,
-} from '@/features/content-router/schemas/content-router.schema'
-import { useToast } from '@/hooks/use-toast'
-import { Button } from '@/components/ui/button'
+} from '@/features/content-router/schemas/content-router.schema';
+import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
 import type {
   ContentRouterRule,
   ContentRouterRuleUpdate,
-} from '@root/schemas/content-router/content-router.schema'
-import type { RadarrInstance } from '@root/types/radarr.types'
-import type { SonarrInstance } from '@root/types/sonarr.types'
-import RouteCardHeader from '@/components/ui/route-card-header'
-import { AlertCircle, HelpCircle } from 'lucide-react'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import ConditionGroupComponent from './condition-group'
-import { useMediaQuery } from '@/hooks/use-media-query'
-import type { EvaluatorMetadata } from './condition-builder'
+} from '@root/schemas/content-router/content-router.schema';
+import type { RadarrInstance } from '@root/types/radarr.types';
+import type { SonarrInstance } from '@root/types/sonarr.types';
+import RouteCardHeader from '@/components/ui/route-card-header';
+import { AlertCircle, HelpCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import ConditionGroupComponent from './condition-group';
+import { useMediaQuery } from '@/hooks/use-media-query';
+import type { EvaluatorMetadata } from './condition-builder';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@/components/ui/tooltip'
+} from '@/components/ui/tooltip';
 
 // Define criteria interface to match backend schema
 interface Criteria {
-  condition?: IConditionGroup
-  [key: string]: IConditionGroup | undefined
+  condition?: IConditionGroup;
+  genre?: string | string[];
+  year?: number | number[] | { min?: number; max?: number };
+  originalLanguage?: string | string[];
+  users?: string | string[];
+  [key: string]: any;
 }
 
-// Extended ContentRouterRule to include criteria property
+// Extended ContentRouterRule to include criteria and type properties
 interface ExtendedContentRouterRule extends ContentRouterRule {
-  criteria?: Criteria
+  type?: string;
+  criteria?: Criteria;
+  condition?: IConditionGroup;
 }
 
 interface ConditionalRouteCardProps {
-  route: ExtendedContentRouterRule | Partial<ExtendedContentRouterRule>
-  isNew?: boolean
-  onCancel: () => void
-  onSave: (data: ContentRouterRule | ContentRouterRuleUpdate) => Promise<void>
-  onRemove?: () => void
-  onToggleEnabled?: (id: number, enabled: boolean) => Promise<void>
-  isSaving: boolean
-  isTogglingState?: boolean
-  instances: (RadarrInstance | SonarrInstance)[]
-  contentType: 'radarr' | 'sonarr'
+  route: ExtendedContentRouterRule | Partial<ExtendedContentRouterRule>;
+  isNew?: boolean;
+  onCancel: () => void;
+  onSave: (data: ContentRouterRule | ContentRouterRuleUpdate) => Promise<void>;
+  onRemove?: () => void;
+  onToggleEnabled?: (id: number, enabled: boolean) => Promise<void>;
+  isSaving: boolean;
+  isTogglingState?: boolean;
+  instances: (RadarrInstance | SonarrInstance)[];
+  genres?: string[];
+  onGenreDropdownOpen?: () => Promise<void>;
+  contentType: 'radarr' | 'sonarr';
 }
 
 const ConditionalRouteCard = ({
@@ -81,16 +89,18 @@ const ConditionalRouteCard = ({
   isSaving,
   isTogglingState = false,
   instances = [],
+  genres = [],
+  onGenreDropdownOpen,
   contentType,
 }: ConditionalRouteCardProps) => {
-  const cardRef = useRef<HTMLDivElement>(null)
-  const { toast } = useToast()
-  const isMobile = useMediaQuery('(max-width: 768px)')
+  const cardRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const [evaluatorMetadata, setEvaluatorMetadata] = useState<
     EvaluatorMetadata[]
-  >([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  >([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Enhanced fetchEvaluatorMetadata with better initialization
   const fetchEvaluatorMetadata = async () => {
@@ -305,7 +315,7 @@ const ConditionalRouteCard = ({
       order: route?.order ?? 50,
     },
     mode: 'all',
-  })
+  });
 
   // Fetch evaluator metadata on component mount
   useEffect(() => {
@@ -342,65 +352,65 @@ const ConditionalRouteCard = ({
           : '',
       enabled: route?.enabled !== false,
       order: route?.order ?? 50,
-    })
-  }, [form, route, contentType, instances, getInitialConditionValue])
+    });
+  }, [form, route, contentType, instances, getInitialConditionValue]);
 
   useEffect(() => {
     if (!isNew && (('id' in route && route.id) || instances.length > 0)) {
-      resetForm()
+      resetForm();
     }
-  }, [route, isNew, instances, resetForm])
+  }, [route, isNew, instances, resetForm]);
 
   useEffect(() => {
     if (isNew && cardRef.current) {
       cardRef.current.scrollIntoView({
         behavior: 'smooth',
         block: 'nearest',
-      })
+      });
     }
-  }, [isNew])
+  }, [isNew]);
 
   useEffect(() => {
     if (isNew) {
-      setTimeout(() => form.trigger(), 0)
+      setTimeout(() => form.trigger(), 0);
     }
-  }, [form, isNew])
+  }, [form, isNew]);
 
   const setTitleValue = useCallback(
     (title: string) => {
-      form.setValue('name', title, { shouldDirty: true })
+      form.setValue('name', title, { shouldDirty: true });
     },
     [form],
-  )
+  );
 
   const handleToggleEnabled = async () => {
     if (onToggleEnabled && 'id' in route && route.id) {
-      await onToggleEnabled(route.id, !form.watch('enabled'))
+      await onToggleEnabled(route.id, !form.watch('enabled'));
     }
-  }
+  };
 
   const handleInstanceChange = useCallback(
     (value: string) => {
-      const instanceId = Number.parseInt(value, 10)
+      const instanceId = Number.parseInt(value, 10);
       if (!Number.isNaN(instanceId)) {
-        form.setValue('target_instance_id', instanceId)
-        form.setValue('root_folder', '', { shouldDirty: true })
+        form.setValue('target_instance_id', instanceId);
+        form.setValue('root_folder', '', { shouldDirty: true });
         form.setValue('quality_profile', '', {
           shouldDirty: true,
           shouldValidate: true,
-        })
+        });
       }
     },
     [form],
-  )
+  );
 
   const getSelectedInstance = useCallback(() => {
     return instances.find(
       (inst) => inst.id === form.watch('target_instance_id'),
-    )
-  }, [instances, form])
+    );
+  }, [instances, form]);
 
-  const selectedInstance = getSelectedInstance()
+  const selectedInstance = getSelectedInstance();
 
   const handleSubmit = async (data: ConditionalRouteFormValues) => {
     try {
@@ -420,9 +430,9 @@ const ConditionalRouteCard = ({
           condition: data.condition, // Use condition directly instead of criteria
           created_at: '', // This will be set by the backend
           updated_at: '', // This will be set by the backend
-        }
+        };
 
-        await onSave(routeData)
+        await onSave(routeData);
       }
       // For existing routes (updating a route)
       else {
@@ -436,24 +446,24 @@ const ConditionalRouteCard = ({
           root_folder: data.root_folder,
           enabled: data.enabled,
           order: data.order,
-        }
+        };
 
-        await onSave(updatePayload)
+        await onSave(updatePayload);
       }
     } catch (error: unknown) {
-      console.error('Failed to save conditional route:', error)
+      console.error('Failed to save conditional route:', error);
       toast({
         title: 'Error',
         description: `Failed to save conditional route: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: 'destructive',
-      })
+      });
     }
-  }
+  };
 
   const handleCancel = () => {
-    resetForm()
-    onCancel()
-  }
+    resetForm();
+    onCancel();
+  };
 
   return (
     <div className="relative" ref={cardRef}>
@@ -583,6 +593,8 @@ const ConditionalRouteCard = ({
                                 value={field.value}
                                 onChange={field.onChange}
                                 evaluatorMetadata={evaluatorMetadata}
+                                genres={genres}
+                                onGenreDropdownOpen={onGenreDropdownOpen}
                                 isLoading={loading}
                               />
                             )}
@@ -776,7 +788,7 @@ const ConditionalRouteCard = ({
         </Form>
       </Card>
     </div>
-  )
-}
+  );
+};
 
-export default ConditionalRouteCard
+export default ConditionalRouteCard;
