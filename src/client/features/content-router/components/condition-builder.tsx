@@ -108,9 +108,29 @@ const ConditionBuilder = ({
   // Update available fields when metadata changes
   useEffect(() => {
     if (evaluatorMetadata && evaluatorMetadata.length > 0) {
-      setFields(getAllFields(evaluatorMetadata))
+      const availableFields = getAllFields(evaluatorMetadata)
+      setFields(availableFields)
+      
+      // If field is empty but we have a pre-set value, initialize operators
+      if (value.field) {
+        const ops = getOperatorsForField(evaluatorMetadata, value.field)
+        setOperators(ops)
+      }
+      // If field is empty and we have fields available but no pre-set field, 
+      // suggest the first available field
+      else if (availableFields.length > 0) {
+        const firstField = availableFields[0].name
+        onChange({
+          ...value,
+          field: firstField,
+        })
+        
+        // Also populate operators for this field
+        const ops = getOperatorsForField(evaluatorMetadata, firstField)
+        setOperators(ops)
+      }
     }
-  }, [evaluatorMetadata])
+  }, [evaluatorMetadata, onChange, value])
 
   // Update available operators when field changes
   useEffect(() => {
@@ -124,6 +144,14 @@ const ConditionBuilder = ({
           ...value,
           operator: ops[0].name,
         })
+        
+        // Also populate value types for this field and operator
+        const types = getValueTypes(
+          evaluatorMetadata,
+          value.field,
+          ops[0].name,
+        )
+        setValueTypes(types)
       }
     }
   }, [evaluatorMetadata, value.field, onChange, value])
@@ -189,7 +217,7 @@ const ConditionBuilder = ({
           value={
             typeof value.value === 'number'
               ? value.value.toString()
-              : (value.value as string)
+              : (value.value as string) || ''
           }
           onChange={(e) => handleValueChange(Number(e.target.value))}
           placeholder="Enter a number"
@@ -202,7 +230,7 @@ const ConditionBuilder = ({
       return (
         <Input
           type="text"
-          value={value.value as string}
+          value={(value.value as string) || ''}
           onChange={(e) => handleValueChange(e.target.value)}
           placeholder="Enter a value"
           className="flex-1"
@@ -217,7 +245,7 @@ const ConditionBuilder = ({
           value={
             Array.isArray(value.value)
               ? value.value.join(', ')
-              : (value.value as string)
+              : (value.value as string) || ''
           }
           onChange={(e) => {
             const arrayValue = e.target.value
@@ -239,7 +267,7 @@ const ConditionBuilder = ({
           value={
             Array.isArray(value.value)
               ? value.value.join(', ')
-              : (value.value as string)
+              : (value.value as string) || ''
           }
           onChange={(e) => {
             const arrayValue = e.target.value
