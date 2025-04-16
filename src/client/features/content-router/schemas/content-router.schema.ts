@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from 'zod'
 
 // Define schemas for condition value types
 const ConditionValueSchema = z.union([
@@ -12,23 +12,23 @@ const ConditionValueSchema = z.union([
     max: z.number().optional(),
   }),
   z.null(),
-]);
+])
 
-export type ConditionValue = z.infer<typeof ConditionValueSchema>;
+export type ConditionValue = z.infer<typeof ConditionValueSchema>
 
 // Define interface for a basic condition
 export interface ICondition {
-  field: string;
-  operator: string;
-  value: ConditionValue;
-  negate?: boolean;
+  field: string
+  operator: string
+  value: ConditionValue
+  negate?: boolean
 }
 
 // Define interface for a condition group
 export interface IConditionGroup {
-  operator: 'AND' | 'OR';
-  conditions: (ICondition | IConditionGroup)[];
-  negate?: boolean;
+  operator: 'AND' | 'OR'
+  conditions: (ICondition | IConditionGroup)[]
+  negate?: boolean
 }
 
 // Define schema for a basic condition
@@ -39,7 +39,7 @@ export const ConditionSchema: z.ZodType<ICondition> = z.lazy(() =>
     value: ConditionValueSchema,
     negate: z.boolean().optional().default(false),
   }),
-);
+)
 
 // Define schema for a condition group (which can contain nested conditions and groups)
 export const ConditionGroupSchema: z.ZodType<IConditionGroup> = z.lazy(() =>
@@ -50,7 +50,7 @@ export const ConditionGroupSchema: z.ZodType<IConditionGroup> = z.lazy(() =>
       .min(1),
     negate: z.boolean().optional().default(false),
   }),
-);
+)
 
 // Schema for a conditional route
 export const ConditionalRouteFormSchema = z.object({
@@ -69,11 +69,11 @@ export const ConditionalRouteFormSchema = z.object({
   }),
   enabled: z.boolean().default(true),
   order: z.number().int().min(1).max(100).default(50),
-});
+})
 
 export type ConditionalRouteFormValues = z.infer<
   typeof ConditionalRouteFormSchema
->;
+>
 
 // Keep backward compatibility with existing route schemas
 export const GenreRouteFormSchema = z.object({
@@ -95,9 +95,9 @@ export const GenreRouteFormSchema = z.object({
   }),
   enabled: z.boolean().default(true),
   order: z.number().int().min(1).max(100).default(50),
-});
+})
 
-export type GenreRouteFormValues = z.infer<typeof GenreRouteFormSchema>;
+export type GenreRouteFormValues = z.infer<typeof GenreRouteFormSchema>
 
 export const YearCriteriaFormSchema = z
   .discriminatedUnion('matchType', [
@@ -121,9 +121,9 @@ export const YearCriteriaFormSchema = z
   .refine(
     (data) => {
       if (data.matchType === 'range') {
-        return data.minYear !== undefined || data.maxYear !== undefined;
+        return data.minYear !== undefined || data.maxYear !== undefined
       }
-      return true;
+      return true
     },
     {
       message: 'At least one of min or max year must be specified',
@@ -136,17 +136,17 @@ export const YearCriteriaFormSchema = z
         const years = data.years
           .split(',')
           .map((y) => Number.parseInt(y.trim()))
-          .filter((y) => !Number.isNaN(y));
-        return years.length > 0 && years.every((y) => y >= 1900 && y <= 2100);
+          .filter((y) => !Number.isNaN(y))
+        return years.length > 0 && years.every((y) => y >= 1900 && y <= 2100)
       }
-      return true;
+      return true
     },
     {
       message:
         'Please enter valid years between 1900-2100, separated by commas',
       path: ['years'],
     },
-  );
+  )
 
 export const YearRouteFormSchema = z.object({
   name: z.string().min(2, {
@@ -164,10 +164,10 @@ export const YearRouteFormSchema = z.object({
   enabled: z.boolean().default(true),
   yearCriteria: YearCriteriaFormSchema,
   order: z.number().int().min(1).max(100).default(50),
-});
+})
 
-export type YearRouteFormValues = z.infer<typeof YearRouteFormSchema>;
-export type YearCriteriaFormValues = z.infer<typeof YearCriteriaFormSchema>;
+export type YearRouteFormValues = z.infer<typeof YearRouteFormSchema>
+export type YearCriteriaFormValues = z.infer<typeof YearCriteriaFormSchema>
 
 export const LanguageRouteFormSchema = z.object({
   name: z.string().min(2, {
@@ -187,9 +187,9 @@ export const LanguageRouteFormSchema = z.object({
   }),
   enabled: z.boolean().default(true),
   order: z.number().int().min(1).max(100).default(50),
-});
+})
 
-export type LanguageRouteFormValues = z.infer<typeof LanguageRouteFormSchema>;
+export type LanguageRouteFormValues = z.infer<typeof LanguageRouteFormSchema>
 
 export const UserRouteFormSchema = z.object({
   name: z.string().min(2, {
@@ -209,6 +209,6 @@ export const UserRouteFormSchema = z.object({
   }),
   enabled: z.boolean().default(true),
   order: z.number().int().min(1).max(100).default(50),
-});
+})
 
-export type UserRouteFormValues = z.infer<typeof UserRouteFormSchema>;
+export type UserRouteFormValues = z.infer<typeof UserRouteFormSchema>

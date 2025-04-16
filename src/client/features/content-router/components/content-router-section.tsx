@@ -1,48 +1,51 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
-import DeleteRouteAlert from '@/features/content-router/components/delete-route-alert';
-import ContentRouteCardSkeleton from '@/features/content-router/components/content-route-skeleton';
-import ConditionalRouteCard from '@/features/content-router/components/conditional-route-card';
+import { useState, useCallback, useEffect, useRef } from 'react'
+import { Button } from '@/components/ui/button'
+import { useToast } from '@/hooks/use-toast'
+import DeleteRouteAlert from '@/features/content-router/components/delete-route-alert'
+import ContentRouteCardSkeleton from '@/features/content-router/components/content-route-skeleton'
+import ConditionalRouteCard from '@/features/content-router/components/conditional-route-card'
 import type {
   ContentRouterRule,
   ContentRouterRuleUpdate,
-} from '@root/schemas/content-router/content-router.schema';
-import { useRadarrContentRouterAdapter } from '@/features/radarr/hooks/content-router/useRadarrContentRouterAdapater';
-import { useSonarrContentRouterAdapter } from '@/features/sonarr/hooks/content-router/useSonarrContentRouterAdapter';
-import type { RadarrInstance } from '@root/types/radarr.types';
-import type { SonarrInstance } from '@root/types/sonarr.types';
-import type { IConditionGroup, ICondition } from '@/features/content-router/schemas/content-router.schema';
+} from '@root/schemas/content-router/content-router.schema'
+import { useRadarrContentRouterAdapter } from '@/features/radarr/hooks/content-router/useRadarrContentRouterAdapater'
+import { useSonarrContentRouterAdapter } from '@/features/sonarr/hooks/content-router/useSonarrContentRouterAdapter'
+import type { RadarrInstance } from '@root/types/radarr.types'
+import type { SonarrInstance } from '@root/types/sonarr.types'
+import type {
+  IConditionGroup,
+  ICondition,
+} from '@/features/content-router/schemas/content-router.schema'
 
 // Define criteria interface to match backend schema
 interface Criteria {
-  condition?: IConditionGroup;
-  [key: string]: IConditionGroup | undefined;
+  condition?: IConditionGroup
+  [key: string]: IConditionGroup | undefined
 }
 
 // Extended ContentRouterRule to include condition and type
 interface ExtendedContentRouterRule extends ContentRouterRule {
-  type?: string;
-  criteria?: Criteria;
+  type?: string
+  criteria?: Criteria
 }
 
 // More specific type for temporary rules
 interface TempRule
   extends Partial<Omit<ContentRouterRule, 'id' | 'created_at' | 'updated_at'>> {
-  tempId: string;
-  name: string;
-  type?: string;
-  target_type: 'radarr' | 'sonarr';
-  condition?: IConditionGroup;
-  criteria?: Criteria;
+  tempId: string
+  name: string
+  type?: string
+  target_type: 'radarr' | 'sonarr'
+  condition?: IConditionGroup
+  criteria?: Criteria
 }
 
 type ContentRouterSectionProps = {
-  targetType: 'radarr' | 'sonarr';
-  instances: (RadarrInstance | SonarrInstance)[];
-  genres: string[];
-  onGenreDropdownOpen: () => Promise<void>;
-};
+  targetType: 'radarr' | 'sonarr'
+  instances: (RadarrInstance | SonarrInstance)[]
+  genres: string[]
+  onGenreDropdownOpen: () => Promise<void>
+}
 
 const ContentRouterSection = ({
   targetType,
@@ -50,15 +53,15 @@ const ContentRouterSection = ({
   genres,
   onGenreDropdownOpen,
 }: ContentRouterSectionProps) => {
-  const { toast } = useToast();
+  const { toast } = useToast()
 
   // Use the appropriate adapter based on targetType
   const contentRouter =
     targetType === 'radarr'
       ? useRadarrContentRouterAdapter()
-      : useSonarrContentRouterAdapter();
+      : useSonarrContentRouterAdapter()
 
-  const [togglingRuleId, setTogglingRuleId] = useState<number | null>(null);
+  const [togglingRuleId, setTogglingRuleId] = useState<number | null>(null)
 
   const {
     rules,
@@ -68,31 +71,31 @@ const ContentRouterSection = ({
     deleteRule,
     fetchRules,
     toggleRule,
-  } = contentRouter;
+  } = contentRouter
 
   // Local state to manage UI behavior
-  const [localRules, setLocalRules] = useState<TempRule[]>([]);
-  const [savingRules, setSavingRules] = useState<{ [key: string]: boolean }>({});
+  const [localRules, setLocalRules] = useState<TempRule[]>([])
+  const [savingRules, setSavingRules] = useState<{ [key: string]: boolean }>({})
   const [deleteConfirmationRuleId, setDeleteConfirmationRuleId] = useState<
     number | null
-  >(null);
-  const isMounted = useRef(false);
+  >(null)
+  const isMounted = useRef(false)
 
   // Fetch rules on initial mount
   useEffect(() => {
     if (!isMounted.current) {
-      isMounted.current = true;
+      isMounted.current = true
 
       fetchRules().catch((error) => {
-        console.error(`Failed to fetch ${targetType} routing rules:`, error);
+        console.error(`Failed to fetch ${targetType} routing rules:`, error)
         toast({
           title: 'Error',
           description: `Failed to load ${targetType} routing rules.`,
           variant: 'destructive',
-        });
-      });
+        })
+      })
     }
-  }, [fetchRules, targetType, toast]);
+  }, [fetchRules, targetType, toast])
 
   const addRoute = () => {
     // Create a new empty conditional route
@@ -107,7 +110,7 @@ const ContentRouterSection = ({
         },
       ],
       negate: false,
-    };
+    }
 
     const newRule: TempRule = {
       tempId: `temp-${Date.now()}`,
@@ -119,41 +122,41 @@ const ContentRouterSection = ({
       quality_profile: undefined,
       enabled: true,
       order: 50,
-    };
+    }
 
-    setLocalRules((prev) => [...prev, newRule]);
-  };
+    setLocalRules((prev) => [...prev, newRule])
+  }
 
   const handleToggleRuleEnabled = useCallback(
     async (id: number, enabled: boolean) => {
-      setTogglingRuleId(id);
+      setTogglingRuleId(id)
       try {
-        await toggleRule(id, enabled);
+        await toggleRule(id, enabled)
       } catch (error) {
         toast({
           title: 'Error',
           description: `Failed to ${enabled ? 'enable' : 'disable'} route. Please try again.`,
           variant: 'destructive',
-        });
+        })
 
-        fetchRules().catch(console.error);
+        fetchRules().catch(console.error)
       } finally {
-        setTogglingRuleId(null);
+        setTogglingRuleId(null)
       }
     },
     [toggleRule, toast, fetchRules],
-  );
+  )
 
   const handleSaveNewRule = useCallback(
     async (
       tempId: string,
       data: Omit<ContentRouterRule, 'id' | 'created_at' | 'updated_at'>,
     ) => {
-      setSavingRules((prev) => ({ ...prev, [tempId]: true }));
+      setSavingRules((prev) => ({ ...prev, [tempId]: true }))
       try {
         const minimumLoadingTime = new Promise((resolve) =>
           setTimeout(resolve, 500),
-        );
+        )
 
         // Convert quality_profile to the expected format
         const modifiedData = {
@@ -164,39 +167,39 @@ const ContentRouterSection = ({
                 ? Number(data.quality_profile)
                 : data.quality_profile
               : undefined,
-        };
+        }
 
-        await Promise.all([createRule(modifiedData), minimumLoadingTime]);
+        await Promise.all([createRule(modifiedData), minimumLoadingTime])
 
-        setLocalRules((prev) => prev.filter((r) => r.tempId !== tempId));
+        setLocalRules((prev) => prev.filter((r) => r.tempId !== tempId))
         toast({
           title: 'Success',
           description: 'Route created successfully',
-        });
+        })
       } catch (error) {
         toast({
           title: 'Error',
           description: `Failed to create route: ${error instanceof Error ? error.message : 'Unknown error'}`,
           variant: 'destructive',
-        });
+        })
       } finally {
         setSavingRules((prev) => {
-          const updated = { ...prev };
-          delete updated[tempId];
-          return updated;
-        });
+          const updated = { ...prev }
+          delete updated[tempId]
+          return updated
+        })
       }
     },
     [createRule, toast],
-  );
+  )
 
   const handleUpdateRule = useCallback(
     async (id: number, data: ContentRouterRuleUpdate) => {
-      setSavingRules((prev) => ({ ...prev, [id]: true }));
+      setSavingRules((prev) => ({ ...prev, [id]: true }))
       try {
         const minimumLoadingTime = new Promise((resolve) =>
           setTimeout(resolve, 500),
-        );
+        )
 
         // Convert quality_profile to the expected format
         const modifiedData = {
@@ -207,54 +210,54 @@ const ContentRouterSection = ({
                 ? Number(data.quality_profile)
                 : data.quality_profile
               : undefined,
-        };
+        }
 
-        await Promise.all([updateRule(id, modifiedData), minimumLoadingTime]);
+        await Promise.all([updateRule(id, modifiedData), minimumLoadingTime])
         toast({
           title: 'Success',
           description: 'Route updated successfully',
-        });
+        })
       } catch (error) {
         toast({
           title: 'Error',
           description: `Failed to update route: ${error instanceof Error ? error.message : 'Unknown error'}`,
           variant: 'destructive',
-        });
+        })
       } finally {
         setSavingRules((prev) => {
-          const updated = { ...prev };
-          delete updated[id.toString()];
-          return updated;
-        });
+          const updated = { ...prev }
+          delete updated[id.toString()]
+          return updated
+        })
       }
     },
     [updateRule, toast],
-  );
+  )
 
   const handleRemoveRule = useCallback(async () => {
     if (deleteConfirmationRuleId) {
       try {
-        await deleteRule(deleteConfirmationRuleId);
-        setDeleteConfirmationRuleId(null);
+        await deleteRule(deleteConfirmationRuleId)
+        setDeleteConfirmationRuleId(null)
         toast({
           title: 'Success',
           description: 'Route removed successfully',
-        });
+        })
       } catch (error) {
         toast({
           title: 'Error',
           description: `Failed to remove route: ${error instanceof Error ? error.message : 'Unknown error'}`,
           variant: 'destructive',
-        });
+        })
       }
     }
-  }, [deleteConfirmationRuleId, deleteRule, toast]);
+  }, [deleteConfirmationRuleId, deleteRule, toast])
 
   const handleCancelLocalRule = useCallback((tempId: string) => {
-    setLocalRules((prev) => prev.filter((r) => r.tempId !== tempId));
-  }, []);
+    setLocalRules((prev) => prev.filter((r) => r.tempId !== tempId))
+  }, [])
 
-  const hasExistingRoutes = rules.length > 0;
+  const hasExistingRoutes = rules.length > 0
 
   const renderRouteCard = (
     rule: ContentRouterRule | TempRule,
@@ -262,22 +265,26 @@ const ContentRouterSection = ({
   ) => {
     const ruleId = isNew
       ? (rule as TempRule).tempId
-      : (rule as ContentRouterRule).id;
+      : (rule as ContentRouterRule).id
 
     const isToggling =
-      !isNew && togglingRuleId === (rule as ContentRouterRule).id;
+      !isNew && togglingRuleId === (rule as ContentRouterRule).id
 
     // Convert old format criteria to new format condition if needed
-    let ruleWithCondition = { ...rule } as ExtendedContentRouterRule;
-    
+    const ruleWithCondition = { ...rule } as ExtendedContentRouterRule
+
     // Cast rule to ExtendedContentRouterRule to access potential criteria
-    const extendedRule = rule as ExtendedContentRouterRule;
-    if (extendedRule.criteria && !extendedRule.condition && typeof extendedRule.criteria === 'object') {
-      const criteria = extendedRule.criteria as Record<string, any>;
-      
+    const extendedRule = rule as ExtendedContentRouterRule
+    if (
+      extendedRule.criteria &&
+      !extendedRule.condition &&
+      typeof extendedRule.criteria === 'object'
+    ) {
+      const criteria = extendedRule.criteria as Record<string, any>
+
       if ('genre' in criteria && criteria.genre) {
         // Convert genre rule to condition
-        const genreValue = criteria.genre;
+        const genreValue = criteria.genre
         ruleWithCondition.condition = {
           operator: 'AND',
           conditions: [
@@ -289,50 +296,50 @@ const ContentRouterSection = ({
             },
           ],
           negate: false,
-        };
+        }
       } else if ('year' in criteria && criteria.year) {
         // Convert year rule to condition
-        const yearValue = criteria.year;
-        let condition: ICondition;
-        
+        const yearValue = criteria.year
+        let condition: ICondition
+
         if (typeof yearValue === 'number') {
           condition = {
             field: 'year',
             operator: 'equals',
             value: yearValue,
             negate: false,
-          };
+          }
         } else if (Array.isArray(yearValue)) {
           condition = {
             field: 'year',
             operator: 'in',
             value: yearValue,
             negate: false,
-          };
+          }
         } else if (typeof yearValue === 'object' && yearValue !== null) {
           condition = {
             field: 'year',
             operator: 'between',
             value: yearValue,
             negate: false,
-          };
+          }
         } else {
           condition = {
             field: 'year',
             operator: 'equals',
             value: new Date().getFullYear(),
             negate: false,
-          };
+          }
         }
-        
+
         ruleWithCondition.condition = {
           operator: 'AND',
           conditions: [condition],
           negate: false,
-        };
+        }
       } else if ('originalLanguage' in criteria && criteria.originalLanguage) {
         // Convert language rule to condition
-        const langValue = criteria.originalLanguage;
+        const langValue = criteria.originalLanguage
         ruleWithCondition.condition = {
           operator: 'AND',
           conditions: [
@@ -344,10 +351,10 @@ const ContentRouterSection = ({
             },
           ],
           negate: false,
-        };
+        }
       } else if ('users' in criteria && criteria.users) {
         // Convert user rule to condition
-        const usersValue = criteria.users;
+        const usersValue = criteria.users
         ruleWithCondition.condition = {
           operator: 'AND',
           conditions: [
@@ -359,7 +366,7 @@ const ContentRouterSection = ({
             },
           ],
           negate: false,
-        };
+        }
       }
     }
 
@@ -376,7 +383,7 @@ const ContentRouterSection = ({
           },
         ],
         negate: false,
-      };
+      }
     }
 
     return (
@@ -392,25 +399,22 @@ const ContentRouterSection = ({
                 ContentRouterRule,
                 'id' | 'created_at' | 'updated_at'
               >,
-            );
+            )
           }
           return handleUpdateRule(
             (rule as ContentRouterRule).id,
             data as ContentRouterRuleUpdate,
-          );
+          )
         }}
         onCancel={() => {
           if (isNew) {
-            handleCancelLocalRule((rule as TempRule).tempId);
+            handleCancelLocalRule((rule as TempRule).tempId)
           }
         }}
         onRemove={
           isNew
             ? undefined
-            : () =>
-                setDeleteConfirmationRuleId(
-                  (rule as ContentRouterRule).id,
-                )
+            : () => setDeleteConfirmationRuleId((rule as ContentRouterRule).id)
         }
         onToggleEnabled={handleToggleRuleEnabled}
         isSaving={!!savingRules[ruleId.toString()]}
@@ -420,17 +424,15 @@ const ContentRouterSection = ({
         onGenreDropdownOpen={onGenreDropdownOpen}
         contentType={targetType}
       />
-    );
-  };
+    )
+  }
 
   return (
     <div className="grid gap-6">
       {isLoading &&
       rules.length === 0 &&
-      !localRules.length ? (
-        // Initially loading state
-        null
-      ) : isLoading && hasExistingRoutes ? (
+      !localRules.length ? // Initially loading state
+      null : isLoading && hasExistingRoutes ? (
         // Loading with existing rules - show skeletons
         <div className="grid gap-6">
           <div className="flex justify-between items-center">
@@ -500,7 +502,7 @@ const ContentRouterSection = ({
         routeType="content route"
       />
     </div>
-  );
-};
+  )
+}
 
-export default ContentRouterSection;
+export default ContentRouterSection
