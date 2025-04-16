@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 // Base schemas for conditions
-const ComparisonOperatorSchema = z.enum([
+export const ComparisonOperatorSchema = z.enum([
   'equals',
   'notEquals',
   'contains',
@@ -14,7 +14,7 @@ const ComparisonOperatorSchema = z.enum([
 ])
 
 // Define schemas recursively for nested conditions
-const ConditionSchema: z.ZodType = z.lazy(() =>
+export const ConditionSchema: z.ZodType = z.lazy(() =>
   z.object({
     field: z.string(),
     operator: ComparisonOperatorSchema,
@@ -23,7 +23,7 @@ const ConditionSchema: z.ZodType = z.lazy(() =>
   }),
 )
 
-const ConditionGroupSchema: z.ZodType = z.lazy(() =>
+export const ConditionGroupSchema: z.ZodType = z.lazy(() =>
   z.object({
     operator: z.enum(['AND', 'OR']),
     conditions: z.array(z.union([ConditionSchema, ConditionGroupSchema])),
@@ -32,7 +32,7 @@ const ConditionGroupSchema: z.ZodType = z.lazy(() =>
 )
 
 // Base router rule schema
-const BaseRouterRuleSchema = z.object({
+export const BaseRouterRuleSchema = z.object({
   name: z.string(),
   target_type: z.enum(['sonarr', 'radarr']),
   target_instance_id: z.number(),
@@ -67,7 +67,7 @@ export const ContentRouterRuleToggleSchema = z.object({
 })
 
 // Response schemas
-const RouterRuleSchema = BaseRouterRuleSchema.extend({
+export const RouterRuleSchema = BaseRouterRuleSchema.extend({
   id: z.number(),
   created_at: z.string(),
   updated_at: z.string(),
@@ -94,8 +94,16 @@ export const ContentRouterRuleErrorSchema = z.object({
   message: z.string(),
 })
 
-// Export types
+// Export inferred types
+export type ComparisonOperator = z.infer<typeof ComparisonOperatorSchema>
+export type Condition = z.infer<typeof ConditionSchema>
+export type ConditionGroup = z.infer<typeof ConditionGroupSchema>
+export type BaseRouterRule = z.infer<typeof BaseRouterRuleSchema>
+export type ContentRouterPluginsResponse = z.infer<typeof ContentRouterPluginsResponseSchema>
 export type ContentRouterRule = z.infer<typeof RouterRuleSchema>
-export type ContentRouterRuleUpdate = z.infer<
-  typeof ContentRouterRuleUpdateSchema
->
+export type ContentRouterRuleUpdate = z.infer<typeof ContentRouterRuleUpdateSchema>
+export type ContentRouterRuleToggle = z.infer<typeof ContentRouterRuleToggleSchema>
+export type ContentRouterRuleResponse = z.infer<typeof ContentRouterRuleResponseSchema>
+export type ContentRouterRuleListResponse = z.infer<typeof ContentRouterRuleListResponseSchema>
+export type ContentRouterRuleSuccess = z.infer<typeof ContentRouterRuleSuccessSchema>
+export type ContentRouterRuleError = z.infer<typeof ContentRouterRuleErrorSchema>
