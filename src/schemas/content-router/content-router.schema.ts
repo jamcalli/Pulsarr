@@ -99,11 +99,25 @@ export type ComparisonOperator = z.infer<typeof ComparisonOperatorSchema>
 export type Condition = z.infer<typeof ConditionSchema>
 export type ConditionGroup = z.infer<typeof ConditionGroupSchema>
 export type BaseRouterRule = z.infer<typeof BaseRouterRuleSchema>
-export type ContentRouterPluginsResponse = z.infer<typeof ContentRouterPluginsResponseSchema>
+export type ContentRouterPluginsResponse = z.infer<
+  typeof ContentRouterPluginsResponseSchema
+>
 export type ContentRouterRule = z.infer<typeof RouterRuleSchema>
-export type ContentRouterRuleUpdate = z.infer<typeof ContentRouterRuleUpdateSchema>
-export type ContentRouterRuleToggle = z.infer<typeof ContentRouterRuleToggleSchema>
-export type ContentRouterRuleResponse = z.infer<typeof ContentRouterRuleResponseSchema>
-export type ContentRouterRuleListResponse = z.infer<typeof ContentRouterRuleListResponseSchema>
-export type ContentRouterRuleSuccess = z.infer<typeof ContentRouterRuleSuccessSchema>
-export type ContentRouterRuleError = z.infer<typeof ContentRouterRuleErrorSchema>
+export type ContentRouterRuleUpdate = z.infer<
+  typeof ContentRouterRuleUpdateSchema
+>
+export type ContentRouterRuleToggle = z.infer<
+  typeof ContentRouterRuleToggleSchema
+>
+export type ContentRouterRuleResponse = z.infer<
+  typeof ContentRouterRuleResponseSchema
+>
+export type ContentRouterRuleListResponse = z.infer<
+  typeof ContentRouterRuleListResponseSchema
+>
+export type ContentRouterRuleSuccess = z.infer<
+  typeof ContentRouterRuleSuccessSchema
+>
+export type ContentRouterRuleError = z.infer<
+  typeof ContentRouterRuleErrorSchema
+>

@@ -1,4 +1,3 @@
-// src/client/features/content-router/components/condition-input.tsx
 import { useState, useEffect, useRef } from 'react'
 import {
   Select,
@@ -16,6 +15,7 @@ import {
 } from '@/components/ui/tooltip'
 import GenreMultiSelect from '@/components/ui/genre-multi-select'
 import UserMultiSelect from '@/components/ui/user-multi-select'
+import { useConfigStore } from '@/stores/configStore'
 import type { ControllerRenderProps } from 'react-hook-form'
 
 // Define value types
@@ -129,6 +129,24 @@ function ConditionInput({
   const valueRef = useRef(value)
   valueRef.current = value
 
+  // Get users from the config store
+  const users = useConfigStore((state) => state.users)
+  const fetchUserData = useConfigStore((state) => state.fetchUserData)
+  const isInitialized = useConfigStore((state) => state.isInitialized)
+  const initialize = useConfigStore((state) => state.initialize)
+
+  // Initialize the config store if needed
+  useEffect(() => {
+    const initializeStore = async () => {
+      if (!isInitialized) {
+        await initialize()
+      }
+      await fetchUserData()
+    }
+
+    initializeStore()
+  }, [initialize, isInitialized, fetchUserData])
+
   // Store handler functions to keep them stable between renders
   const handlers = useRef({
     handleTextChange: (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -209,40 +227,14 @@ function ConditionInput({
     }
   }
 
-// For the genre field
-if (field === 'genre' || field === 'genres') {
-  // Single value operators
-  if (operator === 'contains' || operator === 'notContains') {
-    return (
-      <div className="flex-1">
-        <Select
-          value={typeof value === 'string' ? value : ''}
-          onValueChange={(val) => onChange(val)}
-          disabled={!genres.length}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select a genre" />
-          </SelectTrigger>
-          <SelectContent>
-            {genres.map((genre) => (
-              <SelectItem key={genre} value={genre}>
-                {genre}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-    );
-  }
-  
-  // For 'equals' which can be either single or multi
-  if (operator === 'equals') {
-    // If it's currently a string, use single select
-    if (typeof value === 'string') {
+  // For the genre field
+  if (field === 'genre' || field === 'genres') {
+    // Single value operators
+    if (operator === 'contains' || operator === 'notContains') {
       return (
         <div className="flex-1">
           <Select
-            value={value}
+            value={typeof value === 'string' ? value : ''}
             onValueChange={(val) => onChange(val)}
             disabled={!genres.length}
           >
@@ -258,28 +250,81 @@ if (field === 'genre' || field === 'genres') {
             </SelectContent>
           </Select>
         </div>
-      );
+      )
     }
+
+    // For 'equals' which can be either single or multi
+    if (operator === 'equals') {
+      // If it's currently a string, use single select
+      if (typeof value === 'string') {
+        return (
+          <div className="flex-1">
+            <Select
+              value={value}
+              onValueChange={(val) => onChange(val)}
+              disabled={!genres.length}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a genre" />
+              </SelectTrigger>
+              <SelectContent>
+                {genres.map((genre) => (
+                  <SelectItem key={genre} value={genre}>
+                    {genre}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )
+      }
+    }
+
+    // Use multi-select for operators expecting arrays (in, notIn)
+    // or equals when already multi-value
+    const genreField = createFormField('genre', 'Select genres')
+    return (
+      <div className="flex-1">
+        <GenreMultiSelect
+          field={genreField}
+          genres={genres}
+          onDropdownOpen={onGenreDropdownOpen}
+        />
+      </div>
+    )
   }
-  
-  // Use multi-select for operators expecting arrays (in, notIn) 
-  // or equals when already multi-value
-  const genreField = createFormField('genre', 'Select genres');
-  return (
-    <div className="flex-1">
-      <GenreMultiSelect
-        field={genreField}
-        genres={genres}
-        onDropdownOpen={onGenreDropdownOpen}
-      />
-    </div>
-  );
-}
 
   // Special case for user field
   if (field === 'user' || field === 'userId' || field === 'userName') {
-    const userField = createFormField('user', 'Select users')
+    // Single value operator (equals)
+    if (operator === 'equals') {
+      // If it's currently a string or number, use single select
+      if (typeof value === 'string' || typeof value === 'number') {
+        return (
+          <div className="flex-1">
+            <Select
+              value={value.toString()}
+              onValueChange={(val) => onChange(val)}
+              disabled={!users?.length}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a user" />
+              </SelectTrigger>
+              <SelectContent>
+                {users?.map((user) => (
+                  <SelectItem key={user.id} value={user.id.toString()}>
+                    {user.alias ? `${user.name} (${user.alias})` : user.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )
+      }
+    }
 
+    // For multi-select operators (in) or when we already have multiple values
+    const userField = createFormField('user', 'Select users')
     return (
       <div className="flex-1">
         <UserMultiSelect field={userField} />
