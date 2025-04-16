@@ -1,3 +1,4 @@
+// src/client/features/content-router/components/condition-builder.tsx
 import { useState, useEffect, useRef } from 'react';
 import {
   Select,
@@ -20,9 +21,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import GenreMultiSelect from '@/components/ui/genre-multi-select';
-import UserMultiSelect from '@/components/ui/user-multi-select';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import ConditionInput from './condition-input';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import type { FieldInfo, OperatorInfo } from '@root/types/router.types';
 import type { ICondition, IConditionGroup } from '@/features/content-router/schemas/content-router.schema';
@@ -37,12 +36,6 @@ export interface EvaluatorMetadata {
   supportedOperators: Record<string, OperatorInfo[]>;
 }
 
-interface ConditionType {
-  id: string;
-  name: string;
-  description: string;
-}
-
 interface ConditionBuilderProps {
   value: ICondition;
   onChange: (condition: ICondition) => void;
@@ -53,7 +46,7 @@ interface ConditionBuilderProps {
   isLoading?: boolean;
 }
 
-// Add this type definition for condition values
+// Type definition for condition values
 type ConditionValue =
   | string
   | number
@@ -79,57 +72,59 @@ const ConditionBuilder = ({
   const [fields, setFields] = useState<FieldInfo[]>([]);
   const [operators, setOperators] = useState<OperatorInfo[]>([]);
   const [valueTypes, setValueTypes] = useState<string[]>([]);
-  const [yearMatchType, setYearMatchType] = useState<'exact' | 'range' | 'list'>('exact');
-  const inputRef = useRef(null);
+  const [evaluatorDescription, setEvaluatorDescription] = useState('');
+  const [fieldDescription, setFieldDescription] = useState('');
+  const [operatorDescription, setOperatorDescription] = useState('');
 
   // Update available evaluators and fields when metadata changes
   useEffect(() => {
     if (evaluatorMetadata && evaluatorMetadata.length > 0) {
       // If we already have a field selected, find its evaluator
       if (value.field) {
-        // Find which evaluator supports this field
-        const evaluator = evaluatorMetadata.find(e => 
-          e.supportedFields.some(f => f.name === value.field)
-        );
+        let foundEvaluator = null;
         
-        if (evaluator) {
-          setSelectedEvaluator(evaluator);
-          setFields(evaluator.supportedFields);
-          
-          // Set operators for this field
-          if (evaluator.supportedOperators?.[value.field]) {
-            setOperators(evaluator.supportedOperators[value.field]);
+        // Find which evaluator supports this field
+        for (const evaluator of evaluatorMetadata) {
+          const fieldInfo = evaluator.supportedFields.find(f => f.name === value.field);
+          if (fieldInfo) {
+            foundEvaluator = evaluator;
+            setSelectedEvaluator(evaluator);
+            setFields(evaluator.supportedFields);
+            setEvaluatorDescription(evaluator.description || '');
+            setFieldDescription(fieldInfo.description || '');
             
-            // Also set value types if we have an operator
-            if (value.operator) {
-              const operatorInfo = evaluator.supportedOperators[value.field].find(
-                op => op.name === value.operator
-              );
+            // Set operators for this field
+            if (evaluator.supportedOperators?.[value.field]) {
+              const fieldOperators = evaluator.supportedOperators[value.field];
+              setOperators(fieldOperators);
               
-              if (operatorInfo?.valueTypes) {
-                setValueTypes(operatorInfo.valueTypes);
+              // Also set value types and operator description if we have an operator
+              if (value.operator) {
+                const operatorInfo = fieldOperators.find(op => op.name === value.operator);
+                if (operatorInfo) {
+                  setValueTypes(operatorInfo.valueTypes || []);
+                  setOperatorDescription(operatorInfo.description || '');
+                }
               }
             }
+            break;
           }
-
-          // Check if this is a year field to determine the match type
-          if (value.field === 'year') {
-            if (typeof value.value === 'number') {
-              setYearMatchType('exact');
-            } else if (Array.isArray(value.value)) {
-              setYearMatchType('list');
-            } else if (typeof value.value === 'object' && value.value !== null) {
-              setYearMatchType('range');
-            }
-          }
+        }
+        
+        // If no evaluator was found that supports this field, use the first one
+        if (!foundEvaluator && evaluatorMetadata.length > 0) {
+          setSelectedEvaluator(evaluatorMetadata[0]);
+          setFields(evaluatorMetadata[0].supportedFields);
+          setEvaluatorDescription(evaluatorMetadata[0].description || '');
         }
       } else if (evaluatorMetadata.length > 0) {
         // If no field is selected, preset the first evaluator but don't select a field yet
         setSelectedEvaluator(evaluatorMetadata[0]);
         setFields(evaluatorMetadata[0].supportedFields);
+        setEvaluatorDescription(evaluatorMetadata[0].description || '');
       }
     }
-  }, [evaluatorMetadata, value.field, value.operator, value.value]);
+  }, [evaluatorMetadata, value.field, value.operator]);
 
   // Handle evaluator selection
   const handleEvaluatorChange = (evaluatorName: string) => {
@@ -137,6 +132,7 @@ const ConditionBuilder = ({
     if (evaluator) {
       setSelectedEvaluator(evaluator);
       setFields(evaluator.supportedFields);
+      setEvaluatorDescription(evaluator.description || '');
       
       // Reset field, operator and value when changing evaluator
       onChange({
@@ -150,6 +146,9 @@ const ConditionBuilder = ({
 
   // Handle field selection
   const handleFieldChange = (fieldName: string) => {
+    const fieldInfo = selectedEvaluator?.supportedFields.find(f => f.name === fieldName);
+    setFieldDescription(fieldInfo?.description || '');
+    
     // Reset operator and value when field changes
     onChange({
       field: fieldName,
@@ -164,34 +163,43 @@ const ConditionBuilder = ({
     } else {
       setOperators([]);
     }
-
-    // Reset year match type if needed
-    if (fieldName === 'year') {
-      setYearMatchType('exact');
-    }
   };
 
   // Handle operator selection
   const handleOperatorChange = (operatorName: string) => {
-    // Reset value when operator changes
+    // Find the operator info
+    const operatorInfo = selectedEvaluator?.supportedOperators?.[value.field]?.find(
+      op => op.name === operatorName
+    );
+    
+    setOperatorDescription(operatorInfo?.description || '');
+    
+    // Initialize an appropriate default value based on operator type
+    let defaultValue: ConditionValue = '';
+    
+    if (operatorInfo) {
+      const valueType = operatorInfo.valueTypes?.[0];
+      
+      if (valueType === 'number') {
+        defaultValue = 0;
+      } else if (valueType === 'number[]') {
+        defaultValue = [];
+      } else if (valueType === 'string[]') {
+        defaultValue = [];
+      } else if (valueType === 'object') {
+        defaultValue = { min: undefined, max: undefined };
+      }
+      
+      // Set value types
+      setValueTypes(operatorInfo.valueTypes || []);
+    }
+    
+    // Update with the new operator and clear previous value
     onChange({
       ...value,
       operator: operatorName,
-      value: '',
+      value: defaultValue,
     });
-    
-    // Update value types based on selected operator
-    if (selectedEvaluator && value.field) {
-      const operatorInfo = selectedEvaluator.supportedOperators?.[value.field]?.find(
-        op => op.name === operatorName
-      );
-      
-      if (operatorInfo?.valueTypes) {
-        setValueTypes(operatorInfo.valueTypes);
-      } else {
-        setValueTypes([]);
-      }
-    }
   };
 
   const handleValueChange = (newValue: ConditionValue) => {
@@ -206,354 +214,6 @@ const ConditionBuilder = ({
       ...value,
       negate: !value.negate,
     });
-  };
-
-  const handleYearMatchTypeChange = (type: 'exact' | 'range' | 'list') => {
-    setYearMatchType(type);
-    
-    // Reset the value based on the new match type
-    let newValue: ConditionValue = '';
-    
-    if (type === 'exact') {
-      newValue = new Date().getFullYear();
-    } else if (type === 'range') {
-      newValue = { min: undefined, max: undefined };
-    } else if (type === 'list') {
-      newValue = [];
-    }
-    
-    onChange({
-      ...value,
-      value: newValue,
-    });
-  };
-
-  // Create a properly structured field prop for multi-select components
-  const createFormField = (fieldName: string): ControllerRenderProps<any, any> => {
-    return {
-      name: fieldName,
-      value: Array.isArray(value.value) ? value.value : [value.value as string],
-      onChange: (newValue) => handleValueChange(Array.isArray(newValue) ? newValue : [newValue]),
-      onBlur: () => {}, // Add empty onBlur handler
-      ref: (instance: any) => {
-        if (inputRef.current !== instance) {
-          inputRef.current = instance;
-        }
-      },
-    };
-  };
-
-  const renderValueInput = () => {
-    if (!value.operator || valueTypes.length === 0) return null;
-
-    // Special handling for genres field
-    if (value.field === 'genre' || value.field === 'genres') {
-      // Create a properly structured field prop
-      const genreField = createFormField('genre');
-      
-      return (
-        <div className="flex-1">
-          <GenreMultiSelect 
-            field={genreField}
-            genres={genres}
-            onDropdownOpen={onGenreDropdownOpen}
-          />
-        </div>
-      );
-    }
-
-    // Special handling for user field
-    if (value.field === 'user' || value.field === 'userId' || value.field === 'userName') {
-      // Create a properly structured field prop
-      const userField = createFormField('user');
-      
-      return (
-        <div className="flex-1">
-          <UserMultiSelect field={userField} />
-        </div>
-      );
-    }
-
-    // Special handling for year field
-    if (value.field === 'year') {
-      return (
-        <div className="flex-1 space-y-4">
-          <RadioGroup
-            value={yearMatchType}
-            onValueChange={(val: 'exact' | 'range' | 'list') => handleYearMatchTypeChange(val)}
-            className="flex flex-col space-y-1"
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="exact" id="exact-year" />
-              <label
-                htmlFor="exact-year"
-                className="text-sm text-text font-medium"
-              >
-                Exact Year
-              </label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="range" id="range-year" />
-              <label
-                htmlFor="range-year"
-                className="text-sm text-text font-medium"
-              >
-                Year Range
-              </label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="list" id="list-year" />
-              <label
-                htmlFor="list-year"
-                className="text-sm text-text font-medium"
-              >
-                Year List
-              </label>
-            </div>
-          </RadioGroup>
-
-          {yearMatchType === 'exact' && (
-            <Input
-              type="number"
-              min="1900"
-              max="2100"
-              value={value.value !== undefined && typeof value.value === 'number' ? value.value : new Date().getFullYear()}
-              onChange={(e) => handleValueChange(Number(e.target.value))}
-              placeholder="Enter year (e.g. 2023)"
-              className="flex-1"
-            />
-          )}
-
-          {yearMatchType === 'range' && (
-            <div className="flex flex-1 space-x-2">
-              <Input
-                type="number"
-                min="1900"
-                max="2100"
-                value={
-                  typeof value.value === 'object' && value.value !== null && 'min' in value.value && value.value.min !== undefined
-                    ? value.value.min
-                    : ''
-                }
-                onChange={(e) => {
-                  const min = e.target.value === '' ? undefined : Number(e.target.value);
-                  const currentValue = typeof value.value === 'object' && value.value !== null ? value.value : {};
-                  handleValueChange({ ...currentValue, min });
-                }}
-                placeholder="Min Year"
-                className="flex-1"
-              />
-              <span className="self-center">to</span>
-              <Input
-                type="number"
-                min="1900"
-                max="2100"
-                value={
-                  typeof value.value === 'object' && value.value !== null && 'max' in value.value && value.value.max !== undefined
-                    ? value.value.max
-                    : ''
-                }
-                onChange={(e) => {
-                  const max = e.target.value === '' ? undefined : Number(e.target.value);
-                  const currentValue = typeof value.value === 'object' && value.value !== null ? value.value : {};
-                  handleValueChange({ ...currentValue, max });
-                }}
-                placeholder="Max Year"
-                className="flex-1"
-              />
-            </div>
-          )}
-
-          {yearMatchType === 'list' && (
-            <Input
-              type="text"
-              value={
-                Array.isArray(value.value)
-                  ? value.value.join(', ')
-                  : (value.value as string) || ''
-              }
-              onChange={(e) => {
-                const arrayValue = e.target.value
-                  .split(',')
-                  .map((v) => v.trim())
-                  .filter((v) => v !== '')
-                  .map((v) => Number(v))
-                  .filter((v) => !Number.isNaN(v));
-                handleValueChange(arrayValue);
-              }}
-              placeholder="Enter years separated by commas (e.g. 1999, 2000, 2001)"
-              className="flex-1"
-            />
-          )}
-        </div>
-      );
-    }
-
-    // Special handling for language field
-    if (value.field === 'language' || value.field === 'originalLanguage') {
-      return (
-        <Input
-          type="text"
-          value={
-            Array.isArray(value.value)
-              ? value.value.join(', ')
-              : (value.value as string) || ''
-          }
-          onChange={(e) => {
-            if (value.operator === 'in' || value.operator === 'notIn') {
-              const arrayValue = e.target.value
-                .split(',')
-                .map((v) => v.trim())
-                .filter((v) => v !== '');
-              handleValueChange(arrayValue);
-            } else {
-              handleValueChange(e.target.value);
-            }
-          }}
-          placeholder={
-            value.operator === 'in' || value.operator === 'notIn'
-              ? "Enter languages separated by commas (e.g. English, French, Spanish)"
-              : "Enter language (e.g. English)"
-          }
-          className="flex-1"
-        />
-      );
-    }
-
-    // Handle different value types
-    if (valueTypes.includes('number')) {
-      return (
-        <Input
-          type="number"
-          value={
-            typeof value.value === 'number'
-              ? value.value.toString()
-              : (value.value as string) || ''
-          }
-          onChange={(e) => handleValueChange(Number(e.target.value))}
-          placeholder="Enter a number"
-          className="flex-1"
-        />
-      );
-    }
-
-    if (valueTypes.includes('string')) {
-      return (
-        <Input
-          type="text"
-          value={(value.value as string) || ''}
-          onChange={(e) => handleValueChange(e.target.value)}
-          placeholder="Enter a value"
-          className="flex-1"
-        />
-      );
-    }
-
-    if (valueTypes.includes('string[]')) {
-      return (
-        <Input
-          type="text"
-          value={
-            Array.isArray(value.value)
-              ? value.value.join(', ')
-              : (value.value as string) || ''
-          }
-          onChange={(e) => {
-            const arrayValue = e.target.value
-              .split(',')
-              .map((v) => v.trim())
-              .filter((v) => v !== '');
-            handleValueChange(arrayValue);
-          }}
-          placeholder="Enter values separated by commas"
-          className="flex-1"
-        />
-      );
-    }
-
-    if (valueTypes.includes('number[]')) {
-      return (
-        <Input
-          type="text"
-          value={
-            Array.isArray(value.value)
-              ? value.value.join(', ')
-              : (value.value as string) || ''
-          }
-          onChange={(e) => {
-            const arrayValue = e.target.value
-              .split(',')
-              .map((v) => v.trim())
-              .map((v) => Number(v))
-              .filter((v) => !Number.isNaN(v));
-            handleValueChange(arrayValue);
-          }}
-          placeholder="Enter numbers separated by commas"
-          className="flex-1"
-        />
-      );
-    }
-
-    if (valueTypes.includes('object') && value.operator === 'between') {
-      // Handle range object for 'between' operator
-      const range = (value.value as { min?: number; max?: number }) || {
-        min: undefined,
-        max: undefined,
-      };
-
-      return (
-        <div className="flex flex-1 space-x-2">
-          <Input
-            type="number"
-            value={range.min !== undefined ? range.min.toString() : ''}
-            onChange={(e) => {
-              const min =
-                e.target.value === '' ? undefined : Number(e.target.value);
-              handleValueChange({ ...range, min });
-            }}
-            placeholder="Min"
-            className="flex-1"
-          />
-          <span className="self-center">to</span>
-          <Input
-            type="number"
-            value={range.max !== undefined ? range.max.toString() : ''}
-            onChange={(e) => {
-              const max =
-                e.target.value === '' ? undefined : Number(e.target.value);
-              handleValueChange({ ...range, max });
-            }}
-            placeholder="Max"
-            className="flex-1"
-          />
-        </div>
-      );
-    }
-
-    // Fallback
-    return (
-      <Input
-        type="text"
-        value={typeof value.value === 'string' ? value.value : ''}
-        onChange={(e) => handleValueChange(e.target.value)}
-        placeholder="Enter a value"
-        className="flex-1"
-      />
-    );
-  };
-
-  const getFieldDescription = () => {
-    if (!value.field || !selectedEvaluator) return null;
-    
-    const fieldInfo = selectedEvaluator.supportedFields.find(f => f.name === value.field);
-    return fieldInfo?.description;
-  };
-
-  const getOperatorDescription = () => {
-    if (!value.field || !value.operator || !selectedEvaluator) return null;
-    
-    const operatorInfo = selectedEvaluator.supportedOperators[value.field]?.find(op => op.name === value.operator);
-    return operatorInfo?.description;
   };
 
   if (isLoading) {
@@ -589,14 +249,14 @@ const ConditionBuilder = ({
           <div className="flex flex-col space-y-1">
             <div className="flex items-center space-x-1">
               <label className="text-sm font-medium">Evaluator</label>
-              {selectedEvaluator?.description && (
+              {evaluatorDescription && (
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <HelpCircle className="h-3 w-3 opacity-70" />
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p className="max-w-xs">{selectedEvaluator.description}</p>
+                      <p className="max-w-xs">{evaluatorDescription}</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -625,14 +285,14 @@ const ConditionBuilder = ({
           <div className="flex flex-col space-y-1">
             <div className="flex items-center space-x-1">
               <label className="text-sm font-medium">Field</label>
-              {getFieldDescription() && (
+              {fieldDescription && (
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <HelpCircle className="h-3 w-3 opacity-70" />
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p className="max-w-xs">{getFieldDescription()}</p>
+                      <p className="max-w-xs">{fieldDescription}</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -662,14 +322,14 @@ const ConditionBuilder = ({
           <div className="flex flex-col space-y-1">
             <div className="flex items-center space-x-1">
               <label className="text-sm font-medium">Operator</label>
-              {getOperatorDescription() && (
+              {operatorDescription && (
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <HelpCircle className="h-3 w-3 opacity-70" />
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p className="max-w-xs">{getOperatorDescription()}</p>
+                      <p className="max-w-xs">{operatorDescription}</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -698,12 +358,25 @@ const ConditionBuilder = ({
         <div className={cn(isMobile ? "col-span-1" : "col-span-3")}>
           <div className="flex flex-col space-y-1">
             <label className="text-sm font-medium">Value</label>
-            {value.operator && renderValueInput()}
+            {value.operator && (
+              <ConditionInput
+                field={value.field}
+                operator={value.operator}
+                valueTypes={valueTypes}
+                value={value.value as ConditionValue}
+                onChange={handleValueChange}
+                genres={genres}
+                onGenreDropdownOpen={onGenreDropdownOpen}
+              />
+            )}
           </div>
         </div>
 
         {/* Actions */}
-        <div className={cn(isMobile ? "col-span-1" : "col-span-1")} style={{ display: 'flex', alignItems: 'flex-end', marginBottom: '2px' }}>
+        <div 
+          className={cn(isMobile ? "col-span-1" : "col-span-1")} 
+          style={{ display: 'flex', alignItems: 'flex-end', marginBottom: '2px' }}
+        >
           {onRemove && (
             <Button
               variant="noShadow"

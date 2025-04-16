@@ -1,3 +1,4 @@
+// src/client/features/content-router/components/conditional-route-card.tsx
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -28,24 +29,14 @@ import {
 } from '@/features/content-router/schemas/content-router.schema';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import type {
-  ContentRouterRule,
-  ContentRouterRuleUpdate,
-} from '@root/schemas/content-router/content-router.schema';
-import type { RadarrInstance } from '@root/types/radarr.types';
-import type { SonarrInstance } from '@root/types/sonarr.types';
+import type { ContentRouterRule, ContentRouterRuleUpdate } from '@root/schemas/content-router/content-router.schema';
 import RouteCardHeader from '@/components/ui/route-card-header';
 import { AlertCircle, HelpCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import ConditionGroupComponent from './condition-group';
 import { useMediaQuery } from '@/hooks/use-media-query';
-import type { EvaluatorMetadata } from './condition-builder';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { EvaluatorMetadata } from './condition-builder';
 
 // Define criteria interface to match backend schema
 interface Criteria {
@@ -57,7 +48,7 @@ interface Criteria {
   [key: string]: any;
 }
 
-// Extended ContentRouterRule to include criteria and type properties
+// Extended ContentRouterRule to include criteria and type
 interface ExtendedContentRouterRule extends ContentRouterRule {
   type?: string;
   criteria?: Criteria;
@@ -73,7 +64,7 @@ interface ConditionalRouteCardProps {
   onToggleEnabled?: (id: number, enabled: boolean) => Promise<void>;
   isSaving: boolean;
   isTogglingState?: boolean;
-  instances: (RadarrInstance | SonarrInstance)[];
+  instances: any[];
   genres?: string[];
   onGenreDropdownOpen?: () => Promise<void>;
   contentType: 'radarr' | 'sonarr';
@@ -96,26 +87,54 @@ const ConditionalRouteCard = ({
   const cardRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const isMobile = useMediaQuery('(max-width: 768px)');
-  const [evaluatorMetadata, setEvaluatorMetadata] = useState<
-    EvaluatorMetadata[]
-  >([]);
+  const [evaluatorMetadata, setEvaluatorMetadata] = useState<EvaluatorMetadata[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Enhanced fetchEvaluatorMetadata with better initialization
-  const fetchEvaluatorMetadata = async () => {
+  // Create a default initial condition group for new routes
+  const getInitialConditionValue = useCallback((): IConditionGroup => {
+    // Check if route has condition
+    if (route?.condition) {
+      return route.condition;
+    }
+    
+    // Check if route has criteria with condition
+    if (route?.criteria && 'condition' in route.criteria && route.criteria.condition) {
+      return route.criteria.condition;
+    }
+    
+    // Default condition group
+    return {
+      operator: 'AND',
+      conditions: [],
+      negate: false,
+    };
+  }, [route]);
+
+  // Setup form with validation
+  const form = useForm<ConditionalRouteFormValues>({
+    resolver: zodResolver(ConditionalRouteFormSchema),
+    defaultValues: {
+      name: route?.name || `New ${contentType === 'radarr' ? 'Movie' : 'Show'} Route`,
+      condition: getInitialConditionValue(),
+      target_instance_id: route?.target_instance_id || (instances.length > 0 ? instances[0].id : 0),
+      root_folder: route?.root_folder || '',
+      quality_profile: route?.quality_profile !== undefined && route?.quality_profile !== null
+        ? route.quality_profile.toString()
+        : '',
+      enabled: route?.enabled !== false,
+      order: route?.order ?? 50,
+    },
+    mode: 'all',
+  });
+
+  // Enhanced function to fetch evaluator metadata with error handling
+  const fetchEvaluatorMetadata = useCallback(async () => {
     setLoading(true);
     setError(null);
     
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-      
-      const response = await fetch('/v1/content-router/plugins/metadata', {
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
+      const response = await fetch('/v1/content-router/plugins/metadata');
       
       if (!response.ok) {
         throw new Error(`Failed to fetch evaluator metadata: ${response.status} ${response.statusText}`);
@@ -129,106 +148,42 @@ const ConditionalRouteCard = ({
       
       setEvaluatorMetadata(data.evaluators);
       
-      // Now immediately create at least one initial condition with actual values
-      const allFields: string[] = [];
+      // Initialize the condition if needed
+      const formValues = form.getValues();
       
-      // Collect all available fields from metadata
-      for (const evaluator of data.evaluators) {
-        if (evaluator.supportedFields) {
-          for (const field of evaluator.supportedFields) {
-            if (!allFields.includes(field.name)) {
-              allFields.push(field.name);
-            }
+      if (!formValues.condition || !formValues.condition.conditions || formValues.condition.conditions.length === 0) {
+        // Create a default condition using the first evaluator
+        const firstEvaluator = data.evaluators[0];
+        const firstField = firstEvaluator.supportedFields[0]?.name;
+        let firstOperator = '';
+        let initialValue: any = '';
+        
+        if (firstField && firstEvaluator.supportedOperators?.[firstField]) {
+          const operators = firstEvaluator.supportedOperators[firstField];
+          if (operators.length > 0) {
+            firstOperator = operators[0].name;
+            
+            // Set appropriate default value based on type
+            const valueType = operators[0].valueTypes?.[0];
+            if (valueType === 'number') initialValue = 0;
+            else if (valueType === 'string[]' || valueType === 'number[]') initialValue = [];
+            else if (valueType === 'object') initialValue = { min: undefined, max: undefined };
           }
         }
-      }
-      
-      if (allFields.length > 0) {
-        // Get the current form values
-        const formValues = form.getValues();
-        const hasExistingConditions = formValues.condition?.conditions?.length > 0;
         
-        // Check if we need to update any condition fields
-        let needsUpdate = false;
-        let updatedConditions: (ICondition | IConditionGroup)[] = [];
-        
-        if (hasExistingConditions) {
-          // Process existing conditions to ensure they have valid fields
-          updatedConditions = formValues.condition.conditions.map(condition => {
-            if (
-              condition && 
-              typeof condition === 'object' && 
-              !('conditions' in condition) && 
-              (!condition.field || allFields.indexOf(condition.field) === -1)
-            ) {
-              needsUpdate = true;
-              
-              // Get first field and its operators
-              const firstField = allFields[0];
-              let firstOperator = '';
-              
-              // Find first available operator for this field
-              for (const evaluator of data.evaluators) {
-                if (evaluator.supportedOperators?.[firstField]) {
-                  const operators = evaluator.supportedOperators[firstField];
-                  if (operators.length > 0) {
-                    firstOperator = operators[0].name;
-                    break;
-                  }
-                }
-              }
-              
-              // Return updated condition with valid field and operator
-              return {
-                ...(condition as ICondition),
-                field: firstField,
-                operator: firstOperator,
-                value: ''
-              };
-            }
-            return condition;
-          });
-          
-          if (needsUpdate) {
-            // Update the form with properly initialized conditions
-            form.setValue('condition', {
-              ...formValues.condition,
-              conditions: updatedConditions
-            }, { shouldValidate: true });
-          }
-        } else {
-          // If no conditions exist, create a new one with the first field and operator
-          const firstField = allFields[0];
-          let firstOperator = '';
-          
-          // Find first available operator for this field
-          for (const evaluator of data.evaluators) {
-            if (evaluator.supportedOperators?.[firstField]) {
-              const operators = evaluator.supportedOperators[firstField];
-              if (operators.length > 0) {
-                firstOperator = operators[0].name;
-                break;
-              }
-            }
-          }
-          
-          // Create initial condition with valid field and operator
-          const initialCondition: IConditionGroup = {
-            operator: 'AND',
-            conditions: [
-              {
-                field: firstField,
-                operator: firstOperator,
-                value: '',
-                negate: false
-              }
-            ],
+        // Create initial condition with valid data
+        const initialCondition: IConditionGroup = {
+          operator: 'AND',
+          conditions: [{
+            field: firstField || '',
+            operator: firstOperator || '',
+            value: initialValue,
             negate: false
-          };
-          
-          // Set the form value with this initial condition
-          form.setValue('condition', initialCondition, { shouldValidate: true });
-        }
+          }],
+          negate: false
+        };
+        
+        form.setValue('condition', initialCondition, { shouldValidate: true });
       }
     } catch (err) {
       console.error('Error fetching evaluator metadata:', err);
@@ -236,131 +191,14 @@ const ConditionalRouteCard = ({
     } finally {
       setLoading(false);
     }
-  };
-
-  // Improved getInitialConditionValue to use evaluator metadata if available
-  const getInitialConditionValue = useCallback((): IConditionGroup => {
-    // Check if route has criteria with condition
-    if (route?.criteria && 'condition' in route.criteria && route.criteria.condition) {
-      return route.criteria.condition as IConditionGroup;
-    }
-    
-    // Get available fields from evaluator metadata
-    const availableFields: string[] = [];
-    let firstOperator = '';
-    
-    if (evaluatorMetadata.length > 0) {
-      // Collect all available fields
-      for (const evaluator of evaluatorMetadata) {
-        if (evaluator.supportedFields) {
-          for (const field of evaluator.supportedFields) {
-            if (!availableFields.includes(field.name)) {
-              availableFields.push(field.name);
-            }
-          }
-        }
-      }
-      
-      // Try to get first operator for the first field
-      if (availableFields.length > 0) {
-        const firstField = availableFields[0];
-        for (const evaluator of evaluatorMetadata) {
-          if (evaluator.supportedOperators?.[firstField]) {
-            const operators = evaluator.supportedOperators[firstField];
-            if (operators.length > 0) {
-              firstOperator = operators[0].name;
-              break;
-            }
-          }
-        }
-      }
-    }
-    
-    // Pick the first available field if any
-    const initialField = availableFields.length > 0 ? availableFields[0] : '';
-    
-    // Default to an empty AND condition group with a proper initial field and operator
-    const initialCondition: IConditionGroup = {
-      operator: 'AND',
-      conditions: [
-        {
-          field: initialField,
-          operator: firstOperator,
-          value: '',
-          negate: false,
-        }
-      ],
-      negate: false,
-    };
-    
-    return initialCondition;
-  }, [route, evaluatorMetadata]);
-
-  const form = useForm<ConditionalRouteFormValues>({
-    resolver: zodResolver(ConditionalRouteFormSchema),
-    defaultValues: {
-      name:
-        route?.name ||
-        `New ${contentType === 'radarr' ? 'Movie' : 'Show'} Route`,
-      condition: getInitialConditionValue(),
-      target_instance_id:
-        route?.target_instance_id ||
-        (instances.length > 0 ? instances[0].id : 0),
-      root_folder: route?.root_folder || '',
-      quality_profile:
-        route?.quality_profile !== undefined && route?.quality_profile !== null
-          ? route.quality_profile.toString()
-          : '',
-      enabled: route?.enabled !== false,
-      order: route?.order ?? 50,
-    },
-    mode: 'all',
-  });
+  }, [form, getInitialConditionValue]);
 
   // Fetch evaluator metadata on component mount
   useEffect(() => {
     fetchEvaluatorMetadata();
-  }, []);
+  }, [fetchEvaluatorMetadata]);
 
-  // Make sure the form has valid conditions when metadata changes
-  useEffect(() => {
-    if (evaluatorMetadata.length > 0) {
-      // Check if form needs initialization with metadata-based values
-      const formValues = form.getValues();
-      const hasConditions = formValues.condition?.conditions?.length > 0;
-      
-      if (!hasConditions) {
-        // If no conditions, initialize with the values from getInitialConditionValue
-        form.setValue('condition', getInitialConditionValue(), { shouldValidate: true });
-      }
-    }
-  }, [evaluatorMetadata, form, getInitialConditionValue]);
-
-  const resetForm = useCallback(() => {
-    form.reset({
-      name:
-        route?.name ||
-        `New ${contentType === 'radarr' ? 'Movie' : 'Show'} Route`,
-      condition: getInitialConditionValue(),
-      target_instance_id:
-        route?.target_instance_id ||
-        (instances.length > 0 ? instances[0].id : 0),
-      root_folder: route?.root_folder || '',
-      quality_profile:
-        route?.quality_profile !== undefined && route?.quality_profile !== null
-          ? route.quality_profile.toString()
-          : '',
-      enabled: route?.enabled !== false,
-      order: route?.order ?? 50,
-    });
-  }, [form, route, contentType, instances, getInitialConditionValue]);
-
-  useEffect(() => {
-    if (!isNew && (('id' in route && route.id) || instances.length > 0)) {
-      resetForm();
-    }
-  }, [route, isNew, instances, resetForm]);
-
+  // Scroll to the card when it's a new one
   useEffect(() => {
     if (isNew && cardRef.current) {
       cardRef.current.scrollIntoView({
@@ -370,11 +208,29 @@ const ConditionalRouteCard = ({
     }
   }, [isNew]);
 
+  // Initial form validation for new cards
   useEffect(() => {
     if (isNew) {
       setTimeout(() => form.trigger(), 0);
     }
   }, [form, isNew]);
+
+  // Reset form when route changes (for editing)
+  useEffect(() => {
+    if (!isNew && (route.id !== undefined)) {
+      form.reset({
+        name: route?.name || `New ${contentType === 'radarr' ? 'Movie' : 'Show'} Route`,
+        condition: getInitialConditionValue(),
+        target_instance_id: route?.target_instance_id || (instances.length > 0 ? instances[0].id : 0),
+        root_folder: route?.root_folder || '',
+        quality_profile: route?.quality_profile !== undefined && route?.quality_profile !== null
+          ? route.quality_profile.toString()
+          : '',
+        enabled: route?.enabled !== false,
+        order: route?.order ?? 50,
+      });
+    }
+  }, [route, isNew, form, getInitialConditionValue, instances, contentType]);
 
   const setTitleValue = useCallback(
     (title: string) => {
@@ -410,8 +266,10 @@ const ConditionalRouteCard = ({
     );
   }, [instances, form]);
 
+  // Get the selected instance
   const selectedInstance = getSelectedInstance();
 
+  // Handle form submission
   const handleSubmit = async (data: ConditionalRouteFormValues) => {
     try {
       // For new routes (creating a route)
@@ -427,7 +285,7 @@ const ConditionalRouteCard = ({
           root_folder: data.root_folder,
           enabled: data.enabled,
           order: data.order,
-          condition: data.condition, // Use condition directly instead of criteria
+          condition: data.condition, // Use condition directly
           created_at: '', // This will be set by the backend
           updated_at: '', // This will be set by the backend
         };
@@ -450,7 +308,7 @@ const ConditionalRouteCard = ({
 
         await onSave(updatePayload);
       }
-    } catch (error: unknown) {
+    } catch (error) {
       console.error('Failed to save conditional route:', error);
       toast({
         title: 'Error',
@@ -461,7 +319,6 @@ const ConditionalRouteCard = ({
   };
 
   const handleCancel = () => {
-    resetForm();
     onCancel();
   };
 
@@ -514,7 +371,7 @@ const ConditionalRouteCard = ({
                       <AlertDescription>
                         <p className="text-sm">
                           Build conditions below to determine when content should be routed to this instance. 
-                          Start by selecting a field, then an operator, and finally enter a value.
+                          Start by selecting an evaluator, then a field, followed by an operator, and finally enter a value.
                         </p>
                       </AlertDescription>
                     </div>
