@@ -1,5 +1,4 @@
-// src/client/features/content-router/components/condition-group.tsx
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useEffect, useCallback, useRef } from 'react'
 import {
   Select,
   SelectContent,
@@ -15,13 +14,13 @@ import { Label } from '@/components/ui/label'
 import ConditionBuilder from './condition-builder'
 import type { EvaluatorMetadata } from '@root/schemas/content-router/evaluator-metadata.schema'
 import type {
-  ICondition,
-  IConditionGroup,
-} from '@/features/content-router/schemas/content-router.schema'
+  Condition,
+  ConditionGroup,
+} from '@root/schemas/content-router/content-router.schema'
 
 interface ConditionGroupComponentProps {
-  value: IConditionGroup
-  onChange: (value: IConditionGroup) => void
+  value: ConditionGroup
+  onChange: (value: ConditionGroup) => void
   onRemove?: () => void
   evaluatorMetadata: EvaluatorMetadata[]
   genres?: string[]
@@ -50,7 +49,7 @@ const ConditionGroupComponent = ({
   )
 
   // Create a properly structured empty condition with defaults based on the first available field
-  const createEmptyCondition = useCallback((): ICondition => {
+  const createEmptyCondition = useCallback((): Condition => {
     if (filteredEvaluators.length === 0) {
       return {
         field: '',
@@ -114,7 +113,7 @@ const ConditionGroupComponent = ({
   }, [filteredEvaluators])
 
   // Create an empty group with one empty condition
-  const createEmptyGroup = useCallback((): IConditionGroup => {
+  const createEmptyGroup = useCallback((): ConditionGroup => {
     return {
       operator: 'AND',
       conditions: [createEmptyCondition()],
@@ -209,7 +208,7 @@ const ConditionGroupComponent = ({
 
   // Update a specific condition in the group
   const handleUpdateCondition = useCallback(
-    (index: number, updatedCondition: ICondition | IConditionGroup) => {
+    (index: number, updatedCondition: Condition | ConditionGroup) => {
       // Ensure value.conditions is an array before modifying
       if (!Array.isArray(valueRef.current.conditions)) {
         const newConditions = [updatedCondition]
@@ -243,7 +242,7 @@ const ConditionGroupComponent = ({
       }
 
       const newConditions = valueRef.current.conditions.filter(
-        (_, i) => i !== index,
+        (_: Condition | ConditionGroup, i: number) => i !== index,
       )
       onChange({
         ...valueRef.current,
@@ -319,47 +318,49 @@ const ConditionGroupComponent = ({
       </div>
 
       <div className="space-y-4">
-        {conditions.map((condition, index) => {
-          // Check if this is a condition group or a single condition
-          const isGroup =
-            condition &&
-            typeof condition === 'object' &&
-            'operator' in condition &&
-            'conditions' in condition
+        {conditions.map(
+          (condition: Condition | ConditionGroup, index: number) => {
+            // Check if this is a condition group or a single condition
+            const isGroup =
+              condition &&
+              typeof condition === 'object' &&
+              'operator' in condition &&
+              'conditions' in condition
 
-          return (
-            <div key={`condition-${index}`} className="relative">
-              {isGroup ? (
-                // Render nested group
-                <ConditionGroupComponent
-                  value={condition as IConditionGroup}
-                  onChange={(updatedGroup) =>
-                    handleUpdateCondition(index, updatedGroup)
-                  }
-                  onRemove={() => handleRemoveCondition(index)}
-                  evaluatorMetadata={evaluatorMetadata}
-                  genres={genres}
-                  onGenreDropdownOpen={onGenreDropdownOpen}
-                  isLoading={isLoading}
-                  level={level + 1}
-                />
-              ) : (
-                // Render single condition
-                <ConditionBuilder
-                  value={condition as ICondition}
-                  onChange={(updatedCondition) =>
-                    handleUpdateCondition(index, updatedCondition)
-                  }
-                  onRemove={() => handleRemoveCondition(index)}
-                  evaluatorMetadata={evaluatorMetadata}
-                  genres={genres}
-                  onGenreDropdownOpen={onGenreDropdownOpen}
-                  isLoading={isLoading}
-                />
-              )}
-            </div>
-          )
-        })}
+            return (
+              <div key={`condition-${index}`} className="relative">
+                {isGroup ? (
+                  // Render nested group
+                  <ConditionGroupComponent
+                    value={condition as ConditionGroup}
+                    onChange={(updatedGroup) =>
+                      handleUpdateCondition(index, updatedGroup)
+                    }
+                    onRemove={() => handleRemoveCondition(index)}
+                    evaluatorMetadata={evaluatorMetadata}
+                    genres={genres}
+                    onGenreDropdownOpen={onGenreDropdownOpen}
+                    isLoading={isLoading}
+                    level={level + 1}
+                  />
+                ) : (
+                  // Render single condition
+                  <ConditionBuilder
+                    value={condition as Condition}
+                    onChange={(updatedCondition) =>
+                      handleUpdateCondition(index, updatedCondition)
+                    }
+                    onRemove={() => handleRemoveCondition(index)}
+                    evaluatorMetadata={evaluatorMetadata}
+                    genres={genres}
+                    onGenreDropdownOpen={onGenreDropdownOpen}
+                    isLoading={isLoading}
+                  />
+                )}
+              </div>
+            )
+          },
+        )}
       </div>
 
       <div className="flex space-x-2 mt-4">

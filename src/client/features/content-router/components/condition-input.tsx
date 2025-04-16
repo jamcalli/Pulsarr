@@ -7,12 +7,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import GenreMultiSelect from '@/components/ui/genre-multi-select'
 import UserMultiSelect from '@/components/ui/user-multi-select'
 import { useConfigStore } from '@/stores/configStore'
@@ -205,7 +199,6 @@ function ConditionInput({
   // Create a properly structured field prop for multi-select components
   const createFormField = (
     fieldName: string,
-    placeholder: string,
   ): ControllerRenderProps<any, any> => {
     const isEmpty =
       (Array.isArray(value) && value.length === 0) ||
@@ -282,7 +275,7 @@ function ConditionInput({
 
     // Use multi-select for operators expecting arrays (in, notIn)
     // or equals when already multi-value
-    const genreField = createFormField('genre', 'Select genres')
+    const genreField = createFormField('genre')
     return (
       <div className="flex-1">
         <GenreMultiSelect
@@ -324,7 +317,7 @@ function ConditionInput({
     }
 
     // For multi-select operators (in) or when we already have multiple values
-    const userField = createFormField('user', 'Select users')
+    const userField = createFormField('user')
     return (
       <div className="flex-1">
         <UserMultiSelect field={userField} />

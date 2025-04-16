@@ -20,23 +20,17 @@ import {
 import { Slider } from '@/components/ui/slider'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import {
-  ConditionalRouteFormSchema,
-  type ConditionalRouteFormValues,
-  type IConditionGroup,
-  type ICondition,
-} from '@/features/content-router/schemas/content-router.schema'
-import { useToast } from '@/hooks/use-toast'
-import { Button } from '@/components/ui/button'
 import type {
   ContentRouterRule,
   ContentRouterRuleUpdate,
+  ConditionGroup,
 } from '@root/schemas/content-router/content-router.schema'
+import { useToast } from '@/hooks/use-toast'
+import { Button } from '@/components/ui/button'
 import RouteCardHeader from '@/components/ui/route-card-header'
 import { AlertCircle, HelpCircle } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import ConditionGroupComponent from './condition-group'
-import { useMediaQuery } from '@/hooks/use-media-query'
 import {
   Tooltip,
   TooltipContent,
@@ -47,6 +41,10 @@ import type {
   EvaluatorMetadata,
   FieldInfo,
 } from '@root/schemas/content-router/evaluator-metadata.schema'
+import {
+  ConditionalRouteFormSchema,
+  type ConditionalRouteFormValues,
+} from '@/features/content-router/schemas/content-router.schema'
 
 // Define possible value types for criteria
 type CriteriaValue =
@@ -55,12 +53,12 @@ type CriteriaValue =
   | number
   | number[]
   | { min?: number; max?: number }
-  | IConditionGroup
+  | ConditionGroup
   | undefined
 
 // Define criteria interface to match backend schema
 interface Criteria {
-  condition?: IConditionGroup
+  condition?: ConditionGroup
   genre?: string | string[]
   year?: number | number[] | { min?: number; max?: number }
   originalLanguage?: string | string[]
@@ -72,7 +70,7 @@ interface Criteria {
 interface ExtendedContentRouterRule extends ContentRouterRule {
   type?: string
   criteria?: Criteria
-  condition?: IConditionGroup
+  condition?: ConditionGroup
 }
 
 interface ConditionalRouteCardProps {
@@ -106,7 +104,6 @@ const ConditionalRouteCard = ({
 }: ConditionalRouteCardProps) => {
   const cardRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
-  const isMobile = useMediaQuery('(max-width: 768px)')
   const [evaluatorMetadata, setEvaluatorMetadata] = useState<
     EvaluatorMetadata[]
   >([])
@@ -114,7 +111,7 @@ const ConditionalRouteCard = ({
   const [error, setError] = useState<string | null>(null)
 
   // Create a default initial condition group for new routes
-  const getInitialConditionValue = useCallback((): IConditionGroup => {
+  const getInitialConditionValue = useCallback((): ConditionGroup => {
     // Check if route has condition
     if (route?.condition) {
       return route.condition
@@ -260,7 +257,7 @@ const ConditionalRouteCard = ({
             }
 
             // Create initial condition
-            const initialCondition: IConditionGroup = {
+            const initialCondition: ConditionGroup = {
               operator: 'AND',
               conditions: [
                 {
