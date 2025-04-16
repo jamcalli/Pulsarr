@@ -209,20 +209,72 @@ function ConditionInput({
     }
   }
 
-  // Special case for genres field
-  if (field === 'genre' || field === 'genres') {
-    const genreField = createFormField('genre', 'Select genres')
-
+// For the genre field
+if (field === 'genre' || field === 'genres') {
+  // Single value operators
+  if (operator === 'contains' || operator === 'notContains') {
     return (
       <div className="flex-1">
-        <GenreMultiSelect
-          field={genreField}
-          genres={genres}
-          onDropdownOpen={onGenreDropdownOpen}
-        />
+        <Select
+          value={typeof value === 'string' ? value : ''}
+          onValueChange={(val) => onChange(val)}
+          disabled={!genres.length}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select a genre" />
+          </SelectTrigger>
+          <SelectContent>
+            {genres.map((genre) => (
+              <SelectItem key={genre} value={genre}>
+                {genre}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
-    )
+    );
   }
+  
+  // For 'equals' which can be either single or multi
+  if (operator === 'equals') {
+    // If it's currently a string, use single select
+    if (typeof value === 'string') {
+      return (
+        <div className="flex-1">
+          <Select
+            value={value}
+            onValueChange={(val) => onChange(val)}
+            disabled={!genres.length}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select a genre" />
+            </SelectTrigger>
+            <SelectContent>
+              {genres.map((genre) => (
+                <SelectItem key={genre} value={genre}>
+                  {genre}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      );
+    }
+  }
+  
+  // Use multi-select for operators expecting arrays (in, notIn) 
+  // or equals when already multi-value
+  const genreField = createFormField('genre', 'Select genres');
+  return (
+    <div className="flex-1">
+      <GenreMultiSelect
+        field={genreField}
+        genres={genres}
+        onDropdownOpen={onGenreDropdownOpen}
+      />
+    </div>
+  );
+}
 
   // Special case for user field
   if (field === 'user' || field === 'userId' || field === 'userName') {

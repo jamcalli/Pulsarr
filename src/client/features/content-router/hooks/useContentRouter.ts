@@ -5,6 +5,7 @@ import type {
   ContentRouterRuleUpdate,
   ContentRouterRuleResponse,
   ContentRouterRuleListResponse,
+  ContentRouterRuleToggle,
 } from '@root/schemas/content-router/content-router.schema'
 
 export interface UseContentRouterParams {
@@ -85,7 +86,6 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
       setError(null)
 
       try {
-        // Implement minimum loading time
         const minimumLoadingTime = new Promise((resolve) =>
           setTimeout(resolve, 500),
         )
@@ -104,16 +104,14 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
 
         const data = (await response.json()) as ContentRouterRuleResponse
 
-        // Wait for both operations to complete
         await minimumLoadingTime
 
-        // Update local state
         setRules((prevRules) => [...prevRules, data.rule])
 
         toast({
           title: 'Success',
           description: `${
-            rule.type.charAt(0).toUpperCase() + rule.type.slice(1)
+            rule.target_type.charAt(0).toUpperCase() + rule.target_type.slice(1)
           } routing rule created successfully`,
         })
 
@@ -143,7 +141,6 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
       setError(null)
 
       try {
-        // Implement minimum loading time
         const minimumLoadingTime = new Promise((resolve) =>
           setTimeout(resolve, 500),
         )
@@ -162,10 +159,8 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
 
         const data = (await response.json()) as ContentRouterRuleResponse
 
-        // Wait for both operations to complete
         await minimumLoadingTime
 
-        // Update local state
         setRules((prevRules) =>
           prevRules.map((rule) => (rule.id === id ? data.rule : rule)),
         )
@@ -240,12 +235,13 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
   const toggleRule = useCallback(
     async (id: number, enabled: boolean) => {
       try {
+        const toggleData: ContentRouterRuleToggle = { enabled }
         const response = await fetch(`/v1/content-router/rules/${id}/toggle`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ enabled }),
+          body: JSON.stringify(toggleData),
         })
 
         if (!response.ok) {
