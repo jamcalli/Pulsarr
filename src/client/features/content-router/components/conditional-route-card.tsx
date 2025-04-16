@@ -503,13 +503,7 @@ const ConditionalRouteCard = ({
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button
-                                  variant="noShadow"
-                                  size="icon"
-                                  className="h-6 w-6 p-0"
-                                >
-                                  <HelpCircle className="h-4 w-4" />
-                                </Button>
+                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p className="max-w-xs">
@@ -602,13 +596,7 @@ const ConditionalRouteCard = ({
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button
-                                  variant="noShadow"
-                                  size="icon"
-                                  className="h-6 w-6 p-0"
-                                >
-                                  <HelpCircle className="h-4 w-4" />
-                                </Button>
+                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p className="max-w-xs">
