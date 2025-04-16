@@ -1,32 +1,33 @@
 // src/client/features/content-router/components/condition-group.tsx
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { PlusCircle, Trash2, LayoutList } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import ConditionBuilder, { EvaluatorMetadata } from './condition-builder';
+} from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
+import { PlusCircle, Trash2, LayoutList } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
+import ConditionBuilder from './condition-builder'
+import type { EvaluatorMetadata } from '@root/schemas/content-router/evaluator-metadata.schema'
 import type {
   ICondition,
   IConditionGroup,
-} from '@/features/content-router/schemas/content-router.schema';
+} from '@/features/content-router/schemas/content-router.schema'
 
 interface ConditionGroupComponentProps {
-  value: IConditionGroup;
-  onChange: (value: IConditionGroup) => void;
-  onRemove?: () => void;
-  evaluatorMetadata: EvaluatorMetadata[];
-  genres?: string[];
-  onGenreDropdownOpen?: () => Promise<void>;
-  isLoading?: boolean;
-  level?: number;
+  value: IConditionGroup
+  onChange: (value: IConditionGroup) => void
+  onRemove?: () => void
+  evaluatorMetadata: EvaluatorMetadata[]
+  genres?: string[]
+  onGenreDropdownOpen?: () => Promise<void>
+  isLoading?: boolean
+  level?: number
 }
 
 const ConditionGroupComponent = ({
@@ -39,22 +40,28 @@ const ConditionGroupComponent = ({
   isLoading = false,
   level = 0,
 }: ConditionGroupComponentProps) => {
-  
-  // Create a properly structured empty condition with defaults from evaluator metadata
+  // Filter out the Conditional Router from options - we only want field-specific evaluators
+  const filteredEvaluators = evaluatorMetadata.filter(
+    (e) => e.name !== 'Conditional Router',
+  )
+
+  // Create a properly structured empty condition with defaults based on the first available field
   const createEmptyCondition = useCallback((): ICondition => {
-    if (!evaluatorMetadata || evaluatorMetadata.length === 0) {
+    if (filteredEvaluators.length === 0) {
       return {
         field: '',
         operator: '',
         value: '',
         negate: false,
-      };
+      }
     }
-    
-    // Use first evaluator to create an appropriate condition
-    const firstEvaluator = evaluatorMetadata[0];
-    const firstField = firstEvaluator.supportedFields[0]?.name || '';
-    
+
+    // Create a flat list of all fields from all evaluators
+    const allFields = filteredEvaluators.flatMap((e) => e.supportedFields)
+
+    // Use the first field
+    const firstField = allFields[0]?.name || ''
+
     // If no field is available, return generic condition
     if (!firstField) {
       return {
@@ -62,29 +69,45 @@ const ConditionGroupComponent = ({
         operator: '',
         value: '',
         negate: false,
-      };
+      }
     }
-    
+
+    // Find evaluator that supports this field
+    const fieldEvaluator = filteredEvaluators.find((e) =>
+      e.supportedFields.some((f) => f.name === firstField),
+    )
+
+    if (!fieldEvaluator) {
+      return {
+        field: firstField,
+        operator: '',
+        value: '',
+        negate: false,
+      }
+    }
+
     // Get the first operator for the first field
-    const operators = firstEvaluator.supportedOperators?.[firstField] || [];
-    const firstOperator = operators[0]?.name || '';
-    
+    const operators = fieldEvaluator.supportedOperators?.[firstField] || []
+    const firstOperator = operators[0]?.name || ''
+
     // Determine appropriate initial value based on value type
-    let initialValue: any = '';
+    let initialValue: any = ''
     if (operators[0]?.valueTypes) {
-      const valueType = operators[0].valueTypes[0];
-      if (valueType === 'number') initialValue = 0;
-      else if (valueType === 'string[]' || valueType === 'number[]') initialValue = [];
-      else if (valueType === 'object') initialValue = { min: undefined, max: undefined };
+      const valueType = operators[0].valueTypes[0]
+      if (valueType === 'number') initialValue = 0
+      else if (valueType === 'string[]' || valueType === 'number[]')
+        initialValue = []
+      else if (valueType === 'object')
+        initialValue = { min: undefined, max: undefined }
     }
-    
+
     return {
       field: firstField,
       operator: firstOperator,
       value: initialValue,
       negate: false,
-    };
-  }, [evaluatorMetadata]);
+    }
+  }, [filteredEvaluators])
 
   // Create an empty group with one empty condition
   const createEmptyGroup = useCallback((): IConditionGroup => {
@@ -92,68 +115,90 @@ const ConditionGroupComponent = ({
       operator: 'AND',
       conditions: [createEmptyCondition()],
       negate: false,
-    };
-  }, [createEmptyCondition]);
-
-  // Initialize conditions with proper fields when metadata is loaded
-  useEffect(() => {
-    if (evaluatorMetadata.length > 0) {
-      // If there are no conditions, create an initial one
-      if (!value.conditions || value.conditions.length === 0) {
-        onChange({
-          ...value,
-          conditions: [createEmptyCondition()]
-        });
-      }
     }
-  }, [evaluatorMetadata, onChange, value, createEmptyCondition]);
+  }, [createEmptyCondition])
+
+  const isInitialized = useRef(false)
+
+  // Initialize conditions with proper fields when metadata is loaded - ONCE
+  useEffect(() => {
+    // Skip if we've already initialized or if we don't have evaluators
+    if (isInitialized.current || filteredEvaluators.length === 0) {
+      return
+    }
+
+    // Skip if we already have conditions
+    if (value.conditions && value.conditions.length > 0) {
+      isInitialized.current = true
+      return
+    }
+
+    // Create a single empty condition - this should only run once
+    const emptyCondition = createEmptyCondition()
+
+    // Use setTimeout to break potential update cycles
+    const timer = setTimeout(() => {
+      onChange({
+        ...value,
+        conditions: [emptyCondition],
+      })
+      isInitialized.current = true
+    }, 0)
+
+    return () => clearTimeout(timer)
+    // Only depend on filteredEvaluators.length - explicitly NOT including value or functions
+  }, [filteredEvaluators.length])
 
   // Handle toggling the negate flag
   const handleToggleNegate = () => {
     onChange({
       ...value,
       negate: !value.negate,
-    });
-  };
+    })
+  }
 
   // Handle changing the logical operator (AND/OR)
   const handleOperatorChange = (newOperator: 'AND' | 'OR') => {
     onChange({
       ...value,
       operator: newOperator,
-    });
-  };
+    })
+  }
 
   // Add a new empty condition to the group
   const handleAddCondition = () => {
-    if (evaluatorMetadata.length === 0) {
-      console.warn("Cannot add condition: No evaluator metadata available");
-      return;
+    if (filteredEvaluators.length === 0) {
+      console.warn('Cannot add condition: No evaluator metadata available')
+      return
     }
 
-    const newCondition = createEmptyCondition();
-    
+    const newCondition = createEmptyCondition()
+
     // Ensure value.conditions is an array before spreading
-    const currentConditions = Array.isArray(value.conditions) ? value.conditions : [];
-    
+    const currentConditions = Array.isArray(value.conditions)
+      ? value.conditions
+      : []
+
     onChange({
       ...value,
       conditions: [...currentConditions, newCondition],
-    });
-  };
+    })
+  }
 
   // Add a new nested condition group to the group
   const handleAddGroup = () => {
-    const newGroup = createEmptyGroup();
-    
+    const newGroup = createEmptyGroup()
+
     // Ensure value.conditions is an array before spreading
-    const currentConditions = Array.isArray(value.conditions) ? value.conditions : [];
-    
+    const currentConditions = Array.isArray(value.conditions)
+      ? value.conditions
+      : []
+
     onChange({
       ...value,
       conditions: [...currentConditions, newGroup],
-    });
-  };
+    })
+  }
 
   // Update a specific condition in the group
   const handleUpdateCondition = (
@@ -162,21 +207,21 @@ const ConditionGroupComponent = ({
   ) => {
     // Ensure value.conditions is an array before modifying
     if (!Array.isArray(value.conditions)) {
-      const newConditions = [updatedCondition];
+      const newConditions = [updatedCondition]
       onChange({
         ...value,
         conditions: newConditions,
-      });
-      return;
+      })
+      return
     }
-    
-    const newConditions = [...value.conditions];
-    newConditions[index] = updatedCondition;
+
+    const newConditions = [...value.conditions]
+    newConditions[index] = updatedCondition
     onChange({
       ...value,
       conditions: newConditions,
-    });
-  };
+    })
+  }
 
   // Remove a condition from the group
   const handleRemoveCondition = (index: number) => {
@@ -185,16 +230,17 @@ const ConditionGroupComponent = ({
       onChange({
         ...value,
         conditions: [createEmptyCondition()],
-      });
-      return;
+      })
+      return
     }
-    
-    const newConditions = value.conditions.filter((_, i) => i !== index);
+
+    const newConditions = value.conditions.filter((_, i) => i !== index)
     onChange({
       ...value,
-      conditions: newConditions.length > 0 ? newConditions : [createEmptyCondition()],
-    });
-  };
+      conditions:
+        newConditions.length > 0 ? newConditions : [createEmptyCondition()],
+    })
+  }
 
   if (isLoading) {
     return (
@@ -207,7 +253,7 @@ const ConditionGroupComponent = ({
         </div>
         <Skeleton className="h-24 w-full" />
       </div>
-    );
+    )
   }
 
   // Generate border color based on nesting level
@@ -218,12 +264,12 @@ const ConditionGroupComponent = ({
       'border-accent',
       'border-fun',
       'border-green',
-    ];
-    return colors[level % colors.length];
-  };
+    ]
+    return colors[level % colors.length]
+  }
 
   // Ensure value.conditions is always an array
-  const conditions = Array.isArray(value.conditions) ? value.conditions : [];
+  const conditions = Array.isArray(value.conditions) ? value.conditions : []
 
   return (
     <div className={`border-l-2 pl-4 ${getLevelColor()}`}>
@@ -263,14 +309,15 @@ const ConditionGroupComponent = ({
       <div className="space-y-4">
         {conditions.map((condition, index) => {
           // Create a unique key for the condition
-          const conditionKey = `condition-${index}-${Date.now()}`;
-          
+          const conditionKey = `condition-${index}-${Date.now()}`
+
           // Check if this is a condition group or a single condition
-          const isGroup = condition && 
-                          typeof condition === 'object' && 
-                          'operator' in condition &&
-                          'conditions' in condition;
-          
+          const isGroup =
+            condition &&
+            typeof condition === 'object' &&
+            'operator' in condition &&
+            'conditions' in condition
+
           return (
             <div key={conditionKey} className="relative">
               {isGroup ? (
@@ -302,7 +349,7 @@ const ConditionGroupComponent = ({
                 />
               )}
             </div>
-          );
+          )
         })}
       </div>
 
@@ -311,7 +358,7 @@ const ConditionGroupComponent = ({
           variant="noShadow"
           size="sm"
           onClick={handleAddCondition}
-          disabled={evaluatorMetadata.length === 0}
+          disabled={filteredEvaluators.length === 0}
         >
           <PlusCircle className="h-4 w-4 mr-1" />
           Add Condition
@@ -320,14 +367,14 @@ const ConditionGroupComponent = ({
           variant="noShadow"
           size="sm"
           onClick={handleAddGroup}
-          disabled={evaluatorMetadata.length === 0}
+          disabled={filteredEvaluators.length === 0}
         >
           <LayoutList className="h-4 w-4 mr-1" />
           Add Group
         </Button>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default ConditionGroupComponent;
+export default ConditionGroupComponent

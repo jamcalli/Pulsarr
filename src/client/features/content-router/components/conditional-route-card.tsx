@@ -1,14 +1,14 @@
 // src/client/features/content-router/components/conditional-route-card.tsx
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { Card, CardContent } from '@/components/ui/card'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { cn } from '@/lib/utils';
+} from '@/components/ui/select'
+import { cn } from '@/lib/utils'
 import {
   Form,
   FormControl,
@@ -17,57 +17,68 @@ import {
   FormLabel,
   FormMessage,
   FormDescription,
-} from '@/components/ui/form';
-import { Slider } from '@/components/ui/slider';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+} from '@/components/ui/form'
+import { Slider } from '@/components/ui/slider'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import {
   ConditionalRouteFormSchema,
   type ConditionalRouteFormValues,
   type IConditionGroup,
   type ICondition,
-} from '@/features/content-router/schemas/content-router.schema';
-import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
-import type { ContentRouterRule, ContentRouterRuleUpdate } from '@root/schemas/content-router/content-router.schema';
-import RouteCardHeader from '@/components/ui/route-card-header';
-import { AlertCircle, HelpCircle } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import ConditionGroupComponent from './condition-group';
-import { useMediaQuery } from '@/hooks/use-media-query';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { EvaluatorMetadata } from './condition-builder';
+} from '@/features/content-router/schemas/content-router.schema'
+import { useToast } from '@/hooks/use-toast'
+import { Button } from '@/components/ui/button'
+import type {
+  ContentRouterRule,
+  ContentRouterRuleUpdate,
+} from '@root/schemas/content-router/content-router.schema'
+import RouteCardHeader from '@/components/ui/route-card-header'
+import { AlertCircle, HelpCircle } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import ConditionGroupComponent from './condition-group'
+import { useMediaQuery } from '@/hooks/use-media-query'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import type {
+  EvaluatorMetadata,
+  FieldInfo,
+} from '@root/schemas/content-router/evaluator-metadata.schema'
 
 // Define criteria interface to match backend schema
 interface Criteria {
-  condition?: IConditionGroup;
-  genre?: string | string[];
-  year?: number | number[] | { min?: number; max?: number };
-  originalLanguage?: string | string[];
-  users?: string | string[];
-  [key: string]: any;
+  condition?: IConditionGroup
+  genre?: string | string[]
+  year?: number | number[] | { min?: number; max?: number }
+  originalLanguage?: string | string[]
+  users?: string | string[]
+  [key: string]: any
 }
 
 // Extended ContentRouterRule to include criteria and type
 interface ExtendedContentRouterRule extends ContentRouterRule {
-  type?: string;
-  criteria?: Criteria;
-  condition?: IConditionGroup;
+  type?: string
+  criteria?: Criteria
+  condition?: IConditionGroup
 }
 
 interface ConditionalRouteCardProps {
-  route: ExtendedContentRouterRule | Partial<ExtendedContentRouterRule>;
-  isNew?: boolean;
-  onCancel: () => void;
-  onSave: (data: ContentRouterRule | ContentRouterRuleUpdate) => Promise<void>;
-  onRemove?: () => void;
-  onToggleEnabled?: (id: number, enabled: boolean) => Promise<void>;
-  isSaving: boolean;
-  isTogglingState?: boolean;
-  instances: any[];
-  genres?: string[];
-  onGenreDropdownOpen?: () => Promise<void>;
-  contentType: 'radarr' | 'sonarr';
+  route: ExtendedContentRouterRule | Partial<ExtendedContentRouterRule>
+  isNew?: boolean
+  onCancel: () => void
+  onSave: (data: ContentRouterRule | ContentRouterRuleUpdate) => Promise<void>
+  onRemove?: () => void
+  onToggleEnabled?: (id: number, enabled: boolean) => Promise<void>
+  isSaving: boolean
+  isTogglingState?: boolean
+  instances: any[]
+  genres?: string[]
+  onGenreDropdownOpen?: () => Promise<void>
+  contentType: 'radarr' | 'sonarr'
 }
 
 const ConditionalRouteCard = ({
@@ -84,119 +95,205 @@ const ConditionalRouteCard = ({
   onGenreDropdownOpen,
   contentType,
 }: ConditionalRouteCardProps) => {
-  const cardRef = useRef<HTMLDivElement>(null);
-  const { toast } = useToast();
-  const isMobile = useMediaQuery('(max-width: 768px)');
-  const [evaluatorMetadata, setEvaluatorMetadata] = useState<EvaluatorMetadata[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null)
+  const { toast } = useToast()
+  const isMobile = useMediaQuery('(max-width: 768px)')
+  const [evaluatorMetadata, setEvaluatorMetadata] = useState<
+    EvaluatorMetadata[]
+  >([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   // Create a default initial condition group for new routes
   const getInitialConditionValue = useCallback((): IConditionGroup => {
     // Check if route has condition
     if (route?.condition) {
-      return route.condition;
+      return route.condition
     }
-    
+
     // Check if route has criteria with condition
-    if (route?.criteria && 'condition' in route.criteria && route.criteria.condition) {
-      return route.criteria.condition;
+    if (
+      route?.criteria &&
+      'condition' in route.criteria &&
+      route.criteria.condition
+    ) {
+      return route.criteria.condition
     }
-    
+
     // Default condition group
     return {
       operator: 'AND',
       conditions: [],
       negate: false,
-    };
-  }, [route]);
+    }
+  }, [route])
 
   // Setup form with validation
   const form = useForm<ConditionalRouteFormValues>({
     resolver: zodResolver(ConditionalRouteFormSchema),
     defaultValues: {
-      name: route?.name || `New ${contentType === 'radarr' ? 'Movie' : 'Show'} Route`,
+      name:
+        route?.name ||
+        `New ${contentType === 'radarr' ? 'Movie' : 'Show'} Route`,
       condition: getInitialConditionValue(),
-      target_instance_id: route?.target_instance_id || (instances.length > 0 ? instances[0].id : 0),
+      target_instance_id:
+        route?.target_instance_id ||
+        (instances.length > 0 ? instances[0].id : 0),
       root_folder: route?.root_folder || '',
-      quality_profile: route?.quality_profile !== undefined && route?.quality_profile !== null
-        ? route.quality_profile.toString()
-        : '',
+      quality_profile:
+        route?.quality_profile !== undefined && route?.quality_profile !== null
+          ? route.quality_profile.toString()
+          : '',
       enabled: route?.enabled !== false,
       order: route?.order ?? 50,
     },
     mode: 'all',
-  });
+  })
 
-  // Enhanced function to fetch evaluator metadata with error handling
+  const initializationRef = useRef(false)
+
   const fetchEvaluatorMetadata = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    
+    // Prevent duplicate initializations
+    if (initializationRef.current) return
+
+    setLoading(true)
+    setError(null)
+
     try {
-      const response = await fetch('/v1/content-router/plugins/metadata');
-      
+      const response = await fetch('/v1/content-router/plugins/metadata')
+
       if (!response.ok) {
-        throw new Error(`Failed to fetch evaluator metadata: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Failed to fetch evaluator metadata: ${response.status} ${response.statusText}`,
+        )
       }
-      
-      const data = await response.json();
-      
-      if (!data.evaluators || !Array.isArray(data.evaluators) || data.evaluators.length === 0) {
-        throw new Error('No evaluator metadata available. The server response was empty or invalid.');
+
+      const data = await response.json()
+
+      if (
+        !data.evaluators ||
+        !Array.isArray(data.evaluators) ||
+        data.evaluators.length === 0
+      ) {
+        throw new Error(
+          'No evaluator metadata available. The server response was empty or invalid.',
+        )
       }
-      
-      setEvaluatorMetadata(data.evaluators);
-      
-      // Initialize the condition if needed
-      const formValues = form.getValues();
-      
-      if (!formValues.condition || !formValues.condition.conditions || formValues.condition.conditions.length === 0) {
-        // Create a default condition using the first evaluator
-        const firstEvaluator = data.evaluators[0];
-        const firstField = firstEvaluator.supportedFields[0]?.name;
-        let firstOperator = '';
-        let initialValue: any = '';
-        
-        if (firstField && firstEvaluator.supportedOperators?.[firstField]) {
-          const operators = firstEvaluator.supportedOperators[firstField];
-          if (operators.length > 0) {
-            firstOperator = operators[0].name;
-            
-            // Set appropriate default value based on type
-            const valueType = operators[0].valueTypes?.[0];
-            if (valueType === 'number') initialValue = 0;
-            else if (valueType === 'string[]' || valueType === 'number[]') initialValue = [];
-            else if (valueType === 'object') initialValue = { min: undefined, max: undefined };
+
+      // Store metadata in state
+      setEvaluatorMetadata(data.evaluators)
+
+      // Check form values OUTSIDE the effect to avoid infinite loops
+      const formValues = form.getValues()
+
+      // Only initialize if we need to
+      if (
+        !formValues.condition ||
+        !formValues.condition.conditions ||
+        formValues.condition.conditions.length === 0
+      ) {
+        // We'll initialize asynchronously to break React update cycles
+        initializationRef.current = true
+
+        setTimeout(() => {
+          try {
+            // Filter out the Conditional Router
+            const fieldEvaluators = data.evaluators.filter(
+              (evaluator: EvaluatorMetadata) =>
+                evaluator.name !== 'Conditional Router',
+            )
+
+            if (fieldEvaluators.length === 0) {
+              setError(
+                'No field evaluators found. Please ensure router evaluators are properly configured.',
+              )
+              return
+            }
+
+            // Find the first available field
+            const allFields = fieldEvaluators.flatMap(
+              (evaluator: EvaluatorMetadata) => evaluator.supportedFields,
+            )
+            const firstField = allFields[0]?.name || ''
+
+            if (!firstField) {
+              setError('No fields available in evaluators.')
+              return
+            }
+
+            // Find the evaluator for this field
+            const fieldEvaluator = fieldEvaluators.find(
+              (evaluator: EvaluatorMetadata) =>
+                evaluator.supportedFields.some(
+                  (field: FieldInfo) => field.name === firstField,
+                ),
+            )
+
+            if (!fieldEvaluator) {
+              setError('Could not find evaluator for field.')
+              return
+            }
+
+            // Get operators for first field
+            const operators =
+              fieldEvaluator.supportedOperators?.[firstField] || []
+            const firstOperator = operators[0]?.name || ''
+
+            // Determine appropriate initial value
+            let initialValue: any = ''
+            if (operators[0]?.valueTypes) {
+              const valueType = operators[0].valueTypes[0]
+              if (valueType === 'number') initialValue = 0
+              else if (valueType === 'string[]' || valueType === 'number[]')
+                initialValue = []
+              else if (valueType === 'object')
+                initialValue = { min: undefined, max: undefined }
+            }
+
+            // Create initial condition
+            const initialCondition: IConditionGroup = {
+              operator: 'AND',
+              conditions: [
+                {
+                  field: firstField,
+                  operator: firstOperator,
+                  value: initialValue,
+                  negate: false,
+                },
+              ],
+              negate: false,
+            }
+
+            // Update form
+            form.setValue('condition', initialCondition, {
+              shouldValidate: true,
+            })
+          } catch (err) {
+            console.error('Error creating initial condition:', err)
+            setError(
+              err instanceof Error
+                ? err.message
+                : 'Failed to create initial condition',
+            )
           }
-        }
-        
-        // Create initial condition with valid data
-        const initialCondition: IConditionGroup = {
-          operator: 'AND',
-          conditions: [{
-            field: firstField || '',
-            operator: firstOperator || '',
-            value: initialValue,
-            negate: false
-          }],
-          negate: false
-        };
-        
-        form.setValue('condition', initialCondition, { shouldValidate: true });
+        }, 0)
       }
     } catch (err) {
-      console.error('Error fetching evaluator metadata:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load condition options. Please try again.');
+      console.error('Error fetching evaluator metadata:', err)
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Failed to load condition options. Please try again.',
+      )
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, [form, getInitialConditionValue]);
+  }, [form])
 
   // Fetch evaluator metadata on component mount
   useEffect(() => {
-    fetchEvaluatorMetadata();
-  }, [fetchEvaluatorMetadata]);
+    fetchEvaluatorMetadata()
+  }, [fetchEvaluatorMetadata])
 
   // Scroll to the card when it's a new one
   useEffect(() => {
@@ -204,70 +301,76 @@ const ConditionalRouteCard = ({
       cardRef.current.scrollIntoView({
         behavior: 'smooth',
         block: 'nearest',
-      });
+      })
     }
-  }, [isNew]);
+  }, [isNew])
 
   // Initial form validation for new cards
   useEffect(() => {
     if (isNew) {
-      setTimeout(() => form.trigger(), 0);
+      setTimeout(() => form.trigger(), 0)
     }
-  }, [form, isNew]);
+  }, [form, isNew])
 
   // Reset form when route changes (for editing)
   useEffect(() => {
-    if (!isNew && (route.id !== undefined)) {
+    if (!isNew && route.id !== undefined) {
       form.reset({
-        name: route?.name || `New ${contentType === 'radarr' ? 'Movie' : 'Show'} Route`,
+        name:
+          route?.name ||
+          `New ${contentType === 'radarr' ? 'Movie' : 'Show'} Route`,
         condition: getInitialConditionValue(),
-        target_instance_id: route?.target_instance_id || (instances.length > 0 ? instances[0].id : 0),
+        target_instance_id:
+          route?.target_instance_id ||
+          (instances.length > 0 ? instances[0].id : 0),
         root_folder: route?.root_folder || '',
-        quality_profile: route?.quality_profile !== undefined && route?.quality_profile !== null
-          ? route.quality_profile.toString()
-          : '',
+        quality_profile:
+          route?.quality_profile !== undefined &&
+          route?.quality_profile !== null
+            ? route.quality_profile.toString()
+            : '',
         enabled: route?.enabled !== false,
         order: route?.order ?? 50,
-      });
+      })
     }
-  }, [route, isNew, form, getInitialConditionValue, instances, contentType]);
+  }, [route, isNew, form, getInitialConditionValue, instances, contentType])
 
   const setTitleValue = useCallback(
     (title: string) => {
-      form.setValue('name', title, { shouldDirty: true });
+      form.setValue('name', title, { shouldDirty: true })
     },
     [form],
-  );
+  )
 
   const handleToggleEnabled = async () => {
     if (onToggleEnabled && 'id' in route && route.id) {
-      await onToggleEnabled(route.id, !form.watch('enabled'));
+      await onToggleEnabled(route.id, !form.watch('enabled'))
     }
-  };
+  }
 
   const handleInstanceChange = useCallback(
     (value: string) => {
-      const instanceId = Number.parseInt(value, 10);
+      const instanceId = Number.parseInt(value, 10)
       if (!Number.isNaN(instanceId)) {
-        form.setValue('target_instance_id', instanceId);
-        form.setValue('root_folder', '', { shouldDirty: true });
+        form.setValue('target_instance_id', instanceId)
+        form.setValue('root_folder', '', { shouldDirty: true })
         form.setValue('quality_profile', '', {
           shouldDirty: true,
           shouldValidate: true,
-        });
+        })
       }
     },
     [form],
-  );
+  )
 
   const getSelectedInstance = useCallback(() => {
     return instances.find(
       (inst) => inst.id === form.watch('target_instance_id'),
-    );
-  }, [instances, form]);
+    )
+  }, [instances, form])
 
   // Get the selected instance
-  const selectedInstance = getSelectedInstance();
+  const selectedInstance = getSelectedInstance()
 
   // Handle form submission
   const handleSubmit = async (data: ConditionalRouteFormValues) => {
@@ -285,18 +388,18 @@ const ConditionalRouteCard = ({
           root_folder: data.root_folder,
           enabled: data.enabled,
           order: data.order,
-          condition: data.condition, // Use condition directly
+          condition: data.condition, // Always use condition directly, "conditional" type is implicit
           created_at: '', // This will be set by the backend
           updated_at: '', // This will be set by the backend
-        };
+        }
 
-        await onSave(routeData);
+        await onSave(routeData)
       }
       // For existing routes (updating a route)
       else {
         const updatePayload: ContentRouterRuleUpdate = {
           name: data.name,
-          condition: data.condition, // Use condition directly
+          condition: data.condition, // Always use condition directly, "conditional" type is implicit
           target_instance_id: data.target_instance_id,
           quality_profile: data.quality_profile
             ? Number(data.quality_profile)
@@ -304,23 +407,23 @@ const ConditionalRouteCard = ({
           root_folder: data.root_folder,
           enabled: data.enabled,
           order: data.order,
-        };
+        }
 
-        await onSave(updatePayload);
+        await onSave(updatePayload)
       }
     } catch (error) {
-      console.error('Failed to save conditional route:', error);
+      console.error('Failed to save conditional route:', error)
       toast({
         title: 'Error',
         description: `Failed to save conditional route: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: 'destructive',
-      });
+      })
     }
-  };
+  }
 
   const handleCancel = () => {
-    onCancel();
-  };
+    onCancel()
+  }
 
   return (
     <div className="relative" ref={cardRef}>
@@ -370,8 +473,10 @@ const ConditionalRouteCard = ({
                       <HelpCircle className="h-4 w-4 mr-2" />
                       <AlertDescription>
                         <p className="text-sm">
-                          Build conditions below to determine when content should be routed to this instance. 
-                          Start by selecting an evaluator, then a field, followed by an operator, and finally enter a value.
+                          Build conditions below to determine when content
+                          should be routed to this instance. Start by selecting
+                          an evaluator, then a field, followed by an operator,
+                          and finally enter a value.
                         </p>
                       </AlertDescription>
                     </div>
@@ -392,14 +497,19 @@ const ConditionalRouteCard = ({
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button variant="noShadow" size="icon" className="h-6 w-6 p-0">
+                                <Button
+                                  variant="noShadow"
+                                  size="icon"
+                                  className="h-6 w-6 p-0"
+                                >
                                   <HelpCircle className="h-4 w-4" />
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p className="max-w-xs">
-                                  Build conditions that determine when this route should be used. 
-                                  You can combine multiple conditions with AND/OR logic.
+                                  Build conditions that determine when this
+                                  route should be used. You can combine multiple
+                                  conditions with AND/OR logic.
                                 </p>
                               </TooltipContent>
                             </Tooltip>
@@ -411,7 +521,9 @@ const ConditionalRouteCard = ({
                               <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-10 rounded-md">
                                 <div className="text-center space-y-2">
                                   <div className="animate-spin h-6 w-6 border-2 border-primary rounded-full border-t-transparent mx-auto"></div>
-                                  <p className="text-sm">Loading condition options...</p>
+                                  <p className="text-sm">
+                                    Loading condition options...
+                                  </p>
                                 </div>
                               </div>
                             )}
@@ -420,12 +532,12 @@ const ConditionalRouteCard = ({
                                 <AlertCircle className="h-4 w-4" />
                                 <AlertDescription className="flex justify-between items-center">
                                   <span>{error}</span>
-                                  <Button 
-                                    variant="noShadow" 
-                                    size="sm" 
+                                  <Button
+                                    variant="noShadow"
+                                    size="sm"
                                     onClick={() => {
-                                      setError(null);
-                                      fetchEvaluatorMetadata();
+                                      setError(null)
+                                      fetchEvaluatorMetadata()
                                     }}
                                   >
                                     Retry
@@ -435,10 +547,13 @@ const ConditionalRouteCard = ({
                             )}
                             {!evaluatorMetadata.length && !loading && !error ? (
                               <div className="text-center py-8">
-                                <p>No condition types available. Please check your connection.</p>
-                                <Button 
+                                <p>
+                                  No condition types available. Please check
+                                  your connection.
+                                </p>
+                                <Button
                                   onClick={fetchEvaluatorMetadata}
-                                  variant="noShadow" 
+                                  variant="noShadow"
                                   size="sm"
                                   className="mt-2"
                                 >
@@ -458,7 +573,8 @@ const ConditionalRouteCard = ({
                           </div>
                         </FormControl>
                         <FormDescription className="text-xs">
-                          Content that matches these conditions will be routed to the selected instance
+                          Content that matches these conditions will be routed
+                          to the selected instance
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -480,14 +596,19 @@ const ConditionalRouteCard = ({
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button variant="noShadow" size="icon" className="h-6 w-6 p-0">
+                                <Button
+                                  variant="noShadow"
+                                  size="icon"
+                                  className="h-6 w-6 p-0"
+                                >
                                   <HelpCircle className="h-4 w-4" />
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p className="max-w-xs">
-                                  Higher values give this route greater priority.
-                                  When multiple routes match, the one with the highest priority is used.
+                                  Higher values give this route greater
+                                  priority. When multiple routes match, the one
+                                  with the highest priority is used.
                                 </p>
                               </TooltipContent>
                             </Tooltip>
@@ -645,7 +766,7 @@ const ConditionalRouteCard = ({
         </Form>
       </Card>
     </div>
-  );
-};
+  )
+}
 
-export default ConditionalRouteCard;
+export default ConditionalRouteCard
