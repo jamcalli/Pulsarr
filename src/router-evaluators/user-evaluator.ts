@@ -13,22 +13,12 @@ import type {
 export default function createUserEvaluator(
   fastify: FastifyInstance,
 ): RoutingEvaluator {
-  // Define metadata about the supported fields and operators
+  // Define metadata with only one clean field name
   const supportedFields: FieldInfo[] = [
     {
       name: 'user',
-      description: 'The user requesting the content',
+      description: 'The user requesting the content (by ID or username)',
       valueTypes: ['string', 'number', 'string[]', 'number[]'],
-    },
-    {
-      name: 'userId',
-      description: 'The numeric ID of the requesting user',
-      valueTypes: ['number', 'string', 'number[]', 'string[]'],
-    },
-    {
-      name: 'userName',
-      description: 'The username of the requesting user',
-      valueTypes: ['string', 'string[]'],
     },
   ]
 
@@ -45,32 +35,6 @@ export default function createUserEvaluator(
         valueTypes: ['string[]', 'number[]'],
         valueFormat:
           'Array of user IDs or usernames, e.g. ["admin", "john", 42]',
-      },
-    ],
-    userId: [
-      {
-        name: 'equals',
-        description: 'User ID matches exactly',
-        valueTypes: ['number', 'string'],
-      },
-      {
-        name: 'in',
-        description: 'User ID is one of the provided values',
-        valueTypes: ['number[]', 'string[]'],
-        valueFormat: 'Array of user IDs, e.g. [1, 2, 3] or ["1", "2", "3"]',
-      },
-    ],
-    userName: [
-      {
-        name: 'equals',
-        description: 'Username matches exactly',
-        valueTypes: ['string'],
-      },
-      {
-        name: 'in',
-        description: 'Username is one of the provided values',
-        valueTypes: ['string[]'],
-        valueFormat: 'Array of usernames, e.g. ["admin", "john", "sarah"]',
       },
     ],
   }
@@ -106,16 +70,14 @@ export default function createUserEvaluator(
         (rule) => rule.target_type === (isMovie ? 'radarr' : 'sonarr'),
       )
 
-      // Find matching rules based on user criteria
+      // Find matching rules based on user criteria - only check 'user' field
       const matchingRules = contentTypeRules.filter((rule) => {
-        // Check if rule.criteria has a users property
-        if (!rule.criteria || !rule.criteria.users) {
+        if (!rule.criteria || !rule.criteria.user) {
           return false
         }
 
-        const usersArray = Array.isArray(rule.criteria.users)
-          ? rule.criteria.users
-          : [rule.criteria.users]
+        const usersValue = rule.criteria.user
+        const usersArray = Array.isArray(usersValue) ? usersValue : [usersValue]
 
         // Check if context.userId matches any user in the list
         if (context.userId) {
@@ -140,7 +102,7 @@ export default function createUserEvaluator(
         return null
       }
 
-      // Convert matching rules to routing decisions - ALL matches
+      // Convert matching rules to routing decisions
       return matchingRules.map((rule) => ({
         instanceId: rule.target_instance_id,
         qualityProfile: rule.quality_profile,
@@ -155,13 +117,8 @@ export default function createUserEvaluator(
       item: ContentItem,
       context: RoutingContext,
     ): boolean {
-      // Handle only user-specific conditions
-      if (
-        !('field' in condition) ||
-        (condition.field !== 'user' &&
-          condition.field !== 'userId' &&
-          condition.field !== 'userName')
-      ) {
+      // Only support the 'user' field
+      if (!('field' in condition) || condition.field !== 'user') {
         return false
       }
 
@@ -208,7 +165,8 @@ export default function createUserEvaluator(
     },
 
     canEvaluateConditionField(field: string): boolean {
-      return field === 'user' || field === 'userId' || field === 'userName'
+      // Only support the 'user' field
+      return field === 'user'
     },
   }
 }

@@ -40,7 +40,83 @@ interface ConditionInputProps {
   onGenreDropdownOpen?: () => Promise<void>
 }
 
-const ConditionInput = ({
+// Text input with stable identity
+const StableTextInput = ({
+  value,
+  onChange,
+  placeholder,
+  type = 'text',
+}: {
+  value: string
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  placeholder?: string
+  type?: string
+}) => {
+  // Keep an internal state to maintain focus
+  const [internalValue, setInternalValue] = useState(value)
+
+  // Update internal value when external value changes significantly
+  useEffect(() => {
+    setInternalValue(value)
+  }, [value])
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInternalValue(e.target.value)
+    onChange(e)
+  }
+
+  return (
+    <Input
+      type={type}
+      value={internalValue}
+      onChange={handleChange}
+      placeholder={placeholder}
+      className="flex-1"
+    />
+  )
+}
+
+// Number input with stable identity
+const StableNumberInput = ({
+  value,
+  onChange,
+  placeholder,
+  min,
+  max,
+}: {
+  value: string
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  placeholder?: string
+  min?: string
+  max?: string
+}) => {
+  // Keep an internal state to maintain focus
+  const [internalValue, setInternalValue] = useState(value)
+
+  // Update internal value when external value changes significantly
+  useEffect(() => {
+    setInternalValue(value)
+  }, [value])
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInternalValue(e.target.value)
+    onChange(e)
+  }
+
+  return (
+    <Input
+      type="number"
+      value={internalValue}
+      onChange={handleChange}
+      placeholder={placeholder}
+      min={min}
+      max={max}
+      className="flex-1"
+    />
+  )
+}
+
+function ConditionInput({
   field,
   operator,
   valueTypes = [],
@@ -48,8 +124,62 @@ const ConditionInput = ({
   onChange,
   genres = [],
   onGenreDropdownOpen,
-}: ConditionInputProps) => {
-  const inputRef = useRef(null)
+}: ConditionInputProps) {
+  const inputRef = useRef<HTMLInputElement>(null)
+  const valueRef = useRef(value)
+  valueRef.current = value
+
+  // Store handler functions to keep them stable between renders
+  const handlers = useRef({
+    handleTextChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+      onChange(e.target.value)
+    },
+
+    handleNumberChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+      onChange(Number(e.target.value))
+    },
+
+    handleArrayChange: (
+      e: React.ChangeEvent<HTMLInputElement>,
+      isNumeric = false,
+    ) => {
+      const arrayValue = e.target.value
+        .split(',')
+        .map((v) => v.trim())
+        .filter((v) => v !== '')
+
+      if (isNumeric) {
+        const numericValues = arrayValue
+          .map((v) => Number(v))
+          .filter((v) => !Number.isNaN(v))
+        onChange(numericValues)
+      } else {
+        onChange(arrayValue)
+      }
+    },
+
+    handleRangeMinChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+      // Make a copy of the current value to avoid direct mutation
+      const currentValue =
+        typeof valueRef.current === 'object' && valueRef.current !== null
+          ? { ...(valueRef.current as any) }
+          : { min: undefined, max: undefined }
+
+      const min = e.target.value === '' ? undefined : Number(e.target.value)
+      onChange({ ...currentValue, min })
+    },
+
+    handleRangeMaxChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+      // Make a copy of the current value to avoid direct mutation
+      const currentValue =
+        typeof valueRef.current === 'object' && valueRef.current !== null
+          ? { ...(valueRef.current as any) }
+          : { min: undefined, max: undefined }
+
+      const max = e.target.value === '' ? undefined : Number(e.target.value)
+      onChange({ ...currentValue, max })
+    },
+  })
 
   // Handle the specific input requirements based on valueTypes
   if (!operator || valueTypes.length === 0) return null
@@ -57,10 +187,17 @@ const ConditionInput = ({
   // Create a properly structured field prop for multi-select components
   const createFormField = (
     fieldName: string,
+    placeholder: string,
   ): ControllerRenderProps<any, any> => {
+    const isEmpty =
+      (Array.isArray(value) && value.length === 0) ||
+      value === '' ||
+      value === undefined ||
+      value === null
+
     return {
       name: fieldName,
-      value: Array.isArray(value) ? value : [value as string],
+      value: isEmpty ? [] : Array.isArray(value) ? value : [value as string],
       onChange: (newValue) =>
         onChange(Array.isArray(newValue) ? newValue : [newValue]),
       onBlur: () => {},
@@ -74,7 +211,7 @@ const ConditionInput = ({
 
   // Special case for genres field
   if (field === 'genre' || field === 'genres') {
-    const genreField = createFormField('genre')
+    const genreField = createFormField('genre', 'Select genres')
 
     return (
       <div className="flex-1">
@@ -89,7 +226,7 @@ const ConditionInput = ({
 
   // Special case for user field
   if (field === 'user' || field === 'userId' || field === 'userName') {
-    const userField = createFormField('user')
+    const userField = createFormField('user', 'Select users')
 
     return (
       <div className="flex-1">
@@ -109,36 +246,24 @@ const ConditionInput = ({
 
       return (
         <div className="flex space-x-2 flex-1">
-          <Input
-            type="number"
-            min="1900"
-            max="2100"
+          <StableNumberInput
             value={
               rangeValue.min !== undefined ? rangeValue.min.toString() : ''
             }
-            onChange={(e) => {
-              const min =
-                e.target.value === '' ? undefined : Number(e.target.value)
-              onChange({ ...rangeValue, min })
-            }}
+            onChange={handlers.current.handleRangeMinChange}
             placeholder="Min year"
-            className="flex-1"
-          />
-          <span className="self-center">to</span>
-          <Input
-            type="number"
             min="1900"
             max="2100"
+          />
+          <span className="self-center">to</span>
+          <StableNumberInput
             value={
               rangeValue.max !== undefined ? rangeValue.max.toString() : ''
             }
-            onChange={(e) => {
-              const max =
-                e.target.value === '' ? undefined : Number(e.target.value)
-              onChange({ ...rangeValue, max })
-            }}
+            onChange={handlers.current.handleRangeMaxChange}
             placeholder="Max year"
-            className="flex-1"
+            min="1900"
+            max="2100"
           />
         </div>
       )
@@ -147,34 +272,22 @@ const ConditionInput = ({
     // For year with in/notIn operators
     if (operator === 'in' || operator === 'notIn') {
       return (
-        <Input
-          type="text"
+        <StableTextInput
           value={Array.isArray(value) ? value.join(', ') : String(value || '')}
-          onChange={(e) => {
-            const arrayValue = e.target.value
-              .split(',')
-              .map((v) => v.trim())
-              .filter((v) => v !== '')
-              .map((v) => Number(v))
-              .filter((v) => !Number.isNaN(v))
-            onChange(arrayValue)
-          }}
+          onChange={(e) => handlers.current.handleArrayChange(e, true)}
           placeholder="Enter years separated by commas (e.g. 1999, 2000, 2001)"
-          className="flex-1"
         />
       )
     }
 
     // For year with other operators
     return (
-      <Input
-        type="number"
+      <StableNumberInput
+        value={typeof value === 'number' ? value.toString() : ''}
+        onChange={handlers.current.handleNumberChange}
+        placeholder="Enter year (e.g. 2023)"
         min="1900"
         max="2100"
-        value={typeof value === 'number' ? value.toString() : ''}
-        onChange={(e) => onChange(Number(e.target.value))}
-        placeholder="Enter year (e.g. 2023)"
-        className="flex-1"
       />
     )
   }
@@ -183,31 +296,20 @@ const ConditionInput = ({
   if (field === 'language' || field === 'originalLanguage') {
     if (operator === 'in' || operator === 'notIn') {
       return (
-        <Input
-          type="text"
+        <StableTextInput
           value={Array.isArray(value) ? value.join(', ') : String(value || '')}
-          onChange={(e) => {
-            const arrayValue = e.target.value
-              .split(',')
-              .map((v) => v.trim())
-              .filter((v) => v !== '')
-            onChange(arrayValue)
-          }}
+          onChange={(e) => handlers.current.handleArrayChange(e, false)}
           placeholder="Enter languages separated by commas (e.g. English, French, Spanish)"
-          className="flex-1"
-        />
-      )
-    } else {
-      return (
-        <Input
-          type="text"
-          value={typeof value === 'string' ? value : String(value || '')}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="Enter language (e.g. English)"
-          className="flex-1"
         />
       )
     }
+    return (
+      <StableTextInput
+        value={typeof value === 'string' ? value : String(value || '')}
+        onChange={handlers.current.handleTextChange}
+        placeholder="Enter language (e.g. English)"
+      />
+    )
   }
 
   // Handle arrays for "in" operators
@@ -215,28 +317,13 @@ const ConditionInput = ({
     (operator === 'in' || operator === 'notIn') &&
     (valueTypes.includes('string[]') || valueTypes.includes('number[]'))
   ) {
-    return (
-      <Input
-        type="text"
-        value={Array.isArray(value) ? value.join(', ') : String(value || '')}
-        onChange={(e) => {
-          const arrayValue = e.target.value
-            .split(',')
-            .map((v) => v.trim())
-            .filter((v) => v !== '')
+    const isNumeric = valueTypes.includes('number[]')
 
-          // Convert to numbers if valueTypes includes 'number[]'
-          if (valueTypes.includes('number[]')) {
-            const numericValues = arrayValue
-              .map((v) => Number(v))
-              .filter((v) => !Number.isNaN(v))
-            onChange(numericValues)
-          } else {
-            onChange(arrayValue)
-          }
-        }}
+    return (
+      <StableTextInput
+        value={Array.isArray(value) ? value.join(', ') : String(value || '')}
+        onChange={(e) => handlers.current.handleArrayChange(e, isNumeric)}
         placeholder="Enter values separated by commas"
-        className="flex-1"
       />
     )
   }
@@ -244,12 +331,10 @@ const ConditionInput = ({
   // Standard number input for numeric fields
   if (valueTypes.includes('number')) {
     return (
-      <Input
-        type="number"
+      <StableNumberInput
         value={typeof value === 'number' ? value.toString() : ''}
-        onChange={(e) => onChange(Number(e.target.value))}
+        onChange={handlers.current.handleNumberChange}
         placeholder="Enter a number"
-        className="flex-1"
       />
     )
   }
@@ -257,24 +342,20 @@ const ConditionInput = ({
   // Standard text input for string fields
   if (valueTypes.includes('string')) {
     return (
-      <Input
-        type="text"
+      <StableTextInput
         value={typeof value === 'string' ? value : String(value || '')}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={handlers.current.handleTextChange}
         placeholder="Enter a value"
-        className="flex-1"
       />
     )
   }
 
   // Fallback text input for any other type
   return (
-    <Input
-      type="text"
+    <StableTextInput
       value={typeof value === 'string' ? value : String(value || '')}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={handlers.current.handleTextChange}
       placeholder="Enter a value"
-      className="flex-1"
     />
   )
 }

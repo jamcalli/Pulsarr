@@ -71,6 +71,103 @@ const ConditionBuilder = ({
   const [fieldDescription, setFieldDescription] = useState('')
   const [operatorDescription, setOperatorDescription] = useState('')
 
+  // Stable reference to current value to avoid stale closures
+  const valueRef = useRef(value)
+  valueRef.current = value
+
+  // Create stable refs for handler functions
+  const handlers = useRef({
+    handleFieldChange: (fieldName: string) => {
+      // Find which evaluator supports this field
+      let fieldEvaluator = null
+      let fieldInfo = null
+
+      for (const evaluator of evaluatorMetadata) {
+        const foundField = evaluator.supportedFields.find(
+          (f) => f.name === fieldName,
+        )
+        if (foundField) {
+          fieldEvaluator = evaluator
+          fieldInfo = foundField
+          break
+        }
+      }
+
+      if (fieldEvaluator && fieldInfo) {
+        setSelectedEvaluator(fieldEvaluator)
+        setFieldDescription(fieldInfo.description || '')
+
+        // Reset operator and value when field changes
+        onChange({
+          field: fieldName,
+          operator: '',
+          value: '',
+          negate: valueRef.current.negate || false,
+        })
+
+        // Update operators for this field
+        if (fieldEvaluator.supportedOperators?.[fieldName]) {
+          setOperators(fieldEvaluator.supportedOperators[fieldName])
+        } else {
+          setOperators([])
+        }
+      }
+    },
+
+    handleOperatorChange: (operatorName: string) => {
+      const evaluator = selectedEvaluatorRef.current
+      if (!evaluator) return
+
+      // Find the operator info
+      const operatorInfo = evaluator.supportedOperators?.[
+        valueRef.current.field
+      ]?.find((op) => op.name === operatorName)
+
+      setOperatorDescription(operatorInfo?.description || '')
+
+      // Initialize an appropriate default value based on operator type
+      let defaultValue: ConditionValue = ''
+
+      if (operatorInfo) {
+        const valueType = operatorInfo.valueTypes?.[0]
+
+        if (valueType === 'number') {
+          defaultValue = 0
+        } else if (valueType === 'number[]') {
+          defaultValue = []
+        } else if (valueType === 'string[]') {
+          defaultValue = []
+        } else if (valueType === 'object') {
+          defaultValue = { min: undefined, max: undefined }
+        }
+
+        // Set value types
+        setValueTypes(operatorInfo.valueTypes || [])
+      }
+
+      // Update with the new operator and clear previous value
+      onChange({
+        ...valueRef.current,
+        operator: operatorName,
+        value: defaultValue,
+      })
+    },
+
+    handleValueChange: (newValue: ConditionValue) => {
+      onChange({
+        ...valueRef.current,
+        value: newValue,
+      })
+    },
+
+    handleToggleNegate: () => {
+      onChange({
+        ...valueRef.current,
+        negate: !valueRef.current.negate,
+      })
+    },
+  })
+
   // Filter out the Conditional Router from options - we only want to show actual condition types
   const filteredEvaluators = evaluatorMetadata.filter(
     (e) => e.name !== 'Conditional Router',
@@ -79,6 +176,10 @@ const ConditionBuilder = ({
   // State to track the selected evaluator (without exposing it directly in the UI)
   const [selectedEvaluator, setSelectedEvaluator] =
     useState<EvaluatorMetadata | null>(null)
+
+  // Keep a ref to the selected evaluator to avoid stale closures
+  const selectedEvaluatorRef = useRef<EvaluatorMetadata | null>(null)
+  selectedEvaluatorRef.current = selectedEvaluator
 
   // Update available fields when metadata changes - with optimized dependencies
   useEffect(() => {
@@ -133,97 +234,7 @@ const ConditionBuilder = ({
       // If no field is selected, preset the first non-conditional evaluator
       setSelectedEvaluator(filteredEvaluators[0])
     }
-    // Only depend on evaluatorMetadata and value field/operator - NOT on filteredEvaluators
   }, [evaluatorMetadata, value.field, value.operator])
-
-  // Handle field selection
-  const handleFieldChange = (fieldName: string) => {
-    // Find which evaluator supports this field
-    let fieldEvaluator = null
-    let fieldInfo = null
-
-    for (const evaluator of evaluatorMetadata) {
-      const foundField = evaluator.supportedFields.find(
-        (f) => f.name === fieldName,
-      )
-      if (foundField) {
-        fieldEvaluator = evaluator
-        fieldInfo = foundField
-        break
-      }
-    }
-
-    if (fieldEvaluator && fieldInfo) {
-      setSelectedEvaluator(fieldEvaluator)
-      setFieldDescription(fieldInfo.description || '')
-
-      // Reset operator and value when field changes
-      onChange({
-        field: fieldName,
-        operator: '',
-        value: '',
-        negate: value.negate || false,
-      })
-
-      // Update operators for this field
-      if (fieldEvaluator.supportedOperators?.[fieldName]) {
-        setOperators(fieldEvaluator.supportedOperators[fieldName])
-      } else {
-        setOperators([])
-      }
-    }
-  }
-
-  // Handle operator selection
-  const handleOperatorChange = (operatorName: string) => {
-    // Find the operator info
-    const operatorInfo = selectedEvaluator?.supportedOperators?.[
-      value.field
-    ]?.find((op) => op.name === operatorName)
-
-    setOperatorDescription(operatorInfo?.description || '')
-
-    // Initialize an appropriate default value based on operator type
-    let defaultValue: ConditionValue = ''
-
-    if (operatorInfo) {
-      const valueType = operatorInfo.valueTypes?.[0]
-
-      if (valueType === 'number') {
-        defaultValue = 0
-      } else if (valueType === 'number[]') {
-        defaultValue = []
-      } else if (valueType === 'string[]') {
-        defaultValue = []
-      } else if (valueType === 'object') {
-        defaultValue = { min: undefined, max: undefined }
-      }
-
-      // Set value types
-      setValueTypes(operatorInfo.valueTypes || [])
-    }
-
-    // Update with the new operator and clear previous value
-    onChange({
-      ...value,
-      operator: operatorName,
-      value: defaultValue,
-    })
-  }
-
-  const handleValueChange = (newValue: ConditionValue) => {
-    onChange({
-      ...value,
-      value: newValue,
-    })
-  }
-
-  const handleToggleNegate = () => {
-    onChange({
-      ...value,
-      negate: !value.negate,
-    })
-  }
 
   if (isLoading) {
     return (
@@ -243,7 +254,7 @@ const ConditionBuilder = ({
         <Label className="flex items-center space-x-2 cursor-pointer">
           <Switch
             checked={value.negate || false}
-            onCheckedChange={handleToggleNegate}
+            onCheckedChange={handlers.current.handleToggleNegate}
           />
           <span>NOT</span>
         </Label>
@@ -270,14 +281,17 @@ const ConditionBuilder = ({
                 </TooltipProvider>
               )}
             </div>
-            <Select value={value.field || ''} onValueChange={handleFieldChange}>
+            <Select
+              value={value.field || ''}
+              onValueChange={handlers.current.handleFieldChange}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select field" />
               </SelectTrigger>
               <SelectContent>
                 {fields.map((field) => (
                   <SelectItem key={field.name} value={field.name}>
-                    {field.name}
+                    {field.name.charAt(0).toUpperCase() + field.name.slice(1)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -305,7 +319,7 @@ const ConditionBuilder = ({
             </div>
             <Select
               value={value.operator || ''}
-              onValueChange={handleOperatorChange}
+              onValueChange={handlers.current.handleOperatorChange}
               disabled={!value.field}
             >
               <SelectTrigger className="w-full">
@@ -314,7 +328,7 @@ const ConditionBuilder = ({
               <SelectContent>
                 {operators.map((op) => (
                   <SelectItem key={op.name} value={op.name}>
-                    {op.name}
+                    {op.name.charAt(0).toUpperCase() + op.name.slice(1)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -326,16 +340,18 @@ const ConditionBuilder = ({
         <div className={cn(isMobile ? 'col-span-1' : 'col-span-4')}>
           <div className="flex flex-col space-y-1">
             <label className="text-sm font-medium">Value</label>
-            {value.operator && (
-              <ConditionInput
-                field={value.field}
-                operator={value.operator}
-                valueTypes={valueTypes}
-                value={value.value as ConditionValue}
-                onChange={handleValueChange}
-                genres={genres}
-                onGenreDropdownOpen={onGenreDropdownOpen}
-              />
+            {value.operator && value.field && (
+              <div className="condition-value-input">
+                <ConditionInput
+                  field={value.field}
+                  operator={value.operator}
+                  valueTypes={valueTypes}
+                  value={value.value as ConditionValue}
+                  onChange={handlers.current.handleValueChange}
+                  genres={genres}
+                  onGenreDropdownOpen={onGenreDropdownOpen}
+                />
+              </div>
             )}
           </div>
         </div>
@@ -351,7 +367,7 @@ const ConditionBuilder = ({
         >
           {onRemove && (
             <Button
-              variant="noShadow"
+              variant="error"
               size="sm"
               onClick={onRemove}
               className="ml-auto"

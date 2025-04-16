@@ -28,51 +28,16 @@ function isValidGenreValue(value: unknown): value is string | string[] {
 export default function createGenreEvaluator(
   fastify: FastifyInstance,
 ): RoutingEvaluator {
-  // Define metadata about the supported fields and operators
+  // Define metadata with only one clean field name
   const supportedFields: FieldInfo[] = [
     {
-      name: 'genres',
-      description: 'Genre categories of the content',
-      valueTypes: ['string', 'string[]'],
-    },
-    {
       name: 'genre',
-      description: 'Alternative field name for content genres',
+      description: 'Genre categories of the content',
       valueTypes: ['string', 'string[]'],
     },
   ]
 
   const supportedOperators: Record<string, OperatorInfo[]> = {
-    genres: [
-      {
-        name: 'contains',
-        description: 'Content genre list contains this genre',
-        valueTypes: ['string'],
-      },
-      {
-        name: 'in',
-        description: 'Content has at least one of these genres',
-        valueTypes: ['string[]'],
-        valueFormat: 'Array of genre names, e.g. ["Action", "Thriller"]',
-      },
-      {
-        name: 'notContains',
-        description: "Content genre list doesn't contain this genre",
-        valueTypes: ['string'],
-      },
-      {
-        name: 'notIn',
-        description: "Content doesn't have any of these genres",
-        valueTypes: ['string[]'],
-        valueFormat: 'Array of genre names, e.g. ["Horror", "Comedy"]',
-      },
-      {
-        name: 'equals',
-        description: 'Content genres exactly match the provided genres',
-        valueTypes: ['string', 'string[]'],
-        valueFormat: 'Single genre or array of all expected genres',
-      },
-    ],
     genre: [
       {
         name: 'contains',
@@ -145,7 +110,7 @@ export default function createGenreEvaluator(
 
       const itemGenres = new Set(item.genres)
 
-      // Find matching genre routes
+      // Find matching genre routes - only check 'genre' field
       const matchingRules = contentTypeRules.filter((rule) => {
         if (!rule.criteria || typeof rule.criteria.genre === 'undefined') {
           return false
@@ -184,11 +149,8 @@ export default function createGenreEvaluator(
       item: ContentItem,
       context: RoutingContext,
     ): boolean {
-      // Handle only genre-specific conditions
-      if (
-        !('field' in condition) ||
-        (condition.field !== 'genres' && condition.field !== 'genre')
-      ) {
+      // Only support the 'genre' field
+      if (!('field' in condition) || condition.field !== 'genre') {
         return false
       }
 
@@ -240,7 +202,8 @@ export default function createGenreEvaluator(
     },
 
     canEvaluateConditionField(field: string): boolean {
-      return field === 'genres' || field === 'genre'
+      // Only support the 'genre' field
+      return field === 'genre'
     },
   }
 }
