@@ -148,7 +148,7 @@ export class ContentRouterService {
     // Normalize content type to lowercase for consistency
     const contentType = item.type.toLowerCase() as 'movie' | 'show'
     const routedInstances: number[] = []
-
+  
     // Step 1: Handle forced routing if specified
     // Skip forced routing during sync operations with target instance to respect routing rules
     if (
@@ -158,7 +158,7 @@ export class ContentRouterService {
       this.log.info(
         `Forced routing of "${item.title}" to instance ID ${options.forcedInstanceId}`,
       )
-
+  
       try {
         // Route directly to the forced instance based on content type
         if (contentType === 'movie') {
@@ -186,11 +186,11 @@ export class ContentRouterService {
         throw error
       }
     }
-
+  
     this.log.info(
       `Routing ${contentType} "${item.title}"${options.syncing ? ' during sync operation' : ''}`,
     )
-
+  
     // Prepare context for evaluators with all the information they need
     const context: RoutingContext = {
       userId: options.userId,
@@ -200,29 +200,34 @@ export class ContentRouterService {
       syncing: options.syncing,
       syncTargetInstanceId: options.syncTargetInstanceId,
     }
-
+  
+    // IMPORTANT: Enrich item with metadata first before evaluation
+    const enrichedItem = await this.enrichItemMetadata(item, context);
+    this.log.debug(`Enriched metadata for "${item.title}"`);
+  
     // Step 2: Evaluate all applicable evaluators to get routing decisions
     const allDecisions: RoutingDecision[] = []
     const processedInstanceIds = new Set<number>() // Track instances we've routed to
-
+  
     // Collect all decisions from all evaluators
     for (const evaluator of this.evaluators) {
       try {
         // Only apply evaluators that are relevant for this content
-        const canEvaluate = await evaluator.canEvaluate(item, context)
+        // Use enrichedItem instead of item
+        const canEvaluate = await evaluator.canEvaluate(enrichedItem, context)
         if (!canEvaluate) continue
-
-        // Get decisions from this evaluator
-        const decisions = await evaluator.evaluate(item, context)
+  
+        // Get decisions from this evaluator - use enrichedItem
+        const decisions = await evaluator.evaluate(enrichedItem, context)
         if (decisions && decisions.length > 0) {
           this.log.debug(
-            `Evaluator "${evaluator.name}" returned ${decisions.length} routing decisions for "${item.title}"`,
+            `Evaluator "${evaluator.name}" returned ${decisions.length} routing decisions for "${enrichedItem.title}"`,
           )
           allDecisions.push(...decisions)
         }
       } catch (evaluatorError) {
         this.log.error(
-          `Error in evaluator "${evaluator.name}" when routing "${item.title}":`,
+          `Error in evaluator "${evaluator.name}" when routing "${enrichedItem.title}":`,
           evaluatorError,
         )
       }
