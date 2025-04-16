@@ -4,23 +4,21 @@ import { useToast } from '@/hooks/use-toast'
 import DeleteRouteAlert from '@/features/content-router/components/delete-route-alert'
 import ContentRouteCardSkeleton from '@/features/content-router/components/content-route-skeleton'
 import ConditionalRouteCard from '@/features/content-router/components/conditional-route-card'
-import type {
-  ContentRouterRule,
-  ContentRouterRuleUpdate,
-} from '@root/schemas/content-router/content-router.schema'
 import { useRadarrContentRouterAdapter } from '@/features/radarr/hooks/content-router/useRadarrContentRouterAdapater'
 import { useSonarrContentRouterAdapter } from '@/features/sonarr/hooks/content-router/useSonarrContentRouterAdapter'
 import type { RadarrInstance } from '@root/types/radarr.types'
 import type { SonarrInstance } from '@root/types/sonarr.types'
 import type {
-  IConditionGroup,
-  ICondition,
-} from '@/features/content-router/schemas/content-router.schema'
+  ContentRouterRule,
+  ContentRouterRuleUpdate,
+  Condition,
+  ConditionGroup,
+} from '@root/schemas/content-router/content-router.schema'
 
 // Define criteria interface to match backend schema
 interface Criteria {
-  condition?: IConditionGroup
-  [key: string]: IConditionGroup | undefined
+  condition?: ConditionGroup
+  [key: string]: ConditionGroup | undefined
 }
 
 // Extended ContentRouterRule to include condition and type
@@ -36,7 +34,7 @@ interface TempRule
   name: string
   type?: string
   target_type: 'radarr' | 'sonarr'
-  condition?: IConditionGroup
+  condition?: ConditionGroup
   criteria?: Criteria
 }
 
@@ -99,7 +97,7 @@ const ContentRouterSection = ({
 
   const addRoute = () => {
     // Create a new empty conditional route
-    const defaultCondition: IConditionGroup = {
+    const defaultCondition: ConditionGroup = {
       operator: 'AND',
       conditions: [
         {
@@ -300,7 +298,7 @@ const ContentRouterSection = ({
       } else if ('year' in criteria && criteria.year) {
         // Convert year rule to condition
         const yearValue = criteria.year
-        let condition: ICondition
+        let condition: Condition
 
         if (typeof yearValue === 'number') {
           condition = {

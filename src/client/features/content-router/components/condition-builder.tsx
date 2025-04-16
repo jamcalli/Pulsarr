@@ -1,4 +1,3 @@
-// src/client/features/content-router/components/condition-builder.tsx
 import { useState, useEffect, useRef } from 'react'
 import {
   Select,
@@ -27,15 +26,11 @@ import type {
   OperatorInfo,
   EvaluatorMetadata,
 } from '@root/schemas/content-router/evaluator-metadata.schema'
-import type { ComparisonOperator } from '@root/types/router.types.js'
-import type {
-  ICondition,
-  IConditionGroup,
-} from '@/features/content-router/schemas/content-router.schema'
+import type { Condition } from '@root/schemas/content-router/content-router.schema'
 
 interface ConditionBuilderProps {
-  value: ICondition
-  onChange: (condition: ICondition) => void
+  value: Condition
+  onChange: (condition: Condition) => void
   onRemove?: () => void
   evaluatorMetadata: EvaluatorMetadata[]
   genres?: string[]
