@@ -40,6 +40,10 @@ const ConditionGroupComponent = ({
   isLoading = false,
   level = 0,
 }: ConditionGroupComponentProps) => {
+  // Keep a reference to the current value
+  const valueRef = useRef(value)
+  valueRef.current = value
+
   // Filter out the Conditional Router from options - we only want field-specific evaluators
   const filteredEvaluators = evaluatorMetadata.filter(
     (e) => e.name !== 'Conditional Router',
@@ -150,23 +154,26 @@ const ConditionGroupComponent = ({
   }, [filteredEvaluators.length])
 
   // Handle toggling the negate flag
-  const handleToggleNegate = () => {
+  const handleToggleNegate = useCallback(() => {
     onChange({
-      ...value,
-      negate: !value.negate,
+      ...valueRef.current,
+      negate: !valueRef.current.negate,
     })
-  }
+  }, [onChange])
 
   // Handle changing the logical operator (AND/OR)
-  const handleOperatorChange = (newOperator: 'AND' | 'OR') => {
-    onChange({
-      ...value,
-      operator: newOperator,
-    })
-  }
+  const handleOperatorChange = useCallback(
+    (newOperator: 'AND' | 'OR') => {
+      onChange({
+        ...valueRef.current,
+        operator: newOperator,
+      })
+    },
+    [onChange],
+  )
 
   // Add a new empty condition to the group
-  const handleAddCondition = () => {
+  const handleAddCondition = useCallback(() => {
     if (filteredEvaluators.length === 0) {
       console.warn('Cannot add condition: No evaluator metadata available')
       return
@@ -175,72 +182,77 @@ const ConditionGroupComponent = ({
     const newCondition = createEmptyCondition()
 
     // Ensure value.conditions is an array before spreading
-    const currentConditions = Array.isArray(value.conditions)
-      ? value.conditions
+    const currentConditions = Array.isArray(valueRef.current.conditions)
+      ? valueRef.current.conditions
       : []
 
     onChange({
-      ...value,
+      ...valueRef.current,
       conditions: [...currentConditions, newCondition],
     })
-  }
+  }, [onChange, createEmptyCondition, filteredEvaluators.length])
 
   // Add a new nested condition group to the group
-  const handleAddGroup = () => {
+  const handleAddGroup = useCallback(() => {
     const newGroup = createEmptyGroup()
 
     // Ensure value.conditions is an array before spreading
-    const currentConditions = Array.isArray(value.conditions)
-      ? value.conditions
+    const currentConditions = Array.isArray(valueRef.current.conditions)
+      ? valueRef.current.conditions
       : []
 
     onChange({
-      ...value,
+      ...valueRef.current,
       conditions: [...currentConditions, newGroup],
     })
-  }
+  }, [onChange, createEmptyGroup])
 
   // Update a specific condition in the group
-  const handleUpdateCondition = (
-    index: number,
-    updatedCondition: ICondition | IConditionGroup,
-  ) => {
-    // Ensure value.conditions is an array before modifying
-    if (!Array.isArray(value.conditions)) {
-      const newConditions = [updatedCondition]
+  const handleUpdateCondition = useCallback(
+    (index: number, updatedCondition: ICondition | IConditionGroup) => {
+      // Ensure value.conditions is an array before modifying
+      if (!Array.isArray(valueRef.current.conditions)) {
+        const newConditions = [updatedCondition]
+        onChange({
+          ...valueRef.current,
+          conditions: newConditions,
+        })
+        return
+      }
+
+      const newConditions = [...valueRef.current.conditions]
+      newConditions[index] = updatedCondition
       onChange({
-        ...value,
+        ...valueRef.current,
         conditions: newConditions,
       })
-      return
-    }
-
-    const newConditions = [...value.conditions]
-    newConditions[index] = updatedCondition
-    onChange({
-      ...value,
-      conditions: newConditions,
-    })
-  }
+    },
+    [onChange],
+  )
 
   // Remove a condition from the group
-  const handleRemoveCondition = (index: number) => {
-    // Ensure value.conditions is an array before filtering
-    if (!Array.isArray(value.conditions)) {
-      onChange({
-        ...value,
-        conditions: [createEmptyCondition()],
-      })
-      return
-    }
+  const handleRemoveCondition = useCallback(
+    (index: number) => {
+      // Ensure value.conditions is an array before filtering
+      if (!Array.isArray(valueRef.current.conditions)) {
+        onChange({
+          ...valueRef.current,
+          conditions: [createEmptyCondition()],
+        })
+        return
+      }
 
-    const newConditions = value.conditions.filter((_, i) => i !== index)
-    onChange({
-      ...value,
-      conditions:
-        newConditions.length > 0 ? newConditions : [createEmptyCondition()],
-    })
-  }
+      const newConditions = valueRef.current.conditions.filter(
+        (_, i) => i !== index,
+      )
+      onChange({
+        ...valueRef.current,
+        conditions:
+          newConditions.length > 0 ? newConditions : [createEmptyCondition()],
+      })
+    },
+    [onChange, createEmptyCondition],
+  )
 
   if (isLoading) {
     return (
@@ -308,9 +320,6 @@ const ConditionGroupComponent = ({
 
       <div className="space-y-4">
         {conditions.map((condition, index) => {
-          // Create a unique key for the condition
-          const conditionKey = `condition-${index}-${Date.now()}`
-
           // Check if this is a condition group or a single condition
           const isGroup =
             condition &&
@@ -319,7 +328,7 @@ const ConditionGroupComponent = ({
             'conditions' in condition
 
           return (
-            <div key={conditionKey} className="relative">
+            <div key={`condition-${index}`} className="relative">
               {isGroup ? (
                 // Render nested group
                 <ConditionGroupComponent

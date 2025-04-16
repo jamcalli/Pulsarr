@@ -1,4 +1,3 @@
-// src/client/features/content-router/components/conditional-route-card.tsx
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import {
@@ -49,6 +48,16 @@ import type {
   FieldInfo,
 } from '@root/schemas/content-router/evaluator-metadata.schema'
 
+// Define possible value types for criteria
+type CriteriaValue =
+  | string
+  | string[]
+  | number
+  | number[]
+  | { min?: number; max?: number }
+  | IConditionGroup
+  | undefined
+
 // Define criteria interface to match backend schema
 interface Criteria {
   condition?: IConditionGroup
@@ -56,7 +65,7 @@ interface Criteria {
   year?: number | number[] | { min?: number; max?: number }
   originalLanguage?: string | string[]
   users?: string | string[]
-  [key: string]: any
+  [key: string]: CriteriaValue
 }
 
 // Extended ContentRouterRule to include criteria and type

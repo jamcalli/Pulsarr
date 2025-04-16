@@ -17,46 +17,17 @@ import {
 export default function createLanguageEvaluator(
   fastify: FastifyInstance,
 ): RoutingEvaluator {
-  // Define metadata about the supported fields and operators
+  // Define metadata with only one clean field name
   const supportedFields: FieldInfo[] = [
     {
       name: 'language',
       description: 'Original language of the content',
       valueTypes: ['string', 'string[]'],
     },
-    {
-      name: 'originalLanguage',
-      description: 'Original language of the content (alternative field name)',
-      valueTypes: ['string', 'string[]'],
-    },
   ]
 
   const supportedOperators: Record<string, OperatorInfo[]> = {
     language: [
-      {
-        name: 'equals',
-        description: 'Language matches exactly',
-        valueTypes: ['string'],
-      },
-      {
-        name: 'notEquals',
-        description: 'Language does not match',
-        valueTypes: ['string'],
-      },
-      {
-        name: 'contains',
-        description: 'Language name contains this string',
-        valueTypes: ['string'],
-      },
-      {
-        name: 'in',
-        description: 'Language is one of the provided values',
-        valueTypes: ['string[]'],
-        valueFormat:
-          'Array of language names, e.g. ["English", "French", "Japanese"]',
-      },
-    ],
-    originalLanguage: [
       {
         name: 'equals',
         description: 'Language matches exactly',
@@ -144,13 +115,13 @@ export default function createLanguageEvaluator(
         (rule) => rule.target_type === (isMovie ? 'radarr' : 'sonarr'),
       )
 
-      // Find matching language rules
+      // Find matching language rules - only check 'language' field
       const matchingRules = contentTypeRules.filter((rule) => {
-        if (!rule.criteria || !rule.criteria.originalLanguage) {
+        if (!rule.criteria || !rule.criteria.language) {
           return false
         }
 
-        const ruleLanguage = rule.criteria.originalLanguage
+        const ruleLanguage = rule.criteria.language
 
         // Ensure the criterion value is a non-empty string
         if (
@@ -184,12 +155,8 @@ export default function createLanguageEvaluator(
       item: ContentItem,
       context: RoutingContext,
     ): boolean {
-      // Handle only language-specific conditions
-      if (
-        !('field' in condition) ||
-        (condition.field !== 'language' &&
-          condition.field !== 'originalLanguage')
-      ) {
+      // Only support the 'language' field
+      if (!('field' in condition) || condition.field !== 'language') {
         return false
       }
 
@@ -239,7 +206,8 @@ export default function createLanguageEvaluator(
     },
 
     canEvaluateConditionField(field: string): boolean {
-      return field === 'language' || field === 'originalLanguage'
+      // Only support the 'language' field
+      return field === 'language'
     },
   }
 }
