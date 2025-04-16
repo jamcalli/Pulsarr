@@ -1,3 +1,4 @@
+// src/client/features/content-router/components/condition-group.tsx
 import { useState, useEffect, useCallback } from 'react';
 import {
   Select,
@@ -11,8 +12,7 @@ import { PlusCircle, Trash2, LayoutList } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import ConditionBuilder from './condition-builder';
-import type { EvaluatorMetadata } from './condition-builder';
+import ConditionBuilder, { EvaluatorMetadata } from './condition-builder';
 import type {
   ICondition,
   IConditionGroup,
@@ -39,31 +39,10 @@ const ConditionGroupComponent = ({
   isLoading = false,
   level = 0,
 }: ConditionGroupComponentProps) => {
-  // Helper to get all supported fields from metadata
-  const getAllFields = (evaluatorMetadata: EvaluatorMetadata[]): string[] => {
-    const fieldNames: string[] = [];
-    for (const evaluator of evaluatorMetadata) {
-      if (evaluator.supportedFields) {
-        for (const field of evaluator.supportedFields) {
-          if (!fieldNames.includes(field.name)) {
-            fieldNames.push(field.name);
-          }
-        }
-      }
-    }
-    return fieldNames;
-  };
-
-  // Create an empty condition with the first available evaluator, field, and operator
-  const createEmptyCondition = (): ICondition => {
-    console.log("Creating empty condition with evaluatorMetadata:", 
-      evaluatorMetadata.map(e => e.name));
-    
-    // Get first evaluator
-    const firstEvaluator = evaluatorMetadata.length > 0 ? evaluatorMetadata[0] : null;
-    
-    if (!firstEvaluator) {
-      console.warn("No evaluator metadata available for creating conditions");
+  
+  // Create a properly structured empty condition with defaults from evaluator metadata
+  const createEmptyCondition = useCallback((): ICondition => {
+    if (!evaluatorMetadata || evaluatorMetadata.length === 0) {
       return {
         field: '',
         operator: '',
@@ -72,116 +51,62 @@ const ConditionGroupComponent = ({
       };
     }
     
-    // Get first field from first evaluator
-    const firstField = firstEvaluator.supportedFields.length > 0 
-      ? firstEvaluator.supportedFields[0].name 
-      : '';
+    // Use first evaluator to create an appropriate condition
+    const firstEvaluator = evaluatorMetadata[0];
+    const firstField = firstEvaluator.supportedFields[0]?.name || '';
     
-    // Get first operator for that field
-    let firstOperator = '';
-    if (firstField && firstEvaluator.supportedOperators?.[firstField]?.length > 0) {
-      firstOperator = firstEvaluator.supportedOperators[firstField][0].name;
+    // If no field is available, return generic condition
+    if (!firstField) {
+      return {
+        field: '',
+        operator: '',
+        value: '',
+        negate: false,
+      };
     }
     
-    console.log(`Creating condition with evaluator: ${firstEvaluator.name}, field: ${firstField}, operator: ${firstOperator}`);
+    // Get the first operator for the first field
+    const operators = firstEvaluator.supportedOperators?.[firstField] || [];
+    const firstOperator = operators[0]?.name || '';
     
-    // Create a fully initialized condition
+    // Determine appropriate initial value based on value type
+    let initialValue: any = '';
+    if (operators[0]?.valueTypes) {
+      const valueType = operators[0].valueTypes[0];
+      if (valueType === 'number') initialValue = 0;
+      else if (valueType === 'string[]' || valueType === 'number[]') initialValue = [];
+      else if (valueType === 'object') initialValue = { min: undefined, max: undefined };
+    }
+    
     return {
       field: firstField,
       operator: firstOperator,
-      value: '',
+      value: initialValue,
       negate: false,
     };
-  };
+  }, [evaluatorMetadata]);
 
   // Create an empty group with one empty condition
-  const createEmptyGroup = (): IConditionGroup => ({
-    operator: 'AND',
-    conditions: [createEmptyCondition()],
-    negate: false,
-  });
+  const createEmptyGroup = useCallback((): IConditionGroup => {
+    return {
+      operator: 'AND',
+      conditions: [createEmptyCondition()],
+      negate: false,
+    };
+  }, [createEmptyCondition]);
 
   // Initialize conditions with proper fields when metadata is loaded
-  const initializeConditionsWithFields = useCallback(() => {
-    if (!Array.isArray(value.conditions) || value.conditions.length === 0 || !evaluatorMetadata.length) {
-      return;
-    }
-    
-    const availableFields = getAllFields(evaluatorMetadata);
-    if (availableFields.length === 0) {
-      return;
-    }
-    
-    // Check if any condition has an empty field using type guards
-    const needsUpdate = value.conditions.some(condition => 
-      condition && 
-      typeof condition === 'object' && 
-      // Make sure it's not a condition group (which has an 'operator' and 'conditions' array)
-      !('conditions' in condition && Array.isArray((condition as IConditionGroup).conditions)) &&
-      // Make sure it's a condition with a 'field' property
-      'field' in condition && 
-      !(condition as ICondition).field
-    );
-    
-    if (needsUpdate) {
-      console.log("Conditions need field updates:", value.conditions);
-      
-      const updatedConditions = value.conditions.map(condition => {
-        // Use the same type guard to safely update conditions
-        if (
-          condition && 
-          typeof condition === 'object' && 
-          !('conditions' in condition && Array.isArray((condition as IConditionGroup).conditions)) &&
-          'field' in condition && 
-          !(condition as ICondition).field
-        ) {
-          // Get first evaluator
-          const firstEvaluator = evaluatorMetadata[0];
-          
-          // Get first field 
-          const firstField = availableFields[0];
-          
-          // Get first operator
-          let firstOperator = '';
-          if (firstEvaluator.supportedOperators?.[firstField]?.length > 0) {
-            firstOperator = firstEvaluator.supportedOperators[firstField][0].name;
-          }
-          
-          console.log(`Updating condition with field: ${firstField}, operator: ${firstOperator}`);
-          
-          return {
-            ...(condition as ICondition),
-            field: firstField,
-            operator: firstOperator,
-            value: ''
-          };
-        }
-        return condition;
-      });
-      
-      onChange({
-        ...value,
-        conditions: updatedConditions
-      });
-    }
-  }, [value, evaluatorMetadata, onChange]);
-
-  // Initialize conditions when metadata is loaded
   useEffect(() => {
     if (evaluatorMetadata.length > 0) {
       // If there are no conditions, create an initial one
       if (!value.conditions || value.conditions.length === 0) {
-        console.log("No conditions exist, creating initial condition");
         onChange({
           ...value,
           conditions: [createEmptyCondition()]
         });
-      } else {
-        // Otherwise make sure existing conditions have fields
-        initializeConditionsWithFields();
       }
     }
-  }, [evaluatorMetadata, initializeConditionsWithFields, onChange, value]);
+  }, [evaluatorMetadata, onChange, value, createEmptyCondition]);
 
   // Handle toggling the negate flag
   const handleToggleNegate = () => {
@@ -207,7 +132,6 @@ const ConditionGroupComponent = ({
     }
 
     const newCondition = createEmptyCondition();
-    console.log("Adding new condition:", newCondition);
     
     // Ensure value.conditions is an array before spreading
     const currentConditions = Array.isArray(value.conditions) ? value.conditions : [];
@@ -221,7 +145,6 @@ const ConditionGroupComponent = ({
   // Add a new nested condition group to the group
   const handleAddGroup = () => {
     const newGroup = createEmptyGroup();
-    console.log("Adding new group:", newGroup);
     
     // Ensure value.conditions is an array before spreading
     const currentConditions = Array.isArray(value.conditions) ? value.conditions : [];
@@ -269,8 +192,7 @@ const ConditionGroupComponent = ({
     const newConditions = value.conditions.filter((_, i) => i !== index);
     onChange({
       ...value,
-      conditions:
-        newConditions.length > 0 ? newConditions : [createEmptyCondition()],
+      conditions: newConditions.length > 0 ? newConditions : [createEmptyCondition()],
     });
   };
 
@@ -302,8 +224,6 @@ const ConditionGroupComponent = ({
 
   // Ensure value.conditions is always an array
   const conditions = Array.isArray(value.conditions) ? value.conditions : [];
-  
-  console.log("Rendering condition group with conditions:", conditions.length);
 
   return (
     <div className={`border-l-2 pl-4 ${getLevelColor()}`}>
@@ -342,16 +262,14 @@ const ConditionGroupComponent = ({
 
       <div className="space-y-4">
         {conditions.map((condition, index) => {
-          // Create a unique key based on condition properties plus index
+          // Create a unique key for the condition
           const conditionKey = `condition-${index}-${Date.now()}`;
           
-          // Improved type checking for condition vs. condition group
+          // Check if this is a condition group or a single condition
           const isGroup = condition && 
                           typeof condition === 'object' && 
-                          'conditions' in condition &&
-                          Array.isArray((condition as IConditionGroup).conditions);
-          
-          console.log(`Rendering condition ${index}, isGroup: ${isGroup}`);
+                          'operator' in condition &&
+                          'conditions' in condition;
           
           return (
             <div key={conditionKey} className="relative">
@@ -370,7 +288,7 @@ const ConditionGroupComponent = ({
                   level={level + 1}
                 />
               ) : (
-                // Render single condition - explicitly cast to expected type
+                // Render single condition
                 <ConditionBuilder
                   value={condition as ICondition}
                   onChange={(updatedCondition) =>
