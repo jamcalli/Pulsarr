@@ -310,7 +310,7 @@ const ConditionGroupComponent = ({
         <div className="flex space-x-2">
           {onRemove && (
             <Button variant="noShadow" size="sm" onClick={onRemove}>
-              <Trash2 className="h-4 w-4 mr-1" />
+              <Trash2 className="h-4 w-4 mr-1 text-text" />
               <span className="hidden md:inline">Remove Group</span>
             </Button>
           )}

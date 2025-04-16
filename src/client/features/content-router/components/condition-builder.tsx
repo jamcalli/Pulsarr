@@ -267,7 +267,7 @@ const ConditionBuilder = ({
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <HelpCircle className="h-3 w-3 opacity-70" />
+                      <HelpCircle className="h-3 w-3 cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent>
                       <p className="max-w-xs">{fieldDescription}</p>
@@ -303,7 +303,7 @@ const ConditionBuilder = ({
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <HelpCircle className="h-3 w-3 opacity-70" />
+                      <HelpCircle className="h-3 w-3 cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent>
                       <p className="max-w-xs">{operatorDescription}</p>
