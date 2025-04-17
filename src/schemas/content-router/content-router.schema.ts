@@ -13,23 +13,51 @@ export const ComparisonOperatorSchema = z.enum([
   'between',
 ])
 
-// Define schemas recursively for nested conditions
-export const ConditionSchema: z.ZodType = z.lazy(() =>
+// First, define the value types
+const ConditionValueSchema = z.union([
+  z.string(),
+  z.number(),
+  z.boolean(),
+  z.array(z.union([z.string(), z.number()])),
+  z.object({ min: z.number().optional(), max: z.number().optional() }),
+  z.null(),
+])
+
+// Then define the types we'll use
+export interface ICondition {
+  field: string
+  operator: z.infer<typeof ComparisonOperatorSchema>
+  value: z.infer<typeof ConditionValueSchema>
+  negate?: boolean
+  _cid?: string
+}
+
+export interface IConditionGroup {
+  operator: 'AND' | 'OR'
+  conditions: (ICondition | IConditionGroup)[]
+  negate?: boolean
+  _cid?: string
+}
+
+// Now define the schemas using these interfaces
+export const ConditionSchema: z.ZodType<ICondition> = z.lazy(() =>
   z.object({
     field: z.string(),
     operator: ComparisonOperatorSchema,
-    value: z.unknown(), // Allow any value type to support different evaluators
+    value: ConditionValueSchema,
     negate: z.boolean().optional().default(false),
+    _cid: z.string().optional(),
   }),
 )
 
-export const ConditionGroupSchema: z.ZodType = z.lazy(() =>
+export const ConditionGroupSchema: z.ZodType<IConditionGroup> = z.lazy(() =>
   z.object({
     operator: z.enum(['AND', 'OR']),
     conditions: z.array(
       z.union([ConditionSchema, z.lazy(() => ConditionGroupSchema)]),
     ),
     negate: z.boolean().optional().default(false),
+    _cid: z.string().optional(),
   }),
 )
 
