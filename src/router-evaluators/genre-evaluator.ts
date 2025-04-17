@@ -141,13 +141,35 @@ export default function createGenreEvaluator(
           return false
         }
 
-        if (isStringArray(genreValue)) {
-          // Match if any of the rule's genres match any of the item's genres
-          return genreValue.some((genre) => itemGenres.has(genre))
+        // Extract the operator from criteria or default to "contains"
+        const operator = rule.criteria.operator || 'contains'
+
+        // Apply the appropriate operation based on the operator
+        if (operator === 'contains' || operator === 'in') {
+          if (isStringArray(genreValue)) {
+            return genreValue.some((genre) => itemGenres.has(genre))
+          }
+          return itemGenres.has(genreValue)
         }
 
-        // Single genre match
-        return itemGenres.has(genreValue)
+        if (operator === 'notContains' || operator === 'notIn') {
+          if (isStringArray(genreValue)) {
+            return !genreValue.some((genre) => itemGenres.has(genre))
+          }
+          return !itemGenres.has(genreValue)
+        }
+
+        if (operator === 'equals') {
+          if (isStringArray(genreValue)) {
+            return (
+              genreValue.length === itemGenres.size &&
+              genreValue.every((genre) => itemGenres.has(genre))
+            )
+          }
+          return itemGenres.size === 1 && itemGenres.has(genreValue)
+        }
+
+        return false
       })
 
       if (matchingRules.length === 0) {
@@ -184,41 +206,36 @@ export default function createGenreEvaluator(
 
       const itemGenres = new Set(item.genres)
       const { operator, value } = condition
+      let matched = false
 
       if (operator === 'contains' || operator === 'in') {
         if (isStringArray(value)) {
-          return value.some((genre) => itemGenres.has(genre))
+          matched = value.some((genre) => itemGenres.has(genre))
+        } else if (isString(value)) {
+          matched = itemGenres.has(value)
         }
-        if (isString(value)) {
-          return itemGenres.has(value)
-        }
-        return false
       }
 
       if (operator === 'notContains' || operator === 'notIn') {
         if (isStringArray(value)) {
-          return !value.some((genre) => itemGenres.has(genre))
+          matched = !value.some((genre) => itemGenres.has(genre))
+        } else if (isString(value)) {
+          matched = !itemGenres.has(value)
         }
-        if (isString(value)) {
-          return !itemGenres.has(value)
-        }
-        return false
       }
 
       if (operator === 'equals') {
         if (isStringArray(value)) {
-          return (
+          matched =
             value.length === itemGenres.size &&
             value.every((genre) => itemGenres.has(genre))
-          )
+        } else if (isString(value)) {
+          matched = itemGenres.size === 1 && itemGenres.has(value)
         }
-        if (isString(value)) {
-          return itemGenres.size === 1 && itemGenres.has(value)
-        }
-        return false
       }
 
-      return false
+      // Apply negation if needed
+      return condition.negate ? !matched : matched
     },
 
     canEvaluateConditionField(field: string): boolean {
