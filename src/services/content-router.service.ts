@@ -412,10 +412,23 @@ export class ContentRouterService {
     try {
       // Fetch metadata from appropriate API based on content type
       if (isMovie) {
-        // Get Radarr service for movie lookups
-        const lookupService = this.fastify.radarrManager.getRadarrService(1)
+        // Get Radarr service for movie lookups using default instance
+        const defaultInstance = await this.fastify.db.getDefaultRadarrInstance()
+        if (!defaultInstance) {
+          this.log.warn(
+            'No default Radarr instance available for metadata lookup',
+          )
+          return item
+        }
+
+        const lookupService = this.fastify.radarrManager.getRadarrService(
+          defaultInstance.id,
+        )
+
         if (!lookupService) {
-          this.log.warn('No Radarr service available for metadata lookup')
+          this.log.warn(
+            `Radarr service for instance ${defaultInstance.id} not available for metadata lookup`,
+          )
           return item
         }
 
@@ -441,10 +454,23 @@ export class ContentRouterService {
           }
         }
       } else {
-        // Get Sonarr service for TV show lookups
-        const lookupService = this.fastify.sonarrManager.getSonarrService(1)
+        // Get Sonarr service for TV show lookups using default instance
+        const defaultInstance = await this.fastify.db.getDefaultSonarrInstance()
+        if (!defaultInstance) {
+          this.log.warn(
+            'No default Sonarr instance available for metadata lookup',
+          )
+          return item
+        }
+
+        const lookupService = this.fastify.sonarrManager.getSonarrService(
+          defaultInstance.id,
+        )
+
         if (!lookupService) {
-          this.log.warn('No Sonarr service available for metadata lookup')
+          this.log.warn(
+            `Sonarr service for instance ${defaultInstance.id} not available for metadata lookup`,
+          )
           return item
         }
 
@@ -643,7 +669,17 @@ export class ContentRouterService {
         const syncedInstanceIds = Array.isArray(defaultInstance.syncedInstances)
           ? defaultInstance.syncedInstances
           : typeof defaultInstance.syncedInstances === 'string'
-            ? JSON.parse(defaultInstance.syncedInstances || '[]')
+            ? (() => {
+                try {
+                  return JSON.parse(defaultInstance.syncedInstances || '[]')
+                } catch (e) {
+                  this.log.error(
+                    `Invalid syncedInstances JSON for instance ${defaultInstance.id}:`,
+                    e,
+                  )
+                  return []
+                }
+              })()
             : []
 
         // Only proceed if there are synced instances
