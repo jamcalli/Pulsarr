@@ -4,11 +4,13 @@ import { MultiSelect } from '@/components/ui/multi-select'
 interface GenreMultiSelectProps {
   field: ControllerRenderProps<any, 'genre'>
   genres: string[]
+  onDropdownOpen?: () => Promise<void>
 }
 
 const GenreMultiSelect = ({
   field,
   genres,
+  onDropdownOpen,
 }: GenreMultiSelectProps) => {
   const options = genres.map(genre => ({
     label: genre,
@@ -25,6 +27,7 @@ const GenreMultiSelect = ({
       placeholder="Select genre(s)"
       modalPopover={true}
       maxCount={2}
+      onDropdownOpen={onDropdownOpen}
     />
   )
 }

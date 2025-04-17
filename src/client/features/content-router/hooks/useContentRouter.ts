@@ -5,6 +5,7 @@ import type {
   ContentRouterRuleUpdate,
   ContentRouterRuleResponse,
   ContentRouterRuleListResponse,
+  ContentRouterRuleToggle,
 } from '@root/schemas/content-router/content-router.schema'
 
 export interface UseContentRouterParams {
@@ -12,22 +13,12 @@ export interface UseContentRouterParams {
 }
 
 /**
- * Custom React hook to manage content routing rules.
+ * React hook for managing content routing rules for a specified target type.
  *
- * This hook handles state and operations for content routing rules based on a specific target type
- * (e.g. "radarr" or "sonarr"). It manages the fetching, creation, updating, deletion, and toggling
- * of rules, while maintaining loading and error states and providing user feedback via toast notifications.
+ * Provides state and operations to fetch, create, update, delete, and toggle routing rules, along with loading and error states. User feedback is handled via toast notifications.
  *
- * @param targetType - The target for which to manage routing rules.
- * @returns An object containing:
- *  - rules: The current list of routing rules.
- *  - isLoading: A flag indicating if an operation is in progress.
- *  - error: An error message, if any operation fails.
- *  - fetchRules: Function to retrieve all routing rules.
- *  - createRule: Function to create a new routing rule.
- *  - updateRule: Function to update an existing routing rule.
- *  - deleteRule: Function to delete a routing rule.
- *  - toggleRule: Function to toggle the enabled state of a routing rule.
+ * @param targetType - The content target type (e.g., "radarr" or "sonarr") whose routing rules are managed.
+ * @returns An object with the current rules, loading and error states, and functions to fetch, create, update, delete, and toggle routing rules.
  */
 export function useContentRouter({ targetType }: UseContentRouterParams) {
   const { toast } = useToast()
@@ -81,15 +72,9 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
     async (
       rule: Omit<ContentRouterRule, 'id' | 'created_at' | 'updated_at'>,
     ) => {
-      setIsLoading(true)
       setError(null)
 
       try {
-        // Implement minimum loading time
-        const minimumLoadingTime = new Promise((resolve) =>
-          setTimeout(resolve, 500),
-        )
-
         const response = await fetch('/v1/content-router/rules', {
           method: 'POST',
           headers: {
@@ -104,16 +89,13 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
 
         const data = (await response.json()) as ContentRouterRuleResponse
 
-        // Wait for both operations to complete
-        await minimumLoadingTime
-
-        // Update local state
+        // Update rules state with the new rule
         setRules((prevRules) => [...prevRules, data.rule])
 
         toast({
           title: 'Success',
           description: `${
-            rule.type.charAt(0).toUpperCase() + rule.type.slice(1)
+            rule.target_type.charAt(0).toUpperCase() + rule.target_type.slice(1)
           } routing rule created successfully`,
         })
 
@@ -128,8 +110,6 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
           variant: 'destructive',
         })
         throw err
-      } finally {
-        setIsLoading(false)
       }
     },
     [toast],
@@ -143,11 +123,6 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
       setError(null)
 
       try {
-        // Implement minimum loading time
-        const minimumLoadingTime = new Promise((resolve) =>
-          setTimeout(resolve, 500),
-        )
-
         const response = await fetch(`/v1/content-router/rules/${id}`, {
           method: 'PUT',
           headers: {
@@ -162,10 +137,7 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
 
         const data = (await response.json()) as ContentRouterRuleResponse
 
-        // Wait for both operations to complete
-        await minimumLoadingTime
-
-        // Update local state
+        // Update the rule in the local state
         setRules((prevRules) =>
           prevRules.map((rule) => (rule.id === id ? data.rule : rule)),
         )
@@ -240,40 +212,43 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
   const toggleRule = useCallback(
     async (id: number, enabled: boolean) => {
       try {
-        const response = await fetch(`/v1/content-router/rules/${id}/toggle`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ enabled }),
-        })
-
-        if (!response.ok) {
-          throw new Error('Failed to toggle routing rule')
-        }
-
+        // Optimistically update the local state first
         setRules((prevRules) =>
           prevRules.map((rule) =>
             rule.id === id ? { ...rule, enabled } : rule,
           ),
         )
 
+        const toggleData: ContentRouterRuleToggle = { enabled }
+        const response = await fetch(`/v1/content-router/rules/${id}/toggle`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(toggleData),
+        })
+
+        if (!response.ok) {
+          // Revert the state if the API call fails
+          setRules((prevRules) =>
+            prevRules.map((rule) =>
+              rule.id === id ? { ...rule, enabled: !enabled } : rule,
+            ),
+          )
+          throw new Error('Failed to toggle routing rule')
+        }
+
         toast({
           title: 'Success',
           description: `Routing rule ${enabled ? 'enabled' : 'disabled'} successfully`,
         })
-
-        return true
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : 'Unknown error'
-        setError(errorMessage)
+      } catch (error) {
         toast({
           title: 'Error',
-          description: `Failed to toggle routing rule: ${errorMessage}`,
+          description: `Failed to ${enabled ? 'enable' : 'disable'} route. Please try again.`,
           variant: 'destructive',
         })
-        throw err
+        throw error
       }
     },
     [toast],
