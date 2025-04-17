@@ -165,7 +165,10 @@ export default function createYearEvaluator(
 
       // Filter rules by target type
       const contentTypeRules = rules.filter(
-        (rule) => rule.target_type === (isMovie ? 'radarr' : 'sonarr'),
+        (rule) =>
+          rule.enabled !==
+            false /* default to enabled when field is absent */ &&
+          rule.target_type === (isMovie ? 'radarr' : 'sonarr'),
       )
 
       // Find matching year rules
@@ -238,41 +241,35 @@ export default function createYearEvaluator(
         return false
       }
 
-      const { operator, value } = condition
+      const { operator, value, negate = false } = condition
+
+      // Handle the between operator explicitly
+      if (operator === 'between' && isYearRange(value)) {
+        const min = value.min ?? Number.NEGATIVE_INFINITY
+        const max = value.max ?? Number.POSITIVE_INFINITY
+        const result = year >= min && year <= max
+        return negate ? !result : result
+      }
+
+      // Handle all other operators
+      let result = false
 
       if (operator === 'equals' && isNumber(value)) {
-        return year === value
+        result = year === value
+      } else if (operator === 'notEquals' && isNumber(value)) {
+        result = year !== value
+      } else if (operator === 'greaterThan' && isNumber(value)) {
+        result = year > value
+      } else if (operator === 'lessThan' && isNumber(value)) {
+        result = year < value
+      } else if (operator === 'in' && isNumberArray(value)) {
+        result = value.includes(year)
+      } else if (operator === 'notIn' && isNumberArray(value)) {
+        result = !value.includes(year)
       }
 
-      if (operator === 'notEquals' && isNumber(value)) {
-        return year !== value
-      }
-
-      if (operator === 'greaterThan' && isNumber(value)) {
-        return year > value
-      }
-
-      if (operator === 'lessThan' && isNumber(value)) {
-        return year < value
-      }
-
-      if (operator === 'in' && isNumberArray(value)) {
-        return value.includes(year)
-      }
-
-      if (operator === 'notIn' && isNumberArray(value)) {
-        return !value.includes(year)
-      }
-
-      if (isYearRange(value)) {
-        const min =
-          value.min !== undefined ? value.min : Number.NEGATIVE_INFINITY
-        const max =
-          value.max !== undefined ? value.max : Number.POSITIVE_INFINITY
-        return year >= min && year <= max
-      }
-
-      return false
+      // Apply negation if needed
+      return negate ? !result : result
     },
 
     canEvaluateConditionField(field: string): boolean {
