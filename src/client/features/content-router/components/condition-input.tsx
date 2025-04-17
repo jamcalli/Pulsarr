@@ -82,14 +82,14 @@ const StableNumberInput = ({
   placeholder,
   min,
   max,
-  id, // Add this parameter
+  id,
 }: {
   value: string
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   placeholder?: string
   min?: string
   max?: string
-  id?: string // Add this to the type
+  id?: string
 }) => {
   // Keep an internal state to maintain focus
   const [internalValue, setInternalValue] = useState(value)
@@ -107,7 +107,7 @@ const StableNumberInput = ({
   return (
     <Input
       type="number"
-      id={id} // Add this prop
+      id={id}
       value={internalValue}
       onChange={handleChange}
       placeholder={placeholder}
@@ -148,6 +148,14 @@ function ConditionInput({
   const valueRef = useRef(value)
   valueRef.current = value
 
+  // Create a ref to always hold the latest onChange function
+  const onChangeRef = useRef<(value: ConditionValue) => void>(onChange)
+
+  // Update the ref whenever onChange changes
+  useEffect(() => {
+    onChangeRef.current = onChange
+  }, [onChange])
+
   // Get users from the config store
   const users = useConfigStore((state) => state.users)
   const fetchUserData = useConfigStore((state) => state.fetchUserData)
@@ -169,11 +177,13 @@ function ConditionInput({
   // Store handler functions to keep them stable between renders
   const handlers = useRef({
     handleTextChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-      onChange(e.target.value)
+      onChangeRef.current(e.target.value)
     },
 
     handleNumberChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-      onChange(Number(e.target.value))
+      // Fix: Handle empty input correctly
+      const value = e.target.value === '' ? null : Number(e.target.value)
+      onChangeRef.current(value as ConditionValue)
     },
 
     handleArrayChange: (
@@ -189,9 +199,9 @@ function ConditionInput({
         const numericValues = arrayValue
           .map((v) => Number(v))
           .filter((v) => !Number.isNaN(v))
-        onChange(numericValues)
+        onChangeRef.current(numericValues)
       } else {
-        onChange(arrayValue)
+        onChangeRef.current(arrayValue)
       }
     },
 
@@ -203,7 +213,7 @@ function ConditionInput({
           : { min: undefined, max: undefined }
 
       const min = e.target.value === '' ? undefined : Number(e.target.value)
-      onChange({ ...currentValue, min })
+      onChangeRef.current({ ...currentValue, min })
     },
 
     handleRangeMaxChange: (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -215,9 +225,64 @@ function ConditionInput({
           : { min: undefined, max: undefined }
 
       const max = e.target.value === '' ? undefined : Number(e.target.value)
-      onChange({ ...currentValue, max })
+      onChangeRef.current({ ...currentValue, max })
     },
   })
+
+  // Update handlers ref when onChangeRef changes
+  useEffect(() => {
+    handlers.current = {
+      handleTextChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+        onChangeRef.current(e.target.value)
+      },
+
+      handleNumberChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value === '' ? null : Number(e.target.value)
+        onChangeRef.current(value as ConditionValue)
+      },
+
+      handleArrayChange: (
+        e: React.ChangeEvent<HTMLInputElement>,
+        isNumeric = false,
+      ) => {
+        const arrayValue = e.target.value
+          .split(',')
+          .map((v) => v.trim())
+          .filter((v) => v !== '')
+
+        if (isNumeric) {
+          const numericValues = arrayValue
+            .map((v) => Number(v))
+            .filter((v) => !Number.isNaN(v))
+          onChangeRef.current(numericValues)
+        } else {
+          onChangeRef.current(arrayValue)
+        }
+      },
+
+      handleRangeMinChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+        const currentValue =
+          typeof valueRef.current === 'object' && valueRef.current !== null
+            ? { ...(valueRef.current as { min?: number; max?: number }) }
+            : { min: undefined, max: undefined }
+
+        const min = e.target.value === '' ? undefined : Number(e.target.value)
+        onChangeRef.current({ ...currentValue, min })
+      },
+
+      handleRangeMaxChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+        type RangeValue = { min?: number; max?: number }
+
+        const currentValue: RangeValue =
+          typeof valueRef.current === 'object' && valueRef.current !== null
+            ? { ...(valueRef.current as RangeValue) }
+            : { min: undefined, max: undefined }
+
+        const max = e.target.value === '' ? undefined : Number(e.target.value)
+        onChangeRef.current({ ...currentValue, max })
+      },
+    }
+  }, [])
 
   // Handle the specific input requirements based on valueTypes
   if (!operator || valueTypes.length === 0) return null
@@ -225,26 +290,47 @@ function ConditionInput({
   // Create a properly structured field prop for multi-select components
   const createFormField = (
     fieldName: string,
+    isNumeric = false,
   ): ControllerRenderProps<FieldState, FieldPath<FieldState>> => {
+    // For react-hook-form typing
+    type AllowedValue = string | string[]
     const isEmpty =
       (Array.isArray(value) && value.length === 0) ||
       value === '' ||
       value === undefined ||
       value === null
 
-    // Convert all values to strings
-    const stringValue = Array.isArray(value)
-      ? value.map((item) => String(item))
-      : [String(value || '')]
+    // Convert all values to appropriate type (string or number)
+    const formattedValue = Array.isArray(value)
+      ? value.map((item) => (isNumeric ? Number(item) : String(item)))
+      : [
+          isNumeric
+            ? value === ''
+              ? 0
+              : Number(value || 0)
+            : String(value || ''),
+        ]
 
     return {
       name: fieldName as FieldPath<FieldState>,
-      value: isEmpty ? [] : stringValue,
+      value: isEmpty
+        ? []
+        : (formattedValue.map((v) => String(v)) as AllowedValue),
       onChange: (newValue: unknown) => {
         if (Array.isArray(newValue)) {
-          onChange(newValue.map((item) => String(item)))
+          onChangeRef.current(
+            newValue.map((item) =>
+              isNumeric ? Number(item) : String(item),
+            ) as ConditionValue,
+          )
         } else {
-          onChange([String(newValue || '')])
+          onChangeRef.current([
+            isNumeric
+              ? newValue === ''
+                ? 0
+                : Number(newValue || 0)
+              : String(newValue || ''),
+          ] as ConditionValue)
         }
       },
       onBlur: () => {},
@@ -277,9 +363,9 @@ function ConditionInput({
       onChange: (newValue: unknown) => {
         // Handle conversion for onChange callback
         if (Array.isArray(newValue)) {
-          onChange(newValue.map((item) => String(item)))
+          onChangeRef.current(newValue.map((item) => String(item)))
         } else {
-          onChange([String(newValue || '')])
+          onChangeRef.current([String(newValue || '')])
         }
       },
       onBlur: () => {},
@@ -299,7 +385,7 @@ function ConditionInput({
         <div className="flex-1">
           <Select
             value={typeof value === 'string' ? value : ''}
-            onValueChange={(val) => onChange(val)}
+            onValueChange={(val) => onChangeRef.current(val)}
             disabled={!genres.length}
           >
             <SelectTrigger>
@@ -325,7 +411,7 @@ function ConditionInput({
           <div className="flex-1">
             <Select
               value={value}
-              onValueChange={(val) => onChange(val)}
+              onValueChange={(val) => onChangeRef.current(val)}
               disabled={!genres.length}
             >
               <SelectTrigger>
@@ -360,6 +446,10 @@ function ConditionInput({
 
   // Special case for user field
   if (field === 'user' || field === 'userId' || field === 'userName') {
+    // Check if we should handle this as numeric based on valueTypes
+    const isNumeric =
+      valueTypes.includes('number') || valueTypes.includes('number[]')
+
     // Single value operator (equals)
     if (operator === 'equals') {
       // If it's currently a string or number, use single select
@@ -368,7 +458,11 @@ function ConditionInput({
           <div className="flex-1">
             <Select
               value={value.toString()}
-              onValueChange={(val) => onChange(val)}
+              onValueChange={(val) => {
+                // Convert to number if this is a numeric field
+                const parsedVal = isNumeric ? Number(val) : val
+                onChangeRef.current(parsedVal)
+              }}
               disabled={!users?.length}
             >
               <SelectTrigger>
@@ -388,7 +482,7 @@ function ConditionInput({
     }
 
     // For multi-select operators (in) or when we already have multiple values
-    const userField = createFormField('user')
+    const userField = createFormField('user', isNumeric)
     return (
       <div className="flex-1">
         <UserMultiSelect field={userField} />
