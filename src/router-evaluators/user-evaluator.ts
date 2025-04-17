@@ -124,8 +124,13 @@ export default function createUserEvaluator(
       item: ContentItem,
       context: RoutingContext,
     ): boolean {
+      // Handle ConditionGroup object - defer to ContentRouterService
+      if (!('field' in condition)) {
+        return false
+      }
+
       // Only support the 'user' field
-      if (!('field' in condition) || condition.field !== 'user') {
+      if (condition.field !== 'user') {
         return false
       }
 
@@ -135,6 +140,7 @@ export default function createUserEvaluator(
       }
 
       const { operator, value } = condition
+      let matched = false
 
       if (operator === 'equals') {
         // Check user ID
@@ -142,33 +148,30 @@ export default function createUserEvaluator(
           context.userId &&
           (value === context.userId || value === context.userId.toString())
         ) {
-          return true
+          matched = true
         }
-
         // Check username
-        if (context.userName && value === context.userName) {
-          return true
+        else if (context.userName && value === context.userName) {
+          matched = true
         }
-      }
-
-      if (operator === 'in') {
+      } else if (operator === 'in') {
         const users = Array.isArray(value) ? value : [value]
 
         // Check user ID
         if (context.userId) {
           const userIdStr = context.userId.toString()
           if (users.includes(context.userId) || users.includes(userIdStr)) {
-            return true
+            matched = true
           }
         }
-
         // Check username
-        if (context.userName && users.includes(context.userName)) {
-          return true
+        else if (context.userName && users.includes(context.userName)) {
+          matched = true
         }
       }
 
-      return false
+      // Apply negation if needed
+      return condition.negate ? !matched : matched
     },
 
     canEvaluateConditionField(field: string): boolean {
