@@ -113,7 +113,6 @@ const AccordionRouteCard = ({
   onRemove,
   onToggleEnabled,
   isSaving,
-  isTogglingState = false,
   instances = [],
   genres = [],
   onGenreDropdownOpen,
@@ -374,11 +373,25 @@ const AccordionRouteCard = ({
     [form],
   )
 
-  const handleToggleEnabled = async () => {
-    if (onToggleEnabled && 'id' in route && route.id) {
-      await onToggleEnabled(route.id, !form.watch('enabled'))
+  const handleToggleEnabled = useCallback(async () => {
+    if (
+      !('id' in route) ||
+      !onToggleEnabled ||
+      route.enabled === undefined ||
+      typeof route.id !== 'number'
+    )
+      return
+
+    // Optimistically update local form state
+    form.setValue('enabled', !form.getValues('enabled'))
+
+    try {
+      await onToggleEnabled(route.id, !route.enabled)
+    } catch (error) {
+      // Revert on error
+      form.setValue('enabled', route.enabled)
     }
-  }
+  }, [route, onToggleEnabled, form])
 
   const handleInstanceChange = useCallback(
     (value: string) => {
@@ -602,15 +615,11 @@ const AccordionRouteCard = ({
                           type="button"
                           size="sm"
                           onClick={handleToggleEnabled}
-                          disabled={isTogglingState || isSaving}
+                          disabled={isSaving}
                           variant={form.watch('enabled') ? 'error' : 'noShadow'}
                           className="h-8"
                         >
-                          {isTogglingState ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Power className="h-4 w-4" />
-                          )}
+                          <Power className="h-4 w-4" />
                           <span className="ml-2">
                             {form.watch('enabled') ? 'Disable' : 'Enable'}
                           </span>
@@ -807,9 +816,13 @@ const AccordionRouteCard = ({
                                 </TooltipTrigger>
                                 <TooltipContent>
                                   <p className="max-w-xs">
-                                    Higher values give this route greater
-                                    priority. When multiple routes match, the
-                                    one with the highest priority is used.
+                                    Priority weight only affects routing when
+                                    multiple rules would send content to the
+                                    same instance. In such cases, only the rule
+                                    with the highest priority will be used for
+                                    that instance. If rules route to different
+                                    instances, content will be sent to all
+                                    matching instances regardless of priority.
                                   </p>
                                 </TooltipContent>
                               </Tooltip>

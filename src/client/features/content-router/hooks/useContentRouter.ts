@@ -82,14 +82,9 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
     async (
       rule: Omit<ContentRouterRule, 'id' | 'created_at' | 'updated_at'>,
     ) => {
-      setIsLoading(true)
       setError(null)
 
       try {
-        const minimumLoadingTime = new Promise((resolve) =>
-          setTimeout(resolve, 500),
-        )
-
         const response = await fetch('/v1/content-router/rules', {
           method: 'POST',
           headers: {
@@ -104,8 +99,7 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
 
         const data = (await response.json()) as ContentRouterRuleResponse
 
-        await minimumLoadingTime
-
+        // Update rules state with the new rule
         setRules((prevRules) => [...prevRules, data.rule])
 
         toast({
@@ -126,8 +120,6 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
           variant: 'destructive',
         })
         throw err
-      } finally {
-        setIsLoading(false)
       }
     },
     [toast],
@@ -141,10 +133,6 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
       setError(null)
 
       try {
-        const minimumLoadingTime = new Promise((resolve) =>
-          setTimeout(resolve, 500),
-        )
-
         const response = await fetch(`/v1/content-router/rules/${id}`, {
           method: 'PUT',
           headers: {
@@ -159,8 +147,7 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
 
         const data = (await response.json()) as ContentRouterRuleResponse
 
-        await minimumLoadingTime
-
+        // Update the rule in the local state
         setRules((prevRules) =>
           prevRules.map((rule) => (rule.id === id ? data.rule : rule)),
         )
@@ -235,6 +222,13 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
   const toggleRule = useCallback(
     async (id: number, enabled: boolean) => {
       try {
+        // Optimistically update the local state first
+        setRules((prevRules) =>
+          prevRules.map((rule) =>
+            rule.id === id ? { ...rule, enabled } : rule,
+          ),
+        )
+
         const toggleData: ContentRouterRuleToggle = { enabled }
         const response = await fetch(`/v1/content-router/rules/${id}/toggle`, {
           method: 'PATCH',
@@ -245,31 +239,26 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
         })
 
         if (!response.ok) {
+          // Revert the state if the API call fails
+          setRules((prevRules) =>
+            prevRules.map((rule) =>
+              rule.id === id ? { ...rule, enabled: !enabled } : rule,
+            ),
+          )
           throw new Error('Failed to toggle routing rule')
         }
-
-        setRules((prevRules) =>
-          prevRules.map((rule) =>
-            rule.id === id ? { ...rule, enabled } : rule,
-          ),
-        )
 
         toast({
           title: 'Success',
           description: `Routing rule ${enabled ? 'enabled' : 'disabled'} successfully`,
         })
-
-        return true
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : 'Unknown error'
-        setError(errorMessage)
+      } catch (error) {
         toast({
           title: 'Error',
-          description: `Failed to toggle routing rule: ${errorMessage}`,
+          description: `Failed to ${enabled ? 'enable' : 'disable'} route. Please try again.`,
           variant: 'destructive',
         })
-        throw err
+        throw error
       }
     },
     [toast],

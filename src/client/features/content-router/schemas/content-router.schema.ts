@@ -50,26 +50,18 @@ export const ConditionGroupSchema: z.ZodType<IConditionGroup> = z.lazy(() =>
   }),
 )
 
-// Schema for a conditional route - simplified validation for condition
+// Schema for a conditional route - enhanced validation for all conditions
 export const ConditionalRouteFormSchema = z.object({
   name: z.string().min(2, {
     message: 'Route name must be at least 2 characters.',
   }),
   condition: ConditionGroupSchema.refine(
     (val) => {
-      // Basic validation - just check if we have at least one condition
-      // The detailed message is handled in the component
-      if (!val.conditions || val.conditions.length === 0) {
-        return false
-      }
-
-      // Check for a valid condition with all parts filled out
-      return val.conditions.some((cond) => {
+      // Helper function to validate a single condition
+      const isValidCondition = (cond: ICondition) => {
         if ('field' in cond && 'operator' in cond && 'value' in cond) {
           const hasField = Boolean(cond.field)
           const hasOperator = Boolean(cond.operator)
-
-          // Basic check for value - could be expanded if needed
           const hasValue =
             cond.value !== undefined &&
             cond.value !== null &&
@@ -79,10 +71,29 @@ export const ConditionalRouteFormSchema = z.object({
           return hasField && hasOperator && hasValue
         }
         return false
-      })
+      }
+
+      // Helper function to recursively validate condition groups
+      const isValidGroup = (group: IConditionGroup): boolean => {
+        if (!group.conditions || group.conditions.length === 0) {
+          return false
+        }
+
+        return group.conditions.every((cond) => {
+          if ('conditions' in cond) {
+            // Recursive check for nested groups
+            return isValidGroup(cond as IConditionGroup)
+          } else {
+            // Check individual condition
+            return isValidCondition(cond as ICondition)
+          }
+        })
+      }
+
+      return isValidGroup(val)
     },
     {
-      message: 'Invalid condition', // This message won't be used, but is required
+      message: 'All conditions must be completely filled out',
     },
   ),
   target_instance_id: z.number().min(1, {

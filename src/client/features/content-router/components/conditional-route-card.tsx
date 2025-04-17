@@ -383,10 +383,9 @@ const ConditionalRouteCard = ({
   // Handle form submission
   const handleSubmit = async (data: ConditionalRouteFormValues) => {
     try {
-      // For new routes (creating a route)
       if (isNew) {
         const routeData: ContentRouterRule = {
-          id: 0, // This will be ignored by the backend
+          id: 0,
           name: data.name,
           target_type: contentType,
           target_instance_id: data.target_instance_id,
@@ -396,18 +395,23 @@ const ConditionalRouteCard = ({
           root_folder: data.root_folder,
           enabled: data.enabled,
           order: data.order,
-          condition: data.condition, // Always use condition directly, "conditional" type is implicit
-          created_at: '', // This will be set by the backend
-          updated_at: '', // This will be set by the backend
+          condition: data.condition,
+          created_at: '',
+          updated_at: '',
         }
 
         await onSave(routeData)
-      }
-      // For existing routes (updating a route)
-      else {
+      } else {
+        // Prevent form updates during save
+        form.reset(data, {
+          keepValues: true,
+          keepDirty: false,
+          keepIsSubmitted: true,
+        })
+
         const updatePayload: ContentRouterRuleUpdate = {
           name: data.name,
-          condition: data.condition, // Always use condition directly, "conditional" type is implicit
+          condition: data.condition,
           target_instance_id: data.target_instance_id,
           quality_profile: data.quality_profile
             ? Number(data.quality_profile)

@@ -1181,9 +1181,13 @@ export class WatchlistWorkflowService {
     const hasUsersWithSyncDisabled =
       await this.dbService.hasUsersWithSyncDisabled()
 
-    // Check if any user routing rules exist
-    const userRoutingRules = await this.fastify.db.getRouterRulesByType('user')
-    const hasUserRoutingRules = userRoutingRules.length > 0
+    // Check if any user-related routing rules exist
+    const conditionalRules =
+      await this.fastify.db.getRouterRulesByType('conditional')
+    const hasUserRoutingRules = conditionalRules.some((rule) => {
+      const criteria = rule.criteria?.condition
+      return criteria && JSON.stringify(criteria).includes('"field":"user"')
+    })
 
     return hasUsersWithSyncDisabled || hasUserRoutingRules
   }
