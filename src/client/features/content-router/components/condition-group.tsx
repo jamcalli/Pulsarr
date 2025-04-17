@@ -305,7 +305,7 @@ const ConditionGroupComponent = ({
   const conditions = Array.isArray(value.conditions) ? value.conditions : []
 
   return (
-    <div className={`border-l-2 pl-4 ${getLevelColor()}`}>
+    <div className={`border-l-2 pl-4 border-text ${getLevelColor()}`}>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-4">
           <TooltipProvider>

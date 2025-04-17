@@ -83,10 +83,10 @@ export const ConditionalRouteFormSchema = z.object({
           if ('conditions' in cond) {
             // Recursive check for nested groups
             return isValidGroup(cond as IConditionGroup)
-          } else {
-            // Check individual condition
-            return isValidCondition(cond as ICondition)
           }
+
+          // Check individual condition
+          return isValidCondition(cond as ICondition)
         })
       }
 

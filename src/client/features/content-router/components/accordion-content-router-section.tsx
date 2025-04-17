@@ -1,8 +1,8 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import DeleteRouteAlert from '@/features/content-router/components/delete-route-alert'
-import ContentRouteCardSkeleton from '@/features/content-router/components/content-route-skeleton'
+import AccordionRouteCardSkeleton from '@/features/content-router/components/accordion-route-card-skeleton'
 import AccordionRouteCard from './accordion-route-card'
 import { useRadarrContentRouterAdapter } from '@/features/radarr/hooks/content-router/useRadarrContentRouterAdapater'
 import { useSonarrContentRouterAdapter } from '@/features/sonarr/hooks/content-router/useSonarrContentRouterAdapter'
@@ -89,6 +89,16 @@ const AccordionContentRouterSection = ({
   >(null)
   const isMounted = useRef(false)
 
+  const [editedFormValues, setEditedFormValues] = useState<{
+    [key: string]: ContentRouterRuleUpdate
+  }>({})
+
+  const skeletonIds = useMemo(
+    () =>
+      Array.from({ length: rules.length || 2 }).map(() => crypto.randomUUID()),
+    [rules.length],
+  )
+
   // Fetch rules on initial mount
   useEffect(() => {
     if (!isMounted.current) {
@@ -147,6 +157,17 @@ const AccordionContentRouterSection = ({
     [toggleRule],
   )
 
+  // NEW: Store form values before updating
+  const storeFormValues = useCallback(
+    (id: string, data: ContentRouterRuleUpdate) => {
+      setEditedFormValues((prev) => ({
+        ...prev,
+        [id]: data,
+      }))
+    },
+    [],
+  )
+
   const handleSaveNewRule = useCallback(
     async (
       tempId: string,
@@ -156,6 +177,9 @@ const AccordionContentRouterSection = ({
       setSavingRules((prev) => ({ ...prev, [tempId]: true }))
 
       try {
+        // Store current form values
+        storeFormValues(tempId, data as ContentRouterRuleUpdate)
+
         // Convert quality_profile to the expected format
         const modifiedData = {
           ...data,
@@ -178,6 +202,13 @@ const AccordionContentRouterSection = ({
         // Remove from local rules once created
         setLocalRules((prev) => prev.filter((r) => r.tempId !== tempId))
 
+        // Clean up stored form values
+        setEditedFormValues((prev) => {
+          const updated = { ...prev }
+          delete updated[tempId]
+          return updated
+        })
+
         toast({
           title: 'Success',
           description: 'Route created successfully',
@@ -196,13 +227,16 @@ const AccordionContentRouterSection = ({
         })
       }
     },
-    [createRule, toast],
+    [createRule, toast, storeFormValues],
   )
 
   const handleUpdateRule = useCallback(
     async (id: number, data: ContentRouterRuleUpdate) => {
       // Only set loading state for this specific rule update
       setSavingRules((prev) => ({ ...prev, [id]: true }))
+
+      // Store current form values to prevent flash
+      storeFormValues(id.toString(), data)
 
       try {
         // Convert quality_profile to the expected format
@@ -234,21 +268,39 @@ const AccordionContentRouterSection = ({
           description: `Failed to update route: ${error instanceof Error ? error.message : 'Unknown error'}`,
           variant: 'destructive',
         })
+
+        // On error, keep the form values in state
+        return
       } finally {
         setSavingRules((prev) => {
           const updated = { ...prev }
           delete updated[id.toString()]
           return updated
         })
+
+        // Clean up stored form values only on success
+        setEditedFormValues((prev) => {
+          const updated = { ...prev }
+          delete updated[id.toString()]
+          return updated
+        })
       }
     },
-    [updateRule, toast],
+    [updateRule, toast, storeFormValues],
   )
 
   const handleRemoveRule = useCallback(async () => {
     if (deleteConfirmationRuleId) {
       try {
         await deleteRule(deleteConfirmationRuleId)
+
+        // Clean up any stored form values for this rule
+        setEditedFormValues((prev) => {
+          const updated = { ...prev }
+          delete updated[deleteConfirmationRuleId.toString()]
+          return updated
+        })
+
         setDeleteConfirmationRuleId(null)
         toast({
           title: 'Success',
@@ -265,6 +317,13 @@ const AccordionContentRouterSection = ({
   }, [deleteConfirmationRuleId, deleteRule, toast])
 
   const handleCancelLocalRule = useCallback((tempId: string) => {
+    // Clean up stored form values when canceling
+    setEditedFormValues((prev) => {
+      const updated = { ...prev }
+      delete updated[tempId]
+      return updated
+    })
+
     setLocalRules((prev) => prev.filter((r) => r.tempId !== tempId))
   }, [])
 
@@ -404,10 +463,19 @@ const AccordionContentRouterSection = ({
     // Convert to standardized condition format
     const ruleWithCondition = convertToStandardCondition(rule)
 
+    // Check if we have stored form values for this rule
+    const storedId = ruleId.toString()
+    const hasStoredValues = storedId in editedFormValues
+
+    // Merge stored form values if they exist
+    const mergedRule = hasStoredValues
+      ? { ...ruleWithCondition, ...editedFormValues[storedId] }
+      : ruleWithCondition
+
     return (
       <AccordionRouteCard
         key={ruleId}
-        route={ruleWithCondition as ExtendedContentRouterRule}
+        route={mergedRule as ExtendedContentRouterRule}
         isNew={isNew}
         onSave={async (data: ContentRouterRule | ContentRouterRuleUpdate) => {
           if (isNew) {
@@ -459,8 +527,11 @@ const AccordionContentRouterSection = ({
             </h2>
           </div>
           <div className="grid gap-4">
-            <ContentRouteCardSkeleton />
-            <ContentRouteCardSkeleton />
+            {skeletonIds.map((id) => (
+              <AccordionRouteCardSkeleton
+                key={`skeleton-${targetType}-${id}`}
+              />
+            ))}
           </div>
         </div>
       ) : !hasExistingRoutes && localRules.length === 0 ? (
@@ -502,7 +573,7 @@ const AccordionContentRouterSection = ({
               rules.length === 0 &&
               localRules.length === 0 && (
                 <div className="opacity-40 pointer-events-none">
-                  <ContentRouteCardSkeleton />
+                  <AccordionRouteCardSkeleton />
                 </div>
               )}
           </div>

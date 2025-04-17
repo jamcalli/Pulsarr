@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import DeleteRouteAlert from '@/features/content-router/components/delete-route-alert'
-import ContentRouteCardSkeleton from '@/features/content-router/components/content-route-skeleton'
+import AccordionRouteCardSkeleton from '@/features/content-router/components/accordion-route-card-skeleton'
 import ConditionalRouteCard from '@/features/content-router/components/conditional-route-card'
 import { useRadarrContentRouterAdapter } from '@/features/radarr/hooks/content-router/useRadarrContentRouterAdapater'
 import { useSonarrContentRouterAdapter } from '@/features/sonarr/hooks/content-router/useSonarrContentRouterAdapter'
@@ -140,18 +140,12 @@ const ContentRouterSection = ({
       try {
         await toggleRule(id, enabled)
       } catch (error) {
-        toast({
-          title: 'Error',
-          description: `Failed to ${enabled ? 'enable' : 'disable'} route. Please try again.`,
-          variant: 'destructive',
-        })
-
-        fetchRules().catch(console.error)
+        // Error handling is already done in toggleRule
       } finally {
         setTogglingRuleId(null)
       }
     },
-    [toggleRule, toast, fetchRules],
+    [toggleRule],
   )
 
   const handleSaveNewRule = useCallback(
@@ -448,8 +442,8 @@ const ContentRouterSection = ({
             </h2>
           </div>
           <div className="grid gap-4">
-            <ContentRouteCardSkeleton />
-            <ContentRouteCardSkeleton />
+            <AccordionRouteCardSkeleton />
+            <AccordionRouteCardSkeleton />
           </div>
         </div>
       ) : !hasExistingRoutes && localRules.length === 0 ? (
@@ -491,7 +485,7 @@ const ContentRouterSection = ({
               rules.length === 0 &&
               localRules.length === 0 && (
                 <div className="opacity-40 pointer-events-none">
-                  <ContentRouteCardSkeleton />
+                  <AccordionRouteCardSkeleton />
                 </div>
               )}
           </div>
