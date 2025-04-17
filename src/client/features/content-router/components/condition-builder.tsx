@@ -73,6 +73,17 @@ const ConditionBuilder = ({
   // Create stable refs for handler functions
   const handlers = useRef({
     handleFieldChange: (fieldName: string) => {
+      // Reset to empty state if no field name
+      if (!fieldName) {
+        onChange({
+          field: '',
+          operator: '',
+          value: '',
+          negate: valueRef.current.negate || false,
+        })
+        return
+      }
+
       // Find which evaluator supports this field
       let fieldEvaluator = null
       let fieldInfo = null
@@ -110,6 +121,16 @@ const ConditionBuilder = ({
     },
 
     handleOperatorChange: (operatorName: string) => {
+      // Reset to empty operator if no operator name
+      if (!operatorName) {
+        onChange({
+          ...valueRef.current,
+          operator: '',
+          value: '',
+        })
+        return
+      }
+
       const evaluator = selectedEvaluatorRef.current
       if (!evaluator) return
 
@@ -181,11 +202,14 @@ const ConditionBuilder = ({
   useEffect(() => {
     if (!evaluatorMetadata || evaluatorMetadata.length === 0) return
 
-    // Create fields list just once
-    const allFields = filteredEvaluators.flatMap((e) => e.supportedFields)
+    // Create fields list and sort alphabetically
+    const allFields = filteredEvaluators
+      .flatMap((e) => e.supportedFields)
+      .sort((a, b) => a.name.localeCompare(b.name))
+    
     setFields(allFields)
 
-    // Find evaluator for the current field if one is selected
+    // Only proceed with field/operator setup if we have an explicitly selected field
     if (value.field) {
       let foundEvaluator: EvaluatorMetadata | null = null
       let fieldInfo: FieldInfo | null = null
@@ -211,7 +235,7 @@ const ConditionBuilder = ({
           const fieldOperators = foundEvaluator.supportedOperators[value.field]
           setOperators(fieldOperators)
 
-          // Also set value types and operator description if we have an operator
+          // Only set value types and operator description if we have an explicitly selected operator
           if (value.operator) {
             const operatorInfo = fieldOperators.find(
               (op) => op.name === value.operator,
@@ -222,13 +246,14 @@ const ConditionBuilder = ({
             }
           }
         }
-      } else if (filteredEvaluators.length > 0) {
-        // If no evaluator was found that supports this field, use the first one
-        setSelectedEvaluator(filteredEvaluators[0])
       }
-    } else if (filteredEvaluators.length > 0) {
-      // If no field is selected, preset the first non-conditional evaluator
-      setSelectedEvaluator(filteredEvaluators[0])
+    } else {
+      // Reset states when no field is selected
+      setSelectedEvaluator(null)
+      setFieldDescription('')
+      setOperators([])
+      setValueTypes([])
+      setOperatorDescription('')
     }
   }, [evaluatorMetadata, value.field, value.operator, filteredEvaluators])
 
