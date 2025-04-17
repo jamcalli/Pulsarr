@@ -491,7 +491,11 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           name: ruleData.name,
           target_type: ruleData.target_type,
           target_instance_id: ruleData.target_instance_id,
-          condition: ruleData.condition,
+          condition: ruleData.condition || {
+            operator: 'AND',
+            conditions: [],
+            negate: false,
+          },
           root_folder: ruleData.root_folder,
           quality_profile:
             typeof ruleData.quality_profile === 'string'

@@ -63,10 +63,10 @@ export const ConditionGroupSchema: z.ZodType<IConditionGroup> = z.lazy(() =>
 
 // Base router rule schema
 export const BaseRouterRuleSchema = z.object({
-  name: z.string(),
+  name: z.string().min(1, { message: 'Name is required' }),
   target_type: z.enum(['sonarr', 'radarr']),
-  target_instance_id: z.number(),
-  condition: z.union([ConditionSchema, ConditionGroupSchema]),
+  target_instance_id: z.number().min(1),
+  condition: z.union([ConditionSchema, ConditionGroupSchema]).optional(),
   root_folder: z.string().optional(),
   quality_profile: z.union([z.number(), z.string()]).optional(),
   order: z.number().optional(),
