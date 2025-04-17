@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import {
   Accordion,
   AccordionContent,
@@ -130,6 +130,41 @@ const AccordionRouteCard = ({
     undefined,
   )
 
+  // Refs to track component state
+  const isSavingRef = useRef(false)
+  const isDirtyRef = useRef(false)
+  const latestFormValues = useRef<ConditionalRouteFormValues | null>(null)
+  const hasInitializedForm = useRef(false)
+
+  const getRouteId = useCallback(
+    (
+      routeObj: ExtendedContentRouterRule | Partial<ExtendedContentRouterRule>,
+      isNewRoute: boolean,
+    ): string | number | null => {
+      if ('id' in routeObj && routeObj.id !== undefined) {
+        const id = routeObj.id
+        // Make sure we return a string or number, not an object
+        if (typeof id === 'string' || typeof id === 'number') {
+          return id
+        }
+      }
+
+      if (isNewRoute && 'tempId' in routeObj && routeObj.tempId !== undefined) {
+        const tempId = routeObj.tempId
+        // Make sure we return a string or number, not an object
+        if (typeof tempId === 'string' || typeof tempId === 'number') {
+          return tempId
+        }
+      }
+
+      return null
+    },
+    [],
+  )
+
+  // Use a route ID ref to detect actual route changes vs re-renders
+  const routeIdRef = useRef<string | number | null>(getRouteId(route, isNew))
+
   // Create a default initial condition group for new routes
   const getInitialConditionValue = useCallback((): ConditionGroup => {
     // Check if route has condition
@@ -154,10 +189,9 @@ const AccordionRouteCard = ({
     }
   }, [route])
 
-  // Setup form with validation
-  const form = useForm<ConditionalRouteFormValues>({
-    resolver: zodResolver(ConditionalRouteFormSchema),
-    defaultValues: {
+  // Create memoized default values to prevent unnecessary form resets
+  const defaultValues = useMemo(
+    () => ({
       name:
         route?.name ||
         `New ${contentType === 'radarr' ? 'Movie' : 'Show'} Route`,
@@ -172,11 +206,28 @@ const AccordionRouteCard = ({
           : '',
       enabled: route?.enabled !== false,
       order: route?.order ?? 50,
-    },
+    }),
+    [route, getInitialConditionValue, instances, contentType],
+  )
+
+  // Setup form with validation
+  const form = useForm<ConditionalRouteFormValues>({
+    resolver: zodResolver(ConditionalRouteFormSchema),
+    defaultValues,
     mode: 'all',
   })
 
   const initializationRef = useRef(false)
+
+  // Subscribe to form value changes and store the latest values
+  useEffect(() => {
+    const subscription = form.watch((value) => {
+      latestFormValues.current = value as ConditionalRouteFormValues
+      isDirtyRef.current = form.formState.isDirty
+    })
+
+    return () => subscription.unsubscribe()
+  }, [form])
 
   const fetchEvaluatorMetadata = useCallback(async () => {
     // Prevent duplicate initializations
@@ -335,14 +386,33 @@ const AccordionRouteCard = ({
 
   // Initial form validation for new cards
   useEffect(() => {
-    if (isNew) {
-      setTimeout(() => form.trigger(), 0)
+    if (isNew && !hasInitializedForm.current) {
+      setTimeout(() => {
+        form.trigger()
+        hasInitializedForm.current = true
+      }, 0)
     }
   }, [form, isNew])
 
-  // Reset form when route changes (for editing)
+  // Reset form only when route ID changes or saving state changes
   useEffect(() => {
-    if (!isNew && route.id !== undefined) {
+    // Get current route ID
+    const currentRouteId = getRouteId(route, isNew)
+
+    // Only reset form if route ID changed (actual different route) or initial load
+    const shouldResetForm =
+      currentRouteId !== routeIdRef.current || !hasInitializedForm.current
+
+    // Update route ID ref
+    routeIdRef.current = currentRouteId
+
+    // Don't reset if saving is in progress
+    if (isSavingRef.current) {
+      return
+    }
+
+    // Only reset if route actually changed to prevent toast-induced resets
+    if (shouldResetForm && !isNew) {
       form.reset({
         name:
           route?.name ||
@@ -361,8 +431,17 @@ const AccordionRouteCard = ({
         order: route?.order ?? 50,
       })
       setLocalTitle(route?.name || '')
+      hasInitializedForm.current = true
     }
-  }, [route, isNew, form, getInitialConditionValue, instances, contentType])
+  }, [
+    route,
+    isNew,
+    form,
+    getInitialConditionValue,
+    instances,
+    contentType,
+    getRouteId,
+  ])
 
   const handleTitleChange = useCallback(
     (title: string) => {
@@ -382,14 +461,17 @@ const AccordionRouteCard = ({
     )
       return
 
-    // Optimistically update local form state
-    form.setValue('enabled', !form.getValues('enabled'))
+    // Set the new enabled state
+    const newEnabledState = !route.enabled
+
+    // Optimistically update both form and local state
+    form.setValue('enabled', newEnabledState, { shouldDirty: false })
 
     try {
-      await onToggleEnabled(route.id, !route.enabled)
+      await onToggleEnabled(route.id, newEnabledState)
     } catch (error) {
       // Revert on error
-      form.setValue('enabled', route.enabled)
+      form.setValue('enabled', route.enabled, { shouldDirty: false })
     }
   }, [route, onToggleEnabled, form])
 
@@ -419,6 +501,9 @@ const AccordionRouteCard = ({
 
   // Handle form submission
   const handleSubmit = async (data: ConditionalRouteFormValues) => {
+    // Set flag to indicate save in progress to prevent form state issues
+    isSavingRef.current = true
+
     try {
       // For new routes (creating a route)
       if (isNew) {
@@ -456,8 +541,21 @@ const AccordionRouteCard = ({
 
         await onSave(updatePayload)
       }
+
+      // After successful save, reset form state to not be dirty
+      // but keep the current values
+      form.reset(form.getValues(), {
+        keepValues: true,
+        keepDirty: false,
+      })
+      isDirtyRef.current = false
     } catch (error) {
       console.error('Failed to save conditional route:', error)
+    } finally {
+      // Clear the saving flag after save completes (success or error)
+      setTimeout(() => {
+        isSavingRef.current = false
+      }, 500)
     }
   }
 
@@ -723,7 +821,7 @@ const AccordionRouteCard = ({
                             </TooltipProvider>
                           </div>
                           <FormControl>
-                            <div className="border rounded-md p-4 bg-card/50 relative">
+                            <div className="border rounded-md p-4 bg-card/50 border-text relative">
                               {loading && (
                                 <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-10 rounded-md">
                                   <div className="text-center space-y-2">
