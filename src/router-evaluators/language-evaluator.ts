@@ -130,12 +130,22 @@ export default function createLanguageEvaluator(
 
         const ruleLanguage = rule.criteria.language
 
-        // Ensure the criterion value is a non-empty string
-        if (
-          !language ||
-          typeof ruleLanguage !== 'string' ||
-          ruleLanguage.trim() === ''
-        ) {
+        // If no language data, skip the rule
+        if (!language) {
+          return false
+        }
+
+        // Support array form from the 'in' operator
+        if (Array.isArray(ruleLanguage)) {
+          return ruleLanguage.some(
+            (lang) =>
+              typeof lang === 'string' &&
+              language.toLowerCase() === lang.toLowerCase(),
+          )
+        }
+
+        // Ensure the criterion value is a non-empty string for direct comparison
+        if (typeof ruleLanguage !== 'string' || ruleLanguage.trim() === '') {
           return false
         }
 
