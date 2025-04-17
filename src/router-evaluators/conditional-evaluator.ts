@@ -10,7 +10,11 @@ import type {
   OperatorInfo,
 } from '@root/types/router.types.js'
 
-// Type guard for Condition
+/**
+ * Determines whether the given value is a valid {@link Condition} object.
+ *
+ * Returns true if the value is a non-null object containing the properties `field`, `operator`, and `value`.
+ */
 function isCondition(value: unknown): value is Condition {
   return (
     typeof value === 'object' &&
@@ -21,7 +25,11 @@ function isCondition(value: unknown): value is Condition {
   )
 }
 
-// Type guard for ConditionGroup
+/**
+ * Determines whether the given value is a {@link ConditionGroup}.
+ *
+ * Returns true if the value is a non-null object containing an 'operator' property and a 'conditions' array.
+ */
 function isConditionGroup(value: unknown): value is ConditionGroup {
   return (
     typeof value === 'object' &&
@@ -32,11 +40,22 @@ function isConditionGroup(value: unknown): value is ConditionGroup {
   )
 }
 
-// Type guard for valid condition
+/**
+ * Determines whether a value is a valid condition or condition group.
+ *
+ * Returns true if the input is either a {@link Condition} or a {@link ConditionGroup}.
+ */
 function isValidCondition(value: unknown): value is Condition | ConditionGroup {
   return isCondition(value) || isConditionGroup(value)
 }
 
+/**
+ * Creates a routing evaluator that applies complex conditional rules to determine content routing.
+ *
+ * The evaluator retrieves conditional routing rules from the database, validates their condition structures, and evaluates them against content items. If a rule's condition matches the item and context, it returns routing decisions specifying the target instance, quality profile, root folder, and priority.
+ *
+ * @returns A {@link RoutingEvaluator} configured to process conditional routing rules with the highest priority.
+ */
 export default function createConditionalEvaluator(
   fastify: FastifyInstance,
 ): RoutingEvaluator {
