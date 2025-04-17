@@ -29,6 +29,16 @@ interface ConditionGroupComponentProps {
   level?: number
 }
 
+type ConditionValue =
+  | string
+  | number
+  | boolean
+  | string[]
+  | number[]
+  | { min?: number; max?: number }
+  | null
+  | undefined
+
 const ConditionGroupComponent = ({
   value,
   onChange,
@@ -47,6 +57,8 @@ const ConditionGroupComponent = ({
   const filteredEvaluators = evaluatorMetadata.filter(
     (e) => e.name !== 'Conditional Router',
   )
+
+  const conditionKeysRef = useRef(new Map())
 
   // Create a properly structured empty condition with defaults based on the first available field
   const createEmptyCondition = useCallback((): Condition => {
@@ -94,7 +106,7 @@ const ConditionGroupComponent = ({
     const firstOperator = operators[0]?.name || ''
 
     // Determine appropriate initial value based on value type
-    let initialValue: any = ''
+    let initialValue: ConditionValue = ''
     if (operators[0]?.valueTypes) {
       const valueType = operators[0].valueTypes[0]
       if (valueType === 'number') initialValue = 0
@@ -123,34 +135,40 @@ const ConditionGroupComponent = ({
 
   const isInitialized = useRef(false)
 
-  // Initialize conditions with proper fields when metadata is loaded - ONCE
+  const hasInitialConditionsRef = useRef(false)
+
+  // Run this effect once on mount to check initial conditions
   useEffect(() => {
     // Skip if we've already initialized or if we don't have evaluators
     if (isInitialized.current || filteredEvaluators.length === 0) {
       return
     }
 
-    // Skip if we already have conditions
-    if (value.conditions && value.conditions.length > 0) {
-      isInitialized.current = true
-      return
+    // Check conditions only once and store result in ref
+    if (!hasInitialConditionsRef.current) {
+      hasInitialConditionsRef.current = true
+
+      // If we already have conditions, mark as initialized and return
+      if (value.conditions && value.conditions.length > 0) {
+        isInitialized.current = true
+        return
+      }
+
+      // Create a single empty condition - this should only run once
+      const emptyCondition = createEmptyCondition()
+
+      // Use setTimeout to break potential update cycles
+      const timer = setTimeout(() => {
+        onChange({
+          ...value,
+          conditions: [emptyCondition],
+        })
+        isInitialized.current = true
+      }, 0)
+
+      return () => clearTimeout(timer)
     }
-
-    // Create a single empty condition - this should only run once
-    const emptyCondition = createEmptyCondition()
-
-    // Use setTimeout to break potential update cycles
-    const timer = setTimeout(() => {
-      onChange({
-        ...value,
-        conditions: [emptyCondition],
-      })
-      isInitialized.current = true
-    }, 0)
-
-    return () => clearTimeout(timer)
-    // Only depend on filteredEvaluators.length - explicitly NOT including value or functions
-  }, [filteredEvaluators.length])
+  }, [filteredEvaluators.length, value, onChange, createEmptyCondition])
 
   // Handle toggling the negate flag
   const handleToggleNegate = useCallback(() => {
@@ -327,8 +345,15 @@ const ConditionGroupComponent = ({
               'operator' in condition &&
               'conditions' in condition
 
+            // Generate or retrieve a stable key for this condition
+            let key = conditionKeysRef.current.get(condition)
+            if (!key) {
+              key = `condition-${Math.random().toString(36).substr(2, 9)}`
+              conditionKeysRef.current.set(condition, key)
+            }
+
             return (
-              <div key={`condition-${index}`} className="relative">
+              <div key={key} className="relative">
                 {isGroup ? (
                   // Render nested group
                   <ConditionGroupComponent

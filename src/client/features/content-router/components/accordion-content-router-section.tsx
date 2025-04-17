@@ -15,6 +15,16 @@ import type {
   ConditionGroup,
 } from '@root/schemas/content-router/content-router.schema'
 
+// Define possible value types for criteria
+type CriteriaValue =
+  | string
+  | string[]
+  | number
+  | number[]
+  | { min?: number; max?: number }
+  | ConditionGroup
+  | undefined
+
 // Define criteria interface to match backend schema
 interface Criteria {
   condition?: ConditionGroup
@@ -268,7 +278,7 @@ const AccordionContentRouterSection = ({
       !extendedRule.condition &&
       typeof extendedRule.criteria === 'object'
     ) {
-      const criteria = extendedRule.criteria as Record<string, any>
+      const criteria = extendedRule.criteria as Record<string, CriteriaValue>
 
       if ('genre' in criteria && criteria.genre) {
         // Convert genre rule to condition
