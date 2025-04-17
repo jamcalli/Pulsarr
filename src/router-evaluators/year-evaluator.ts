@@ -11,12 +11,20 @@ import type {
 } from '@root/types/router.types.js'
 import { extractYear } from '@root/types/content-lookup.types.js'
 
-// Type guard for number array
+/**
+ * Determines whether the given value is an array consisting only of numbers.
+ *
+ * @returns True if the value is an array where every element is a number; otherwise, false.
+ */
 function isNumberArray(value: unknown): value is number[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'number')
 }
 
-// Type guard for number
+/**
+ * Determines whether the provided value is a number.
+ *
+ * @returns `true` if the value is of type `number`; otherwise, `false`.
+ */
 function isNumber(value: unknown): value is number {
   return typeof value === 'number'
 }
@@ -27,6 +35,14 @@ interface YearRange {
   max?: number
 }
 
+/**
+ * Determines whether the given value is a {@link YearRange} object.
+ *
+ * A value is considered a {@link YearRange} if it is a non-null object containing at least a `min` or `max` property, where each property is either a number or undefined.
+ *
+ * @param value - The value to check.
+ * @returns `true` if the value is a valid {@link YearRange}; otherwise, `false`.
+ */
 function isYearRange(value: unknown): value is YearRange {
   return (
     typeof value === 'object' &&
@@ -39,13 +55,24 @@ function isYearRange(value: unknown): value is YearRange {
   )
 }
 
-// Type guard for valid year value
+/**
+ * Determines whether a value is a valid year criterion, accepting a number, an array of numbers, or a year range object.
+ *
+ * @returns `true` if the value is a number, an array of numbers, or a {@link YearRange} object; otherwise, `false`.
+ */
 function isValidYearValue(
   value: unknown,
 ): value is number | number[] | YearRange {
   return isNumber(value) || isNumberArray(value) || isYearRange(value)
 }
 
+/**
+ * Creates a routing evaluator that routes content based on its release year.
+ *
+ * The evaluator supports various operators and value types for the "year" field, including exact matches, range checks, and membership in arrays. It integrates with the database to retrieve year-based routing rules and determines routing decisions for movies and TV shows accordingly.
+ *
+ * @returns A {@link RoutingEvaluator} instance that evaluates routing rules and conditions based on content release year.
+ */
 export default function createYearEvaluator(
   fastify: FastifyInstance,
 ): RoutingEvaluator {

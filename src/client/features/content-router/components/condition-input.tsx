@@ -118,6 +118,22 @@ const StableNumberInput = ({
   )
 }
 
+/**
+ * Renders an adaptive input control for a conditional form, selecting the appropriate input type based on the field, operator, and allowed value types.
+ *
+ * Depending on the context, this component displays text inputs, number inputs, range inputs, single-select dropdowns, or multi-select components for fields such as genre, user, year, and language. It manages value parsing and formatting for single and multi-value inputs, and integrates with a global config store to fetch user data as needed.
+ *
+ * @param field - The name of the field being filtered.
+ * @param operator - The comparison operator for the condition.
+ * @param valueTypes - Allowed value types for the field and operator.
+ * @param value - The current value of the input.
+ * @param onChange - Callback invoked when the input value changes.
+ * @param genres - Optional list of genres for genre selection fields.
+ * @param onGenreDropdownOpen - Optional callback when the genre dropdown is opened.
+ * @param inputId - Optional ID for the input element.
+ *
+ * @returns The appropriate input element for the given field and operator, or null if insufficient information is provided.
+ */
 function ConditionInput({
   field,
   operator,

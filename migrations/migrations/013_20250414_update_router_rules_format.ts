@@ -1,12 +1,12 @@
 import type { Knex } from 'knex'
 
 /**
- * Migration to update existing router rules to the new format with explicit condition structure
- * 
- * This migration addresses the issue where older router rules (genre, year, language, etc.)
- * use a different criteria format than the new conditional router format. It converts
- * the older format to be compatible with the new schema that expects a 'condition' field
- * in the criteria object.
+ * Migrates existing router rules to include an explicit `condition` field in their criteria.
+ *
+ * Updates all non-conditional router rules in the `router_rules` table by transforming their `criteria` to the new format, adding a `condition` object based on the rule type. Handles various rule types such as genre, year, language, and user, and applies a generic transformation for unknown types. Rules that cannot be converted are skipped.
+ *
+ * @remark
+ * Rules with missing or unrecognized criteria are not updated. Errors encountered during processing of individual rules are logged and do not interrupt the migration.
  */
 export async function up(knex: Knex): Promise<void> {
   // Get all router rules that need updating (non-conditional rules)
@@ -132,7 +132,9 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Reverses the update by removing the added condition field from criteria
+ * Reverts router rules to the previous format by removing the `condition` field from the `criteria` of all non-conditional rules.
+ *
+ * Iterates through all router rules where the type is not `'conditional'`, removes the `condition` property from their `criteria` if present, and updates the database accordingly.
  */
 export async function down(knex: Knex): Promise<void> {
   // Get all non-conditional rules

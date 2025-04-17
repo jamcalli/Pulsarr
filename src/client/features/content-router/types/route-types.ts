@@ -38,7 +38,10 @@ export interface ConditionGroup extends ConditionBase {
 }
 
 /**
- * Type guard to check if an object is a Condition
+ * Determines whether the given object is a {@link Condition}.
+ *
+ * @param obj - The object to test.
+ * @returns True if {@link obj} has the structure of a {@link Condition}; otherwise, false.
  */
 export function isCondition(obj: unknown): obj is Condition {
   return (
@@ -52,7 +55,10 @@ export function isCondition(obj: unknown): obj is Condition {
 }
 
 /**
- * Type guard to check if an object is a ConditionGroup
+ * Determines whether the given object is a {@link ConditionGroup}.
+ *
+ * @param obj - The object to test.
+ * @returns True if {@link obj} is a {@link ConditionGroup}; otherwise, false.
  */
 export function isConditionGroup(obj: unknown): obj is ConditionGroup {
   return (
