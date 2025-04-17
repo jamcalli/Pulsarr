@@ -310,7 +310,7 @@ const ConditionGroupComponent = ({
         <div className="flex space-x-2">
           {onRemove && (
             <Button variant="noShadow" size="sm" onClick={onRemove}>
-              <Trash2 className="h-4 w-4 mr-1 text-text" />
+              <Trash2 className="h-4 w-4 mr-1" />
               <span className="hidden md:inline">Remove Group</span>
             </Button>
           )}
@@ -367,6 +367,7 @@ const ConditionGroupComponent = ({
         <Button
           variant="noShadow"
           size="sm"
+          type="button"
           onClick={handleAddCondition}
           disabled={filteredEvaluators.length === 0}
         >
@@ -376,6 +377,7 @@ const ConditionGroupComponent = ({
         <Button
           variant="noShadow"
           size="sm"
+          type="button"
           onClick={handleAddGroup}
           disabled={filteredEvaluators.length === 0}
         >

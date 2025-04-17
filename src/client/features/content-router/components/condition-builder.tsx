@@ -364,6 +364,7 @@ const ConditionBuilder = ({
             <Button
               variant="error"
               size="sm"
+              type="button"
               onClick={onRemove}
               className="ml-auto"
             >
