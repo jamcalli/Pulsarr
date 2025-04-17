@@ -10,6 +10,13 @@ import type {
   OperatorInfo,
 } from '@root/types/router.types.js'
 
+/**
+ * Creates a routing evaluator that routes content based on the requesting user's ID or username.
+ *
+ * The evaluator supports routing rules and conditions using the `user` field, allowing exact or inclusion matches on user IDs or usernames. It provides methods to determine if evaluation is possible for a given context, to evaluate routing rules for the current user, and to check if a condition on the `user` field matches the context.
+ *
+ * @returns A {@link RoutingEvaluator} configured for user-based routing decisions.
+ */
 export default function createUserEvaluator(
   fastify: FastifyInstance,
 ): RoutingEvaluator {

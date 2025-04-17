@@ -10,21 +10,41 @@ import type {
   OperatorInfo,
 } from '@root/types/router.types.js'
 
-// Type guard for string array
+/**
+ * Determines whether the provided value is an array of strings.
+ *
+ * @param value - The value to check.
+ * @returns True if {@link value} is an array where every element is a string; otherwise, false.
+ */
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'string')
 }
 
-// Type guard for string
+/**
+ * Determines whether the provided value is a string.
+ *
+ * @returns `true` if the value is of type string; otherwise, `false`.
+ */
 function isString(value: unknown): value is string {
   return typeof value === 'string'
 }
 
-// Type guard for valid genre value
+/**
+ * Determines whether a value is a valid genre value, meaning it is either a string or an array of strings.
+ *
+ * @returns `true` if the value is a string or an array of strings; otherwise, `false`.
+ */
 function isValidGenreValue(value: unknown): value is string | string[] {
   return isString(value) || isStringArray(value)
 }
 
+/**
+ * Creates a routing evaluator that routes content based on genre matching rules.
+ *
+ * The evaluator supports only the "genre" field and provides operators for matching genres, such as contains, in, notContains, notIn, and equals. It fetches genre-based routing rules from the database, filters them according to the content type (movie or series), and determines routing decisions based on whether the content item's genres match the rule criteria.
+ *
+ * @returns A {@link RoutingEvaluator} specialized for genre-based routing decisions.
+ */
 export default function createGenreEvaluator(
   fastify: FastifyInstance,
 ): RoutingEvaluator {
