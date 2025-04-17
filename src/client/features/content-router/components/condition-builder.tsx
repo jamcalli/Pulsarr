@@ -70,125 +70,22 @@ const ConditionBuilder = ({
   const valueRef = useRef(value)
   valueRef.current = value
 
-  // Create stable refs for handler functions
-  const handlers = useRef({
-    handleFieldChange: (fieldName: string) => {
-      // Reset to empty state if no field name
-      if (!fieldName) {
-        onChange({
-          field: '',
-          operator: '',
-          value: '',
-          negate: valueRef.current.negate || false,
-        })
-        return
-      }
+  // Keep a ref to the latest evaluatorMetadata
+  const evaluatorMetadataRef = useRef(evaluatorMetadata)
+  evaluatorMetadataRef.current = evaluatorMetadata
 
-      // Find which evaluator supports this field
-      let fieldEvaluator = null
-      let fieldInfo = null
-
-      for (const evaluator of evaluatorMetadata) {
-        const foundField = evaluator.supportedFields.find(
-          (f) => f.name === fieldName,
-        )
-        if (foundField) {
-          fieldEvaluator = evaluator
-          fieldInfo = foundField
-          break
-        }
-      }
-
-      if (fieldEvaluator && fieldInfo) {
-        setSelectedEvaluator(fieldEvaluator)
-        setFieldDescription(fieldInfo.description || '')
-
-        // Reset operator and value when field changes
-        onChange({
-          field: fieldName,
-          operator: '',
-          value: '',
-          negate: valueRef.current.negate || false,
-        })
-
-        // Update operators for this field
-        if (fieldEvaluator.supportedOperators?.[fieldName]) {
-          setOperators(fieldEvaluator.supportedOperators[fieldName])
-        } else {
-          setOperators([])
-        }
-      }
-    },
-
-    handleOperatorChange: (operatorName: string) => {
-      // Reset to empty operator if no operator name
-      if (!operatorName) {
-        onChange({
-          ...valueRef.current,
-          operator: '',
-          value: '',
-        })
-        return
-      }
-
-      const evaluator = selectedEvaluatorRef.current
-      if (!evaluator) return
-
-      // Find the operator info
-      const operatorInfo = evaluator.supportedOperators?.[
-        valueRef.current.field
-      ]?.find((op) => op.name === operatorName)
-
-      setOperatorDescription(operatorInfo?.description || '')
-
-      // Initialize an appropriate default value based on operator type
-      let defaultValue: ConditionValue = ''
-
-      if (operatorInfo) {
-        const valueType = operatorInfo.valueTypes?.[0]
-
-        if (valueType === 'number') {
-          defaultValue = 0
-        } else if (valueType === 'number[]') {
-          defaultValue = []
-        } else if (valueType === 'string[]') {
-          defaultValue = []
-        } else if (valueType === 'object') {
-          defaultValue = { min: undefined, max: undefined }
-        }
-
-        // Set value types
-        setValueTypes(operatorInfo.valueTypes || [])
-      }
-
-      // Update with the new operator and clear previous value
-      onChange({
-        ...valueRef.current,
-        operator: operatorName,
-        value: defaultValue,
-      })
-    },
-
-    handleValueChange: (newValue: ConditionValue) => {
-      onChange({
-        ...valueRef.current,
-        value: newValue,
-      })
-    },
-
-    handleToggleNegate: () => {
-      onChange({
-        ...valueRef.current,
-        negate: !valueRef.current.negate,
-      })
-    },
+  // Initialize handlers ref with empty implementations
+  const handlers = useRef<{
+    handleFieldChange: (fieldName: string) => void
+    handleOperatorChange: (operatorName: string) => void
+    handleValueChange: (newValue: ConditionValue) => void
+    handleToggleNegate: () => void
+  }>({
+    handleFieldChange: () => {},
+    handleOperatorChange: () => {},
+    handleValueChange: () => {},
+    handleToggleNegate: () => {},
   })
-
-  // Filter out the Conditional Router from options - we only want to show actual condition types
-  const filteredEvaluators = useMemo(
-    () => evaluatorMetadata.filter((e) => e.name !== 'Conditional Router'),
-    [evaluatorMetadata],
-  )
 
   // State to track the selected evaluator (without exposing it directly in the UI)
   const [selectedEvaluator, setSelectedEvaluator] =
@@ -197,6 +94,130 @@ const ConditionBuilder = ({
   // Keep a ref to the selected evaluator to avoid stale closures
   const selectedEvaluatorRef = useRef<EvaluatorMetadata | null>(null)
   selectedEvaluatorRef.current = selectedEvaluator
+
+  // Filter out the Conditional Router from options - we only want to show actual condition types
+  const filteredEvaluators = useMemo(
+    () => evaluatorMetadata.filter((e) => e.name !== 'Conditional Router'),
+    [evaluatorMetadata],
+  )
+
+  // Update handlers whenever dependencies change to avoid stale closures
+  useEffect(() => {
+    handlers.current = {
+      handleFieldChange: (fieldName: string) => {
+        // Reset to empty state if no field name
+        if (!fieldName) {
+          onChange({
+            field: '',
+            operator: '',
+            value: '',
+            negate: valueRef.current.negate || false,
+          })
+          return
+        }
+
+        // Find which evaluator supports this field
+        // Using evaluatorMetadataRef.current to get latest metadata
+        let fieldEvaluator = null
+        let fieldInfo = null
+
+        for (const evaluator of evaluatorMetadataRef.current) {
+          const foundField = evaluator.supportedFields.find(
+            (f) => f.name === fieldName,
+          )
+          if (foundField) {
+            fieldEvaluator = evaluator
+            fieldInfo = foundField
+            break
+          }
+        }
+
+        if (fieldEvaluator && fieldInfo) {
+          setSelectedEvaluator(fieldEvaluator)
+          setFieldDescription(fieldInfo.description || '')
+
+          // Reset operator and value when field changes
+          onChange({
+            field: fieldName,
+            operator: '',
+            value: '',
+            negate: valueRef.current.negate || false,
+          })
+
+          // Update operators for this field
+          if (fieldEvaluator.supportedOperators?.[fieldName]) {
+            setOperators(fieldEvaluator.supportedOperators[fieldName])
+          } else {
+            setOperators([])
+          }
+        }
+      },
+
+      handleOperatorChange: (operatorName: string) => {
+        // Reset to empty operator if no operator name
+        if (!operatorName) {
+          onChange({
+            ...valueRef.current,
+            operator: '',
+            value: '',
+          })
+          return
+        }
+
+        // Use the ref to get the latest evaluator
+        const evaluator = selectedEvaluatorRef.current
+        if (!evaluator) return
+
+        // Find the operator info
+        const operatorInfo = evaluator.supportedOperators?.[
+          valueRef.current.field
+        ]?.find((op) => op.name === operatorName)
+
+        setOperatorDescription(operatorInfo?.description || '')
+
+        // Initialize an appropriate default value based on operator type
+        let defaultValue: ConditionValue = ''
+
+        if (operatorInfo) {
+          const valueType = operatorInfo.valueTypes?.[0]
+
+          if (valueType === 'number') {
+            defaultValue = 0
+          } else if (valueType === 'number[]') {
+            defaultValue = []
+          } else if (valueType === 'string[]') {
+            defaultValue = []
+          } else if (valueType === 'object') {
+            defaultValue = { min: undefined, max: undefined }
+          }
+
+          // Set value types
+          setValueTypes(operatorInfo.valueTypes || [])
+        }
+
+        // Update with the new operator and clear previous value
+        onChange({
+          ...valueRef.current,
+          operator: operatorName,
+          value: defaultValue,
+        })
+      },
+
+      handleValueChange: (newValue: ConditionValue) => {
+        onChange({
+          ...valueRef.current,
+          value: newValue,
+        })
+      },
+
+      handleToggleNegate: () => {
+        onChange({
+          ...valueRef.current,
+          negate: !valueRef.current.negate,
+        })
+      },
+    }
+  }, [onChange]) // Remove evaluatorMetadata dependency since we use the ref
 
   // Update available fields when metadata changes - with optimized dependencies
   useEffect(() => {
