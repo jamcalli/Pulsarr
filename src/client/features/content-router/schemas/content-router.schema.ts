@@ -50,10 +50,7 @@ export const ConditionGroupSchema: z.ZodType<IConditionGroup> = z.lazy(() =>
     operator: z.enum(['AND', 'OR']),
     // Use a second lazy closure to avoid temporal dead zone issues
     conditions: z.array(
-      z.union([
-        ConditionSchema,
-        z.lazy(() => ConditionGroupSchema),
-      ]),
+      z.union([ConditionSchema, z.lazy(() => ConditionGroupSchema)]),
     ),
     negate: z.boolean().optional().default(false),
     _cid: z.string().optional(), // Add optional unique identifier
