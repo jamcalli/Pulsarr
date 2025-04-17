@@ -247,13 +247,29 @@ const ConditionBuilder = ({
   return (
     <Card className="p-4 space-y-4">
       <div className="flex items-center space-x-2 mb-2">
-        <Label className="flex items-center space-x-2 cursor-pointer">
-          <Switch
-            checked={value.negate || false}
-            onCheckedChange={handlers.current.handleToggleNegate}
-          />
-          <span>NOT</span>
-        </Label>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center">
+                <Label className="flex items-center space-x-2 cursor-pointer">
+                  <Switch
+                    checked={value.negate || false}
+                    onCheckedChange={handlers.current.handleToggleNegate}
+                    variant="danger"
+                  />
+                  <span>NOT</span>
+                </Label>
+                <HelpCircle className="h-4 w-4 ml-1 text-muted-foreground cursor-help" />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="max-w-xs">
+                Inverts just this specific condition. For example, "Genre equals
+                Action" becomes "Genre does not equal Action".
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       <div

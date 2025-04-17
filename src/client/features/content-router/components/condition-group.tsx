@@ -6,8 +6,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { Button } from '@/components/ui/button'
-import { PlusCircle, Trash2, LayoutList } from 'lucide-react'
+import { PlusCircle, Trash2, HelpCircle, LayoutList } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
@@ -302,30 +308,65 @@ const ConditionGroupComponent = ({
     <div className={`border-l-2 pl-4 ${getLevelColor()}`}>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-4">
-          <Label className="flex items-center space-x-2 cursor-pointer">
-            <Switch
-              checked={value.negate || false}
-              onCheckedChange={handleToggleNegate}
-            />
-            <span>NOT</span>
-          </Label>
-          <Select
-            value={value.operator}
-            onValueChange={(val) => handleOperatorChange(val as 'AND' | 'OR')}
-          >
-            <SelectTrigger className="w-[100px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="AND">AND</SelectItem>
-              <SelectItem value="OR">OR</SelectItem>
-            </SelectContent>
-          </Select>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center space-x-2">
+                  <Label className="flex items-center space-x-2 cursor-pointer">
+                    <Switch
+                      checked={value.negate || false}
+                      onCheckedChange={handleToggleNegate}
+                      variant="danger"
+                    />
+                    <span className="text-text">NOT</span>
+                  </Label>
+                  <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="max-w-xs">
+                  When enabled, inverts the entire result of this group. This
+                  matches content that does NOT satisfy the combined conditions
+                  below.
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center">
+                  <Select
+                    value={value.operator}
+                    onValueChange={(val) =>
+                      handleOperatorChange(val as 'AND' | 'OR')
+                    }
+                  >
+                    <SelectTrigger className="w-[100px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="AND">AND</SelectItem>
+                      <SelectItem value="OR">OR</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="max-w-xs">
+                  AND: All conditions must match for content to be routed. OR:
+                  Any condition can match for content to be routed.
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
 
         <div className="flex space-x-2">
           {onRemove && (
-            <Button variant="noShadow" size="sm" onClick={onRemove}>
+            <Button variant="error" size="sm" onClick={onRemove}>
               <Trash2 className="h-4 w-4 mr-1" />
               <span className="hidden md:inline">Remove Group</span>
             </Button>
@@ -383,26 +424,52 @@ const ConditionGroupComponent = ({
       </div>
 
       <div className="flex space-x-2 mt-4">
-        <Button
-          variant="noShadow"
-          size="sm"
-          type="button"
-          onClick={handleAddCondition}
-          disabled={filteredEvaluators.length === 0}
-        >
-          <PlusCircle className="h-4 w-4 mr-1" />
-          Add Condition
-        </Button>
-        <Button
-          variant="noShadow"
-          size="sm"
-          type="button"
-          onClick={handleAddGroup}
-          disabled={filteredEvaluators.length === 0}
-        >
-          <LayoutList className="h-4 w-4 mr-1" />
-          Add Group
-        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="noShadow"
+                size="sm"
+                type="button"
+                onClick={handleAddCondition}
+                disabled={filteredEvaluators.length === 0}
+              >
+                <PlusCircle className="h-4 w-4 mr-1" />
+                Add Condition
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="max-w-xs">
+                Adds a new condition to this group. Each condition checks a
+                single attribute like genre, year, or language.
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="noShadow"
+                size="sm"
+                type="button"
+                onClick={handleAddGroup}
+                disabled={filteredEvaluators.length === 0}
+              >
+                <LayoutList className="h-4 w-4 mr-1" />
+                Add Group
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="max-w-xs">
+                Groups allow you to create more complex logic with conditions
+                inside conditions. Each group has its own AND/OR and NOT
+                settings.
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
     </div>
   )
