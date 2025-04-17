@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { useRadarrStore } from '@/features/radarr/store/radarrStore'
-import ContentRouterSection from '@/features/content-router/components/content-router-section'
+import AccordionContentRouterSection from '@/features/content-router/components/accordion-content-router-section'
 import { InstanceCard } from '@/features/radarr/components/instance/radarr-instance-card'
 import InstanceCardSkeleton from '@/features/radarr/components/instance/radarr-card-skeleton'
 import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
@@ -66,7 +66,7 @@ export default function RadarrConfigPage() {
           <div className="grid gap-4">
             <InstanceCardSkeleton />
           </div>
-          <ContentRouterSection
+          <AccordionContentRouterSection
             targetType="radarr"
             instances={instances}
             genres={genres}
@@ -90,7 +90,7 @@ export default function RadarrConfigPage() {
               Add Your First Instance
             </Button>
           </div>
-          <ContentRouterSection
+          <AccordionContentRouterSection
             targetType="radarr"
             instances={instances}
             genres={genres}
@@ -129,7 +129,7 @@ export default function RadarrConfigPage() {
               />
             )}
           </div>
-          <ContentRouterSection
+          <AccordionContentRouterSection
             targetType="radarr"
             instances={instances}
             genres={genres}
