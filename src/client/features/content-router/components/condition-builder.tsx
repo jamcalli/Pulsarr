@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import {
   Select,
   SelectContent,
@@ -164,8 +164,9 @@ const ConditionBuilder = ({
   })
 
   // Filter out the Conditional Router from options - we only want to show actual condition types
-  const filteredEvaluators = evaluatorMetadata.filter(
-    (e) => e.name !== 'Conditional Router',
+  const filteredEvaluators = useMemo(
+    () => evaluatorMetadata.filter((e) => e.name !== 'Conditional Router'),
+    [evaluatorMetadata],
   )
 
   // State to track the selected evaluator (without exposing it directly in the UI)
@@ -229,7 +230,7 @@ const ConditionBuilder = ({
       // If no field is selected, preset the first non-conditional evaluator
       setSelectedEvaluator(filteredEvaluators[0])
     }
-  }, [evaluatorMetadata, value.field, value.operator])
+  }, [evaluatorMetadata, value.field, value.operator, filteredEvaluators])
 
   if (isLoading) {
     return (
@@ -262,7 +263,12 @@ const ConditionBuilder = ({
         <div className={cn(isMobile ? 'col-span-1' : 'col-span-4')}>
           <div className="flex flex-col space-y-1">
             <div className="flex items-center space-x-1">
-              <label className="text-sm font-medium">Field</label>
+              <label
+                htmlFor="condition-field-select"
+                className="text-sm font-medium"
+              >
+                Field
+              </label>
               {fieldDescription && (
                 <TooltipProvider>
                   <Tooltip>
@@ -280,7 +286,7 @@ const ConditionBuilder = ({
               value={value.field || ''}
               onValueChange={handlers.current.handleFieldChange}
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger id="condition-field-select" className="w-full">
                 <SelectValue placeholder="Select field" />
               </SelectTrigger>
               <SelectContent>
@@ -298,7 +304,12 @@ const ConditionBuilder = ({
         <div className={cn(isMobile ? 'col-span-1' : 'col-span-3')}>
           <div className="flex flex-col space-y-1">
             <div className="flex items-center space-x-1">
-              <label className="text-sm font-medium">Operator</label>
+              <label
+                htmlFor="condition-operator-select"
+                className="text-sm font-medium"
+              >
+                Operator
+              </label>
               {operatorDescription && (
                 <TooltipProvider>
                   <Tooltip>
@@ -317,7 +328,7 @@ const ConditionBuilder = ({
               onValueChange={handlers.current.handleOperatorChange}
               disabled={!value.field}
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger id="condition-operator-select" className="w-full">
                 <SelectValue placeholder="Select operator" />
               </SelectTrigger>
               <SelectContent>
@@ -334,7 +345,12 @@ const ConditionBuilder = ({
         {/* Value input */}
         <div className={cn(isMobile ? 'col-span-1' : 'col-span-4')}>
           <div className="flex flex-col space-y-1">
-            <label className="text-sm font-medium">Value</label>
+            <label
+              htmlFor="condition-value-input"
+              className="text-sm font-medium"
+            >
+              Value
+            </label>
             {value.operator && value.field && (
               <div className="condition-value-input">
                 <ConditionInput
@@ -345,6 +361,7 @@ const ConditionBuilder = ({
                   onChange={handlers.current.handleValueChange}
                   genres={genres}
                   onGenreDropdownOpen={onGenreDropdownOpen}
+                  inputId="condition-value-input"
                 />
               </div>
             )}

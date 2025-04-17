@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import GenreMultiSelect from '@/components/ui/genre-multi-select'
 import UserMultiSelect from '@/components/ui/user-multi-select'
 import { useConfigStore } from '@/stores/configStore'
-import type { ControllerRenderProps } from 'react-hook-form'
+import type { ControllerRenderProps, FieldPath } from 'react-hook-form'
 
 // Define value types
 type ConditionValue =
@@ -24,6 +24,10 @@ type ConditionValue =
       max?: number
     }
 
+interface FieldState {
+  [key: string]: string | string[]
+}
+
 interface ConditionInputProps {
   field: string
   operator: string
@@ -32,6 +36,7 @@ interface ConditionInputProps {
   onChange: (value: ConditionValue) => void
   genres?: string[]
   onGenreDropdownOpen?: () => Promise<void>
+  inputId?: string
 }
 
 // Text input with stable identity
@@ -77,12 +82,14 @@ const StableNumberInput = ({
   placeholder,
   min,
   max,
+  id, // Add this parameter
 }: {
   value: string
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   placeholder?: string
   min?: string
   max?: string
+  id?: string // Add this to the type
 }) => {
   // Keep an internal state to maintain focus
   const [internalValue, setInternalValue] = useState(value)
@@ -100,6 +107,7 @@ const StableNumberInput = ({
   return (
     <Input
       type="number"
+      id={id} // Add this prop
       value={internalValue}
       onChange={handleChange}
       placeholder={placeholder}
@@ -118,6 +126,7 @@ function ConditionInput({
   onChange,
   genres = [],
   onGenreDropdownOpen,
+  inputId,
 }: ConditionInputProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const valueRef = useRef(value)
@@ -182,10 +191,11 @@ function ConditionInput({
     },
 
     handleRangeMaxChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-      // Make a copy of the current value to avoid direct mutation
-      const currentValue =
+      type RangeValue = { min?: number; max?: number }
+
+      const currentValue: RangeValue =
         typeof valueRef.current === 'object' && valueRef.current !== null
-          ? { ...(valueRef.current as any) }
+          ? { ...(valueRef.current as RangeValue) }
           : { min: undefined, max: undefined }
 
       const max = e.target.value === '' ? undefined : Number(e.target.value)
@@ -199,20 +209,65 @@ function ConditionInput({
   // Create a properly structured field prop for multi-select components
   const createFormField = (
     fieldName: string,
-  ): ControllerRenderProps<any, any> => {
+  ): ControllerRenderProps<FieldState, FieldPath<FieldState>> => {
     const isEmpty =
       (Array.isArray(value) && value.length === 0) ||
       value === '' ||
       value === undefined ||
       value === null
 
+    // Convert all values to strings
+    const stringValue = Array.isArray(value)
+      ? value.map((item) => String(item))
+      : [String(value || '')]
+
     return {
-      name: fieldName,
-      value: isEmpty ? [] : Array.isArray(value) ? value : [value as string],
-      onChange: (newValue) =>
-        onChange(Array.isArray(newValue) ? newValue : [newValue]),
+      name: fieldName as FieldPath<FieldState>,
+      value: isEmpty ? [] : stringValue,
+      onChange: (newValue: unknown) => {
+        if (Array.isArray(newValue)) {
+          onChange(newValue.map((item) => String(item)))
+        } else {
+          onChange([String(newValue || '')])
+        }
+      },
       onBlur: () => {},
-      ref: (instance: any) => {
+      ref: (instance: HTMLInputElement | null) => {
+        if (inputRef.current !== instance) {
+          inputRef.current = instance
+        }
+      },
+    }
+  }
+
+  const createGenreFormField = (): ControllerRenderProps<
+    Record<string, unknown>,
+    'genre'
+  > => {
+    const isEmpty =
+      (Array.isArray(value) && value.length === 0) ||
+      value === '' ||
+      value === undefined ||
+      value === null
+
+    // Convert all values to strings
+    const stringValue = Array.isArray(value)
+      ? value.map((item) => String(item))
+      : [String(value || '')]
+
+    return {
+      name: 'genre', // Use the literal "genre" as required by GenreMultiSelect
+      value: isEmpty ? [] : stringValue,
+      onChange: (newValue: unknown) => {
+        // Handle conversion for onChange callback
+        if (Array.isArray(newValue)) {
+          onChange(newValue.map((item) => String(item)))
+        } else {
+          onChange([String(newValue || '')])
+        }
+      },
+      onBlur: () => {},
+      ref: (instance: HTMLInputElement | null) => {
         if (inputRef.current !== instance) {
           inputRef.current = instance
         }
@@ -275,7 +330,7 @@ function ConditionInput({
 
     // Use multi-select for operators expecting arrays (in, notIn)
     // or equals when already multi-value
-    const genreField = createFormField('genre')
+    const genreField = createGenreFormField()
     return (
       <div className="flex-1">
         <GenreMultiSelect
@@ -422,6 +477,7 @@ function ConditionInput({
   if (valueTypes.includes('number')) {
     return (
       <StableNumberInput
+        id={inputId}
         value={typeof value === 'number' ? value.toString() : ''}
         onChange={handlers.current.handleNumberChange}
         placeholder="Enter a number"
