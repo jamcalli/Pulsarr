@@ -1,3 +1,5 @@
+import type { ConditionValue } from '@/features/content-router/schemas/content-router.schema'
+
 /**
  * Types for the conditional route query builder.
  * These types define the structure of conditions and condition groups
@@ -70,19 +72,6 @@ export function isConditionGroup(obj: unknown): obj is ConditionGroup {
     Array.isArray((obj as Record<string, unknown>).conditions)
   )
 }
-
-/**
- * Value types that can be used in conditions
- */
-export type ConditionValue =
-  | string
-  | number
-  | boolean
-  | string[]
-  | number[]
-  | { min?: number; max?: number }
-  | null
-  | undefined
 
 /**
  * Types of condition operators
