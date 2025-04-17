@@ -64,6 +64,16 @@ const ConditionGroupComponent = ({
     (e) => e.name !== 'Conditional Router',
   )
 
+  // Helper function to check if there are any valid evaluator branches
+  const hasValidEvaluatorBranch = useCallback(() => {
+    return filteredEvaluators.some((evaluator) =>
+      evaluator.supportedFields.some(
+        (field) =>
+          (evaluator.supportedOperators?.[field.name] || []).length > 0,
+      ),
+    )
+  }, [filteredEvaluators])
+
   // Create a properly structured empty condition with defaults based on the first available field
   const createEmptyCondition = useCallback((): Condition => {
     if (filteredEvaluators.length === 0) {
@@ -79,6 +89,20 @@ const ConditionGroupComponent = ({
     // Create a flat list of all fields from all evaluators
     const allFields = filteredEvaluators.flatMap((e) => e.supportedFields)
 
+    // Check if we have any fields to work with
+    if (allFields.length === 0) {
+      console.error(
+        '[ConditionGroup] No fields available to create a condition',
+      )
+      return {
+        field: '',
+        operator: '',
+        value: '',
+        negate: false,
+        _cid: crypto.randomUUID(),
+      }
+    }
+
     // Use the first field
     const firstField = allFields[0]?.name || ''
 
@@ -89,6 +113,7 @@ const ConditionGroupComponent = ({
         operator: '',
         value: '',
         negate: false,
+        _cid: crypto.randomUUID(),
       }
     }
 
@@ -103,11 +128,25 @@ const ConditionGroupComponent = ({
         operator: '',
         value: '',
         negate: false,
+        _cid: crypto.randomUUID(),
       }
     }
 
     // Get the first operator for the first field
     const operators = fieldEvaluator.supportedOperators?.[firstField] || []
+
+    // Check if we have any operators
+    if (operators.length === 0) {
+      console.error(`[ConditionGroup] No operators for field "${firstField}"`)
+      return {
+        field: firstField,
+        operator: '',
+        value: '',
+        negate: false,
+        _cid: crypto.randomUUID(),
+      }
+    }
+
     const firstOperator = operators[0]?.name || ''
 
     // Determine appropriate initial value based on value type
@@ -126,6 +165,7 @@ const ConditionGroupComponent = ({
       operator: firstOperator,
       value: initialValue,
       negate: false,
+      _cid: crypto.randomUUID(),
     }
   }, [filteredEvaluators])
 
@@ -140,10 +180,12 @@ const ConditionGroupComponent = ({
   }, [createEmptyCondition])
 
   const isInitialized = useRef(false)
-
   const hasInitialConditionsRef = useRef(false)
 
-  // Run this effect once on mount to check initial conditions
+  // Store initial value in a ref to avoid linter issues
+  const initialValueRef = useRef(value)
+
+  // Run this effect once on mount to check initial conditions and set up
   useEffect(() => {
     // Skip if we've already initialized or if we don't have evaluators
     if (isInitialized.current || filteredEvaluators.length === 0) {
@@ -154,8 +196,11 @@ const ConditionGroupComponent = ({
     if (!hasInitialConditionsRef.current) {
       hasInitialConditionsRef.current = true
 
+      // Get the value from our ref to avoid dependency on the prop
+      const currentValue = initialValueRef.current
+
       // If we already have conditions, mark as initialized and return
-      if (value.conditions && value.conditions.length > 0) {
+      if (currentValue.conditions && currentValue.conditions.length > 0) {
         isInitialized.current = true
         return
       }
@@ -166,7 +211,7 @@ const ConditionGroupComponent = ({
       // Use setTimeout to break potential update cycles
       const timer = setTimeout(() => {
         onChange({
-          ...value,
+          ...valueRef.current,
           conditions: [emptyCondition],
         })
         isInitialized.current = true
@@ -174,7 +219,7 @@ const ConditionGroupComponent = ({
 
       return () => clearTimeout(timer)
     }
-  }, [filteredEvaluators.length, value, onChange, createEmptyCondition])
+  }, [filteredEvaluators.length, onChange, createEmptyCondition])
 
   // Handle toggling the negate flag
   const handleToggleNegate = useCallback(() => {
@@ -197,8 +242,10 @@ const ConditionGroupComponent = ({
 
   // Add a new empty condition to the group
   const handleAddCondition = useCallback(() => {
-    if (filteredEvaluators.length === 0) {
-      console.warn('Cannot add condition: No evaluator metadata available')
+    if (!hasValidEvaluatorBranch()) {
+      console.warn(
+        'Cannot add condition: No valid evaluator field/operator combinations available',
+      )
       return
     }
 
@@ -213,10 +260,17 @@ const ConditionGroupComponent = ({
       ...valueRef.current,
       conditions: [...currentConditions, newCondition],
     })
-  }, [onChange, createEmptyCondition, filteredEvaluators.length])
+  }, [onChange, createEmptyCondition, hasValidEvaluatorBranch])
 
   // Add a new nested condition group to the group
   const handleAddGroup = useCallback(() => {
+    if (!hasValidEvaluatorBranch()) {
+      console.warn(
+        'Cannot add group: No valid evaluator field/operator combinations available',
+      )
+      return
+    }
+
     const newGroup = createEmptyGroup()
 
     // Ensure value.conditions is an array before spreading
@@ -228,7 +282,7 @@ const ConditionGroupComponent = ({
       ...valueRef.current,
       conditions: [...currentConditions, newGroup],
     })
-  }, [onChange, createEmptyGroup])
+  }, [onChange, createEmptyGroup, hasValidEvaluatorBranch])
 
   // Update a specific condition in the group
   const handleUpdateCondition = useCallback(
@@ -256,7 +310,7 @@ const ConditionGroupComponent = ({
   // Remove a condition from the group
   const handleRemoveCondition = useCallback(
     (index: number) => {
-      const newConditions = [...value.conditions]
+      const newConditions = [...valueRef.current.conditions]
       newConditions.splice(index, 1)
 
       // If this was the last condition, add a truly empty condition
@@ -266,15 +320,16 @@ const ConditionGroupComponent = ({
           operator: '',
           value: '',
           negate: false,
+          _cid: crypto.randomUUID(),
         })
       }
 
       onChange({
-        ...value,
+        ...valueRef.current,
         conditions: newConditions,
       })
     },
-    [value, onChange],
+    [onChange],
   )
 
   if (isLoading) {
@@ -386,7 +441,7 @@ const ConditionGroupComponent = ({
               'operator' in condition &&
               'conditions' in condition
 
-            // Generate a stable key using the parent group's key and index
+            // Generate a stable key using _cid if available, or fallback to index
             const stableKey =
               '_cid' in condition && typeof condition._cid === 'string'
                 ? condition._cid
@@ -437,7 +492,7 @@ const ConditionGroupComponent = ({
                 size="sm"
                 type="button"
                 onClick={handleAddCondition}
-                disabled={filteredEvaluators.length === 0}
+                disabled={!hasValidEvaluatorBranch()}
               >
                 <PlusCircle className="h-4 w-4 mr-1" />
                 Add Condition
@@ -460,7 +515,7 @@ const ConditionGroupComponent = ({
                 size="sm"
                 type="button"
                 onClick={handleAddGroup}
-                disabled={filteredEvaluators.length === 0}
+                disabled={!hasValidEvaluatorBranch()}
               >
                 <LayoutList className="h-4 w-4 mr-1" />
                 Add Group
