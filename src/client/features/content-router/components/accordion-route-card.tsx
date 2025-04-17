@@ -46,7 +46,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-
 import type {
   ContentRouterRule,
   ContentRouterRuleUpdate,
@@ -221,12 +220,23 @@ const AccordionRouteCard = ({
 
   // Subscribe to form value changes and store the latest values
   useEffect(() => {
-    const subscription = form.watch((value) => {
-      latestFormValues.current = value as ConditionalRouteFormValues
+    // Initial setup
+    latestFormValues.current = form.getValues()
+    isDirtyRef.current = form.formState.isDirty
+
+    // Create a subscription to all form events
+    const subscription = form.watch(() => {
+      // When any value changes, update our refs
+      latestFormValues.current = form.getValues()
       isDirtyRef.current = form.formState.isDirty
     })
 
-    return () => subscription.unsubscribe()
+    // This should correctly return an object with an unsubscribe method
+    return () => {
+      if (subscription && typeof subscription.unsubscribe === 'function') {
+        subscription.unsubscribe()
+      }
+    }
   }, [form])
 
   const fetchEvaluatorMetadata = useCallback(async () => {
