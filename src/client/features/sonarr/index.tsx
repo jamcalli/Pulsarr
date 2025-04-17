@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
-import ContentRouterSection from '@/features/content-router/components/content-router-section'
+import AccordionContentRouterSection from '@/features/content-router/components/accordion-content-router-section'
 import { InstanceCard } from '@/features/sonarr/components/instance/sonarr-instance-card'
 import InstanceCardSkeleton from '@/features/sonarr/components/instance/sonarr-card-skeleton'
 import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
@@ -64,7 +64,7 @@ export default function SonarrConfigPage() {
           <div className="grid gap-4">
             <InstanceCardSkeleton />
           </div>
-          <ContentRouterSection
+          <AccordionContentRouterSection
             targetType="sonarr"
             instances={instances}
             genres={genres}
@@ -88,7 +88,7 @@ export default function SonarrConfigPage() {
               Add Your First Instance
             </Button>
           </div>
-          <ContentRouterSection
+          <AccordionContentRouterSection
             targetType="sonarr"
             instances={instances}
             genres={genres}
@@ -128,7 +128,7 @@ export default function SonarrConfigPage() {
               />
             )}
           </div>
-          <ContentRouterSection
+          <AccordionContentRouterSection
             targetType="sonarr"
             instances={instances}
             genres={genres}

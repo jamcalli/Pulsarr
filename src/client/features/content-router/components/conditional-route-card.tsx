@@ -45,6 +45,8 @@ import {
   ConditionalRouteFormSchema,
   type ConditionalRouteFormValues,
 } from '@/features/content-router/schemas/content-router.schema'
+import type { RadarrInstance } from '@root/types/radarr.types'
+import type { SonarrInstance } from '@root/types/sonarr.types'
 
 // Define possible value types for criteria
 type CriteriaValue =
@@ -82,7 +84,7 @@ interface ConditionalRouteCardProps {
   onToggleEnabled?: (id: number, enabled: boolean) => Promise<void>
   isSaving: boolean
   isTogglingState?: boolean
-  instances: any[]
+  instances: Array<RadarrInstance | SonarrInstance>
   genres?: string[]
   onGenreDropdownOpen?: () => Promise<void>
   contentType: 'radarr' | 'sonarr'
@@ -246,7 +248,7 @@ const ConditionalRouteCard = ({
             const firstOperator = operators[0]?.name || ''
 
             // Determine appropriate initial value
-            let initialValue: any = ''
+            let initialValue: CriteriaValue = ''
             if (operators[0]?.valueTypes) {
               const valueType = operators[0].valueTypes[0]
               if (valueType === 'number') initialValue = 0
@@ -520,7 +522,7 @@ const ConditionalRouteCard = ({
                             {loading && (
                               <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-10 rounded-md">
                                 <div className="text-center space-y-2">
-                                  <div className="animate-spin h-6 w-6 border-2 border-primary rounded-full border-t-transparent mx-auto"></div>
+                                  <div className="animate-spin h-6 w-6 border-2 border-primary rounded-full border-t-transparent mx-auto" />
                                   <p className="text-sm">
                                     Loading condition options...
                                   </p>

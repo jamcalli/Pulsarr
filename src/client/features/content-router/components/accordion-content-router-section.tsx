@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import DeleteRouteAlert from '@/features/content-router/components/delete-route-alert'
 import ContentRouteCardSkeleton from '@/features/content-router/components/content-route-skeleton'
-import ConditionalRouteCard from '@/features/content-router/components/conditional-route-card'
+import AccordionRouteCard from './accordion-route-card'
 import { useRadarrContentRouterAdapter } from '@/features/radarr/hooks/content-router/useRadarrContentRouterAdapater'
 import { useSonarrContentRouterAdapter } from '@/features/sonarr/hooks/content-router/useSonarrContentRouterAdapter'
 import type { RadarrInstance } from '@root/types/radarr.types'
@@ -14,15 +14,6 @@ import type {
   Condition,
   ConditionGroup,
 } from '@root/schemas/content-router/content-router.schema'
-
-type CriteriaValue =
-  | string
-  | string[]
-  | number
-  | number[]
-  | { min?: number; max?: number }
-  | ConditionGroup
-  | undefined
 
 // Define criteria interface to match backend schema
 interface Criteria {
@@ -47,19 +38,19 @@ interface TempRule
   criteria?: Criteria
 }
 
-type ContentRouterSectionProps = {
+type AccordionContentRouterSectionProps = {
   targetType: 'radarr' | 'sonarr'
   instances: (RadarrInstance | SonarrInstance)[]
   genres: string[]
   onGenreDropdownOpen: () => Promise<void>
 }
 
-const ContentRouterSection = ({
+const AccordionContentRouterSection = ({
   targetType,
   instances,
   genres,
   onGenreDropdownOpen,
-}: ContentRouterSectionProps) => {
+}: AccordionContentRouterSectionProps) => {
   const { toast } = useToast()
 
   // Use the appropriate adapter based on targetType
@@ -266,17 +257,7 @@ const ContentRouterSection = ({
 
   const hasExistingRoutes = rules.length > 0
 
-  const renderRouteCard = (
-    rule: ContentRouterRule | TempRule,
-    isNew = false,
-  ) => {
-    const ruleId = isNew
-      ? (rule as TempRule).tempId
-      : (rule as ContentRouterRule).id
-
-    const isToggling =
-      !isNew && togglingRuleId === (rule as ContentRouterRule).id
-
+  const convertToStandardCondition = (rule: ContentRouterRule | TempRule) => {
     // Convert old format criteria to new format condition if needed
     const ruleWithCondition = { ...rule } as ExtendedContentRouterRule
 
@@ -287,7 +268,7 @@ const ContentRouterSection = ({
       !extendedRule.condition &&
       typeof extendedRule.criteria === 'object'
     ) {
-      const criteria = extendedRule.criteria as Record<string, CriteriaValue>
+      const criteria = extendedRule.criteria as Record<string, any>
 
       if ('genre' in criteria && criteria.genre) {
         // Convert genre rule to condition
@@ -393,8 +374,25 @@ const ContentRouterSection = ({
       }
     }
 
+    return ruleWithCondition
+  }
+
+  const renderRouteCard = (
+    rule: ContentRouterRule | TempRule,
+    isNew = false,
+  ) => {
+    const ruleId = isNew
+      ? (rule as TempRule).tempId
+      : (rule as ContentRouterRule).id
+
+    const isToggling =
+      !isNew && togglingRuleId === (rule as ContentRouterRule).id
+
+    // Convert to standardized condition format
+    const ruleWithCondition = convertToStandardCondition(rule)
+
     return (
-      <ConditionalRouteCard
+      <AccordionRouteCard
         key={ruleId}
         route={ruleWithCondition as ExtendedContentRouterRule}
         isNew={isNew}
@@ -512,4 +510,4 @@ const ContentRouterSection = ({
   )
 }
 
-export default ContentRouterSection
+export default AccordionContentRouterSection

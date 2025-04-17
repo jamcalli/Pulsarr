@@ -174,7 +174,7 @@ function ConditionInput({
       // Make a copy of the current value to avoid direct mutation
       const currentValue =
         typeof valueRef.current === 'object' && valueRef.current !== null
-          ? { ...(valueRef.current as any) }
+          ? { ...(valueRef.current as { min?: number; max?: number }) }
           : { min: undefined, max: undefined }
 
       const min = e.target.value === '' ? undefined : Number(e.target.value)
