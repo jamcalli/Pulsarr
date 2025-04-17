@@ -14,6 +14,13 @@ import {
   isSonarrResponse,
 } from '@root/types/content-lookup.types.js'
 
+/**
+ * Creates a routing evaluator that directs content based on its original language metadata.
+ *
+ * The evaluator supports routing decisions and condition evaluations using the "language" field, with operators for equality, inequality, substring containment, and set membership. It integrates with Radarr and Sonarr content metadata and retrieves routing rules from the database to determine appropriate routing decisions.
+ *
+ * @returns A {@link RoutingEvaluator} instance that routes content according to its original language.
+ */
 export default function createLanguageEvaluator(
   fastify: FastifyInstance,
 ): RoutingEvaluator {
