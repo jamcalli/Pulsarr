@@ -692,7 +692,7 @@ const AccordionRouteCard = ({
                     <FormField
                       control={form.control}
                       name="condition"
-                      render={({ field }) => (
+                      render={({ field, fieldState }) => (
                         <FormItem>
                           <div className="flex items-center space-x-2">
                             <FormLabel className="text-text">
@@ -776,7 +776,14 @@ const AccordionRouteCard = ({
                             Content that matches these conditions will be routed
                             to the selected instance
                           </FormDescription>
-                          <FormMessage />
+                          {fieldState.error ? (
+                            <p className="text-error">
+                              Please set up at least one complete condition with
+                              field, operator, and value
+                            </p>
+                          ) : (
+                            <FormMessage />
+                          )}
                         </FormItem>
                       )}
                     />
