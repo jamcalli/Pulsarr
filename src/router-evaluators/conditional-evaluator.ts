@@ -99,7 +99,9 @@ export default function createConditionalEvaluator(
       const rules = await fastify.db.getRouterRulesByType('conditional')
 
       const contentTypeRules = rules.filter(
-        (rule) => rule.target_type === (isMovie ? 'radarr' : 'sonarr'),
+        (rule) =>
+          rule.enabled !== false &&
+          rule.target_type === (isMovie ? 'radarr' : 'sonarr'),
       )
 
       return contentTypeRules.length > 0
