@@ -510,7 +510,7 @@ const AccordionRouteCard = ({
           value="route"
           className="border-2 border-border rounded-base overflow-hidden"
         >
-          <AccordionTrigger 
+          <AccordionTrigger
             className="px-6 py-4 bg-main hover:bg-main hover:no-underline"
             onClick={(e) => {
               if (isEditing) {
@@ -540,7 +540,7 @@ const AccordionRouteCard = ({
                       onKeyDown={(e) => {
                         // Stop propagation for any key events while editing
                         e.stopPropagation()
-                        
+
                         if (e.key === 'Enter') {
                           handleTitleSubmit(e)
                         } else if (e.key === 'Escape') {
