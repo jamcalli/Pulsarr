@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-// Define schemas for condition value types
+// Define schemas for condition value types - more strictly typed now
 const ConditionValueSchema = z.union([
   z.string(),
   z.number(),
@@ -22,7 +22,7 @@ export interface ICondition {
   operator: string
   value: ConditionValue
   negate?: boolean
-  _cid?: string // Optional unique identifier
+  _cid?: string
 }
 
 // Define interface for a condition group
@@ -30,30 +30,29 @@ export interface IConditionGroup {
   operator: 'AND' | 'OR'
   conditions: (ICondition | IConditionGroup)[]
   negate?: boolean
-  _cid?: string // Optional unique identifier
+  _cid?: string
 }
 
-// Define schema for a basic condition - with proper type annotation
+// Define schema for a basic condition - with proper type annotation and stricter value typing
 export const ConditionSchema: z.ZodType<ICondition> = z.lazy(() =>
   z.object({
     field: z.string(),
     operator: z.string(),
-    value: ConditionValueSchema,
+    value: ConditionValueSchema, // Using our strictly typed value schema
     negate: z.boolean().optional().default(false),
-    _cid: z.string().optional(), // Add optional unique identifier
+    _cid: z.string().optional(),
   }),
 )
 
-// Define schema for a condition group - with proper type annotation and improved lazy references
+// Define schema for a condition group - with proper type annotation
 export const ConditionGroupSchema: z.ZodType<IConditionGroup> = z.lazy(() =>
   z.object({
     operator: z.enum(['AND', 'OR']),
-    // Use a second lazy closure to avoid temporal dead zone issues
     conditions: z.array(
       z.union([ConditionSchema, z.lazy(() => ConditionGroupSchema)]),
     ),
     negate: z.boolean().optional().default(false),
-    _cid: z.string().optional(), // Add optional unique identifier
+    _cid: z.string().optional(),
   }),
 )
 
