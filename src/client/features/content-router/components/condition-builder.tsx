@@ -206,7 +206,7 @@ const ConditionBuilder = ({
     const allFields = filteredEvaluators
       .flatMap((e) => e.supportedFields)
       .sort((a, b) => a.name.localeCompare(b.name))
-    
+
     setFields(allFields)
 
     // Only proceed with field/operator setup if we have an explicitly selected field

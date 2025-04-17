@@ -69,7 +69,7 @@ const AccordionContentRouterSection = ({
       ? useRadarrContentRouterAdapter()
       : useSonarrContentRouterAdapter()
 
-  const [togglingRuleId, setTogglingRuleId] = useState<number | null>(null)
+  const [togglingRuleId, _setTogglingRuleId] = useState<number | null>(null)
 
   const {
     rules,
@@ -137,22 +137,14 @@ const AccordionContentRouterSection = ({
 
   const handleToggleRuleEnabled = useCallback(
     async (id: number, enabled: boolean) => {
-      setTogglingRuleId(id)
+      // Don't set togglingRuleId immediately - let the optimistic update handle the UI
       try {
         await toggleRule(id, enabled)
       } catch (error) {
-        toast({
-          title: 'Error',
-          description: `Failed to ${enabled ? 'enable' : 'disable'} route. Please try again.`,
-          variant: 'destructive',
-        })
-
-        fetchRules().catch(console.error)
-      } finally {
-        setTogglingRuleId(null)
+        // Error handling is done in toggleRule
       }
     },
-    [toggleRule, toast, fetchRules],
+    [toggleRule],
   )
 
   const handleSaveNewRule = useCallback(
@@ -160,12 +152,10 @@ const AccordionContentRouterSection = ({
       tempId: string,
       data: Omit<ContentRouterRule, 'id' | 'created_at' | 'updated_at'>,
     ) => {
+      // Only set loading state for this specific operation
       setSavingRules((prev) => ({ ...prev, [tempId]: true }))
-      try {
-        const minimumLoadingTime = new Promise((resolve) =>
-          setTimeout(resolve, 500),
-        )
 
+      try {
         // Convert quality_profile to the expected format
         const modifiedData = {
           ...data,
@@ -177,9 +167,17 @@ const AccordionContentRouterSection = ({
               : undefined,
         }
 
+        // Use a timer to ensure minimum visible loading time
+        const minimumLoadingTime = new Promise((resolve) =>
+          setTimeout(resolve, 500),
+        )
+
+        // Create the rule and wait for minimum time
         await Promise.all([createRule(modifiedData), minimumLoadingTime])
 
+        // Remove from local rules once created
         setLocalRules((prev) => prev.filter((r) => r.tempId !== tempId))
+
         toast({
           title: 'Success',
           description: 'Route created successfully',
@@ -203,12 +201,10 @@ const AccordionContentRouterSection = ({
 
   const handleUpdateRule = useCallback(
     async (id: number, data: ContentRouterRuleUpdate) => {
+      // Only set loading state for this specific rule update
       setSavingRules((prev) => ({ ...prev, [id]: true }))
-      try {
-        const minimumLoadingTime = new Promise((resolve) =>
-          setTimeout(resolve, 500),
-        )
 
+      try {
         // Convert quality_profile to the expected format
         const modifiedData = {
           ...data,
@@ -220,7 +216,14 @@ const AccordionContentRouterSection = ({
               : undefined,
         }
 
+        // Ensure minimum loading time for better UX
+        const minimumLoadingTime = new Promise((resolve) =>
+          setTimeout(resolve, 500),
+        )
+
+        // Update the rule and wait for minimum time
         await Promise.all([updateRule(id, modifiedData), minimumLoadingTime])
+
         toast({
           title: 'Success',
           description: 'Route updated successfully',
