@@ -510,7 +510,21 @@ const AccordionRouteCard = ({
           value="route"
           className="border-2 border-border rounded-base overflow-hidden"
         >
-          <AccordionTrigger className="px-6 py-4 bg-main hover:bg-main hover:no-underline">
+          <AccordionTrigger 
+            className="px-6 py-4 bg-main hover:bg-main hover:no-underline"
+            onClick={(e) => {
+              if (isEditing) {
+                e.preventDefault()
+                e.stopPropagation()
+              }
+            }}
+            onKeyDown={(e) => {
+              if (isEditing) {
+                e.preventDefault()
+                e.stopPropagation()
+              }
+            }}
+          >
             <div className="flex justify-between items-center w-full pr-2">
               <div className="group/name inline-flex items-center gap-2 flex-1 min-w-0">
                 {isEditing ? (
@@ -522,14 +536,17 @@ const AccordionRouteCard = ({
                       className="w-full mr-4"
                       disabled={isSaving}
                       onBlur={handleTitleSubmit}
+                      onClick={(e) => e.stopPropagation()}
                       onKeyDown={(e) => {
+                        // Stop propagation for any key events while editing
+                        e.stopPropagation()
+                        
                         if (e.key === 'Enter') {
                           handleTitleSubmit(e)
                         } else if (e.key === 'Escape') {
                           handleEscape()
                         }
                       }}
-                      onClick={(e) => e.stopPropagation()}
                     />
                   </form>
                 ) : (
