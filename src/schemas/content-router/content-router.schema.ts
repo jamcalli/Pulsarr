@@ -26,7 +26,12 @@ export const ConditionSchema: z.ZodType = z.lazy(() =>
 export const ConditionGroupSchema: z.ZodType = z.lazy(() =>
   z.object({
     operator: z.enum(['AND', 'OR']),
-    conditions: z.array(z.union([ConditionSchema, ConditionGroupSchema])),
+    conditions: z.array(
+      z.union([
+        ConditionSchema,
+        z.lazy(() => ConditionGroupSchema),
+      ]),
+    ),
     negate: z.boolean().optional().default(false),
   }),
 )
