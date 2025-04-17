@@ -34,26 +34,54 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         // Format rules for API response
         const formattedRules = rules.map((rule) => {
-          // Extract condition from criteria
-          const criteria =
-            typeof rule.criteria === 'string'
-              ? JSON.parse(rule.criteria)
-              : rule.criteria || {}
+          try {
+            // Extract condition from criteria
+            const criteria =
+              typeof rule.criteria === 'string'
+                ? JSON.parse(rule.criteria)
+                : rule.criteria || {}
 
-          // Ensure fields match the expected response structure
-          return {
-            id: rule.id,
-            name: rule.name,
-            target_type: rule.target_type,
-            target_instance_id: rule.target_instance_id,
-            root_folder: rule.root_folder || undefined,
-            quality_profile:
-              rule.quality_profile !== null ? rule.quality_profile : undefined,
-            order: rule.order,
-            enabled: Boolean(rule.enabled),
-            condition: criteria.condition,
-            created_at: rule.created_at,
-            updated_at: rule.updated_at,
+            // Ensure fields match the expected response structure
+            return {
+              id: rule.id,
+              name: rule.name,
+              target_type: rule.target_type,
+              target_instance_id: rule.target_instance_id,
+              root_folder: rule.root_folder || undefined,
+              quality_profile:
+                rule.quality_profile !== null
+                  ? rule.quality_profile
+                  : undefined,
+              order: rule.order,
+              enabled: Boolean(rule.enabled),
+              condition: criteria.condition,
+              created_at: rule.created_at,
+              updated_at: rule.updated_at,
+            }
+          } catch (parseError) {
+            // Log the error specifically for this rule
+            fastify.log.error(
+              `Error parsing criteria for rule ID ${rule.id}:`,
+              parseError,
+            )
+
+            // Return the rule with an empty condition to avoid breaking the entire response
+            return {
+              id: rule.id,
+              name: rule.name,
+              target_type: rule.target_type,
+              target_instance_id: rule.target_instance_id,
+              root_folder: rule.root_folder || undefined,
+              quality_profile:
+                rule.quality_profile !== null
+                  ? rule.quality_profile
+                  : undefined,
+              order: rule.order,
+              enabled: Boolean(rule.enabled),
+              condition: undefined,
+              created_at: rule.created_at,
+              updated_at: rule.updated_at,
+            }
           }
         })
 
@@ -100,24 +128,50 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         // Format rules to match expected response structure
         const formattedRules = rules.map((rule) => {
-          const criteria =
-            typeof rule.criteria === 'string'
-              ? JSON.parse(rule.criteria)
-              : rule.criteria || {}
+          try {
+            const criteria =
+              typeof rule.criteria === 'string'
+                ? JSON.parse(rule.criteria)
+                : rule.criteria || {}
 
-          return {
-            id: rule.id,
-            name: rule.name,
-            target_type: rule.target_type,
-            target_instance_id: rule.target_instance_id,
-            root_folder: rule.root_folder || undefined,
-            quality_profile:
-              rule.quality_profile !== null ? rule.quality_profile : undefined,
-            order: rule.order,
-            enabled: Boolean(rule.enabled),
-            condition: criteria.condition,
-            created_at: rule.created_at,
-            updated_at: rule.updated_at,
+            return {
+              id: rule.id,
+              name: rule.name,
+              target_type: rule.target_type,
+              target_instance_id: rule.target_instance_id,
+              root_folder: rule.root_folder || undefined,
+              quality_profile:
+                rule.quality_profile !== null
+                  ? rule.quality_profile
+                  : undefined,
+              order: rule.order,
+              enabled: Boolean(rule.enabled),
+              condition: criteria.condition,
+              created_at: rule.created_at,
+              updated_at: rule.updated_at,
+            }
+          } catch (parseError) {
+            fastify.log.error(
+              `Error parsing criteria for rule ID ${rule.id}:`,
+              parseError,
+            )
+
+            return {
+              id: rule.id,
+              name: rule.name,
+              target_type: rule.target_type,
+              target_instance_id: rule.target_instance_id,
+              root_folder: rule.root_folder || undefined,
+              quality_profile:
+                rule.quality_profile !== null
+                  ? rule.quality_profile
+                  : undefined,
+              order: rule.order,
+              enabled: Boolean(rule.enabled),
+              condition: undefined,
+              created_at: rule.created_at,
+              updated_at: rule.updated_at,
+            }
           }
         })
 
@@ -169,24 +223,50 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         // Format rules to match expected response structure
         const formattedRules = rules.map((rule) => {
-          const criteria =
-            typeof rule.criteria === 'string'
-              ? JSON.parse(rule.criteria)
-              : rule.criteria || {}
+          try {
+            const criteria =
+              typeof rule.criteria === 'string'
+                ? JSON.parse(rule.criteria)
+                : rule.criteria || {}
 
-          return {
-            id: rule.id,
-            name: rule.name,
-            target_type: rule.target_type,
-            target_instance_id: rule.target_instance_id,
-            root_folder: rule.root_folder || undefined,
-            quality_profile:
-              rule.quality_profile !== null ? rule.quality_profile : undefined,
-            order: rule.order,
-            enabled: Boolean(rule.enabled),
-            condition: criteria.condition,
-            created_at: rule.created_at,
-            updated_at: rule.updated_at,
+            return {
+              id: rule.id,
+              name: rule.name,
+              target_type: rule.target_type,
+              target_instance_id: rule.target_instance_id,
+              root_folder: rule.root_folder || undefined,
+              quality_profile:
+                rule.quality_profile !== null
+                  ? rule.quality_profile
+                  : undefined,
+              order: rule.order,
+              enabled: Boolean(rule.enabled),
+              condition: criteria.condition,
+              created_at: rule.created_at,
+              updated_at: rule.updated_at,
+            }
+          } catch (parseError) {
+            fastify.log.error(
+              `Error parsing criteria for rule ID ${rule.id}:`,
+              parseError,
+            )
+
+            return {
+              id: rule.id,
+              name: rule.name,
+              target_type: rule.target_type,
+              target_instance_id: rule.target_instance_id,
+              root_folder: rule.root_folder || undefined,
+              quality_profile:
+                rule.quality_profile !== null
+                  ? rule.quality_profile
+                  : undefined,
+              order: rule.order,
+              enabled: Boolean(rule.enabled),
+              condition: undefined,
+              created_at: rule.created_at,
+              updated_at: rule.updated_at,
+            }
           }
         })
 
@@ -232,24 +312,47 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
 
         // Format rule to match expected response structure
-        const criteria =
-          typeof rule.criteria === 'string'
-            ? JSON.parse(rule.criteria)
-            : rule.criteria || {}
+        let formattedRule: ContentRouterRule
+        try {
+          const criteria =
+            typeof rule.criteria === 'string'
+              ? JSON.parse(rule.criteria)
+              : rule.criteria || {}
 
-        const formattedRule = {
-          id: rule.id,
-          name: rule.name,
-          target_type: rule.target_type,
-          target_instance_id: rule.target_instance_id,
-          root_folder: rule.root_folder || undefined,
-          quality_profile:
-            rule.quality_profile !== null ? rule.quality_profile : undefined,
-          order: rule.order,
-          enabled: Boolean(rule.enabled),
-          condition: criteria.condition,
-          created_at: rule.created_at,
-          updated_at: rule.updated_at,
+          formattedRule = {
+            id: rule.id,
+            name: rule.name,
+            target_type: rule.target_type,
+            target_instance_id: rule.target_instance_id,
+            root_folder: rule.root_folder || undefined,
+            quality_profile:
+              rule.quality_profile !== null ? rule.quality_profile : undefined,
+            order: rule.order,
+            enabled: Boolean(rule.enabled),
+            condition: criteria.condition,
+            created_at: rule.created_at,
+            updated_at: rule.updated_at,
+          }
+        } catch (parseError) {
+          fastify.log.error(
+            `Error parsing criteria for rule ID ${rule.id}:`,
+            parseError,
+          )
+
+          formattedRule = {
+            id: rule.id,
+            name: rule.name,
+            target_type: rule.target_type,
+            target_instance_id: rule.target_instance_id,
+            root_folder: rule.root_folder || undefined,
+            quality_profile:
+              rule.quality_profile !== null ? rule.quality_profile : undefined,
+            order: rule.order,
+            enabled: Boolean(rule.enabled),
+            condition: undefined,
+            created_at: rule.created_at,
+            updated_at: rule.updated_at,
+          }
         }
 
         return {
@@ -297,24 +400,50 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         // Format rules to match expected response structure
         const formattedRules = rules.map((rule) => {
-          const criteria =
-            typeof rule.criteria === 'string'
-              ? JSON.parse(rule.criteria)
-              : rule.criteria || {}
+          try {
+            const criteria =
+              typeof rule.criteria === 'string'
+                ? JSON.parse(rule.criteria)
+                : rule.criteria || {}
 
-          return {
-            id: rule.id,
-            name: rule.name,
-            target_type: rule.target_type,
-            target_instance_id: rule.target_instance_id,
-            root_folder: rule.root_folder || undefined,
-            quality_profile:
-              rule.quality_profile !== null ? rule.quality_profile : undefined,
-            order: rule.order,
-            enabled: Boolean(rule.enabled),
-            condition: criteria.condition,
-            created_at: rule.created_at,
-            updated_at: rule.updated_at,
+            return {
+              id: rule.id,
+              name: rule.name,
+              target_type: rule.target_type,
+              target_instance_id: rule.target_instance_id,
+              root_folder: rule.root_folder || undefined,
+              quality_profile:
+                rule.quality_profile !== null
+                  ? rule.quality_profile
+                  : undefined,
+              order: rule.order,
+              enabled: Boolean(rule.enabled),
+              condition: criteria.condition,
+              created_at: rule.created_at,
+              updated_at: rule.updated_at,
+            }
+          } catch (parseError) {
+            fastify.log.error(
+              `Error parsing criteria for rule ID ${rule.id}:`,
+              parseError,
+            )
+
+            return {
+              id: rule.id,
+              name: rule.name,
+              target_type: rule.target_type,
+              target_instance_id: rule.target_instance_id,
+              root_folder: rule.root_folder || undefined,
+              quality_profile:
+                rule.quality_profile !== null
+                  ? rule.quality_profile
+                  : undefined,
+              order: rule.order,
+              enabled: Boolean(rule.enabled),
+              condition: undefined,
+              created_at: rule.created_at,
+              updated_at: rule.updated_at,
+            }
           }
         })
 
@@ -392,26 +521,51 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const createdRule = await fastify.db.createRouterRule(formattedRuleData)
 
         // Format the response to match the expected structure
-        const criteria =
-          typeof createdRule.criteria === 'string'
-            ? JSON.parse(createdRule.criteria)
-            : createdRule.criteria || {}
+        let formattedRule: ContentRouterRule
+        try {
+          const criteria =
+            typeof createdRule.criteria === 'string'
+              ? JSON.parse(createdRule.criteria)
+              : createdRule.criteria || {}
 
-        const formattedRule = {
-          id: createdRule.id,
-          name: createdRule.name,
-          target_type: createdRule.target_type,
-          target_instance_id: createdRule.target_instance_id,
-          root_folder: createdRule.root_folder || undefined,
-          quality_profile:
-            createdRule.quality_profile !== null
-              ? createdRule.quality_profile
-              : undefined,
-          order: createdRule.order,
-          enabled: Boolean(createdRule.enabled),
-          condition: criteria.condition,
-          created_at: createdRule.created_at,
-          updated_at: createdRule.updated_at,
+          formattedRule = {
+            id: createdRule.id,
+            name: createdRule.name,
+            target_type: createdRule.target_type,
+            target_instance_id: createdRule.target_instance_id,
+            root_folder: createdRule.root_folder || undefined,
+            quality_profile:
+              createdRule.quality_profile !== null
+                ? createdRule.quality_profile
+                : undefined,
+            order: createdRule.order,
+            enabled: Boolean(createdRule.enabled),
+            condition: criteria.condition,
+            created_at: createdRule.created_at,
+            updated_at: createdRule.updated_at,
+          }
+        } catch (parseError) {
+          fastify.log.error(
+            `Error parsing criteria for newly created rule ID ${createdRule.id}:`,
+            parseError,
+          )
+
+          formattedRule = {
+            id: createdRule.id,
+            name: createdRule.name,
+            target_type: createdRule.target_type,
+            target_instance_id: createdRule.target_instance_id,
+            root_folder: createdRule.root_folder || undefined,
+            quality_profile:
+              createdRule.quality_profile !== null
+                ? createdRule.quality_profile
+                : undefined,
+            order: createdRule.order,
+            enabled: Boolean(createdRule.enabled),
+            condition: undefined,
+            created_at: createdRule.created_at,
+            updated_at: createdRule.updated_at,
+          }
         }
 
         reply.status(201)
@@ -460,12 +614,21 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
 
         // Extract existing condition from criteria
-        const existingCriteria =
-          typeof existingRule.criteria === 'string'
-            ? JSON.parse(existingRule.criteria)
-            : existingRule.criteria || {}
+        let existingCondition: unknown
+        try {
+          const existingCriteria =
+            typeof existingRule.criteria === 'string'
+              ? JSON.parse(existingRule.criteria)
+              : existingRule.criteria || {}
 
-        const existingCondition = existingCriteria.condition
+          existingCondition = existingCriteria.condition
+        } catch (parseError) {
+          fastify.log.error(
+            `Error parsing criteria for existing rule ID ${id}:`,
+            parseError,
+          )
+          existingCondition = undefined
+        }
 
         // Prepare updates using RuleBuilder to ensure proper structure
         const partialRule = {
@@ -548,26 +711,51 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
 
         // Format the response
-        const criteria =
-          typeof updatedRule.criteria === 'string'
-            ? JSON.parse(updatedRule.criteria)
-            : updatedRule.criteria || {}
+        let formattedRule: ContentRouterRule
+        try {
+          const criteria =
+            typeof updatedRule.criteria === 'string'
+              ? JSON.parse(updatedRule.criteria)
+              : updatedRule.criteria || {}
 
-        const formattedRule = {
-          id: updatedRule.id,
-          name: updatedRule.name,
-          target_type: updatedRule.target_type,
-          target_instance_id: updatedRule.target_instance_id,
-          root_folder: updatedRule.root_folder || undefined,
-          quality_profile:
-            updatedRule.quality_profile !== null
-              ? updatedRule.quality_profile
-              : undefined,
-          order: updatedRule.order,
-          enabled: Boolean(updatedRule.enabled),
-          condition: criteria.condition,
-          created_at: updatedRule.created_at,
-          updated_at: updatedRule.updated_at,
+          formattedRule = {
+            id: updatedRule.id,
+            name: updatedRule.name,
+            target_type: updatedRule.target_type,
+            target_instance_id: updatedRule.target_instance_id,
+            root_folder: updatedRule.root_folder || undefined,
+            quality_profile:
+              updatedRule.quality_profile !== null
+                ? updatedRule.quality_profile
+                : undefined,
+            order: updatedRule.order,
+            enabled: Boolean(updatedRule.enabled),
+            condition: criteria.condition,
+            created_at: updatedRule.created_at,
+            updated_at: updatedRule.updated_at,
+          }
+        } catch (parseError) {
+          fastify.log.error(
+            `Error parsing criteria for updated rule ID ${updatedRule.id}:`,
+            parseError,
+          )
+
+          formattedRule = {
+            id: updatedRule.id,
+            name: updatedRule.name,
+            target_type: updatedRule.target_type,
+            target_instance_id: updatedRule.target_instance_id,
+            root_folder: updatedRule.root_folder || undefined,
+            quality_profile:
+              updatedRule.quality_profile !== null
+                ? updatedRule.quality_profile
+                : undefined,
+            order: updatedRule.order,
+            enabled: Boolean(updatedRule.enabled),
+            condition: undefined,
+            created_at: updatedRule.created_at,
+            updated_at: updatedRule.updated_at,
+          }
         }
 
         return {
