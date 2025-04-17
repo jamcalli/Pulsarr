@@ -445,7 +445,10 @@ const AccordionRouteCard = ({
 
   const handleTitleChange = useCallback(
     (title: string) => {
-      form.setValue('name', title, { shouldDirty: true })
+      form.setValue('name', title, {
+        shouldDirty: true,
+        shouldValidate: true,
+      })
       setLocalTitle(title)
       setIsEditing(false)
     },
