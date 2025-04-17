@@ -58,8 +58,6 @@ const ConditionGroupComponent = ({
     (e) => e.name !== 'Conditional Router',
   )
 
-  const conditionKeysRef = useRef(new Map())
-
   // Create a properly structured empty condition with defaults based on the first available field
   const createEmptyCondition = useCallback((): Condition => {
     if (filteredEvaluators.length === 0) {
@@ -345,15 +343,11 @@ const ConditionGroupComponent = ({
               'operator' in condition &&
               'conditions' in condition
 
-            // Generate or retrieve a stable key for this condition
-            let key = conditionKeysRef.current.get(condition)
-            if (!key) {
-              key = `condition-${Math.random().toString(36).substr(2, 9)}`
-              conditionKeysRef.current.set(condition, key)
-            }
+            // Generate a stable key using the parent group's key and index
+            const stableKey = `${value.operator}-${index}`
 
             return (
-              <div key={key} className="relative">
+              <div key={stableKey} className="relative">
                 {isGroup ? (
                   // Render nested group
                   <ConditionGroupComponent
