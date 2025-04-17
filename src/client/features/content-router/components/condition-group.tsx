@@ -254,25 +254,25 @@ const ConditionGroupComponent = ({
   // Remove a condition from the group
   const handleRemoveCondition = useCallback(
     (index: number) => {
-      // Ensure value.conditions is an array before filtering
-      if (!Array.isArray(valueRef.current.conditions)) {
-        onChange({
-          ...valueRef.current,
-          conditions: [createEmptyCondition()],
+      const newConditions = [...value.conditions]
+      newConditions.splice(index, 1)
+
+      // If this was the last condition, add a truly empty condition
+      if (newConditions.length === 0) {
+        newConditions.push({
+          field: '',
+          operator: '',
+          value: '',
+          negate: false,
         })
-        return
       }
 
-      const newConditions = valueRef.current.conditions.filter(
-        (_: Condition | ConditionGroup, i: number) => i !== index,
-      )
       onChange({
-        ...valueRef.current,
-        conditions:
-          newConditions.length > 0 ? newConditions : [createEmptyCondition()],
+        ...value,
+        conditions: newConditions,
       })
     },
-    [onChange, createEmptyCondition],
+    [value, onChange],
   )
 
   if (isLoading) {
