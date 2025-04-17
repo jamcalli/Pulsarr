@@ -72,6 +72,7 @@ const ConditionGroupComponent = ({
         operator: '',
         value: '',
         negate: false,
+        _cid: crypto.randomUUID(),
       }
     }
 
@@ -134,6 +135,7 @@ const ConditionGroupComponent = ({
       operator: 'AND',
       conditions: [createEmptyCondition()],
       negate: false,
+      _cid: crypto.randomUUID(),
     }
   }, [createEmptyCondition])
 
@@ -385,7 +387,10 @@ const ConditionGroupComponent = ({
               'conditions' in condition
 
             // Generate a stable key using the parent group's key and index
-            const stableKey = `${value.operator}-${index}`
+            const stableKey =
+              '_cid' in condition && typeof condition._cid === 'string'
+                ? condition._cid
+                : `condition-${index}`
 
             return (
               <div key={stableKey} className="relative">
