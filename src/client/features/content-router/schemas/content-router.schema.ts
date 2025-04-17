@@ -31,33 +31,60 @@ export interface IConditionGroup {
   negate?: boolean
 }
 
-// Define schema for a basic condition
+// Define schema for a basic condition - simplified
 export const ConditionSchema: z.ZodType<ICondition> = z.lazy(() =>
   z.object({
-    field: z.string().min(1, { message: 'Field is required' }),
-    operator: z.string().min(1, { message: 'Operator is required' }),
+    field: z.string(),
+    operator: z.string(),
     value: ConditionValueSchema,
     negate: z.boolean().optional().default(false),
   }),
 )
 
-// Define schema for a condition group (which can contain nested conditions and groups)
+// Define schema for a condition group - simplified
 export const ConditionGroupSchema: z.ZodType<IConditionGroup> = z.lazy(() =>
   z.object({
     operator: z.enum(['AND', 'OR']),
-    conditions: z
-      .array(z.union([ConditionSchema, ConditionGroupSchema]))
-      .min(1),
+    conditions: z.array(z.union([ConditionSchema, ConditionGroupSchema])),
     negate: z.boolean().optional().default(false),
   }),
 )
 
-// Schema for a conditional route
+// Schema for a conditional route - simplified validation for condition
 export const ConditionalRouteFormSchema = z.object({
   name: z.string().min(2, {
     message: 'Route name must be at least 2 characters.',
   }),
-  condition: ConditionGroupSchema,
+  condition: ConditionGroupSchema.refine(
+    (val) => {
+      // Basic validation - just check if we have at least one condition
+      // The detailed message is handled in the component
+      if (!val.conditions || val.conditions.length === 0) {
+        return false
+      }
+
+      // Check for a valid condition with all parts filled out
+      return val.conditions.some((cond) => {
+        if ('field' in cond && 'operator' in cond && 'value' in cond) {
+          const hasField = Boolean(cond.field)
+          const hasOperator = Boolean(cond.operator)
+
+          // Basic check for value - could be expanded if needed
+          const hasValue =
+            cond.value !== undefined &&
+            cond.value !== null &&
+            (typeof cond.value !== 'string' || cond.value.trim() !== '') &&
+            (!Array.isArray(cond.value) || cond.value.length > 0)
+
+          return hasField && hasOperator && hasValue
+        }
+        return false
+      })
+    },
+    {
+      message: 'Invalid condition', // This message won't be used, but is required
+    },
+  ),
   target_instance_id: z.number().min(1, {
     message: 'Instance selection is required.',
   }),
