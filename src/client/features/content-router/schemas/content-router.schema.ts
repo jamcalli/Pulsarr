@@ -22,6 +22,7 @@ export interface ICondition {
   operator: string
   value: ConditionValue
   negate?: boolean
+  _cid?: string // Optional unique identifier
 }
 
 // Define interface for a condition group
@@ -29,24 +30,33 @@ export interface IConditionGroup {
   operator: 'AND' | 'OR'
   conditions: (ICondition | IConditionGroup)[]
   negate?: boolean
+  _cid?: string // Optional unique identifier
 }
 
-// Define schema for a basic condition - simplified
+// Define schema for a basic condition - with proper type annotation
 export const ConditionSchema: z.ZodType<ICondition> = z.lazy(() =>
   z.object({
     field: z.string(),
     operator: z.string(),
     value: ConditionValueSchema,
     negate: z.boolean().optional().default(false),
+    _cid: z.string().optional(), // Add optional unique identifier
   }),
 )
 
-// Define schema for a condition group - simplified
+// Define schema for a condition group - with proper type annotation and improved lazy references
 export const ConditionGroupSchema: z.ZodType<IConditionGroup> = z.lazy(() =>
   z.object({
     operator: z.enum(['AND', 'OR']),
-    conditions: z.array(z.union([ConditionSchema, ConditionGroupSchema])),
+    // Use a second lazy closure to avoid temporal dead zone issues
+    conditions: z.array(
+      z.union([
+        ConditionSchema,
+        z.lazy(() => ConditionGroupSchema),
+      ]),
+    ),
     negate: z.boolean().optional().default(false),
+    _cid: z.string().optional(), // Add optional unique identifier
   }),
 )
 
