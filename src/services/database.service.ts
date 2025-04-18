@@ -2839,7 +2839,7 @@ export class DatabaseService {
    *
    * @returns Promise resolving to array of detailed status transition metrics
    */
-  async getDetailedStatusTransitionMetrics(): Promise<
+  async getDetailedStatusTransitionMetrics(removeOutliers = true): Promise<
     {
       from_status: string
       to_status: string
@@ -2859,9 +2859,11 @@ export class DatabaseService {
         min_days: number
         max_days: number
         count: number
+        all_days_between: string
       }
 
-      const results = await this.knex.raw<TransitionMetricsRow[]>(`
+      // Use your original query to get all metrics
+      const results = await this.knex.raw<{ rows: TransitionMetricsRow[] }>(`
       WITH status_pairs AS (
         SELECT 
           h1.status AS from_status,
@@ -2885,21 +2887,88 @@ export class DatabaseService {
         avg(days_between) AS avg_days,
         min(days_between) AS min_days,
         max(days_between) AS max_days,
-        count(*) AS count
+        count(*) AS count,
+        group_concat(days_between) AS all_days_between
       FROM status_pairs
       GROUP BY from_status, to_status, content_type
       ORDER BY from_status, to_status, content_type
     `)
 
-      return results.map((row: TransitionMetricsRow) => ({
-        from_status: String(row.from_status),
-        to_status: String(row.to_status),
-        content_type: String(row.content_type),
-        avg_days: Number(row.avg_days),
-        min_days: Number(row.min_days),
-        max_days: Number(row.max_days),
-        count: Number(row.count),
-      }))
+      const rows = Array.isArray(results) ? results : results.rows || []
+
+      if (!removeOutliers) {
+        // Return all results without filtering outliers
+        return rows.map((row: TransitionMetricsRow) => ({
+          from_status: String(row.from_status),
+          to_status: String(row.to_status),
+          content_type: String(row.content_type),
+          avg_days: Number(row.avg_days),
+          min_days: Number(row.min_days),
+          max_days: Number(row.max_days),
+          count: Number(row.count),
+        }))
+      }
+
+      // Process each result to remove outliers and recalculate metrics
+      return rows.map((row: TransitionMetricsRow) => {
+        // Get all individual days_between values
+        const daysList = String(row.all_days_between).split(',').map(Number)
+
+        if (daysList.length < 4) {
+          // Not enough data points to calculate meaningful quartiles
+          return {
+            from_status: String(row.from_status),
+            to_status: String(row.to_status),
+            content_type: String(row.content_type),
+            avg_days: Number(row.avg_days),
+            min_days: Number(row.min_days),
+            max_days: Number(row.max_days),
+            count: Number(row.count),
+          }
+        }
+
+        // Calculate quartiles
+        const sortedDays = [...daysList].sort((a, b) => a - b)
+        const q1Index = Math.floor(sortedDays.length * 0.25)
+        const q3Index = Math.floor(sortedDays.length * 0.75)
+        const q1 = sortedDays[q1Index]
+        const q3 = sortedDays[q3Index]
+
+        // Calculate IQR and bounds
+        const iqr = q3 - q1
+        const lowerBound = q1 - 1.5 * iqr
+        const upperBound = q3 + 1.5 * iqr
+
+        // Filter out outliers
+        const filteredDays = sortedDays.filter(
+          (days) => days >= lowerBound && days <= upperBound,
+        )
+
+        if (filteredDays.length === 0) {
+          // If filtering removed all values, return original metrics
+          return {
+            from_status: String(row.from_status),
+            to_status: String(row.to_status),
+            content_type: String(row.content_type),
+            avg_days: Number(row.avg_days),
+            min_days: Number(row.min_days),
+            max_days: Number(row.max_days),
+            count: Number(row.count),
+          }
+        }
+
+        // Calculate new metrics
+        const sum = filteredDays.reduce((acc, val) => acc + val, 0)
+        return {
+          from_status: String(row.from_status),
+          to_status: String(row.to_status),
+          content_type: String(row.content_type),
+          avg_days: sum / filteredDays.length,
+          min_days: filteredDays[0], // Already sorted
+          max_days: filteredDays[filteredDays.length - 1], // Already sorted
+          count: filteredDays.length,
+        }
+      })
     } catch (error) {
       this.log.error(
         'Error calculating detailed status transition metrics:',

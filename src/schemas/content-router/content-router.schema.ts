@@ -14,7 +14,7 @@ export const ComparisonOperatorSchema = z.enum([
 ])
 
 // First, define the value types
-const ConditionValueSchema = z.union([
+export const ConditionValueSchema = z.union([
   z.string(),
   z.number(),
   z.boolean(),
@@ -126,6 +126,7 @@ export const ContentRouterRuleErrorSchema = z.object({
 
 // Export inferred types
 export type ComparisonOperator = z.infer<typeof ComparisonOperatorSchema>
+export type ConditionValue = z.infer<typeof ConditionValueSchema>
 export type Condition = z.infer<typeof ConditionSchema>
 export type ConditionGroup = z.infer<typeof ConditionGroupSchema>
 export type BaseRouterRule = z.infer<typeof BaseRouterRuleSchema>

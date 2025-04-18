@@ -3,9 +3,10 @@ import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import DeleteRouteAlert from '@/features/content-router/components/delete-route-alert'
 import AccordionRouteCardSkeleton from '@/features/content-router/components/accordion-route-card-skeleton'
-import AccordionRouteCard from './accordion-route-card'
+import AccordionRouteCard from '@/features/content-router/components/accordion-route-card'
 import { useRadarrContentRouterAdapter } from '@/features/radarr/hooks/content-router/useRadarrContentRouterAdapter'
 import { useSonarrContentRouterAdapter } from '@/features/sonarr/hooks/content-router/useSonarrContentRouterAdapter'
+import { generateUUID } from '@/features/content-router/utils/utils'
 import type { RadarrInstance } from '@root/types/radarr.types'
 import type { SonarrInstance } from '@root/types/sonarr.types'
 import type {
@@ -94,8 +95,7 @@ const AccordionContentRouterSection = ({
   }>({})
 
   const skeletonIds = useMemo(
-    () =>
-      Array.from({ length: rules.length || 2 }).map(() => crypto.randomUUID()),
+    () => Array.from({ length: rules.length || 2 }).map(() => generateUUID()),
     [rules.length],
   )
 
@@ -122,8 +122,8 @@ const AccordionContentRouterSection = ({
       conditions: [
         {
           field: '',
-          operator: '',
-          value: '',
+          operator: 'equals',
+          value: null,
           negate: false,
         },
       ],
@@ -330,12 +330,29 @@ const AccordionContentRouterSection = ({
   const hasExistingRoutes = rules.length > 0
 
   const convertToStandardCondition = (rule: ContentRouterRule | TempRule) => {
-    // Convert old format criteria to new format condition if needed
+    // Create a new object to avoid mutating the input
     const ruleWithCondition = { ...rule } as ExtendedContentRouterRule
 
     // Cast rule to ExtendedContentRouterRule to access potential criteria
     const extendedRule = rule as ExtendedContentRouterRule
-    if (
+
+    // Handle case where the condition is already set but might be a Condition instead of ConditionGroup
+    if (extendedRule.condition) {
+      // Check if it's a Condition (has field property) rather than a ConditionGroup
+      if (
+        'field' in extendedRule.condition &&
+        !('conditions' in extendedRule.condition)
+      ) {
+        // Convert the single condition into a condition group
+        const singleCondition = extendedRule.condition as Condition
+        ruleWithCondition.condition = {
+          operator: 'AND',
+          conditions: [singleCondition],
+          negate: false,
+        }
+      }
+      // If it already has 'conditions', it's already a ConditionGroup, so no change needed
+    } else if (
       extendedRule.criteria &&
       !extendedRule.condition &&
       typeof extendedRule.criteria === 'object'
@@ -344,7 +361,7 @@ const AccordionContentRouterSection = ({
 
       if ('genre' in criteria && criteria.genre) {
         // Convert genre rule to condition
-        const genreValue = criteria.genre
+        const genreValue = criteria.genre as string | string[]
         ruleWithCondition.condition = {
           operator: 'AND',
           conditions: [
@@ -377,10 +394,11 @@ const AccordionContentRouterSection = ({
             negate: false,
           }
         } else if (typeof yearValue === 'object' && yearValue !== null) {
+          const rangeValue = yearValue as { min?: number; max?: number }
           condition = {
             field: 'year',
             operator: 'between',
-            value: yearValue,
+            value: rangeValue,
             negate: false,
           }
         } else {
@@ -398,8 +416,7 @@ const AccordionContentRouterSection = ({
           negate: false,
         }
       } else if ('originalLanguage' in criteria && criteria.originalLanguage) {
-        // Convert language rule to condition
-        const langValue = criteria.originalLanguage
+        const langValue = criteria.originalLanguage as string | string[]
         ruleWithCondition.condition = {
           operator: 'AND',
           conditions: [
@@ -413,8 +430,7 @@ const AccordionContentRouterSection = ({
           negate: false,
         }
       } else if ('users' in criteria && criteria.users) {
-        // Convert user rule to condition
-        const usersValue = criteria.users
+        const usersValue = criteria.users as string | string[]
         ruleWithCondition.condition = {
           operator: 'AND',
           conditions: [
@@ -437,11 +453,27 @@ const AccordionContentRouterSection = ({
         conditions: [
           {
             field: '',
-            operator: '',
-            value: '',
+            operator: 'equals',
+            value: null,
             negate: false,
           },
         ],
+        negate: false,
+      }
+    }
+
+    // Add this final type safety check
+    if (!('conditions' in ruleWithCondition.condition)) {
+      console.warn(
+        'Condition is not a ConditionGroup - converting',
+        ruleWithCondition.condition,
+      )
+      // Convert to a ConditionGroup if somehow it's still not one
+      const singleCondition =
+        ruleWithCondition.condition as unknown as Condition
+      ruleWithCondition.condition = {
+        operator: 'AND',
+        conditions: [singleCondition],
         negate: false,
       }
     }
@@ -475,7 +507,10 @@ const AccordionContentRouterSection = ({
     return (
       <AccordionRouteCard
         key={ruleId}
-        route={mergedRule as ExtendedContentRouterRule}
+        route={{
+          ...mergedRule,
+          condition: mergedRule.condition as ConditionGroup | undefined,
+        }}
         isNew={isNew}
         onSave={async (data: ContentRouterRule | ContentRouterRuleUpdate) => {
           if (isNew) {
