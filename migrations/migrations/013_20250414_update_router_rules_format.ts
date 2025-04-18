@@ -1,15 +1,12 @@
 import type { Knex } from 'knex'
 
 /**
- * Properly transforms router rules to a format compatible with the new predicate system.
+ * Migrates router rules to a new predicate-based criteria format.
  *
- * This migration completely replaces the criteria structure rather than appending to it,
- * ensuring evaluators and UI components can correctly process the rules. It maintains
- * field names that match evaluator expectations and properly handles multi-select fields.
+ * Replaces the entire `criteria` field of each non-conditional router rule with a standardized structure containing a single `condition` object, mapping existing rule types and values to evaluator-compatible fields and operators. Multi-select fields are normalized to arrays, and unknown rule types are handled with a generic fallback.
  *
  * @remark
- * Rules with missing or unrecognized criteria are not updated. Errors encountered during 
- * processing of individual rules are logged and do not interrupt the migration.
+ * Rules with missing or unrecognized criteria are skipped. Errors during individual rule processing are logged and do not halt the migration.
  */
 export async function up(knex: Knex): Promise<void> {
   // Get all router rules that need updating (non-conditional rules)
@@ -138,10 +135,9 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Reverts router rules to the previous format by extracting original criteria from the condition field.
+ * Reverts router rules from the predicate-based criteria format back to the original criteria structure.
  *
- * Reconstructs the original criteria structure by converting the condition field back to its
- * original representation based on rule type.
+ * For each non-conditional router rule, reconstructs the original criteria object from the `condition` field and updates the database accordingly. Handles known rule types explicitly and uses a generic fallback for unknown types.
  */
 export async function down(knex: Knex): Promise<void> {
   // Get all non-conditional rules
