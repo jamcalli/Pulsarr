@@ -11,18 +11,7 @@ import GenreMultiSelect from '@/components/ui/genre-multi-select'
 import UserMultiSelect from '@/components/ui/user-multi-select'
 import { useConfigStore } from '@/stores/configStore'
 import type { ControllerRenderProps, FieldPath } from 'react-hook-form'
-
-// Define value types
-type ConditionValue =
-  | string
-  | number
-  | boolean
-  | string[]
-  | number[]
-  | {
-      min?: number
-      max?: number
-    }
+import type { ConditionValue } from '@root/schemas/content-router/content-router.schema'
 
 interface FieldState {
   [key: string]: string | string[]

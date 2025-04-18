@@ -32,7 +32,7 @@ import {
   Power,
 } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import ConditionGroupComponent from './condition-group'
+import ConditionGroupComponent from '@/features/content-router/components/condition-group'
 import {
   Tooltip,
   TooltipContent,
@@ -47,9 +47,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import type {
+  ConditionValue,
   ContentRouterRule,
   ContentRouterRuleUpdate,
   ConditionGroup,
+  IConditionGroup,
 } from '@root/schemas/content-router/content-router.schema'
 import type {
   EvaluatorMetadata,
@@ -62,16 +64,6 @@ import {
 import type { RadarrInstance } from '@root/types/radarr.types'
 import type { SonarrInstance } from '@root/types/sonarr.types'
 
-// Define possible value types for criteria
-type CriteriaValue =
-  | string
-  | string[]
-  | number
-  | number[]
-  | { min?: number; max?: number }
-  | ConditionGroup
-  | undefined
-
 // Define criteria interface to match backend schema
 interface Criteria {
   condition?: ConditionGroup
@@ -79,7 +71,7 @@ interface Criteria {
   year?: number | number[] | { min?: number; max?: number }
   originalLanguage?: string | string[]
   users?: string | string[]
-  [key: string]: CriteriaValue
+  [key: string]: ConditionValue | ConditionGroup | undefined
 }
 
 // Extended ContentRouterRule to include criteria and type
@@ -327,7 +319,7 @@ const AccordionRouteCard = ({
             const firstOperator = operators[0]?.name || ''
 
             // Determine appropriate initial value
-            let initialValue: CriteriaValue = ''
+            let initialValue: ConditionValue = ''
             if (operators[0]?.valueTypes) {
               const valueType = operators[0].valueTypes[0]
               if (valueType === 'number') initialValue = 0
@@ -521,7 +513,7 @@ const AccordionRouteCard = ({
       // For new routes (creating a route)
       if (isNew) {
         const routeData: ContentRouterRule = {
-          id: 0, // This will be ignored by the backend
+          id: 0,
           name: data.name,
           target_type: contentType,
           target_instance_id: data.target_instance_id,
@@ -531,9 +523,9 @@ const AccordionRouteCard = ({
           root_folder: data.root_folder,
           enabled: data.enabled,
           order: data.order,
-          condition: data.condition, // Always use condition directly, "conditional" type is implicit
-          created_at: '', // This will be set by the backend
-          updated_at: '', // This will be set by the backend
+          condition: data.condition as unknown as ConditionGroup,
+          created_at: '',
+          updated_at: '',
         }
 
         await onSave(routeData)
@@ -542,7 +534,7 @@ const AccordionRouteCard = ({
       else {
         const updatePayload: ContentRouterRuleUpdate = {
           name: data.name,
-          condition: data.condition, // Always use condition directly, "conditional" type is implicit
+          condition: data.condition as unknown as ConditionGroup,
           target_instance_id: data.target_instance_id,
           quality_profile: data.quality_profile
             ? Number(data.quality_profile)
@@ -882,7 +874,9 @@ const AccordionRouteCard = ({
                                 </div>
                               ) : (
                                 <ConditionGroupComponent
-                                  value={field.value}
+                                  value={
+                                    field.value as unknown as IConditionGroup
+                                  }
                                   onChange={field.onChange}
                                   evaluatorMetadata={evaluatorMetadata}
                                   genres={genres}

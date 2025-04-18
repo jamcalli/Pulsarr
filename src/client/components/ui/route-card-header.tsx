@@ -15,7 +15,6 @@ interface RouteCardHeaderProps {
   isDirty: boolean;
   isValid: boolean;
   enabled?: boolean;
-  isTogglingState?: boolean;
   onToggleEnabled?: () => Promise<void>;
   onSave: () => void;
   onCancel: () => void;
@@ -30,7 +29,6 @@ const RouteCardHeader = ({
   isDirty,
   isValid,
   enabled = true,
-  isTogglingState = false,
   onToggleEnabled,
   onSave,
   onCancel,

@@ -17,11 +17,14 @@ import { PlusCircle, Trash2, HelpCircle, LayoutList } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
-import ConditionBuilder from './condition-builder'
+import ConditionBuilder from '@/features/content-router/components/condition-builder'
+import { generateUUID } from '@/features/content-router/utils/utils'
 import type { EvaluatorMetadata } from '@root/schemas/content-router/evaluator-metadata.schema'
 import type {
   Condition,
   ConditionGroup,
+  ConditionValue,
+  ComparisonOperator,
 } from '@root/schemas/content-router/content-router.schema'
 
 interface ConditionGroupComponentProps {
@@ -34,16 +37,6 @@ interface ConditionGroupComponentProps {
   isLoading?: boolean
   level?: number
 }
-
-type ConditionValue =
-  | string
-  | number
-  | boolean
-  | string[]
-  | number[]
-  | { min?: number; max?: number }
-  | null
-  | undefined
 
 const ConditionGroupComponent = ({
   value,
@@ -79,10 +72,10 @@ const ConditionGroupComponent = ({
     if (filteredEvaluators.length === 0) {
       return {
         field: '',
-        operator: '',
+        operator: 'equals' as ComparisonOperator,
         value: '',
         negate: false,
-        _cid: crypto.randomUUID(),
+        _cid: generateUUID(),
       }
     }
 
@@ -96,10 +89,10 @@ const ConditionGroupComponent = ({
       )
       return {
         field: '',
-        operator: '',
+        operator: 'equals' as ComparisonOperator,
         value: '',
         negate: false,
-        _cid: crypto.randomUUID(),
+        _cid: generateUUID(),
       }
     }
 
@@ -110,10 +103,10 @@ const ConditionGroupComponent = ({
     if (!firstField) {
       return {
         field: '',
-        operator: '',
+        operator: 'equals' as ComparisonOperator,
         value: '',
         negate: false,
-        _cid: crypto.randomUUID(),
+        _cid: generateUUID(),
       }
     }
 
@@ -125,10 +118,10 @@ const ConditionGroupComponent = ({
     if (!fieldEvaluator) {
       return {
         field: firstField,
-        operator: '',
+        operator: 'equals' as ComparisonOperator,
         value: '',
         negate: false,
-        _cid: crypto.randomUUID(),
+        _cid: generateUUID(),
       }
     }
 
@@ -140,14 +133,14 @@ const ConditionGroupComponent = ({
       console.error(`[ConditionGroup] No operators for field "${firstField}"`)
       return {
         field: firstField,
-        operator: '',
+        operator: 'equals' as ComparisonOperator,
         value: '',
         negate: false,
-        _cid: crypto.randomUUID(),
+        _cid: generateUUID(),
       }
     }
 
-    const firstOperator = operators[0]?.name || ''
+    const firstOperator = (operators[0]?.name || 'equals') as ComparisonOperator
 
     // Determine appropriate initial value based on value type
     let initialValue: ConditionValue = ''
@@ -165,7 +158,7 @@ const ConditionGroupComponent = ({
       operator: firstOperator,
       value: initialValue,
       negate: false,
-      _cid: crypto.randomUUID(),
+      _cid: generateUUID(),
     }
   }, [filteredEvaluators])
 
@@ -175,7 +168,7 @@ const ConditionGroupComponent = ({
       operator: 'AND',
       conditions: [createEmptyCondition()],
       negate: false,
-      _cid: crypto.randomUUID(),
+      _cid: generateUUID(),
     }
   }, [createEmptyCondition])
 
@@ -317,10 +310,10 @@ const ConditionGroupComponent = ({
       if (newConditions.length === 0) {
         newConditions.push({
           field: '',
-          operator: '',
+          operator: 'equals' as ComparisonOperator,
           value: '',
           negate: false,
-          _cid: crypto.randomUUID(),
+          _cid: generateUUID(),
         })
       }
 

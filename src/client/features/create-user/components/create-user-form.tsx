@@ -10,10 +10,20 @@ import {
 import { Input } from '@/components/ui/input'
 import { CreateUserErrorMessage } from '@/features/create-user/components/create-user-error'
 import { useCreateUserForm } from '@/features/create-user/hooks/useCreateUserForm'
+import { useRef, useEffect } from 'react'
 
+/**
+ * Renders a user creation form with fields for email, username, password, and confirm password.
+ *
+ * The form manages validation, displays backend errors, and updates the submit button state and label based on submission status. The email input is automatically focused when the form mounts.
+ */
 export function CreateUserForm() {
-  const { form, status, backendError, emailInputRef, handleSubmit } =
-    useCreateUserForm()
+  const { form, status, backendError, handleSubmit } = useCreateUserForm()
+  const emailInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    emailInputRef.current?.focus()
+  }, [])
 
   return (
     <Form {...form}>
