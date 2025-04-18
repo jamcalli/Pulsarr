@@ -1,12 +1,12 @@
 import type { Knex } from 'knex'
 
 /**
- * Migrates existing router rules to include an explicit `condition` field in their criteria.
+ * Migrates router rules to a new predicate-based criteria format.
  *
- * Updates all non-conditional router rules in the `router_rules` table by transforming their `criteria` to the new format, adding a `condition` object based on the rule type. Handles various rule types such as genre, year, language, and user, and applies a generic transformation for unknown types. Rules that cannot be converted are skipped.
+ * Replaces the entire `criteria` field of each non-conditional router rule with a standardized structure containing a single `condition` object, mapping existing rule types and values to evaluator-compatible fields and operators. Multi-select fields are normalized to arrays, and unknown rule types are handled with a generic fallback.
  *
  * @remark
- * Rules with missing or unrecognized criteria are not updated. Errors encountered during processing of individual rules are logged and do not interrupt the migration.
+ * Rules with missing or unrecognized criteria are skipped. Errors during individual rule processing are logged and do not halt the migration.
  */
 export async function up(knex: Knex): Promise<void> {
   // Get all router rules that need updating (non-conditional rules)
@@ -29,15 +29,18 @@ export async function up(knex: Knex): Promise<void> {
         continue
       }
 
-      let condition: { field: string; operator: string; value: any; negate?: boolean } | null = null
+      // Define a new criteria object with only the condition property
+      let newCriteria: { condition: { field: string; operator: string; value: any; negate?: boolean } | null } = {
+        condition: null
+      }
 
       // Convert based on rule type
       switch (rule.type) {
         case 'genre':
           if (criteria.genre) {
-            // Create a genre condition
-            condition = {
-              field: 'genres',
+            // Create a genre condition - use 'genre' field to match the evaluator's expectations
+            newCriteria.condition = {
+              field: 'genre', // Ensures field name matches genre-evaluator.ts
               operator: 'in',
               value: Array.isArray(criteria.genre) ? criteria.genre : [criteria.genre]
             }
@@ -50,21 +53,21 @@ export async function up(knex: Knex): Promise<void> {
             
             if (typeof yearValue === 'number') {
               // Simple year equals condition
-              condition = {
+              newCriteria.condition = {
                 field: 'year',
                 operator: 'equals',
                 value: yearValue
               }
             } else if (typeof yearValue === 'object' && (yearValue.min !== undefined || yearValue.max !== undefined)) {
               // Year range condition
-              condition = {
+              newCriteria.condition = {
                 field: 'year',
                 operator: 'between',
                 value: yearValue
               }
             } else if (Array.isArray(yearValue)) {
               // List of years
-              condition = {
+              newCriteria.condition = {
                 field: 'year',
                 operator: 'in',
                 value: yearValue
@@ -75,11 +78,13 @@ export async function up(knex: Knex): Promise<void> {
           
         case 'language':
           if (criteria.originalLanguage) {
-            // Language condition
-            condition = {
-              field: 'originalLanguage',
-              operator: 'equals',
-              value: criteria.originalLanguage
+            // Language condition - use 'language' field to match language-evaluator.ts
+            newCriteria.condition = {
+              field: 'language', // Changed from 'originalLanguage' to match evaluator
+              operator: 'in',
+              value: Array.isArray(criteria.originalLanguage) 
+                ? criteria.originalLanguage 
+                : [criteria.originalLanguage]
             }
           }
           break
@@ -87,7 +92,7 @@ export async function up(knex: Knex): Promise<void> {
         case 'user':
           if (criteria.users) {
             // User condition
-            condition = {
+            newCriteria.condition = {
               field: 'user',
               operator: 'in',
               value: Array.isArray(criteria.users) ? criteria.users : [criteria.users]
@@ -98,25 +103,23 @@ export async function up(knex: Knex): Promise<void> {
         default:
           console.log(`Unknown rule type: ${rule.type} for rule ID ${rule.id}`)
           // Create a generic condition for unknown types to maintain compatibility
-          condition = {
-            field: rule.type,
-            operator: 'equals',
-            value: Object.values(criteria)[0] || 'placeholder'
+          const firstKey = Object.keys(criteria)[0]
+          const firstValue = criteria[firstKey]
+          if (firstKey && firstValue !== undefined) {
+            newCriteria.condition = {
+              field: rule.type,
+              operator: 'equals',
+              value: firstValue
+            }
           }
       }
 
-      if (!condition) {
+      if (!newCriteria.condition) {
         console.log(`Could not create condition for rule ID ${rule.id}, skipping`)
         continue
       }
 
-      // Update the criteria with the new condition format
-      const newCriteria = {
-        ...criteria,
-        condition
-      }
-
-      // Update the rule in the database
+      // Update the rule in the database - COMPLETELY REPLACE the criteria
       await knex('router_rules')
         .where('id', rule.id)
         .update({
@@ -132,9 +135,9 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Reverts router rules to the previous format by removing the `condition` field from the `criteria` of all non-conditional rules.
+ * Reverts router rules from the predicate-based criteria format back to the original criteria structure.
  *
- * Iterates through all router rules where the type is not `'conditional'`, removes the `condition` property from their `criteria` if present, and updates the database accordingly.
+ * For each non-conditional router rule, reconstructs the original criteria object from the `condition` field and updates the database accordingly. Handles known rule types explicitly and uses a generic fallback for unknown types.
  */
 export async function down(knex: Knex): Promise<void> {
   // Get all non-conditional rules
@@ -152,22 +155,41 @@ export async function down(knex: Knex): Promise<void> {
         ? JSON.parse(rule.criteria) 
         : rule.criteria
 
-      if (!criteria) continue
+      if (!criteria || !criteria.condition) continue
 
-      // Remove the condition field, preserving the original criteria
-      if (criteria.condition) {
-        const { condition, ...originalCriteria } = criteria
-        
-        // Update the rule in the database
-        await knex('router_rules')
-          .where('id', rule.id)
-          .update({
-            criteria: JSON.stringify(originalCriteria),
-            updated_at: new Date().toISOString()
-          })
-        
-        console.log(`Reverted rule ID ${rule.id} (${rule.name}) to old format`)
+      // Create a new criteria object based on rule type and condition
+      let originalCriteria: Record<string, unknown> = {}
+      const condition = criteria.condition
+
+      switch (rule.type) {
+        case 'genre':
+          originalCriteria.genre = condition.value
+          break
+        case 'year':
+          originalCriteria.year = condition.value
+          break
+        case 'language':
+          originalCriteria.originalLanguage = condition.value
+          break
+        case 'user':
+          originalCriteria.users = condition.value
+          break
+        default:
+          // For unknown types, try to reconstruct using the field name
+          if (condition.field) {
+            originalCriteria[condition.field] = condition.value
+          }
       }
+      
+      // Update the rule in the database with the original criteria format
+      await knex('router_rules')
+        .where('id', rule.id)
+        .update({
+          criteria: JSON.stringify(originalCriteria),
+          updated_at: new Date().toISOString()
+        })
+      
+      console.log(`Reverted rule ID ${rule.id} (${rule.name}) to old format`)
     } catch (error) {
       console.error(`Error reverting rule ID ${rule.id}:`, error)
     }
