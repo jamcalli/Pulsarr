@@ -8,6 +8,13 @@ import {
   type LoginFormSchema,
 } from '@/features/auth/schemas/login-schema'
 
+/**
+ * Provides state and handlers for a login form, including validation, submission, and error management.
+ *
+ * Initializes form validation using a Zod schema, manages loading and success states, handles backend and unexpected errors, and focuses the email input on mount. On successful login, displays a welcome toast and redirects the user.
+ *
+ * @returns An object containing the form instance, current status, backend error message, email input ref, and the submit handler.
+ */
 export function useLoginForm() {
   const navigate = useNavigate()
   const { toast } = useToast()
