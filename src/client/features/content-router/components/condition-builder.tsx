@@ -160,6 +160,12 @@ const ConditionBuilder = ({
         const evaluator = selectedEvaluatorRef.current
         if (!evaluator) return
 
+        // Validate that the operatorName is one of the supported operators
+        const supported =
+          evaluator.supportedOperators?.[valueRef.current.field]?.some(
+            (op) => op.name === operatorName,
+          ) ?? false
+
         // Find the operator info
         const operatorInfo = evaluator.supportedOperators?.[
           valueRef.current.field
@@ -187,10 +193,10 @@ const ConditionBuilder = ({
           setValueTypes(operatorInfo.valueTypes || [])
         }
 
-        // Update with the new operator and clear previous value
+        // Update with the validated operator and clear previous value
         onChange({
           ...valueRef.current,
-          operator: operatorName as ComparisonOperator,
+          operator: (supported ? operatorName : 'equals') as ComparisonOperator,
           value: defaultValue,
         })
       },
