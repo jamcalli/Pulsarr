@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -14,6 +14,11 @@ export function useLoginForm() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success'>('idle')
   const [backendError, setBackendError] = useState<string | null>(null)
   const emailInputRef = useRef<HTMLInputElement>(null)
+
+  // Add useEffect to focus email input on mount
+  useEffect(() => {
+    emailInputRef.current?.focus()
+  }, [])
 
   const form = useForm<LoginFormSchema>({
     resolver: zodResolver(loginFormSchema),
