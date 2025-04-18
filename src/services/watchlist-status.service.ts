@@ -227,6 +227,10 @@ export class StatusService {
           continue
         }
 
+        const numericId =
+          typeof item.id === 'string' ? Number(item.id) : item.id
+        const mainTableStatus = item.status // Get status from main table
+
         // Find instances where this show exists
         const existingInstances: number[] = []
 
@@ -247,12 +251,17 @@ export class StatusService {
               await this.dbService.addWatchlistToSonarrInstance(
                 item.id,
                 instanceId,
-                matchingSeries[0].status || 'pending',
+                // If main table is notified, ensure junction starts as notified too
+                mainTableStatus === 'notified'
+                  ? 'notified'
+                  : matchingSeries[0].status || 'pending',
                 currentInstanceIds.length === 0,
               )
               updateCount++
               this.log.debug(
-                `Added show ${item.title} to Sonarr instance ${instanceId} in junction table`,
+                `Added show ${item.title} to Sonarr instance ${instanceId} in junction table${
+                  mainTableStatus === 'notified' ? ' with notified status' : ''
+                }`,
               )
             } else {
               // Update status if needed
@@ -262,7 +271,24 @@ export class StatusService {
                   instanceId,
                 )
 
+              // First check if main table is notified but junction isn't
               if (
+                mainTableStatus === 'notified' &&
+                currentStatus &&
+                currentStatus.status !== 'notified'
+              ) {
+                // Sync junction table to match main table's notified status
+                await this.dbService.updateWatchlistSonarrInstanceStatus(
+                  item.id,
+                  instanceId,
+                  'notified',
+                  currentStatus.last_notified_at || new Date().toISOString(),
+                )
+                updateCount++
+                this.log.debug(
+                  `Synchronized junction table status for ${item.title} to match main table "notified" status`,
+                )
+              } else if (
                 currentStatus &&
                 currentStatus.status !== matchingSeries[0].status &&
                 !(
@@ -270,6 +296,7 @@ export class StatusService {
                   matchingSeries[0].status !== 'notified'
                 )
               ) {
+                // Original status update logic (only if not downgrading from notified)
                 await this.dbService.updateWatchlistSonarrInstanceStatus(
                   item.id,
                   instanceId,
@@ -289,12 +316,34 @@ export class StatusService {
 
         // Get all instances this item is currently associated with
         if (item.id !== undefined) {
-          const numericId =
-            typeof item.id === 'string' ? Number(item.id) : item.id
           const currentInstanceIds =
             await this.dbService.getWatchlistSonarrInstanceIds(numericId)
 
-          // Clean up instances where the show no longer exists
+          // For notified items in main table, make sure ALL junction tables are synced
+          if (mainTableStatus === 'notified') {
+            for (const instanceId of currentInstanceIds) {
+              const status =
+                await this.dbService.getWatchlistSonarrInstanceStatus(
+                  numericId,
+                  instanceId,
+                )
+
+              if (status && status.status !== 'notified') {
+                await this.dbService.updateWatchlistSonarrInstanceStatus(
+                  numericId,
+                  instanceId,
+                  'notified',
+                  status.last_notified_at || new Date().toISOString(),
+                )
+                updateCount++
+                this.log.debug(
+                  `Synchronized junction table status for ${item.title} to match main table "notified" status for instance ${instanceId}`,
+                )
+              }
+            }
+          }
+
+          // Clean up instances where the show no longer exists - use standard cleanup logic
           for (const instanceId of currentInstanceIds) {
             if (!existingInstances.includes(instanceId)) {
               await this.dbService.removeWatchlistFromSonarrInstance(
@@ -345,7 +394,7 @@ export class StatusService {
     return updateCount
   }
 
-  // Junction table updates for Radarr
+  // junction table updates for Radarr
   private async processMovieJunctionUpdates(
     radarrItems: RadarrItem[],
     watchlistItems: DatabaseWatchlistItem[],
@@ -373,6 +422,10 @@ export class StatusService {
           continue
         }
 
+        const numericId =
+          typeof item.id === 'string' ? Number(item.id) : item.id
+        const mainTableStatus = item.status // Get status from main table
+
         // Find instances where this movie exists
         const existingInstances: number[] = []
 
@@ -393,12 +446,17 @@ export class StatusService {
               await this.dbService.addWatchlistToRadarrInstance(
                 item.id,
                 instanceId,
-                matchingMovies[0].status || 'pending',
+                // If main table is notified, ensure junction starts as notified too
+                mainTableStatus === 'notified'
+                  ? 'notified'
+                  : matchingMovies[0].status || 'pending',
                 currentInstanceIds.length === 0,
               )
               updateCount++
               this.log.debug(
-                `Added movie ${item.title} to Radarr instance ${instanceId} in junction table`,
+                `Added movie ${item.title} to Radarr instance ${instanceId} in junction table${
+                  mainTableStatus === 'notified' ? ' with notified status' : ''
+                }`,
               )
             } else {
               // Update status if needed
@@ -408,7 +466,24 @@ export class StatusService {
                   instanceId,
                 )
 
+              // First check if main table is notified but junction isn't
               if (
+                mainTableStatus === 'notified' &&
+                currentStatus &&
+                currentStatus.status !== 'notified'
+              ) {
+                // Sync junction table to match main table's notified status
+                await this.dbService.updateWatchlistRadarrInstanceStatus(
+                  item.id,
+                  instanceId,
+                  'notified',
+                  currentStatus.last_notified_at || new Date().toISOString(),
+                )
+                updateCount++
+                this.log.debug(
+                  `Synchronized junction table status for ${item.title} to match main table "notified" status`,
+                )
+              } else if (
                 currentStatus &&
                 currentStatus.status !== matchingMovies[0].status &&
                 !(
@@ -416,6 +491,7 @@ export class StatusService {
                   matchingMovies[0].status !== 'notified'
                 )
               ) {
+                // Original status update logic (only if not downgrading from notified)
                 await this.dbService.updateWatchlistRadarrInstanceStatus(
                   item.id,
                   instanceId,
@@ -435,12 +511,34 @@ export class StatusService {
 
         // Get all instances this item is currently associated with
         if (item.id !== undefined) {
-          const numericId =
-            typeof item.id === 'string' ? Number(item.id) : item.id
           const currentInstanceIds =
             await this.dbService.getWatchlistRadarrInstanceIds(numericId)
 
-          // Clean up instances where the movie no longer exists
+          // For notified items in main table, make sure ALL junction tables are synced
+          if (mainTableStatus === 'notified') {
+            for (const instanceId of currentInstanceIds) {
+              const status =
+                await this.dbService.getWatchlistRadarrInstanceStatus(
+                  numericId,
+                  instanceId,
+                )
+
+              if (status && status.status !== 'notified') {
+                await this.dbService.updateWatchlistRadarrInstanceStatus(
+                  numericId,
+                  instanceId,
+                  'notified',
+                  status.last_notified_at || new Date().toISOString(),
+                )
+                updateCount++
+                this.log.debug(
+                  `Synchronized junction table status for ${item.title} to match main table "notified" status for instance ${instanceId}`,
+                )
+              }
+            }
+          }
+
+          // Clean up instances where the movie no longer exists - use standard cleanup logic
           for (const instanceId of currentInstanceIds) {
             if (!existingInstances.includes(instanceId)) {
               await this.dbService.removeWatchlistFromRadarrInstance(
