@@ -174,7 +174,7 @@ const ConditionBuilder = ({
         setOperatorDescription(operatorInfo?.description || '')
 
         // Initialize an appropriate default value based on operator type
-        let defaultValue: ConditionValue = ''
+        let defaultValue: ConditionValue = null
 
         if (operatorInfo) {
           const valueType = operatorInfo.valueTypes?.[0]

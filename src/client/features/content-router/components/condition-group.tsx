@@ -26,6 +26,10 @@ import type {
   ConditionValue,
   ComparisonOperator,
 } from '@root/schemas/content-router/content-router.schema'
+import {
+  isCondition,
+  isConditionGroup,
+} from '@/features/content-router/types/route-types'
 
 interface ConditionGroupComponentProps {
   value: ConditionGroup
@@ -73,7 +77,7 @@ const ConditionGroupComponent = ({
       return {
         field: '',
         operator: 'equals' as ComparisonOperator,
-        value: '',
+        value: null,
         negate: false,
         _cid: generateUUID(),
       }
@@ -90,7 +94,7 @@ const ConditionGroupComponent = ({
       return {
         field: '',
         operator: 'equals' as ComparisonOperator,
-        value: '',
+        value: null,
         negate: false,
         _cid: generateUUID(),
       }
@@ -104,7 +108,7 @@ const ConditionGroupComponent = ({
       return {
         field: '',
         operator: 'equals' as ComparisonOperator,
-        value: '',
+        value: null,
         negate: false,
         _cid: generateUUID(),
       }
@@ -119,7 +123,7 @@ const ConditionGroupComponent = ({
       return {
         field: firstField,
         operator: 'equals' as ComparisonOperator,
-        value: '',
+        value: null,
         negate: false,
         _cid: generateUUID(),
       }
@@ -134,7 +138,7 @@ const ConditionGroupComponent = ({
       return {
         field: firstField,
         operator: 'equals' as ComparisonOperator,
-        value: '',
+        value: null,
         negate: false,
         _cid: generateUUID(),
       }
@@ -311,7 +315,7 @@ const ConditionGroupComponent = ({
         newConditions.push({
           field: '',
           operator: 'equals' as ComparisonOperator,
-          value: '',
+          value: null,
           negate: false,
           _cid: generateUUID(),
         })
@@ -427,13 +431,6 @@ const ConditionGroupComponent = ({
       <div className="space-y-4">
         {conditions.map(
           (condition: Condition | ConditionGroup, index: number) => {
-            // Check if this is a condition group or a single condition
-            const isGroup =
-              condition &&
-              typeof condition === 'object' &&
-              'operator' in condition &&
-              'conditions' in condition
-
             // Generate a stable key using _cid if available, or fallback to index
             const stableKey =
               '_cid' in condition && typeof condition._cid === 'string'
@@ -442,10 +439,10 @@ const ConditionGroupComponent = ({
 
             return (
               <div key={stableKey} className="relative">
-                {isGroup ? (
-                  // Render nested group
+                {isConditionGroup(condition) ? (
+                  // Render nested group with verified condition group
                   <ConditionGroupComponent
-                    value={condition as ConditionGroup}
+                    value={condition}
                     onChange={(updatedGroup) =>
                       handleUpdateCondition(index, updatedGroup)
                     }
@@ -457,9 +454,18 @@ const ConditionGroupComponent = ({
                     level={level + 1}
                   />
                 ) : (
-                  // Render single condition
+                  // Render single condition with verified condition
                   <ConditionBuilder
-                    value={condition as Condition}
+                    value={
+                      isCondition(condition)
+                        ? condition
+                        : {
+                            field: '',
+                            operator: 'equals' as ComparisonOperator,
+                            value: null,
+                            negate: false,
+                          }
+                    }
                     onChange={(updatedCondition) =>
                       handleUpdateCondition(index, updatedCondition)
                     }
