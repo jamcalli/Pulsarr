@@ -26,7 +26,11 @@ import type {
   OperatorInfo,
   EvaluatorMetadata,
 } from '@root/schemas/content-router/evaluator-metadata.schema'
-import type { Condition } from '@root/schemas/content-router/content-router.schema'
+import type {
+  Condition,
+  ComparisonOperator,
+  ConditionValue,
+} from '@root/schemas/content-router/content-router.schema'
 
 interface ConditionBuilderProps {
   value: Condition
@@ -37,18 +41,6 @@ interface ConditionBuilderProps {
   onGenreDropdownOpen?: () => Promise<void>
   isLoading?: boolean
 }
-
-// Type definition for condition values
-type ConditionValue =
-  | string
-  | number
-  | boolean
-  | string[]
-  | number[]
-  | {
-      min?: number
-      max?: number
-    }
 
 const ConditionBuilder = ({
   value,
@@ -109,8 +101,8 @@ const ConditionBuilder = ({
         if (!fieldName) {
           onChange({
             field: '',
-            operator: '',
-            value: '',
+            operator: 'equals' as ComparisonOperator, // Use a valid operator as default
+            value: null,
             negate: valueRef.current.negate || false,
           })
           return
@@ -139,8 +131,8 @@ const ConditionBuilder = ({
           // Reset operator and value when field changes
           onChange({
             field: fieldName,
-            operator: '',
-            value: '',
+            operator: 'equals' as ComparisonOperator,
+            value: null,
             negate: valueRef.current.negate || false,
           })
 
@@ -154,12 +146,12 @@ const ConditionBuilder = ({
       },
 
       handleOperatorChange: (operatorName: string) => {
-        // Reset to empty operator if no operator name
+        // Reset to empty operator if no operator name, using a valid default
         if (!operatorName) {
           onChange({
             ...valueRef.current,
-            operator: '',
-            value: '',
+            operator: 'equals' as ComparisonOperator,
+            value: null,
           })
           return
         }
@@ -198,7 +190,7 @@ const ConditionBuilder = ({
         // Update with the new operator and clear previous value
         onChange({
           ...valueRef.current,
-          operator: operatorName,
+          operator: operatorName as ComparisonOperator,
           value: defaultValue,
         })
       },
