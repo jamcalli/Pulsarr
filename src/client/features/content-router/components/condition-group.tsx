@@ -22,6 +22,8 @@ import type { EvaluatorMetadata } from '@root/schemas/content-router/evaluator-m
 import type {
   Condition,
   ConditionGroup,
+  ConditionValue,
+  ComparisonOperator,
 } from '@root/schemas/content-router/content-router.schema'
 
 interface ConditionGroupComponentProps {
@@ -34,16 +36,6 @@ interface ConditionGroupComponentProps {
   isLoading?: boolean
   level?: number
 }
-
-type ConditionValue =
-  | string
-  | number
-  | boolean
-  | string[]
-  | number[]
-  | { min?: number; max?: number }
-  | null
-  | undefined
 
 const ConditionGroupComponent = ({
   value,
@@ -79,7 +71,7 @@ const ConditionGroupComponent = ({
     if (filteredEvaluators.length === 0) {
       return {
         field: '',
-        operator: '',
+        operator: 'equals' as ComparisonOperator,
         value: '',
         negate: false,
         _cid: crypto.randomUUID(),
@@ -96,7 +88,7 @@ const ConditionGroupComponent = ({
       )
       return {
         field: '',
-        operator: '',
+        operator: 'equals' as ComparisonOperator,
         value: '',
         negate: false,
         _cid: crypto.randomUUID(),
@@ -110,7 +102,7 @@ const ConditionGroupComponent = ({
     if (!firstField) {
       return {
         field: '',
-        operator: '',
+        operator: 'equals' as ComparisonOperator,
         value: '',
         negate: false,
         _cid: crypto.randomUUID(),
@@ -125,7 +117,7 @@ const ConditionGroupComponent = ({
     if (!fieldEvaluator) {
       return {
         field: firstField,
-        operator: '',
+        operator: 'equals' as ComparisonOperator,
         value: '',
         negate: false,
         _cid: crypto.randomUUID(),
@@ -140,14 +132,14 @@ const ConditionGroupComponent = ({
       console.error(`[ConditionGroup] No operators for field "${firstField}"`)
       return {
         field: firstField,
-        operator: '',
+        operator: 'equals' as ComparisonOperator,
         value: '',
         negate: false,
         _cid: crypto.randomUUID(),
       }
     }
 
-    const firstOperator = operators[0]?.name || ''
+    const firstOperator = (operators[0]?.name || 'equals') as ComparisonOperator
 
     // Determine appropriate initial value based on value type
     let initialValue: ConditionValue = ''
@@ -317,7 +309,7 @@ const ConditionGroupComponent = ({
       if (newConditions.length === 0) {
         newConditions.push({
           field: '',
-          operator: '',
+          operator: 'equals' as ComparisonOperator,
           value: '',
           negate: false,
           _cid: crypto.randomUUID(),
