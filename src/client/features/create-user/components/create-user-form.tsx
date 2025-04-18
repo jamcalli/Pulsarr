@@ -10,10 +10,15 @@ import {
 import { Input } from '@/components/ui/input'
 import { CreateUserErrorMessage } from '@/features/create-user/components/create-user-error'
 import { useCreateUserForm } from '@/features/create-user/hooks/useCreateUserForm'
+import { useRef, useEffect } from 'react'
 
 export function CreateUserForm() {
-  const { form, status, backendError, emailInputRef, handleSubmit } =
-    useCreateUserForm()
+  const { form, status, backendError, handleSubmit } = useCreateUserForm()
+  const emailInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    emailInputRef.current?.focus()
+  }, [])
 
   return (
     <Form {...form}>
