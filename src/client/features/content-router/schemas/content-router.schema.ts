@@ -5,8 +5,7 @@ const ConditionValueSchema = z.union([
   z.string(),
   z.number(),
   z.boolean(),
-  z.array(z.string()),
-  z.array(z.number()),
+  z.array(z.union([z.string(), z.number()])),
   z.object({
     min: z.number().optional(),
     max: z.number().optional(),

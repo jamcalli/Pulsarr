@@ -50,6 +50,7 @@ import type {
   ContentRouterRule,
   ContentRouterRuleUpdate,
   ConditionGroup,
+  IConditionGroup,
 } from '@root/schemas/content-router/content-router.schema'
 import type {
   EvaluatorMetadata,
@@ -521,7 +522,7 @@ const AccordionRouteCard = ({
       // For new routes (creating a route)
       if (isNew) {
         const routeData: ContentRouterRule = {
-          id: 0, // This will be ignored by the backend
+          id: 0,
           name: data.name,
           target_type: contentType,
           target_instance_id: data.target_instance_id,
@@ -531,9 +532,9 @@ const AccordionRouteCard = ({
           root_folder: data.root_folder,
           enabled: data.enabled,
           order: data.order,
-          condition: data.condition, // Always use condition directly, "conditional" type is implicit
-          created_at: '', // This will be set by the backend
-          updated_at: '', // This will be set by the backend
+          condition: data.condition as unknown as ConditionGroup,
+          created_at: '',
+          updated_at: '',
         }
 
         await onSave(routeData)
@@ -542,7 +543,7 @@ const AccordionRouteCard = ({
       else {
         const updatePayload: ContentRouterRuleUpdate = {
           name: data.name,
-          condition: data.condition, // Always use condition directly, "conditional" type is implicit
+          condition: data.condition as unknown as ConditionGroup,
           target_instance_id: data.target_instance_id,
           quality_profile: data.quality_profile
             ? Number(data.quality_profile)
@@ -882,7 +883,9 @@ const AccordionRouteCard = ({
                                 </div>
                               ) : (
                                 <ConditionGroupComponent
-                                  value={field.value}
+                                  value={
+                                    field.value as unknown as IConditionGroup
+                                  }
                                   onChange={field.onChange}
                                   evaluatorMetadata={evaluatorMetadata}
                                   genres={genres}
