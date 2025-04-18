@@ -3,9 +3,10 @@ import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import DeleteRouteAlert from '@/features/content-router/components/delete-route-alert'
 import AccordionRouteCardSkeleton from '@/features/content-router/components/accordion-route-card-skeleton'
-import AccordionRouteCard from './accordion-route-card'
+import AccordionRouteCard from '@/features/content-router/components/accordion-route-card'
 import { useRadarrContentRouterAdapter } from '@/features/radarr/hooks/content-router/useRadarrContentRouterAdapter'
 import { useSonarrContentRouterAdapter } from '@/features/sonarr/hooks/content-router/useSonarrContentRouterAdapter'
+import { generateUUID } from '@/features/content-router/utils/utils'
 import type { RadarrInstance } from '@root/types/radarr.types'
 import type { SonarrInstance } from '@root/types/sonarr.types'
 import type {
@@ -94,8 +95,7 @@ const AccordionContentRouterSection = ({
   }>({})
 
   const skeletonIds = useMemo(
-    () =>
-      Array.from({ length: rules.length || 2 }).map(() => crypto.randomUUID()),
+    () => Array.from({ length: rules.length || 2 }).map(() => generateUUID()),
     [rules.length],
   )
 

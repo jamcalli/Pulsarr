@@ -17,7 +17,8 @@ import { PlusCircle, Trash2, HelpCircle, LayoutList } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
-import ConditionBuilder from './condition-builder'
+import ConditionBuilder from '@/features/content-router/components/condition-builder'
+import { generateUUID } from '@/features/content-router/utils/utils'
 import type { EvaluatorMetadata } from '@root/schemas/content-router/evaluator-metadata.schema'
 import type {
   Condition,
@@ -74,7 +75,7 @@ const ConditionGroupComponent = ({
         operator: 'equals' as ComparisonOperator,
         value: '',
         negate: false,
-        _cid: crypto.randomUUID(),
+        _cid: generateUUID(),
       }
     }
 
@@ -91,7 +92,7 @@ const ConditionGroupComponent = ({
         operator: 'equals' as ComparisonOperator,
         value: '',
         negate: false,
-        _cid: crypto.randomUUID(),
+        _cid: generateUUID(),
       }
     }
 
@@ -105,7 +106,7 @@ const ConditionGroupComponent = ({
         operator: 'equals' as ComparisonOperator,
         value: '',
         negate: false,
-        _cid: crypto.randomUUID(),
+        _cid: generateUUID(),
       }
     }
 
@@ -120,7 +121,7 @@ const ConditionGroupComponent = ({
         operator: 'equals' as ComparisonOperator,
         value: '',
         negate: false,
-        _cid: crypto.randomUUID(),
+        _cid: generateUUID(),
       }
     }
 
@@ -135,7 +136,7 @@ const ConditionGroupComponent = ({
         operator: 'equals' as ComparisonOperator,
         value: '',
         negate: false,
-        _cid: crypto.randomUUID(),
+        _cid: generateUUID(),
       }
     }
 
@@ -157,7 +158,7 @@ const ConditionGroupComponent = ({
       operator: firstOperator,
       value: initialValue,
       negate: false,
-      _cid: crypto.randomUUID(),
+      _cid: generateUUID(),
     }
   }, [filteredEvaluators])
 
@@ -167,7 +168,7 @@ const ConditionGroupComponent = ({
       operator: 'AND',
       conditions: [createEmptyCondition()],
       negate: false,
-      _cid: crypto.randomUUID(),
+      _cid: generateUUID(),
     }
   }, [createEmptyCondition])
 
@@ -312,7 +313,7 @@ const ConditionGroupComponent = ({
           operator: 'equals' as ComparisonOperator,
           value: '',
           negate: false,
-          _cid: crypto.randomUUID(),
+          _cid: generateUUID(),
         })
       }
 

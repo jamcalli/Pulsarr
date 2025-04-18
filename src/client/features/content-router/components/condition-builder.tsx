@@ -19,7 +19,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
-import ConditionInput from './condition-input'
+import ConditionInput from '@/features/content-router/components/condition-input'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import type {
   FieldInfo,
