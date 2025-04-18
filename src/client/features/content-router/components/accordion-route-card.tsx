@@ -523,7 +523,9 @@ const AccordionRouteCard = ({
           root_folder: data.root_folder,
           enabled: data.enabled,
           order: data.order,
-          condition: data.condition as unknown as ConditionGroup,
+          condition: Array.isArray(data.condition?.conditions)
+            ? (data.condition as ConditionGroup)
+            : { operator: 'AND', conditions: [], negate: false },
           created_at: '',
           updated_at: '',
         }
@@ -534,7 +536,9 @@ const AccordionRouteCard = ({
       else {
         const updatePayload: ContentRouterRuleUpdate = {
           name: data.name,
-          condition: data.condition as unknown as ConditionGroup,
+          condition: Array.isArray(data.condition?.conditions)
+            ? (data.condition as ConditionGroup)
+            : { operator: 'AND', conditions: [], negate: false },
           target_instance_id: data.target_instance_id,
           quality_profile: data.quality_profile
             ? Number(data.quality_profile)

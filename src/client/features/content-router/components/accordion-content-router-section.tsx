@@ -14,7 +14,12 @@ import type {
   ContentRouterRuleUpdate,
   Condition,
   ConditionGroup,
+  ComparisonOperator,
 } from '@root/schemas/content-router/content-router.schema'
+import {
+  isCondition,
+  isConditionGroup,
+} from '@/features/content-router/types/route-types'
 
 // Define possible value types for criteria
 type CriteriaValue =
@@ -338,16 +343,15 @@ const AccordionContentRouterSection = ({
 
     // Handle case where the condition is already set but might be a Condition instead of ConditionGroup
     if (extendedRule.condition) {
-      // Check if it's a Condition (has field property) rather than a ConditionGroup
+      // Use isCondition and isConditionGroup type guards instead of property checks
       if (
-        'field' in extendedRule.condition &&
-        !('conditions' in extendedRule.condition)
+        isCondition(extendedRule.condition) &&
+        !isConditionGroup(extendedRule.condition)
       ) {
         // Convert the single condition into a condition group
-        const singleCondition = extendedRule.condition as Condition
         ruleWithCondition.condition = {
           operator: 'AND',
-          conditions: [singleCondition],
+          conditions: [extendedRule.condition],
           negate: false,
         }
       }
@@ -367,7 +371,9 @@ const AccordionContentRouterSection = ({
           conditions: [
             {
               field: 'genre',
-              operator: Array.isArray(genreValue) ? 'in' : 'equals',
+              operator: Array.isArray(genreValue)
+                ? 'in'
+                : ('equals' as ComparisonOperator),
               value: genreValue,
               negate: false,
             },
@@ -382,29 +388,28 @@ const AccordionContentRouterSection = ({
         if (typeof yearValue === 'number') {
           condition = {
             field: 'year',
-            operator: 'equals',
+            operator: 'equals' as ComparisonOperator,
             value: yearValue,
             negate: false,
           }
         } else if (Array.isArray(yearValue)) {
           condition = {
             field: 'year',
-            operator: 'in',
+            operator: 'in' as ComparisonOperator,
             value: yearValue,
             negate: false,
           }
         } else if (typeof yearValue === 'object' && yearValue !== null) {
-          const rangeValue = yearValue as { min?: number; max?: number }
           condition = {
             field: 'year',
-            operator: 'between',
-            value: rangeValue,
+            operator: 'between' as ComparisonOperator,
+            value: yearValue as { min?: number; max?: number },
             negate: false,
           }
         } else {
           condition = {
             field: 'year',
-            operator: 'equals',
+            operator: 'equals' as ComparisonOperator,
             value: new Date().getFullYear(),
             negate: false,
           }
@@ -422,7 +427,9 @@ const AccordionContentRouterSection = ({
           conditions: [
             {
               field: 'language',
-              operator: Array.isArray(langValue) ? 'in' : 'equals',
+              operator: Array.isArray(langValue)
+                ? 'in'
+                : ('equals' as ComparisonOperator),
               value: langValue,
               negate: false,
             },
@@ -436,7 +443,9 @@ const AccordionContentRouterSection = ({
           conditions: [
             {
               field: 'user',
-              operator: Array.isArray(usersValue) ? 'in' : 'equals',
+              operator: Array.isArray(usersValue)
+                ? 'in'
+                : ('equals' as ComparisonOperator),
               value: usersValue,
               negate: false,
             },
@@ -453,8 +462,8 @@ const AccordionContentRouterSection = ({
         conditions: [
           {
             field: '',
-            operator: 'equals',
-            value: null,
+            operator: 'equals' as ComparisonOperator, // Properly typed operator
+            value: null, // Using null consistently as sentinel value
             negate: false,
           },
         ],
@@ -462,18 +471,28 @@ const AccordionContentRouterSection = ({
       }
     }
 
-    // Add this final type safety check
-    if (!('conditions' in ruleWithCondition.condition)) {
+    // If there's still no valid condition group structure, create one
+    if (!isConditionGroup(ruleWithCondition.condition)) {
       console.warn(
         'Condition is not a ConditionGroup - converting',
         ruleWithCondition.condition,
       )
-      // Convert to a ConditionGroup if somehow it's still not one
-      const singleCondition =
-        ruleWithCondition.condition as unknown as Condition
+
+      // Create a valid condition group with proper checks
+      const validConditions = isCondition(ruleWithCondition.condition)
+        ? [ruleWithCondition.condition]
+        : [
+            {
+              field: '',
+              operator: 'equals' as ComparisonOperator, // Properly typed operator
+              value: null, // Consistent null sentinel
+              negate: false,
+            },
+          ]
+
       ruleWithCondition.condition = {
         operator: 'AND',
-        conditions: [singleCondition],
+        conditions: validConditions,
         negate: false,
       }
     }
