@@ -32,7 +32,7 @@ import {
   Power,
 } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import ConditionGroupComponent from './condition-group'
+import ConditionGroupComponent from '@/features/content-router/components/condition-group'
 import {
   Tooltip,
   TooltipContent,
@@ -47,6 +47,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import type {
+  ConditionValue,
   ContentRouterRule,
   ContentRouterRuleUpdate,
   ConditionGroup,
@@ -63,16 +64,6 @@ import {
 import type { RadarrInstance } from '@root/types/radarr.types'
 import type { SonarrInstance } from '@root/types/sonarr.types'
 
-// Define possible value types for criteria
-type CriteriaValue =
-  | string
-  | string[]
-  | number
-  | number[]
-  | { min?: number; max?: number }
-  | ConditionGroup
-  | undefined
-
 // Define criteria interface to match backend schema
 interface Criteria {
   condition?: ConditionGroup
@@ -80,7 +71,7 @@ interface Criteria {
   year?: number | number[] | { min?: number; max?: number }
   originalLanguage?: string | string[]
   users?: string | string[]
-  [key: string]: CriteriaValue
+  [key: string]: ConditionValue | ConditionGroup | undefined
 }
 
 // Extended ContentRouterRule to include criteria and type
@@ -328,7 +319,7 @@ const AccordionRouteCard = ({
             const firstOperator = operators[0]?.name || ''
 
             // Determine appropriate initial value
-            let initialValue: CriteriaValue = ''
+            let initialValue: ConditionValue = ''
             if (operators[0]?.valueTypes) {
               const valueType = operators[0].valueTypes[0]
               if (valueType === 'number') initialValue = 0
