@@ -1,5 +1,10 @@
 /**
- * Safely parse GUIDs from various input formats
+ * Parses GUIDs from a string, array, or undefined input into an array of strings.
+ *
+ * If the input is undefined or falsy, returns an empty array. If the input is an array, returns it directly. If the input is a string, attempts to parse it as JSON; if parsing fails, returns an array containing the original string.
+ *
+ * @param guids - The input GUIDs as a string, array of strings, or undefined.
+ * @returns An array of GUID strings.
  */
 export function parseGuids(guids: string[] | string | undefined): string[] {
   if (!guids) return []
@@ -12,7 +17,9 @@ export function parseGuids(guids: string[] | string | undefined): string[] {
 }
 
 /**
- * Check if two GUID sets have any matching GUIDs
+ * Determines whether there is any common GUID between two inputs.
+ *
+ * Both inputs can be a string, an array of strings, or undefined. Returns true if at least one GUID appears in both inputs; otherwise, returns false.
  */
 export function hasMatchingGuids(
   guids1: string[] | string | undefined,
@@ -24,7 +31,12 @@ export function hasMatchingGuids(
 }
 
 /**
- * Create a Set of unique GUIDs from multiple items
+ * Aggregates all unique GUIDs from an array of items into a Set.
+ *
+ * Each item should have a `guids` property containing a string, an array of strings, or undefined. All parsed GUIDs are added to the resulting Set, ensuring uniqueness.
+ *
+ * @param items - Array of objects, each with a `guids` property to extract GUIDs from.
+ * @returns A Set containing all unique GUID strings found in the input items.
  */
 export function createGuidSet(
   items: Array<{ guids: string[] | string | undefined }>,
@@ -40,7 +52,11 @@ export function createGuidSet(
 }
 
 /**
- * Extract specific type of GUID (e.g., 'tmdb:', 'tvdb:')
+ * Returns the first GUID from the input that starts with the specified type prefix.
+ *
+ * @param guids - A string, array of strings, or undefined representing one or more GUIDs.
+ * @param type - The prefix to match at the start of a GUID (e.g., 'tmdb:', 'tvdb:').
+ * @returns The first GUID string that starts with {@link type}, or undefined if none match.
  */
 export function extractTypedGuid(
   guids: string[] | string | undefined,
