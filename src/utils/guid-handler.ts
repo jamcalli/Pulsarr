@@ -20,7 +20,14 @@ export function hasMatchingGuids(
 ): boolean {
   const parsed1 = parseGuids(guids1)
   const parsed2 = parseGuids(guids2)
-  return parsed1.some((guid) => parsed2.includes(guid))
+  
+  if (parsed1.length > parsed2.length) {
+    const set2 = new Set(parsed2)
+    return parsed1.some(guid => set2.has(guid))
+  } else {
+    const set1 = new Set(parsed1)
+    return parsed2.some(guid => set1.has(guid))
+  }
 }
 
 /**
@@ -31,7 +38,6 @@ export function createGuidSet(
 ): Set<string> {
   const guidSet = new Set<string>()
   for (const item of items) {
-    // Using for...of instead of forEach for better performance
     for (const guid of parseGuids(item.guids)) {
       guidSet.add(guid)
     }
