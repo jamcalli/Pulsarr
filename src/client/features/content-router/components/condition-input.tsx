@@ -12,6 +12,8 @@ import UserMultiSelect from '@/components/ui/user-multi-select'
 import { useConfigStore } from '@/stores/configStore'
 import type { ControllerRenderProps, FieldPath } from 'react-hook-form'
 import type { ConditionValue } from '@root/schemas/content-router/content-router.schema'
+import CertificationMultiSelect from '@/components/ui/certification-multi-select'
+import { ContentCertifications } from '@/features/content-router/types/route-types'
 
 interface FieldState {
   [key: string]: string | string[]
@@ -366,6 +368,41 @@ function ConditionInput({
     }
   }
 
+  const createCertificationFormField = (): ControllerRenderProps<
+    Record<string, unknown>,
+    'certification'
+  > => {
+    const isEmpty =
+      (Array.isArray(value) && value.length === 0) ||
+      value === '' ||
+      value === undefined ||
+      value === null
+
+    // Convert all values to strings
+    const stringValue = Array.isArray(value)
+      ? value.map((item) => String(item))
+      : [String(value || '')]
+
+    return {
+      name: 'certification',
+      value: isEmpty ? [] : stringValue,
+      onChange: (newValue: unknown) => {
+        // Handle conversion for onChange callback
+        if (Array.isArray(newValue)) {
+          onChangeRef.current(newValue.map((item) => String(item)))
+        } else {
+          onChangeRef.current([String(newValue || '')])
+        }
+      },
+      onBlur: () => {},
+      ref: (instance: HTMLInputElement | null) => {
+        if (inputRef.current !== instance) {
+          inputRef.current = instance
+        }
+      },
+    }
+  }
+
   // For the genre field
   if (field === 'genre' || field === 'genres') {
     // Single value operators
@@ -532,6 +569,55 @@ function ConditionInput({
         placeholder="Enter year (e.g. 2023)"
         min="1900"
         max="2100"
+      />
+    )
+  }
+
+  if (field === 'certification') {
+    // For in/notIn operators - use multi-select
+    if (operator === 'in' || operator === 'notIn') {
+      const certificationField = createCertificationFormField()
+
+      return (
+        <div className="flex-1">
+          <CertificationMultiSelect field={certificationField} />
+        </div>
+      )
+    }
+
+    // For equals/notEquals - use our enhanced Select with grouping
+    if (operator === 'equals' || operator === 'notEquals') {
+      // Create grouped options from our certification data
+      const groupedOptions = Object.entries(ContentCertifications).map(
+        ([_, region]) => ({
+          label: region.label,
+          options: [
+            ...(region.movie || []),
+            ...(region.tv || []),
+            ...(region.all || []),
+          ],
+        }),
+      )
+
+      return (
+        <div className="flex-1">
+          <Select
+            options={groupedOptions}
+            isGrouped={true}
+            value={typeof value === 'string' ? value : String(value || '')}
+            onValueChange={(val) => onChangeRef.current(val)}
+            placeholder="Select a certification"
+          />
+        </div>
+      )
+    }
+
+    // For contains/notContains - text input
+    return (
+      <StableTextInput
+        value={typeof value === 'string' ? value : String(value || '')}
+        onChange={handlers.current.handleTextChange}
+        placeholder="Enter certification or part of certification"
       />
     )
   }
