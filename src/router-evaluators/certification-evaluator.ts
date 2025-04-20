@@ -173,7 +173,7 @@ export default function createCertificationEvaluator(
 
     // For conditional evaluator support
     evaluateCondition(
-      condition: Condition | ConditionGroup,
+      condition: Condition,
       item: ContentItem,
       context: RoutingContext,
     ): boolean {

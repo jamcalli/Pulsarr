@@ -168,7 +168,7 @@ export default function createLanguageEvaluator(
 
     // For conditional evaluator support
     evaluateCondition(
-      condition: Condition | ConditionGroup,
+      condition: Condition,
       item: ContentItem,
       context: RoutingContext,
     ): boolean {
