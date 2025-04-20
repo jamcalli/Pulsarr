@@ -20,14 +20,14 @@ export function hasMatchingGuids(
 ): boolean {
   const parsed1 = parseGuids(guids1)
   const parsed2 = parseGuids(guids2)
-  
+
   if (parsed1.length > parsed2.length) {
     const set2 = new Set(parsed2)
-    return parsed1.some(guid => set2.has(guid))
-  } else {
-    const set1 = new Set(parsed1)
-    return parsed2.some(guid => set1.has(guid))
+    return parsed1.some((guid) => set2.has(guid))
   }
+
+  const set1 = new Set(parsed1)
+  return parsed2.some((guid) => set1.has(guid))
 }
 
 /**
