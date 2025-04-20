@@ -2,15 +2,83 @@
 
 import * as SelectPrimitive from '@radix-ui/react-select'
 import { Check, ChevronDown, ChevronUp } from 'lucide-react'
-
 import * as React from 'react'
-
 import { cn } from '@/lib/utils'
 
-const Select = SelectPrimitive.Root
+// Interface for grouped options
+interface OptionGroup {
+  label: string
+  options: {
+    label: string
+    value: string
+  }[]
+}
+
+// Extended SelectProps to accept grouping
+interface ExtendedSelectProps extends Omit<SelectPrimitive.SelectProps, 'children'> {
+  options?: (OptionGroup | { label: string; value: string })[]
+  isGrouped?: boolean
+  placeholder?: string
+  className?: string
+  disabled?: boolean
+  children?: React.ReactNode
+}
+
+const Select = ({ 
+  options, 
+  isGrouped = false, 
+  placeholder, 
+  className, 
+  disabled, 
+  children, 
+  ...props 
+}: ExtendedSelectProps) => {
+  // If options are provided, generate the children automatically
+  if (options) {
+    return (
+      <SelectPrimitive.Root {...props}>
+        {children || (
+          <>
+            <SelectTrigger className={className} disabled={disabled}>
+              <SelectValue placeholder={placeholder} />
+            </SelectTrigger>
+            <SelectContent>
+              {isGrouped
+                ? (options as OptionGroup[]).map((group) => (
+                    <SelectGroup key={group.label}>
+                      <SelectLabel className="text-sm font-semibold text-muted-foreground px-2 py-1.5">
+                        {group.label}
+                      </SelectLabel>
+                      {group.options.map((option) => (
+                        <SelectItem 
+                          key={option.value} 
+                          value={option.value}
+                          className="pl-6"
+                        >
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                      <SelectSeparator />
+                    </SelectGroup>
+                  ))
+                : (options as { label: string; value: string }[]).map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+            </SelectContent>
+          </>
+        )}
+      </SelectPrimitive.Root>
+    )
+  }
+
+  // If no options are provided, use as a regular select (for backward compatibility)
+  return <SelectPrimitive.Root {...props}>{children}</SelectPrimitive.Root>
+}
+Select.displayName = "Select"
 
 const SelectGroup = SelectPrimitive.Group
-
 const SelectValue = SelectPrimitive.Value
 
 const SelectTrigger = React.forwardRef<
