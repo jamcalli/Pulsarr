@@ -224,7 +224,7 @@ export default function createYearEvaluator(
 
     // For conditional evaluator support
     evaluateCondition(
-      condition: Condition | ConditionGroup,
+      condition: Condition,
       item: ContentItem,
       context: RoutingContext,
     ): boolean {

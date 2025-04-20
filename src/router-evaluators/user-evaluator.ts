@@ -120,7 +120,7 @@ export default function createUserEvaluator(
 
     // For conditional evaluator support
     evaluateCondition(
-      condition: Condition | ConditionGroup,
+      condition: Condition,
       item: ContentItem,
       context: RoutingContext,
     ): boolean {
