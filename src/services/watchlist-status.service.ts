@@ -8,6 +8,7 @@ import type {
   RadarrInstance,
 } from '@root/types/radarr.types.js'
 import type { DatabaseWatchlistItem } from '@root/types/watchlist-status.types.js'
+import { parseGuids, hasMatchingGuids } from '@utils/guid-handler.js' // Import GUID utility functions
 
 export class StatusService {
   constructor(
@@ -244,12 +245,12 @@ export class StatusService {
 
             // Check if junction table needs to be updated
             const currentInstanceIds =
-              await this.dbService.getWatchlistSonarrInstanceIds(item.id)
+              await this.dbService.getWatchlistSonarrInstanceIds(numericId)
 
             // Add to junction table if not already there
             if (!currentInstanceIds.includes(instanceId)) {
               await this.dbService.addWatchlistToSonarrInstance(
-                item.id,
+                numericId,
                 instanceId,
                 // If main table is notified, ensure junction starts as notified too
                 mainTableStatus === 'notified'
@@ -267,7 +268,7 @@ export class StatusService {
               // Update status if needed
               const currentStatus =
                 await this.dbService.getWatchlistSonarrInstanceStatus(
-                  item.id,
+                  numericId,
                   instanceId,
                 )
 
@@ -279,7 +280,7 @@ export class StatusService {
               ) {
                 // Sync junction table to match main table's notified status
                 await this.dbService.updateWatchlistSonarrInstanceStatus(
-                  item.id,
+                  numericId,
                   instanceId,
                   'notified',
                   currentStatus.last_notified_at || new Date().toISOString(),
@@ -289,19 +290,20 @@ export class StatusService {
                   `Synchronized junction table status for ${item.title} to match main table "notified" status`,
                 )
               } else if (
-                currentStatus &&
-                currentStatus.status !== matchingSeries[0].status &&
-                !(
-                  currentStatus.status === 'notified' &&
-                  matchingSeries[0].status !== 'notified'
-                )
+                (!currentStatus && matchingSeries[0].status) ||
+                (currentStatus &&
+                  currentStatus.status !== matchingSeries[0].status &&
+                  !(
+                    currentStatus.status === 'notified' &&
+                    matchingSeries[0].status !== 'notified'
+                  ))
               ) {
-                // Original status update logic (only if not downgrading from notified)
+                // Status update logic handling both undefined status and normal updates
                 await this.dbService.updateWatchlistSonarrInstanceStatus(
-                  item.id,
+                  numericId,
                   instanceId,
                   matchingSeries[0].status || 'pending',
-                  currentStatus.status === 'notified'
+                  currentStatus?.status === 'notified'
                     ? currentStatus.last_notified_at
                     : null,
                 )
@@ -315,53 +317,49 @@ export class StatusService {
         }
 
         // Get all instances this item is currently associated with
-        if (item.id !== undefined) {
-          const currentInstanceIds =
-            await this.dbService.getWatchlistSonarrInstanceIds(numericId)
+        const currentInstanceIds =
+          await this.dbService.getWatchlistSonarrInstanceIds(numericId)
 
-          // For notified items in main table, make sure ALL junction tables are synced
-          if (mainTableStatus === 'notified') {
-            for (const instanceId of currentInstanceIds) {
-              const status =
-                await this.dbService.getWatchlistSonarrInstanceStatus(
-                  numericId,
-                  instanceId,
-                )
-
-              if (status && status.status !== 'notified') {
-                await this.dbService.updateWatchlistSonarrInstanceStatus(
-                  numericId,
-                  instanceId,
-                  'notified',
-                  status.last_notified_at || new Date().toISOString(),
-                )
-                updateCount++
-                this.log.debug(
-                  `Synchronized junction table status for ${item.title} to match main table "notified" status for instance ${instanceId}`,
-                )
-              }
-            }
-          }
-
-          // Clean up instances where the show no longer exists - use standard cleanup logic
+        // For notified items in main table, make sure ALL junction tables are synced
+        if (mainTableStatus === 'notified') {
           for (const instanceId of currentInstanceIds) {
-            if (!existingInstances.includes(instanceId)) {
-              await this.dbService.removeWatchlistFromSonarrInstance(
+            const status =
+              await this.dbService.getWatchlistSonarrInstanceStatus(
                 numericId,
                 instanceId,
               )
+
+            if (status && status.status !== 'notified') {
+              await this.dbService.updateWatchlistSonarrInstanceStatus(
+                numericId,
+                instanceId,
+                'notified',
+                status.last_notified_at || new Date().toISOString(),
+              )
               updateCount++
               this.log.debug(
-                `Removed show ${item.title} from Sonarr instance ${instanceId} in junction table (no longer exists there)`,
+                `Synchronized junction table status for ${item.title} to match main table "notified" status for instance ${instanceId}`,
               )
             }
           }
         }
 
+        // Clean up instances where the show no longer exists - use standard cleanup logic
+        for (const instanceId of currentInstanceIds) {
+          if (!existingInstances.includes(instanceId)) {
+            await this.dbService.removeWatchlistFromSonarrInstance(
+              numericId,
+              instanceId,
+            )
+            updateCount++
+            this.log.debug(
+              `Removed show ${item.title} from Sonarr instance ${instanceId} in junction table (no longer exists there)`,
+            )
+          }
+        }
+
         // Ensure a primary instance is set if there are any instances
-        if (existingInstances.length > 0 && item.id !== undefined) {
-          const numericId =
-            typeof item.id === 'string' ? Number(item.id) : item.id
+        if (existingInstances.length > 0) {
           const currentInstanceStatuses = await Promise.all(
             existingInstances.map((id) =>
               this.dbService.getWatchlistSonarrInstanceStatus(numericId, id),
@@ -439,12 +437,12 @@ export class StatusService {
 
             // Check if junction table needs to be updated
             const currentInstanceIds =
-              await this.dbService.getWatchlistRadarrInstanceIds(item.id)
+              await this.dbService.getWatchlistRadarrInstanceIds(numericId)
 
             // Add to junction table if not already there
             if (!currentInstanceIds.includes(instanceId)) {
               await this.dbService.addWatchlistToRadarrInstance(
-                item.id,
+                numericId,
                 instanceId,
                 // If main table is notified, ensure junction starts as notified too
                 mainTableStatus === 'notified'
@@ -462,7 +460,7 @@ export class StatusService {
               // Update status if needed
               const currentStatus =
                 await this.dbService.getWatchlistRadarrInstanceStatus(
-                  item.id,
+                  numericId,
                   instanceId,
                 )
 
@@ -474,7 +472,7 @@ export class StatusService {
               ) {
                 // Sync junction table to match main table's notified status
                 await this.dbService.updateWatchlistRadarrInstanceStatus(
-                  item.id,
+                  numericId,
                   instanceId,
                   'notified',
                   currentStatus.last_notified_at || new Date().toISOString(),
@@ -484,19 +482,20 @@ export class StatusService {
                   `Synchronized junction table status for ${item.title} to match main table "notified" status`,
                 )
               } else if (
-                currentStatus &&
-                currentStatus.status !== matchingMovies[0].status &&
-                !(
-                  currentStatus.status === 'notified' &&
-                  matchingMovies[0].status !== 'notified'
-                )
+                (!currentStatus && matchingMovies[0].status) ||
+                (currentStatus &&
+                  currentStatus.status !== matchingMovies[0].status &&
+                  !(
+                    currentStatus.status === 'notified' &&
+                    matchingMovies[0].status !== 'notified'
+                  ))
               ) {
-                // Original status update logic (only if not downgrading from notified)
+                // Status update logic handling both undefined status and normal updates
                 await this.dbService.updateWatchlistRadarrInstanceStatus(
-                  item.id,
+                  numericId,
                   instanceId,
                   matchingMovies[0].status || 'pending',
-                  currentStatus.status === 'notified'
+                  currentStatus?.status === 'notified'
                     ? currentStatus.last_notified_at
                     : null,
                 )
@@ -510,53 +509,49 @@ export class StatusService {
         }
 
         // Get all instances this item is currently associated with
-        if (item.id !== undefined) {
-          const currentInstanceIds =
-            await this.dbService.getWatchlistRadarrInstanceIds(numericId)
+        const currentInstanceIds =
+          await this.dbService.getWatchlistRadarrInstanceIds(numericId)
 
-          // For notified items in main table, make sure ALL junction tables are synced
-          if (mainTableStatus === 'notified') {
-            for (const instanceId of currentInstanceIds) {
-              const status =
-                await this.dbService.getWatchlistRadarrInstanceStatus(
-                  numericId,
-                  instanceId,
-                )
-
-              if (status && status.status !== 'notified') {
-                await this.dbService.updateWatchlistRadarrInstanceStatus(
-                  numericId,
-                  instanceId,
-                  'notified',
-                  status.last_notified_at || new Date().toISOString(),
-                )
-                updateCount++
-                this.log.debug(
-                  `Synchronized junction table status for ${item.title} to match main table "notified" status for instance ${instanceId}`,
-                )
-              }
-            }
-          }
-
-          // Clean up instances where the movie no longer exists - use standard cleanup logic
+        // For notified items in main table, make sure ALL junction tables are synced
+        if (mainTableStatus === 'notified') {
           for (const instanceId of currentInstanceIds) {
-            if (!existingInstances.includes(instanceId)) {
-              await this.dbService.removeWatchlistFromRadarrInstance(
+            const status =
+              await this.dbService.getWatchlistRadarrInstanceStatus(
                 numericId,
                 instanceId,
               )
+
+            if (status && status.status !== 'notified') {
+              await this.dbService.updateWatchlistRadarrInstanceStatus(
+                numericId,
+                instanceId,
+                'notified',
+                status.last_notified_at || new Date().toISOString(),
+              )
               updateCount++
               this.log.debug(
-                `Removed movie ${item.title} from Radarr instance ${instanceId} in junction table (no longer exists there)`,
+                `Synchronized junction table status for ${item.title} to match main table "notified" status for instance ${instanceId}`,
               )
             }
           }
         }
 
+        // Clean up instances where the movie no longer exists - use standard cleanup logic
+        for (const instanceId of currentInstanceIds) {
+          if (!existingInstances.includes(instanceId)) {
+            await this.dbService.removeWatchlistFromRadarrInstance(
+              numericId,
+              instanceId,
+            )
+            updateCount++
+            this.log.debug(
+              `Removed movie ${item.title} from Radarr instance ${instanceId} in junction table (no longer exists there)`,
+            )
+          }
+        }
+
         // Ensure a primary instance is set if there are any instances
-        if (existingInstances.length > 0 && item.id !== undefined) {
-          const numericId =
-            typeof item.id === 'string' ? Number(item.id) : item.id
+        if (existingInstances.length > 0) {
           const currentInstanceStatuses = await Promise.all(
             existingInstances.map((id) =>
               this.dbService.getWatchlistRadarrInstanceStatus(numericId, id),
@@ -594,11 +589,8 @@ export class StatusService {
     itemGuids: string[] | string | undefined,
   ): T | undefined {
     if (!itemGuids) return undefined
-    const guids = Array.isArray(itemGuids)
-      ? itemGuids
-      : typeof itemGuids === 'string'
-        ? JSON.parse(itemGuids)
-        : []
+    // Use parseGuids utility function
+    const guids = parseGuids(itemGuids)
     return items.find((item) =>
       item.guids.some((itemGuid) => guids.includes(itemGuid)),
     )
@@ -608,18 +600,8 @@ export class StatusService {
     itemGuids1: string[] | string | undefined,
     itemGuids2: string[] | string | undefined,
   ): boolean {
-    if (!itemGuids1 || !itemGuids2) return false
-    const guids1 = Array.isArray(itemGuids1)
-      ? itemGuids1
-      : typeof itemGuids1 === 'string'
-        ? JSON.parse(itemGuids1)
-        : []
-    const guids2 = Array.isArray(itemGuids2)
-      ? itemGuids2
-      : typeof itemGuids2 === 'string'
-        ? JSON.parse(itemGuids2)
-        : []
-    return guids1.some((guid: string) => guids2.includes(guid))
+    // Use hasMatchingGuids utility function
+    return hasMatchingGuids(itemGuids1, itemGuids2)
   }
 
   private parseGenres(genres: string[] | string | undefined): string[] {
@@ -718,11 +700,8 @@ export class StatusService {
       // Deduplicate by GUID to get unique media items
       const uniqueByGuid = new Map<string, (typeof watchlistItems)[0]>()
       for (const item of watchlistItems) {
-        const guids = Array.isArray(item.guids)
-          ? item.guids
-          : typeof item.guids === 'string'
-            ? JSON.parse(item.guids || '[]')
-            : []
+        // Use parseGuids utility function
+        const guids = parseGuids(item.guids)
         if (guids.length > 0 && !uniqueByGuid.has(guids[0])) {
           uniqueByGuid.set(guids[0], item)
         }
@@ -743,11 +722,8 @@ export class StatusService {
       // Create a map of GUIDs for quick lookup
       const existingGuidMap = new Map<string, boolean>()
       for (const movie of existingMoviesInInstance) {
-        const guids = Array.isArray(movie.guids)
-          ? movie.guids
-          : typeof movie.guids === 'string'
-            ? JSON.parse(movie.guids || '[]')
-            : []
+        // Use parseGuids utility function
+        const guids = parseGuids(movie.guids)
         for (const guid of guids) {
           existingGuidMap.set(guid, true)
         }
@@ -809,11 +785,8 @@ export class StatusService {
 
           if (shouldBeInInstance) {
             // Check if the item actually exists in the target instance but isn't in the junction table
-            const itemGuids = Array.isArray(item.guids)
-              ? item.guids
-              : typeof item.guids === 'string'
-                ? JSON.parse(item.guids || '[]')
-                : []
+            // Use parseGuids utility function
+            const itemGuids = parseGuids(item.guids)
 
             const alreadyExists = itemGuids.some((guid: string) =>
               existingGuidMap.has(guid),
@@ -1063,11 +1036,8 @@ export class StatusService {
       // Deduplicate by GUID to get unique media items
       const uniqueByGuid = new Map<string, (typeof watchlistItems)[0]>()
       for (const item of watchlistItems) {
-        const guids = Array.isArray(item.guids)
-          ? item.guids
-          : typeof item.guids === 'string'
-            ? JSON.parse(item.guids || '[]')
-            : []
+        // Use GuidHandler to parse GUIDs
+        const guids = parseGuids(item.guids)
         if (guids.length > 0 && !uniqueByGuid.has(guids[0])) {
           uniqueByGuid.set(guids[0], item)
         }
@@ -1088,11 +1058,8 @@ export class StatusService {
       // Create a map of GUIDs for quick lookup
       const existingGuidMap = new Map<string, boolean>()
       for (const series of existingSeriesInInstance) {
-        const guids = Array.isArray(series.guids)
-          ? series.guids
-          : typeof series.guids === 'string'
-            ? JSON.parse(series.guids || '[]')
-            : []
+        // Use parseGuids utility function
+        const guids = parseGuids(series.guids)
         for (const guid of guids) {
           existingGuidMap.set(guid, true)
         }
@@ -1153,11 +1120,8 @@ export class StatusService {
 
           if (shouldBeInInstance) {
             // Check if the item actually exists in the target instance but isn't in the junction table
-            const itemGuids = Array.isArray(item.guids)
-              ? item.guids
-              : typeof item.guids === 'string'
-                ? JSON.parse(item.guids || '[]')
-                : []
+            // Use parseGuids utility function
+            const itemGuids = parseGuids(item.guids)
 
             const alreadyExists = itemGuids.some((guid: string) =>
               existingGuidMap.has(guid),
