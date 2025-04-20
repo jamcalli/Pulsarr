@@ -344,10 +344,7 @@ const AccordionContentRouterSection = ({
     // Handle case where the condition is already set but might be a Condition instead of ConditionGroup
     if (extendedRule.condition) {
       // Use isCondition and isConditionGroup type guards instead of property checks
-      if (
-        isCondition(extendedRule.condition) &&
-        !isConditionGroup(extendedRule.condition)
-      ) {
+      if (isCondition(extendedRule.condition)) {
         // Convert the single condition into a condition group
         ruleWithCondition.condition = {
           operator: 'AND',
