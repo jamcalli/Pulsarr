@@ -42,24 +42,21 @@ const multiSelectVariants = cva('m-1', {
   },
 })
 
+interface Option {
+  label: string
+  value: string
+  icon?: React.ComponentType<{ className?: string }>
+}
+
 interface OptionGroup {
   label: string
-  options: {
-    label: string
-    value: string
-    icon?: React.ComponentType<{ className?: string }>
-  }[]
+  options: Option[]
 }
 
 interface MultiSelectProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof multiSelectVariants> {
-  options: {
-    label: string
-    value: string
-    icon?: React.ComponentType<{ className?: string }>
-  }[] | OptionGroup[]
-  isGrouped?: boolean 
+  options: Option[] | OptionGroup[]
   onValueChange: (value: string[]) => void
   defaultValue?: string[]
   placeholder?: string
@@ -78,7 +75,6 @@ export const MultiSelect = React.forwardRef<
   (
     {
       options,
-      isGrouped = false,
       onValueChange,
       variant,
       defaultValue = [],
@@ -98,20 +94,22 @@ export const MultiSelect = React.forwardRef<
     const [isPopoverOpen, setIsPopoverOpen] = React.useState(false)
     const [isAnimating, setIsAnimating] = React.useState(false)
 
+    // Detect if options are grouped by checking the first element
+    const isGrouped = React.useMemo(() => {
+      return Array.isArray(options) && 
+             options.length > 0 && 
+             'options' in options[0]
+    }, [options])
+
     // Create a flat list of all options for badge display and selection checks
     const flatOptions = React.useMemo(() => {
-      if (!isGrouped) {
-        // If not grouped, options is already in the right format
-        return options as {
-          label: string
-          value: string
-          icon?: React.ComponentType<{ className?: string }>
-        }[]
+      // Safe type checking to determine if we have grouped options
+      const firstOption = options[0] as unknown
+      if (firstOption && typeof firstOption === 'object' && 'options' in firstOption) {
+        return (options as OptionGroup[]).flatMap(group => group.options)
       }
-      
-      // If grouped, flatten the groups
-      return (options as OptionGroup[]).flatMap(group => group.options)
-    }, [options, isGrouped])
+      return options as Option[]
+    }, [options])
 
     const handleInputKeyDown = (
       event: React.KeyboardEvent<HTMLInputElement>,
@@ -150,12 +148,14 @@ export const MultiSelect = React.forwardRef<
     }
 
     const toggleAll = () => {
-      if (selectedValues.length === flatOptions.length) {
+      // Use a Set to deduplicate values
+      const uniqueOptionValues = Array.from(new Set(flatOptions.map(o => o.value)))
+      
+      if (selectedValues.length === uniqueOptionValues.length) {
         handleClear()
       } else {
-        const allValues = flatOptions.map((option) => option.value)
-        setSelectedValues(allValues)
-        onValueChange(allValues)
+        setSelectedValues(uniqueOptionValues)
+        onValueChange(uniqueOptionValues)
       }
     }
 
@@ -328,11 +328,7 @@ export const MultiSelect = React.forwardRef<
                   ))
                 ) : (
                   // Render flat options
-                  (options as {
-                    label: string
-                    value: string
-                    icon?: React.ComponentType<{ className?: string }>
-                  }[]).map((option) => {
+                  (options as Option[]).map((option) => {
                     const isSelected = selectedValues.includes(option.value)
                     return (
                       <CommandItem

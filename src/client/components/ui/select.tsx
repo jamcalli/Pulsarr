@@ -14,10 +14,14 @@ interface OptionGroup {
   }[]
 }
 
+type Option = {
+  label: string
+  value: string
+}
+
 // Extended SelectProps to accept grouping
 interface ExtendedSelectProps extends Omit<SelectPrimitive.SelectProps, 'children'> {
-  options?: (OptionGroup | { label: string; value: string })[]
-  isGrouped?: boolean
+  options?: (OptionGroup | Option)[]
   placeholder?: string
   className?: string
   disabled?: boolean
@@ -26,7 +30,6 @@ interface ExtendedSelectProps extends Omit<SelectPrimitive.SelectProps, 'childre
 
 const Select = ({ 
   options, 
-  isGrouped = false, 
   placeholder, 
   className, 
   disabled, 
@@ -35,6 +38,18 @@ const Select = ({
 }: ExtendedSelectProps) => {
   // If options are provided, generate the children automatically
   if (options) {
+    // Detect if options are grouped by checking the structure of the first option
+    const isGrouped = React.useMemo(() => {
+      if (!Array.isArray(options) || options.length === 0) {
+        return false
+      }
+      
+      const firstOption = options[0] as unknown
+      return firstOption && 
+             typeof firstOption === 'object' && 
+             'options' in firstOption
+    }, [options])
+
     return (
       <SelectPrimitive.Root {...props}>
         {children || (
@@ -61,7 +76,7 @@ const Select = ({
                       <SelectSeparator />
                     </SelectGroup>
                   ))
-                : (options as { label: string; value: string }[]).map((option) => (
+                : (options as Option[]).map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
                     </SelectItem>
