@@ -15,13 +15,11 @@ import {
 } from '@root/types/content-lookup.types.js'
 
 /**
- * Creates a routing evaluator that routes content based on its certification/rating.
+ * Creates a routing evaluator that routes content based on its certification or rating.
  *
- * The evaluator supports routing decisions and condition evaluations using the "certification" field,
- * with operators for equality, inequality, substring containment, and set membership. It integrates
- * with Radarr and Sonarr content metadata to make appropriate routing decisions based on content ratings.
+ * The evaluator supports routing decisions and condition evaluations using the "certification" field, allowing operators such as equals, notEquals, contains, in, and notIn. It integrates with Radarr and Sonarr metadata to extract certification information and applies routing rules accordingly for movies and TV shows.
  *
- * @returns A {@link RoutingEvaluator} instance that routes content according to its certification.
+ * @returns A {@link RoutingEvaluator} instance that evaluates and routes content items based on their certification metadata.
  */
 export default function createCertificationEvaluator(
   fastify: FastifyInstance,
@@ -67,7 +65,11 @@ export default function createCertificationEvaluator(
     ],
   }
 
-  // Helper function to check if we have certification data
+  /**
+   * Determines whether the content item contains certification data in its metadata.
+   *
+   * Returns true if the item's metadata is from Radarr or Sonarr and includes a certification field; otherwise, returns false.
+   */
   function hasCertificationData(item: ContentItem): boolean {
     if (item.metadata) {
       if (isRadarrResponse(item.metadata) || isSonarrResponse(item.metadata)) {
@@ -77,7 +79,12 @@ export default function createCertificationEvaluator(
     return false
   }
 
-  // Helper for extracting certification
+  /**
+   * Retrieves the certification string from a content item's metadata if available.
+   *
+   * @param item - The content item to extract certification from.
+   * @returns The certification value if present in Radarr or Sonarr metadata; otherwise, undefined.
+   */
   function extractCertification(item: ContentItem): string | undefined {
     if (item.metadata) {
       if (
