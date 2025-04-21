@@ -585,27 +585,61 @@ function ConditionInput({
       )
     }
 
-    // For equals/notEquals - use our enhanced Select with grouping
+    // For equals/notEquals
     if (operator === 'equals' || operator === 'notEquals') {
       // Create grouped options from our certification data
       const groupedOptions = Object.entries(ContentCertifications).map(
-        ([_, region]) => ({
-          label: region.label,
+        ([region, data]) => ({
+          label: data.label,
           options: [
-            ...(region.movie || []),
-            ...(region.tv || []),
-            ...(region.all || []),
+            ...(data.movie || []).map((cert) => ({
+              label: cert.label,
+              // Prefix with region to make unique keys
+              value: `${region}-${cert.value}`,
+            })),
+            ...(data.tv || []).map((cert) => ({
+              label: cert.label,
+              value: `${region}-${cert.value}`,
+            })),
+            ...(data.all || []).map((cert) => ({
+              label: cert.label,
+              value: `${region}-${cert.value}`,
+            })),
           ],
         }),
       )
+
+      // Handle the value transformation
+      let selectValue = ''
+      if (typeof value === 'string') {
+        // Check if it's already prefixed
+        if (value.includes('-')) {
+          selectValue = value
+        } else {
+          for (const [region, data] of Object.entries(ContentCertifications)) {
+            const allCerts = [
+              ...(data.movie || []),
+              ...(data.tv || []),
+              ...(data.all || []),
+            ]
+            const found = allCerts.find((cert) => cert.value === value)
+            if (found) {
+              selectValue = `${region}-${value}`
+              break
+            }
+          }
+        }
+      }
 
       return (
         <div className="flex-1">
           <Select
             options={groupedOptions}
-            isGrouped={true}
-            value={typeof value === 'string' ? value : String(value || '')}
-            onValueChange={(val) => onChangeRef.current(val)}
+            value={selectValue}
+            onValueChange={(val) => {
+              const actualValue = val.split('-')[1] || val
+              onChangeRef.current(actualValue)
+            }}
             placeholder="Select a certification"
           />
         </div>
