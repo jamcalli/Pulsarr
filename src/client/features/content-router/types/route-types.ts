@@ -86,6 +86,7 @@ export type ComparisonOperator =
   | 'greaterThan'
   | 'lessThan'
   | 'between'
+  | 'regex'
 
 /**
  * Fields available for conditions
