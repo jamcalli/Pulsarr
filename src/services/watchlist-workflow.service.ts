@@ -37,7 +37,7 @@ import {
   extractTmdbId,
   extractTvdbId,
   extractTypedGuid,
-} from '@root/utils/guid-handler.js'
+} from '@utils/guid-handler.js'
 
 /** Represents the current state of the watchlist workflow */
 type WorkflowStatus = 'stopped' | 'running' | 'starting' | 'stopping'
