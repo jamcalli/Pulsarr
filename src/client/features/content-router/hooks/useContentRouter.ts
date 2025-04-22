@@ -92,27 +92,15 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
         // Update rules state with the new rule
         setRules((prevRules) => [...prevRules, data.rule])
 
-        toast({
-          title: 'Success',
-          description: `${
-            rule.target_type.charAt(0).toUpperCase() + rule.target_type.slice(1)
-          } routing rule created successfully`,
-        })
-
         return data.rule
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : 'Unknown error'
         setError(errorMessage)
-        toast({
-          title: 'Error',
-          description: `Failed to create routing rule: ${errorMessage}`,
-          variant: 'destructive',
-        })
         throw err
       }
     },
-    [toast],
+    [],
   )
 
   /**
@@ -142,25 +130,15 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
           prevRules.map((rule) => (rule.id === id ? data.rule : rule)),
         )
 
-        toast({
-          title: 'Success',
-          description: 'Routing rule updated successfully',
-        })
-
         return data.rule
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : 'Unknown error'
         setError(errorMessage)
-        toast({
-          title: 'Error',
-          description: `Failed to update routing rule: ${errorMessage}`,
-          variant: 'destructive',
-        })
         throw err
       }
     },
-    [toast],
+    [],
   )
 
   /**
@@ -229,7 +207,7 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
         })
 
         if (!response.ok) {
-          // Revert the state if the API call fails
+          // Revert on non-2xx status
           setRules((prevRules) =>
             prevRules.map((rule) =>
               rule.id === id ? { ...rule, enabled: !enabled } : rule,
@@ -243,6 +221,12 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
           description: `Routing rule ${enabled ? 'enabled' : 'disabled'} successfully`,
         })
       } catch (error) {
+        // Revert on network / runtime error as well
+        setRules((prevRules) =>
+          prevRules.map((rule) =>
+            rule.id === id ? { ...rule, enabled: !enabled } : rule,
+          ),
+        )
         toast({
           title: 'Error',
           description: `Failed to ${enabled ? 'enable' : 'disable'} route. Please try again.`,
