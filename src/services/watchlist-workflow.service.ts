@@ -31,6 +31,13 @@ import type {
 import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { IntervalConfig } from '@root/types/scheduler.types.js'
+import {
+  parseGuids,
+  hasMatchingGuids,
+  extractTmdbId,
+  extractTvdbId,
+  extractTypedGuid,
+} from '@root/utils/guid-handler.js'
 
 /** Represents the current state of the watchlist workflow */
 type WorkflowStatus = 'stopped' | 'running' | 'starting' | 'stopping'
@@ -335,8 +342,9 @@ export class WatchlistWorkflowService {
     const itemMap = new Map<string, WatchlistItem>()
 
     for (const item of items) {
-      if (item.guids && item.guids.length > 0) {
-        itemMap.set(item.guids[0], item)
+      const guids = parseGuids(item.guids)
+      if (guids.length > 0) {
+        itemMap.set(guids[0], item)
       }
     }
 
@@ -476,13 +484,13 @@ export class WatchlistWorkflowService {
         this.log.debug('New item detected', { guid, title: currentItem.title })
         changes.add(this.convertToTempItem(currentItem))
       } else {
-        // Check for modifications
+        // Check for modifications - use parseGuids to normalize genres
         const hasChanged =
           previousItem.title !== currentItem.title ||
           previousItem.type !== currentItem.type ||
           previousItem.thumb !== currentItem.thumb ||
-          JSON.stringify(previousItem.genres) !==
-            JSON.stringify(currentItem.genres)
+          JSON.stringify(parseGuids(previousItem.genres)) !==
+            JSON.stringify(parseGuids(currentItem.genres))
 
         if (hasChanged) {
           this.log.debug('Modified item detected', {
@@ -493,8 +501,8 @@ export class WatchlistWorkflowService {
               type: previousItem.type !== currentItem.type,
               thumb: previousItem.thumb !== currentItem.thumb,
               genres:
-                JSON.stringify(previousItem.genres) !==
-                JSON.stringify(currentItem.genres),
+                JSON.stringify(parseGuids(previousItem.genres)) !==
+                JSON.stringify(parseGuids(currentItem.genres)),
             },
           })
           changes.add(this.convertToTempItem(currentItem))
@@ -532,7 +540,7 @@ export class WatchlistWorkflowService {
       title: item.title,
       type: typeof item.type === 'string' ? item.type.toLowerCase() : item.type,
       thumb: item.thumb,
-      guids: item.guids,
+      guids: parseGuids(item.guids),
       genres: item.genres,
       key: item.plexKey,
     }
@@ -619,7 +627,8 @@ export class WatchlistWorkflowService {
     item: TemptRssWatchlistItem,
   ): Promise<boolean> {
     try {
-      if (!item.guids || item.guids.length === 0) {
+      const parsedGuids = parseGuids(item.guids)
+      if (parsedGuids.length === 0) {
         this.log.warn(`Show ${item.title} has no GUIDs to verify against`)
         return false
       }
@@ -659,7 +668,8 @@ export class WatchlistWorkflowService {
     item: TemptRssWatchlistItem,
   ): Promise<boolean> {
     try {
-      if (!item.guids || item.guids.length === 0) {
+      const parsedGuids = parseGuids(item.guids)
+      if (parsedGuids.length === 0) {
         this.log.warn(`Movie ${item.title} has no GUIDs to verify against`)
         return false
       }
@@ -702,14 +712,11 @@ export class WatchlistWorkflowService {
     item: TemptRssWatchlistItem,
   ): Promise<boolean> {
     try {
-      // Find TMDB ID
-      const tmdbGuid = Array.isArray(item.guids)
-        ? item.guids.find((guid) => guid.startsWith('tmdb:'))
-        : undefined
-
-      if (!tmdbGuid) {
+      // Use utility function to extract TMDB ID
+      const tmdbId = extractTmdbId(item.guids)
+      if (tmdbId === 0) {
         this.log.warn(
-          `Movie ${item.title} has no TMDB ID, skipping Radarr processing`,
+          `Movie ${item.title} has no valid TMDB ID, skipping Radarr processing`,
           {
             guids: item.guids,
           },
@@ -717,17 +724,14 @@ export class WatchlistWorkflowService {
         return false
       }
 
-      // Parse TMDB ID
-      const tmdbId = Number.parseInt(tmdbGuid.replace('tmdb:', ''), 10)
-      if (Number.isNaN(tmdbId)) {
-        throw new Error('Invalid TMDB ID format')
-      }
-
       // Verify item isn't already in Radarr
       const shouldAdd = await this.verifyRadarrItem(item)
       if (!shouldAdd) {
         return true // Item exists, considered successfully processed
       }
+
+      // Get the tmdbGuid string using extractTypedGuid
+      const tmdbGuid = extractTypedGuid(item.guids, 'tmdb:') || `tmdb:${tmdbId}`
 
       // Prepare item for Radarr
       const radarrItem: RadarrItem = {
@@ -776,14 +780,11 @@ export class WatchlistWorkflowService {
     item: TemptRssWatchlistItem,
   ): Promise<boolean> {
     try {
-      // Find TVDB ID
-      const tvdbGuid = Array.isArray(item.guids)
-        ? item.guids.find((guid) => guid.startsWith('tvdb:'))
-        : undefined
-
-      if (!tvdbGuid) {
+      // Use utility function to extract TVDB ID
+      const tvdbId = extractTvdbId(item.guids)
+      if (tvdbId === 0) {
         this.log.warn(
-          `Show ${item.title} has no TVDB ID, skipping Sonarr processing`,
+          `Show ${item.title} has no valid TVDB ID, skipping Sonarr processing`,
           {
             guids: item.guids,
           },
@@ -791,17 +792,14 @@ export class WatchlistWorkflowService {
         return false
       }
 
-      // Parse TVDB ID
-      const tvdbId = Number.parseInt(tvdbGuid.replace('tvdb:', ''), 10)
-      if (Number.isNaN(tvdbId)) {
-        throw new Error('Invalid TVDB ID format')
-      }
-
       // Verify item isn't already in Sonarr
       const shouldAdd = await this.verifySonarrItem(item)
       if (!shouldAdd) {
         return true // Item exists, considered successfully processed
       }
+
+      // Get the tvdbGuid string using extractTypedGuid
+      const tvdbGuid = extractTypedGuid(item.guids, 'tvdb:') || `tvdb:${tvdbId}`
 
       // Prepare item for Sonarr
       const sonarrItem: SonarrItem = {
@@ -963,12 +961,10 @@ export class WatchlistWorkflowService {
 
         // Process shows
         if (item.type === 'show') {
-          // Check for TVDB ID
-          const tvdbGuids = Array.isArray(tempItem.guids)
-            ? tempItem.guids.filter((guid) => guid.startsWith('tvdb:'))
-            : []
+          // Check for TVDB ID using extractTvdbId
+          const tvdbId = extractTvdbId(tempItem.guids)
 
-          if (tvdbGuids.length === 0) {
+          if (tvdbId === 0) {
             this.log.warn(
               `Show ${tempItem.title} has no TVDB ID, skipping Sonarr processing`,
               { guids: tempItem.guids },
@@ -977,23 +973,20 @@ export class WatchlistWorkflowService {
             continue
           }
 
-          // Check if show exists
-          const exists = [...existingSeries].some((series) =>
-            series.guids.some((existingGuid) =>
-              tempItem.guids?.includes(existingGuid),
-            ),
+          // Check if show exists using hasMatchingGuids
+          const exists = existingSeries.some((series) =>
+            hasMatchingGuids(series.guids, tempItem.guids),
           )
 
           // Add to Sonarr if not exists
           if (!exists) {
-            // Create a proper Sonarr item
-            const tvdbId = Number.parseInt(
-              tvdbGuids[0].replace('tvdb:', ''),
-              10,
-            )
+            // Get the tvdbGuid string using extractTypedGuid
+            const tvdbGuid =
+              extractTypedGuid(tempItem.guids, 'tvdb:') || `tvdb:${tvdbId}`
+
             const sonarrItem: SonarrItem = {
               title: `TVDB:${tvdbId}`,
-              guids: tvdbGuids,
+              guids: [tvdbGuid],
               type: 'show',
               ended: false,
               genres: Array.isArray(tempItem.genres)
@@ -1016,12 +1009,10 @@ export class WatchlistWorkflowService {
         }
         // Process movies
         else if (item.type === 'movie') {
-          // Check for TMDB ID
-          const tmdbGuids = Array.isArray(tempItem.guids)
-            ? tempItem.guids.filter((guid) => guid.startsWith('tmdb:'))
-            : []
+          // Check for TMDB ID using extractTmdbId
+          const tmdbId = extractTmdbId(tempItem.guids)
 
-          if (tmdbGuids.length === 0) {
+          if (tmdbId === 0) {
             this.log.warn(
               `Movie ${tempItem.title} has no TMDB ID, skipping Radarr processing`,
               { guids: tempItem.guids },
@@ -1030,23 +1021,20 @@ export class WatchlistWorkflowService {
             continue
           }
 
-          // Check if movie exists
-          const exists = [...existingMovies].some((movie) =>
-            movie.guids.some((existingGuid) =>
-              tempItem.guids?.includes(existingGuid),
-            ),
+          // Check if movie exists using hasMatchingGuids
+          const exists = existingMovies.some((movie) =>
+            hasMatchingGuids(movie.guids, tempItem.guids),
           )
 
           // Add to Radarr if not exists
           if (!exists) {
-            // Create a proper Radarr item
-            const tmdbId = Number.parseInt(
-              tmdbGuids[0].replace('tmdb:', ''),
-              10,
-            )
+            // Get the tmdbGuid string using extractTypedGuid
+            const tmdbGuid =
+              extractTypedGuid(tempItem.guids, 'tmdb:') || `tmdb:${tmdbId}`
+
             const radarrItem: RadarrItem = {
               title: `TMDB:${tmdbId}`,
-              guids: tmdbGuids,
+              guids: [tmdbGuid],
               type: 'movie',
               genres: Array.isArray(tempItem.genres)
                 ? tempItem.genres
