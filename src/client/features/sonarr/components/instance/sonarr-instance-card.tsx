@@ -360,7 +360,7 @@ export function InstanceCard({
                   />
                   <FormField
                     control={form.control}
-                    name="MonitorNewItems"
+                    name="monitorNewItems"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-text">

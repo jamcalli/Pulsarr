@@ -31,7 +31,7 @@ export interface SonarrInstance {
   rootFolder?: string
   bypassIgnored: boolean
   seasonMonitoring: string
-  MonitorNewItems?: 'all' | 'none'
+  monitorNewItems?: 'all' | 'none'
   tags: string[]
   isDefault: boolean
   syncedInstances?: number[]
@@ -56,7 +56,7 @@ export interface SonarrConnectionValues {
 export interface SonarrInstanceFormValues extends SonarrConnectionValues {
   bypassIgnored: boolean
   seasonMonitoring: SonarrMonitoringType
-  MonitorNewItems: 'all' | 'none'
+  monitorNewItems: 'all' | 'none'
   tags: string[]
   isDefault: boolean
   syncedInstances?: number[]

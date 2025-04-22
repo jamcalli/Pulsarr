@@ -604,8 +604,7 @@ export class DatabaseService {
       rootFolder: instance.root_folder,
       bypassIgnored: Boolean(instance.bypass_ignored),
       seasonMonitoring: instance.season_monitoring,
-      MonitorNewItems:
-        (instance.monitor_new_items as 'all' | 'none') || 'all',
+      monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
       tags: JSON.parse(instance.tags || '[]'),
       isDefault: Boolean(instance.is_default),
       syncedInstances: JSON.parse(instance.synced_instances || '[]'),
@@ -636,8 +635,7 @@ export class DatabaseService {
       rootFolder: instance.root_folder,
       bypassIgnored: Boolean(instance.bypass_ignored),
       seasonMonitoring: instance.season_monitoring,
-      MonitorNewItems:
-        (instance.monitor_new_items as 'all' | 'none') || 'all',
+      monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
       tags: JSON.parse(instance.tags || '[]'),
       isDefault: true,
       syncedInstances: JSON.parse(instance.synced_instances || '[]'),
@@ -664,8 +662,7 @@ export class DatabaseService {
       rootFolder: instance.root_folder,
       bypassIgnored: Boolean(instance.bypass_ignored),
       seasonMonitoring: instance.season_monitoring,
-      MonitorNewItems:
-        (instance.monitor_new_items as 'all' | 'none') || 'all',
+      monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
       tags: JSON.parse(instance.tags || '[]'),
       isDefault: Boolean(instance.is_default),
       syncedInstances: JSON.parse(instance.synced_instances || '[]'),
@@ -697,7 +694,7 @@ export class DatabaseService {
         root_folder: instance.rootFolder,
         bypass_ignored: instance.bypassIgnored,
         season_monitoring: instance.seasonMonitoring,
-        monitor_new_items: instance.MonitorNewItems || 'all',
+        monitor_new_items: instance.monitorNewItems || 'all',
         tags: JSON.stringify(instance.tags || []),
         is_default: instance.isDefault ?? false,
         is_enabled: true,
@@ -759,8 +756,8 @@ export class DatabaseService {
         ...(typeof updates.seasonMonitoring !== 'undefined' && {
           season_monitoring: updates.seasonMonitoring,
         }),
-        ...(typeof updates.MonitorNewItems !== 'undefined' && {
-          monitor_new_items: updates.MonitorNewItems,
+        ...(typeof updates.monitorNewItems !== 'undefined' && {
+          monitor_new_items: updates.monitorNewItems,
         }),
         ...(typeof updates.tags !== 'undefined' && {
           tags: JSON.stringify(updates.tags),
@@ -3963,7 +3960,7 @@ export class DatabaseService {
           rootFolder: instance.root_folder,
           bypassIgnored: Boolean(instance.bypass_ignored),
           seasonMonitoring: instance.season_monitoring,
-          MonitorNewItems:
+          monitorNewItems:
             (instance.monitor_new_items as 'all' | 'none') || 'all',
           tags: JSON.parse(instance.tags || '[]'),
           isDefault: Boolean(instance.is_default),
