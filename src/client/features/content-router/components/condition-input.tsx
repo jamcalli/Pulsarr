@@ -12,6 +12,8 @@ import UserMultiSelect from '@/components/ui/user-multi-select'
 import { useConfigStore } from '@/stores/configStore'
 import type { ControllerRenderProps, FieldPath } from 'react-hook-form'
 import type { ConditionValue } from '@root/schemas/content-router/content-router.schema'
+import CertificationMultiSelect from '@/components/ui/certification-multi-select'
+import { ContentCertifications } from '@/features/content-router/types/route-types'
 
 interface FieldState {
   [key: string]: string | string[]
@@ -108,16 +110,16 @@ const StableNumberInput = ({
 }
 
 /**
- * Renders an adaptive input control for a conditional form, selecting the appropriate input type based on the field, operator, and allowed value types.
+ * Renders an adaptive input control for conditional forms, selecting the appropriate input type and value handling based on the specified field, operator, and allowed value types.
  *
- * Depending on the context, this component displays text inputs, number inputs, range inputs, single-select dropdowns, or multi-select components for fields such as genre, user, year, and language. It manages value parsing and formatting for single and multi-value inputs, and integrates with a global config store to fetch user data as needed.
+ * This component dynamically displays text inputs, number inputs, range inputs, single-select dropdowns, or multi-select components for fields such as genre, user, year, certification, and language. It manages value parsing and formatting for both single and multi-value inputs, and integrates with a global config store to fetch user data as needed.
  *
- * @param field - The name of the field being filtered.
+ * @param field - The field to filter on.
  * @param operator - The comparison operator for the condition.
  * @param valueTypes - Allowed value types for the field and operator.
  * @param value - The current value of the input.
  * @param onChange - Callback invoked when the input value changes.
- * @param genres - Optional list of genres for genre selection fields.
+ * @param genres - Optional list of genres for genre selection.
  * @param onGenreDropdownOpen - Optional callback when the genre dropdown is opened.
  * @param inputId - Optional ID for the input element.
  *
@@ -366,6 +368,41 @@ function ConditionInput({
     }
   }
 
+  const createCertificationFormField = (): ControllerRenderProps<
+    Record<string, unknown>,
+    'certification'
+  > => {
+    const isEmpty =
+      (Array.isArray(value) && value.length === 0) ||
+      value === '' ||
+      value === undefined ||
+      value === null
+
+    // Convert all values to strings
+    const stringValue = Array.isArray(value)
+      ? value.map((item) => String(item))
+      : [String(value || '')]
+
+    return {
+      name: 'certification',
+      value: isEmpty ? [] : stringValue,
+      onChange: (newValue: unknown) => {
+        // Handle conversion for onChange callback
+        if (Array.isArray(newValue)) {
+          onChangeRef.current(newValue.map((item) => String(item)))
+        } else {
+          onChangeRef.current([String(newValue || '')])
+        }
+      },
+      onBlur: () => {},
+      ref: (instance: HTMLInputElement | null) => {
+        if (inputRef.current !== instance) {
+          inputRef.current = instance
+        }
+      },
+    }
+  }
+
   // For the genre field
   if (field === 'genre' || field === 'genres') {
     // Single value operators
@@ -532,6 +569,89 @@ function ConditionInput({
         placeholder="Enter year (e.g. 2023)"
         min="1900"
         max="2100"
+      />
+    )
+  }
+
+  if (field === 'certification') {
+    // For in/notIn operators - use multi-select
+    if (operator === 'in' || operator === 'notIn') {
+      const certificationField = createCertificationFormField()
+
+      return (
+        <div className="flex-1">
+          <CertificationMultiSelect field={certificationField} />
+        </div>
+      )
+    }
+
+    // For equals/notEquals
+    if (operator === 'equals' || operator === 'notEquals') {
+      // Create grouped options from our certification data
+      const groupedOptions = Object.entries(ContentCertifications).map(
+        ([region, data]) => ({
+          label: data.label,
+          options: [
+            ...(data.movie || []).map((cert) => ({
+              label: cert.label,
+              // Prefix with region to make unique keys
+              value: `${region}-${cert.value}`,
+            })),
+            ...(data.tv || []).map((cert) => ({
+              label: cert.label,
+              value: `${region}-${cert.value}`,
+            })),
+            ...(data.all || []).map((cert) => ({
+              label: cert.label,
+              value: `${region}-${cert.value}`,
+            })),
+          ],
+        }),
+      )
+
+      // Handle the value transformation
+      let selectValue = ''
+      if (typeof value === 'string') {
+        // Check if it's already prefixed
+        if (value.includes('-')) {
+          selectValue = value
+        } else {
+          for (const [region, data] of Object.entries(ContentCertifications)) {
+            const allCerts = [
+              ...(data.movie || []),
+              ...(data.tv || []),
+              ...(data.all || []),
+            ]
+            const found = allCerts.find((cert) => cert.value === value)
+            if (found) {
+              selectValue = `${region}-${value}`
+              break
+            }
+          }
+        }
+      }
+
+      return (
+        <div className="flex-1">
+          <Select
+            options={groupedOptions}
+            value={selectValue}
+            onValueChange={(val) => {
+              const actualValue = val.split('-')[1] || val
+              onChangeRef.current(actualValue)
+            }}
+            placeholder="Select a certification"
+          />
+        </div>
+      )
+    }
+
+    // For contains/notContains - text input
+    return (
+      <StableTextInput
+        value={typeof value === 'string' ? value : String(value || '')}
+        onChange={handlers.current.handleTextChange}
+        placeholder="Enter certification or part of certification"
       />
     )
   }

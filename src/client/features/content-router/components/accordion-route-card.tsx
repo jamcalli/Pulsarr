@@ -523,7 +523,9 @@ const AccordionRouteCard = ({
           root_folder: data.root_folder,
           enabled: data.enabled,
           order: data.order,
-          condition: data.condition as unknown as ConditionGroup,
+          condition: Array.isArray(data.condition?.conditions)
+            ? (data.condition as ConditionGroup)
+            : { operator: 'AND', conditions: [], negate: false },
           created_at: '',
           updated_at: '',
         }
@@ -534,7 +536,9 @@ const AccordionRouteCard = ({
       else {
         const updatePayload: ContentRouterRuleUpdate = {
           name: data.name,
-          condition: data.condition as unknown as ConditionGroup,
+          condition: Array.isArray(data.condition?.conditions)
+            ? (data.condition as ConditionGroup)
+            : { operator: 'AND', conditions: [], negate: false },
           target_instance_id: data.target_instance_id,
           quality_profile: data.quality_profile
             ? Number(data.quality_profile)
@@ -644,12 +648,17 @@ const AccordionRouteCard = ({
             <div className="flex justify-between items-center w-full pr-2">
               <div className="group/name inline-flex items-center gap-2 flex-1 min-w-0">
                 {isEditing ? (
-                  <form onSubmit={handleTitleSubmit}>
+                  <form
+                    onSubmit={handleTitleSubmit}
+                    className="flex-1 w-full mr-4"
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => e.stopPropagation()}
+                  >
                     <Input
                       value={localTitle}
                       onChange={(e) => setLocalTitle(e.target.value)}
                       autoFocus
-                      className="w-full mr-4"
+                      className="w-full"
                       disabled={isSaving}
                       onBlur={handleTitleSubmit}
                       onClick={(e) => e.stopPropagation()}
@@ -666,22 +675,41 @@ const AccordionRouteCard = ({
                     />
                   </form>
                 ) : (
-                  <div className="flex items-center gap-2">
-                    <span>{localTitle || 'Unnamed'}</span>
-                    <Button
-                      variant="noShadow"
-                      size="icon"
-                      className="h-8 w-8 opacity-0 group-hover/name:opacity-100 transition-opacity shrink-0"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setIsEditing(true)
-                      }}
-                    >
-                      <Pen className="h-4 w-4" />
-                    </Button>
+                  <div className="flex items-center gap-2 flex-1">
+                    <span className="truncate">{localTitle || 'Unnamed'}</span>
+                    {!isSaving && (
+                      <span
+                        className={cn(
+                          'inline-flex items-center justify-center whitespace-nowrap rounded-base text-sm font-base ring-offset-white transition-all gap-2 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+                          'text-mtext bg-main border-2 border-border',
+                          'h-8 w-8',
+                          'opacity-0 group-hover/name:opacity-100 transition-opacity shrink-0 cursor-pointer',
+                        )}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setLocalTitle(localTitle)
+                          setIsEditing(true)
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            setLocalTitle(localTitle)
+                            setIsEditing(true)
+                          }
+                        }}
+                        // biome-ignore lint/a11y/useSemanticElements: We need to use span with role="button" to avoid button nesting issues
+                        role="button"
+                        tabIndex={0}
+                        aria-label="Edit title"
+                      >
+                        <Pen className="h-4 w-4" />
+                      </span>
+                    )}
                   </div>
                 )}
               </div>
+
               <Badge
                 variant="neutral"
                 className={cn(

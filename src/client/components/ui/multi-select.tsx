@@ -42,14 +42,21 @@ const multiSelectVariants = cva('m-1', {
   },
 })
 
+interface Option {
+  label: string
+  value: string
+  icon?: React.ComponentType<{ className?: string }>
+}
+
+interface OptionGroup {
+  label: string
+  options: Option[]
+}
+
 interface MultiSelectProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof multiSelectVariants> {
-  options: {
-    label: string
-    value: string
-    icon?: React.ComponentType<{ className?: string }>
-  }[]
+  options: Option[] | OptionGroup[]
   onValueChange: (value: string[]) => void
   defaultValue?: string[]
   placeholder?: string
@@ -86,6 +93,23 @@ export const MultiSelect = React.forwardRef<
       React.useState<string[]>(defaultValue)
     const [isPopoverOpen, setIsPopoverOpen] = React.useState(false)
     const [isAnimating, setIsAnimating] = React.useState(false)
+
+    // Detect if options are grouped by checking the first element
+    const isGrouped = React.useMemo(() => {
+      return Array.isArray(options) && 
+             options.length > 0 && 
+             'options' in options[0]
+    }, [options])
+
+    // Create a flat list of all options for badge display and selection checks
+    const flatOptions = React.useMemo(() => {
+      // Safe type checking to determine if we have grouped options
+      const firstOption = options[0] as unknown
+      if (firstOption && typeof firstOption === 'object' && 'options' in firstOption) {
+        return (options as OptionGroup[]).flatMap(group => group.options)
+      }
+      return options as Option[]
+    }, [options])
 
     const handleInputKeyDown = (
       event: React.KeyboardEvent<HTMLInputElement>,
@@ -124,12 +148,14 @@ export const MultiSelect = React.forwardRef<
     }
 
     const toggleAll = () => {
-      if (selectedValues.length === options.length) {
+      // Use a Set to deduplicate values
+      const uniqueOptionValues = Array.from(new Set(flatOptions.map(o => o.value)))
+      
+      if (selectedValues.length === uniqueOptionValues.length) {
         handleClear()
       } else {
-        const allValues = options.map((option) => option.value)
-        setSelectedValues(allValues)
-        onValueChange(allValues)
+        setSelectedValues(uniqueOptionValues)
+        onValueChange(uniqueOptionValues)
       }
     }
 
@@ -159,7 +185,7 @@ export const MultiSelect = React.forwardRef<
               <div className="flex justify-between items-center w-full">
                 <div className="flex items-center overflow-hidden flex-nowrap">
                   {selectedValues.slice(0, maxCount).map((value) => {
-                    const option = options.find((o) => o.value === value)
+                    const option = flatOptions.find((o) => o.value === value)
                     const IconComponent = option?.icon
                     return (
                       <Badge
@@ -252,7 +278,7 @@ export const MultiSelect = React.forwardRef<
                   <div
                     className={cn(
                       'mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary',
-                      selectedValues.length === options.length
+                      selectedValues.length === flatOptions.length
                         ? 'bg-primary text-primary-foreground'
                         : 'opacity-50 [&_svg]:invisible',
                     )}
@@ -261,31 +287,73 @@ export const MultiSelect = React.forwardRef<
                   </div>
                   <span>(Select All)</span>
                 </CommandItem>
-                {options.map((option) => {
-                  const isSelected = selectedValues.includes(option.value)
-                  return (
-                    <CommandItem
-                      key={option.value}
-                      onSelect={() => toggleOption(option.value)}
-                      className="cursor-pointer"
-                    >
-                      <div
-                        className={cn(
-                          'mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary',
-                          isSelected
-                            ? 'bg-primary text-primary-foreground'
-                            : 'opacity-50 [&_svg]:invisible',
-                        )}
+                
+                {/* Render options based on whether they're grouped or not */}
+                {isGrouped ? (
+                  // Render grouped options
+                  (options as OptionGroup[]).map((group) => (
+                    <React.Fragment key={group.label}>
+                      <CommandItem
+                        className="text-sm font-semibold text-muted-foreground px-2 py-1.5 cursor-default pointer-events-none"
+                        disabled
                       >
-                        <CheckIcon className="h-4 w-4" />
-                      </div>
-                      {option.icon && (
-                        <option.icon className="mr-2 h-4 w-4 text-muted-foreground" />
-                      )}
-                      <span>{option.label}</span>
-                    </CommandItem>
-                  )
-                })}
+                        {group.label}
+                      </CommandItem>
+                      {group.options.map((option) => {
+                        const isSelected = selectedValues.includes(option.value)
+                        return (
+                          <CommandItem
+                            key={option.value}
+                            onSelect={() => toggleOption(option.value)}
+                            className="cursor-pointer pl-6"
+                          >
+                            <div
+                              className={cn(
+                                'mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary',
+                                isSelected
+                                  ? 'bg-primary text-primary-foreground'
+                                  : 'opacity-50 [&_svg]:invisible',
+                              )}
+                            >
+                              <CheckIcon className="h-4 w-4" />
+                            </div>
+                            {option.icon && (
+                              <option.icon className="mr-2 h-4 w-4 text-muted-foreground" />
+                            )}
+                            <span>{option.label}</span>
+                          </CommandItem>
+                        )
+                      })}
+                    </React.Fragment>
+                  ))
+                ) : (
+                  // Render flat options
+                  (options as Option[]).map((option) => {
+                    const isSelected = selectedValues.includes(option.value)
+                    return (
+                      <CommandItem
+                        key={option.value}
+                        onSelect={() => toggleOption(option.value)}
+                        className="cursor-pointer"
+                      >
+                        <div
+                          className={cn(
+                            'mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary',
+                            isSelected
+                              ? 'bg-primary text-primary-foreground'
+                              : 'opacity-50 [&_svg]:invisible',
+                          )}
+                        >
+                          <CheckIcon className="h-4 w-4" />
+                        </div>
+                        {option.icon && (
+                          <option.icon className="mr-2 h-4 w-4 text-muted-foreground" />
+                        )}
+                        <span>{option.label}</span>
+                      </CommandItem>
+                    )
+                  })
+                )}
               </CommandGroup>
               <CommandSeparator />
               <CommandGroup>
