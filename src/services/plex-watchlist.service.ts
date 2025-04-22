@@ -12,10 +12,6 @@ import {
 import {
   parseGuids,
   hasMatchingGuids,
-  createGuidSet,
-  extractTypedGuid,
-  extractTmdbId,
-  extractTvdbId,
 } from '@utils/guid-handler.js'
 import type {
   Item as WatchlistItem,
