@@ -1,13 +1,13 @@
 import type { FastifyInstance } from 'fastify'
-import type {
-  ContentItem,
-  RoutingContext,
-  RoutingDecision,
-  RoutingEvaluator,
-  Condition,
+import {
+  type ContentItem,
+  type RoutingContext,
+  type RoutingDecision,
+  type RoutingEvaluator,
+  type Condition,
   ConditionGroup,
-  FieldInfo,
-  OperatorInfo,
+  type FieldInfo,
+  type OperatorInfo,
 } from '@root/types/router.types.js'
 import {
   isRadarrResponse,
@@ -51,11 +51,28 @@ export default function createLanguageEvaluator(
         valueTypes: ['string'],
       },
       {
+        name: 'notContains',
+        description: 'Language name does not contain this string',
+        valueTypes: ['string'],
+      },
+      {
         name: 'in',
         description: 'Language is one of the provided values',
         valueTypes: ['string[]'],
         valueFormat:
           'Array of language names, e.g. ["English", "French", "Japanese"]',
+      },
+      {
+        name: 'notIn',
+        description: 'Language is not any of the provided values',
+        valueTypes: ['string[]'],
+        valueFormat:
+          'Array of language names to exclude, e.g. ["English", "French"]',
+      },
+      {
+        name: 'regex',
+        description: 'Language matches the regular expression',
+        valueTypes: ['string'],
       },
     ],
   }
@@ -117,30 +134,51 @@ export default function createLanguageEvaluator(
       const isMovie = context.contentType === 'movie'
       const rules = await fastify.db.getRouterRulesByType('language')
 
-      // Filter rules by target type
+      // Filter rules by target type and enabled status
       const contentTypeRules = rules.filter(
-        (rule) => rule.target_type === (isMovie ? 'radarr' : 'sonarr'),
+        (rule) =>
+          rule.target_type === (isMovie ? 'radarr' : 'sonarr') &&
+          rule.enabled !== false,
       )
 
-      // Find matching language rules - only check 'language' field
+      // Find matching language rules - check 'language' field with various operators
       const matchingRules = contentTypeRules.filter((rule) => {
         if (!rule.criteria || !rule.criteria.language) {
           return false
         }
 
         const ruleLanguage = rule.criteria.language
+        const operator = rule.criteria.operator || 'equals'
 
         // If no language data, skip the rule
         if (!language) {
           return false
         }
 
-        // Support array form from the 'in' operator
+        // Normalize for case-insensitive comparison
+        const normalizedLanguage = language.toLowerCase()
+
+        // Handle array operators (in/notIn)
         if (Array.isArray(ruleLanguage)) {
+          if (operator === 'in') {
+            return ruleLanguage.some(
+              (lang) =>
+                typeof lang === 'string' &&
+                normalizedLanguage === lang.toLowerCase(),
+            )
+          }
+          if (operator === 'notIn') {
+            return !ruleLanguage.some(
+              (lang) =>
+                typeof lang === 'string' &&
+                normalizedLanguage === lang.toLowerCase(),
+            )
+          }
+          // Default to 'in' for backward compatibility
           return ruleLanguage.some(
             (lang) =>
               typeof lang === 'string' &&
-              language.toLowerCase() === lang.toLowerCase(),
+              normalizedLanguage === lang.toLowerCase(),
           )
         }
 
@@ -149,8 +187,30 @@ export default function createLanguageEvaluator(
           return false
         }
 
-        // Perform a case-insensitive comparison
-        return language.toLowerCase() === ruleLanguage.toLowerCase()
+        const normalizedRuleLanguage = ruleLanguage.toLowerCase()
+
+        // Handle string operators
+        switch (operator) {
+          case 'equals':
+            return normalizedLanguage === normalizedRuleLanguage
+          case 'notEquals':
+            return normalizedLanguage !== normalizedRuleLanguage
+          case 'contains':
+            return normalizedLanguage.includes(normalizedRuleLanguage)
+          case 'notContains':
+            return !normalizedLanguage.includes(normalizedRuleLanguage)
+          case 'regex':
+            try {
+              const regex = new RegExp(ruleLanguage)
+              return regex.test(language)
+            } catch (error) {
+              fastify.log.error(`Invalid regex in language rule: ${error}`)
+              return false
+            }
+          default:
+            // Default to equals for backward compatibility
+            return normalizedLanguage === normalizedRuleLanguage
+        }
       })
 
       if (matchingRules.length === 0) {
@@ -186,40 +246,64 @@ export default function createLanguageEvaluator(
         return false
       }
 
-      const { operator, value } = condition
+      const { operator, value, negate = false } = condition
 
       // Normalize for comparison
       const normalizedLanguage = language.toLowerCase()
-      const normalizedValue =
-        typeof value === 'string' ? value.toLowerCase() : value
+      let result = false
 
-      if (operator === 'equals') {
-        return normalizedLanguage === normalizedValue
+      switch (operator) {
+        case 'equals':
+          if (typeof value === 'string') {
+            result = normalizedLanguage === value.toLowerCase()
+          }
+          break
+        case 'notEquals':
+          if (typeof value === 'string') {
+            result = normalizedLanguage !== value.toLowerCase()
+          }
+          break
+        case 'contains':
+          if (typeof value === 'string') {
+            result = normalizedLanguage.includes(value.toLowerCase())
+          }
+          break
+        case 'notContains':
+          if (typeof value === 'string') {
+            result = !normalizedLanguage.includes(value.toLowerCase())
+          }
+          break
+        case 'in':
+          if (Array.isArray(value)) {
+            result = value.some(
+              (lang) =>
+                typeof lang === 'string' &&
+                normalizedLanguage === lang.toLowerCase(),
+            )
+          }
+          break
+        case 'notIn':
+          if (Array.isArray(value)) {
+            result = !value.some(
+              (lang) =>
+                typeof lang === 'string' &&
+                normalizedLanguage === lang.toLowerCase(),
+            )
+          }
+          break
+        case 'regex':
+          if (typeof value === 'string') {
+            try {
+              const regex = new RegExp(value)
+              result = regex.test(language)
+            } catch (error) {
+              fastify.log.error(`Invalid regex in language condition: ${error}`)
+            }
+          }
+          break
       }
 
-      if (operator === 'notEquals') {
-        return normalizedLanguage !== normalizedValue
-      }
-
-      if (operator === 'contains') {
-        if (typeof normalizedValue === 'string') {
-          return normalizedLanguage.includes(normalizedValue)
-        }
-        return false
-      }
-
-      if (operator === 'in') {
-        if (Array.isArray(value)) {
-          return value.some(
-            (lang) =>
-              typeof lang === 'string' &&
-              normalizedLanguage === lang.toLowerCase(),
-          )
-        }
-        return false
-      }
-
-      return false
+      return negate ? !result : result
     },
 
     canEvaluateConditionField(field: string): boolean {

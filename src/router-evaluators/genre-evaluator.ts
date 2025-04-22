@@ -1,13 +1,13 @@
 import type { FastifyInstance } from 'fastify'
-import type {
-  ContentItem,
-  RoutingContext,
-  RoutingDecision,
-  RoutingEvaluator,
-  Condition,
+import {
+  type ContentItem,
+  type RoutingContext,
+  type RoutingDecision,
+  type RoutingEvaluator,
+  type Condition,
   ConditionGroup,
-  FieldInfo,
-  OperatorInfo,
+  type FieldInfo,
+  type OperatorInfo,
 } from '@root/types/router.types.js'
 
 /**
@@ -96,6 +96,11 @@ export default function createGenreEvaluator(
         valueTypes: ['string', 'string[]'],
         valueFormat: 'Single genre or array of all expected genres',
       },
+      {
+        name: 'regex',
+        description: 'At least one genre matches the regular expression',
+        valueTypes: ['string'],
+      },
     ],
   }
   return {
@@ -127,9 +132,11 @@ export default function createGenreEvaluator(
       }
       const isMovie = context.contentType === 'movie'
       const rules = await fastify.db.getRouterRulesByType('genre')
-      // Filter rules by target type (radarr/sonarr)
+      // Filter rules by target type (radarr/sonarr) and enabled status
       const contentTypeRules = rules.filter(
-        (rule) => rule.target_type === (isMovie ? 'radarr' : 'sonarr'),
+        (rule) =>
+          rule.target_type === (isMovie ? 'radarr' : 'sonarr') &&
+          rule.enabled !== false,
       )
 
       // Create a set of normalized genres (converted to lowercase and trimmed)
@@ -185,6 +192,18 @@ export default function createGenreEvaluator(
           )
         }
 
+        if (operator === 'regex') {
+          if (isString(genreValue)) {
+            try {
+              const regex = new RegExp(genreValue)
+              return Array.from(itemGenres).some((genre) => regex.test(genre))
+            } catch (error) {
+              fastify.log.error(`Invalid regex in genre rule: ${error}`)
+              return false
+            }
+          }
+        }
+
         return false
       })
 
@@ -223,43 +242,59 @@ export default function createGenreEvaluator(
       // Create a set of normalized genres for case-insensitive comparison
       const itemGenres = new Set(item.genres.map(normalizeString))
 
-      const { operator, value } = condition
+      const { operator, value, negate = false } = condition
       let matched = false
 
-      if (operator === 'contains' || operator === 'in') {
-        if (isStringArray(value)) {
-          matched = value.some((genre) =>
-            itemGenres.has(normalizeString(genre)),
-          )
-        } else if (isString(value)) {
-          matched = itemGenres.has(normalizeString(value))
-        }
-      }
-
-      if (operator === 'notContains' || operator === 'notIn') {
-        if (isStringArray(value)) {
-          matched = !value.some((genre) =>
-            itemGenres.has(normalizeString(genre)),
-          )
-        } else if (isString(value)) {
-          matched = !itemGenres.has(normalizeString(value))
-        }
-      }
-
-      if (operator === 'equals') {
-        if (isStringArray(value)) {
-          const normalizedValues = new Set(value.map(normalizeString))
-          matched =
-            normalizedValues.size === itemGenres.size &&
-            Array.from(normalizedValues).every((genre) => itemGenres.has(genre))
-        } else if (isString(value)) {
-          matched =
-            itemGenres.size === 1 && itemGenres.has(normalizeString(value))
-        }
+      switch (operator) {
+        case 'contains':
+        case 'in':
+          if (isStringArray(value)) {
+            matched = value.some((genre) =>
+              itemGenres.has(normalizeString(genre)),
+            )
+          } else if (isString(value)) {
+            matched = itemGenres.has(normalizeString(value))
+          }
+          break
+        case 'notContains':
+        case 'notIn':
+          if (isStringArray(value)) {
+            matched = !value.some((genre) =>
+              itemGenres.has(normalizeString(genre)),
+            )
+          } else if (isString(value)) {
+            matched = !itemGenres.has(normalizeString(value))
+          }
+          break
+        case 'equals':
+          if (isStringArray(value)) {
+            const normalizedValues = new Set(value.map(normalizeString))
+            matched =
+              normalizedValues.size === itemGenres.size &&
+              Array.from(normalizedValues).every((genre) =>
+                itemGenres.has(genre),
+              )
+          } else if (isString(value)) {
+            matched =
+              itemGenres.size === 1 && itemGenres.has(normalizeString(value))
+          }
+          break
+        case 'regex':
+          if (isString(value)) {
+            try {
+              const regex = new RegExp(value)
+              matched = Array.from(itemGenres).some((genre) =>
+                regex.test(genre),
+              )
+            } catch (error) {
+              fastify.log.error(`Invalid regex in genre condition: ${error}`)
+            }
+          }
+          break
       }
 
       // Apply negation if needed
-      return condition.negate ? !matched : matched
+      return negate ? !matched : matched
     },
 
     canEvaluateConditionField(field: string): boolean {
