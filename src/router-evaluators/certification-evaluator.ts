@@ -1,13 +1,13 @@
 import type { FastifyInstance } from 'fastify'
-import type {
-  ContentItem,
-  RoutingContext,
-  RoutingDecision,
-  RoutingEvaluator,
-  Condition,
+import {
+  type ContentItem,
+  type RoutingContext,
+  type RoutingDecision,
+  type RoutingEvaluator,
+  type Condition,
   ConditionGroup,
-  FieldInfo,
-  OperatorInfo,
+  type FieldInfo,
+  type OperatorInfo,
 } from '@root/types/router.types.js'
 import {
   isRadarrResponse,
@@ -51,6 +51,11 @@ export default function createCertificationEvaluator(
         valueTypes: ['string'],
       },
       {
+        name: 'notContains',
+        description: 'Certification does not contain this string',
+        valueTypes: ['string'],
+      },
+      {
         name: 'in',
         description: 'Certification is one of the provided values',
         valueTypes: ['string[]'],
@@ -61,6 +66,11 @@ export default function createCertificationEvaluator(
         description: 'Certification is not one of the provided values',
         valueTypes: ['string[]'],
         valueFormat: 'Array of certifications, e.g. ["R", "NC-17"]',
+      },
+      {
+        name: 'regex',
+        description: 'Certification matches the regular expression',
+        valueTypes: ['string'],
       },
     ],
   }
@@ -131,9 +141,11 @@ export default function createCertificationEvaluator(
       const isMovie = context.contentType === 'movie'
       const rules = await fastify.db.getRouterRulesByType('certification')
 
-      // Filter rules by target type
+      // Filter rules by target type and ensure they're enabled
       const contentTypeRules = rules.filter(
-        (rule) => rule.target_type === (isMovie ? 'radarr' : 'sonarr'),
+        (rule) =>
+          rule.target_type === (isMovie ? 'radarr' : 'sonarr') &&
+          rule.enabled !== false,
       )
 
       // Find matching certification rules - only check 'certification' field
@@ -143,13 +155,32 @@ export default function createCertificationEvaluator(
         }
 
         const ruleCertification = rule.criteria.certification
+        const operator = rule.criteria.operator || 'equals'
 
-        // Support array form for the 'in' operator
+        // Normalize certification for comparison
+        const normalizedCertification = certification.toUpperCase()
+
+        // Support array form for 'in' and 'notIn' operators
         if (Array.isArray(ruleCertification)) {
+          if (operator === 'in') {
+            return ruleCertification.some(
+              (cert) =>
+                typeof cert === 'string' &&
+                normalizedCertification === cert.toUpperCase(),
+            )
+          }
+          if (operator === 'notIn') {
+            return !ruleCertification.some(
+              (cert) =>
+                typeof cert === 'string' &&
+                normalizedCertification === cert.toUpperCase(),
+            )
+          }
+          // Default to 'in' for backward compatibility
           return ruleCertification.some(
             (cert) =>
               typeof cert === 'string' &&
-              certification.toUpperCase() === cert.toUpperCase(),
+              normalizedCertification === cert.toUpperCase(),
           )
         }
 
@@ -161,8 +192,32 @@ export default function createCertificationEvaluator(
           return false
         }
 
-        // Perform a case-insensitive comparison
-        return certification.toUpperCase() === ruleCertification.toUpperCase()
+        const normalizedRuleCertification = ruleCertification.toUpperCase()
+
+        // Handle string operators
+        switch (operator) {
+          case 'equals':
+            return normalizedCertification === normalizedRuleCertification
+          case 'notEquals':
+            return normalizedCertification !== normalizedRuleCertification
+          case 'contains':
+            return normalizedCertification.includes(normalizedRuleCertification)
+          case 'notContains':
+            return !normalizedCertification.includes(
+              normalizedRuleCertification,
+            )
+          case 'regex':
+            try {
+              const regex = new RegExp(ruleCertification)
+              return regex.test(certification)
+            } catch (error) {
+              fastify.log.error(`Invalid regex in certification rule: ${error}`)
+              return false
+            }
+          default:
+            // Default to equals for backward compatibility
+            return normalizedCertification === normalizedRuleCertification
+        }
       })
 
       if (matchingRules.length === 0) {
@@ -198,55 +253,66 @@ export default function createCertificationEvaluator(
         return false
       }
 
-      const { operator, value } = condition
+      const { operator, value, negate = false } = condition
 
       // Normalize for comparison
       const normalizedCertification = certification.toUpperCase()
+      let result = false
 
-      if (operator === 'equals') {
-        if (typeof value === 'string') {
-          return normalizedCertification === value.toUpperCase()
-        }
-        return false
+      switch (operator) {
+        case 'equals':
+          if (typeof value === 'string') {
+            result = normalizedCertification === value.toUpperCase()
+          }
+          break
+        case 'notEquals':
+          if (typeof value === 'string') {
+            result = normalizedCertification !== value.toUpperCase()
+          }
+          break
+        case 'contains':
+          if (typeof value === 'string') {
+            result = normalizedCertification.includes(value.toUpperCase())
+          }
+          break
+        case 'notContains':
+          if (typeof value === 'string') {
+            result = !normalizedCertification.includes(value.toUpperCase())
+          }
+          break
+        case 'in':
+          if (Array.isArray(value)) {
+            result = value.some(
+              (cert) =>
+                typeof cert === 'string' &&
+                normalizedCertification === cert.toUpperCase(),
+            )
+          }
+          break
+        case 'notIn':
+          if (Array.isArray(value)) {
+            result = !value.some(
+              (cert) =>
+                typeof cert === 'string' &&
+                normalizedCertification === cert.toUpperCase(),
+            )
+          }
+          break
+        case 'regex':
+          if (typeof value === 'string') {
+            try {
+              const regex = new RegExp(value)
+              result = regex.test(certification)
+            } catch (error) {
+              fastify.log.error(
+                `Invalid regex in certification condition: ${error}`,
+              )
+            }
+          }
+          break
       }
 
-      if (operator === 'notEquals') {
-        if (typeof value === 'string') {
-          return normalizedCertification !== value.toUpperCase()
-        }
-        return false
-      }
-
-      if (operator === 'contains') {
-        if (typeof value === 'string') {
-          return normalizedCertification.includes(value.toUpperCase())
-        }
-        return false
-      }
-
-      if (operator === 'in') {
-        if (Array.isArray(value)) {
-          return value.some(
-            (cert) =>
-              typeof cert === 'string' &&
-              normalizedCertification === cert.toUpperCase(),
-          )
-        }
-        return false
-      }
-
-      if (operator === 'notIn') {
-        if (Array.isArray(value)) {
-          return !value.some(
-            (cert) =>
-              typeof cert === 'string' &&
-              normalizedCertification === cert.toUpperCase(),
-          )
-        }
-        return false
-      }
-
-      return false
+      return negate ? !result : result
     },
 
     canEvaluateConditionField(field: string): boolean {

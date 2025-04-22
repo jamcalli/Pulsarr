@@ -1,13 +1,13 @@
 import type { FastifyInstance } from 'fastify'
-import type {
-  ContentItem,
-  RoutingContext,
-  RoutingDecision,
-  RoutingEvaluator,
-  Condition,
+import {
+  type ContentItem,
+  type RoutingContext,
+  type RoutingDecision,
+  type RoutingEvaluator,
+  type Condition,
   ConditionGroup,
-  FieldInfo,
-  OperatorInfo,
+  type FieldInfo,
+  type OperatorInfo,
 } from '@root/types/router.types.js'
 import { extractYear } from '@root/types/content-lookup.types.js'
 
@@ -48,10 +48,12 @@ function isYearRange(value: unknown): value is YearRange {
     typeof value === 'object' &&
     value !== null &&
     ('min' in value || 'max' in value) &&
-    (('min' in value &&
-      (typeof value.min === 'number' || value.min === undefined)) ||
-      ('max' in value &&
-        (typeof value.max === 'number' || value.max === undefined)))
+    (!('min' in value) ||
+      typeof value.min === 'number' ||
+      value.min === undefined) &&
+    (!('max' in value) ||
+      typeof value.max === 'number' ||
+      value.max === undefined)
   )
 }
 
@@ -163,11 +165,10 @@ export default function createYearEvaluator(
       const isMovie = context.contentType === 'movie'
       const rules = await fastify.db.getRouterRulesByType('year')
 
-      // Filter rules by target type
+      // Filter rules by target type and enabled status
       const contentTypeRules = rules.filter(
         (rule) =>
-          rule.enabled !==
-            false /* default to enabled when field is absent */ &&
+          rule.enabled !== false &&
           rule.target_type === (isMovie ? 'radarr' : 'sonarr'),
       )
 
@@ -178,22 +179,42 @@ export default function createYearEvaluator(
         }
 
         const ruleYear = rule.criteria.year
+        const operator = rule.criteria.operator || 'equals'
+
         if (!isValidYearValue(ruleYear)) {
           return false
         }
 
         // Single number comparison
         if (isNumber(ruleYear)) {
-          return year === ruleYear
+          switch (operator) {
+            case 'equals':
+              return year === ruleYear
+            case 'notEquals':
+              return year !== ruleYear
+            case 'greaterThan':
+              return year > ruleYear
+            case 'lessThan':
+              return year < ruleYear
+            default:
+              return false
+          }
         }
 
         // Array of years
         if (isNumberArray(ruleYear)) {
-          return ruleYear.includes(year)
+          switch (operator) {
+            case 'in':
+              return ruleYear.includes(year)
+            case 'notIn':
+              return !ruleYear.includes(year)
+            default:
+              return false
+          }
         }
 
         // Range object
-        if (isYearRange(ruleYear)) {
+        if (isYearRange(ruleYear) && operator === 'between') {
           const minYear =
             typeof ruleYear.min === 'number'
               ? ruleYear.min
@@ -242,18 +263,9 @@ export default function createYearEvaluator(
       }
 
       const { operator, value, negate = false } = condition
-
-      // Handle the between operator explicitly
-      if (operator === 'between' && isYearRange(value)) {
-        const min = value.min ?? Number.NEGATIVE_INFINITY
-        const max = value.max ?? Number.POSITIVE_INFINITY
-        const result = year >= min && year <= max
-        return negate ? !result : result
-      }
-
-      // Handle all other operators
       let result = false
 
+      // Handle all operators
       if (operator === 'equals' && isNumber(value)) {
         result = year === value
       } else if (operator === 'notEquals' && isNumber(value)) {
@@ -266,6 +278,10 @@ export default function createYearEvaluator(
         result = value.includes(year)
       } else if (operator === 'notIn' && isNumberArray(value)) {
         result = !value.includes(year)
+      } else if (operator === 'between' && isYearRange(value)) {
+        const min = value.min ?? Number.NEGATIVE_INFINITY
+        const max = value.max ?? Number.POSITIVE_INFINITY
+        result = year >= min && year <= max
       }
 
       // Apply negation if needed
