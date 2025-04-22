@@ -12,6 +12,13 @@ import {
 } from '@/features/sonarr/store/schemas'
 import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
 
+/**
+ * React hook for managing a Sonarr instance configuration form with validation and dynamic state handling.
+ *
+ * Initializes form state based on the provided instance data, manages validation using Zod schemas, and provides utilities for resetting the form, handling connection validation changes, and updating the instance name. The hook also ensures the form scrolls into view when creating a new instance and tracks changes to connection-related fields.
+ *
+ * @returns An object containing the form instance, a ref to the form container, and helper functions for form management.
+ */
 export function useSonarrInstanceForm({
   instance,
   instances,
@@ -28,6 +35,7 @@ export function useSonarrInstanceForm({
       rootFolder: instance.rootFolder || '',
       bypassIgnored: instance.bypassIgnored,
       seasonMonitoring: instance.seasonMonitoring as SonarrMonitoringType,
+      monitorNewItems: instance.monitorNewItems || 'all',
       tags: instance.tags,
       isDefault: isNew
         ? instances.length === 1 && instances[0].apiKey === API_KEY_PLACEHOLDER
@@ -55,6 +63,7 @@ export function useSonarrInstanceForm({
       rootFolder: instance.rootFolder || '',
       bypassIgnored: instance.bypassIgnored,
       seasonMonitoring: instance.seasonMonitoring as SonarrMonitoringType,
+      monitorNewItems: instance.monitorNewItems || 'all',
       tags: instance.tags,
       isDefault: instance.isDefault,
       syncedInstances: instance.syncedInstances || [],
@@ -129,6 +138,7 @@ export function useSonarrInstanceForm({
           rootFolder: instance.rootFolder || '',
           bypassIgnored: instance.bypassIgnored,
           seasonMonitoring: instance.seasonMonitoring as SonarrMonitoringType,
+          monitorNewItems: instance.monitorNewItems || 'all',
           tags: instance.tags,
           isDefault: instance.isDefault,
           syncedInstances: instance.syncedInstances || [],
