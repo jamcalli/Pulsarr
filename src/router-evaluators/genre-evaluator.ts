@@ -11,6 +11,16 @@ import type {
 } from '@root/types/router.types.js'
 
 /**
+ * Normalizes a string by converting to lowercase and trimming whitespace.
+ *
+ * @param str - The string to normalize.
+ * @returns The normalized string in lowercase with whitespace trimmed.
+ */
+function normalizeString(str: string): string {
+  return str.toLowerCase().trim()
+}
+
+/**
  * Determines whether the provided value is an array of strings.
  *
  * @param value - The value to check.
@@ -56,7 +66,6 @@ export default function createGenreEvaluator(
       valueTypes: ['string', 'string[]'],
     },
   ]
-
   const supportedOperators: Record<string, OperatorInfo[]> = {
     genre: [
       {
@@ -89,14 +98,12 @@ export default function createGenreEvaluator(
       },
     ],
   }
-
   return {
     name: 'Genre Router',
     description: 'Routes content based on genre matching rules',
     priority: 80,
     supportedFields,
     supportedOperators,
-
     async canEvaluate(
       item: ContentItem,
       context: RoutingContext,
@@ -107,7 +114,6 @@ export default function createGenreEvaluator(
         item.genres.length > 0
       )
     },
-
     async evaluate(
       item: ContentItem,
       context: RoutingContext,
@@ -119,16 +125,15 @@ export default function createGenreEvaluator(
       ) {
         return null
       }
-
       const isMovie = context.contentType === 'movie'
       const rules = await fastify.db.getRouterRulesByType('genre')
-
       // Filter rules by target type (radarr/sonarr)
       const contentTypeRules = rules.filter(
         (rule) => rule.target_type === (isMovie ? 'radarr' : 'sonarr'),
       )
 
-      const itemGenres = new Set(item.genres)
+      // Create a set of normalized genres (converted to lowercase and trimmed)
+      const itemGenres = new Set(item.genres.map(normalizeString))
 
       // Find matching genre routes - only check 'genre' field
       const matchingRules = contentTypeRules.filter((rule) => {
@@ -144,29 +149,40 @@ export default function createGenreEvaluator(
         // Extract the operator from criteria or default to "contains"
         const operator = rule.criteria.operator || 'contains'
 
-        // Apply the appropriate operation based on the operator
+        // Apply the appropriate operation based on the operator, with case-insensitive comparison
         if (operator === 'contains' || operator === 'in') {
           if (isStringArray(genreValue)) {
-            return genreValue.some((genre) => itemGenres.has(genre))
+            return genreValue.some((genre) =>
+              itemGenres.has(normalizeString(genre)),
+            )
           }
-          return itemGenres.has(genreValue)
+          return itemGenres.has(normalizeString(genreValue))
         }
 
         if (operator === 'notContains' || operator === 'notIn') {
           if (isStringArray(genreValue)) {
-            return !genreValue.some((genre) => itemGenres.has(genre))
+            return !genreValue.some((genre) =>
+              itemGenres.has(normalizeString(genre)),
+            )
           }
-          return !itemGenres.has(genreValue)
+          return !itemGenres.has(normalizeString(genreValue))
         }
 
         if (operator === 'equals') {
           if (isStringArray(genreValue)) {
+            const normalizedRuleGenres = new Set(
+              genreValue.map(normalizeString),
+            )
             return (
-              genreValue.length === itemGenres.size &&
-              genreValue.every((genre) => itemGenres.has(genre))
+              normalizedRuleGenres.size === itemGenres.size &&
+              Array.from(normalizedRuleGenres).every((genre) =>
+                itemGenres.has(genre),
+              )
             )
           }
-          return itemGenres.size === 1 && itemGenres.has(genreValue)
+          return (
+            itemGenres.size === 1 && itemGenres.has(normalizeString(genreValue))
+          )
         }
 
         return false
@@ -204,33 +220,41 @@ export default function createGenreEvaluator(
         return false
       }
 
-      const itemGenres = new Set(item.genres)
+      // Create a set of normalized genres for case-insensitive comparison
+      const itemGenres = new Set(item.genres.map(normalizeString))
+
       const { operator, value } = condition
       let matched = false
 
       if (operator === 'contains' || operator === 'in') {
         if (isStringArray(value)) {
-          matched = value.some((genre) => itemGenres.has(genre))
+          matched = value.some((genre) =>
+            itemGenres.has(normalizeString(genre)),
+          )
         } else if (isString(value)) {
-          matched = itemGenres.has(value)
+          matched = itemGenres.has(normalizeString(value))
         }
       }
 
       if (operator === 'notContains' || operator === 'notIn') {
         if (isStringArray(value)) {
-          matched = !value.some((genre) => itemGenres.has(genre))
+          matched = !value.some((genre) =>
+            itemGenres.has(normalizeString(genre)),
+          )
         } else if (isString(value)) {
-          matched = !itemGenres.has(value)
+          matched = !itemGenres.has(normalizeString(value))
         }
       }
 
       if (operator === 'equals') {
         if (isStringArray(value)) {
+          const normalizedValues = new Set(value.map(normalizeString))
           matched =
-            value.length === itemGenres.size &&
-            value.every((genre) => itemGenres.has(genre))
+            normalizedValues.size === itemGenres.size &&
+            Array.from(normalizedValues).every((genre) => itemGenres.has(genre))
         } else if (isString(value)) {
-          matched = itemGenres.size === 1 && itemGenres.has(value)
+          matched =
+            itemGenres.size === 1 && itemGenres.has(normalizeString(value))
         }
       }
 
