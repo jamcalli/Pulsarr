@@ -234,6 +234,7 @@ export class SonarrService {
           sonarrRootFolder: instance.rootFolder || null,
           sonarrTagIds: instance.tags,
           sonarrSeasonMonitoring: instance.seasonMonitoring,
+          sonarrMonitorNewItems: instance.MonitorNewItems || 'all',
         }
         return
       }
@@ -246,6 +247,7 @@ export class SonarrService {
         sonarrRootFolder: instance.rootFolder || null,
         sonarrTagIds: instance.tags,
         sonarrSeasonMonitoring: instance.seasonMonitoring,
+        sonarrMonitorNewItems: instance.MonitorNewItems || 'all',
       }
 
       this.log.info(
@@ -525,6 +527,7 @@ export class SonarrService {
     try {
       const addOptions: SonarrAddOptions = {
         monitor: config.sonarrSeasonMonitoring,
+        MonitorNewItems: config.sonarrMonitorNewItems || 'all',
         searchForCutoffUnmetEpisodes: true,
         searchForMissingEpisodes: true,
       }

@@ -45,6 +45,7 @@ export function useSonarrInstance(instanceId: number) {
             rootFolder: '',
             bypassIgnored: false,
             seasonMonitoring: 'all',
+            MonitorNewItems: 'all',
             tags: [],
             isDefault: false,
             syncedInstances: [],
