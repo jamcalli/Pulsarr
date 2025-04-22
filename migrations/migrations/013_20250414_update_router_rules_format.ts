@@ -107,7 +107,7 @@ export async function up(knex: Knex): Promise<void> {
           const firstValue = criteria[firstKey]
           if (firstKey && firstValue !== undefined) {
             newCriteria.condition = {
-              field: rule.type,
+              field: firstKey ?? rule.type,
               operator: 'equals',
               value: firstValue
             }
