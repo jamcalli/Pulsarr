@@ -484,13 +484,12 @@ export class WatchlistWorkflowService {
         this.log.debug('New item detected', { guid, title: currentItem.title })
         changes.add(this.convertToTempItem(currentItem))
       } else {
-        // Check for modifications - use parseGuids to normalize genres
         const hasChanged =
           previousItem.title !== currentItem.title ||
           previousItem.type !== currentItem.type ||
           previousItem.thumb !== currentItem.thumb ||
-          JSON.stringify(parseGuids(previousItem.genres)) !==
-            JSON.stringify(parseGuids(currentItem.genres))
+          JSON.stringify(this.safeParseArray(previousItem.genres)) !==
+            JSON.stringify(this.safeParseArray(currentItem.genres))
 
         if (hasChanged) {
           this.log.debug('Modified item detected', {
@@ -501,8 +500,8 @@ export class WatchlistWorkflowService {
               type: previousItem.type !== currentItem.type,
               thumb: previousItem.thumb !== currentItem.thumb,
               genres:
-                JSON.stringify(parseGuids(previousItem.genres)) !==
-                JSON.stringify(parseGuids(currentItem.genres)),
+                JSON.stringify(this.safeParseArray(previousItem.genres)) !==
+                JSON.stringify(this.safeParseArray(currentItem.genres)),
             },
           })
           changes.add(this.convertToTempItem(currentItem))
@@ -738,11 +737,7 @@ export class WatchlistWorkflowService {
         title: `TMDB:${tmdbId}`,
         guids: [tmdbGuid],
         type: 'movie',
-        genres: Array.isArray(item.genres)
-          ? item.genres
-          : typeof item.genres === 'string'
-            ? [item.genres]
-            : [],
+        genres: this.safeParseArray<string>(item.genres),
       }
 
       // Use content router to route the item
@@ -807,11 +802,7 @@ export class WatchlistWorkflowService {
         guids: [tvdbGuid],
         type: 'show',
         ended: false,
-        genres: Array.isArray(item.genres)
-          ? item.genres
-          : typeof item.genres === 'string'
-            ? [item.genres]
-            : [],
+        genres: this.safeParseArray<string>(item.genres),
         status: 'pending',
         series_status: 'continuing', // Default to continuing since we don't know yet
       }
@@ -948,14 +939,8 @@ export class WatchlistWorkflowService {
           title: item.title,
           type: item.type,
           thumb: item.thumb ?? undefined,
-          guids:
-            typeof item.guids === 'string'
-              ? JSON.parse(item.guids)
-              : item.guids,
-          genres:
-            typeof item.genres === 'string'
-              ? JSON.parse(item.genres)
-              : item.genres,
+          guids: parseGuids(item.guids),
+          genres: this.safeParseArray<string>(item.genres),
           key: item.key,
         }
 
@@ -989,11 +974,7 @@ export class WatchlistWorkflowService {
               guids: [tvdbGuid],
               type: 'show',
               ended: false,
-              genres: Array.isArray(tempItem.genres)
-                ? tempItem.genres
-                : typeof tempItem.genres === 'string'
-                  ? [tempItem.genres]
-                  : [],
+              genres: this.safeParseArray<string>(tempItem.genres),
               status: 'pending',
               series_status: 'continuing',
             }
@@ -1036,11 +1017,7 @@ export class WatchlistWorkflowService {
               title: `TMDB:${tmdbId}`,
               guids: [tmdbGuid],
               type: 'movie',
-              genres: Array.isArray(tempItem.genres)
-                ? tempItem.genres
-                : typeof tempItem.genres === 'string'
-                  ? [tempItem.genres]
-                  : [],
+              genres: this.safeParseArray<string>(tempItem.genres),
             }
 
             // Pass user id to the router
@@ -1178,6 +1155,25 @@ export class WatchlistWorkflowService {
     })
 
     return hasUsersWithSyncDisabled || hasUserRoutingRules
+  }
+
+  private safeParseArray<T>(value: unknown): T[] {
+    if (Array.isArray(value)) {
+      return value as T[]
+    }
+
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value)
+        return (
+          Array.isArray(parsed) ? parsed : [parsed].filter(Boolean)
+        ) as T[]
+      } catch (e) {
+        return (value ? [value] : []) as T[]
+      }
+    }
+
+    return (value ? [value] : []) as T[]
   }
 
   private async setupManualSyncFallback(): Promise<void> {
