@@ -9,10 +9,7 @@ import {
   getPlexWatchlistUrls,
   fetchWatchlistFromRss,
 } from '@utils/plex.js'
-import {
-  parseGuids,
-  hasMatchingGuids,
-} from '@utils/guid-handler.js'
+import { parseGuids, hasMatchingGuids } from '@utils/guid-handler.js'
 import type {
   Item as WatchlistItem,
   TokenWatchlistItem,
