@@ -20,7 +20,11 @@ export const ConditionValueSchema = z.union([
   z.number(),
   z.boolean(),
   z.array(z.union([z.string(), z.number()])),
-  z.object({ min: z.number().optional(), max: z.number().optional() }),
+  z
+    .object({ min: z.number().optional(), max: z.number().optional() })
+    .refine((v) => v.min !== undefined || v.max !== undefined, {
+      message: 'Range comparison requires at least min or max to be specified',
+    }),
   z.null(),
 ])
 
