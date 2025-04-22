@@ -17,6 +17,7 @@ const baseObjectSchema = z.object({
   seasonMonitoring: z.custom<SonarrMonitoringType>((val) =>
     Object.keys(SONARR_MONITORING_OPTIONS).includes(val as string),
   ),
+  MonitorNewItems: z.enum(['all', 'none']).default('all'),
   tags: z.array(z.string()),
   isDefault: z.boolean(),
   syncedInstances: z.array(z.number()).optional(),

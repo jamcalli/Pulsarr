@@ -15,7 +15,7 @@
     "fix": "biome format --write . && biome lint --write .",
     "migrate": "tsx migrations/migrate.ts",
     "migrate:make": "knex migrate:make -x ts",
-    "migrate:rollback": "knex migrate:rollback",
+    "migrate:rollback": "knex migrate:rollback --knexfile migrations/knexfile.ts",
     "release:beta:develop": "git checkout develop && git pull origin develop && npm version prerelease --preid=beta && git push origin develop && git push origin --tags",
     "release:beta": "npm version prerelease --preid=beta && git push && git push --tags",
     "release:patch": "npm version patch && git push && git push --tags",

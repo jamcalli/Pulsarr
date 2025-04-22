@@ -67,6 +67,7 @@ export interface Config {
   sonarrRootFolder: string
   sonarrBypassIgnored: boolean
   sonarrSeasonMonitoring: string
+  sonarrMonitorNewItems: 'all' | 'none'
   sonarrTags: string[]
   // Radarr Config
   radarrBaseUrl: string
