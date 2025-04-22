@@ -40,7 +40,7 @@ export async function up(knex: Knex): Promise<void> {
           if (criteria.genre) {
             // Create a genre condition - use 'genre' field to match the evaluator's expectations
             newCriteria.condition = {
-              field: 'genre', // Ensures field name matches genre-evaluator.ts
+              field: 'genres', // Ensures field name matches genre-evaluator.ts
               operator: 'in',
               value: Array.isArray(criteria.genre) ? criteria.genre : [criteria.genre]
             }
