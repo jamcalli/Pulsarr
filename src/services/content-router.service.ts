@@ -18,6 +18,7 @@ import type {
   RadarrMovieLookupResponse,
   SonarrSeriesLookupResponse,
 } from '@root/types/content-lookup.types.js'
+import { extractTmdbId, extractTvdbId } from '@utils/guid-handler.js'
 
 /**
  * ContentRouterService is responsible for routing content items to Radarr or Sonarr instances
@@ -390,15 +391,9 @@ export class ContentRouterService {
     let itemId: number | undefined
 
     if (isMovie) {
-      const tmdbGuid = item.guids.find((guid) => guid.startsWith('tmdb:'))
-      if (tmdbGuid) {
-        itemId = Number.parseInt(tmdbGuid.replace('tmdb:', ''), 10)
-      }
+      itemId = extractTmdbId(item.guids)
     } else {
-      const tvdbGuid = item.guids.find((guid) => guid.startsWith('tvdb:'))
-      if (tvdbGuid) {
-        itemId = Number.parseInt(tvdbGuid.replace('tvdb:', ''), 10)
-      }
+      itemId = extractTvdbId(item.guids)
     }
 
     // Skip enrichment if we couldn't extract a valid ID

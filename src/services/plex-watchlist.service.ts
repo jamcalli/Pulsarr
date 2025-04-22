@@ -9,6 +9,7 @@ import {
   getPlexWatchlistUrls,
   fetchWatchlistFromRss,
 } from '@utils/plex.js'
+import { parseGuids, hasMatchingGuids } from '@utils/guid-handler.js'
 import type {
   Item as WatchlistItem,
   TokenWatchlistItem,
@@ -698,7 +699,7 @@ export class PlexWatchlistService {
       key: item.id,
       type: templateItem.type,
       thumb: templateItem.thumb,
-      guids: templateItem.guids || [],
+      guids: parseGuids(templateItem.guids), // Use parseGuids instead of directly assigning
       genres: templateItem.genres || [],
       status: 'pending' as const,
       created_at: new Date().toISOString(),
@@ -759,7 +760,7 @@ export class PlexWatchlistService {
         key: item.key,
         thumb: item.thumb,
         type: item.type,
-        guids: item.guids || [],
+        guids: parseGuids(item.guids), // Use parseGuids instead of item.guids || []
         genres: item.genres || [],
         status: 'pending' as const,
         created_at: new Date().toISOString(),
@@ -841,12 +842,13 @@ export class PlexWatchlistService {
       plexKey: item.key,
       type: item.type,
       thumb: item.thumb || '',
-      guids: this.safeParseArray<string>(item.guids),
-      genres: this.safeParseArray<string>(item.genres),
+      guids: parseGuids(item.guids), // Use parseGuids instead of safeParseArray
+      genres: this.safeParseArray<string>(item.genres), // Keep safeParseArray for genres
       status: 'pending' as const,
     }
   }
 
+  // Keep this method for parsing non-GUID arrays
   private safeParseArray<T>(value: unknown): T[] {
     if (Array.isArray(value)) {
       return value as T[]
@@ -915,11 +917,7 @@ export class PlexWatchlistService {
       title: item.title,
       type: item.type,
       thumb: item.thumb || undefined,
-      guids: Array.isArray(item.guids)
-        ? item.guids
-        : item.guids
-          ? [item.guids]
-          : [],
+      guids: parseGuids(item.guids), // Use parseGuids instead of array handling logic
       genres: Array.isArray(item.genres)
         ? item.genres
         : item.genres
@@ -993,16 +991,8 @@ export class PlexWatchlistService {
       plexKey: item.key,
       type: item.type,
       thumb: item.thumb || '',
-      guids: Array.isArray(item.guids)
-        ? item.guids
-        : item.guids
-          ? [item.guids]
-          : [],
-      genres: Array.isArray(item.genres)
-        ? item.genres
-        : item.genres
-          ? [item.genres]
-          : [],
+      guids: parseGuids(item.guids), // Use parseGuids instead of array handling logic
+      genres: this.safeParseArray<string>(item.genres),
       status: 'pending' as const,
     }))
   }
@@ -1022,7 +1012,7 @@ export class PlexWatchlistService {
     const duplicateItemIds: number[] = []
 
     for (const pendingItem of pendingItems) {
-      const pendingGuids = this.safeParseArray<string>(pendingItem.guids)
+      const pendingGuids = parseGuids(pendingItem.guids)
 
       this.log.debug(
         `Processing RSS item "${pendingItem.title}" with GUIDs:`,
@@ -1032,14 +1022,10 @@ export class PlexWatchlistService {
 
       for (const [user, items] of userWatchlistMap.entries()) {
         for (const item of items) {
-          const itemGuids = this.safeParseArray<string>(item.guids)
+          const itemGuids = parseGuids(item.guids)
 
-          const hasMatch = pendingGuids.some((pendingGuid: string) =>
-            itemGuids.some(
-              (itemGuid: string) =>
-                itemGuid.toLowerCase() === pendingGuid.toLowerCase(),
-            ),
-          )
+          // Replace complex comparison with hasMatchingGuids utility
+          const hasMatch = hasMatchingGuids(pendingGuids, itemGuids)
 
           if (hasMatch) {
             foundMatch = true
@@ -1171,6 +1157,7 @@ export class PlexWatchlistService {
               pendingGuids,
             },
           )
+          matchedItemIds.push(pendingItem.id)
         }
       }
     }
@@ -1204,7 +1191,7 @@ export class PlexWatchlistService {
     const duplicateItemIds: number[] = []
 
     for (const pendingItem of pendingItems) {
-      const pendingGuids = this.safeParseArray<string>(pendingItem.guids)
+      const pendingGuids = parseGuids(pendingItem.guids)
 
       this.log.debug(
         `Processing RSS item "${pendingItem.title}" with GUIDs:`,
@@ -1214,14 +1201,10 @@ export class PlexWatchlistService {
 
       for (const [friend, items] of userWatchlistMap.entries()) {
         for (const item of items) {
-          const itemGuids = this.safeParseArray<string>(item.guids)
+          const itemGuids = parseGuids(item.guids)
 
-          const hasMatch = pendingGuids.some((pendingGuid: string) =>
-            itemGuids.some(
-              (itemGuid: string) =>
-                itemGuid.toLowerCase() === pendingGuid.toLowerCase(),
-            ),
-          )
+          // Replace complex comparison with hasMatchingGuids utility
+          const hasMatch = hasMatchingGuids(pendingGuids, itemGuids)
 
           if (hasMatch) {
             foundMatch = true
@@ -1353,6 +1336,7 @@ export class PlexWatchlistService {
               pendingGuids,
             },
           )
+          matchedItemIds.push(pendingItem.id)
         }
       }
     }
