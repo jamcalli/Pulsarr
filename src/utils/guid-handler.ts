@@ -1,18 +1,48 @@
 /**
  * Parses GUIDs from a string, array, or undefined input into a string array.
  *
- * Accepts an array of strings, a JSON-encoded string representing an array of GUIDs, or a single string. Returns an empty array if the input is undefined or falsy. If parsing a string as JSON fails, returns an array containing the original string.
+ * Accepts an array of strings, a JSON-encoded string representing an array of GUIDs, or a single string.
+ * Returns an empty array if the input is undefined or falsy. If parsing a string as JSON fails, attempts to
+ * handle it as a comma-separated list or a single GUID.
  *
  * @returns An array of GUID strings parsed from the input.
  */
 export function parseGuids(guids: string[] | string | undefined): string[] {
   if (!guids) return []
-  if (Array.isArray(guids)) return guids
-  try {
-    return typeof guids === 'string' ? JSON.parse(guids) : []
-  } catch (error) {
-    return typeof guids === 'string' ? [guids] : []
+  if (Array.isArray(guids))
+    return guids.filter((guid): guid is string => !!guid)
+
+  if (typeof guids === 'string') {
+    // Try strict JSON array first
+    try {
+      const parsed = JSON.parse(guids)
+      if (Array.isArray(parsed)) {
+        return [
+          ...new Set(
+            parsed.filter((p): p is string => typeof p === 'string' && !!p),
+          ),
+        ]
+      }
+    } catch {
+      /* fall‑through */
+    }
+
+    // Fallback: comma‑separated list
+    if (guids.includes(',')) {
+      return [
+        ...new Set(
+          guids
+            .split(',')
+            .map((g) => g.trim())
+            .filter((g) => !!g),
+        ),
+      ]
+    }
+
+    // Last resort: treat as single GUID
+    return [guids]
   }
+  return []
 }
 
 /**
@@ -70,4 +100,30 @@ export function extractTypedGuid(
 ): string | undefined {
   const parsed = parseGuids(guids)
   return parsed.find((guid) => guid.startsWith(type))
+}
+
+/**
+ * Extracts a TMDB ID from the guids list.
+ * Returns the numeric ID or 0 if not found or invalid.
+ */
+export function extractTmdbId(guids: string[] | string | undefined): number {
+  const parsed = parseGuids(guids)
+  const tmdbGuid = parsed.find((guid) => guid.startsWith('tmdb:'))
+  if (!tmdbGuid) return 0
+
+  const id = Number.parseInt(tmdbGuid.replace('tmdb:', ''), 10)
+  return Number.isNaN(id) ? 0 : id
+}
+
+/**
+ * Extracts a TVDB ID from the guids list.
+ * Returns the numeric ID or 0 if not found or invalid.
+ */
+export function extractTvdbId(guids: string[] | string | undefined): number {
+  const parsed = parseGuids(guids)
+  const tvdbGuid = parsed.find((guid) => guid.startsWith('tvdb:'))
+  if (!tvdbGuid) return 0
+
+  const id = Number.parseInt(tvdbGuid.replace('tvdb:', ''), 10)
+  return Number.isNaN(id) ? 0 : id
 }
