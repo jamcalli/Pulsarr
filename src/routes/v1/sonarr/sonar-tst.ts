@@ -10,6 +10,7 @@ const SonarrInstanceSchema = z.object({
   rootFolder: z.string().nullish(),
   bypassIgnored: z.boolean().optional().default(false),
   seasonMonitoring: z.string().optional().default('all'),
+  monitorNewItems: z.enum(['all', 'none']).optional().default('all'),
   tags: z.array(z.string()).optional().default([]),
   isDefault: z.boolean().optional().default(false),
   syncedInstances: z.array(z.number()).optional(),

@@ -61,6 +61,7 @@ export interface SonarrPost {
   addOptions: SonarrAddOptions
   languageProfileId?: number | null
   monitored: boolean
+  monitorNewItems: 'all' | 'none'
   tags: string[]
 }
 
@@ -121,6 +122,7 @@ export interface SonarrConfiguration {
   sonarrRootFolder: string | null
   sonarrTagIds: string[]
   sonarrSeasonMonitoring: string
+  sonarrMonitorNewItems?: 'all' | 'none'
 }
 
 export interface SonarrInstance {
@@ -132,6 +134,7 @@ export interface SonarrInstance {
   rootFolder?: string | null | undefined
   bypassIgnored: boolean
   seasonMonitoring: string
+  monitorNewItems: 'all' | 'none'
   tags: string[]
   isDefault: boolean
   syncedInstances?: number[]
