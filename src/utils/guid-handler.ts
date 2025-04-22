@@ -9,8 +9,15 @@
  */
 export function parseGuids(guids: string[] | string | undefined): string[] {
   if (!guids) return []
+
   if (Array.isArray(guids))
-    return guids.filter((guid): guid is string => !!guid)
+    return [
+      ...new Set(
+        guids
+          .map((g) => (typeof g === 'string' ? g.trim() : g))
+          .filter((g): g is string => !!g),
+      ),
+    ]
 
   if (typeof guids === 'string') {
     // Try strict JSON array first
@@ -28,10 +35,11 @@ export function parseGuids(guids: string[] | string | undefined): string[] {
     }
 
     // Fallback: comma‑separated list
-    if (guids.includes(',')) {
+    const trimmed = guids.trim()
+    if (trimmed.includes(',')) {
       return [
         ...new Set(
-          guids
+          trimmed
             .split(',')
             .map((g) => g.trim())
             .filter((g) => !!g),
@@ -40,7 +48,7 @@ export function parseGuids(guids: string[] | string | undefined): string[] {
     }
 
     // Last resort: treat as single GUID
-    return [guids]
+    return [trimmed]
   }
   return []
 }
