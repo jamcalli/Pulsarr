@@ -128,10 +128,15 @@ const ConditionBuilder = ({
           setSelectedEvaluator(fieldEvaluator)
           setFieldDescription(fieldInfo.description || '')
 
+          // Get the first supported operator for this field, or fallback to 'equals'
+          const firstSupported =
+            fieldEvaluator.supportedOperators?.[fieldName]?.[0]?.name ??
+            'equals'
+
           // Reset operator and value when field changes
           onChange({
             field: fieldName,
-            operator: 'equals' as ComparisonOperator,
+            operator: firstSupported as ComparisonOperator,
             value: null,
             negate: valueRef.current.negate || false,
           })
