@@ -82,7 +82,7 @@ export default fp(
               rootFolder: mergedConfig.sonarrRootFolder,
               bypassIgnored: mergedConfig.sonarrBypassIgnored,
               seasonMonitoring: mergedConfig.sonarrSeasonMonitoring,
-              MonitorNewItems: mergedConfig.sonarrMonitorNewItems || 'all',
+              monitorNewItems: mergedConfig.sonarrMonitorNewItems || 'all',
               tags: mergedConfig.sonarrTags || [],
               isDefault: true,
             })
@@ -124,7 +124,7 @@ export default fp(
               rootFolder: initialConfig.sonarrRootFolder,
               bypassIgnored: initialConfig.sonarrBypassIgnored,
               seasonMonitoring: initialConfig.sonarrSeasonMonitoring,
-              MonitorNewItems: initialConfig.sonarrMonitorNewItems || 'all',
+              monitorNewItems: initialConfig.sonarrMonitorNewItems || 'all',
               tags: initialConfig.sonarrTags || [],
               isDefault: true,
             })

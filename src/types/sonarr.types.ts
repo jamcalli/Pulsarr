@@ -1,6 +1,5 @@
 export interface SonarrAddOptions {
   monitor: string
-  MonitorNewItems?: 'all' | 'none'
   searchForCutoffUnmetEpisodes: boolean
   searchForMissingEpisodes: boolean
 }
@@ -62,6 +61,7 @@ export interface SonarrPost {
   addOptions: SonarrAddOptions
   languageProfileId?: number | null
   monitored: boolean
+  monitorNewItems: 'all' | 'none'
   tags: string[]
 }
 
@@ -134,7 +134,7 @@ export interface SonarrInstance {
   rootFolder?: string | null | undefined
   bypassIgnored: boolean
   seasonMonitoring: string
-  MonitorNewItems: 'all' | 'none'
+  monitorNewItems: 'all' | 'none'
   tags: string[]
   isDefault: boolean
   syncedInstances?: number[]

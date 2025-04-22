@@ -122,7 +122,7 @@ export default function SonarrConfigPage() {
                       apiKey: '',
                       bypassIgnored: false,
                       seasonMonitoring: 'all',
-                      MonitorNewItems: 'all',
+                      monitorNewItems: 'all',
                       tags: [],
                       isDefault: instances.length === 0,
                       qualityProfile: '',
