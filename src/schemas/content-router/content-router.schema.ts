@@ -11,6 +11,7 @@ export const ComparisonOperatorSchema = z.enum([
   'greaterThan',
   'lessThan',
   'between',
+  'regex',
 ])
 
 // First, define the value types
