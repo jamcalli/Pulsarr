@@ -79,20 +79,31 @@ export const ConditionalRouteFormSchema = z.object({
       }
 
       // Helper function to recursively validate condition groups
-      const isValidGroup = (group: IConditionGroup): boolean => {
-        if (!group.conditions || group.conditions.length === 0) {
-          return false
+      const isValidGroup = (group: IConditionGroup, depth = 0, visited = new WeakSet()): boolean => {
+        // Guard against excessive nesting
+        if (depth > 20) {
+          return false;
         }
-
+        
+        // Guard against circular references
+        if (visited.has(group)) {
+          return false;
+        }
+        visited.add(group);
+        
+        if (!group.conditions || group.conditions.length === 0) {
+          return false;
+        }
+      
         return group.conditions.every((cond) => {
           if ('conditions' in cond) {
-            // Recursive check for nested groups
-            return isValidGroup(cond as IConditionGroup)
+            // Recursive check with incremented depth and shared visited set
+            return isValidGroup(cond as IConditionGroup, depth + 1, visited);
           }
-
+      
           // Check individual condition
-          return isValidCondition(cond as ICondition)
-        })
+          return isValidCondition(cond as ICondition);
+        });
       }
 
       return isValidGroup(val)
