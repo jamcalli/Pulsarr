@@ -39,16 +39,10 @@ const Select = ({
   // If options are provided, generate the children automatically
   if (options) {
     // Detect if options are grouped by checking the structure of the first option
-    const isGrouped = React.useMemo(() => {
-      if (!Array.isArray(options) || options.length === 0) {
-        return false
-      }
-      
-      const firstOption = options[0] as unknown
-      return firstOption && 
-             typeof firstOption === 'object' && 
-             'options' in firstOption
-    }, [options])
+    const isGrouped = React.useMemo(
+      () => options.every((o) => typeof o === 'object' && 'options' in o),
+      [options],
+    )
 
     return (
       <SelectPrimitive.Root {...props}>

@@ -96,9 +96,17 @@ export const MultiSelect = React.forwardRef<
 
     // Detect if options are grouped by checking the first element
     const isGrouped = React.useMemo(() => {
-      return Array.isArray(options) && 
-             options.length > 0 && 
-             'options' in options[0]
+      if (!Array.isArray(options) || options.length === 0) {
+        return false;
+      }
+      
+      const firstOption = options[0];
+      return (
+        typeof firstOption === 'object' &&
+        firstOption !== null &&
+        'options' in firstOption &&
+        Array.isArray((firstOption as OptionGroup).options)
+      );
     }, [options])
 
     // Create a flat list of all options for badge display and selection checks
