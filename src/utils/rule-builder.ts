@@ -3,6 +3,7 @@ import type {
   ConditionGroup,
   ComparisonOperator,
   LogicalOperator,
+  RouterRule,
 } from '@root/types/router.types.js'
 
 /**
@@ -119,7 +120,15 @@ export const RuleBuilder = {
     quality_profile?: number
     order?: number
     enabled?: boolean
-  }) {
-    return options
+  }): Omit<RouterRule, 'id' | 'created_at' | 'updated_at'> {
+    const { condition, order = 50, enabled = true, ...rest } = options
+    return {
+      ...rest,
+      order,
+      enabled,
+      type: 'conditional',
+      criteria: { condition },
+      metadata: null,
+    }
   },
 }
