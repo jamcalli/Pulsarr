@@ -3408,7 +3408,7 @@ export class DatabaseService {
   async updateWatchlistRadarrInstanceStatus(
     watchlistId: number,
     instanceId: number,
-    status: string,
+    status: 'pending' | 'requested' | 'grabbed' | 'notified',
     lastNotifiedAt: string | null = null,
   ): Promise<void> {
     try {
@@ -3498,6 +3498,108 @@ export class DatabaseService {
       )
       throw error
     }
+  }
+
+  // Get all junction table entries for a set of watchlist items
+  async getAllWatchlistRadarrInstanceJunctions(watchlistIds: number[]): Promise<
+    Array<{
+      watchlist_id: number
+      radarr_instance_id: number
+      status: 'pending' | 'requested' | 'grabbed' | 'notified'
+      is_primary: boolean
+      last_notified_at: string | null
+    }>
+  > {
+    return this.knex('watchlist_radarr_instances')
+      .whereIn('watchlist_id', watchlistIds)
+      .select('*')
+  }
+
+  // Bulk add multiple junction records in one operation
+  async bulkAddWatchlistToRadarrInstances(
+    junctions: Array<{
+      watchlist_id: number
+      radarr_instance_id: number
+      status: 'pending' | 'requested' | 'grabbed' | 'notified'
+      is_primary: boolean
+      last_notified_at?: string
+    }>,
+  ): Promise<void> {
+    const timestamp = this.timestamp
+
+    const records = junctions.map((junction) => ({
+      watchlist_id: junction.watchlist_id,
+      radarr_instance_id: junction.radarr_instance_id,
+      status: junction.status,
+      is_primary: junction.is_primary,
+      last_notified_at: junction.last_notified_at || null,
+      created_at: timestamp,
+      updated_at: timestamp,
+    }))
+
+    // Process in chunks to avoid overwhelming the database
+    const chunks = this.chunkArray(records, 100)
+
+    for (const chunk of chunks) {
+      await this.knex('watchlist_radarr_instances').insert(chunk)
+    }
+  }
+
+  // Bulk update multiple junction records in one operation
+  async bulkUpdateWatchlistRadarrInstanceStatuses(
+    updates: Array<{
+      watchlist_id: number
+      radarr_instance_id: number
+      status?: 'pending' | 'requested' | 'grabbed' | 'notified'
+      is_primary?: boolean
+      last_notified_at?: string
+    }>,
+  ): Promise<void> {
+    const timestamp = this.timestamp
+
+    // Use transaction to ensure all updates are atomic
+    await this.knex.transaction(async (trx) => {
+      for (const update of updates) {
+        const { watchlist_id, radarr_instance_id, ...fields } = update
+
+        await trx('watchlist_radarr_instances')
+          .where({
+            watchlist_id,
+            radarr_instance_id,
+          })
+          .update({
+            ...fields,
+            updated_at: timestamp,
+          })
+      }
+    })
+  }
+
+  // Bulk remove multiple junction records in one operation
+  async bulkRemoveWatchlistFromRadarrInstances(
+    removals: Array<{
+      watchlist_id: number
+      radarr_instance_id: number
+    }>,
+  ): Promise<void> {
+    // Use a single query with multiple OR conditions
+    await this.knex.transaction(async (trx) => {
+      // Process in reasonable chunks
+      const chunks = this.chunkArray(removals, 50)
+
+      for (const chunk of chunks) {
+        await trx('watchlist_radarr_instances')
+          .where(function () {
+            for (const removal of chunk) {
+              this.orWhere({
+                watchlist_id: removal.watchlist_id,
+                radarr_instance_id: removal.radarr_instance_id,
+              })
+            }
+          })
+          .delete()
+      }
+    })
   }
 
   //=============================================================================
@@ -3597,7 +3699,7 @@ export class DatabaseService {
   async updateWatchlistSonarrInstanceStatus(
     watchlistId: number,
     instanceId: number,
-    status: string,
+    status: 'pending' | 'requested' | 'grabbed' | 'notified',
     lastNotifiedAt: string | null = null,
   ): Promise<void> {
     try {
@@ -3687,6 +3789,108 @@ export class DatabaseService {
       )
       throw error
     }
+  }
+
+  // Get all junction table entries for a set of watchlist items
+  async getAllWatchlistSonarrInstanceJunctions(watchlistIds: number[]): Promise<
+    Array<{
+      watchlist_id: number
+      sonarr_instance_id: number
+      status: 'pending' | 'requested' | 'grabbed' | 'notified'
+      is_primary: boolean
+      last_notified_at: string | null
+    }>
+  > {
+    return this.knex('watchlist_sonarr_instances')
+      .whereIn('watchlist_id', watchlistIds)
+      .select('*')
+  }
+
+  // Bulk add multiple junction records in one operation
+  async bulkAddWatchlistToSonarrInstances(
+    junctions: Array<{
+      watchlist_id: number
+      sonarr_instance_id: number
+      status: string
+      is_primary: boolean
+      last_notified_at?: string
+    }>,
+  ): Promise<void> {
+    const timestamp = this.timestamp
+
+    const records = junctions.map((junction) => ({
+      watchlist_id: junction.watchlist_id,
+      sonarr_instance_id: junction.sonarr_instance_id,
+      status: junction.status,
+      is_primary: junction.is_primary,
+      last_notified_at: junction.last_notified_at || null,
+      created_at: timestamp,
+      updated_at: timestamp,
+    }))
+
+    // Process in chunks to avoid overwhelming the database
+    const chunks = this.chunkArray(records, 100)
+
+    for (const chunk of chunks) {
+      await this.knex('watchlist_sonarr_instances').insert(chunk)
+    }
+  }
+
+  // Bulk update multiple junction records in one operation
+  async bulkUpdateWatchlistSonarrInstanceStatuses(
+    updates: Array<{
+      watchlist_id: number
+      sonarr_instance_id: number
+      status?: 'pending' | 'requested' | 'grabbed' | 'notified'
+      is_primary?: boolean
+      last_notified_at?: string
+    }>,
+  ): Promise<void> {
+    const timestamp = this.timestamp
+
+    // Use transaction to ensure all updates are atomic
+    await this.knex.transaction(async (trx) => {
+      for (const update of updates) {
+        const { watchlist_id, sonarr_instance_id, ...fields } = update
+
+        await trx('watchlist_sonarr_instances')
+          .where({
+            watchlist_id,
+            sonarr_instance_id,
+          })
+          .update({
+            ...fields,
+            updated_at: timestamp,
+          })
+      }
+    })
+  }
+
+  // Bulk remove multiple junction records in one operation
+  async bulkRemoveWatchlistFromSonarrInstances(
+    removals: Array<{
+      watchlist_id: number
+      sonarr_instance_id: number
+    }>,
+  ): Promise<void> {
+    // Use a single query with multiple OR conditions
+    await this.knex.transaction(async (trx) => {
+      // Process in reasonable chunks
+      const chunks = this.chunkArray(removals, 50)
+
+      for (const chunk of chunks) {
+        await trx('watchlist_sonarr_instances')
+          .where(function () {
+            for (const removal of chunk) {
+              this.orWhere({
+                watchlist_id: removal.watchlist_id,
+                sonarr_instance_id: removal.sonarr_instance_id,
+              })
+            }
+          })
+          .delete()
+      }
+    })
   }
 
   /**
