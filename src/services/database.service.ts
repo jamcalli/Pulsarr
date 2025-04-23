@@ -2871,35 +2871,35 @@ export class DatabaseService {
 
       // Use your original query to get all metrics
       const results = await this.knex.raw<{ rows: TransitionMetricsRow[] }>(`
-      WITH status_pairs AS (
-        SELECT 
-          h1.status AS from_status,
-          h2.status AS to_status,
-          w.type AS content_type,
-          julianday(h2.timestamp) - julianday(h1.timestamp) AS days_between
-        FROM watchlist_status_history h1
-        JOIN watchlist_status_history h2 ON h1.watchlist_item_id = h2.watchlist_item_id AND h2.timestamp > h1.timestamp
-        JOIN watchlist_items w ON h1.watchlist_item_id = w.id
-        WHERE h1.status != h2.status
-        AND NOT EXISTS (
-          SELECT 1 FROM watchlist_status_history h3
-          WHERE h3.watchlist_item_id = h1.watchlist_item_id
-          AND h3.timestamp > h1.timestamp AND h3.timestamp < h2.timestamp
-        )
-      )
+    WITH status_pairs AS (
       SELECT 
-        from_status,
-        to_status,
-        content_type,
-        avg(days_between) AS avg_days,
-        min(days_between) AS min_days,
-        max(days_between) AS max_days,
-        count(*) AS count,
-        group_concat(days_between) AS all_days_between
-      FROM status_pairs
-      GROUP BY from_status, to_status, content_type
-      ORDER BY from_status, to_status, content_type
-    `)
+        h1.status AS from_status,
+        h2.status AS to_status,
+        w.type AS content_type,
+        julianday(h2.timestamp) - julianday(h1.timestamp) AS days_between
+      FROM watchlist_status_history h1
+      JOIN watchlist_status_history h2 ON h1.watchlist_item_id = h2.watchlist_item_id AND h2.timestamp > h1.timestamp
+      JOIN watchlist_items w ON h1.watchlist_item_id = w.id
+      WHERE h1.status != h2.status
+      AND NOT EXISTS (
+        SELECT 1 FROM watchlist_status_history h3
+        WHERE h3.watchlist_item_id = h1.watchlist_item_id
+        AND h3.timestamp > h1.timestamp AND h3.timestamp < h2.timestamp
+      )
+    )
+    SELECT 
+      from_status,
+      to_status,
+      content_type,
+      avg(days_between) AS avg_days,
+      min(days_between) AS min_days,
+      max(days_between) AS max_days,
+      count(*) AS count,
+      group_concat(days_between) AS all_days_between
+    FROM status_pairs
+    GROUP BY from_status, to_status, content_type
+    ORDER BY from_status, to_status, content_type
+  `)
 
       const rows = Array.isArray(results) ? results : results.rows || []
 
@@ -2909,9 +2909,15 @@ export class DatabaseService {
           from_status: String(row.from_status),
           to_status: String(row.to_status),
           content_type: String(row.content_type),
-          avg_days: Number(row.avg_days),
-          min_days: Number(row.min_days),
-          max_days: Number(row.max_days),
+          avg_days: Number.isFinite(Number(row.avg_days))
+            ? Number(row.avg_days)
+            : 0,
+          min_days: Number.isFinite(Number(row.min_days))
+            ? Number(row.min_days)
+            : 0,
+          max_days: Number.isFinite(Number(row.max_days))
+            ? Number(row.max_days)
+            : 0,
           count: Number(row.count),
         }))
       }
@@ -2919,7 +2925,10 @@ export class DatabaseService {
       // Process each result to remove outliers and recalculate metrics
       return rows.map((row: TransitionMetricsRow) => {
         // Get all individual days_between values
-        const daysList = String(row.all_days_between).split(',').map(Number)
+        const daysList = String(row.all_days_between ?? '')
+          .split(',')
+          .map((v) => Number(v))
+          .filter((n) => Number.isFinite(n))
 
         if (daysList.length < 4) {
           // Not enough data points to calculate meaningful quartiles
@@ -2927,9 +2936,15 @@ export class DatabaseService {
             from_status: String(row.from_status),
             to_status: String(row.to_status),
             content_type: String(row.content_type),
-            avg_days: Number(row.avg_days),
-            min_days: Number(row.min_days),
-            max_days: Number(row.max_days),
+            avg_days: Number.isFinite(Number(row.avg_days))
+              ? Number(row.avg_days)
+              : 0,
+            min_days: Number.isFinite(Number(row.min_days))
+              ? Number(row.min_days)
+              : 0,
+            max_days: Number.isFinite(Number(row.max_days))
+              ? Number(row.max_days)
+              : 0,
             count: Number(row.count),
           }
         }
@@ -2951,15 +2966,21 @@ export class DatabaseService {
           (days) => days >= lowerBound && days <= upperBound,
         )
 
-        if (filteredDays.length === 0) {
-          // If filtering removed all values, return original metrics
+        if (filteredDays.length < 2) {
+          // If filtering removed all or almost all values, return original metrics with safety checks
           return {
             from_status: String(row.from_status),
             to_status: String(row.to_status),
             content_type: String(row.content_type),
-            avg_days: Number(row.avg_days),
-            min_days: Number(row.min_days),
-            max_days: Number(row.max_days),
+            avg_days: Number.isFinite(Number(row.avg_days))
+              ? Number(row.avg_days)
+              : 0,
+            min_days: Number.isFinite(Number(row.min_days))
+              ? Number(row.min_days)
+              : 0,
+            max_days: Number.isFinite(Number(row.max_days))
+              ? Number(row.max_days)
+              : 0,
             count: Number(row.count),
           }
         }

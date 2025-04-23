@@ -135,3 +135,20 @@ export function extractTvdbId(guids: string[] | string | undefined): number {
   const id = Number.parseInt(tvdbGuid.replace('tvdb:', ''), 10)
   return Number.isNaN(id) ? 0 : id
 }
+
+/**
+ * Compares two already-parsed GUID arrays for matches.
+ * Much faster than hasMatchingGuids when you already have parsed arrays.
+ */
+export function hasMatchingParsedGuids(
+  parsedGuids1: string[],
+  parsedGuids2: string[],
+): boolean {
+  if (parsedGuids1.length > parsedGuids2.length) {
+    const set2 = new Set(parsedGuids2)
+    return parsedGuids1.some((guid) => set2.has(guid))
+  }
+
+  const set1 = new Set(parsedGuids1)
+  return parsedGuids2.some((guid) => set1.has(guid))
+}

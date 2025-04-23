@@ -38,6 +38,7 @@ import {
   extractTvdbId,
   extractTypedGuid,
 } from '@utils/guid-handler.js'
+import type { Condition, ConditionGroup } from '@root/types/router.types.js'
 
 /** Represents the current state of the watchlist workflow */
 type WorkflowStatus = 'stopped' | 'running' | 'starting' | 'stopping'
@@ -1150,8 +1151,11 @@ export class WatchlistWorkflowService {
     const conditionalRules =
       await this.fastify.db.getRouterRulesByType('conditional')
     const hasUserRoutingRules = conditionalRules.some((rule) => {
-      const criteria = rule.criteria?.condition
-      return criteria && JSON.stringify(criteria).includes('"field":"user"')
+      const criteria = rule.criteria?.condition as
+        | Condition
+        | ConditionGroup
+        | undefined
+      return this.hasUserField(criteria)
     })
 
     return hasUsersWithSyncDisabled || hasUserRoutingRules
@@ -1174,6 +1178,36 @@ export class WatchlistWorkflowService {
     }
 
     return (value ? [value] : []) as T[]
+  }
+
+  /**
+   * Checks if a condition or condition group contains a user field
+   *
+   * @param condition - The condition or condition group to check
+   * @returns True if the condition contains a user field
+   */
+  private hasUserField(
+    condition: Condition | ConditionGroup | undefined,
+  ): boolean {
+    // Base case: undefined or null
+    if (!condition) {
+      return false
+    }
+
+    // Check if this is a condition with field === 'user'
+    if ('field' in condition && condition.field === 'user') {
+      return true
+    }
+
+    // Check if this is a condition group with sub-conditions
+    if ('conditions' in condition && Array.isArray(condition.conditions)) {
+      return condition.conditions.some((subCondition) =>
+        this.hasUserField(subCondition),
+      )
+    }
+
+    // Otherwise, return false
+    return false
   }
 
   private async setupManualSyncFallback(): Promise<void> {
