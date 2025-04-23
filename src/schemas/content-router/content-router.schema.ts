@@ -14,8 +14,6 @@ export const ComparisonOperatorSchema = z.enum([
   'regex',
 ])
 
-const MAX_CONDITION_DEPTH = 20
-
 // First, define the value types
 export const ConditionValueSchema = z.union([
   z.string(),
@@ -58,54 +56,14 @@ export const ConditionSchema: z.ZodType<ICondition> = z.lazy(() =>
 )
 
 export const ConditionGroupSchema: z.ZodType<IConditionGroup> = z.lazy(() =>
-  z
-    .object({
-      operator: z.enum(['AND', 'OR']),
-      conditions: z.array(
-        z.union([ConditionSchema, z.lazy(() => ConditionGroupSchema)]),
-      ),
-      negate: z.boolean().optional().default(false),
-      _cid: z.string().optional(),
-    })
-    .refine(
-      (group) => {
-        // Set to track visited objects to prevent circular references
-        const visited = new WeakSet()
-
-        // Helper function to validate a nested group with depth tracking
-        const isValidGroup = (group: IConditionGroup, depth = 0): boolean => {
-          // Check for maximum depth
-          if (depth > MAX_CONDITION_DEPTH) {
-            return false
-          }
-
-          // Check for circular references
-          if (visited.has(group)) {
-            return false
-          }
-          visited.add(group)
-
-          // Valid group should have at least one condition
-          if (!group.conditions || group.conditions.length === 0) {
-            return true // Allow empty groups in base schema
-          }
-
-          // Validate nested conditions recursively
-          return group.conditions.every((cond) => {
-            if ('conditions' in cond) {
-              return isValidGroup(cond as IConditionGroup, depth + 1)
-            }
-            return true // Individual conditions are validated by their own schema
-          })
-        }
-
-        return isValidGroup(group)
-      },
-      {
-        message:
-          'Condition groups cannot exceed nesting limits or contain circular references',
-      },
+  z.object({
+    operator: z.enum(['AND', 'OR']),
+    conditions: z.array(
+      z.union([ConditionSchema, z.lazy(() => ConditionGroupSchema)]),
     ),
+    negate: z.boolean().optional().default(false),
+    _cid: z.string().optional(),
+  }),
 )
 
 // Base router rule schema
