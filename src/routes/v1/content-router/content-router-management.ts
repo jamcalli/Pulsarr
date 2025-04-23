@@ -292,7 +292,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         > = {
           name: builtRule.name,
           type: 'conditional',
-          criteria: { condition: builtRule.condition },
+          criteria: builtRule.criteria,
           target_type: builtRule.target_type,
           target_instance_id: builtRule.target_instance_id,
           root_folder: builtRule.root_folder || null,
