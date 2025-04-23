@@ -9,7 +9,11 @@ import {
   getPlexWatchlistUrls,
   fetchWatchlistFromRss,
 } from '@utils/plex.js'
-import { parseGuids, hasMatchingGuids } from '@utils/guid-handler.js'
+import {
+  parseGuids,
+  hasMatchingGuids,
+  hasMatchingParsedGuids,
+} from '@utils/guid-handler.js'
 import type {
   Item as WatchlistItem,
   TokenWatchlistItem,
@@ -1024,8 +1028,8 @@ export class PlexWatchlistService {
         for (const item of items) {
           const itemGuids = parseGuids(item.guids)
 
-          // Replace complex comparison with hasMatchingGuids utility
-          const hasMatch = hasMatchingGuids(pendingGuids, itemGuids)
+          // Use the new function that works with already-parsed arrays
+          const hasMatch = hasMatchingParsedGuids(pendingGuids, itemGuids)
 
           if (hasMatch) {
             foundMatch = true
@@ -1203,8 +1207,8 @@ export class PlexWatchlistService {
         for (const item of items) {
           const itemGuids = parseGuids(item.guids)
 
-          // Replace complex comparison with hasMatchingGuids utility
-          const hasMatch = hasMatchingGuids(pendingGuids, itemGuids)
+          // Use the new function that works with already-parsed arrays
+          const hasMatch = hasMatchingParsedGuids(pendingGuids, itemGuids)
 
           if (hasMatch) {
             foundMatch = true
@@ -1219,21 +1223,6 @@ export class PlexWatchlistService {
                 userId: friend.userId,
               },
             )
-
-            // Check for existing notification to avoid duplicates
-            const existingNotification =
-              await this.dbService.getExistingWebhookNotification(
-                friend.userId,
-                'watchlist_add',
-                item.title,
-              )
-
-            if (existingNotification) {
-              this.log.info(
-                `Skipping webhook notification for "${item.title}" - already sent previously to user ${friend.username}`,
-              )
-              break
-            }
 
             // Send Discord webhook notification
             let discordSent = false
