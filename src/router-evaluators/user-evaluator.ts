@@ -13,9 +13,11 @@ import {
 /**
  * Creates a routing evaluator that determines content routing based on the requesting user's ID or username.
  *
- * The returned evaluator supports routing rules using the `user` field, allowing exact or inclusion-based matches on user IDs or usernames. It provides methods to check if evaluation is possible for a given context, to evaluate routing rules for the current user, and to test if a user-based condition matches the context.
+ * The evaluator supports routing rules using the `user` field, allowing exact matches, inclusion/exclusion lists, and regex matching on usernames or IDs. It provides methods to check if evaluation is possible for a given context, to evaluate routing rules for the current user, and to test if a user-based condition matches the context.
  *
  * @returns A {@link RoutingEvaluator} configured for user-based routing decisions.
+ *
+ * @remark If neither `userId` nor `userName` is present in the routing context, evaluation is skipped and no routing decisions are returned.
  */
 export default function createUserEvaluator(
   fastify: FastifyInstance,
@@ -64,7 +66,12 @@ export default function createUserEvaluator(
   }
 
   /**
-   * Helper function to check if a user matches the exact value
+   * Determines whether the given user ID or username exactly matches the specified value.
+   *
+   * @param userId - The user's numeric ID, or undefined if not available.
+   * @param userName - The user's username, or undefined if not available.
+   * @param value - The value to compare against the user ID or username.
+   * @returns True if {@link value} matches the user ID (as a number or string) or username; otherwise, false.
    */
   function userMatchesExact(
     userId: number | undefined,
@@ -81,7 +88,12 @@ export default function createUserEvaluator(
   }
 
   /**
-   * Helper function to check if a user is in a list of values
+   * Determines whether the given user ID or username is present in a list of values.
+   *
+   * @param userId - The user's numeric ID, or undefined if not available.
+   * @param userName - The user's username, or undefined if not available.
+   * @param values - The list of values to check against, which may contain strings or numbers.
+   * @returns `true` if the user ID (as a number or string) or username is found in {@link values}; otherwise, `false`.
    */
   function userInList(
     userId: number | undefined,
@@ -105,7 +117,13 @@ export default function createUserEvaluator(
   }
 
   /**
-   * Helper function to check if a username matches a regex pattern
+   * Determines whether the given username matches the specified regular expression pattern.
+   *
+   * @param userName - The username to test.
+   * @param pattern - The regular expression pattern to match against.
+   * @returns `true` if {@link userName} matches the {@link pattern}; otherwise, `false`.
+   *
+   * @remark Returns `false` if {@link userName} is undefined, if {@link pattern} is not a string, or if the pattern is invalid.
    */
   function userMatchesRegex(
     userName: string | undefined,

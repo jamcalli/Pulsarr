@@ -13,9 +13,9 @@ import { useCreateUserForm } from '@/features/create-user/hooks/useCreateUserFor
 import { useRef, useEffect } from 'react'
 
 /**
- * Renders a user creation form with fields for email, username, password, and confirm password.
+ * Displays a user registration form with fields for email, username, password, and confirm password.
  *
- * The form manages validation, displays backend errors, and updates the submit button state and label based on submission status. The email input is automatically focused when the form mounts.
+ * The form handles validation, shows backend error messages, and updates the submit button's state and label based on submission status. The email input is automatically focused when the form mounts.
  */
 export function CreateUserForm() {
   const { form, status, backendError, handleSubmit } = useCreateUserForm()
