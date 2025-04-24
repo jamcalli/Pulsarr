@@ -137,7 +137,7 @@ const AccordionContentRouterSection = ({
       tempId: `temp-${Date.now()}`,
       name: `New ${targetType === 'radarr' ? 'Movie' : 'Show'} Route`,
       target_type: targetType,
-      target_instance_id: instances.length > 0 ? instances[0].id : 0,
+      target_instance_id: instances.length > 0 ? instances[0].id : undefined,
       condition: defaultCondition,
       root_folder: '',
       quality_profile: undefined,
