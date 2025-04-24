@@ -694,11 +694,22 @@ export class DatabaseService {
         root_folder: instance.rootFolder,
         bypass_ignored: instance.bypassIgnored,
         season_monitoring: instance.seasonMonitoring,
-        monitor_new_items: ['all', 'none'].includes(
-          instance.monitorNewItems ?? '',
-        )
-          ? instance.monitorNewItems
-          : 'all',
+        monitor_new_items: (() => {
+          // If undefined or null, use the default 'all'
+          if (!instance.monitorNewItems) {
+            return 'all'
+          }
+          // Normalize to lowercase for case-insensitive comparison
+          const value = String(instance.monitorNewItems).toLowerCase()
+          // Validate against allowed values
+          if (!['all', 'none'].includes(value)) {
+            this.log.warn(
+              `Invalid monitorNewItems value: "${instance.monitorNewItems}", defaulting to "all"`,
+            )
+            return 'all'
+          }
+          return value
+        })(),
         tags: JSON.stringify(instance.tags || []),
         is_default: instance.isDefault ?? false,
         is_enabled: true,
@@ -2865,8 +2876,19 @@ export class DatabaseService {
     try {
       this.log.debug('Calculating detailed status transition metrics')
 
+      // Define type for the raw SQL query result
+      type StatusPairRow = {
+        from_status: string
+        to_status: string
+        content_type: string
+        days_between: number
+      }
+
+      type SqlResult<T> = T[] | { rows?: T[] }
+
       // Get the raw transition data with individual days_between values
-      const statusPairs = await this.knex.raw(`
+      // Use the more portable approach to handle different DB drivers
+      const raw = await this.knex.raw<SqlResult<StatusPairRow>>(`
       WITH status_pairs AS (
         SELECT 
           h1.status AS from_status,
@@ -2890,6 +2912,16 @@ export class DatabaseService {
         days_between
       FROM status_pairs
     `)
+
+      // Handle different driver return formats
+      const statusPairs = Array.isArray(raw)
+        ? raw
+        : raw &&
+            typeof raw === 'object' &&
+            'rows' in raw &&
+            Array.isArray(raw.rows)
+          ? raw.rows
+          : []
 
       // Group the raw data by from_status, to_status, and content_type
       const groupedData: Record<string, number[]> = {}
@@ -2944,7 +2976,8 @@ export class DatabaseService {
             avg_days: avg,
             min_days: min,
             max_days: max,
-            count: daysBetweenValues.length,
+            // Use filteredValues.length for count to be consistent with other metrics
+            count: filteredValues.length,
           }
         },
       )
@@ -3522,15 +3555,18 @@ export class DatabaseService {
       updated_at: timestamp,
     }))
 
-    // Process in chunks to avoid overwhelming the database
-    const chunks = this.chunkArray(records, 100)
+    // Process in chunks within a transaction
+    await this.knex.transaction(async (trx) => {
+      const chunks = this.chunkArray(records, 100)
 
-    for (const chunk of chunks) {
-      await this.knex('watchlist_radarr_instances')
-        .insert(chunk)
-        .onConflict(['watchlist_id', 'radarr_instance_id'])
-        .ignore()
-    }
+      for (const chunk of chunks) {
+        // Instead of ignoring conflicts, merge the updates
+        await trx('watchlist_radarr_instances')
+          .insert(chunk)
+          .onConflict(['watchlist_id', 'radarr_instance_id'])
+          .merge(['status', 'is_primary', 'last_notified_at', 'updated_at'])
+      }
+    })
   }
 
   // Bulk update multiple junction records in one operation
@@ -3843,6 +3879,16 @@ export class DatabaseService {
     await this.knex.transaction(async (trx) => {
       for (const update of updates) {
         const { watchlist_id, sonarr_instance_id, ...fields } = update
+
+        // Validate status field if provided
+        if (
+          fields.status &&
+          !['pending', 'requested', 'grabbed', 'notified'].includes(
+            fields.status,
+          )
+        ) {
+          throw new Error(`Invalid status '${fields.status}'`)
+        }
 
         await trx('watchlist_sonarr_instances')
           .where({
@@ -4752,18 +4798,51 @@ export class DatabaseService {
   }
 
   // Helper to validate condition structure
-  private validateCondition(condition: Condition | ConditionGroup): {
-    valid: boolean
-    error?: string
-  } {
+  private readonly VALID_OPERATORS = [
+    'equals',
+    'notEquals',
+    'contains',
+    'notContains',
+    'in',
+    'notIn',
+    'greaterThan',
+    'lessThan',
+    'between',
+    'regex',
+  ]
+
+  /**
+   * Validates a condition or condition group for structure and content
+   *
+   * This helper checks that conditions have the correct structure and contain
+   * valid values for their operators. It performs recursive validation of
+   * nested condition groups with depth limiting to prevent stack overflows.
+   *
+   * @param condition - The condition or condition group to validate
+   * @param depth - Current recursion depth (for preventing stack overflow)
+   * @returns Object indicating if the condition is valid and any error message
+   */
+  private validateCondition(
+    condition: Condition | ConditionGroup,
+    depth = 0,
+  ): { valid: boolean; error?: string } {
     try {
+      // Prevent excessive nesting that could cause stack overflow
+      if (depth > 20) {
+        return {
+          valid: false,
+          error: 'Maximum condition nesting depth exceeded (20 levels)',
+        }
+      }
+
       // Check if it's a condition group
       if ('operator' in condition && 'conditions' in condition) {
-        // It's a condition group
-        if (!['and', 'or'].includes(condition.operator)) {
+        // Validate group operator
+        const operator = condition.operator.toUpperCase()
+        if (!['AND', 'OR'].includes(operator)) {
           return {
             valid: false,
-            error: `Invalid operator: ${condition.operator}. Expected 'and' or 'or'.`,
+            error: `Invalid group operator: ${condition.operator}. Expected 'AND' or 'OR'.`,
           }
         }
 
@@ -4772,16 +4851,24 @@ export class DatabaseService {
           return { valid: false, error: 'conditions must be an array' }
         }
 
-        // Recursively validate all conditions in the group
+        // Check if conditions array is empty
+        if (condition.conditions.length === 0) {
+          return {
+            valid: false,
+            error: 'condition group must have at least one condition',
+          }
+        }
+
+        // Recursively validate all conditions in the group with incremented depth
         for (const subCondition of condition.conditions) {
-          const result = this.validateCondition(subCondition)
+          const result = this.validateCondition(subCondition, depth + 1)
           if (!result.valid) return result
         }
 
         return { valid: true }
       }
 
-      // Check if it's a simple condition (else if -> if since the previous branch returns)
+      // Check if it's a simple condition
       if (
         'field' in condition &&
         'operator' in condition &&
@@ -4792,30 +4879,108 @@ export class DatabaseService {
           return { valid: false, error: 'field must be a non-empty string' }
         }
 
-        // Validate operator
-        const validOperators = [
-          'equals',
-          'notEquals',
-          'contains',
-          'notContains',
-          'in',
-          'notIn',
-        ]
-        if (!validOperators.includes(condition.operator)) {
+        // Validate operator against canonical list
+        if (!this.VALID_OPERATORS.includes(condition.operator)) {
           return {
             valid: false,
-            error: `Invalid operator: ${condition.operator}`,
+            error: `Invalid operator: ${condition.operator}. Valid operators are: ${this.VALID_OPERATORS.join(', ')}`,
           }
         }
 
-        // For array operators, check that value is an array
+        // Validate value based on operator type
+        if (condition.value === undefined || condition.value === null) {
+          return { valid: false, error: 'value cannot be undefined or null' }
+        }
+
+        // For array operators, check that value is a non-empty array
+        if (['in', 'notIn'].includes(condition.operator)) {
+          if (!Array.isArray(condition.value)) {
+            return {
+              valid: false,
+              error: `Value for ${condition.operator} operator must be an array`,
+            }
+          }
+          if (condition.value.length === 0) {
+            return {
+              valid: false,
+              error: `Value for ${condition.operator} operator cannot be an empty array`,
+            }
+          }
+        }
+
+        // For scalar operators, ensure the value is meaningful
         if (
-          ['in', 'notIn'].includes(condition.operator) &&
-          !Array.isArray(condition.value)
+          ['equals', 'notEquals', 'contains', 'notContains', 'regex'].includes(
+            condition.operator,
+          )
         ) {
-          return {
-            valid: false,
-            error: `Value for ${condition.operator} operator must be an array`,
+          if (
+            typeof condition.value === 'string' &&
+            condition.value.trim() === ''
+          ) {
+            return {
+              valid: false,
+              error: `Value for ${condition.operator} operator cannot be an empty string`,
+            }
+          }
+        }
+
+        // For numeric comparison operators, ensure value is a number
+        if (['greaterThan', 'lessThan'].includes(condition.operator)) {
+          if (typeof condition.value !== 'number') {
+            return {
+              valid: false,
+              error: `Value for ${condition.operator} operator must be a number`,
+            }
+          }
+        }
+
+        // For between operator, validate the range object structure
+        if (condition.operator === 'between') {
+          if (typeof condition.value !== 'object' || condition.value === null) {
+            return {
+              valid: false,
+              error:
+                'Value for between operator must be an object with min and/or max properties',
+            }
+          }
+
+          interface RangeValue {
+            min?: number
+            max?: number
+          }
+
+          // Use type assertion with a specific interface
+          const rangeValue = condition.value as RangeValue
+
+          if (!('min' in rangeValue) && !('max' in rangeValue)) {
+            return {
+              valid: false,
+              error:
+                'Range comparison requires at least min or max to be specified',
+            }
+          }
+
+          if (
+            'min' in rangeValue &&
+            typeof rangeValue.min !== 'number' &&
+            rangeValue.min !== undefined
+          ) {
+            return {
+              valid: false,
+              error: 'min value must be a number',
+            }
+          }
+
+          if (
+            'max' in rangeValue &&
+            typeof rangeValue.max !== 'number' &&
+            rangeValue.max !== undefined
+          ) {
+            return {
+              valid: false,
+              error: 'max value must be a number',
+            }
           }
         }
 
