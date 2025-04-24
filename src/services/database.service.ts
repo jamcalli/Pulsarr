@@ -719,13 +719,18 @@ export class DatabaseService {
   }
 
   /** Normalises/validates monitorNewItems, throws on bad input */
-  private normaliseMonitorNewItems(value: unknown): 'all' | 'none' {
-    if (value === undefined || value === null) return 'all'
-    const v = String(value).toLowerCase()
-    if (!['all', 'none'].includes(v)) {
+  private normaliseMonitorNewItems(
+    value: string | undefined | null,
+  ): 'all' | 'none' {
+    if (value === undefined || value === null) {
+      throw new Error('monitorNewItems must be provided (all|none)')
+    }
+
+    const normalized = value.toLowerCase()
+    if (!['all', 'none'].includes(normalized)) {
       throw new Error(`Invalid monitorNewItems value: ${value}`)
     }
-    return v as 'all' | 'none'
+    return normalized as 'all' | 'none'
   }
 
   /**
@@ -2265,6 +2270,23 @@ export class DatabaseService {
   ): Promise<{ id: number } | undefined> {
     return await this.knex('notifications')
       .where({
+        // Get all junction table entries for a set of watchlist items
+        async getAllWatchlistRadarrInstanceJunctions(
+          watchlistIds: number[],
+        ): Promise<
+          Array<{
+            watchlist_id: number
+            radarr_instance_id: number
+            status: 'pending' | 'requested' | 'grabbed' | 'notified'
+            is_primary: boolean
+            syncing: boolean
+            last_notified_at: string | null
+          }>
+        > {
+          return this.knex('watchlist_radarr_instances')
+            .whereIn('watchlist_id', watchlistIds)
+            .select('*')
+        },
         user_id: userId,
         type,
         title,
@@ -3575,6 +3597,16 @@ export class DatabaseService {
     // Use transaction to ensure all updates are atomic
     await this.knex.transaction(async (trx) => {
       for (const update of updates) {
+        // Validate status field if provided
+        if (
+          update.status &&
+          !['pending', 'requested', 'grabbed', 'notified'].includes(
+            update.status,
+          )
+        ) {
+          throw new Error(`Invalid status '${update.status}'`)
+        }
+
         const { watchlist_id, radarr_instance_id, ...fields } = update
 
         await trx('watchlist_radarr_instances')
@@ -3829,6 +3861,7 @@ export class DatabaseService {
       status: string
       is_primary: boolean
       last_notified_at?: string
+      syncing?: boolean
     }>,
   ): Promise<void> {
     const timestamp = this.timestamp
@@ -3838,6 +3871,7 @@ export class DatabaseService {
       sonarr_instance_id: junction.sonarr_instance_id,
       status: junction.status,
       is_primary: junction.is_primary,
+      syncing: junction.syncing ?? false,
       last_notified_at: junction.last_notified_at || null,
       created_at: timestamp,
       updated_at: timestamp,
@@ -3852,7 +3886,13 @@ export class DatabaseService {
         await trx('watchlist_sonarr_instances')
           .insert(chunk)
           .onConflict(['watchlist_id', 'sonarr_instance_id'])
-          .merge(['status', 'is_primary', 'last_notified_at', 'updated_at'])
+          .merge([
+            'status',
+            'is_primary',
+            'syncing',
+            'last_notified_at',
+            'updated_at',
+          ])
       }
     })
   }
