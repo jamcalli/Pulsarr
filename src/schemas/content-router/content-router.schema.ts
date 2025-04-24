@@ -32,10 +32,6 @@ export const ConditionValueSchema = z.union([
   z.boolean(),
   z.array(z.string()),
   z.array(z.number()),
-  z.object({
-    min: z.number().optional(),
-    max: z.number().optional(),
-  }),
   UserCriteriaSchema,
   GenreCriteriaSchema,
   z.array(z.union([z.string(), z.number()])),
@@ -145,7 +141,6 @@ export const ConditionalRouteFormSchema = z.object({
           const hasOperator = Boolean(cond.operator)
           const hasValue =
             cond.value !== undefined &&
-            cond.value !== null &&
             (typeof cond.value !== 'string' || cond.value.trim() !== '') &&
             (!Array.isArray(cond.value) || cond.value.length > 0)
 

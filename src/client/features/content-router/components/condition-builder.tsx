@@ -133,6 +133,15 @@ const ConditionBuilder = ({
             fieldEvaluator.supportedOperators?.[fieldName]?.[0]?.name ??
             'equals'
 
+          // Get the default operator info to update related states
+          const defaultOperatorInfo = fieldEvaluator.supportedOperators?.[
+            fieldName
+          ]?.find((op) => op.name === firstSupported)
+
+          // Update all operator-related states
+          setOperatorDescription(defaultOperatorInfo?.description || '')
+          setValueTypes(defaultOperatorInfo?.valueTypes || [])
+
           // Reset operator and value when field changes
           onChange({
             field: fieldName,

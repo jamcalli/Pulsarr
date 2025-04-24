@@ -4,7 +4,7 @@ import {
   CheckIcon,
   XCircle,
   ChevronDown,
-  XIcon,
+  X,
   WandSparkles,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -249,7 +249,7 @@ export const MultiSelect = React.forwardRef<
                   )}
                 </div>
                 <div className="flex items-center justify-between">
-                  <XIcon
+                  <X
                     className="h-4 mx-2 cursor-pointer text-muted-foreground"
                     onClick={(event) => {
                       event.stopPropagation()

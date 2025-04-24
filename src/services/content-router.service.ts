@@ -749,7 +749,17 @@ export class ContentRouterService {
         const syncedInstanceIds = Array.isArray(defaultInstance.syncedInstances)
           ? defaultInstance.syncedInstances
           : typeof defaultInstance.syncedInstances === 'string'
-            ? JSON.parse(defaultInstance.syncedInstances || '[]')
+            ? (() => {
+                try {
+                  return JSON.parse(defaultInstance.syncedInstances || '[]')
+                } catch (e) {
+                  this.log.error(
+                    `Invalid syncedInstances JSON for instance ${defaultInstance.id}:`,
+                    e,
+                  )
+                  return []
+                }
+              })()
             : []
 
         if (syncedInstanceIds.length > 0) {

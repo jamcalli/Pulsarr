@@ -183,28 +183,28 @@ export default function createCertificationEvaluator(
         // Normalize certification for comparison
         const normalizedCertification = certification.toUpperCase()
 
-        // Support array form for 'in' and 'notIn' operators
+        // Support array form for 'in' and 'notIn' operators only
         if (Array.isArray(ruleCertification)) {
-          if (operator === 'in') {
-            return ruleCertification.some(
-              (cert) =>
-                typeof cert === 'string' &&
-                normalizedCertification === cert.toUpperCase(),
-            )
+          switch (operator) {
+            case 'in':
+              return ruleCertification.some(
+                (cert) =>
+                  typeof cert === 'string' &&
+                  normalizedCertification === cert.toUpperCase(),
+              )
+            case 'notIn':
+              return !ruleCertification.some(
+                (cert) =>
+                  typeof cert === 'string' &&
+                  normalizedCertification === cert.toUpperCase(),
+              )
+            default:
+              // Reject invalid operator + array combinations
+              fastify.log.warn(
+                `Invalid operator '${operator}' used with array in certification rule`,
+              )
+              return false
           }
-          if (operator === 'notIn') {
-            return !ruleCertification.some(
-              (cert) =>
-                typeof cert === 'string' &&
-                normalizedCertification === cert.toUpperCase(),
-            )
-          }
-          // Default to 'in' for backward compatibility
-          return ruleCertification.some(
-            (cert) =>
-              typeof cert === 'string' &&
-              normalizedCertification === cert.toUpperCase(),
-          )
         }
 
         // Ensure the criterion value is a non-empty string for direct comparison

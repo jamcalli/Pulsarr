@@ -17,7 +17,7 @@ import {
   FormDescription,
 } from '@/components/ui/form'
 import { Slider } from '@/components/ui/slider'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -397,14 +397,15 @@ const AccordionRouteCard = ({
     [form],
   )
 
-  const getSelectedInstance = useCallback(() => {
-    return instances.find(
-      (inst) => inst.id === form.watch('target_instance_id'),
-    )
-  }, [instances, form])
+  const targetInstanceId = useWatch({
+    control: form.control,
+    name: 'target_instance_id',
+  })
 
-  // Get the selected instance
-  const selectedInstance = getSelectedInstance()
+  const selectedInstance = useMemo(
+    () => instances.find((inst) => inst.id === targetInstanceId),
+    [instances, targetInstanceId],
+  )
 
   // Handle form submission
   const handleSubmit = async (data: ConditionalRouteFormValues) => {

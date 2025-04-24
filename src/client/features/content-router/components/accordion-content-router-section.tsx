@@ -33,8 +33,14 @@ type CriteriaValue =
 
 // Define criteria interface to match backend schema
 interface Criteria {
+  /** Optional nested condition tree produced by the UI */
   condition?: ConditionGroup
-  [key: string]: ConditionGroup | undefined
+
+  /** Optional operator that applies to the root criteria object */
+  operator?: string
+
+  /** Dynamic criterion fields (year, user, language, ...) */
+  [key: string]: CriteriaValue | undefined
 }
 
 // Extended ContentRouterRule to include condition and type
