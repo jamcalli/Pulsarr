@@ -102,10 +102,10 @@ export interface WebhookNotification {
   }>
 }
 
-export interface Item {
-  title: string
-  guids: string[]
-  type: string
+import type { ContentItem } from './router.types.js'
+
+export interface Item extends ContentItem {
+  type: 'show'
   ended?: boolean
   added?: string
   status?: 'pending' | 'requested' | 'grabbed' | 'notified'
@@ -113,6 +113,9 @@ export interface Item {
   genres?: string[]
   sonarr_instance_id?: number
 }
+
+// Alias for better semantics - we can gradually migrate to this
+export type SonarrItem = Item
 
 export interface SonarrConfiguration {
   sonarrBaseUrl: string
@@ -151,18 +154,6 @@ export interface SonarrGenreRoute {
   genre: string
   rootFolder: string
   qualityProfile: string | number | null
-}
-
-export interface SonarrItem {
-  title: string
-  guids: string[]
-  type: string
-  ended?: boolean
-  added?: string
-  status?: 'pending' | 'requested' | 'grabbed' | 'notified'
-  series_status?: 'continuing' | 'ended'
-  genres?: string[]
-  sonarr_instance_id?: number
 }
 
 export interface PingResponse {
