@@ -23,7 +23,6 @@ import type { EvaluatorMetadata } from '@root/schemas/content-router/evaluator-m
 import type {
   Condition,
   ConditionGroup,
-  ConditionValue,
   ComparisonOperator,
 } from '@root/schemas/content-router/content-router.schema'
 import {
@@ -83,13 +82,27 @@ const ConditionGroupComponent = ({
       }
     }
 
-    // Create a flat list of all fields from all evaluators
-    const allFields = filteredEvaluators.flatMap((e) => e.supportedFields)
+    // Find first field with valid operators
+    let firstField = ''
+    let firstOperator: ComparisonOperator = 'equals'
+    let foundValid = false
 
-    // Check if we have any fields to work with
-    if (allFields.length === 0) {
+    for (const evaluator of filteredEvaluators) {
+      for (const field of evaluator.supportedFields) {
+        const operators = evaluator.supportedOperators?.[field.name] ?? []
+        if (operators.length > 0) {
+          firstField = field.name
+          firstOperator = operators[0].name as ComparisonOperator
+          foundValid = true
+          break
+        }
+      }
+      if (foundValid) break
+    }
+
+    if (!foundValid) {
       console.error(
-        '[ConditionGroup] No fields available to create a condition',
+        '[ConditionGroup] No valid field/operator combinations found',
       )
       return {
         field: '',
@@ -100,67 +113,10 @@ const ConditionGroupComponent = ({
       }
     }
 
-    // Use the first field
-    const firstField = allFields[0]?.name || ''
-
-    // If no field is available, return generic condition
-    if (!firstField) {
-      return {
-        field: '',
-        operator: 'equals' as ComparisonOperator,
-        value: null,
-        negate: false,
-        _cid: generateUUID(),
-      }
-    }
-
-    // Find evaluator that supports this field
-    const fieldEvaluator = filteredEvaluators.find((e) =>
-      e.supportedFields.some((f) => f.name === firstField),
-    )
-
-    if (!fieldEvaluator) {
-      return {
-        field: firstField,
-        operator: 'equals' as ComparisonOperator,
-        value: null,
-        negate: false,
-        _cid: generateUUID(),
-      }
-    }
-
-    // Get the first operator for the first field
-    const operators = fieldEvaluator.supportedOperators?.[firstField] || []
-
-    // Check if we have any operators
-    if (operators.length === 0) {
-      console.error(`[ConditionGroup] No operators for field "${firstField}"`)
-      return {
-        field: firstField,
-        operator: 'equals' as ComparisonOperator,
-        value: null,
-        negate: false,
-        _cid: generateUUID(),
-      }
-    }
-
-    const firstOperator = (operators[0]?.name || 'equals') as ComparisonOperator
-
-    // Determine appropriate initial value based on value type
-    let initialValue: ConditionValue = ''
-    if (operators[0]?.valueTypes) {
-      const valueType = operators[0].valueTypes[0]
-      if (valueType === 'number') initialValue = 0
-      else if (valueType === 'string[]' || valueType === 'number[]')
-        initialValue = []
-      else if (valueType === 'object')
-        initialValue = { min: undefined, max: undefined }
-    }
-
     return {
       field: firstField,
       operator: firstOperator,
-      value: initialValue,
+      value: null,
       negate: false,
       _cid: generateUUID(),
     }

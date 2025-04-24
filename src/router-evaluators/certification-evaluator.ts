@@ -1,18 +1,18 @@
 import type { FastifyInstance } from 'fastify'
-import {
-  type ContentItem,
-  type RoutingContext,
-  type RoutingDecision,
-  type RoutingEvaluator,
-  type Condition,
-  ConditionGroup,
-  type FieldInfo,
-  type OperatorInfo,
+import type {
+  ContentItem,
+  RoutingContext,
+  RoutingDecision,
+  RoutingEvaluator,
+  Condition,
+  FieldInfo,
+  OperatorInfo,
 } from '@root/types/router.types.js'
 import {
   isRadarrResponse,
   isSonarrResponse,
 } from '@root/types/content-lookup.types.js'
+import safeRegex from 'safe-regex'
 
 /**
  * Creates a routing evaluator that applies routing decisions and condition evaluations based on content certification or rating metadata.
@@ -105,6 +105,29 @@ export default function createCertificationEvaluator(
       }
     }
     return undefined
+  }
+
+  /**
+   * Safely evaluates a regex pattern with safety checks but no async timeout
+   */
+  function evaluateRegexSafely(pattern: string, input: string): boolean {
+    // Reject potentially catastrophic patterns using safe-regex
+    if (!safeRegex(pattern)) {
+      fastify.log.warn(
+        `Rejected unsafe regex in certification rule: ${pattern}`,
+      )
+      return false
+    }
+
+    try {
+      // Since we can't use async/await with timeouts here, we'll rely on safe-regex
+      // to filter out problematic patterns that could cause catastrophic backtracking
+      const regex = new RegExp(pattern)
+      return regex.test(input)
+    } catch (error) {
+      fastify.log.error(`Invalid regex in certification rule: ${error}`)
+      return false
+    }
   }
 
   return {
@@ -207,13 +230,7 @@ export default function createCertificationEvaluator(
               normalizedRuleCertification,
             )
           case 'regex':
-            try {
-              const regex = new RegExp(ruleCertification)
-              return regex.test(certification)
-            } catch (error) {
-              fastify.log.error(`Invalid regex in certification rule: ${error}`)
-              return false
-            }
+            return evaluateRegexSafely(ruleCertification, certification)
           default:
             // Default to equals for backward compatibility
             return normalizedCertification === normalizedRuleCertification
@@ -300,14 +317,7 @@ export default function createCertificationEvaluator(
           break
         case 'regex':
           if (typeof value === 'string') {
-            try {
-              const regex = new RegExp(value)
-              result = regex.test(certification)
-            } catch (error) {
-              fastify.log.error(
-                `Invalid regex in certification condition: ${error}`,
-              )
-            }
+            result = evaluateRegexSafely(value, certification)
           }
           break
       }

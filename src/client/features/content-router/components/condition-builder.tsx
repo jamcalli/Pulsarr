@@ -201,7 +201,10 @@ const ConditionBuilder = ({
         // Update with the validated operator and clear previous value
         onChange({
           ...valueRef.current,
-          operator: (supported ? operatorName : 'equals') as ComparisonOperator,
+          operator: (supported
+            ? operatorName
+            : (evaluator.supportedOperators?.[valueRef.current.field]?.[0]
+                ?.name ?? 'equals')) as ComparisonOperator,
           value: defaultValue,
         })
       },

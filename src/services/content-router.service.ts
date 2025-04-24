@@ -146,8 +146,8 @@ export class ContentRouterService {
       forcedInstanceId?: number
     } = {},
   ): Promise<{ routedInstances: number[] }> {
-    // Normalize content type to lowercase for consistency
-    const contentType = item.type.toLowerCase() as 'movie' | 'show'
+    // Remove unnecessary type casting since ContentItem.type is now strictly typed
+    const contentType = item.type
     const routedInstances: number[] = []
 
     // Step 1: Handle forced routing if specified

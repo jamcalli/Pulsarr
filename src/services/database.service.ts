@@ -2876,117 +2876,89 @@ export class DatabaseService {
     try {
       this.log.debug('Calculating detailed status transition metrics')
 
-      // Define type for the raw SQL query result
-      type StatusPairRow = {
-        from_status: string
-        to_status: string
-        content_type: string
-        days_between: number
-      }
-
-      type SqlResult<T> = T[] | { rows?: T[] }
-
-      // Get the raw transition data with individual days_between values
-      // Use the more portable approach to handle different DB drivers
-      const raw = await this.knex.raw<SqlResult<StatusPairRow>>(`
-      WITH status_pairs AS (
-        SELECT 
-          h1.status AS from_status,
-          h2.status AS to_status,
-          w.type AS content_type,
-          julianday(h2.timestamp) - julianday(h1.timestamp) AS days_between
-        FROM watchlist_status_history h1
-        JOIN watchlist_status_history h2 ON h1.watchlist_item_id = h2.watchlist_item_id AND h2.timestamp > h1.timestamp
-        JOIN watchlist_items w ON h1.watchlist_item_id = w.id
-        WHERE h1.status != h2.status
-        AND NOT EXISTS (
-          SELECT 1 FROM watchlist_status_history h3
-          WHERE h3.watchlist_item_id = h1.watchlist_item_id
-          AND h3.timestamp > h1.timestamp AND h3.timestamp < h2.timestamp
-        )
-      )
-      SELECT 
-        from_status,
-        to_status,
-        content_type,
-        days_between
-      FROM status_pairs
-    `)
-
-      // Handle different driver return formats
-      const statusPairs = Array.isArray(raw)
-        ? raw
-        : raw &&
-            typeof raw === 'object' &&
-            'rows' in raw &&
-            Array.isArray(raw.rows)
-          ? raw.rows
-          : []
-
-      // Group the raw data by from_status, to_status, and content_type
-      const groupedData: Record<string, number[]> = {}
-
-      for (const row of statusPairs) {
-        const key = `${row.from_status}_${row.to_status}_${row.content_type}`
-
-        if (!groupedData[key]) {
-          groupedData[key] = []
-        }
-
-        groupedData[key].push(Number(row.days_between))
-      }
-
-      // Calculate metrics for each group
-      const results = Object.entries(groupedData).map(
-        ([key, daysBetweenValues]) => {
-          // Sort the values for percentile calculations
-          daysBetweenValues.sort((a, b) => a - b)
-
-          // Calculate quartiles
-          const q1 = this.calculatePercentile(daysBetweenValues, 0.25)
-          const q3 = this.calculatePercentile(daysBetweenValues, 0.75)
-
-          // Calculate IQR for outlier detection
-          const iqr = q3 - q1
-          const lowerBound = q1 - 1.5 * iqr
-          const upperBound = q3 + 1.5 * iqr
-
-          // Filter values to exclude outliers
-          const filteredValues = daysBetweenValues.filter(
-            (value) => value >= lowerBound && value <= upperBound,
+      // Execute statistical calculations in SQL using window functions
+      const results = await this.knex.raw(`
+        WITH status_pairs AS (
+          SELECT 
+            h1.status AS from_status,
+            h2.status AS to_status,
+            w.type AS content_type,
+            julianday(h2.timestamp) - julianday(h1.timestamp) AS days_between
+          FROM watchlist_status_history h1
+          JOIN watchlist_status_history h2 
+            ON h1.watchlist_item_id = h2.watchlist_item_id 
+            AND h2.timestamp > h1.timestamp
+          JOIN watchlist_items w ON h1.watchlist_item_id = w.id
+          WHERE h1.status != h2.status
+          AND NOT EXISTS (
+            SELECT 1 FROM watchlist_status_history h3
+            WHERE h3.watchlist_item_id = h1.watchlist_item_id
+            AND h3.timestamp > h1.timestamp 
+            AND h3.timestamp < h2.timestamp
           )
-
-          // Calculate metrics on filtered values
-          const sum = filteredValues.reduce((acc, val) => acc + val, 0)
-          const avg =
-            filteredValues.length > 0 ? sum / filteredValues.length : 0
-          const min = filteredValues.length > 0 ? filteredValues[0] : 0
-          const max =
-            filteredValues.length > 0
-              ? filteredValues[filteredValues.length - 1]
-              : 0
-
-          // Parse the key back into components
-          const [from_status, to_status, content_type] = key.split('_')
-
-          return {
+        ),
+        percentiles AS (
+          SELECT 
             from_status,
             to_status,
             content_type,
-            avg_days: avg,
-            min_days: min,
-            max_days: max,
-            // Use filteredValues.length for count to be consistent with other metrics
-            count: filteredValues.length,
-          }
-        },
-      )
+            days_between,
+            PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY days_between) 
+              OVER (PARTITION BY from_status, to_status, content_type) AS q1,
+            PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY days_between) 
+              OVER (PARTITION BY from_status, to_status, content_type) AS q3
+          FROM status_pairs
+        ),
+        filtered_values AS (
+          SELECT 
+            from_status,
+            to_status,
+            content_type,
+            days_between
+          FROM percentiles
+          WHERE days_between BETWEEN 
+            q1 - 1.5 * (q3 - q1) AND 
+            q3 + 1.5 * (q3 - q1)
+        )
+        SELECT 
+          from_status,
+          to_status,
+          content_type,
+          COUNT(*) as count,
+          AVG(days_between) as avg_days,
+          MIN(days_between) as min_days,
+          MAX(days_between) as max_days
+        FROM filtered_values
+        GROUP BY from_status, to_status, content_type
+        ORDER BY count DESC
+      `)
+
+      type StatusTransitionRow = {
+        from_status: string
+        to_status: string
+        content_type: string
+        avg_days: number
+        min_days: number
+        max_days: number
+        count: number
+      }
+
+      // Format and return the results
+      const formattedResults = results.map((row: StatusTransitionRow) => ({
+        from_status: String(row.from_status),
+        to_status: String(row.to_status),
+        content_type: String(row.content_type),
+        avg_days: Number(row.avg_days),
+        min_days: Number(row.min_days),
+        max_days: Number(row.max_days),
+        count: Number(row.count),
+      }))
 
       this.log.debug(
-        `Calculated transition metrics for ${results.length} status pairs`,
+        `Calculated transition metrics for ${formattedResults.length} status pairs`,
       )
 
-      return results
+      return formattedResults
     } catch (error) {
       this.log.error(
         'Error calculating detailed status transition metrics:',
@@ -2994,34 +2966,6 @@ export class DatabaseService {
       )
       throw error
     }
-  }
-
-  /**
-   * Calculates a percentile value from a sorted array
-   *
-   * @param sortedArray - Array of numbers, must be sorted in ascending order
-   * @param percentile - Percentile to calculate (0-1)
-   * @returns The calculated percentile value
-   */
-  private calculatePercentile(
-    sortedArray: number[],
-    percentile: number,
-  ): number {
-    if (sortedArray.length === 0) return 0
-
-    // Calculate the index position for the percentile
-    const index = percentile * (sortedArray.length - 1)
-    const lowerIndex = Math.floor(index)
-    const upperIndex = Math.ceil(index)
-
-    // Exact match to an element
-    if (lowerIndex === upperIndex) return sortedArray[lowerIndex]
-
-    // Need to interpolate between two elements
-    const weight = index - lowerIndex
-    return (
-      sortedArray[lowerIndex] * (1 - weight) + sortedArray[upperIndex] * weight
-    )
   }
 
   /**

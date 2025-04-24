@@ -116,14 +116,24 @@ export const RuleBuilder = {
     target_type: 'sonarr' | 'radarr'
     target_instance_id: number
     condition: Condition | ConditionGroup
-    root_folder?: string
-    quality_profile?: number
+    root_folder?: string | null
+    quality_profile?: number | null
     order?: number
     enabled?: boolean
   }): Omit<RouterRule, 'id' | 'created_at' | 'updated_at'> {
-    const { condition, order = 50, enabled = true, ...rest } = options
+    const {
+      condition,
+      order = 50,
+      enabled = true,
+      root_folder = null,
+      quality_profile = null,
+      ...rest
+    } = options
+
     return {
       ...rest,
+      root_folder,
+      quality_profile,
       order,
       enabled,
       type: 'conditional',

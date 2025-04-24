@@ -1,22 +1,8 @@
 import { z } from 'zod'
-import { ComparisonOperatorSchema } from '@root/schemas/content-router/content-router.schema'
-
-// Define schemas for condition value types
-const ConditionValueSchema = z.union([
-  z.string(),
-  z.number(),
-  z.boolean(),
-  z.array(z.union([z.string(), z.number()])),
-  z
-    .object({
-      min: z.number().optional(),
-      max: z.number().optional(),
-    })
-    .refine((v) => v.min !== undefined || v.max !== undefined, {
-      message: 'Range comparison requires at least min or max to be specified',
-    }),
-  z.null(),
-])
+import {
+  ComparisonOperatorSchema,
+  ConditionValueSchema,
+} from '@root/schemas/content-router/content-router.schema'
 
 export type ConditionValue = z.infer<typeof ConditionValueSchema>
 
@@ -49,15 +35,49 @@ export const ConditionSchema: z.ZodType<ICondition> = z.lazy(() =>
 )
 
 // Define schema for a condition group - with proper type annotation
+// Helper function to validate group recursion safely
+const isValidGroup = (
+  group: IConditionGroup,
+  depth = 0,
+  visited = new WeakSet(),
+): boolean => {
+  // Guard against excessive nesting
+  if (depth > 20) {
+    return false
+  }
+
+  // Guard against circular references
+  if (visited.has(group)) {
+    return false
+  }
+  visited.add(group)
+
+  if (!group.conditions || group.conditions.length === 0) {
+    return true // Allow empty conditions in base schema
+  }
+
+  return group.conditions.every((cond) => {
+    if ('conditions' in cond) {
+      return isValidGroup(cond as IConditionGroup, depth + 1, visited)
+    }
+    return true // Individual conditions validated by their own schema
+  })
+}
+
 export const ConditionGroupSchema: z.ZodType<IConditionGroup> = z.lazy(() =>
-  z.object({
-    operator: z.enum(['AND', 'OR']),
-    conditions: z.array(
-      z.union([ConditionSchema, z.lazy(() => ConditionGroupSchema)]),
-    ),
-    negate: z.boolean().optional().default(false),
-    _cid: z.string().optional(),
-  }),
+  z
+    .object({
+      operator: z.enum(['AND', 'OR']),
+      conditions: z.array(
+        z.union([ConditionSchema, z.lazy(() => ConditionGroupSchema)]),
+      ),
+      negate: z.boolean().optional().default(false),
+      _cid: z.string().optional(),
+    })
+    .refine((group) => isValidGroup(group), {
+      message:
+        'Condition groups cannot exceed 20 levels or contain circular references',
+    }),
 )
 
 // Schema for a conditional route - enhanced validation for all conditions

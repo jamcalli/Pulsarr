@@ -875,11 +875,7 @@ export class WatchlistWorkflowService {
 
       // Create a set of all watchlist GUIDs for fast lookup
       const watchlistGuids = new Set(
-        allWatchlistItems.flatMap((item) =>
-          typeof item.guids === 'string'
-            ? JSON.parse(item.guids)
-            : item.guids || [],
-        ),
+        allWatchlistItems.flatMap((item) => parseGuids(item.guids)),
       )
 
       // Check unmatched items in Sonarr/Radarr (for reporting purposes)

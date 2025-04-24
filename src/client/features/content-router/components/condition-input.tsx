@@ -274,7 +274,6 @@ function ConditionInput({
     fieldName: string,
     isNumeric = false,
   ): ControllerRenderProps<FieldState, FieldPath<FieldState>> => {
-    // For react-hook-form typing
     type AllowedValue = string | string[]
     const isEmpty =
       (Array.isArray(value) && value.length === 0) ||
@@ -282,10 +281,11 @@ function ConditionInput({
       value === undefined ||
       value === null
 
-    // Convert all values to appropriate type (string or number)
+    // Handle array values
     const formattedValue = Array.isArray(value)
       ? value.map((item) => (isNumeric ? Number(item) : String(item)))
-      : [isNumeric ? undefined : String(value || '')]
+      : // Handle single values - preserve numeric values
+        [isNumeric ? String(value || '') : String(value || '')]
 
     return {
       name: fieldName as FieldPath<FieldState>,
@@ -300,9 +300,9 @@ function ConditionInput({
             ) as ConditionValue,
           )
         } else {
-          onChangeRef.current([
-            isNumeric ? undefined : String(newValue || ''),
-          ] as ConditionValue)
+          onChangeRef.current(
+            isNumeric ? Number(newValue || 0) : String(newValue || ''),
+          )
         }
       },
       onBlur: () => {},
