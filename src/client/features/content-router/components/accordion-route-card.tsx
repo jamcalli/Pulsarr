@@ -512,8 +512,7 @@ const AccordionRouteCard = ({
     try {
       // For new routes (creating a route)
       if (isNew) {
-        const routeData: ContentRouterRule = {
-          id: 0,
+        const routeData: ContentRouterRuleUpdate = {
           name: data.name,
           target_type: contentType,
           target_instance_id: data.target_instance_id,
@@ -526,8 +525,6 @@ const AccordionRouteCard = ({
           condition: Array.isArray(data.condition?.conditions)
             ? (data.condition as ConditionGroup)
             : { operator: 'AND', conditions: [], negate: false },
-          created_at: '',
-          updated_at: '',
         }
 
         await onSave(routeData)
