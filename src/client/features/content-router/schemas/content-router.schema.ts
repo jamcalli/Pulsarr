@@ -1,15 +1,20 @@
 import { z } from 'zod'
+import { ComparisonOperatorSchema } from '@root/schemas/content-router/content-router.schema'
 
-// Define schemas for condition value types - more strictly typed now
+// Define schemas for condition value types
 const ConditionValueSchema = z.union([
   z.string(),
   z.number(),
   z.boolean(),
   z.array(z.union([z.string(), z.number()])),
-  z.object({
-    min: z.number().optional(),
-    max: z.number().optional(),
-  }),
+  z
+    .object({
+      min: z.number().optional(),
+      max: z.number().optional(),
+    })
+    .refine((v) => v.min !== undefined || v.max !== undefined, {
+      message: 'Range comparison requires at least min or max to be specified',
+    }),
   z.null(),
 ])
 
@@ -18,7 +23,7 @@ export type ConditionValue = z.infer<typeof ConditionValueSchema>
 // Define interface for a basic condition
 export interface ICondition {
   field: string
-  operator: string
+  operator: z.infer<typeof ComparisonOperatorSchema>
   value: ConditionValue
   negate?: boolean
   _cid?: string
@@ -36,7 +41,7 @@ export interface IConditionGroup {
 export const ConditionSchema: z.ZodType<ICondition> = z.lazy(() =>
   z.object({
     field: z.string(),
-    operator: z.string(),
+    operator: ComparisonOperatorSchema,
     value: ConditionValueSchema, // Using our strictly typed value schema
     negate: z.boolean().optional().default(false),
     _cid: z.string().optional(),
@@ -79,31 +84,35 @@ export const ConditionalRouteFormSchema = z.object({
       }
 
       // Helper function to recursively validate condition groups
-      const isValidGroup = (group: IConditionGroup, depth = 0, visited = new WeakSet()): boolean => {
+      const isValidGroup = (
+        group: IConditionGroup,
+        depth = 0,
+        visited = new WeakSet(),
+      ): boolean => {
         // Guard against excessive nesting
         if (depth > 20) {
-          return false;
+          return false
         }
-        
+
         // Guard against circular references
         if (visited.has(group)) {
-          return false;
+          return false
         }
-        visited.add(group);
-        
+        visited.add(group)
+
         if (!group.conditions || group.conditions.length === 0) {
-          return false;
+          return false
         }
-      
+
         return group.conditions.every((cond) => {
           if ('conditions' in cond) {
             // Recursive check with incremented depth and shared visited set
-            return isValidGroup(cond as IConditionGroup, depth + 1, visited);
+            return isValidGroup(cond as IConditionGroup, depth + 1, visited)
           }
-      
+
           // Check individual condition
-          return isValidCondition(cond as ICondition);
-        });
+          return isValidCondition(cond as ICondition)
+        })
       }
 
       return isValidGroup(val)
