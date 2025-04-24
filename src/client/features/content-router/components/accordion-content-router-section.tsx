@@ -75,8 +75,6 @@ const AccordionContentRouterSection = ({
       ? useRadarrContentRouterAdapter()
       : useSonarrContentRouterAdapter()
 
-  const [togglingRuleId, _setTogglingRuleId] = useState<number | null>(null)
-
   const {
     rules,
     isLoading,
@@ -152,7 +150,6 @@ const AccordionContentRouterSection = ({
 
   const handleToggleRuleEnabled = useCallback(
     async (id: number, enabled: boolean) => {
-      // Don't set togglingRuleId immediately - let the optimistic update handle the UI
       try {
         await toggleRule(id, enabled)
       } catch (error) {
@@ -505,8 +502,7 @@ const AccordionContentRouterSection = ({
       ? (rule as TempRule).tempId
       : (rule as ContentRouterRule).id
 
-    const isToggling =
-      !isNew && togglingRuleId === (rule as ContentRouterRule).id
+    const isToggling = false
 
     // Convert to standardized condition format
     const ruleWithCondition = convertToStandardCondition(rule)
