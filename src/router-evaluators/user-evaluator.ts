@@ -63,6 +63,67 @@ export default function createUserEvaluator(
     ],
   }
 
+  /**
+   * Helper function to check if a user matches the exact value
+   */
+  function userMatchesExact(
+    userId: number | undefined,
+    userName: string | undefined,
+    value: unknown,
+  ): boolean {
+    if (userId && (value === userId || value === userId.toString())) {
+      return true
+    }
+    if (userName && value === userName) {
+      return true
+    }
+    return false
+  }
+
+  /**
+   * Helper function to check if a user is in a list of values
+   */
+  function userInList(
+    userId: number | undefined,
+    userName: string | undefined,
+    values: unknown[],
+  ): boolean {
+    // Check if context.userId matches any user in the list
+    if (userId) {
+      const userIdStr = userId.toString()
+      if (values.includes(userIdStr) || values.includes(userId)) {
+        return true
+      }
+    }
+
+    // Check if context.userName matches any user in the list
+    if (userName && values.includes(userName)) {
+      return true
+    }
+
+    return false
+  }
+
+  /**
+   * Helper function to check if a username matches a regex pattern
+   */
+  function userMatchesRegex(
+    userName: string | undefined,
+    pattern: string,
+  ): boolean {
+    if (typeof pattern !== 'string' || !userName) {
+      return false
+    }
+
+    try {
+      const regex = new RegExp(pattern)
+      return regex.test(userName)
+    } catch (error) {
+      fastify.log.error(`Invalid regex pattern: ${pattern}`, error)
+      return false
+    }
+  }
+
   return {
     name: 'User Router',
     description: 'Routes content based on requesting users',
@@ -107,106 +168,35 @@ export default function createUserEvaluator(
 
         // Handle different operator types
         switch (operator) {
-          case 'equals': {
-            // Check user ID
-            if (
-              context.userId &&
-              (usersValue === context.userId ||
-                usersValue === context.userId.toString())
-            ) {
-              return true
-            }
-            // Check username - removed 'else' since previous condition has early return
-            if (context.userName && usersValue === context.userName) {
-              return true
-            }
-            return false
-          }
+          case 'equals':
+            return userMatchesExact(
+              context.userId,
+              context.userName,
+              usersValue,
+            )
 
-          case 'notEquals': {
-            // Check user ID
-            if (
-              context.userId &&
-              (usersValue === context.userId ||
-                usersValue === context.userId.toString())
-            ) {
-              return false
-            }
-            // Check username - removed 'else' since previous condition has early return
-            if (context.userName && usersValue === context.userName) {
-              return false
-            }
-            return true
-          }
+          case 'notEquals':
+            return !userMatchesExact(
+              context.userId,
+              context.userName,
+              usersValue,
+            )
 
-          case 'in': {
-            const usersArray = Array.isArray(usersValue)
-              ? usersValue
-              : [usersValue]
-            let userMatched = false
-
-            // Check if context.userId matches any user in the list
-            if (context.userId) {
-              const userIdStr = context.userId.toString()
-              if (
-                usersArray.includes(userIdStr) ||
-                usersArray.includes(context.userId)
-              ) {
-                userMatched = true
-              }
-            }
-
-            // Check if context.userName matches any user in the list
-            if (!userMatched && context.userName) {
-              if (usersArray.includes(context.userName)) {
-                userMatched = true
-              }
-            }
-
-            // For 'in' we want it to match, for 'notIn' we want it not to match
-            return operator === 'in' ? userMatched : !userMatched
-          }
-
+          case 'in':
           case 'notIn': {
             const usersArray = Array.isArray(usersValue)
               ? usersValue
               : [usersValue]
-            let userMatched = false
-
-            // Check if context.userId matches any user in the list
-            if (context.userId) {
-              const userIdStr = context.userId.toString()
-              if (
-                usersArray.includes(userIdStr) ||
-                usersArray.includes(context.userId)
-              ) {
-                userMatched = true
-              }
-            }
-
-            // Check if context.userName matches any user in the list
-            if (!userMatched && context.userName) {
-              if (usersArray.includes(context.userName)) {
-                userMatched = true
-              }
-            }
-
-            // For 'notIn' we want it not to match
-            return !userMatched
+            const userMatched = userInList(
+              context.userId,
+              context.userName,
+              usersArray,
+            )
+            return operator === 'in' ? userMatched : !userMatched
           }
 
-          case 'regex': {
-            if (typeof usersValue === 'string' && context.userName) {
-              try {
-                const regex = new RegExp(usersValue)
-                return regex.test(context.userName)
-              } catch (error) {
-                fastify.log.error(`Invalid regex in user rule: ${error}`)
-                return false
-              }
-            }
-            return false
-          }
+          case 'regex':
+            return userMatchesRegex(context.userName, usersValue as string)
 
           default:
             return false
@@ -251,86 +241,29 @@ export default function createUserEvaluator(
       let result = false
 
       switch (operator) {
-        case 'equals': {
-          // Check user ID
-          if (
-            context.userId &&
-            (value === context.userId || value === context.userId.toString())
-          ) {
-            result = true
-          }
-          // Check username - removed 'else' since it's unnecessary
-          if (context.userName && value === context.userName) {
-            result = true
-          }
+        case 'equals':
+          result = userMatchesExact(context.userId, context.userName, value)
           break
-        }
 
-        case 'notEquals': {
-          // Check user ID
-          if (
-            context.userId &&
-            (value === context.userId || value === context.userId.toString())
-          ) {
-            result = false
-          }
-          // Check username - removed 'else' since it's unnecessary
-          if (context.userName && value === context.userName) {
-            result = false
-          } else {
-            result = true
-          }
+        case 'notEquals':
+          result = !userMatchesExact(context.userId, context.userName, value)
           break
-        }
 
         case 'in': {
           const users = Array.isArray(value) ? value : [value]
-          // Check user ID
-          if (context.userId) {
-            const userIdStr = context.userId.toString()
-            if (users.includes(context.userId) || users.includes(userIdStr)) {
-              result = true
-            }
-          }
-          // Check username - removed 'else' since it's unnecessary
-          if (context.userName && users.includes(context.userName)) {
-            result = true
-          }
+          result = userInList(context.userId, context.userName, users)
           break
         }
 
         case 'notIn': {
           const excludeUsers = Array.isArray(value) ? value : [value]
-          // Check user ID is not in the list
-          if (context.userId) {
-            const userIdStr = context.userId.toString()
-            if (
-              !(
-                excludeUsers.includes(context.userId) ||
-                excludeUsers.includes(userIdStr)
-              )
-            ) {
-              result = true
-            }
-          }
-          // Check username is not in the list - removed 'else' since it's unnecessary
-          if (context.userName && !excludeUsers.includes(context.userName)) {
-            result = true
-          }
+          result = !userInList(context.userId, context.userName, excludeUsers)
           break
         }
 
-        case 'regex': {
-          if (typeof value === 'string' && context.userName) {
-            try {
-              const regex = new RegExp(value)
-              result = regex.test(context.userName)
-            } catch (error) {
-              fastify.log.error(`Invalid regex in user condition: ${error}`)
-            }
-          }
+        case 'regex':
+          result = userMatchesRegex(context.userName, value as string)
           break
-        }
       }
 
       // Apply negation if needed
