@@ -694,21 +694,9 @@ export class DatabaseService {
         root_folder: instance.rootFolder,
         bypass_ignored: instance.bypassIgnored,
         season_monitoring: instance.seasonMonitoring,
-        monitor_new_items: (() => {
-          // If undefined or null, use the default 'all'
-          if (!instance.monitorNewItems) {
-            return 'all'
-          }
-          // Normalize to lowercase for case-insensitive comparison
-          const value = String(instance.monitorNewItems).toLowerCase()
-          // Validate against allowed values
-          if (!['all', 'none'].includes(value)) {
-            throw new Error(
-              `Invalid monitorNewItems value: ${instance.monitorNewItems}. Valid values are "all" or "none".`,
-            )
-          }
-          return value
-        })(),
+        monitor_new_items: this.normaliseMonitorNewItems(
+          instance.monitorNewItems,
+        ),
         tags: JSON.stringify(instance.tags || []),
         is_default: instance.isDefault ?? false,
         is_enabled: true,
@@ -728,6 +716,16 @@ export class DatabaseService {
     }
 
     return row.id
+  }
+
+  /** Normalises/validates monitorNewItems, throws on bad input */
+  private normaliseMonitorNewItems(value: unknown): 'all' | 'none' {
+    if (value === undefined || value === null) return 'all'
+    const v = String(value).toLowerCase()
+    if (!['all', 'none'].includes(v)) {
+      throw new Error(`Invalid monitorNewItems value: ${value}`)
+    }
+    return v as 'all' | 'none'
   }
 
   /**
@@ -771,15 +769,9 @@ export class DatabaseService {
           season_monitoring: updates.seasonMonitoring,
         }),
         ...(typeof updates.monitorNewItems !== 'undefined' && {
-          monitor_new_items: (() => {
-            const val = String(updates.monitorNewItems).toLowerCase()
-            if (!['all', 'none'].includes(val)) {
-              throw new Error(
-                `Invalid monitorNewItems value: ${updates.monitorNewItems}`,
-              )
-            }
-            return val
-          })(),
+          monitor_new_items: this.normaliseMonitorNewItems(
+            updates.monitorNewItems,
+          ),
         }),
         ...(typeof updates.tags !== 'undefined' && {
           tags: JSON.stringify(updates.tags),
@@ -2921,18 +2913,32 @@ export class DatabaseService {
 
       const transitionGroups = new Map<string, number[]>()
 
-      // Process and group raw transitions with numeric coercion
+      // Process and group raw transitions with numeric coercion and validation
       for (const row of rawTransitions) {
         const key = `${row.from_status}|${row.to_status}|${row.content_type}`
-        const daysBetween =
+
+        const daysBetweenRaw =
           typeof row.days_between === 'number'
             ? row.days_between
             : Number(row.days_between)
 
+        // Skip invalid or negative values
+        if (!Number.isFinite(daysBetweenRaw) || daysBetweenRaw < 0) {
+          this.log.warn(
+            `Skipping invalid days_between value: ${row.days_between}`,
+            {
+              from_status: row.from_status,
+              to_status: row.to_status,
+              content_type: row.content_type,
+            },
+          )
+          continue
+        }
+
         if (!transitionGroups.has(key)) {
           transitionGroups.set(key, [])
         }
-        transitionGroups.get(key)?.push(daysBetween)
+        transitionGroups.get(key)?.push(daysBetweenRaw)
       }
 
       // Process each group to filter outliers and calculate statistics
@@ -3518,6 +3524,7 @@ export class DatabaseService {
       status: 'pending' | 'requested' | 'grabbed' | 'notified'
       is_primary: boolean
       last_notified_at?: string
+      syncing?: boolean
     }>,
   ): Promise<void> {
     const timestamp = this.timestamp
@@ -3527,6 +3534,7 @@ export class DatabaseService {
       radarr_instance_id: junction.radarr_instance_id,
       status: junction.status,
       is_primary: junction.is_primary,
+      syncing: junction.syncing ?? false,
       last_notified_at: junction.last_notified_at || null,
       created_at: timestamp,
       updated_at: timestamp,
@@ -3541,7 +3549,13 @@ export class DatabaseService {
         await trx('watchlist_radarr_instances')
           .insert(chunk)
           .onConflict(['watchlist_id', 'radarr_instance_id'])
-          .merge(['status', 'is_primary', 'last_notified_at', 'updated_at'])
+          .merge([
+            'status',
+            'is_primary',
+            'syncing',
+            'last_notified_at',
+            'updated_at',
+          ])
       }
     })
   }

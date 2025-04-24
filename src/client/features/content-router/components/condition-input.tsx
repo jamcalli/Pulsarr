@@ -147,10 +147,15 @@ function ConditionInput({
   // Initialize the config store if needed
   useEffect(() => {
     const initializeStore = async () => {
-      if (!isInitialized) {
-        await initialize()
+      try {
+        if (!isInitialized) {
+          await initialize()
+        }
+        await fetchUserData()
+      } catch (error) {
+        console.error('Error initializing condition input:', error)
+        // Could also trigger a toast notification or other error UI here
       }
-      await fetchUserData()
     }
 
     initializeStore()
