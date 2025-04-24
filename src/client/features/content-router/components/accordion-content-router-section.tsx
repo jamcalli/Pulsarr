@@ -61,6 +61,145 @@ type AccordionContentRouterSectionProps = {
   onGenreDropdownOpen: () => Promise<void>
 }
 
+// Move these helper functions outside the component
+const createDefaultCondition = (): Condition => ({
+  field: '',
+  operator: 'equals' as ComparisonOperator,
+  value: null,
+  negate: false,
+})
+
+const createDefaultConditionGroup = (): ConditionGroup => ({
+  operator: 'AND',
+  conditions: [
+    {
+      field: '',
+      operator: 'equals' as ComparisonOperator,
+      value: null,
+      negate: false,
+    },
+  ],
+  negate: false,
+})
+
+const createConditionGroupFromCondition = (
+  condition: Condition | unknown,
+): ConditionGroup => ({
+  operator: 'AND',
+  conditions: isCondition(condition) ? [condition] : [createDefaultCondition()],
+  negate: false,
+})
+
+// Move the conversion function outside the component
+const convertToStandardCondition = (
+  rule: ContentRouterRule | TempRule,
+): ExtendedContentRouterRule => {
+  // Create a new object to avoid mutating the input
+  const ruleWithCondition = { ...rule } as ExtendedContentRouterRule
+  const extendedRule = rule as ExtendedContentRouterRule
+
+  if (extendedRule.condition) {
+    if (isCondition(extendedRule.condition)) {
+      ruleWithCondition.condition = {
+        operator: 'AND',
+        conditions: [extendedRule.condition],
+        negate: false,
+      }
+    }
+  } else if (
+    extendedRule.criteria &&
+    !extendedRule.condition &&
+    typeof extendedRule.criteria === 'object'
+  ) {
+    const criteria = extendedRule.criteria as Record<string, CriteriaValue>
+
+    if ('year' in criteria && criteria.year) {
+      const yearValue = criteria.year
+      let condition: Condition
+
+      if (typeof yearValue === 'number') {
+        condition = {
+          field: 'year',
+          operator: 'equals' as ComparisonOperator,
+          value: yearValue,
+          negate: false,
+        }
+      } else if (Array.isArray(yearValue)) {
+        condition = {
+          field: 'year',
+          operator: 'in' as ComparisonOperator,
+          value: yearValue,
+          negate: false,
+        }
+      } else if (typeof yearValue === 'object' && yearValue !== null) {
+        condition = {
+          field: 'year',
+          operator: 'between' as ComparisonOperator,
+          value: yearValue as { min?: number; max?: number },
+          negate: false,
+        }
+      } else {
+        condition = {
+          field: 'year',
+          operator: 'equals' as ComparisonOperator,
+          value: new Date().getFullYear(),
+          negate: false,
+        }
+      }
+
+      ruleWithCondition.condition = {
+        operator: 'AND',
+        conditions: [condition],
+        negate: false,
+      }
+    } else if ('originalLanguage' in criteria && criteria.originalLanguage) {
+      const langValue = criteria.originalLanguage as string | string[]
+      ruleWithCondition.condition = {
+        operator: 'AND',
+        conditions: [
+          {
+            field: 'language',
+            operator: Array.isArray(langValue)
+              ? 'in'
+              : ('equals' as ComparisonOperator),
+            value: langValue,
+            negate: false,
+          },
+        ],
+        negate: false,
+      }
+    } else if ('users' in criteria && criteria.users) {
+      const usersValue = criteria.users as string | string[]
+      ruleWithCondition.condition = {
+        operator: 'AND',
+        conditions: [
+          {
+            field: 'user',
+            operator: Array.isArray(usersValue)
+              ? 'in'
+              : ('equals' as ComparisonOperator),
+            value: usersValue,
+            negate: false,
+          },
+        ],
+        negate: false,
+      }
+    }
+  }
+
+  if (!ruleWithCondition.condition) {
+    ruleWithCondition.condition = createDefaultConditionGroup()
+  }
+
+  if (!isConditionGroup(ruleWithCondition.condition)) {
+    ruleWithCondition.condition = createConditionGroupFromCondition(
+      ruleWithCondition.condition,
+    )
+  }
+
+  return ruleWithCondition
+}
+
 const AccordionContentRouterSection = ({
   targetType,
   instances,
@@ -159,7 +298,7 @@ const AccordionContentRouterSection = ({
     [toggleRule],
   )
 
-  // NEW: Store form values before updating
+  // Store form values before updating
   const storeFormValues = useCallback(
     (id: string, data: ContentRouterRuleUpdate) => {
       setEditedFormValues((prev) => ({
@@ -331,234 +470,99 @@ const AccordionContentRouterSection = ({
 
   const hasExistingRoutes = rules.length > 0
 
-  const convertToStandardCondition = (rule: ContentRouterRule | TempRule) => {
-    // Create a new object to avoid mutating the input
-    const ruleWithCondition = { ...rule } as ExtendedContentRouterRule
+  // Memoize the converted rules to avoid recalculations on every render
+  const preparedRules = useMemo(
+    () => [...rules, ...localRules].map(convertToStandardCondition),
+    [rules, localRules],
+  )
 
-    // Cast rule to ExtendedContentRouterRule to access potential criteria
-    const extendedRule = rule as ExtendedContentRouterRule
+  const renderRouteCard = useCallback(
+    (rule: ContentRouterRule | TempRule, isNew = false) => {
+      const ruleId = isNew
+        ? (rule as TempRule).tempId
+        : (rule as ContentRouterRule).id
 
-    // Handle case where the condition is already set but might be a Condition instead of ConditionGroup
-    if (extendedRule.condition) {
-      // Use isCondition and isConditionGroup type guards instead of property checks
-      if (isCondition(extendedRule.condition)) {
-        // Convert the single condition into a condition group
-        ruleWithCondition.condition = {
-          operator: 'AND',
-          conditions: [extendedRule.condition],
-          negate: false,
-        }
-      }
-      // If it already has 'conditions', it's already a ConditionGroup, so no change needed
-    } else if (
-      extendedRule.criteria &&
-      !extendedRule.condition &&
-      typeof extendedRule.criteria === 'object'
-    ) {
-      const criteria = extendedRule.criteria as Record<string, CriteriaValue>
+      const isToggling = false
 
-      if ('genre' in criteria && criteria.genre) {
-        // Convert genre rule to condition
-        const genreValue = criteria.genre as string | string[]
-        ruleWithCondition.condition = {
-          operator: 'AND',
-          conditions: [
-            {
-              field: 'genre',
-              operator: Array.isArray(genreValue)
-                ? 'in'
-                : ('equals' as ComparisonOperator),
-              value: genreValue,
-              negate: false,
-            },
-          ],
-          negate: false,
-        }
-      } else if ('year' in criteria && criteria.year) {
-        // Convert year rule to condition
-        const yearValue = criteria.year
-        let condition: Condition
-
-        if (typeof yearValue === 'number') {
-          condition = {
-            field: 'year',
-            operator: 'equals' as ComparisonOperator,
-            value: yearValue,
-            negate: false,
-          }
-        } else if (Array.isArray(yearValue)) {
-          condition = {
-            field: 'year',
-            operator: 'in' as ComparisonOperator,
-            value: yearValue,
-            negate: false,
-          }
-        } else if (typeof yearValue === 'object' && yearValue !== null) {
-          condition = {
-            field: 'year',
-            operator: 'between' as ComparisonOperator,
-            value: yearValue as { min?: number; max?: number },
-            negate: false,
-          }
-        } else {
-          condition = {
-            field: 'year',
-            operator: 'equals' as ComparisonOperator,
-            value: new Date().getFullYear(),
-            negate: false,
-          }
-        }
-
-        ruleWithCondition.condition = {
-          operator: 'AND',
-          conditions: [condition],
-          negate: false,
-        }
-      } else if ('originalLanguage' in criteria && criteria.originalLanguage) {
-        const langValue = criteria.originalLanguage as string | string[]
-        ruleWithCondition.condition = {
-          operator: 'AND',
-          conditions: [
-            {
-              field: 'language',
-              operator: Array.isArray(langValue)
-                ? 'in'
-                : ('equals' as ComparisonOperator),
-              value: langValue,
-              negate: false,
-            },
-          ],
-          negate: false,
-        }
-      } else if ('users' in criteria && criteria.users) {
-        const usersValue = criteria.users as string | string[]
-        ruleWithCondition.condition = {
-          operator: 'AND',
-          conditions: [
-            {
-              field: 'user',
-              operator: Array.isArray(usersValue)
-                ? 'in'
-                : ('equals' as ComparisonOperator),
-              value: usersValue,
-              negate: false,
-            },
-          ],
-          negate: false,
-        }
-      }
-    }
-
-    // If no condition was created and no condition exists, create a default one
-    if (!ruleWithCondition.condition) {
-      ruleWithCondition.condition = {
-        operator: 'AND',
-        conditions: [
-          {
-            field: '',
-            operator: 'equals' as ComparisonOperator, // Properly typed operator
-            value: null, // Using null consistently as sentinel value
-            negate: false,
-          },
-        ],
-        negate: false,
-      }
-    }
-
-    // If there's still no valid condition group structure, create one
-    if (!isConditionGroup(ruleWithCondition.condition)) {
-      console.warn(
-        'Condition is not a ConditionGroup - converting',
-        ruleWithCondition.condition,
+      // Use the preprocessed rule from preparedRules instead of converting again
+      const ruleIndex = preparedRules.findIndex((r) =>
+        isNew
+          ? 'tempId' in r && r.tempId === (rule as TempRule).tempId
+          : 'id' in r && r.id === (rule as ContentRouterRule).id,
       )
 
-      // Create a valid condition group with proper checks
-      const validConditions = isCondition(ruleWithCondition.condition)
-        ? [ruleWithCondition.condition]
-        : [
-            {
-              field: '',
-              operator: 'equals' as ComparisonOperator, // Properly typed operator
-              value: null, // Consistent null sentinel
-              negate: false,
-            },
-          ]
+      const ruleWithCondition =
+        ruleIndex >= 0
+          ? preparedRules[ruleIndex]
+          : convertToStandardCondition(rule) // Fallback just in case
 
-      ruleWithCondition.condition = {
-        operator: 'AND',
-        conditions: validConditions,
-        negate: false,
-      }
-    }
+      // Check if we have stored form values for this rule
+      const storedId = ruleId.toString()
+      const hasStoredValues = storedId in editedFormValues
 
-    return ruleWithCondition
-  }
+      // Merge stored form values if they exist
+      const mergedRule = hasStoredValues
+        ? { ...ruleWithCondition, ...editedFormValues[storedId] }
+        : ruleWithCondition
 
-  const renderRouteCard = (
-    rule: ContentRouterRule | TempRule,
-    isNew = false,
-  ) => {
-    const ruleId = isNew
-      ? (rule as TempRule).tempId
-      : (rule as ContentRouterRule).id
-
-    const isToggling = false
-
-    // Convert to standardized condition format
-    const ruleWithCondition = convertToStandardCondition(rule)
-
-    // Check if we have stored form values for this rule
-    const storedId = ruleId.toString()
-    const hasStoredValues = storedId in editedFormValues
-
-    // Merge stored form values if they exist
-    const mergedRule = hasStoredValues
-      ? { ...ruleWithCondition, ...editedFormValues[storedId] }
-      : ruleWithCondition
-
-    return (
-      <AccordionRouteCard
-        key={ruleId}
-        route={{
-          ...mergedRule,
-          condition: mergedRule.condition as ConditionGroup | undefined,
-        }}
-        isNew={isNew}
-        onSave={async (data: ContentRouterRule | ContentRouterRuleUpdate) => {
-          if (isNew) {
-            return handleSaveNewRule(
-              (rule as TempRule).tempId,
-              data as Omit<
-                ContentRouterRule,
-                'id' | 'created_at' | 'updated_at'
-              >,
+      return (
+        <AccordionRouteCard
+          key={ruleId}
+          route={{
+            ...mergedRule,
+            condition: mergedRule.condition as ConditionGroup | undefined,
+          }}
+          isNew={isNew}
+          onSave={async (data: ContentRouterRule | ContentRouterRuleUpdate) => {
+            if (isNew) {
+              return handleSaveNewRule(
+                (rule as TempRule).tempId,
+                data as Omit<
+                  ContentRouterRule,
+                  'id' | 'created_at' | 'updated_at'
+                >,
+              )
+            }
+            return handleUpdateRule(
+              (rule as ContentRouterRule).id,
+              data as ContentRouterRuleUpdate,
             )
+          }}
+          onCancel={() => {
+            if (isNew) {
+              handleCancelLocalRule((rule as TempRule).tempId)
+            }
+          }}
+          onRemove={
+            isNew
+              ? undefined
+              : () =>
+                  setDeleteConfirmationRuleId((rule as ContentRouterRule).id)
           }
-          return handleUpdateRule(
-            (rule as ContentRouterRule).id,
-            data as ContentRouterRuleUpdate,
-          )
-        }}
-        onCancel={() => {
-          if (isNew) {
-            handleCancelLocalRule((rule as TempRule).tempId)
-          }
-        }}
-        onRemove={
-          isNew
-            ? undefined
-            : () => setDeleteConfirmationRuleId((rule as ContentRouterRule).id)
-        }
-        onToggleEnabled={handleToggleRuleEnabled}
-        isSaving={!!savingRules[ruleId.toString()]}
-        isTogglingState={isToggling}
-        instances={instances}
-        genres={genres}
-        onGenreDropdownOpen={onGenreDropdownOpen}
-        contentType={targetType}
-      />
-    )
-  }
+          onToggleEnabled={handleToggleRuleEnabled}
+          isSaving={!!savingRules[ruleId.toString()]}
+          isTogglingState={isToggling}
+          instances={instances}
+          genres={genres}
+          onGenreDropdownOpen={onGenreDropdownOpen}
+          contentType={targetType}
+        />
+      )
+    },
+    [
+      preparedRules,
+      editedFormValues,
+      handleSaveNewRule,
+      handleUpdateRule,
+      handleCancelLocalRule,
+      handleToggleRuleEnabled,
+      savingRules,
+      instances,
+      genres,
+      onGenreDropdownOpen,
+      targetType,
+    ],
+  )
 
   return (
     <div className="grid gap-6">
@@ -606,7 +610,7 @@ const AccordionContentRouterSection = ({
             <Button onClick={addRoute}>Add Route</Button>
           </div>
           <div className="grid gap-4">
-            {/* Saved routes */}
+            {/* Saved rules */}
             {rules.map((rule) => renderRouteCard(rule))}
 
             {/* Local rules */}

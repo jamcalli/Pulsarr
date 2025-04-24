@@ -261,6 +261,10 @@ export default function createYearEvaluator(
       }
 
       const { operator, value, negate = false } = condition
+
+      // Early exit on invalid value type
+      if (!isValidYearValue(value)) return false
+
       let result = false
 
       // Handle all operators

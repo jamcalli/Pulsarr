@@ -53,10 +53,7 @@ import type {
   ConditionGroup,
   IConditionGroup,
 } from '@root/schemas/content-router/content-router.schema'
-import type {
-  EvaluatorMetadata,
-  FieldInfo,
-} from '@root/schemas/content-router/evaluator-metadata.schema'
+import type { EvaluatorMetadata } from '@root/schemas/content-router/evaluator-metadata.schema'
 import {
   ConditionalRouteFormSchema,
   type ConditionalRouteFormValues,
@@ -231,9 +228,9 @@ const AccordionRouteCard = ({
     }
   }, [form])
 
-  const fetchEvaluatorMetadata = useCallback(async () => {
-    // Prevent duplicate initializations
-    if (initializationRef.current) return
+  const fetchEvaluatorMetadata = useCallback(async (force = false) => {
+    // Skip if already initialized and not forced
+    if (initializationRef.current && !force) return
 
     setLoading(true)
     setError(null)
@@ -259,104 +256,8 @@ const AccordionRouteCard = ({
         )
       }
 
-      // Store metadata in state
       setEvaluatorMetadata(data.evaluators)
-
-      // Check form values OUTSIDE the effect to avoid infinite loops
-      const formValues = form.getValues()
-
-      // Only initialize if we need to
-      if (
-        !formValues.condition ||
-        !formValues.condition.conditions ||
-        formValues.condition.conditions.length === 0
-      ) {
-        // We'll initialize asynchronously to break React update cycles
-        initializationRef.current = true
-
-        setTimeout(() => {
-          try {
-            // Filter out the Conditional Router
-            const fieldEvaluators = data.evaluators.filter(
-              (evaluator: EvaluatorMetadata) =>
-                evaluator.name !== 'Conditional Router',
-            )
-
-            if (fieldEvaluators.length === 0) {
-              setError(
-                'No field evaluators found. Please ensure router evaluators are properly configured.',
-              )
-              return
-            }
-
-            // Find the first available field
-            const allFields = fieldEvaluators.flatMap(
-              (evaluator: EvaluatorMetadata) => evaluator.supportedFields,
-            )
-            const firstField = allFields[0]?.name || ''
-
-            if (!firstField) {
-              setError('No fields available in evaluators.')
-              return
-            }
-
-            // Find the evaluator for this field
-            const fieldEvaluator = fieldEvaluators.find(
-              (evaluator: EvaluatorMetadata) =>
-                evaluator.supportedFields.some(
-                  (field: FieldInfo) => field.name === firstField,
-                ),
-            )
-
-            if (!fieldEvaluator) {
-              setError('Could not find evaluator for field.')
-              return
-            }
-
-            // Get operators for first field
-            const operators =
-              fieldEvaluator.supportedOperators?.[firstField] || []
-            const firstOperator = operators[0]?.name || ''
-
-            // Determine appropriate initial value
-            let initialValue: ConditionValue = ''
-            if (operators[0]?.valueTypes) {
-              const valueType = operators[0].valueTypes[0]
-              if (valueType === 'number') initialValue = 0
-              else if (valueType === 'string[]' || valueType === 'number[]')
-                initialValue = []
-              else if (valueType === 'object')
-                initialValue = { min: undefined, max: undefined }
-            }
-
-            // Create initial condition
-            const initialCondition: ConditionGroup = {
-              operator: 'AND',
-              conditions: [
-                {
-                  field: firstField,
-                  operator: firstOperator,
-                  value: initialValue,
-                  negate: false,
-                },
-              ],
-              negate: false,
-            }
-
-            // Update form
-            form.setValue('condition', initialCondition, {
-              shouldValidate: true,
-            })
-          } catch (err) {
-            console.error('Error creating initial condition:', err)
-            setError(
-              err instanceof Error
-                ? err.message
-                : 'Failed to create initial condition',
-            )
-          }
-        }, 0)
-      }
+      initializationRef.current = true
     } catch (err) {
       console.error('Error fetching evaluator metadata:', err)
       setError(
@@ -364,10 +265,11 @@ const AccordionRouteCard = ({
           ? err.message
           : 'Failed to load condition options. Please try again.',
       )
+      initializationRef.current = false // Allow retries on error
     } finally {
       setLoading(false)
     }
-  }, [form])
+  }, [])
 
   // Fetch evaluator metadata on component mount
   useEffect(() => {
@@ -872,7 +774,7 @@ const AccordionRouteCard = ({
                                       size="sm"
                                       onClick={() => {
                                         setError(null)
-                                        fetchEvaluatorMetadata()
+                                        fetchEvaluatorMetadata(true) // Force refetch
                                       }}
                                     >
                                       Retry
@@ -889,7 +791,10 @@ const AccordionRouteCard = ({
                                     your connection.
                                   </p>
                                   <Button
-                                    onClick={fetchEvaluatorMetadata}
+                                    onClick={(e) => {
+                                      e.preventDefault()
+                                      fetchEvaluatorMetadata()
+                                    }}
                                     variant="noShadow"
                                     size="sm"
                                     className="mt-2"

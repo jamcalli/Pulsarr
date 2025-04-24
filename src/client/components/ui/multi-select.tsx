@@ -113,8 +113,13 @@ export const MultiSelect = React.forwardRef<
     const flatOptions = React.useMemo(() => {
       // Safe type checking to determine if we have grouped options
       const firstOption = options[0] as unknown
-      if (firstOption && typeof firstOption === 'object' && 'options' in firstOption) {
-        return (options as OptionGroup[]).flatMap(group => group.options)
+      if (
+        firstOption &&
+        typeof firstOption === 'object' &&
+        'options' in firstOption &&
+        Array.isArray((firstOption as OptionGroup).options)
+      ) {
+        return (options as OptionGroup[]).flatMap((group) => group.options)
       }
       return options as Option[]
     }, [options])
@@ -172,7 +177,11 @@ export const MultiSelect = React.forwardRef<
         open={isPopoverOpen}
         onOpenChange={async (open) => {
           if (open && onDropdownOpen) {
-            await onDropdownOpen()
+            try {
+              await onDropdownOpen()
+            } catch (err) {
+              console.error('[MultiSelect] onDropdownOpen failed', err)
+            }
           }
           setIsPopoverOpen(open)
         }}

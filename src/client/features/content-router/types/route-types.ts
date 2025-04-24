@@ -19,7 +19,7 @@ export interface ConditionBase {
  */
 export interface Condition extends ConditionBase {
   /** The field to evaluate (genre, year, language, user, etc.) */
-  field: string
+  field: ConditionField
 
   /** The operator to apply (equals, contains, in, etc.) */
   operator: ComparisonOperator
@@ -91,7 +91,16 @@ export type ComparisonOperator =
 /**
  * Fields available for conditions
  */
-export type ConditionField = 'genre' | 'year' | 'language' | 'user' | string // Allow for custom fields from API
+export type ConditionField =
+  | 'genre'
+  | 'genres'
+  | 'year'
+  | 'language'
+  | 'user'
+  | 'userId'
+  | 'userName'
+  | 'certification'
+  | string // Keep string union for extensibility
 
 /**
  * Form values for a condition

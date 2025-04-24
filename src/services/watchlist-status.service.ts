@@ -286,7 +286,6 @@ export class StatusService {
         const currentInstanceMap = new Map<number, boolean>()
 
         // Build a map of current instance associations
-        allJunctionEntries.filter((entry) => entry.watchlist_id === numericId)
         for (const entry of allJunctionEntries.filter(
           (entry) => entry.watchlist_id === numericId,
         )) {
@@ -514,7 +513,6 @@ export class StatusService {
         const currentInstanceMap = new Map<number, boolean>()
 
         // Build a map of current instance associations
-        allJunctionEntries.filter((entry) => entry.watchlist_id === numericId)
         for (const entry of allJunctionEntries.filter(
           (entry) => entry.watchlist_id === numericId,
         )) {

@@ -14,11 +14,30 @@ export const ComparisonOperatorSchema = z.enum([
   'regex',
 ])
 
-// First, define the value types
+// Define the criteria schemas first
+export const UserCriteriaSchema = z.object({
+  id: z.string().or(z.number()),
+  name: z.string(),
+})
+
+export const GenreCriteriaSchema = z.object({
+  id: z.string().or(z.number()),
+  name: z.string(),
+})
+
+// Then define the value types
 export const ConditionValueSchema = z.union([
   z.string(),
   z.number(),
   z.boolean(),
+  z.array(z.string()),
+  z.array(z.number()),
+  z.object({
+    min: z.number().optional(),
+    max: z.number().optional(),
+  }),
+  UserCriteriaSchema,
+  GenreCriteriaSchema,
   z.array(z.union([z.string(), z.number()])),
   z
     .object({ min: z.number().optional(), max: z.number().optional() })
@@ -28,23 +47,15 @@ export const ConditionValueSchema = z.union([
   z.null(),
 ])
 
-// Then define the types we'll use
+// Then define the interfaces
 export interface ICondition {
   field: string
-  operator: z.infer<typeof ComparisonOperatorSchema>
+  operator: ComparisonOperator
   value: z.infer<typeof ConditionValueSchema>
   negate?: boolean
   _cid?: string
 }
 
-export interface IConditionGroup {
-  operator: 'AND' | 'OR'
-  conditions: (ICondition | IConditionGroup)[]
-  negate?: boolean
-  _cid?: string
-}
-
-// Now define the schemas using these interfaces
 export const ConditionSchema: z.ZodType<ICondition> = z.lazy(() =>
   z.object({
     field: z.string(),
@@ -54,6 +65,13 @@ export const ConditionSchema: z.ZodType<ICondition> = z.lazy(() =>
     _cid: z.string().optional(),
   }),
 )
+
+export interface IConditionGroup {
+  operator: 'AND' | 'OR'
+  conditions: (ICondition | IConditionGroup)[]
+  negate?: boolean
+  _cid?: string
+}
 
 // Helper function to validate group recursion safely, preventing stack overflow and circular references
 const isValidConditionGroup = (
