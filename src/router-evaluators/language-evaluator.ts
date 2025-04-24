@@ -15,11 +15,14 @@ import {
 } from '@root/types/content-lookup.types.js'
 
 /**
- * Creates a routing evaluator that directs content based on its original language metadata.
+ * Constructs a routing evaluator that directs content based on its original language metadata.
  *
- * The returned evaluator enables routing decisions and condition evaluations using the "language" field, supporting operators for equality, inequality, substring containment, and set membership. It integrates with Radarr and Sonarr metadata and retrieves routing rules from the database to determine routing outcomes.
+ * The evaluator supports routing and conditional logic using the "language" field, with operators for equality, inequality, substring matching, set membership, and regular expressions. It integrates with Radarr and Sonarr metadata formats and retrieves language-based routing rules from the database to determine routing outcomes.
  *
- * @returns A {@link RoutingEvaluator} instance that routes content according to its original language.
+ * @returns A {@link RoutingEvaluator} that enables language-based routing and condition evaluation for content items.
+ *
+ * @remark
+ * Only content items with original language metadata from Radarr or Sonarr are eligible for evaluation. Regular expression operators that are invalid will be logged and result in no match.
  */
 export default function createLanguageEvaluator(
   fastify: FastifyInstance,
@@ -77,7 +80,12 @@ export default function createLanguageEvaluator(
     ],
   }
 
-  // Define this as a normal function - it will be part of the evaluator due to index signature
+  /**
+   * Determines whether the content item contains original language metadata.
+   *
+   * @param item - The content item to check.
+   * @returns `true` if the item's metadata includes an original language name from Radarr or Sonarr; otherwise, `false`.
+   */
   function hasLanguageData(item: ContentItem): boolean {
     if (item.metadata) {
       if (isRadarrResponse(item.metadata) || isSonarrResponse(item.metadata)) {
@@ -87,7 +95,12 @@ export default function createLanguageEvaluator(
     return false
   }
 
-  // Helper for extracting language
+  /**
+   * Retrieves the original language name from Radarr or Sonarr metadata in a content item.
+   *
+   * @param item - The content item containing metadata.
+   * @returns The original language name if present; otherwise, `undefined`.
+   */
   function extractLanguage(item: ContentItem): string | undefined {
     if (item.metadata) {
       if (
