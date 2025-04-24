@@ -694,7 +694,11 @@ export class DatabaseService {
         root_folder: instance.rootFolder,
         bypass_ignored: instance.bypassIgnored,
         season_monitoring: instance.seasonMonitoring,
-        monitor_new_items: instance.monitorNewItems || 'all',
+        monitor_new_items: ['all', 'none'].includes(
+          instance.monitorNewItems ?? '',
+        )
+          ? instance.monitorNewItems
+          : 'all',
         tags: JSON.stringify(instance.tags || []),
         is_default: instance.isDefault ?? false,
         is_enabled: true,
@@ -2846,7 +2850,7 @@ export class DatabaseService {
    *
    * @returns Promise resolving to array of detailed status transition metrics
    */
-  async getDetailedStatusTransitionMetrics(removeOutliers = true): Promise<
+  async getDetailedStatusTransitionMetrics(): Promise<
     {
       from_status: string
       to_status: string
@@ -2858,145 +2862,94 @@ export class DatabaseService {
     }[]
   > {
     try {
+      this.log.debug(
+        'Calculating detailed status transition metrics with quartiles',
+      )
+
       type TransitionMetricsRow = {
         from_status: string
         to_status: string
         content_type: string
+        q1: number
+        q3: number
         avg_days: number
         min_days: number
         max_days: number
         count: number
-        all_days_between: string
       }
 
-      // Use your original query to get all metrics
-      const results = await this.knex.raw<{ rows: TransitionMetricsRow[] }>(`
-    WITH status_pairs AS (
-      SELECT 
-        h1.status AS from_status,
-        h2.status AS to_status,
-        w.type AS content_type,
-        julianday(h2.timestamp) - julianday(h1.timestamp) AS days_between
-      FROM watchlist_status_history h1
-      JOIN watchlist_status_history h2 ON h1.watchlist_item_id = h2.watchlist_item_id AND h2.timestamp > h1.timestamp
-      JOIN watchlist_items w ON h1.watchlist_item_id = w.id
-      WHERE h1.status != h2.status
-      AND NOT EXISTS (
-        SELECT 1 FROM watchlist_status_history h3
-        WHERE h3.watchlist_item_id = h1.watchlist_item_id
-        AND h3.timestamp > h1.timestamp AND h3.timestamp < h2.timestamp
+      // Use a raw SQL query with percentile_cont for proper quartile calculation
+      const results = await this.knex.raw<TransitionMetricsRow[]>(`
+      WITH status_pairs AS (
+        SELECT 
+          h1.status AS from_status,
+          h2.status AS to_status,
+          w.type AS content_type,
+          julianday(h2.timestamp) - julianday(h1.timestamp) AS days_between
+        FROM watchlist_status_history h1
+        JOIN watchlist_status_history h2 ON h1.watchlist_item_id = h2.watchlist_item_id AND h2.timestamp > h1.timestamp
+        JOIN watchlist_items w ON h1.watchlist_item_id = w.id
+        WHERE h1.status != h2.status
+        AND NOT EXISTS (
+          SELECT 1 FROM watchlist_status_history h3
+          WHERE h3.watchlist_item_id = h1.watchlist_item_id
+          AND h3.timestamp > h1.timestamp AND h3.timestamp < h2.timestamp
+        )
       )
-    )
-    SELECT 
-      from_status,
-      to_status,
-      content_type,
-      avg(days_between) AS avg_days,
-      min(days_between) AS min_days,
-      max(days_between) AS max_days,
-      count(*) AS count,
-      group_concat(days_between) AS all_days_between
-    FROM status_pairs
-    GROUP BY from_status, to_status, content_type
-    ORDER BY from_status, to_status, content_type
-  `)
+      SELECT 
+        from_status,
+        to_status,
+        content_type,
+        percentile_cont(0.25) WITHIN GROUP (ORDER BY days_between) AS q1,
+        percentile_cont(0.75) WITHIN GROUP (ORDER BY days_between) AS q3,
+        AVG(days_between) AS avg_days,
+        MIN(days_between) AS min_days,
+        MAX(days_between) AS max_days,
+        COUNT(*) AS count
+      FROM status_pairs
+      GROUP BY from_status, to_status, content_type
+      ORDER BY from_status, to_status, content_type
+    `)
 
-      const rows = Array.isArray(results) ? results : results.rows || []
-
-      if (!removeOutliers) {
-        // Return all results without filtering outliers
-        return rows.map((row: TransitionMetricsRow) => ({
-          from_status: String(row.from_status),
-          to_status: String(row.to_status),
-          content_type: String(row.content_type),
-          avg_days: Number.isFinite(Number(row.avg_days))
-            ? Number(row.avg_days)
-            : 0,
-          min_days: Number.isFinite(Number(row.min_days))
-            ? Number(row.min_days)
-            : 0,
-          max_days: Number.isFinite(Number(row.max_days))
-            ? Number(row.max_days)
-            : 0,
-          count: Number(row.count),
-        }))
-      }
-
-      // Process each result to remove outliers and recalculate metrics
-      return rows.map((row: TransitionMetricsRow) => {
-        // Get all individual days_between values
-        const daysList = String(row.all_days_between ?? '')
-          .split(',')
-          .map((v) => Number(v))
-          .filter((n) => Number.isFinite(n))
-
-        if (daysList.length < 4) {
-          // Not enough data points to calculate meaningful quartiles
-          return {
-            from_status: String(row.from_status),
-            to_status: String(row.to_status),
-            content_type: String(row.content_type),
-            avg_days: Number.isFinite(Number(row.avg_days))
-              ? Number(row.avg_days)
-              : 0,
-            min_days: Number.isFinite(Number(row.min_days))
-              ? Number(row.min_days)
-              : 0,
-            max_days: Number.isFinite(Number(row.max_days))
-              ? Number(row.max_days)
-              : 0,
-            count: Number(row.count),
-          }
-        }
-
-        // Calculate quartiles
-        const sortedDays = [...daysList].sort((a, b) => a - b)
-        const q1Index = Math.floor(sortedDays.length * 0.25)
-        const q3Index = Math.floor(sortedDays.length * 0.75)
-        const q1 = sortedDays[q1Index]
-        const q3 = sortedDays[q3Index]
-
-        // Calculate IQR and bounds
+      // Apply IQR filtering in JavaScript after getting quartiles from SQL
+      const formattedResults = results.map((row) => {
+        // Calculate IQR for outlier detection
+        const q1 = Number(row.q1)
+        const q3 = Number(row.q3)
         const iqr = q3 - q1
+
+        // Determine outlier bounds
         const lowerBound = q1 - 1.5 * iqr
         const upperBound = q3 + 1.5 * iqr
 
-        // Filter out outliers
-        const filteredDays = sortedDays.filter(
-          (days) => days >= lowerBound && days <= upperBound,
-        )
+        // If avg is outside bounds, clamp it to the bounds
+        let avgDays = Number(row.avg_days)
+        if (avgDays < lowerBound) avgDays = lowerBound
+        if (avgDays > upperBound) avgDays = upperBound
 
-        if (filteredDays.length < 2) {
-          // If filtering removed all or almost all values, return original metrics with safety checks
-          return {
-            from_status: String(row.from_status),
-            to_status: String(row.to_status),
-            content_type: String(row.content_type),
-            avg_days: Number.isFinite(Number(row.avg_days))
-              ? Number(row.avg_days)
-              : 0,
-            min_days: Number.isFinite(Number(row.min_days))
-              ? Number(row.min_days)
-              : 0,
-            max_days: Number.isFinite(Number(row.max_days))
-              ? Number(row.max_days)
-              : 0,
-            count: Number(row.count),
-          }
-        }
+        // Similarly for min/max
+        let minDays = Number(row.min_days)
+        let maxDays = Number(row.max_days)
 
-        // Calculate new metrics
-        const sum = filteredDays.reduce((acc, val) => acc + val, 0)
+        if (minDays < lowerBound) minDays = lowerBound
+        if (maxDays > upperBound) maxDays = upperBound
+
         return {
           from_status: String(row.from_status),
           to_status: String(row.to_status),
           content_type: String(row.content_type),
-          avg_days: sum / filteredDays.length,
-          min_days: filteredDays[0], // Already sorted
-          max_days: filteredDays[filteredDays.length - 1], // Already sorted
-          count: filteredDays.length,
+          avg_days: avgDays,
+          min_days: minDays,
+          max_days: maxDays,
+          count: Number(row.count),
         }
       })
+
+      this.log.debug(
+        `Calculated transition metrics for ${formattedResults.length} status pairs`,
+      )
+
+      return formattedResults
     } catch (error) {
       this.log.error(
         'Error calculating detailed status transition metrics:',
