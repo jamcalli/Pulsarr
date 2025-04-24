@@ -51,7 +51,7 @@ function isValidGenreValue(value: unknown): value is string | string[] {
 /**
  * Creates a routing evaluator that determines routing decisions for content items based on genre-matching rules.
  *
- * The evaluator supports only the "genre" field and provides operators for matching genres, including `contains`, `in`, `notContains`, `notIn`, `equals`, and `regex`. It retrieves genre-based routing rules from the database, filters them by content type (movie or series), and evaluates whether a content item's genres satisfy the rule criteria to produce routing decisions.
+ * The evaluator supports only the "genres" field and provides operators for matching genres, including `contains`, `in`, `notContains`, `notIn`, `equals`, and `regex`. It retrieves genre-based routing rules from the database, filters them by content type (movie or series), and evaluates whether a content item's genres satisfy the rule criteria to produce routing decisions.
  *
  * @returns A {@link RoutingEvaluator} specialized for genre-based routing.
  *
@@ -64,13 +64,13 @@ export default function createGenreEvaluator(
   // Define metadata with only one clean field name
   const supportedFields: FieldInfo[] = [
     {
-      name: 'genre',
+      name: 'genres',
       description: 'Genre categories of the content',
       valueTypes: ['string', 'string[]'],
     },
   ]
   const supportedOperators: Record<string, OperatorInfo[]> = {
-    genre: [
+    genres: [
       {
         name: 'contains',
         description: 'Content genre list contains this genre',
@@ -145,13 +145,18 @@ export default function createGenreEvaluator(
       // Create a set of normalized genres (converted to lowercase and trimmed)
       const itemGenres = new Set(item.genres.map(normalizeString))
 
-      // Find matching genre routes - only check 'genre' field
+      // Find matching genre routes - check both 'genres' field (new) and 'genre' field (legacy)
       const matchingRules = contentTypeRules.filter((rule) => {
-        if (!rule.criteria || typeof rule.criteria.genre === 'undefined') {
+        if (!rule.criteria) {
           return false
         }
 
-        const genreValue = rule.criteria.genre
+        // Support both 'genres' (new) and 'genre' (legacy) properties in criteria
+        const genreValue =
+          rule.criteria.genres !== undefined
+            ? rule.criteria.genres
+            : rule.criteria.genre
+
         if (!isValidGenreValue(genreValue)) {
           return false
         }
@@ -229,8 +234,8 @@ export default function createGenreEvaluator(
       item: ContentItem,
       context: RoutingContext,
     ): boolean {
-      // Only support the 'genre' field
-      if (!('field' in condition) || condition.field !== 'genre') {
+      // Only support the 'genres' field
+      if (!('field' in condition) || condition.field !== 'genres') {
         return false
       }
 
@@ -301,8 +306,8 @@ export default function createGenreEvaluator(
     },
 
     canEvaluateConditionField(field: string): boolean {
-      // Only support the 'genre' field
-      return field === 'genre'
+      // Only support the 'genres' field
+      return field === 'genres'
     },
   }
 }

@@ -12,8 +12,8 @@ export function parseGuids(guids: string[] | string | undefined): string[] {
     return [
       ...new Set(
         guids
-          .map((g) => (typeof g === 'string' ? g.trim() : g))
-          .filter((g): g is string => !!g),
+          .map((g) => (typeof g === 'string' ? g.trim() : ''))
+          .filter((g): g is string => typeof g === 'string' && g.length > 0),
       ),
     ]
 
@@ -32,8 +32,13 @@ export function parseGuids(guids: string[] | string | undefined): string[] {
       /* fall‑through */
     }
 
-    // Fallback: comma‑separated list
+    // Handle string input
     const trimmed = guids.trim()
+    if (trimmed === '') {
+      return []
+    }
+
+    // Handle comma-separated list
     if (trimmed.includes(',')) {
       return [
         ...new Set(

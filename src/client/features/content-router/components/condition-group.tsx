@@ -266,15 +266,9 @@ const ConditionGroupComponent = ({
       const newConditions = [...valueRef.current.conditions]
       newConditions.splice(index, 1)
 
-      // If this was the last condition, add a truly empty condition
+      // If this was the last condition, add an empty condition using the helper
       if (newConditions.length === 0) {
-        newConditions.push({
-          field: '',
-          operator: 'equals' as ComparisonOperator,
-          value: null,
-          negate: false,
-          _cid: generateUUID(),
-        })
+        newConditions.push(createEmptyCondition())
       }
 
       onChange({
@@ -282,7 +276,7 @@ const ConditionGroupComponent = ({
         conditions: newConditions,
       })
     },
-    [onChange],
+    [onChange, createEmptyCondition],
   )
 
   if (isLoading) {

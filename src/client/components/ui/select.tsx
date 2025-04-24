@@ -36,16 +36,18 @@ const Select = ({
   children, 
   ...props 
 }: ExtendedSelectProps) => {
-  // If options are provided, generate the children automatically
-  if (options) {
-    // Detect if options are grouped by checking the structure of the first option
-    const isGrouped = React.useMemo(
-      () => options.every((o) => typeof o === 'object' && 'options' in o),
-      [options],
-    )
+  // Safe un-conditional hook call
+  const isGrouped = React.useMemo(
+    () =>
+      Array.isArray(options) &&
+      options.length > 0 &&
+      options.every((o) => typeof o === 'object' && 'options' in o),
+    [options],
+  )
 
+  if (options) {
     return (
-      <SelectPrimitive.Root {...props}>
+      <SelectPrimitive.Root {...props} disabled={disabled}>
         {children || (
           <>
             <SelectTrigger className={className} disabled={disabled}>
@@ -82,8 +84,12 @@ const Select = ({
     )
   }
 
-  // If no options are provided, use as a regular select (for backward compatibility)
-  return <SelectPrimitive.Root {...props}>{children}</SelectPrimitive.Root>
+  // If no options are provided, use as a regular select
+  return (
+    <SelectPrimitive.Root {...props} disabled={disabled}>
+      {children}
+    </SelectPrimitive.Root>
+  )
 }
 Select.displayName = "Select"
 

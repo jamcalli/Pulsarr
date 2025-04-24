@@ -703,10 +703,9 @@ export class DatabaseService {
           const value = String(instance.monitorNewItems).toLowerCase()
           // Validate against allowed values
           if (!['all', 'none'].includes(value)) {
-            this.log.warn(
-              `Invalid monitorNewItems value: "${instance.monitorNewItems}", defaulting to "all"`,
+            throw new Error(
+              `Invalid monitorNewItems value: ${instance.monitorNewItems}. Valid values are "all" or "none".`,
             )
-            return 'all'
           }
           return value
         })(),
@@ -2888,7 +2887,7 @@ export class DatabaseService {
         from_status: string
         to_status: string
         content_type: string
-        days_between: number
+        days_between: number | string
       }
 
       // First, get all the direct transitions without filtering
@@ -2920,16 +2919,20 @@ export class DatabaseService {
         FROM status_pairs
       `)
 
-      // Group transitions for outlier detection
       const transitionGroups = new Map<string, number[]>()
 
-      // Process and group raw transitions
+      // Process and group raw transitions with numeric coercion
       for (const row of rawTransitions) {
         const key = `${row.from_status}|${row.to_status}|${row.content_type}`
+        const daysBetween =
+          typeof row.days_between === 'number'
+            ? row.days_between
+            : Number(row.days_between)
+
         if (!transitionGroups.has(key)) {
           transitionGroups.set(key, [])
         }
-        transitionGroups.get(key)?.push(row.days_between)
+        transitionGroups.get(key)?.push(daysBetween)
       }
 
       // Process each group to filter outliers and calculate statistics
@@ -2946,8 +2949,8 @@ export class DatabaseService {
       for (const [key, values] of transitionGroups.entries()) {
         if (values.length === 0) continue
 
-        // Sort values for percentile calculations
-        values.sort((a: number, b: number) => a - b)
+        // Values are now guaranteed to be numbers
+        values.sort((a, b) => a - b)
 
         // Calculate quartiles for IQR
         const q1Idx = Math.floor(values.length * 0.25)
@@ -2958,17 +2961,14 @@ export class DatabaseService {
 
         // Filter outliers using IQR method
         const filteredValues = values.filter(
-          (v: number) => v >= q1 - 1.5 * iqr && v <= q3 + 1.5 * iqr,
+          (v) => v >= q1 - 1.5 * iqr && v <= q3 + 1.5 * iqr,
         )
 
         if (filteredValues.length === 0) continue
 
-        // Calculate statistics
+        // Calculate statistics with guaranteed numeric values
         const [from_status, to_status, content_type] = key.split('|')
-        const sum = filteredValues.reduce(
-          (acc: number, val: number) => acc + val,
-          0,
-        )
+        const sum = filteredValues.reduce((acc, val) => acc + val, 0)
         const avg_days = sum / filteredValues.length
         const min_days = Math.min(...filteredValues)
         const max_days = Math.max(...filteredValues)
@@ -4890,7 +4890,7 @@ export class DatabaseService {
 
         // For scalar operators, ensure the value is meaningful
         if (
-          ['equals', 'notEquals', 'contains', 'notContains', 'regex'].includes(
+          ['equals', 'notEquals', 'contains', 'notContains'].includes(
             condition.operator,
           )
         ) {
@@ -4901,6 +4901,29 @@ export class DatabaseService {
             return {
               valid: false,
               error: `Value for ${condition.operator} operator cannot be an empty string`,
+            }
+          }
+        }
+
+        // Special validation for regex operator
+        if (condition.operator === 'regex') {
+          if (
+            typeof condition.value !== 'string' ||
+            condition.value.trim() === ''
+          ) {
+            return {
+              valid: false,
+              error:
+                'Value for regex operator must be a non-empty string containing a valid pattern',
+            }
+          }
+          try {
+            // Attempt to compile the pattern to catch syntax errors early
+            new RegExp(condition.value)
+          } catch (error) {
+            return {
+              valid: false,
+              error: `Invalid regular expression pattern: ${(error as Error).message}`,
             }
           }
         }

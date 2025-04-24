@@ -284,8 +284,11 @@ function ConditionInput({
     // Handle array values
     const formattedValue = Array.isArray(value)
       ? value.map((item) => (isNumeric ? Number(item) : String(item)))
-      : // Handle single values - preserve numeric values
-        [isNumeric ? String(value || '') : String(value || '')]
+      : [
+          isNumeric && typeof value === 'number'
+            ? value // keep number intact
+            : String(value || ''),
+        ]
 
     return {
       name: fieldName as FieldPath<FieldState>,

@@ -106,7 +106,7 @@ export type ConditionField =
  * Form values for a condition
  */
 export interface ConditionFormValues {
-  field: string
+  field: ConditionField
   operator: ComparisonOperator
   value: ConditionValue
   negate?: boolean

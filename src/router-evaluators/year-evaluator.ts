@@ -1,13 +1,12 @@
 import type { FastifyInstance } from 'fastify'
-import {
-  type ContentItem,
-  type RoutingContext,
-  type RoutingDecision,
-  type RoutingEvaluator,
-  type Condition,
-  ConditionGroup,
-  type FieldInfo,
-  type OperatorInfo,
+import type {
+  ContentItem,
+  RoutingContext,
+  RoutingDecision,
+  RoutingEvaluator,
+  Condition,
+  FieldInfo,
+  OperatorInfo,
 } from '@root/types/router.types.js'
 import { extractYear } from '@root/types/content-lookup.types.js'
 

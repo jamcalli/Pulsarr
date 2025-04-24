@@ -65,8 +65,8 @@ const CertificationMultiSelect = ({
   const handleValueChange = (values: string[]) => {
     // Extract certification value without region prefix
     const rawValues = values.map(value => {
-      const parts = value.split('-');
-      return parts[1] || value; // Fallback to original value if no hyphen found
+      const idx = value.indexOf('-');
+      return idx >= 0 ? value.substring(idx + 1) : value;
     });
     
     // Remove duplicates
