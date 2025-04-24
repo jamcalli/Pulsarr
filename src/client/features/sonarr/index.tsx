@@ -9,9 +9,9 @@ import InstanceCardSkeleton from '@/features/sonarr/components/instance/sonarr-c
 import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
 
 /**
- * Renders the Sonarr configuration page with tabs for managing Sonarr instances and content routes.
+ * Displays the Sonarr configuration page with tabs for managing Sonarr instances and content routes.
  *
- * Provides an interface to add, view, and configure Sonarr instances, as well as manage content routing. Displays loading and initialization states as appropriate, and separates instance management from content route configuration using a tabbed layout.
+ * Provides an interface to add, view, and configure Sonarr instances, as well as manage content routing. Separates instance management and content route configuration into distinct tabs, and handles loading and initialization states.
  */
 export default function SonarrConfigPage() {
   const instances = useSonarrStore((state) => state.instances)

@@ -1,11 +1,9 @@
 /**
- * Parses GUIDs from a string, array, or undefined input into a string array.
+ * Parses GUIDs from various input formats into a deduplicated array of strings.
  *
- * Accepts an array of strings, a JSON-encoded string representing an array of GUIDs, or a single string.
- * Returns an empty array if the input is undefined or falsy. If parsing a string as JSON fails, attempts to
- * handle it as a comma-separated list or a single GUID.
+ * Accepts an array of strings, a JSON-encoded string representing an array, a comma-separated string, a single string, or undefined. Returns an empty array if the input is undefined or falsy. Ensures all returned GUIDs are unique and trimmed.
  *
- * @returns An array of GUID strings parsed from the input.
+ * @returns An array of unique GUID strings parsed from the input.
  */
 export function parseGuids(guids: string[] | string | undefined): string[] {
   if (!guids) return []
@@ -54,11 +52,11 @@ export function parseGuids(guids: string[] | string | undefined): string[] {
 }
 
 /**
- * Determines whether two sets of GUIDs share at least one common GUID.
+ * Returns `true` if the two GUID inputs share at least one common GUID.
  *
- * Both inputs can be a string, an array of strings, or undefined. The function parses the inputs and checks for any overlap.
+ * Accepts GUIDs as a string, an array of strings, or undefined. Inputs are parsed and compared for any overlap.
  *
- * @returns `true` if there is at least one matching GUID between the two sets; otherwise, `false`.
+ * @returns `true` if any GUID is present in both inputs; otherwise, `false`.
  */
 export function hasMatchingGuids(
   guids1: string[] | string | undefined,
@@ -77,12 +75,10 @@ export function hasMatchingGuids(
 }
 
 /**
- * Aggregates all unique GUIDs from an array of items into a Set.
+ * Collects all unique GUIDs from the `guids` property of each item in the input array.
  *
- * Iterates through each item's `guids` property, parses it, and adds each GUID to the resulting Set.
- *
- * @param items - Array of objects, each containing a `guids` property to extract GUIDs from.
- * @returns A Set containing all unique GUIDs found in the input items.
+ * @param items - Array of objects, each with a `guids` property containing one or more GUIDs.
+ * @returns A Set of unique GUID strings extracted from all items.
  */
 export function createGuidSet(
   items: Array<{ guids: string[] | string | undefined }>,
@@ -97,10 +93,10 @@ export function createGuidSet(
 }
 
 /**
- * Returns the first GUID from the input that starts with the specified type prefix.
+ * Retrieves the first GUID from the input that begins with the specified prefix.
  *
  * @param type - The prefix to match at the start of each GUID (e.g., 'tmdb:', 'tvdb:').
- * @returns The first matching GUID, or undefined if none are found.
+ * @returns The first GUID starting with {@link type}, or undefined if no such GUID exists.
  */
 export function extractTypedGuid(
   guids: string[] | string | undefined,
@@ -111,8 +107,12 @@ export function extractTypedGuid(
 }
 
 /**
- * Extracts a TMDB ID from the guids list.
- * Returns the numeric ID or 0 if not found or invalid.
+ * Extracts the numeric TMDB ID from the provided GUIDs.
+ *
+ * Parses the input for a GUID prefixed with "tmdb:" and returns the numeric portion as an integer.
+ *
+ * @param guids - Input containing one or more GUIDs in various formats.
+ * @returns The TMDB ID as a number, or 0 if not found or invalid.
  */
 export function extractTmdbId(guids: string[] | string | undefined): number {
   const parsed = parseGuids(guids)
@@ -124,8 +124,11 @@ export function extractTmdbId(guids: string[] | string | undefined): number {
 }
 
 /**
- * Extracts a TVDB ID from the guids list.
- * Returns the numeric ID or 0 if not found or invalid.
+ * Extracts the numeric TVDB ID from the provided GUIDs.
+ *
+ * Parses the input and returns the first valid number found after the "tvdb:" prefix, or 0 if none is found.
+ *
+ * @returns The TVDB ID as a number, or 0 if not present or invalid.
  */
 export function extractTvdbId(guids: string[] | string | undefined): number {
   const parsed = parseGuids(guids)
@@ -137,8 +140,13 @@ export function extractTvdbId(guids: string[] | string | undefined): number {
 }
 
 /**
- * Compares two already-parsed GUID arrays for matches.
- * Much faster than hasMatchingGuids when you already have parsed arrays.
+ * Determines whether two arrays of GUID strings share at least one common value.
+ *
+ * @param parsedGuids1 - The first array of GUID strings.
+ * @param parsedGuids2 - The second array of GUID strings.
+ * @returns `true` if there is at least one matching GUID in both arrays; otherwise, `false`.
+ *
+ * @remark This function assumes both inputs are already parsed arrays of GUID strings and is more efficient than parsing inputs again.
  */
 export function hasMatchingParsedGuids(
   parsedGuids1: string[],

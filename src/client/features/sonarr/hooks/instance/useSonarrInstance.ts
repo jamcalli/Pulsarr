@@ -5,14 +5,14 @@ import type { SonarrInstanceSchema } from '@/features/sonarr/store/schemas'
 import type { UseFormReturn } from 'react-hook-form'
 
 /**
- * Provides Sonarr instance data and management handlers for a given instance ID.
+ * Returns Sonarr instance data and management handlers for a specified instance ID.
  *
- * Returns the current instance, all instances, and functions to update, delete, and fetch instance data. Deleting the last real instance resets it to a default placeholder configuration instead of removing it.
+ * Provides access to the current Sonarr instance, all instances, and functions to update, delete, and fetch instance data for the given ID.
  *
  * @param instanceId - The ID of the Sonarr instance to manage.
  * @returns An object containing the current instance, all instances, and handlers for updating, deleting, and fetching instance data.
  *
- * @remark When deleting the last real instance, the instance is reset to a default configuration rather than being removed.
+ * @remark If the last real instance is deleted, it is reset to a default placeholder configuration instead of being removed.
  */
 export function useSonarrInstance(instanceId: number) {
   const { toast } = useToast()
