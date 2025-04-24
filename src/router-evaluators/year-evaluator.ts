@@ -12,16 +12,16 @@ import {
 import { extractYear } from '@root/types/content-lookup.types.js'
 
 /**
- * Checks if the input is an array containing only numbers.
+ * Determines whether the input is an array consisting exclusively of numbers.
  *
- * @returns True if the input is an array and every element is a number; otherwise, false.
+ * @returns True if the input is an array where every element is a number; otherwise, false.
  */
 function isNumberArray(value: unknown): value is number[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'number')
 }
 
 /**
- * Checks if the given value is a number.
+ * Determines whether the provided value is of type number.
  *
  * @returns `true` if the value is a number; otherwise, `false`.
  */
@@ -36,10 +36,10 @@ interface YearRange {
 }
 
 /**
- * Checks if a value is a {@link YearRange} object with optional numeric `min` and/or `max` properties.
+ * Determines whether the given value is a {@link YearRange} object with optional numeric `min` and/or `max` properties.
  *
- * @param value - The value to test.
- * @returns `true` if the value is an object with at least one of `min` or `max` as a number or undefined; otherwise, `false`.
+ * @param value - The value to check.
+ * @returns `true` if the value is an object containing at least one of `min` or `max` as a number or undefined; otherwise, `false`.
  */
 function isYearRange(value: unknown): value is YearRange {
   return (
@@ -56,9 +56,11 @@ function isYearRange(value: unknown): value is YearRange {
 }
 
 /**
- * Checks if the input is a valid year value, which can be a number, an array of numbers, or a {@link YearRange} object.
+ * Determines whether the input is a valid year value.
  *
- * @returns `true` if the input is a number, an array of numbers, or a {@link YearRange}; otherwise, `false`.
+ * A valid year value is a number, an array of numbers, or a {@link YearRange} object with optional `min` and/or `max` properties.
+ *
+ * @returns `true` if the input matches one of the valid year value types; otherwise, `false`.
  */
 function isValidYearValue(
   value: unknown,
@@ -69,7 +71,7 @@ function isValidYearValue(
 /**
  * Creates a routing evaluator that determines routing decisions for content items based on their release year.
  *
- * The evaluator supports various operators for the "year" field, including exact match, range, and array membership. It retrieves year-based routing rules from the database, filters them by content type and enabled status, and matches them against the content's release year to produce routing decisions. It also provides condition evaluation for year-based rules and exposes metadata describing supported fields and operators.
+ * The evaluator supports operators for the "year" field, including exact match, range, and array membership. It retrieves year-based routing rules from the database, filters them by content type and enabled status, and matches them against the content's release year to produce routing decisions. It also provides condition evaluation for year-based rules and exposes metadata describing supported fields and operators.
  *
  * @returns A {@link RoutingEvaluator} instance for evaluating routing rules and conditions based on content release year.
  */

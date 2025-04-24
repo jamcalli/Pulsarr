@@ -15,11 +15,14 @@ import {
 import safeRegex from 'safe-regex'
 
 /**
- * Creates a routing evaluator that applies routing decisions and condition evaluations based on content certification or rating metadata.
+ * Creates a routing evaluator that determines routing decisions and evaluates conditions based on content certification or rating metadata.
  *
- * The evaluator supports the "certification" field with operators such as equals, notEquals, contains, notContains, in, notIn, and regex. It extracts certification information from Radarr and Sonarr metadata and matches it against routing rules for movies and TV shows.
+ * The evaluator supports the "certification" field with operators including equals, notEquals, contains, notContains, in, notIn, and regex. It extracts certification information from Radarr and Sonarr metadata and matches it against routing rules for movies and TV shows.
  *
  * @returns A {@link RoutingEvaluator} that routes content items according to their certification metadata.
+ *
+ * @remark
+ * Only the "certification" field is supported for evaluation. Regex patterns are validated for safety before use.
  */
 export default function createCertificationEvaluator(
   fastify: FastifyInstance,
@@ -76,9 +79,9 @@ export default function createCertificationEvaluator(
   }
 
   /**
-   * Checks if the content item has certification information in Radarr or Sonarr metadata.
+   * Determines whether a content item contains certification metadata from Radarr or Sonarr.
    *
-   * @returns True if certification data is present; otherwise, false.
+   * @returns True if certification data exists in the item's metadata; otherwise, false.
    */
   function hasCertificationData(item: ContentItem): boolean {
     if (item.metadata) {
@@ -90,10 +93,10 @@ export default function createCertificationEvaluator(
   }
 
   /**
-   * Extracts the certification value from Radarr or Sonarr metadata on a content item.
+   * Retrieves the certification or rating string from Radarr or Sonarr metadata on a content item.
    *
-   * @param item - The content item to check for certification metadata.
-   * @returns The certification string if present; otherwise, undefined.
+   * @param item - The content item from which to extract certification metadata.
+   * @returns The certification string if available; otherwise, undefined.
    */
   function extractCertification(item: ContentItem): string | undefined {
     if (item.metadata) {
@@ -108,7 +111,13 @@ export default function createCertificationEvaluator(
   }
 
   /**
-   * Safely evaluates a regex pattern with safety checks but no async timeout
+   * Evaluates whether the input string matches the provided regex pattern, rejecting unsafe or invalid patterns.
+   *
+   * @param pattern - The regex pattern to evaluate.
+   * @param input - The string to test against the pattern.
+   * @returns `true` if the input matches the pattern and the pattern is safe and valid; otherwise, `false`.
+   *
+   * @remark Unsafe or invalid regex patterns are rejected to prevent performance issues or errors.
    */
   function evaluateRegexSafely(pattern: string, input: string): boolean {
     // Reject potentially catastrophic patterns using safe-regex

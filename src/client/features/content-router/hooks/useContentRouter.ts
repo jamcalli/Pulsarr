@@ -13,9 +13,9 @@ export interface UseContentRouterParams {
 }
 
 /**
- * React hook for managing content routing rules for a specified target type.
+ * React hook for managing content routing rules for a given target type.
  *
- * Provides state and functions to fetch, create, update, delete, and toggle routing rules, along with loading and error states.
+ * Provides state and functions to fetch, create, update, delete, and toggle routing rules, along with loading and error indicators.
  *
  * @param targetType - The content target type whose routing rules are managed (e.g., "radarr" or "sonarr").
  * @returns An object containing the current routing rules, loading and error states, and functions for rule management.

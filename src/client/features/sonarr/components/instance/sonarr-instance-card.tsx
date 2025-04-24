@@ -51,14 +51,14 @@ interface InstanceCardProps {
 }
 
 /**
- * Renders a configuration card for managing a Sonarr instance, providing controls to view, edit, test, sync, and delete instance settings.
+ * Displays a configuration card for managing a Sonarr instance, allowing users to view, edit, test, sync, and delete instance settings.
  *
- * The card includes form fields for connection details, quality profile, root folder, season monitoring, syncing with other instances, monitoring new items, and setting the default instance. It integrates with global state, displays user feedback via toasts and modals, and handles asynchronous operations for testing connections, saving changes, syncing, and deletion.
+ * The card provides form controls for connection details, quality profile, root folder, season monitoring, syncing with other instances, monitoring new items, and setting the default instance. It integrates with global state, handles asynchronous operations for testing connections, saving changes, syncing, and deletion, and provides user feedback through toasts and modals.
  *
  * @param instance - The Sonarr instance to display and configure.
  * @param setShowInstanceCard - Optional callback to control the card's visibility.
  *
- * @returns The rendered UI for the Sonarr instance configuration card.
+ * @returns The rendered Sonarr instance configuration card UI.
  */
 export function InstanceCard({
   instance,

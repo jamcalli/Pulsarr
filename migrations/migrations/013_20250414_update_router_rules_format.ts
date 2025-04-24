@@ -1,9 +1,9 @@
 import type { Knex } from 'knex'
 
 /**
- * Migrates all non-conditional router rules to a standardized predicate-based criteria format.
+ * Converts all non-conditional router rules to a unified predicate-based criteria format.
  *
- * For each applicable rule, replaces the `criteria` field with a JSON object containing a single `condition` property, mapping known rule types to evaluator-compatible fields and operators. Multi-value fields are normalized to arrays, and unknown types are handled with a generic fallback condition.
+ * For each applicable rule, replaces the `criteria` field with a JSON object containing a single `condition` property, mapping known rule types to standardized evaluator fields and operators. Multi-value fields are normalized to arrays, and unknown types are handled with a generic fallback condition.
  *
  * @remark
  * Rules with missing or unrecognized criteria are skipped. Errors encountered during individual rule processing are logged and do not interrupt the migration process.
@@ -135,9 +135,9 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Reverts router rules from the predicate-based criteria format to the original criteria structure.
+ * Reverts non-conditional router rules from the predicate-based criteria format back to their original criteria structure.
  *
- * For each non-conditional router rule, reconstructs the original criteria object from the `condition` property and updates the database. Known rule types are mapped to their original keys, while unknown types use the condition's field name as the key.
+ * For each applicable rule, reconstructs the original criteria object from the `condition` property and updates the database. Known rule types are mapped to their legacy keys; unknown types use the condition's field name as the key.
  */
 export async function down(knex: Knex): Promise<void> {
   // Get all non-conditional rules
