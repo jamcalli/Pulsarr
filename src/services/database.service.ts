@@ -760,9 +760,10 @@ export class DatabaseService {
         ...(typeof updates.seasonMonitoring !== 'undefined' && {
           season_monitoring: updates.seasonMonitoring,
         }),
-        ...(typeof updates.monitorNewItems !== 'undefined' && {
-          monitor_new_items: updates.monitorNewItems,
-        }),
+        ...(typeof updates.monitorNewItems !== 'undefined' &&
+          ['all', 'none'].includes(String(updates.monitorNewItems)) && {
+            monitor_new_items: updates.monitorNewItems,
+          }),
         ...(typeof updates.tags !== 'undefined' && {
           tags: JSON.stringify(updates.tags),
         }),
@@ -2862,24 +2863,10 @@ export class DatabaseService {
     }[]
   > {
     try {
-      this.log.debug(
-        'Calculating detailed status transition metrics with quartiles',
-      )
+      this.log.debug('Calculating detailed status transition metrics')
 
-      type TransitionMetricsRow = {
-        from_status: string
-        to_status: string
-        content_type: string
-        q1: number
-        q3: number
-        avg_days: number
-        min_days: number
-        max_days: number
-        count: number
-      }
-
-      // Use a raw SQL query with percentile_cont for proper quartile calculation
-      const results = await this.knex.raw<TransitionMetricsRow[]>(`
+      // Get the raw transition data with individual days_between values
+      const statusPairs = await this.knex.raw(`
       WITH status_pairs AS (
         SELECT 
           h1.status AS from_status,
@@ -2900,56 +2887,73 @@ export class DatabaseService {
         from_status,
         to_status,
         content_type,
-        percentile_cont(0.25) WITHIN GROUP (ORDER BY days_between) AS q1,
-        percentile_cont(0.75) WITHIN GROUP (ORDER BY days_between) AS q3,
-        AVG(days_between) AS avg_days,
-        MIN(days_between) AS min_days,
-        MAX(days_between) AS max_days,
-        COUNT(*) AS count
+        days_between
       FROM status_pairs
-      GROUP BY from_status, to_status, content_type
-      ORDER BY from_status, to_status, content_type
     `)
 
-      // Apply IQR filtering in JavaScript after getting quartiles from SQL
-      const formattedResults = results.map((row) => {
-        // Calculate IQR for outlier detection
-        const q1 = Number(row.q1)
-        const q3 = Number(row.q3)
-        const iqr = q3 - q1
+      // Group the raw data by from_status, to_status, and content_type
+      const groupedData: Record<string, number[]> = {}
 
-        // Determine outlier bounds
-        const lowerBound = q1 - 1.5 * iqr
-        const upperBound = q3 + 1.5 * iqr
+      for (const row of statusPairs) {
+        const key = `${row.from_status}_${row.to_status}_${row.content_type}`
 
-        // If avg is outside bounds, clamp it to the bounds
-        let avgDays = Number(row.avg_days)
-        if (avgDays < lowerBound) avgDays = lowerBound
-        if (avgDays > upperBound) avgDays = upperBound
-
-        // Similarly for min/max
-        let minDays = Number(row.min_days)
-        let maxDays = Number(row.max_days)
-
-        if (minDays < lowerBound) minDays = lowerBound
-        if (maxDays > upperBound) maxDays = upperBound
-
-        return {
-          from_status: String(row.from_status),
-          to_status: String(row.to_status),
-          content_type: String(row.content_type),
-          avg_days: avgDays,
-          min_days: minDays,
-          max_days: maxDays,
-          count: Number(row.count),
+        if (!groupedData[key]) {
+          groupedData[key] = []
         }
-      })
 
-      this.log.debug(
-        `Calculated transition metrics for ${formattedResults.length} status pairs`,
+        groupedData[key].push(Number(row.days_between))
+      }
+
+      // Calculate metrics for each group
+      const results = Object.entries(groupedData).map(
+        ([key, daysBetweenValues]) => {
+          // Sort the values for percentile calculations
+          daysBetweenValues.sort((a, b) => a - b)
+
+          // Calculate quartiles
+          const q1 = this.calculatePercentile(daysBetweenValues, 0.25)
+          const q3 = this.calculatePercentile(daysBetweenValues, 0.75)
+
+          // Calculate IQR for outlier detection
+          const iqr = q3 - q1
+          const lowerBound = q1 - 1.5 * iqr
+          const upperBound = q3 + 1.5 * iqr
+
+          // Filter values to exclude outliers
+          const filteredValues = daysBetweenValues.filter(
+            (value) => value >= lowerBound && value <= upperBound,
+          )
+
+          // Calculate metrics on filtered values
+          const sum = filteredValues.reduce((acc, val) => acc + val, 0)
+          const avg =
+            filteredValues.length > 0 ? sum / filteredValues.length : 0
+          const min = filteredValues.length > 0 ? filteredValues[0] : 0
+          const max =
+            filteredValues.length > 0
+              ? filteredValues[filteredValues.length - 1]
+              : 0
+
+          // Parse the key back into components
+          const [from_status, to_status, content_type] = key.split('_')
+
+          return {
+            from_status,
+            to_status,
+            content_type,
+            avg_days: avg,
+            min_days: min,
+            max_days: max,
+            count: daysBetweenValues.length,
+          }
+        },
       )
 
-      return formattedResults
+      this.log.debug(
+        `Calculated transition metrics for ${results.length} status pairs`,
+      )
+
+      return results
     } catch (error) {
       this.log.error(
         'Error calculating detailed status transition metrics:',
@@ -2957,6 +2961,34 @@ export class DatabaseService {
       )
       throw error
     }
+  }
+
+  /**
+   * Calculates a percentile value from a sorted array
+   *
+   * @param sortedArray - Array of numbers, must be sorted in ascending order
+   * @param percentile - Percentile to calculate (0-1)
+   * @returns The calculated percentile value
+   */
+  private calculatePercentile(
+    sortedArray: number[],
+    percentile: number,
+  ): number {
+    if (sortedArray.length === 0) return 0
+
+    // Calculate the index position for the percentile
+    const index = percentile * (sortedArray.length - 1)
+    const lowerIndex = Math.floor(index)
+    const upperIndex = Math.ceil(index)
+
+    // Exact match to an element
+    if (lowerIndex === upperIndex) return sortedArray[lowerIndex]
+
+    // Need to interpolate between two elements
+    const weight = index - lowerIndex
+    return (
+      sortedArray[lowerIndex] * (1 - weight) + sortedArray[upperIndex] * weight
+    )
   }
 
   /**
@@ -3494,7 +3526,10 @@ export class DatabaseService {
     const chunks = this.chunkArray(records, 100)
 
     for (const chunk of chunks) {
-      await this.knex('watchlist_radarr_instances').insert(chunk)
+      await this.knex('watchlist_radarr_instances')
+        .insert(chunk)
+        .onConflict(['watchlist_id', 'radarr_instance_id'])
+        .ignore()
     }
   }
 
@@ -3785,7 +3820,10 @@ export class DatabaseService {
     const chunks = this.chunkArray(records, 100)
 
     for (const chunk of chunks) {
-      await this.knex('watchlist_sonarr_instances').insert(chunk)
+      await this.knex('watchlist_sonarr_instances')
+        .insert(chunk)
+        .onConflict(['watchlist_id', 'sonarr_instance_id'])
+        .ignore()
     }
   }
 
@@ -4713,9 +4751,87 @@ export class DatabaseService {
     }
   }
 
-  /**
-   * Creates a conditional router rule
-   */
+  // Helper to validate condition structure
+  private validateCondition(condition: Condition | ConditionGroup): {
+    valid: boolean
+    error?: string
+  } {
+    try {
+      // Check if it's a condition group
+      if ('operator' in condition && 'conditions' in condition) {
+        // It's a condition group
+        if (!['and', 'or'].includes(condition.operator)) {
+          return {
+            valid: false,
+            error: `Invalid operator: ${condition.operator}. Expected 'and' or 'or'.`,
+          }
+        }
+
+        // Check if conditions is an array
+        if (!Array.isArray(condition.conditions)) {
+          return { valid: false, error: 'conditions must be an array' }
+        }
+
+        // Recursively validate all conditions in the group
+        for (const subCondition of condition.conditions) {
+          const result = this.validateCondition(subCondition)
+          if (!result.valid) return result
+        }
+
+        return { valid: true }
+      }
+
+      // Check if it's a simple condition (else if -> if since the previous branch returns)
+      if (
+        'field' in condition &&
+        'operator' in condition &&
+        'value' in condition
+      ) {
+        // Validate field
+        if (typeof condition.field !== 'string' || !condition.field.trim()) {
+          return { valid: false, error: 'field must be a non-empty string' }
+        }
+
+        // Validate operator
+        const validOperators = [
+          'equals',
+          'notEquals',
+          'contains',
+          'notContains',
+          'in',
+          'notIn',
+        ]
+        if (!validOperators.includes(condition.operator)) {
+          return {
+            valid: false,
+            error: `Invalid operator: ${condition.operator}`,
+          }
+        }
+
+        // For array operators, check that value is an array
+        if (
+          ['in', 'notIn'].includes(condition.operator) &&
+          !Array.isArray(condition.value)
+        ) {
+          return {
+            valid: false,
+            error: `Value for ${condition.operator} operator must be an array`,
+          }
+        }
+
+        return { valid: true }
+      }
+
+      return { valid: false, error: 'Invalid condition structure' }
+    } catch (error) {
+      return {
+        valid: false,
+        error:
+          error instanceof Error ? error.message : 'Unknown validation error',
+      }
+    }
+  }
+
   async createConditionalRule(rule: {
     name: string
     target_type: 'sonarr' | 'radarr'
@@ -4727,6 +4843,12 @@ export class DatabaseService {
     enabled?: boolean
     metadata?: RadarrMovieLookupResponse | SonarrSeriesLookupResponse | null
   }): Promise<RouterRule> {
+    // Validate condition before proceeding
+    const validationResult = this.validateCondition(rule.condition)
+    if (!validationResult.valid) {
+      throw new Error(`Invalid condition: ${validationResult.error}`)
+    }
+
     const criteria = {
       condition: rule.condition,
     }
@@ -4767,9 +4889,6 @@ export class DatabaseService {
     }
   }
 
-  /**
-   * Updates a conditional router rule
-   */
   async updateConditionalRule(
     id: number,
     updates: {
@@ -4783,6 +4902,14 @@ export class DatabaseService {
       metadata?: RadarrMovieLookupResponse | SonarrSeriesLookupResponse | null
     },
   ): Promise<RouterRule> {
+    // Validate condition if provided
+    if (updates.condition) {
+      const validationResult = this.validateCondition(updates.condition)
+      if (!validationResult.valid) {
+        throw new Error(`Invalid condition: ${validationResult.error}`)
+      }
+    }
+
     // Get current rule to preserve existing data
     const currentRule = await this.getRouterRuleById(id)
     if (!currentRule) {
@@ -4804,7 +4931,7 @@ export class DatabaseService {
     if (updates.order !== undefined) updateData.order = updates.order
     if (updates.enabled !== undefined) updateData.enabled = updates.enabled
 
-    // Update condition within criteria
+    // Update condition within criteria, preserving other criteria fields
     if (updates.condition !== undefined) {
       const currentCriteria =
         typeof currentRule.criteria === 'string'
