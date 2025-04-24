@@ -1,12 +1,12 @@
 import type { Knex } from 'knex'
 
 /**
- * Migrates router rules to a new predicate-based criteria format.
+ * Migrates all non-conditional router rules to a standardized predicate-based criteria format.
  *
- * Replaces the entire `criteria` field of each non-conditional router rule with a standardized structure containing a single `condition` object, mapping existing rule types and values to evaluator-compatible fields and operators. Multi-select fields are normalized to arrays, and unknown rule types are handled with a generic fallback.
+ * For each applicable rule, replaces the `criteria` field with a JSON object containing a single `condition` property, mapping known rule types to evaluator-compatible fields and operators. Multi-value fields are normalized to arrays, and unknown types are handled with a generic fallback condition.
  *
  * @remark
- * Rules with missing or unrecognized criteria are skipped. Errors during individual rule processing are logged and do not halt the migration.
+ * Rules with missing or unrecognized criteria are skipped. Errors encountered during individual rule processing are logged and do not interrupt the migration process.
  */
 export async function up(knex: Knex): Promise<void> {
   // Get all router rules that need updating (non-conditional rules)
@@ -135,9 +135,9 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Reverts router rules from the predicate-based criteria format back to the original criteria structure.
+ * Reverts router rules from the predicate-based criteria format to the original criteria structure.
  *
- * For each non-conditional router rule, reconstructs the original criteria object from the `condition` field and updates the database accordingly. Handles known rule types explicitly and uses a generic fallback for unknown types.
+ * For each non-conditional router rule, reconstructs the original criteria object from the `condition` property and updates the database. Known rule types are mapped to their original keys, while unknown types use the condition's field name as the key.
  */
 export async function down(knex: Knex): Promise<void> {
   // Get all non-conditional rules

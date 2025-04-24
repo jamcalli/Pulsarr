@@ -11,36 +11,36 @@ import {
 } from '@root/types/router.types.js'
 
 /**
- * Normalizes a string by converting to lowercase and trimming whitespace.
+ * Converts a string to lowercase and trims leading and trailing whitespace.
  *
- * @param str - The string to normalize.
- * @returns The normalized string in lowercase with whitespace trimmed.
+ * @param str - The input string to normalize.
+ * @returns The normalized string.
  */
 function normalizeString(str: string): string {
   return str.toLowerCase().trim()
 }
 
 /**
- * Determines whether the provided value is an array of strings.
+ * Checks if a value is an array consisting only of strings.
  *
- * @param value - The value to check.
- * @returns True if {@link value} is an array where every element is a string; otherwise, false.
+ * @param value - The value to test.
+ * @returns True if the value is an array and every element is a string; otherwise, false.
  */
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'string')
 }
 
 /**
- * Determines whether the provided value is a string.
+ * Checks if a value is a string.
  *
- * @returns `true` if the value is of type string; otherwise, `false`.
+ * @returns `true` if the value is a string; otherwise, `false`.
  */
 function isString(value: unknown): value is string {
   return typeof value === 'string'
 }
 
 /**
- * Determines whether a value is a valid genre value, meaning it is either a string or an array of strings.
+ * Checks if a value is a string or an array of strings suitable for genre matching.
  *
  * @returns `true` if the value is a string or an array of strings; otherwise, `false`.
  */
@@ -51,9 +51,12 @@ function isValidGenreValue(value: unknown): value is string | string[] {
 /**
  * Creates a routing evaluator that determines routing decisions for content items based on genre-matching rules.
  *
- * The evaluator supports only the "genre" field and provides operators for matching genres, including `contains`, `in`, `notContains`, `notIn`, and `equals`. It retrieves genre-based routing rules from the database, filters them by content type (movie or series), and evaluates whether a content item's genres satisfy the rule criteria to produce routing decisions.
+ * The evaluator supports only the "genre" field and provides operators for matching genres, including `contains`, `in`, `notContains`, `notIn`, `equals`, and `regex`. It retrieves genre-based routing rules from the database, filters them by content type (movie or series), and evaluates whether a content item's genres satisfy the rule criteria to produce routing decisions.
  *
  * @returns A {@link RoutingEvaluator} specialized for genre-based routing.
+ *
+ * @remark
+ * If a genre-matching rule or condition uses an invalid regular expression, the error is logged and the rule or condition is ignored.
  */
 export default function createGenreEvaluator(
   fastify: FastifyInstance,

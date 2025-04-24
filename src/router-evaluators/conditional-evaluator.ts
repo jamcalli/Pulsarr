@@ -11,9 +11,9 @@ import type {
 } from '@root/types/router.types.js'
 
 /**
- * Determines whether the given value is a valid {@link Condition} object.
+ * Checks if a value is a valid {@link Condition} object.
  *
- * Returns true if the value is a non-null object containing the properties `field`, `operator`, and `value`.
+ * Returns true if the input is a non-null object with `field`, `operator`, and `value` properties.
  */
 function isCondition(value: unknown): value is Condition {
   return (
@@ -26,9 +26,9 @@ function isCondition(value: unknown): value is Condition {
 }
 
 /**
- * Determines whether the given value is a {@link ConditionGroup}.
+ * Checks if a value is a valid {@link ConditionGroup}.
  *
- * Returns true if the value is a non-null object containing an 'operator' property and a 'conditions' array.
+ * Returns true if the input is a non-null object with an 'operator' property and a 'conditions' array.
  */
 function isConditionGroup(value: unknown): value is ConditionGroup {
   return (
@@ -41,18 +41,18 @@ function isConditionGroup(value: unknown): value is ConditionGroup {
 }
 
 /**
- * Determines whether a value is a valid condition or condition group.
+ * Checks if a value is a valid condition or condition group.
  *
- * Returns true if the input is either a {@link Condition} or a {@link ConditionGroup}.
+ * Returns true if the input is a {@link Condition} or {@link ConditionGroup}; otherwise, returns false.
  */
 function isValidCondition(value: unknown): value is Condition | ConditionGroup {
   return isCondition(value) || isConditionGroup(value)
 }
 
 /**
- * Creates a routing evaluator that applies complex conditional rules to determine content routing.
+ * Creates a routing evaluator that applies complex conditional rules to determine how content items are routed.
  *
- * The evaluator retrieves conditional routing rules from the database, validates their condition structures, and evaluates them against content items. If a rule's condition matches the item and context, it returns routing decisions specifying the target instance, quality profile, root folder, and priority.
+ * The evaluator retrieves enabled conditional routing rules from the database, validates their condition structures, and evaluates each rule against the provided content item and routing context. If a rule's condition matches, it generates routing decisions specifying the target instance, quality profile, root folder, and priority.
  *
  * @returns A {@link RoutingEvaluator} configured to process conditional routing rules with the highest priority.
  */
