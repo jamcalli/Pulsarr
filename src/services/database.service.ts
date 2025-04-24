@@ -3829,15 +3829,18 @@ export class DatabaseService {
       updated_at: timestamp,
     }))
 
-    // Process in chunks to avoid overwhelming the database
-    const chunks = this.chunkArray(records, 100)
+    // Process in chunks within a transaction
+    await this.knex.transaction(async (trx) => {
+      const chunks = this.chunkArray(records, 100)
 
-    for (const chunk of chunks) {
-      await this.knex('watchlist_sonarr_instances')
-        .insert(chunk)
-        .onConflict(['watchlist_id', 'sonarr_instance_id'])
-        .ignore()
-    }
+      for (const chunk of chunks) {
+        // Instead of ignoring conflicts, merge the updates
+        await trx('watchlist_sonarr_instances')
+          .insert(chunk)
+          .onConflict(['watchlist_id', 'sonarr_instance_id'])
+          .merge(['status', 'is_primary', 'last_notified_at', 'updated_at'])
+      }
+    })
   }
 
   // Bulk update multiple junction records in one operation
