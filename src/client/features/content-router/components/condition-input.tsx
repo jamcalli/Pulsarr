@@ -294,13 +294,7 @@ function ConditionInput({
     // Convert all values to appropriate type (string or number)
     const formattedValue = Array.isArray(value)
       ? value.map((item) => (isNumeric ? Number(item) : String(item)))
-      : [
-          isNumeric
-            ? value === ''
-              ? 0
-              : Number(value || 0)
-            : String(value || ''),
-        ]
+      : [isNumeric ? undefined : String(value || '')]
 
     return {
       name: fieldName as FieldPath<FieldState>,
@@ -316,11 +310,7 @@ function ConditionInput({
           )
         } else {
           onChangeRef.current([
-            isNumeric
-              ? newValue === ''
-                ? 0
-                : Number(newValue || 0)
-              : String(newValue || ''),
+            isNumeric ? undefined : String(newValue || ''),
           ] as ConditionValue)
         }
       },
