@@ -12,7 +12,7 @@ const packageJson = JSON.parse(
 export default {
   base: '/app/',
   root: resolve(import.meta.dirname, 'src/client'),
-  plugins: [viteReact(), viteFastify()],
+  plugins: [viteReact(), viteFastify({ spa: true })],
   build: {
     outDir: resolve(import.meta.dirname, 'dist/client'),
     emptyOutDir: false,

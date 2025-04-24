@@ -771,10 +771,17 @@ export class DatabaseService {
         ...(typeof updates.seasonMonitoring !== 'undefined' && {
           season_monitoring: updates.seasonMonitoring,
         }),
-        ...(typeof updates.monitorNewItems !== 'undefined' &&
-          ['all', 'none'].includes(String(updates.monitorNewItems)) && {
-            monitor_new_items: updates.monitorNewItems,
-          }),
+        ...(typeof updates.monitorNewItems !== 'undefined' && {
+          monitor_new_items: (() => {
+            const val = String(updates.monitorNewItems).toLowerCase()
+            if (!['all', 'none'].includes(val)) {
+              throw new Error(
+                `Invalid monitorNewItems value: ${updates.monitorNewItems}`,
+              )
+            }
+            return val
+          })(),
+        }),
         ...(typeof updates.tags !== 'undefined' && {
           tags: JSON.stringify(updates.tags),
         }),
@@ -2876,8 +2883,16 @@ export class DatabaseService {
     try {
       this.log.debug('Calculating detailed status transition metrics')
 
-      // Execute statistical calculations in SQL using window functions
-      const results = await this.knex.raw(`
+      // Define the type for the raw transitions
+      type RawTransition = {
+        from_status: string
+        to_status: string
+        content_type: string
+        days_between: number
+      }
+
+      // First, get all the direct transitions without filtering
+      const rawTransitions = await this.knex.raw<RawTransition[]>(`
         WITH status_pairs AS (
           SELECT 
             h1.status AS from_status,
@@ -2896,69 +2911,87 @@ export class DatabaseService {
             AND h3.timestamp > h1.timestamp 
             AND h3.timestamp < h2.timestamp
           )
-        ),
-        percentiles AS (
-          SELECT 
-            from_status,
-            to_status,
-            content_type,
-            days_between,
-            PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY days_between) 
-              OVER (PARTITION BY from_status, to_status, content_type) AS q1,
-            PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY days_between) 
-              OVER (PARTITION BY from_status, to_status, content_type) AS q3
-          FROM status_pairs
-        ),
-        filtered_values AS (
-          SELECT 
-            from_status,
-            to_status,
-            content_type,
-            days_between
-          FROM percentiles
-          WHERE days_between BETWEEN 
-            q1 - 1.5 * (q3 - q1) AND 
-            q3 + 1.5 * (q3 - q1)
         )
         SELECT 
           from_status,
           to_status,
           content_type,
-          COUNT(*) as count,
-          AVG(days_between) as avg_days,
-          MIN(days_between) as min_days,
-          MAX(days_between) as max_days
-        FROM filtered_values
-        GROUP BY from_status, to_status, content_type
-        ORDER BY count DESC
+          days_between
+        FROM status_pairs
       `)
 
-      type StatusTransitionRow = {
+      // Group transitions for outlier detection
+      const transitionGroups = new Map<string, number[]>()
+
+      // Process and group raw transitions
+      for (const row of rawTransitions) {
+        const key = `${row.from_status}|${row.to_status}|${row.content_type}`
+        if (!transitionGroups.has(key)) {
+          transitionGroups.set(key, [])
+        }
+        transitionGroups.get(key)?.push(row.days_between)
+      }
+
+      // Process each group to filter outliers and calculate statistics
+      const results: Array<{
         from_status: string
         to_status: string
         content_type: string
+        count: number
         avg_days: number
         min_days: number
         max_days: number
-        count: number
+      }> = []
+
+      for (const [key, values] of transitionGroups.entries()) {
+        if (values.length === 0) continue
+
+        // Sort values for percentile calculations
+        values.sort((a: number, b: number) => a - b)
+
+        // Calculate quartiles for IQR
+        const q1Idx = Math.floor(values.length * 0.25)
+        const q3Idx = Math.floor(values.length * 0.75)
+        const q1 = values[q1Idx]
+        const q3 = values[q3Idx]
+        const iqr = q3 - q1
+
+        // Filter outliers using IQR method
+        const filteredValues = values.filter(
+          (v: number) => v >= q1 - 1.5 * iqr && v <= q3 + 1.5 * iqr,
+        )
+
+        if (filteredValues.length === 0) continue
+
+        // Calculate statistics
+        const [from_status, to_status, content_type] = key.split('|')
+        const sum = filteredValues.reduce(
+          (acc: number, val: number) => acc + val,
+          0,
+        )
+        const avg_days = sum / filteredValues.length
+        const min_days = Math.min(...filteredValues)
+        const max_days = Math.max(...filteredValues)
+
+        results.push({
+          from_status,
+          to_status,
+          content_type,
+          count: filteredValues.length,
+          avg_days,
+          min_days,
+          max_days,
+        })
       }
 
-      // Format and return the results
-      const formattedResults = results.map((row: StatusTransitionRow) => ({
-        from_status: String(row.from_status),
-        to_status: String(row.to_status),
-        content_type: String(row.content_type),
-        avg_days: Number(row.avg_days),
-        min_days: Number(row.min_days),
-        max_days: Number(row.max_days),
-        count: Number(row.count),
-      }))
+      // Sort by count descending
+      results.sort((a, b) => b.count - a.count)
 
       this.log.debug(
-        `Calculated transition metrics for ${formattedResults.length} status pairs`,
+        `Calculated transition metrics for ${results.length} status pairs`,
       )
 
-      return formattedResults
+      return results
     } catch (error) {
       this.log.error(
         'Error calculating detailed status transition metrics:',

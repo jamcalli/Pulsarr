@@ -51,7 +51,7 @@ export const ConditionValueSchema = z.union([
 export interface ICondition {
   field: string
   operator: ComparisonOperator
-  value: z.infer<typeof ConditionValueSchema>
+  value: z.infer<typeof ConditionValueSchema> | null
   negate?: boolean
   _cid?: string
 }

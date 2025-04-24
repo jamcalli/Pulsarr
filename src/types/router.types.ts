@@ -5,11 +5,9 @@ import type {
 
 export interface ContentItem {
   title: string
-  /** Either 'movie' or 'show' */
   type: 'movie' | 'show'
   guids: string[]
   genres?: string[]
-  // Will be enriched with additional metadata
   metadata?: RadarrMovieLookupResponse | SonarrSeriesLookupResponse
 }
 
