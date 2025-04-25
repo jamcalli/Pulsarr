@@ -164,7 +164,12 @@ export const MultiSelect = React.forwardRef<
       // Use a Set to deduplicate values
       const uniqueOptionValues = Array.from(new Set(flatOptions.map(o => o.value)))
       
-      if (selectedValues.length === uniqueOptionValues.length) {
+      // Check if all available options are currently selected
+      const allSelected = uniqueOptionValues.every((val) => 
+        selectedValues.includes(val)
+      )
+
+      if (allSelected) {
         handleClear()
       } else {
         setSelectedValues(uniqueOptionValues)

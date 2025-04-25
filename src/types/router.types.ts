@@ -38,6 +38,12 @@ export interface RoutingContext {
 
 export interface RoutingDecision {
   instanceId: number
+  /**
+   * Quality profile identifier - supports both ID and name:
+   * - number: Direct profile ID for Radarr/Sonarr API
+   * - string: Profile name that will be resolved to ID by service layer
+   * - null: No profile specified, use instance default
+   */
   qualityProfile?: number | string | null
   rootFolder?: string | null
   tags?: string[]

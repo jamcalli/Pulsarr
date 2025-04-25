@@ -686,13 +686,22 @@ export class ContentRouterService {
           )
 
           // Process each synced instance
-          for (const syncedId of syncedInstanceIds) {
+          for (const rawId of syncedInstanceIds) {
+            const syncedId = Number(rawId)
+            if (Number.isNaN(syncedId)) {
+              this.log.warn(`Invalid synced instance ID "${rawId}" – skipping`)
+              continue
+            }
+
             // Skip if we've already routed to this instance
             if (routedInstances.includes(syncedId)) continue
 
             // Get the synced instance details
             const syncedInstance = instanceMap.get(syncedId)
-            if (!syncedInstance) continue // Skip if instance not found
+            if (!syncedInstance) {
+              this.log.warn(`Synced instance ${syncedId} not found – skipping`)
+              continue
+            }
 
             try {
               // Get the root folder for this instance (handling null case)

@@ -489,8 +489,10 @@ export class WatchlistWorkflowService {
           previousItem.title !== currentItem.title ||
           previousItem.type !== currentItem.type ||
           previousItem.thumb !== currentItem.thumb ||
-          JSON.stringify(this.safeParseArray(previousItem.genres)) !==
-            JSON.stringify(this.safeParseArray(currentItem.genres))
+          !this.arraysEqualIgnoreOrder(
+            this.safeParseArray(previousItem.genres),
+            this.safeParseArray(currentItem.genres),
+          )
 
         if (hasChanged) {
           this.log.debug('Modified item detected', {
@@ -500,9 +502,10 @@ export class WatchlistWorkflowService {
               title: previousItem.title !== currentItem.title,
               type: previousItem.type !== currentItem.type,
               thumb: previousItem.thumb !== currentItem.thumb,
-              genres:
-                JSON.stringify(this.safeParseArray(previousItem.genres)) !==
-                JSON.stringify(this.safeParseArray(currentItem.genres)),
+              genres: !this.arraysEqualIgnoreOrder(
+                this.safeParseArray(previousItem.genres),
+                this.safeParseArray(currentItem.genres),
+              ),
             },
           })
           changes.add(this.convertToTempItem(currentItem))
@@ -1174,6 +1177,10 @@ export class WatchlistWorkflowService {
     }
 
     return (value ? [value] : []) as T[]
+  }
+
+  private arraysEqualIgnoreOrder<T>(a: T[], b: T[]): boolean {
+    return a.length === b.length && a.every((v) => b.includes(v))
   }
 
   /**
