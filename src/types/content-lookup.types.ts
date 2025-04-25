@@ -94,7 +94,7 @@ export interface RadarrMovieLookupResponse {
   images?: ContentImage[]
   website?: string
   remotePoster?: string
-  year: number // This is the key field we need for year-based routing
+  year: number
   youTubeTrailerId?: string
   studio?: string
   path?: string
@@ -206,7 +206,7 @@ export interface SonarrSeriesLookupResponse {
   originalLanguage?: ContentLanguage
   remotePoster?: string
   seasons?: SonarrSeason[]
-  year: number // This is the key field we need for year-based routing
+  year: number
   path?: string
   qualityProfileId?: number
   seasonFolder?: boolean

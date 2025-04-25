@@ -119,6 +119,11 @@ const schema = {
       type: 'string',
       default: 'all',
     },
+    sonarrMonitorNewItems: {
+      type: 'string',
+      enum: ['all', 'none'],
+      default: 'all',
+    },
     sonarrTags: {
       type: 'string',
       default: '[]',

@@ -1,70 +1,136 @@
-import type { SonarrItem } from './sonarr.types.js'
-import type { Item as RadarrItem } from './radarr.types.js'
+import type {
+  RadarrMovieLookupResponse,
+  SonarrSeriesLookupResponse,
+} from '@root/types/content-lookup.types.js'
 
-export type ContentItem = SonarrItem | RadarrItem
-
-export interface RoutingDecision {
-  instanceId: number
-  qualityProfile?: number | string | null
-  rootFolder?: string | null
-  tags?: string[]
-  weight: number // Higher number = higher priority, but doesn't exclude other routes
-}
-
-export interface RoutingContext {
-  userId?: number
-  userName?: string
-  itemKey: string
-  contentType: 'movie' | 'show'
-  syncing?: boolean
-  syncTargetInstanceId?: number
-}
-
-export interface RouterPlugin {
-  name: string
-  description: string
-  enabled: boolean
-  order: number // Controls plugin execution order
-
-  // Main routing logic - can return multiple routing decisions
-  evaluateRouting(
-    item: ContentItem,
-    context: RoutingContext,
-  ): Promise<RoutingDecision[] | null>
+export interface ContentItem {
+  title: string
+  type: 'movie' | 'show'
+  guids: string[]
+  genres?: string[]
+  metadata?: RadarrMovieLookupResponse | SonarrSeriesLookupResponse
 }
 
 export interface RouterRule {
   id: number
   name: string
   type: string
-  criteria: Record<string, CriteriaValue>
+  criteria: Record<string, unknown>
   target_type: 'sonarr' | 'radarr'
   target_instance_id: number
   root_folder?: string | null
   quality_profile?: number | null
   order: number
   enabled: boolean
-  metadata?: Record<string, CriteriaValue> | null
+  metadata?: RadarrMovieLookupResponse | SonarrSeriesLookupResponse | null
   created_at: string
   updated_at: string
 }
 
-export interface UserCriteria {
-  ids?: number | number[]
-  names?: string | string[]
+export interface RoutingContext {
+  userId?: number
+  userName?: string
+  contentType: 'movie' | 'show'
+  itemKey: string
+  syncing?: boolean
+  syncTargetInstanceId?: number
 }
 
-export interface GenreCriteria {
-  genre: string | string[]
+export interface RoutingDecision {
+  instanceId: number
+  /**
+   * Quality profile identifier - supports both ID and name:
+   * - number: Direct profile ID for Radarr/Sonarr API
+   * - string: Profile name that will be resolved to ID by service layer
+   * - null: No profile specified, use instance default
+   */
+  qualityProfile?: number | string | null
+  rootFolder?: string | null
+  tags?: string[]
+  priority: number // Higher number = higher priority
 }
 
-export type CriteriaValue =
-  | string
-  | number
-  | boolean
-  | string[]
-  | number[]
-  | { min?: number; max?: number }
-  | UserCriteria
-  | GenreCriteria
-  | null
+// Condition system types
+export type LogicalOperator = 'AND' | 'OR'
+export type ComparisonOperator =
+  | 'equals'
+  | 'notEquals'
+  | 'contains'
+  | 'notContains'
+  | 'greaterThan'
+  | 'lessThan'
+  | 'in'
+  | 'notIn'
+  | 'regex'
+  | 'between'
+
+// Base condition interface
+export interface Condition {
+  field: string
+  operator: ComparisonOperator
+  value: unknown
+  negate?: boolean
+  _cid?: string
+}
+
+// Group condition for nesting
+export interface ConditionGroup {
+  operator: LogicalOperator
+  conditions: Array<Condition | ConditionGroup>
+  negate?: boolean
+  _cid?: string
+}
+
+/**
+ * Information about a supported field in a router evaluator
+ */
+export interface FieldInfo {
+  name: string
+  description: string
+  valueTypes: string[]
+}
+
+/**
+ * Information about a supported operator in a router evaluator
+ */
+export interface OperatorInfo {
+  name: ComparisonOperator
+  description: string
+  valueTypes: string[]
+  valueFormat?: string // Additional hints about expected format
+}
+
+// Then extend the RoutingEvaluator interface with these properties:
+
+export interface RoutingEvaluator {
+  name: string
+  description: string
+  priority: number
+
+  // Whether this evaluator can handle this content
+  canEvaluate(item: ContentItem, context: RoutingContext): Promise<boolean>
+
+  // Main evaluation method
+  evaluate(
+    item: ContentItem,
+    context: RoutingContext,
+  ): Promise<RoutingDecision[] | null>
+
+  // For conditional evaluator support
+  evaluateCondition?(
+    condition: Condition | ConditionGroup,
+    item: ContentItem,
+    context: RoutingContext,
+  ): boolean
+
+  // Helps ContentRouterService determine which fields this evaluator handles
+  canEvaluateConditionField?(field: string): boolean
+
+  // New metadata properties for self-describing evaluators
+  supportedFields?: FieldInfo[]
+  supportedOperators?: Record<string, OperatorInfo[]>
+
+  // Optional helper methods can be defined in individual evaluators
+  // but they won't be called directly by the ContentRouterService
+  [key: string]: unknown
+}

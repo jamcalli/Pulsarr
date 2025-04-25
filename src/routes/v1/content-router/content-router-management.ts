@@ -11,6 +11,8 @@ import {
   type ContentRouterRule,
 } from '@schemas/content-router/content-router.schema.js'
 import type { RouterRule } from '@root/types/router.types.js'
+import { RuleBuilder } from '@utils/rule-builder.js'
+import { formatRule } from '@utils/content-router-formatter.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   // Get all router rules
@@ -31,13 +33,16 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       try {
         const rules = await fastify.db.getAllRouterRules()
 
-        const response = {
+        // Format rules for API response using the utility function
+        const formattedRules = rules.map((rule) =>
+          formatRule(rule, fastify.log),
+        )
+
+        return {
           success: true,
           message: 'Router rules retrieved successfully',
-          rules,
+          rules: formattedRules,
         }
-
-        return response
       } catch (err) {
         fastify.log.error('Error retrieving router rules:', err)
         throw reply.internalServerError('Unable to retrieve router rules')
@@ -74,13 +79,16 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         const rules = await fastify.db.getRouterRulesByType(type, enabledOnly)
 
-        const response = {
+        // Format rules using the utility function
+        const formattedRules = rules.map((rule) =>
+          formatRule(rule, fastify.log),
+        )
+
+        return {
           success: true,
           message: `Router rules of type '${type}' retrieved successfully`,
-          rules,
+          rules: formattedRules,
         }
-
-        return response
       } catch (err) {
         fastify.log.error(
           `Error retrieving router rules of type '${request.params.type}':`,
@@ -122,13 +130,16 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           instanceId,
         )
 
-        const response = {
+        // Format rules using the utility function
+        const formattedRules = rules.map((rule) =>
+          formatRule(rule, fastify.log),
+        )
+
+        return {
           success: true,
           message: `Router rules for ${targetType} instance ${instanceId} retrieved successfully`,
-          rules,
+          rules: formattedRules,
         }
-
-        return response
       } catch (err) {
         fastify.log.error('Error retrieving router rules by target:', err)
         throw reply.internalServerError('Unable to retrieve router rules')
@@ -165,13 +176,14 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw reply.notFound(`Router rule with ID ${id} not found`)
         }
 
-        const response = {
+        // Format rule using the utility function
+        const formattedRule = formatRule(rule, fastify.log)
+
+        return {
           success: true,
           message: 'Router rule retrieved successfully',
-          rule,
+          rule: formattedRule,
         }
-
-        return response
       } catch (err) {
         if (err instanceof Error && 'statusCode' in err) {
           throw err
@@ -185,6 +197,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     },
   )
 
+  // Get router rules by target type
   fastify.get<{
     Params: { targetType: 'sonarr' | 'radarr' }
     Reply: z.infer<typeof ContentRouterRuleListResponseSchema>
@@ -209,13 +222,16 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         const rules = await fastify.db.getRouterRulesByTargetType(targetType)
 
-        const response = {
+        // Format rules using the utility function
+        const formattedRules = rules.map((rule) =>
+          formatRule(rule, fastify.log),
+        )
+
+        return {
           success: true,
           message: `Router rules for target type '${targetType}' retrieved successfully`,
-          rules,
+          rules: formattedRules,
         }
-
-        return response
       } catch (err) {
         if (err instanceof Error && 'statusCode' in err) {
           throw err
@@ -250,28 +266,53 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       try {
         const ruleData = request.body
 
-        // Convert quality_profile from string to number if needed
-        const formattedRuleData: Omit<
-          RouterRule,
-          'id' | 'created_at' | 'updated_at'
-        > = {
-          ...ruleData,
+        // Use RuleBuilder to create a properly structured rule
+        const builtRule = RuleBuilder.createRule({
+          name: ruleData.name,
+          target_type: ruleData.target_type,
+          target_instance_id: ruleData.target_instance_id,
+          condition: ruleData.condition || {
+            operator: 'AND',
+            conditions: [],
+            negate: false,
+          },
+          root_folder: ruleData.root_folder,
           quality_profile:
             typeof ruleData.quality_profile === 'string'
               ? Number.parseInt(ruleData.quality_profile, 10)
               : ruleData.quality_profile,
+          order: ruleData.order ?? 50,
+          enabled: ruleData.enabled ?? true,
+        })
+
+        // Prepare the rule for database insertion, ensuring required fields have values
+        const formattedRuleData: Omit<
+          RouterRule,
+          'id' | 'created_at' | 'updated_at'
+        > = {
+          name: builtRule.name,
+          type: 'conditional',
+          criteria: builtRule.criteria,
+          target_type: builtRule.target_type,
+          target_instance_id: builtRule.target_instance_id,
+          root_folder: builtRule.root_folder || null,
+          quality_profile: builtRule.quality_profile || null,
+          order: builtRule.order || 50,
+          enabled: builtRule.enabled !== undefined ? builtRule.enabled : true,
+          metadata: null,
         }
 
         const createdRule = await fastify.db.createRouterRule(formattedRuleData)
 
-        const response = {
-          success: true,
-          message: 'Router rule created successfully',
-          rule: createdRule,
-        }
+        // Format the response using the utility function
+        const formattedRule = formatRule(createdRule, fastify.log)
 
         reply.status(201)
-        return response
+        return {
+          success: true,
+          message: 'Router rule created successfully',
+          rule: formattedRule,
+        }
       } catch (err) {
         fastify.log.error('Error creating router rule:', err)
         throw reply.internalServerError('Unable to create router rule')
@@ -311,14 +352,37 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw reply.notFound(`Router rule with ID ${id} not found`)
         }
 
+        // Prepare updates for the database
         const updatesAsRouterRule: Partial<
           Omit<RouterRule, 'id' | 'created_at' | 'updated_at'>
-        > = {
-          ...updates,
-          quality_profile:
+        > = {}
+
+        // Copy over simple properties
+        if (updates.name !== undefined) updatesAsRouterRule.name = updates.name
+        if (updates.target_type !== undefined)
+          updatesAsRouterRule.target_type = updates.target_type
+        if (updates.target_instance_id !== undefined)
+          updatesAsRouterRule.target_instance_id = updates.target_instance_id
+        if (updates.root_folder !== undefined)
+          updatesAsRouterRule.root_folder = updates.root_folder || null
+        if (updates.order !== undefined)
+          updatesAsRouterRule.order = updates.order
+        if (updates.enabled !== undefined)
+          updatesAsRouterRule.enabled = updates.enabled
+
+        // Handle quality profile conversion
+        if (updates.quality_profile !== undefined) {
+          updatesAsRouterRule.quality_profile =
             typeof updates.quality_profile === 'string'
               ? Number.parseInt(updates.quality_profile, 10)
-              : updates.quality_profile,
+              : updates.quality_profile || null
+        }
+
+        // Update condition if provided
+        if (updates.condition) {
+          updatesAsRouterRule.criteria = {
+            condition: updates.condition,
+          }
         }
 
         // Update the rule
@@ -342,13 +406,14 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           )
         }
 
-        const response = {
+        // Format the response using the utility function
+        const formattedRule = formatRule(updatedRule, fastify.log)
+
+        return {
           success: true,
           message: 'Router rule updated successfully',
-          rule: updatedRule,
+          rule: formattedRule,
         }
-
-        return response
       } catch (err) {
         if (err instanceof Error && 'statusCode' in err) {
           throw err
@@ -400,12 +465,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           )
         }
 
-        const response = {
+        return {
           success: true,
           message: 'Router rule deleted successfully',
         }
-
-        return response
       } catch (err) {
         if (err instanceof Error && 'statusCode' in err) {
           throw err
@@ -460,12 +523,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           )
         }
 
-        const response = {
+        return {
           success: true,
           message: `Router rule ${enabled ? 'enabled' : 'disabled'} successfully`,
         }
-
-        return response
       } catch (err) {
         if (err instanceof Error && 'statusCode' in err) {
           throw err

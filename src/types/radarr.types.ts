@@ -1,3 +1,5 @@
+import type { ContentItem } from './router.types.js'
+
 export interface RadarrAddOptions {
   searchForMovie: boolean
 }
@@ -61,9 +63,7 @@ export interface RadarrExclusion {
   movieYear: number
 }
 
-export interface Item {
-  title: string
-  guids: string[]
+export interface Item extends ContentItem {
   type: 'movie'
   ended?: boolean
   added?: string
@@ -72,6 +72,9 @@ export interface Item {
   genres?: string[]
   radarr_instance_id?: number
 }
+
+// Alias for better semantics - we can gradually migrate to this
+export type RadarrItem = Item
 
 export interface RadarrInstance {
   id: number

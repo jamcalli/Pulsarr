@@ -4,6 +4,16 @@ import { useToast } from '@/hooks/use-toast'
 import type { SonarrInstanceSchema } from '@/features/sonarr/store/schemas'
 import type { UseFormReturn } from 'react-hook-form'
 
+/**
+ * Provides Sonarr instance data and management handlers for a specific instance ID.
+ *
+ * Returns the current Sonarr instance, all instances, and functions to update, delete, and fetch data for the specified instance.
+ *
+ * @param instanceId - The ID of the Sonarr instance to manage.
+ * @returns An object containing the current instance, all instances, and handlers for updating, deleting, and fetching instance data.
+ *
+ * @remark If the last real instance is deleted, it is reset to a default placeholder configuration instead of being removed.
+ */
 export function useSonarrInstance(instanceId: number) {
   const { toast } = useToast()
   const instance = useSonarrStore((state) =>
@@ -45,6 +55,7 @@ export function useSonarrInstance(instanceId: number) {
             rootFolder: '',
             bypassIgnored: false,
             seasonMonitoring: 'all',
+            monitorNewItems: 'all',
             tags: [],
             isDefault: false,
             syncedInstances: [],
