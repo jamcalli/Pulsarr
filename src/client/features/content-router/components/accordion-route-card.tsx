@@ -364,7 +364,8 @@ const AccordionRouteCard = ({
       !('id' in route) ||
       !onToggleEnabled ||
       route.enabled === undefined ||
-      typeof route.id !== 'number'
+      route.id === undefined ||
+      route.id === null
     )
       return
 

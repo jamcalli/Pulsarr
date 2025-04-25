@@ -4990,9 +4990,9 @@ export class DatabaseService {
             max?: number
           }
 
-          // Use type assertion with a specific interface
           const rangeValue = condition.value as RangeValue
 
+          // Check for missing bounds
           if (!('min' in rangeValue) && !('max' in rangeValue)) {
             return {
               valid: false,
@@ -5001,6 +5001,7 @@ export class DatabaseService {
             }
           }
 
+          // Validate numeric types
           if (
             'min' in rangeValue &&
             typeof rangeValue.min !== 'number' &&
@@ -5020,6 +5021,19 @@ export class DatabaseService {
             return {
               valid: false,
               error: 'max value must be a number',
+            }
+          }
+
+          // Validate range logic when both bounds are present
+          if (
+            rangeValue.min !== undefined &&
+            rangeValue.max !== undefined &&
+            rangeValue.min > rangeValue.max
+          ) {
+            return {
+              valid: false,
+              error:
+                'Invalid range: min value cannot be greater than max value',
             }
           }
         }

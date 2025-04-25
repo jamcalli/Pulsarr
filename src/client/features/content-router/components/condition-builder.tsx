@@ -52,6 +52,7 @@ const ConditionBuilder = ({
   isLoading = false,
 }: ConditionBuilderProps) => {
   const isMobile = useMediaQuery('(max-width: 768px)')
+  const inputId = `condition-input-${value._cid}`
   const [fields, setFields] = useState<FieldInfo[]>([])
   const [operators, setOperators] = useState<OperatorInfo[]>([])
   const [valueTypes, setValueTypes] = useState<string[]>([])
@@ -422,10 +423,7 @@ const ConditionBuilder = ({
         {/* Value input */}
         <div className={cn(isMobile ? 'col-span-1' : 'col-span-4')}>
           <div className="flex flex-col space-y-1">
-            <label
-              htmlFor="condition-value-input"
-              className="text-sm font-medium"
-            >
+            <label htmlFor={inputId} className="text-sm font-medium">
               Value
             </label>
             {value.operator && value.field && (
@@ -438,7 +436,7 @@ const ConditionBuilder = ({
                   onChange={handlers.current.handleValueChange}
                   genres={genres}
                   onGenreDropdownOpen={onGenreDropdownOpen}
-                  inputId="condition-value-input"
+                  inputId={inputId}
                 />
               </div>
             )}

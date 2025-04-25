@@ -57,7 +57,7 @@ export const RuleBuilder = {
     operator: ComparisonOperator = 'equals',
     negate = false,
   ): Condition {
-    return RuleBuilder.condition('originalLanguage', operator, language, negate)
+    return RuleBuilder.condition('language', operator, language, negate)
   },
 
   /**

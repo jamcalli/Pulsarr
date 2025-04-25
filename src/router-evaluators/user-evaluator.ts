@@ -78,12 +78,20 @@ export default function createUserEvaluator(
     userName: string | undefined,
     value: unknown,
   ): boolean {
-    if (userId && (value === userId || value === userId.toString())) {
-      return true
+    const val =
+      typeof value === 'string' ? value.toLowerCase() : value?.toString()
+
+    if (userId && val !== undefined) {
+      // Compare string representations since val is already converted to string
+      if (val === userId.toString()) {
+        return true
+      }
     }
-    if (userName && value === userName) {
-      return true
+
+    if (userName && typeof val === 'string') {
+      return userName.toLowerCase() === val
     }
+
     return false
   }
 
@@ -102,16 +110,19 @@ export default function createUserEvaluator(
     userName: string | undefined,
     values: unknown[],
   ): boolean {
-    // Check if context.userId matches any user in the list
+    const normalised = values.map((v) =>
+      typeof v === 'string' ? v.toLowerCase() : v?.toString(),
+    )
+
     if (userId) {
       const userIdStr = userId.toString()
-      if (values.includes(userIdStr) || values.includes(userId)) {
+      if (normalised.includes(userIdStr)) {
         return true
       }
     }
 
     // Check if context.userName matches any user in the list
-    if (userName && values.includes(userName)) {
+    if (userName && normalised.includes(userName.toLowerCase())) {
       return true
     }
 

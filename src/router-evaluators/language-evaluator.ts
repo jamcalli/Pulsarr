@@ -173,26 +173,33 @@ export default function createLanguageEvaluator(
 
         // Handle array operators (in/notIn)
         if (Array.isArray(ruleLanguage)) {
-          if (operator === 'in') {
-            return ruleLanguage.some(
-              (lang) =>
-                typeof lang === 'string' &&
-                normalizedLanguage === lang.toLowerCase(),
-            )
+          switch (operator) {
+            case 'in':
+              return ruleLanguage.some(
+                (lang) =>
+                  typeof lang === 'string' &&
+                  normalizedLanguage === lang.toLowerCase(),
+              )
+            case 'notIn':
+              return !ruleLanguage.some(
+                (lang) =>
+                  typeof lang === 'string' &&
+                  normalizedLanguage === lang.toLowerCase(),
+              )
+            case 'notEquals':
+              return !ruleLanguage.some(
+                (lang) =>
+                  typeof lang === 'string' &&
+                  normalizedLanguage === lang.toLowerCase(),
+              )
+            default:
+              // Default to equality check for backward compatibility
+              return ruleLanguage.some(
+                (lang) =>
+                  typeof lang === 'string' &&
+                  normalizedLanguage === lang.toLowerCase(),
+              )
           }
-          if (operator === 'notIn') {
-            return !ruleLanguage.some(
-              (lang) =>
-                typeof lang === 'string' &&
-                normalizedLanguage === lang.toLowerCase(),
-            )
-          }
-          // Default to 'in' for backward compatibility
-          return ruleLanguage.some(
-            (lang) =>
-              typeof lang === 'string' &&
-              normalizedLanguage === lang.toLowerCase(),
-          )
         }
 
         // Ensure the criterion value is a non-empty string for direct comparison

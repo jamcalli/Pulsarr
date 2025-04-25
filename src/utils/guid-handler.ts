@@ -24,7 +24,11 @@ export function parseGuids(guids: string[] | string | undefined): string[] {
       if (Array.isArray(parsed)) {
         return [
           ...new Set(
-            parsed.filter((p): p is string => typeof p === 'string' && !!p),
+            parsed
+              .map((p) => (typeof p === 'string' ? p.trim() : ''))
+              .filter(
+                (p): p is string => typeof p === 'string' && p.length > 0,
+              ),
           ),
         ]
       }

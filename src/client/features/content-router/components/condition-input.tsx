@@ -309,7 +309,11 @@ function ConditionInput({
           )
         } else {
           onChangeRef.current(
-            isNumeric ? Number(newValue || 0) : String(newValue || ''),
+            isNumeric && (newValue === '' || newValue === undefined)
+              ? null
+              : isNumeric
+                ? Number(newValue)
+                : String(newValue ?? ''),
           )
         }
       },
