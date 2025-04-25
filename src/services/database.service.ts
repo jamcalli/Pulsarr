@@ -2270,23 +2270,7 @@ export class DatabaseService {
   ): Promise<{ id: number } | undefined> {
     return await this.knex('notifications')
       .where({
-        // Get all junction table entries for a set of watchlist items
-        async getAllWatchlistRadarrInstanceJunctions(
-          watchlistIds: number[],
-        ): Promise<
-          Array<{
-            watchlist_id: number
-            radarr_instance_id: number
-            status: 'pending' | 'requested' | 'grabbed' | 'notified'
-            is_primary: boolean
-            syncing: boolean
-            last_notified_at: string | null
-          }>
-        > {
-          return this.knex('watchlist_radarr_instances')
-            .whereIn('watchlist_id', watchlistIds)
-            .select('*')
-        },
+        // Get all junction table entries for a set of watchlist items,
         user_id: userId,
         type,
         title,
@@ -3597,16 +3581,6 @@ export class DatabaseService {
     // Use transaction to ensure all updates are atomic
     await this.knex.transaction(async (trx) => {
       for (const update of updates) {
-        // Validate status field if provided
-        if (
-          update.status &&
-          !['pending', 'requested', 'grabbed', 'notified'].includes(
-            update.status,
-          )
-        ) {
-          throw new Error(`Invalid status '${update.status}'`)
-        }
-
         const { watchlist_id, radarr_instance_id, ...fields } = update
 
         await trx('watchlist_radarr_instances')
