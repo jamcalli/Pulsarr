@@ -103,6 +103,8 @@ The notification system is designed to be informative:
 
 ## Advanced Content Routing
 
+**Important Migration Note**: If you're upgrading from a version prior to 0.2.15, you may need to delete and recreate your content routes if you experience routing issues.
+
 Pulsarr offers a powerful predicate-based routing system that intelligently directs content to the appropriate Sonarr/Radarr instances.
 
 <div align="center">
@@ -645,7 +647,7 @@ Pulsarr includes built-in API documentation accessible at `/api/docs` when runni
 
 - ~~Email notifications~~
 - ~~Apprise for notifications~~
-- ~~Non-Plex Pass (will update watchlists on 20 minute intervals. All other functionality remains.)~~
+- ~~Non-Plex Pass (will update watchlists on 20 minute intervals. All other functionality remains)~~
 - API keys
 - ~~Delete Syncing~~
 - Unit tests... 🤮
