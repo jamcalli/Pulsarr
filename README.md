@@ -502,6 +502,7 @@ sonarrRootFolder=                      # Root folder path (empty = default. Or a
 sonarrLanguageProfileId=1              # Language profile ID
 sonarrBypassIgnored=false              # Bypass ignored setting
 sonarrSeasonMonitoring=all             # Season monitoring strategy
+sonarrMonitorNewItems=all              # Monitor strategy for new items ('all' or 'none')
 sonarrTags=[]                          # Tags as JSON array
 
 # Radarr Configuration (these will seed a single instance. Needs all the values. Only use in dev.)
