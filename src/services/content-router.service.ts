@@ -777,7 +777,13 @@ export class ContentRouterService {
             allInstances.map((instance) => [instance.id, instance]),
           )
 
-          for (const syncedId of syncedInstanceIds) {
+          for (const rawId of syncedInstanceIds) {
+            const syncedId = Number(rawId)
+            if (Number.isNaN(syncedId)) {
+              this.log.warn(`Invalid synced instance ID "${rawId}" – skipping`)
+              continue
+            }
+
             if (routedInstances.includes(syncedId)) continue
 
             const syncedInstance = instanceMap.get(syncedId)
