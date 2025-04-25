@@ -44,14 +44,10 @@ Want to contribute? Check out our [Contributing Guidelines](#contributing).
   - Real-time monitoring through RSS feeds for Plex Pass users
   - 20-minute interval polling for non-Plex Pass users
   - All other features remain identical regardless of Plex Pass status
-- **Smart Content Routing**:
-  - Route content to different Sonarr/Radarr instances based on rules
-  - Multiple routing methods including:
-    - Genre-based routing
-    - Language-based routing
-    - User-based routing
-    - Year-based routing
-  - Extensible plugin architecture for future routing capabilities
+- **Advanced Content Routing**:
+  - Intelligent routing system with support for complex conditions and multiple instances
+  - Route content based on genre, user, language, year, and certification
+  - See [Advanced Content Routing](#advanced-content-routing) section for details
 - **Discord Integration**: User-friendly notification system with customizable settings via Discord bot commands. Allows users to customize their own notification settings.
 - **Apprise Integration**: Apprise can be used to route notifications. Apprise supports many different notifications methods including email, SMS, Slack, Telegram, and many more. Users can configure their own Apprise settings via the Discord bot, or admins can set these up via the UI. System notifications can also be sent through Apprise. Please see [Apprise Documentation](#apprise-notifications) below on setting up Pulsarr with Apprise. 
 - **Granular User Controls**: Choose which users can sync content from their watchlists.
@@ -104,6 +100,36 @@ The notification system is designed to be informative:
 4. **User Targeting**: Identifies users who have the show in their watchlist and have enabled notifications
 5. **Multi-channel Delivery**: Sends personalized notifications via Discord DMs, Email (coming soon), and can send global grabs via webhooks
 6. **Customizable Preferences**: Each user can configure their notification preferences via Discord, or the admin can via the UI
+
+## Advanced Content Routing
+
+Pulsarr offers a powerful predicate-based routing system that intelligently directs content to the appropriate Sonarr/Radarr instances.
+
+<div align="center">
+  <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Content-Route-1.png" alt="Content Router UI 1" width="80%"/>
+</div>
+
+<div align="center">
+  <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Content-Route-2.png" alt="Content Router UI 2" width="80%"/>
+</div>
+
+### Key Features
+
+- **Conditional Logic**: Build complex routing rules with AND/OR logic and nested condition groups
+- **Multiple Criteria Types**: Route content based on:
+  - Genre (e.g., Anime → dedicated instance)
+  - User (e.g., specific users' content → specific profiles/folders)
+  - Language (e.g., Spanish content → spanish content folder)
+  - Year (e.g., pre-2000 movies → classics folder)
+  - Certification (e.g., R-rated → separate folder)
+- **Visual Rule Builder**: Intuitive interface for creating and managing routing rules
+- **Priority-based Processing**: Assign weights to rules to control which takes precedence
+- **Rule Testing**: Verify routing behavior before applying
+- **Multi-Instance Routing**: Content can be simultaneously sent to multiple instances when different rules match, allowing for content to exist in multiple libraries or servers
+
+**Example**: "Route Japanese Anime requested by specific users to the Anime instance with high-quality profile, while sending all other anime content to the standard instance."
+
+The routing system processes all matching rules that target different instances, allowing the same content to appear in multiple libraries as needed. When multiple rules target the same instance, only the highest priority rule is applied for that specific instance.
 
 ## Quick Start
 
@@ -476,6 +502,7 @@ sonarrRootFolder=                      # Root folder path (empty = default. Or a
 sonarrLanguageProfileId=1              # Language profile ID
 sonarrBypassIgnored=false              # Bypass ignored setting
 sonarrSeasonMonitoring=all             # Season monitoring strategy
+sonarrMonitorNewItems=all              # Monitor strategy for new items ('all' or 'none')
 sonarrTags=[]                          # Tags as JSON array
 
 # Radarr Configuration (these will seed a single instance. Needs all the values. Only use in dev.)
@@ -618,7 +645,7 @@ Pulsarr includes built-in API documentation accessible at `/api/docs` when runni
 
 - ~~Email notifications~~
 - ~~Apprise for notifications~~
-- Non-Plex Pass (will update watchlists on 20 minute intervals. All other functionality remains.)
+- ~~Non-Plex Pass (will update watchlists on 20 minute intervals. All other functionality remains.)~~
 - API keys
 - ~~Delete Syncing~~
 - Unit tests... 🤮

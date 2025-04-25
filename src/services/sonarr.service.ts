@@ -234,6 +234,7 @@ export class SonarrService {
           sonarrRootFolder: instance.rootFolder || null,
           sonarrTagIds: instance.tags,
           sonarrSeasonMonitoring: instance.seasonMonitoring,
+          sonarrMonitorNewItems: instance.monitorNewItems || 'all',
         }
         return
       }
@@ -246,6 +247,7 @@ export class SonarrService {
         sonarrRootFolder: instance.rootFolder || null,
         sonarrTagIds: instance.tags,
         sonarrSeasonMonitoring: instance.seasonMonitoring,
+        sonarrMonitorNewItems: instance.monitorNewItems || 'all',
       }
 
       this.log.info(
@@ -549,6 +551,7 @@ export class SonarrService {
         addOptions,
         languageProfileId: null,
         monitored: true,
+        monitorNewItems: config.sonarrMonitorNewItems || 'all',
         tags: config.sonarrTagIds,
       }
 

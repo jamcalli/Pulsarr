@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,7 +15,6 @@ interface RouteCardHeaderProps {
   isDirty: boolean;
   isValid: boolean;
   enabled?: boolean;
-  isTogglingState?: boolean;
   onToggleEnabled?: () => Promise<void>;
   onSave: () => void;
   onCancel: () => void;
@@ -30,7 +29,6 @@ const RouteCardHeader = ({
   isDirty,
   isValid,
   enabled = true,
-  isTogglingState = false,
   onToggleEnabled,
   onSave,
   onCancel,
@@ -54,13 +52,12 @@ const RouteCardHeader = ({
     setIsEditing(false);
   };
 
-  const getBadgeVariant = () => {
+  const getBadgeVariant = useCallback(() => {
     if (enabled) {
-      return 'bg-green-500 hover:bg-green-500 text-white';
-    } else {
-      return 'bg-red-500 hover:bg-red-500 text-white';
+      return 'bg-green-500 hover:bg-green-500 text-white'
     }
-  };
+    return 'bg-red-500 hover:bg-red-500 text-white'
+  }, [enabled])
 
   return (
     <CardHeader>
@@ -71,18 +68,15 @@ const RouteCardHeader = ({
               <div className="flex items-center gap-2">
                 <Badge 
                   variant="neutral" 
-                  className={cn('px-2 py-0.5 h-7 text-sm', getBadgeVariant())}
+                  className={cn('px-2 py-0.5 h-7 text-sm transition-colors duration-200', getBadgeVariant())}
                 >
                   {enabled ? 'Enabled' : 'Disabled'}
                 </Badge>
-                {isTogglingState ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-<Switch
-  checked={enabled}
-  onCheckedChange={() => onToggleEnabled && onToggleEnabled()} 
-/>
-                )}
+                <Switch
+                  checked={enabled}
+                  onCheckedChange={() => onToggleEnabled && onToggleEnabled()} 
+                  className="transition-opacity duration-200"
+                />
               </div>
             )}
             {isEditing ? (

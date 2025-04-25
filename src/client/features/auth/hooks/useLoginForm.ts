@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -8,12 +8,24 @@ import {
   type LoginFormSchema,
 } from '@/features/auth/schemas/login-schema'
 
+/**
+ * Provides state management, validation, and submission handling for a login form.
+ *
+ * Initializes form validation using a Zod schema, manages loading and success states, handles backend and unexpected errors, and automatically focuses the email input on mount. On successful login, displays a welcome toast and redirects the user.
+ *
+ * @returns An object containing the form instance, current status, backend error message, email input ref, and the submit handler.
+ */
 export function useLoginForm() {
   const navigate = useNavigate()
   const { toast } = useToast()
   const [status, setStatus] = useState<'idle' | 'loading' | 'success'>('idle')
   const [backendError, setBackendError] = useState<string | null>(null)
   const emailInputRef = useRef<HTMLInputElement>(null)
+
+  // Add useEffect to focus email input on mount
+  useEffect(() => {
+    emailInputRef.current?.focus()
+  }, [])
 
   const form = useForm<LoginFormSchema>({
     resolver: zodResolver(loginFormSchema),

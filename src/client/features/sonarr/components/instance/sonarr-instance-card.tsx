@@ -50,6 +50,16 @@ interface InstanceCardProps {
   setShowInstanceCard?: (show: boolean) => void
 }
 
+/**
+ * Displays a configuration card for managing a Sonarr instance, allowing users to view, edit, test, sync, and delete instance settings.
+ *
+ * The card provides form fields for connection details, quality profile, root folder, season monitoring, syncing with other instances, monitoring new items, and setting the default instance. It integrates with global state, handles asynchronous operations for testing connections, saving changes, syncing, and deletion, and provides user feedback via toasts and modals.
+ *
+ * @param instance - The Sonarr instance to display and configure.
+ * @param setShowInstanceCard - Optional callback to control the visibility of the card.
+ *
+ * @returns The rendered Sonarr instance configuration card UI.
+ */
 export function InstanceCard({
   instance,
   setShowInstanceCard,
@@ -353,6 +363,32 @@ export function InstanceCard({
                                 </Tooltip>
                               </TooltipProvider>
                             )}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="monitorNewItems"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-text">
+                          Monitor New Items
+                        </FormLabel>
+                        <div className="flex h-10 items-center gap-2 px-3 py-2">
+                          <FormControl>
+                            <Switch
+                              checked={field.value === 'all'}
+                              onCheckedChange={(checked) => {
+                                field.onChange(checked ? 'all' : 'none')
+                              }}
+                              disabled={!isConnectionValid}
+                            />
+                          </FormControl>
+                          <span className="text-sm text-text text-muted-foreground">
+                            Automatically monitor new items
+                          </span>
                         </div>
                         <FormMessage />
                       </FormItem>

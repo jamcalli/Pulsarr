@@ -60,7 +60,15 @@ import type {
   IntervalConfig,
   CronConfig,
 } from '@root/types/scheduler.types.js'
-import type { RouterRule } from '@root/types/router.types.js'
+import type {
+  RouterRule,
+  Condition,
+  ConditionGroup,
+} from '@root/types/router.types.js'
+import type {
+  RadarrMovieLookupResponse,
+  SonarrSeriesLookupResponse,
+} from '@root/types/content-lookup.types.js'
 
 export class DatabaseService {
   private readonly knex: Knex
@@ -596,6 +604,7 @@ export class DatabaseService {
       rootFolder: instance.root_folder,
       bypassIgnored: Boolean(instance.bypass_ignored),
       seasonMonitoring: instance.season_monitoring,
+      monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
       tags: JSON.parse(instance.tags || '[]'),
       isDefault: Boolean(instance.is_default),
       syncedInstances: JSON.parse(instance.synced_instances || '[]'),
@@ -626,6 +635,7 @@ export class DatabaseService {
       rootFolder: instance.root_folder,
       bypassIgnored: Boolean(instance.bypass_ignored),
       seasonMonitoring: instance.season_monitoring,
+      monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
       tags: JSON.parse(instance.tags || '[]'),
       isDefault: true,
       syncedInstances: JSON.parse(instance.synced_instances || '[]'),
@@ -652,6 +662,7 @@ export class DatabaseService {
       rootFolder: instance.root_folder,
       bypassIgnored: Boolean(instance.bypass_ignored),
       seasonMonitoring: instance.season_monitoring,
+      monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
       tags: JSON.parse(instance.tags || '[]'),
       isDefault: Boolean(instance.is_default),
       syncedInstances: JSON.parse(instance.synced_instances || '[]'),
@@ -683,6 +694,9 @@ export class DatabaseService {
         root_folder: instance.rootFolder,
         bypass_ignored: instance.bypassIgnored,
         season_monitoring: instance.seasonMonitoring,
+        monitor_new_items: this.normaliseMonitorNewItems(
+          instance.monitorNewItems,
+        ),
         tags: JSON.stringify(instance.tags || []),
         is_default: instance.isDefault ?? false,
         is_enabled: true,
@@ -702,6 +716,21 @@ export class DatabaseService {
     }
 
     return row.id
+  }
+
+  /** Normalises/validates monitorNewItems, throws on bad input */
+  private normaliseMonitorNewItems(
+    value: string | undefined | null,
+  ): 'all' | 'none' {
+    if (value === undefined || value === null) {
+      throw new Error('monitorNewItems must be provided (all|none)')
+    }
+
+    const normalized = value.toLowerCase()
+    if (!['all', 'none'].includes(normalized)) {
+      throw new Error(`Invalid monitorNewItems value: ${value}`)
+    }
+    return normalized as 'all' | 'none'
   }
 
   /**
@@ -743,6 +772,11 @@ export class DatabaseService {
         }),
         ...(typeof updates.seasonMonitoring !== 'undefined' && {
           season_monitoring: updates.seasonMonitoring,
+        }),
+        ...(typeof updates.monitorNewItems !== 'undefined' && {
+          monitor_new_items: this.normaliseMonitorNewItems(
+            updates.monitorNewItems,
+          ),
         }),
         ...(typeof updates.tags !== 'undefined' && {
           tags: JSON.stringify(updates.tags),
@@ -2236,6 +2270,7 @@ export class DatabaseService {
   ): Promise<{ id: number } | undefined> {
     return await this.knex('notifications')
       .where({
+        // Get all junction table entries for a set of watchlist items,
         user_id: userId,
         type,
         title,
@@ -2843,55 +2878,132 @@ export class DatabaseService {
     }[]
   > {
     try {
-      type TransitionMetricsRow = {
+      this.log.debug('Calculating detailed status transition metrics')
+
+      // Define the type for the raw transitions
+      type RawTransition = {
         from_status: string
         to_status: string
         content_type: string
+        days_between: number | string
+      }
+
+      // First, get all the direct transitions without filtering
+      const rawTransitions = await this.knex.raw<RawTransition[]>(`
+        WITH status_pairs AS (
+          SELECT 
+            h1.status AS from_status,
+            h2.status AS to_status,
+            w.type AS content_type,
+            julianday(h2.timestamp) - julianday(h1.timestamp) AS days_between
+          FROM watchlist_status_history h1
+          JOIN watchlist_status_history h2 
+            ON h1.watchlist_item_id = h2.watchlist_item_id 
+            AND h2.timestamp > h1.timestamp
+          JOIN watchlist_items w ON h1.watchlist_item_id = w.id
+          WHERE h1.status != h2.status
+          AND NOT EXISTS (
+            SELECT 1 FROM watchlist_status_history h3
+            WHERE h3.watchlist_item_id = h1.watchlist_item_id
+            AND h3.timestamp > h1.timestamp 
+            AND h3.timestamp < h2.timestamp
+          )
+        )
+        SELECT 
+          from_status,
+          to_status,
+          content_type,
+          days_between
+        FROM status_pairs
+      `)
+
+      const transitionGroups = new Map<string, number[]>()
+
+      // Process and group raw transitions with numeric coercion and validation
+      for (const row of rawTransitions) {
+        const key = `${row.from_status}|${row.to_status}|${row.content_type}`
+
+        const daysBetweenRaw =
+          typeof row.days_between === 'number'
+            ? row.days_between
+            : Number(row.days_between)
+
+        // Skip invalid or negative values
+        if (!Number.isFinite(daysBetweenRaw) || daysBetweenRaw < 0) {
+          this.log.warn(
+            `Skipping invalid days_between value: ${row.days_between}`,
+            {
+              from_status: row.from_status,
+              to_status: row.to_status,
+              content_type: row.content_type,
+            },
+          )
+          continue
+        }
+
+        if (!transitionGroups.has(key)) {
+          transitionGroups.set(key, [])
+        }
+        transitionGroups.get(key)?.push(daysBetweenRaw)
+      }
+
+      // Process each group to filter outliers and calculate statistics
+      const results: Array<{
+        from_status: string
+        to_status: string
+        content_type: string
+        count: number
         avg_days: number
         min_days: number
         max_days: number
-        count: number
+      }> = []
+
+      for (const [key, values] of transitionGroups.entries()) {
+        if (values.length === 0) continue
+
+        // Values are now guaranteed to be numbers
+        values.sort((a, b) => a - b)
+
+        // Calculate quartiles for IQR
+        const q1Idx = Math.floor(values.length * 0.25)
+        const q3Idx = Math.floor(values.length * 0.75)
+        const q1 = values[q1Idx]
+        const q3 = values[q3Idx]
+        const iqr = q3 - q1
+
+        // Filter outliers using IQR method
+        const filteredValues = values.filter(
+          (v) => v >= q1 - 1.5 * iqr && v <= q3 + 1.5 * iqr,
+        )
+
+        if (filteredValues.length === 0) continue
+
+        // Calculate statistics with guaranteed numeric values
+        const [from_status, to_status, content_type] = key.split('|')
+        const sum = filteredValues.reduce((acc, val) => acc + val, 0)
+        const avg_days = sum / filteredValues.length
+        const min_days = Math.min(...filteredValues)
+        const max_days = Math.max(...filteredValues)
+
+        results.push({
+          from_status,
+          to_status,
+          content_type,
+          count: filteredValues.length,
+          avg_days,
+          min_days,
+          max_days,
+        })
       }
 
-      const results = await this.knex.raw<TransitionMetricsRow[]>(`
-      WITH status_pairs AS (
-        SELECT 
-          h1.status AS from_status,
-          h2.status AS to_status,
-          w.type AS content_type,
-          julianday(h2.timestamp) - julianday(h1.timestamp) AS days_between
-        FROM watchlist_status_history h1
-        JOIN watchlist_status_history h2 ON h1.watchlist_item_id = h2.watchlist_item_id AND h2.timestamp > h1.timestamp
-        JOIN watchlist_items w ON h1.watchlist_item_id = w.id
-        WHERE h1.status != h2.status
-        AND NOT EXISTS (
-          SELECT 1 FROM watchlist_status_history h3
-          WHERE h3.watchlist_item_id = h1.watchlist_item_id
-          AND h3.timestamp > h1.timestamp AND h3.timestamp < h2.timestamp
-        )
-      )
-      SELECT 
-        from_status,
-        to_status,
-        content_type,
-        avg(days_between) AS avg_days,
-        min(days_between) AS min_days,
-        max(days_between) AS max_days,
-        count(*) AS count
-      FROM status_pairs
-      GROUP BY from_status, to_status, content_type
-      ORDER BY from_status, to_status, content_type
-    `)
+      // Sort by count descending
+      results.sort((a, b) => b.count - a.count)
 
-      return results.map((row: TransitionMetricsRow) => ({
-        from_status: String(row.from_status),
-        to_status: String(row.to_status),
-        content_type: String(row.content_type),
-        avg_days: Number(row.avg_days),
-        min_days: Number(row.min_days),
-        max_days: Number(row.max_days),
-        count: Number(row.count),
-      }))
+      this.log.debug(
+        `Calculated transition metrics for ${results.length} status pairs`,
+      )
+
+      return results
     } catch (error) {
       this.log.error(
         'Error calculating detailed status transition metrics:',
@@ -3303,7 +3415,7 @@ export class DatabaseService {
   async updateWatchlistRadarrInstanceStatus(
     watchlistId: number,
     instanceId: number,
-    status: string,
+    status: 'pending' | 'requested' | 'grabbed' | 'notified',
     lastNotifiedAt: string | null = null,
   ): Promise<void> {
     try {
@@ -3393,6 +3505,132 @@ export class DatabaseService {
       )
       throw error
     }
+  }
+
+  // Get all junction table entries for a set of watchlist items
+  async getAllWatchlistRadarrInstanceJunctions(watchlistIds: number[]): Promise<
+    Array<{
+      watchlist_id: number
+      radarr_instance_id: number
+      status: 'pending' | 'requested' | 'grabbed' | 'notified'
+      is_primary: boolean
+      syncing: boolean
+      last_notified_at: string | null
+    }>
+  > {
+    return this.knex('watchlist_radarr_instances')
+      .whereIn('watchlist_id', watchlistIds)
+      .select('*')
+  }
+
+  // Bulk add multiple junction records in one operation
+  async bulkAddWatchlistToRadarrInstances(
+    junctions: Array<{
+      watchlist_id: number
+      radarr_instance_id: number
+      status: 'pending' | 'requested' | 'grabbed' | 'notified'
+      is_primary: boolean
+      last_notified_at?: string
+      syncing?: boolean
+    }>,
+  ): Promise<void> {
+    const timestamp = this.timestamp
+
+    const records = junctions.map((junction) => ({
+      watchlist_id: junction.watchlist_id,
+      radarr_instance_id: junction.radarr_instance_id,
+      status: junction.status,
+      is_primary: junction.is_primary,
+      syncing: junction.syncing ?? false,
+      last_notified_at: junction.last_notified_at || null,
+      created_at: timestamp,
+      updated_at: timestamp,
+    }))
+
+    // Process in chunks within a transaction
+    await this.knex.transaction(async (trx) => {
+      const chunks = this.chunkArray(records, 100)
+
+      for (const chunk of chunks) {
+        // Instead of ignoring conflicts, merge the updates
+        await trx('watchlist_radarr_instances')
+          .insert(chunk)
+          .onConflict(['watchlist_id', 'radarr_instance_id'])
+          .merge([
+            'status',
+            'is_primary',
+            'syncing',
+            'last_notified_at',
+            'updated_at',
+          ])
+      }
+    })
+  }
+
+  // Bulk update multiple junction records in one operation
+  async bulkUpdateWatchlistRadarrInstanceStatuses(
+    updates: Array<{
+      watchlist_id: number
+      radarr_instance_id: number
+      status?: 'pending' | 'requested' | 'grabbed' | 'notified'
+      is_primary?: boolean
+      last_notified_at?: string
+    }>,
+  ): Promise<void> {
+    const timestamp = this.timestamp
+
+    // Use transaction to ensure all updates are atomic
+    await this.knex.transaction(async (trx) => {
+      for (const update of updates) {
+        if (
+          update.status &&
+          !['pending', 'requested', 'grabbed', 'notified'].includes(
+            update.status,
+          )
+        ) {
+          throw new Error(`Invalid status '${update.status}'`)
+        }
+
+        const { watchlist_id, radarr_instance_id, ...fields } = update
+
+        await trx('watchlist_radarr_instances')
+          .where({
+            watchlist_id,
+            radarr_instance_id,
+          })
+          .update({
+            ...fields,
+            updated_at: timestamp,
+          })
+      }
+    })
+  }
+
+  // Bulk remove multiple junction records in one operation
+  async bulkRemoveWatchlistFromRadarrInstances(
+    removals: Array<{
+      watchlist_id: number
+      radarr_instance_id: number
+    }>,
+  ): Promise<void> {
+    // Use a single query with multiple OR conditions
+    await this.knex.transaction(async (trx) => {
+      // Process in reasonable chunks
+      const chunks = this.chunkArray(removals, 50)
+
+      for (const chunk of chunks) {
+        await trx('watchlist_radarr_instances')
+          .where(function () {
+            for (const removal of chunk) {
+              this.orWhere({
+                watchlist_id: removal.watchlist_id,
+                radarr_instance_id: removal.radarr_instance_id,
+              })
+            }
+          })
+          .delete()
+      }
+    })
   }
 
   //=============================================================================
@@ -3492,7 +3730,7 @@ export class DatabaseService {
   async updateWatchlistSonarrInstanceStatus(
     watchlistId: number,
     instanceId: number,
-    status: string,
+    status: 'pending' | 'requested' | 'grabbed' | 'notified',
     lastNotifiedAt: string | null = null,
   ): Promise<void> {
     try {
@@ -3582,6 +3820,132 @@ export class DatabaseService {
       )
       throw error
     }
+  }
+
+  // Get all junction table entries for a set of watchlist items
+  async getAllWatchlistSonarrInstanceJunctions(watchlistIds: number[]): Promise<
+    Array<{
+      watchlist_id: number
+      sonarr_instance_id: number
+      status: 'pending' | 'requested' | 'grabbed' | 'notified'
+      is_primary: boolean
+      last_notified_at: string | null
+    }>
+  > {
+    return this.knex('watchlist_sonarr_instances')
+      .whereIn('watchlist_id', watchlistIds)
+      .select('*')
+  }
+
+  // Bulk add multiple junction records in one operation
+  async bulkAddWatchlistToSonarrInstances(
+    junctions: Array<{
+      watchlist_id: number
+      sonarr_instance_id: number
+      status: string
+      is_primary: boolean
+      last_notified_at?: string
+      syncing?: boolean
+    }>,
+  ): Promise<void> {
+    const timestamp = this.timestamp
+
+    const records = junctions.map((junction) => ({
+      watchlist_id: junction.watchlist_id,
+      sonarr_instance_id: junction.sonarr_instance_id,
+      status: junction.status,
+      is_primary: junction.is_primary,
+      syncing: junction.syncing ?? false,
+      last_notified_at: junction.last_notified_at || null,
+      created_at: timestamp,
+      updated_at: timestamp,
+    }))
+
+    // Process in chunks within a transaction
+    await this.knex.transaction(async (trx) => {
+      const chunks = this.chunkArray(records, 100)
+
+      for (const chunk of chunks) {
+        // Instead of ignoring conflicts, merge the updates
+        await trx('watchlist_sonarr_instances')
+          .insert(chunk)
+          .onConflict(['watchlist_id', 'sonarr_instance_id'])
+          .merge([
+            'status',
+            'is_primary',
+            'syncing',
+            'last_notified_at',
+            'updated_at',
+          ])
+      }
+    })
+  }
+
+  // Bulk update multiple junction records in one operation
+  async bulkUpdateWatchlistSonarrInstanceStatuses(
+    updates: Array<{
+      watchlist_id: number
+      sonarr_instance_id: number
+      status?: 'pending' | 'requested' | 'grabbed' | 'notified'
+      is_primary?: boolean
+      last_notified_at?: string
+    }>,
+  ): Promise<void> {
+    const timestamp = this.timestamp
+
+    // Use transaction to ensure all updates are atomic
+    await this.knex.transaction(async (trx) => {
+      for (const update of updates) {
+        const { watchlist_id, sonarr_instance_id, ...fields } = update
+
+        // Validate status field if provided
+        if (
+          fields.status &&
+          !['pending', 'requested', 'grabbed', 'notified'].includes(
+            fields.status,
+          )
+        ) {
+          throw new Error(`Invalid status '${fields.status}'`)
+        }
+
+        await trx('watchlist_sonarr_instances')
+          .where({
+            watchlist_id,
+            sonarr_instance_id,
+          })
+          .update({
+            ...fields,
+            updated_at: timestamp,
+          })
+      }
+    })
+  }
+
+  // Bulk remove multiple junction records in one operation
+  async bulkRemoveWatchlistFromSonarrInstances(
+    removals: Array<{
+      watchlist_id: number
+      sonarr_instance_id: number
+    }>,
+  ): Promise<void> {
+    // Use a single query with multiple OR conditions
+    await this.knex.transaction(async (trx) => {
+      // Process in reasonable chunks
+      const chunks = this.chunkArray(removals, 50)
+
+      for (const chunk of chunks) {
+        await trx('watchlist_sonarr_instances')
+          .where(function () {
+            for (const removal of chunk) {
+              this.orWhere({
+                watchlist_id: removal.watchlist_id,
+                sonarr_instance_id: removal.sonarr_instance_id,
+              })
+            }
+          })
+          .delete()
+      }
+    })
   }
 
   /**
@@ -3876,6 +4240,8 @@ export class DatabaseService {
           rootFolder: instance.root_folder,
           bypassIgnored: Boolean(instance.bypass_ignored),
           seasonMonitoring: instance.season_monitoring,
+          monitorNewItems:
+            (instance.monitor_new_items as 'all' | 'none') || 'all',
           tags: JSON.parse(instance.tags || '[]'),
           isDefault: Boolean(instance.is_default),
           syncedInstances: JSON.parse(instance.synced_instances || '[]'),
@@ -4426,6 +4792,382 @@ export class DatabaseService {
         enabled,
         updated_at: this.timestamp,
       })
+      .returning('*')
+
+    if (!updatedRule) {
+      throw new Error(
+        `Router rule with ID ${id} not found or could not be updated`,
+      )
+    }
+
+    return {
+      ...updatedRule,
+      enabled: Boolean(updatedRule.enabled),
+      criteria:
+        typeof updatedRule.criteria === 'string'
+          ? JSON.parse(updatedRule.criteria)
+          : updatedRule.criteria,
+      metadata: updatedRule.metadata
+        ? typeof updatedRule.metadata === 'string'
+          ? JSON.parse(updatedRule.metadata)
+          : updatedRule.metadata
+        : null,
+    }
+  }
+
+  // Helper to validate condition structure
+  private readonly VALID_OPERATORS = [
+    'equals',
+    'notEquals',
+    'contains',
+    'notContains',
+    'in',
+    'notIn',
+    'greaterThan',
+    'lessThan',
+    'between',
+    'regex',
+  ]
+
+  /**
+   * Validates a condition or condition group for structure and content
+   *
+   * This helper checks that conditions have the correct structure and contain
+   * valid values for their operators. It performs recursive validation of
+   * nested condition groups with depth limiting to prevent stack overflows.
+   *
+   * @param condition - The condition or condition group to validate
+   * @param depth - Current recursion depth (for preventing stack overflow)
+   * @returns Object indicating if the condition is valid and any error message
+   */
+  private validateCondition(
+    condition: Condition | ConditionGroup,
+    depth = 0,
+  ): { valid: boolean; error?: string } {
+    try {
+      // Prevent excessive nesting that could cause stack overflow
+      if (depth > 20) {
+        return {
+          valid: false,
+          error: 'Maximum condition nesting depth exceeded (20 levels)',
+        }
+      }
+
+      // Check if it's a condition group
+      if ('operator' in condition && 'conditions' in condition) {
+        // Validate group operator
+        const operator = condition.operator.toUpperCase()
+        if (!['AND', 'OR'].includes(operator)) {
+          return {
+            valid: false,
+            error: `Invalid group operator: ${condition.operator}. Expected 'AND' or 'OR'.`,
+          }
+        }
+
+        // Check if conditions is an array
+        if (!Array.isArray(condition.conditions)) {
+          return { valid: false, error: 'conditions must be an array' }
+        }
+
+        // Check if conditions array is empty
+        if (condition.conditions.length === 0) {
+          return {
+            valid: false,
+            error: 'condition group must have at least one condition',
+          }
+        }
+
+        // Recursively validate all conditions in the group with incremented depth
+        for (const subCondition of condition.conditions) {
+          const result = this.validateCondition(subCondition, depth + 1)
+          if (!result.valid) return result
+        }
+
+        return { valid: true }
+      }
+
+      // Check if it's a simple condition
+      if (
+        'field' in condition &&
+        'operator' in condition &&
+        'value' in condition
+      ) {
+        // Validate field
+        if (typeof condition.field !== 'string' || !condition.field.trim()) {
+          return { valid: false, error: 'field must be a non-empty string' }
+        }
+
+        // Validate operator against canonical list
+        if (!this.VALID_OPERATORS.includes(condition.operator)) {
+          return {
+            valid: false,
+            error: `Invalid operator: ${condition.operator}. Valid operators are: ${this.VALID_OPERATORS.join(', ')}`,
+          }
+        }
+
+        // Validate value based on operator type
+        if (condition.value === undefined || condition.value === null) {
+          return { valid: false, error: 'value cannot be undefined or null' }
+        }
+
+        // For array operators, check that value is a non-empty array
+        if (['in', 'notIn'].includes(condition.operator)) {
+          if (!Array.isArray(condition.value)) {
+            return {
+              valid: false,
+              error: `Value for ${condition.operator} operator must be an array`,
+            }
+          }
+          if (condition.value.length === 0) {
+            return {
+              valid: false,
+              error: `Value for ${condition.operator} operator cannot be an empty array`,
+            }
+          }
+        }
+
+        // For scalar operators, ensure the value is meaningful
+        if (
+          ['equals', 'notEquals', 'contains', 'notContains'].includes(
+            condition.operator,
+          )
+        ) {
+          if (
+            typeof condition.value === 'string' &&
+            condition.value.trim() === ''
+          ) {
+            return {
+              valid: false,
+              error: `Value for ${condition.operator} operator cannot be an empty string`,
+            }
+          }
+        }
+
+        // Special validation for regex operator
+        if (condition.operator === 'regex') {
+          if (
+            typeof condition.value !== 'string' ||
+            condition.value.trim() === ''
+          ) {
+            return {
+              valid: false,
+              error:
+                'Value for regex operator must be a non-empty string containing a valid pattern',
+            }
+          }
+          try {
+            // Attempt to compile the pattern to catch syntax errors early
+            new RegExp(condition.value)
+          } catch (error) {
+            return {
+              valid: false,
+              error: `Invalid regular expression pattern: ${(error as Error).message}`,
+            }
+          }
+        }
+
+        // For numeric comparison operators, ensure value is a number
+        if (['greaterThan', 'lessThan'].includes(condition.operator)) {
+          if (typeof condition.value !== 'number') {
+            return {
+              valid: false,
+              error: `Value for ${condition.operator} operator must be a number`,
+            }
+          }
+        }
+
+        // For between operator, validate the range object structure
+        if (condition.operator === 'between') {
+          if (typeof condition.value !== 'object' || condition.value === null) {
+            return {
+              valid: false,
+              error:
+                'Value for between operator must be an object with min and/or max properties',
+            }
+          }
+
+          interface RangeValue {
+            min?: number
+            max?: number
+          }
+
+          const rangeValue = condition.value as RangeValue
+
+          // Check for missing bounds
+          if (!('min' in rangeValue) && !('max' in rangeValue)) {
+            return {
+              valid: false,
+              error:
+                'Range comparison requires at least min or max to be specified',
+            }
+          }
+
+          // Validate numeric types
+          if ('min' in rangeValue && typeof rangeValue.min !== 'number') {
+            return {
+              valid: false,
+              error: 'min value must be a number',
+            }
+          }
+
+          if ('max' in rangeValue && typeof rangeValue.max !== 'number') {
+            return {
+              valid: false,
+              error: 'max value must be a number',
+            }
+          }
+
+          // Validate range logic when both bounds are present
+          if (
+            rangeValue.min !== undefined &&
+            rangeValue.max !== undefined &&
+            rangeValue.min > rangeValue.max
+          ) {
+            return {
+              valid: false,
+              error:
+                'Invalid range: min value cannot be greater than max value',
+            }
+          }
+        }
+
+        return { valid: true }
+      }
+
+      return { valid: false, error: 'Invalid condition structure' }
+    } catch (error) {
+      return {
+        valid: false,
+        error:
+          error instanceof Error ? error.message : 'Unknown validation error',
+      }
+    }
+  }
+
+  async createConditionalRule(rule: {
+    name: string
+    target_type: 'sonarr' | 'radarr'
+    target_instance_id: number
+    condition: Condition | ConditionGroup
+    root_folder?: string | null
+    quality_profile?: number | null
+    order?: number
+    enabled?: boolean
+    metadata?: RadarrMovieLookupResponse | SonarrSeriesLookupResponse | null
+  }): Promise<RouterRule> {
+    // Validate condition before proceeding
+    const validationResult = this.validateCondition(rule.condition)
+    if (!validationResult.valid) {
+      throw new Error(`Invalid condition: ${validationResult.error}`)
+    }
+
+    const criteria = {
+      condition: rule.condition,
+    }
+
+    const insertData = {
+      name: rule.name,
+      type: 'conditional',
+      criteria: JSON.stringify(criteria),
+      target_type: rule.target_type,
+      target_instance_id: rule.target_instance_id,
+      root_folder: rule.root_folder,
+      quality_profile: rule.quality_profile,
+      order: rule.order ?? 50,
+      enabled: rule.enabled ?? true,
+      metadata: rule.metadata ? JSON.stringify(rule.metadata) : null,
+      created_at: this.timestamp,
+      updated_at: this.timestamp,
+    }
+
+    const [createdRule] = await this.knex('router_rules')
+      .insert(insertData)
+      .returning('*')
+
+    if (!createdRule) throw new Error('Failed to create router rule')
+
+    return {
+      ...createdRule,
+      enabled: Boolean(createdRule.enabled),
+      criteria:
+        typeof createdRule.criteria === 'string'
+          ? JSON.parse(createdRule.criteria)
+          : createdRule.criteria,
+      metadata: createdRule.metadata
+        ? typeof createdRule.metadata === 'string'
+          ? JSON.parse(createdRule.metadata)
+          : createdRule.metadata
+        : null,
+    }
+  }
+
+  async updateConditionalRule(
+    id: number,
+    updates: {
+      name?: string
+      condition?: Condition | ConditionGroup
+      target_instance_id?: number
+      root_folder?: string | null
+      quality_profile?: number | null
+      order?: number
+      enabled?: boolean
+      metadata?: RadarrMovieLookupResponse | SonarrSeriesLookupResponse | null
+    },
+  ): Promise<RouterRule> {
+    // Validate condition if provided
+    if (updates.condition) {
+      const validationResult = this.validateCondition(updates.condition)
+      if (!validationResult.valid) {
+        throw new Error(`Invalid condition: ${validationResult.error}`)
+      }
+    }
+
+    // Get current rule to preserve existing data
+    const currentRule = await this.getRouterRuleById(id)
+    if (!currentRule) {
+      throw new Error(`Router rule with ID ${id} not found`)
+    }
+
+    const updateData: Record<string, unknown> = {
+      updated_at: this.timestamp,
+    }
+
+    // Update basic fields
+    if (updates.name !== undefined) updateData.name = updates.name
+    if (updates.target_instance_id !== undefined)
+      updateData.target_instance_id = updates.target_instance_id
+    if (updates.root_folder !== undefined)
+      updateData.root_folder = updates.root_folder
+    if (updates.quality_profile !== undefined)
+      updateData.quality_profile = updates.quality_profile
+    if (updates.order !== undefined) updateData.order = updates.order
+    if (updates.enabled !== undefined) updateData.enabled = updates.enabled
+
+    // Update condition within criteria, preserving other criteria fields
+    if (updates.condition !== undefined) {
+      const currentCriteria =
+        typeof currentRule.criteria === 'string'
+          ? JSON.parse(currentRule.criteria)
+          : currentRule.criteria
+
+      const newCriteria = {
+        ...currentCriteria,
+        condition: updates.condition,
+      }
+
+      updateData.criteria = JSON.stringify(newCriteria)
+    }
+
+    // Update metadata
+    if (updates.metadata !== undefined) {
+      updateData.metadata = updates.metadata
+        ? JSON.stringify(updates.metadata)
+        : null
+    }
+
+    const [updatedRule] = await this.knex('router_rules')
+      .where('id', id)
+      .update(updateData)
       .returning('*')
 
     if (!updatedRule) {
