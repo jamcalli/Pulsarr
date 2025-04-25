@@ -40,10 +40,12 @@ export interface ConditionGroup extends ConditionBase {
 }
 
 /**
- * Checks if an object matches the structure of a {@link Condition}.
+ * Determines whether a given object is a {@link Condition}.
  *
- * @param obj - The value to test.
- * @returns True if the object has the required properties of a {@link Condition}; otherwise, false.
+ * Returns true if the object contains the required properties for a {@link Condition}; otherwise, returns false.
+ *
+ * @param obj - The object to check.
+ * @returns True if {@link obj} is a {@link Condition}.
  */
 export function isCondition(obj: unknown): obj is Condition {
   return (
@@ -57,10 +59,12 @@ export function isCondition(obj: unknown): obj is Condition {
 }
 
 /**
- * Checks if an object matches the structure of a {@link ConditionGroup}.
+ * Determines whether a value is a {@link ConditionGroup}.
+ *
+ * Returns true if the input is an object with an 'operator' property and a 'conditions' array.
  *
  * @param obj - The value to test.
- * @returns True if the object has an 'operator' property and a 'conditions' array, indicating it is a {@link ConditionGroup}.
+ * @returns True if {@link obj} is a {@link ConditionGroup}; otherwise, false.
  */
 export function isConditionGroup(obj: unknown): obj is ConditionGroup {
   return (
