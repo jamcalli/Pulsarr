@@ -3581,6 +3581,15 @@ export class DatabaseService {
     // Use transaction to ensure all updates are atomic
     await this.knex.transaction(async (trx) => {
       for (const update of updates) {
+        if (
+          update.status &&
+          !['pending', 'requested', 'grabbed', 'notified'].includes(
+            update.status,
+          )
+        ) {
+          throw new Error(`Invalid status '${update.status}'`)
+        }
+
         const { watchlist_id, radarr_instance_id, ...fields } = update
 
         await trx('watchlist_radarr_instances')
