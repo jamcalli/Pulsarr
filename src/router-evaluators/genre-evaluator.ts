@@ -11,9 +11,9 @@ import {
 } from '@root/types/router.types.js'
 
 /**
- * Converts a string to lowercase and trims leading and trailing whitespace.
+ * Normalizes a string by converting it to lowercase and trimming whitespace.
  *
- * @param str - The input string to normalize.
+ * @param str - The string to normalize.
  * @returns The normalized string.
  */
 function normalizeString(str: string): string {
@@ -21,10 +21,10 @@ function normalizeString(str: string): string {
 }
 
 /**
- * Checks if a value is an array consisting only of strings.
+ * Determines whether the provided value is an array containing only strings.
  *
- * @param value - The value to test.
- * @returns True if the value is an array and every element is a string; otherwise, false.
+ * @param value - The value to check.
+ * @returns True if {@link value} is an array where every element is a string; otherwise, false.
  */
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'string')
@@ -40,7 +40,7 @@ function isString(value: unknown): value is string {
 }
 
 /**
- * Checks if a value is a string or an array of strings suitable for genre matching.
+ * Determines whether a value is a string or an array of strings for genre evaluation.
  *
  * @returns `true` if the value is a string or an array of strings; otherwise, `false`.
  */

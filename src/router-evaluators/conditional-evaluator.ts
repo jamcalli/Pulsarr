@@ -11,9 +11,9 @@ import type {
 } from '@root/types/router.types.js'
 
 /**
- * Checks if a value is a valid {@link Condition} object.
+ * Determines whether the given value is a valid {@link Condition} object.
  *
- * Returns true if the input is a non-null object with `field`, `operator`, and `value` properties.
+ * Returns true if the value is a non-null object containing `field`, `operator`, and `value` properties.
  */
 function isCondition(value: unknown): value is Condition {
   return (
@@ -26,9 +26,9 @@ function isCondition(value: unknown): value is Condition {
 }
 
 /**
- * Checks if a value is a valid {@link ConditionGroup}.
+ * Determines whether the given value is a valid condition group.
  *
- * Returns true if the input is a non-null object with an 'operator' property and a 'conditions' array.
+ * Returns true if the value is a non-null object containing an 'operator' property and a 'conditions' array.
  */
 function isConditionGroup(value: unknown): value is ConditionGroup {
   return (
@@ -41,16 +41,16 @@ function isConditionGroup(value: unknown): value is ConditionGroup {
 }
 
 /**
- * Checks if a value is a valid condition or condition group.
+ * Determines whether the given value is a valid {@link Condition} or {@link ConditionGroup}.
  *
- * Returns true if the input is a {@link Condition} or {@link ConditionGroup}; otherwise, returns false.
+ * @returns True if the value is a {@link Condition} or {@link ConditionGroup}; otherwise, false.
  */
 function isValidCondition(value: unknown): value is Condition | ConditionGroup {
   return isCondition(value) || isConditionGroup(value)
 }
 
 /**
- * Creates a routing evaluator that applies complex conditional rules to determine how content items are routed.
+ * Creates a routing evaluator that applies complex conditional rules to determine routing decisions for content items.
  *
  * The evaluator retrieves enabled conditional routing rules from the database, validates their condition structures, and evaluates each rule against the provided content item and routing context. If a rule's condition matches, it generates routing decisions specifying the target instance, quality profile, root folder, and priority.
  *
