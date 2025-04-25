@@ -3514,6 +3514,7 @@ export class DatabaseService {
       radarr_instance_id: number
       status: 'pending' | 'requested' | 'grabbed' | 'notified'
       is_primary: boolean
+      syncing: boolean
       last_notified_at: string | null
     }>
   > {
@@ -5002,22 +5003,14 @@ export class DatabaseService {
           }
 
           // Validate numeric types
-          if (
-            'min' in rangeValue &&
-            typeof rangeValue.min !== 'number' &&
-            rangeValue.min !== undefined
-          ) {
+          if ('min' in rangeValue && typeof rangeValue.min !== 'number') {
             return {
               valid: false,
               error: 'min value must be a number',
             }
           }
 
-          if (
-            'max' in rangeValue &&
-            typeof rangeValue.max !== 'number' &&
-            rangeValue.max !== undefined
-          ) {
+          if ('max' in rangeValue && typeof rangeValue.max !== 'number') {
             return {
               valid: false,
               error: 'max value must be a number',

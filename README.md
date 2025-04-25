@@ -45,13 +45,16 @@ Want to contribute? Check out our [Contributing Guidelines](#contributing).
   - 20-minute interval polling for non-Plex Pass users
   - All other features remain identical regardless of Plex Pass status
 - **Smart Content Routing**:
-  - Route content to different Sonarr/Radarr instances based on rules
-  - Multiple routing methods including:
-    - Genre-based routing
-    - Language-based routing
-    - User-based routing
-    - Year-based routing
-  - Extensible plugin architecture for future routing capabilities
+  - Predicate-based routing system for granular control
+  - Route content to different Sonarr/Radarr instances using flexible conditions:
+    - Genre matching (contains, equals, in list)
+    - Year-based filters (equals, between ranges)
+    - Language preferences
+    - User-specific routing
+    - Certification/rating based routing
+  - Priority-based routing with fallback support
+  - Multiple conditions per route for complex scenarios
+  - Extensible condition system for future routing capabilities
 - **Discord Integration**: User-friendly notification system with customizable settings via Discord bot commands. Allows users to customize their own notification settings.
 - **Apprise Integration**: Apprise can be used to route notifications. Apprise supports many different notifications methods including email, SMS, Slack, Telegram, and many more. Users can configure their own Apprise settings via the Discord bot, or admins can set these up via the UI. System notifications can also be sent through Apprise. Please see [Apprise Documentation](#apprise-notifications) below on setting up Pulsarr with Apprise. 
 - **Granular User Controls**: Choose which users can sync content from their watchlists.
@@ -618,7 +621,7 @@ Pulsarr includes built-in API documentation accessible at `/api/docs` when runni
 
 - ~~Email notifications~~
 - ~~Apprise for notifications~~
-- Non-Plex Pass (will update watchlists on 20 minute intervals. All other functionality remains.)
+- ~~Non-Plex Pass (will update watchlists on 20 minute intervals. All other functionality remains.)~~
 - API keys
 - ~~Delete Syncing~~
 - Unit tests... 🤮
