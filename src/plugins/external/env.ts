@@ -47,6 +47,11 @@ const schema = {
       type: 'number',
       default: 500,
     },
+    authenticationMethod: {
+      type: 'string',
+      enum: ['required', 'requiredExceptLocal', 'disabled'],
+      default: 'required',
+    },
     syncIntervalSeconds: {
       type: 'number',
       default: 10,
