@@ -1,15 +1,10 @@
 /**
- * Check if an IP address is considered "local"
- * Covers all private IP ranges:
- * - 127.0.0.0/8 (localhost)
- * - 10.0.0.0/8
- * - 172.16.0.0/12
- * - 192.168.0.0/16
- * - 169.254.0.0/16 (link-local)
- * - ::1/128 (IPv6 localhost)
- * - fc00::/7 (IPv6 unique local addresses)
- * - fe80::/10 (IPv6 link-local addresses)
- * - ::ffff:x.x.x.x (IPv4-mapped IPv6 addresses)
+ * Determines whether the given IP address is a local or private address.
+ *
+ * Checks if the input IP belongs to any recognized local or private ranges, including IPv4 private networks, IPv6 unique local and link-local addresses, localhost, and IPv4-mapped IPv6 addresses.
+ *
+ * @param ip - The IP address to check.
+ * @returns `true` if the IP address is local or private; otherwise, `false`.
  */
 export function isLocalIpAddress(ip: string): boolean {
   // Trim any whitespace

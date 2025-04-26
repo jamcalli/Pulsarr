@@ -1,10 +1,12 @@
 import type { FastifyRequest } from 'fastify'
 
 /**
- * Creates a temporary admin session for authentication bypass scenarios
- * This is used when authentication is disabled globally or for local IPs
+ * Assigns a temporary admin user to the session for authentication bypass scenarios.
  *
- * @param request - The Fastify request object with session support
+ * @remark
+ * Intended for use when authentication is disabled globally or for local IP addresses. The session user is set with fixed admin credentials.
+ *
+ * @param request - The Fastify request object with session support.
  */
 export function createTemporaryAdminSession(request: FastifyRequest): void {
   request.session.user = {
