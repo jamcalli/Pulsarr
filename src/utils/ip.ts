@@ -7,8 +7,18 @@
  * @returns `true` if the IP address is local or private; otherwise, `false`.
  */
 export function isLocalIpAddress(ip: string): boolean {
+  // Handle null, undefined or empty inputs
+  if (!ip) {
+    return false
+  }
+
   // Trim any whitespace
   const cleanIp = ip.trim()
+
+  // Handle empty string after trimming
+  if (cleanIp.length === 0) {
+    return false
+  }
 
   // Localhost check
   if (cleanIp === '127.0.0.1' || cleanIp === '::1' || cleanIp === 'localhost') {
@@ -18,7 +28,10 @@ export function isLocalIpAddress(ip: string): boolean {
   // IPv4-mapped IPv6 addresses
   if (cleanIp.startsWith('::ffff:')) {
     const ipv4Part = cleanIp.substring(7)
-    return isLocalIpAddress(ipv4Part) // Recursively check the IPv4 part
+    // Direct IPv4 check to avoid recursion
+    return /^(127\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|192\.168\.|169\.254\.)/.test(
+      ipv4Part,
+    )
   }
 
   // IPv4 private ranges
@@ -59,14 +72,15 @@ export function isLocalIpAddress(ip: string): boolean {
     }
   }
 
-  // IPv6 checks with proper format validation
-  // Check for ULA (Unique Local Address) fc00::/7
-  if (/^fc[0-9a-f]{2}:/i.test(cleanIp) || /^fd[0-9a-f]{2}:/i.test(cleanIp)) {
+  // IPv6 ULA (Unique Local Address) fc00::/7 - check for proper hex format
+  const fcFdPattern = /^f[cd][0-9a-f]{2}:([0-9a-f]{0,4}:){0,7}[0-9a-f]{0,4}$/i
+  if (fcFdPattern.test(cleanIp)) {
     return true
   }
 
-  // IPv6 link-local fe80::/10
-  if (/^fe80:/i.test(cleanIp)) {
+  // IPv6 link-local fe80::/10 - check for proper hex format
+  const fe80Pattern = /^fe80:([0-9a-f]{0,4}:){0,7}[0-9a-f]{0,4}$/i
+  if (fe80Pattern.test(cleanIp)) {
     return true
   }
 
