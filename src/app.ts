@@ -5,6 +5,7 @@ import FastifyVite from '@fastify/vite'
 import type { FastifyInstance, FastifyPluginOptions } from 'fastify'
 import FastifyFormBody from '@fastify/formbody'
 import { isLocalIpAddress } from '@utils/ip.js'
+import { createTemporaryAdminSession } from '@utils/session.js'
 
 export const options = {
   ajv: {
@@ -121,12 +122,8 @@ export default async function serviceApp(
 
       if (hasUsers) {
         // Create a temporary session
-        request.session.user = {
-          id: 0,
-          email: 'auth-bypass@local',
-          username: 'auth-bypass',
-          role: 'admin',
-        }
+        createTemporaryAdminSession(request)
+
         return reply.redirect('/app/dashboard')
       }
 
@@ -180,12 +177,7 @@ export default async function serviceApp(
 
             if (hasUsers) {
               // Use a temporary session
-              request.session.user = {
-                id: 0,
-                email: 'auth-bypass@local',
-                username: 'auth-bypass',
-                role: 'admin',
-              }
+              createTemporaryAdminSession(request)
             } else {
               // No users exist yet, redirect to create user
               return reply.redirect('/app/create-user')
