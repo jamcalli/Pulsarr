@@ -4,6 +4,7 @@ import fastifyAutoload from '@fastify/autoload'
 import FastifyVite from '@fastify/vite'
 import type { FastifyInstance, FastifyPluginOptions } from 'fastify'
 import FastifyFormBody from '@fastify/formbody'
+import { isLocalIpAddress } from '@utils/ip.js'
 
 export const options = {
   ajv: {
@@ -104,10 +105,36 @@ export default async function serviceApp(
   })
 
   fastify.get('/', async (request, reply) => {
+    // Check for existing session
     if (request.session.user) {
       return reply.redirect('/app/dashboard')
     }
 
+    // Check authentication method setting
+    const authMethod = fastify.config.authenticationMethod
+    const isAuthDisabled = authMethod === 'disabled'
+    const isLocalBypass =
+      authMethod === 'requiredExceptLocal' && isLocalIpAddress(request.ip)
+
+    if (isAuthDisabled || isLocalBypass) {
+      const hasUsers = await fastify.db.hasAdminUsers()
+
+      if (hasUsers) {
+        // Create a temporary session
+        request.session.user = {
+          id: 0,
+          email: 'auth-bypass@local',
+          username: 'auth-bypass',
+          role: 'admin',
+        }
+        return reply.redirect('/app/dashboard')
+      }
+
+      // No users exist yet, redirect to create user
+      return reply.redirect('/app/create-user')
+    }
+
+    // Normal flow - check if users exist
     const hasUsers = await fastify.db.hasAdminUsers()
     return reply.redirect(hasUsers ? '/app/login' : '/app/create-user')
   })
@@ -116,11 +143,18 @@ export default async function serviceApp(
     '/app/*',
     {
       preHandler: async (request, reply) => {
+        // Check authentication method setting
+        const authMethod = fastify.config.authenticationMethod
+        const isAuthDisabled = authMethod === 'disabled'
+        const isLocalBypass =
+          authMethod === 'requiredExceptLocal' && isLocalIpAddress(request.ip)
+
+        // For login and create-user pages
         if (
           request.url === '/app/login' ||
           request.url === '/app/create-user'
         ) {
-          if (request.session.user) {
+          if (request.session.user || isAuthDisabled || isLocalBypass) {
             return reply.redirect('/app/dashboard')
           }
 
@@ -137,8 +171,29 @@ export default async function serviceApp(
           return
         }
 
+        // For all other app pages
         if (!request.session.user) {
-          return reply.redirect('/app/login')
+          // If auth is disabled or this is a local connection with local bypass
+          if (isAuthDisabled || isLocalBypass) {
+            // Create a temporary session for the current request only
+            const hasUsers = await fastify.db.hasAdminUsers()
+
+            if (hasUsers) {
+              // Use a temporary session
+              request.session.user = {
+                id: 0,
+                email: 'auth-bypass@local',
+                username: 'auth-bypass',
+                role: 'admin',
+              }
+            } else {
+              // No users exist yet, redirect to create user
+              return reply.redirect('/app/create-user')
+            }
+          } else {
+            // Regular auth required - redirect to login
+            return reply.redirect('/app/login')
+          }
         }
       },
     },

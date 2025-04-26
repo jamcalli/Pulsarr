@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify'
 import type { z } from 'zod'
 import { LogoutBodySchema, LogoutResponseSchema } from '@schemas/auth/logout.js'
+import { isLocalIpAddress } from '@utils/ip.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.post<{
@@ -13,13 +14,33 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         body: LogoutBodySchema,
         response: {
           200: LogoutResponseSchema,
+          400: LogoutResponseSchema,
         },
         tags: ['Authentication'],
       },
     },
     async (request, reply) => {
       try {
+        // Check authentication method setting
+        const authMethod = fastify.config.authenticationMethod
+        const isAuthDisabled = authMethod === 'disabled'
+        const isLocalBypass =
+          authMethod === 'requiredExceptLocal' && isLocalIpAddress(request.ip)
+
+        // If auth is disabled globally or for local addresses
+        if (isAuthDisabled || isLocalBypass) {
+          // Return 400 Bad Request to prevent the client from treating this as a successful logout
+          reply.status(400)
+          return {
+            success: false,
+            message:
+              'Logout not available: Authentication is disabled for your IP address.',
+          }
+        }
+
+        // Normal logout flow
         if (!request.session.user) {
+          reply.status(400)
           return {
             success: false,
             message: 'No active session found.',

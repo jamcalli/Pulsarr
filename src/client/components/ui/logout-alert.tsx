@@ -32,15 +32,22 @@ export function LogoutAlert({ open, onOpenChange }: LogoutAlertProps) {
         body: JSON.stringify({}),
       });
       
-      if (response.ok) {
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
         toast({
-          description: 'Successfully logged out',
+          description: data.message || 'Successfully logged out',
           variant: 'default',
         });
         navigate('/app/login');
       } else {
+        // Close the logout dialog
+        onOpenChange(false);
+        
+        // Show the error message from the server
         toast({
-          description: 'Failed to log out. Please try again.',
+          title: "Logout unavailable",
+          description: data.message || 'Failed to log out. Please try again.',
           variant: 'destructive',
         });
       }

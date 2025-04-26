@@ -44,6 +44,7 @@ export interface Config {
   cookieSecured: boolean
   logLevel: LogLevel
   closeGraceDelay: number
+  authenticationMethod: 'required' | 'requiredExceptLocal' | 'disabled'
   rateLimitMax: number
   syncIntervalSeconds: number
   queueProcessDelaySeconds: number
