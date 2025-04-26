@@ -196,10 +196,17 @@ export class ContentRouterService {
 
     // If no rules exist and we're not in a special routing scenario,
     // skip directly to default routing
-    if (
-      !hasAnyRules &&
-      !(options.syncing && options.syncTargetInstanceId !== undefined)
-    ) {
+    if (!hasAnyRules) {
+      if (options.syncing && options.syncTargetInstanceId !== undefined) {
+        // If syncing with target instance, route directly to that instance
+        this.log.info(
+          `No routing rules exist during sync, using sync target instance ${options.syncTargetInstanceId} for "${item.title}"`,
+        )
+        // Code to route to sync target...
+        return { routedInstances: [options.syncTargetInstanceId] }
+      }
+
+      // Otherwise use default routing
       this.log.info(
         `No routing rules exist, using default routing for "${item.title}"`,
       )
