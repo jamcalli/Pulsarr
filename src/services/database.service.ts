@@ -5190,4 +5190,34 @@ export class DatabaseService {
         : null,
     }
   }
+
+  /**
+   * Checks if any enabled router rules exist in the database.
+   *
+   * This method is used as an optimization to skip router evaluation logic
+   * when no rules are defined. It performs a quick count query on the router_rules
+   * table, filtering for enabled rules.
+   *
+   * @returns Promise resolving to a boolean indicating whether any enabled rules exist
+   */
+  async hasAnyRouterRules(): Promise<boolean> {
+    try {
+      // Perform a fast count query to check if any enabled rules exist
+      const result = await this.knex('router_rules')
+        .where(function () {
+          this.where('enabled', true).orWhereNull('enabled') // Include rules where enabled is null (default to enabled)
+        })
+        .count('id as count')
+        .first()
+
+      // Convert count to boolean (count > 0 means rules exist)
+      return Boolean(result && Number(result.count) > 0)
+    } catch (error) {
+      this.log.error('Error checking for router rules:', error)
+
+      // In case of error, assume rules might exist to be safe
+      // This is more conservative than skipping evaluation on error
+      return true
+    }
+  }
 }
