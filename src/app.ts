@@ -4,7 +4,7 @@ import fastifyAutoload from '@fastify/autoload'
 import FastifyVite from '@fastify/vite'
 import type { FastifyInstance, FastifyPluginOptions } from 'fastify'
 import FastifyFormBody from '@fastify/formbody'
-import { isLocalIpAddress } from '@utils/ip.js'
+import { getAuthBypassStatus } from '@utils/auth-bypass.js'
 import { createTemporaryAdminSession } from '@utils/session.js'
 
 export const options = {
@@ -120,12 +120,9 @@ export default async function serviceApp(
     }
 
     // Check authentication method setting
-    const authMethod = fastify.config.authenticationMethod
-    const isAuthDisabled = authMethod === 'disabled'
-    const isLocalBypass =
-      authMethod === 'requiredExceptLocal' && isLocalIpAddress(request.ip)
+    const { shouldBypass } = getAuthBypassStatus(fastify, request)
 
-    if (isAuthDisabled || isLocalBypass) {
+    if (shouldBypass) {
       const hasUsers = await fastify.db.hasAdminUsers()
 
       if (hasUsers) {
@@ -149,10 +146,10 @@ export default async function serviceApp(
     {
       preHandler: async (request, reply) => {
         // Check authentication method setting
-        const authMethod = fastify.config.authenticationMethod
-        const isAuthDisabled = authMethod === 'disabled'
-        const isLocalBypass =
-          authMethod === 'requiredExceptLocal' && isLocalIpAddress(request.ip)
+        const { isAuthDisabled, isLocalBypass } = getAuthBypassStatus(
+          fastify,
+          request,
+        )
 
         // For login and create-user pages
         if (

@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify'
-import { isLocalIpAddress } from '@utils/ip.js'
+import { getAuthBypassStatus } from '@utils/auth-bypass.js'
 
 export default async function (fastify: FastifyInstance) {
   fastify.addHook('onRequest', async (request, reply) => {
@@ -14,29 +14,25 @@ export default async function (fastify: FastifyInstance) {
       return
     }
 
-    // Check authentication method from configuration
-    const authMethod = fastify.config.authenticationMethod
+    // Check if auth should be bypassed based on config and IP
+    const { shouldBypass, isAuthDisabled, isLocalBypass } = getAuthBypassStatus(
+      fastify,
+      request,
+    )
 
-    // Completely disabled authentication
-    if (authMethod === 'disabled') {
-      fastify.log.debug(
-        { url: request.url },
-        'Authentication disabled globally',
-      )
-      return
-    }
-
-    // Disabled for local addresses
-    if (authMethod === 'requiredExceptLocal') {
-      const clientIp = request.ip
-      if (isLocalIpAddress(clientIp)) {
-        // Local address with auth bypass enabled - skip authentication check
+    if (shouldBypass) {
+      if (isAuthDisabled) {
         fastify.log.debug(
-          { ip: clientIp, url: request.url },
+          { url: request.url },
+          'Authentication disabled globally',
+        )
+      } else if (isLocalBypass) {
+        fastify.log.debug(
+          { ip: request.ip, url: request.url },
           'Bypassing authentication for local address',
         )
-        return
       }
+      return
     }
 
     // Regular authentication check for all other cases
