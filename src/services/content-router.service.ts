@@ -146,7 +146,6 @@ export class ContentRouterService {
       forcedInstanceId?: number
     } = {},
   ): Promise<{ routedInstances: number[] }> {
-    // Remove unnecessary type casting since ContentItem.type is now strictly typed
     const contentType = item.type
     const routedInstances: number[] = []
 
@@ -192,6 +191,59 @@ export class ContentRouterService {
       `Routing ${contentType} "${item.title}"${options.syncing ? ' during sync operation' : ''}`,
     )
 
+    // OPTIMIZATION: Check if any router rules exist at all
+    const hasAnyRules = await this.fastify.db.hasAnyRouterRules()
+
+    // If no rules exist and we're not in a special routing scenario,
+    // skip directly to default routing
+    if (!hasAnyRules) {
+      if (options.syncing && options.syncTargetInstanceId !== undefined) {
+        // If syncing with target instance, route directly to that instance
+        this.log.debug(
+          `No routing rules exist during sync, using sync target instance ${options.syncTargetInstanceId} for "${item.title}"`,
+        )
+
+        try {
+          // Actually perform the routing operation
+          if (contentType === 'movie') {
+            await this.fastify.radarrManager.routeItemToRadarr(
+              item as RadarrItem,
+              key,
+              options.syncTargetInstanceId,
+              options.syncing,
+            )
+          } else {
+            await this.fastify.sonarrManager.routeItemToSonarr(
+              item as SonarrItem,
+              key,
+              options.syncTargetInstanceId,
+              options.syncing,
+            )
+          }
+          routedInstances.push(options.syncTargetInstanceId)
+        } catch (error) {
+          this.log.error(
+            `Error routing "${item.title}" to sync target instance ${options.syncTargetInstanceId}:`,
+            error,
+          )
+          throw error
+        }
+        return { routedInstances }
+      }
+
+      // Otherwise use default routing
+      this.log.info(
+        `No routing rules exist, using default routing for "${item.title}"`,
+      )
+      const defaultRoutedInstances = await this.routeUsingDefault(
+        item,
+        key,
+        contentType,
+        options.syncing,
+      )
+      return { routedInstances: defaultRoutedInstances }
+    }
+
     // Prepare context for evaluators with all the information they need
     const context: RoutingContext = {
       userId: options.userId,
@@ -202,35 +254,43 @@ export class ContentRouterService {
       syncTargetInstanceId: options.syncTargetInstanceId,
     }
 
-    // IMPORTANT: Enrich item with metadata first before evaluation
-    const enrichedItem = await this.enrichItemMetadata(item, context)
-    this.log.debug(`Enriched metadata for "${item.title}"`)
+    // IMPORTANT: Enrich item with metadata before evaluation
+    // Only do this if we have rules that might use the enriched data
+    const enrichedItem = hasAnyRules
+      ? await this.enrichItemMetadata(item, context)
+      : item
+
+    if (hasAnyRules) {
+      this.log.debug(`Enriched metadata for "${item.title}"`)
+    }
 
     // Step 2: Evaluate all applicable evaluators to get routing decisions
     const allDecisions: RoutingDecision[] = []
     const processedInstanceIds = new Set<number>() // Track instances we've routed to
 
-    // Collect all decisions from all evaluators
-    for (const evaluator of this.evaluators) {
-      try {
-        // Only apply evaluators that are relevant for this content
-        // Use enrichedItem instead of item
-        const canEvaluate = await evaluator.canEvaluate(enrichedItem, context)
-        if (!canEvaluate) continue
+    // Only collect decisions from evaluators if we have rules
+    if (hasAnyRules) {
+      // Collect all decisions from all evaluators
+      for (const evaluator of this.evaluators) {
+        try {
+          // Only apply evaluators that are relevant for this content
+          const canEvaluate = await evaluator.canEvaluate(enrichedItem, context)
+          if (!canEvaluate) continue
 
-        // Get decisions from this evaluator - use enrichedItem
-        const decisions = await evaluator.evaluate(enrichedItem, context)
-        if (decisions && decisions.length > 0) {
-          this.log.debug(
-            `Evaluator "${evaluator.name}" returned ${decisions.length} routing decisions for "${enrichedItem.title}"`,
+          // Get decisions from this evaluator
+          const decisions = await evaluator.evaluate(enrichedItem, context)
+          if (decisions && decisions.length > 0) {
+            this.log.debug(
+              `Evaluator "${evaluator.name}" returned ${decisions.length} routing decisions for "${enrichedItem.title}"`,
+            )
+            allDecisions.push(...decisions)
+          }
+        } catch (evaluatorError) {
+          this.log.error(
+            `Error in evaluator "${evaluator.name}" when routing "${enrichedItem.title}":`,
+            evaluatorError,
           )
-          allDecisions.push(...decisions)
         }
-      } catch (evaluatorError) {
-        this.log.error(
-          `Error in evaluator "${evaluator.name}" when routing "${enrichedItem.title}":`,
-          evaluatorError,
-        )
       }
     }
 
@@ -268,8 +328,8 @@ export class ContentRouterService {
       }
       // 3b: For normal operations, fall back to default instance routing
       else {
-        this.log.warn(
-          `No routing decisions returned for "${item.title}", using default routing`,
+        this.log.info(
+          `No matching routing rules for "${item.title}", using default routing`,
         )
         // Default routing will handle routing to default instance and any synced instances
         const defaultRoutedInstances = await this.routeUsingDefault(
