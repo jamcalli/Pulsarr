@@ -202,7 +202,7 @@ export class ContentRouterService {
         this.log.info(
           `No routing rules exist during sync, using sync target instance ${options.syncTargetInstanceId} for "${item.title}"`,
         )
-        // Code to route to sync target...
+        // When syncing, just return the target instance ID without additional processing
         return { routedInstances: [options.syncTargetInstanceId] }
       }
 
