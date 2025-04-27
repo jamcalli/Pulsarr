@@ -2,11 +2,9 @@ import { isLocalIpAddress } from '@utils/ip.js'
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 
 /**
- * Determines if authentication should be bypassed based on configuration and request IP.
+ * Returns authentication bypass status for a request based on server configuration and the request's IP address.
  *
- * @param fastify - The Fastify instance containing configuration
- * @param request - The request object with IP information
- * @returns Authentication bypass status details
+ * @returns An object with boolean properties: {@link isAuthDisabled} (true if authentication is globally disabled), {@link isLocalBypass} (true if authentication is bypassed for local IPs), and {@link shouldBypass} (true if either condition applies).
  */
 export function getAuthBypassStatus(
   fastify: FastifyInstance,
