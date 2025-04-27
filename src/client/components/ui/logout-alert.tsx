@@ -17,6 +17,14 @@ interface LogoutAlertProps {
   onOpenChange: (open: boolean) => void;
 }
 
+/**
+ * Displays a modal dialog prompting the user to confirm logout, handling the logout process and user feedback.
+ *
+ * When confirmed, attempts to log out via an API call, shows a toast notification with the result, and navigates to the login page on success. If logout fails, displays an error toast and closes the dialog.
+ *
+ * @param open - Controls whether the logout confirmation dialog is visible.
+ * @param onOpenChange - Callback to update the dialog's open state.
+ */
 export function LogoutAlert({ open, onOpenChange }: LogoutAlertProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -32,15 +40,22 @@ export function LogoutAlert({ open, onOpenChange }: LogoutAlertProps) {
         body: JSON.stringify({}),
       });
       
-      if (response.ok) {
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
         toast({
-          description: 'Successfully logged out',
+          description: data.message || 'Successfully logged out',
           variant: 'default',
         });
         navigate('/app/login');
       } else {
+        // Close the logout dialog
+        onOpenChange(false);
+        
+        // Show the error message from the server
         toast({
-          description: 'Failed to log out. Please try again.',
+          title: "Logout unavailable",
+          description: data.message || 'Failed to log out. Please try again.',
           variant: 'destructive',
         });
       }
