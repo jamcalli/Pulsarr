@@ -199,11 +199,36 @@ export class ContentRouterService {
     if (!hasAnyRules) {
       if (options.syncing && options.syncTargetInstanceId !== undefined) {
         // If syncing with target instance, route directly to that instance
-        this.log.info(
+        this.log.debug(
           `No routing rules exist during sync, using sync target instance ${options.syncTargetInstanceId} for "${item.title}"`,
         )
-        // When syncing, just return the target instance ID without additional processing
-        return { routedInstances: [options.syncTargetInstanceId] }
+
+        try {
+          // Actually perform the routing operation
+          if (contentType === 'movie') {
+            await this.fastify.radarrManager.routeItemToRadarr(
+              item as RadarrItem,
+              key,
+              options.syncTargetInstanceId,
+              options.syncing,
+            )
+          } else {
+            await this.fastify.sonarrManager.routeItemToSonarr(
+              item as SonarrItem,
+              key,
+              options.syncTargetInstanceId,
+              options.syncing,
+            )
+          }
+          routedInstances.push(options.syncTargetInstanceId)
+        } catch (error) {
+          this.log.error(
+            `Error routing "${item.title}" to sync target instance ${options.syncTargetInstanceId}:`,
+            error,
+          )
+          throw error
+        }
+        return { routedInstances }
       }
 
       // Otherwise use default routing
