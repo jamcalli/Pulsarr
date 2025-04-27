@@ -1,10 +1,10 @@
 import type { FastifyRequest } from 'fastify'
 
 /**
- * Assigns a temporary admin user to the session for authentication bypass scenarios.
+ * Sets a fixed admin user in the session to simulate authentication bypass.
  *
  * @remark
- * Intended for use when authentication is disabled globally or for local IP addresses. The session user is set with fixed admin credentials.
+ * Use only when authentication is disabled or bypassed, such as for local development or trusted IPs. The session user is assigned static admin credentials.
  *
  * @param request - The Fastify request object with session support.
  */
