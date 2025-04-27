@@ -5205,13 +5205,14 @@ export class DatabaseService {
       // Perform a fast count query to check if any enabled rules exist
       const result = await this.knex('router_rules')
         .where(function () {
-          this.where('enabled', true).orWhereNull('enabled') // Include rules where enabled is null (default to enabled)
+          this.where('enabled', true).orWhereNull('enabled')
         })
-        .count('id as count')
+        .limit(1)
+        .select(1)
         .first()
 
-      // Convert count to boolean (count > 0 means rules exist)
-      return Boolean(result && Number(result.count) > 0)
+      // Simply check if result exists
+      return Boolean(result)
     } catch (error) {
       this.log.error('Error checking for router rules:', error)
 
