@@ -12,7 +12,10 @@ export function getAuthBypassStatus(
   fastify: FastifyInstance,
   request: FastifyRequest,
 ) {
-  const authMethod = fastify.config.authenticationMethod
+  const authMethod = fastify.config.authenticationMethod as
+    | 'disabled'
+    | 'requiredExceptLocal'
+    | 'required'
   const isAuthDisabled = authMethod === 'disabled'
   const isLocalBypass =
     authMethod === 'requiredExceptLocal' && isLocalIpAddress(request.ip)
