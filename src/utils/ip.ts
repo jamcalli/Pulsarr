@@ -1,7 +1,7 @@
 /**
- * Determines whether the given IP address is a local or private address.
+ * Returns whether the given IP address is local or private.
  *
- * Checks if the input IP belongs to any recognized local or private ranges, including IPv4 private networks, IPv6 unique local and link-local addresses, localhost, and IPv4-mapped IPv6 addresses.
+ * Checks for IPv4 private ranges, IPv6 unique local and link-local addresses, localhost, and IPv4-mapped IPv6 addresses. Returns `true` if the IP is within any recognized local or private address space; otherwise, returns `false`.
  *
  * @param ip - The IP address to check.
  * @returns `true` if the IP address is local or private; otherwise, `false`.
