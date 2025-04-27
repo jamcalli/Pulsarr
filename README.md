@@ -460,6 +460,29 @@ logLevel=info
 cookieSecured=false                           
 ```
 
+### Authentication Configuration
+
+Pulsarr supports configurable authentication options:
+
+Set the environment variable `authenticationMethod` in your `.env` file to one of these values:
+
+- `required` - Authentication is always required (default)
+- `requiredExceptLocal` - Authentication is required except for local addresses
+- `disabled` - Authentication is completely disabled
+
+When using `requiredExceptLocal`, connections from the following private IP ranges will bypass authentication:
+- 127.0.0.0/8 (localhost)
+- 10.0.0.0/8 (private network)
+- 172.16.0.0/12 (private network)
+- 192.168.0.0/16 (private network)
+- 169.254.0.0/16 (link-local)
+- ::1/128 (IPv6 localhost)
+- fc00::/7 (IPv6 unique local addresses)
+- fe80::/10 (IPv6 link-local addresses)
+- ::ffff:x.x.x.x (IPv4-mapped IPv6 addresses)
+
+**Note**: After changing this setting in your `.env` file, you need to restart the container for it to take effect.
+
 ### Dev / Other Configurations
 
 ## Example Development Environment
@@ -475,6 +498,7 @@ cookieSecret=xxxxxxxxxxxxxxxxxxxxxxxx  # Secret key for cookies (randomly genera
 cookieName=pulsarr                     # Name of the cookie
 cookieSecured=false                    # Set to true for HTTPS only
 logLevel=info                          # Logging level (defaults to silent. Recommended info)
+authenticationMethod=required          # Authentication method (required, requiredExceptLocal, disabled)  
 closeGraceDelay=10000                  # Shutdown grace period in ms
 rateLimitMax=100                       # Max requests per time window 
 syncIntervalSeconds=10                 # Sync interval in seconds
