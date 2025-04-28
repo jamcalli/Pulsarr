@@ -7,6 +7,7 @@ export interface User {
   notify_apprise: boolean
   notify_discord: boolean
   can_sync: boolean
+  is_primary_token?: boolean
   created_at?: string
   updated_at?: string
 }

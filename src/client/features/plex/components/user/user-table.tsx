@@ -180,6 +180,7 @@ export default function UserTable({
         headerClassName: 'hidden xs:table-cell',
       },
     },
+
     {
       accessorKey: 'watchlist_count',
       header: ({ column }) => {
