@@ -1,12 +1,6 @@
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import type {
-  Item as SonarrItem,
-  SonarrInstance,
-} from '@root/types/sonarr.types.js'
-import type {
-  Item as RadarrItem,
-  RadarrInstance,
-} from '@root/types/radarr.types.js'
+import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
+import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type {
   DatabaseWatchlistItem,
   WatchlistInstanceStatus,

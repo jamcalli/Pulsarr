@@ -24,6 +24,14 @@ interface TaggingResults {
  * Service to manage user tagging for media in Sonarr and Radarr
  */
 export class UserTagService {
+  // Cache for tag maps (instance ID -> tag label -> tag ID)
+  private sonarrTagCache: Map<number, Map<string, number>> = new Map()
+  private radarrTagCache: Map<number, Map<string, number>> = new Map()
+
+  // Cache for tag ID to label maps (instance ID -> tag ID -> tag label)
+  private sonarrIdCache: Map<number, Map<number, string>> = new Map()
+  private radarrIdCache: Map<number, Map<number, string>> = new Map()
+
   constructor(
     private readonly log: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
@@ -39,13 +47,82 @@ export class UserTagService {
     tagUsersInSonarr: boolean
     tagUsersInRadarr: boolean
   }> {
-    const config = await this.fastify.db.getConfig(1)
-
+    // Use fastify.config instead of direct DB access to honor .env settings
     return {
-      useAliasForTags: config?.useAliasForTags !== true,
-      tagUsersInSonarr: config?.tagUsersInSonarr === false,
-      tagUsersInRadarr: config?.tagUsersInRadarr === false,
+      useAliasForTags: !!this.fastify.config.useAliasForTags,
+      tagUsersInSonarr: !!this.fastify.config.tagUsersInSonarr,
+      tagUsersInRadarr: !!this.fastify.config.tagUsersInRadarr,
     }
+  }
+
+  /**
+   * Fetch all existing tags and create any missing ones for all users
+   * This ensures we only attempt to create each tag once
+   *
+   * @param service - The Sonarr/Radarr service with getTags and createTag methods
+   * @param users - Array of users
+   * @param useAlias - Whether to use user aliases for tag labels
+   * @returns Map of tag labels to tag IDs
+   */
+  private async ensureUserTags<
+    T extends { id: number; name: string; alias?: string | null },
+  >(
+    service: {
+      getTags(): Promise<Tag[]>
+      createTag(label: string): Promise<Tag>
+    },
+    users: T[],
+    useAlias: boolean,
+  ): Promise<Map<string, number>> {
+    // Get ALL existing tags first
+    const existingTags = await service.getTags()
+
+    // Create maps for labels and IDs
+    const tagLabelMap = new Map<string, number>()
+    for (const tag of existingTags) {
+      tagLabelMap.set(tag.label, tag.id)
+    }
+
+    // Determine which user tags need to be created
+    const tagsToCreate: Array<{ user: T; label: string }> = []
+
+    for (const user of users) {
+      const tagLabel = this.getUserTagLabel(user, useAlias)
+
+      if (!tagLabelMap.has(tagLabel)) {
+        tagsToCreate.push({
+          user,
+          label: tagLabel,
+        })
+      }
+    }
+
+    // Log summary of what we're about to do
+    if (tagsToCreate.length > 0) {
+      this.log.info(`Need to create ${tagsToCreate.length} missing user tags`)
+    } else {
+      this.log.info(
+        `All user tags already exist (${existingTags.length} total tags)`,
+      )
+    }
+
+    // Create missing tags one at a time
+    for (const tagInfo of tagsToCreate) {
+      try {
+        const newTag = await service.createTag(tagInfo.label)
+        tagLabelMap.set(tagInfo.label, newTag.id)
+        this.log.info(
+          `Created tag "${tagInfo.label}" with ID ${newTag.id} for user ${tagInfo.user.name}`,
+        )
+      } catch (error) {
+        this.log.error(
+          `Failed to create tag "${tagInfo.label}" for user ${tagInfo.user.name}:`,
+          error,
+        )
+      }
+    }
+
+    return tagLabelMap
   }
 
   /**
@@ -88,41 +165,86 @@ export class UserTagService {
             continue
           }
 
-          // Get existing tags from Sonarr - using public getTags method
+          // Get ALL existing tags first
           const existingTags = await sonarrService.getTags()
+          this.log.debug(
+            `Found ${existingTags.length} existing tags in Sonarr instance ${instance.name}`,
+          )
 
-          // Create a map of tag labels to IDs for quick lookup
+          // Create maps for both label->id and id->label lookups
           const tagLabelMap = new Map<string, number>()
+          const tagIdMap = new Map<number, string>()
+
           for (const tag of existingTags) {
             tagLabelMap.set(tag.label, tag.id)
+            tagIdMap.set(tag.id, tag.label)
           }
 
-          // Create user tags if they don't exist
+          // Save these maps to our caches for later use
+          this.sonarrTagCache.set(instance.id, tagLabelMap)
+          this.sonarrIdCache.set(instance.id, tagIdMap)
+
+          // Determine which user tags need to be created
+          const tagsToCreate: Array<{
+            user: { id: number; name: string; alias?: string | null }
+            label: string
+          }> = []
+          let skippedCount = 0
+
           for (const user of users) {
             const tagLabel = this.getUserTagLabel(user, config.useAliasForTags)
 
             if (!tagLabelMap.has(tagLabel)) {
-              try {
-                // Using public createTag method
-                const newTag = await sonarrService.createTag(tagLabel)
-                tagLabelMap.set(tagLabel, newTag.id)
-                this.log.info(
-                  `Created Sonarr tag "${tagLabel}" with ID ${newTag.id} for user ${user.name} in instance ${instance.name}`,
-                )
-                results.created++
-              } catch (tagError) {
-                this.log.error(
-                  `Failed to create Sonarr tag "${tagLabel}" for user ${user.name} in instance ${instance.name}:`,
-                  tagError,
-                )
-              }
+              tagsToCreate.push({
+                user,
+                label: tagLabel,
+              })
             } else {
-              results.skipped++
+              skippedCount++
+              this.log.debug(
+                `Tag "${tagLabel}" already exists with ID ${tagLabelMap.get(tagLabel)} for user ${user.name}`,
+              )
             }
           }
 
+          // Log what we're about to do
+          if (tagsToCreate.length > 0) {
+            this.log.info(
+              `Creating ${tagsToCreate.length} missing user tags for Sonarr instance ${instance.name}`,
+            )
+          } else {
+            this.log.info(
+              `All user tags already exist in Sonarr instance ${instance.name}`,
+            )
+          }
+
+          // Create missing tags one at a time
+          for (const tagInfo of tagsToCreate) {
+            try {
+              const newTag = await sonarrService.createTag(tagInfo.label)
+              tagLabelMap.set(tagInfo.label, newTag.id)
+              tagIdMap.set(newTag.id, tagInfo.label)
+              this.log.info(
+                `Created Sonarr tag "${tagInfo.label}" with ID ${newTag.id} for user ${tagInfo.user.name} in instance ${instance.name}`,
+              )
+              results.created++
+            } catch (error) {
+              this.log.error(
+                `Failed to create Sonarr tag "${tagInfo.label}" for user ${tagInfo.user.name} in instance ${instance.name}:`,
+                error,
+              )
+            }
+          }
+
+          // Update cache with final values (after all tags are created)
+          this.sonarrTagCache.set(instance.id, tagLabelMap)
+          this.sonarrIdCache.set(instance.id, tagIdMap)
+
+          // Update results
+          results.skipped += skippedCount
+
           this.log.info(
-            `Processed user tags for Sonarr instance ${instance.name}`,
+            `Processed user tags for Sonarr instance ${instance.name}: ${results.created} created, ${skippedCount} skipped`,
           )
         } catch (instanceError) {
           this.log.error(
@@ -179,41 +301,86 @@ export class UserTagService {
             continue
           }
 
-          // Get existing tags from Radarr - using public getTags method
+          // Get ALL existing tags first
           const existingTags = await radarrService.getTags()
+          this.log.debug(
+            `Found ${existingTags.length} existing tags in Radarr instance ${instance.name}`,
+          )
 
-          // Create a map of tag labels to IDs for quick lookup
+          // Create maps for both label->id and id->label lookups
           const tagLabelMap = new Map<string, number>()
+          const tagIdMap = new Map<number, string>()
+
           for (const tag of existingTags) {
             tagLabelMap.set(tag.label, tag.id)
+            tagIdMap.set(tag.id, tag.label)
           }
 
-          // Create user tags if they don't exist
+          // Save these maps to our caches for later use
+          this.radarrTagCache.set(instance.id, tagLabelMap)
+          this.radarrIdCache.set(instance.id, tagIdMap)
+
+          // Determine which user tags need to be created
+          const tagsToCreate: Array<{
+            user: { id: number; name: string; alias?: string | null }
+            label: string
+          }> = []
+          let skippedCount = 0
+
           for (const user of users) {
             const tagLabel = this.getUserTagLabel(user, config.useAliasForTags)
 
             if (!tagLabelMap.has(tagLabel)) {
-              try {
-                // Using public createTag method
-                const newTag = await radarrService.createTag(tagLabel)
-                tagLabelMap.set(tagLabel, newTag.id)
-                this.log.info(
-                  `Created Radarr tag "${tagLabel}" with ID ${newTag.id} for user ${user.name} in instance ${instance.name}`,
-                )
-                results.created++
-              } catch (tagError) {
-                this.log.error(
-                  `Failed to create Radarr tag "${tagLabel}" for user ${user.name} in instance ${instance.name}:`,
-                  tagError,
-                )
-              }
+              tagsToCreate.push({
+                user,
+                label: tagLabel,
+              })
             } else {
-              results.skipped++
+              skippedCount++
+              this.log.debug(
+                `Tag "${tagLabel}" already exists with ID ${tagLabelMap.get(tagLabel)} for user ${user.name}`,
+              )
             }
           }
 
+          // Log what we're about to do
+          if (tagsToCreate.length > 0) {
+            this.log.info(
+              `Creating ${tagsToCreate.length} missing user tags for Radarr instance ${instance.name}`,
+            )
+          } else {
+            this.log.info(
+              `All user tags already exist in Radarr instance ${instance.name}`,
+            )
+          }
+
+          // Create missing tags one at a time
+          for (const tagInfo of tagsToCreate) {
+            try {
+              const newTag = await radarrService.createTag(tagInfo.label)
+              tagLabelMap.set(tagInfo.label, newTag.id)
+              tagIdMap.set(newTag.id, tagInfo.label)
+              this.log.info(
+                `Created Radarr tag "${tagInfo.label}" with ID ${newTag.id} for user ${tagInfo.user.name} in instance ${instance.name}`,
+              )
+              results.created++
+            } catch (error) {
+              this.log.error(
+                `Failed to create Radarr tag "${tagInfo.label}" for user ${tagInfo.user.name} in instance ${instance.name}:`,
+                error,
+              )
+            }
+          }
+
+          // Update cache with final values (after all tags are created)
+          this.radarrTagCache.set(instance.id, tagLabelMap)
+          this.radarrIdCache.set(instance.id, tagIdMap)
+
+          // Update results
+          results.skipped += skippedCount
+
           this.log.info(
-            `Processed user tags for Radarr instance ${instance.name}`,
+            `Processed user tags for Radarr instance ${instance.name}: ${results.created} created, ${skippedCount} skipped`,
           )
         } catch (instanceError) {
           this.log.error(
@@ -300,14 +467,6 @@ export class UserTagService {
    * @param watchlistItems All show watchlist items
    * @returns Results of tagging operation
    */
-  /**
-   * Tag Sonarr content using pre-fetched data
-   * This is the integrated mode for use with the StatusService
-   *
-   * @param series All fetched series from Sonarr
-   * @param watchlistItems All show watchlist items
-   * @returns Results of tagging operation
-   */
   async tagSonarrContentWithData(
     series: SonarrItem[],
     watchlistItems: Array<{
@@ -348,19 +507,95 @@ export class UserTagService {
             continue
           }
 
-          // Get existing tags from Sonarr - using public getTags method
-          const existingTags = await sonarrService.getTags()
+          // IMPORTANT: Get/create ALL tags upfront for this instance
+          // First check if we have cached tags for this instance
+          let tagLabelMap: Map<string, number>
+          let tagIdMap: Map<number, string>
 
-          // Create a map of tag labels to IDs for quick lookup
-          const tagLabelMap = new Map<string, number>()
-          for (const tag of existingTags) {
-            tagLabelMap.set(tag.label, tag.id)
-          }
+          if (
+            this.sonarrTagCache.has(instance.id) &&
+            this.sonarrIdCache.has(instance.id)
+          ) {
+            const cachedLabelMap = this.sonarrTagCache.get(instance.id)
+            const cachedIdMap = this.sonarrIdCache.get(instance.id)
 
-          // Create a map of tag IDs to labels for reverse lookup
-          const tagIdMap = new Map<number, string>()
-          for (const tag of existingTags) {
-            tagIdMap.set(tag.id, tag.label)
+            if (cachedLabelMap && cachedIdMap) {
+              tagLabelMap = cachedLabelMap
+              tagIdMap = cachedIdMap
+              this.log.debug(
+                `Using cached tags for Sonarr instance ${instance.name}`,
+              )
+            } else {
+              // Initialize maps if cache entries exist but are undefined
+              tagLabelMap = new Map<string, number>()
+              tagIdMap = new Map<number, string>()
+              this.log.debug(
+                `Cache entries exist but are undefined for Sonarr instance ${instance.name}`,
+              )
+            }
+          } else {
+            // Initialize tag maps for this instance
+            tagLabelMap = new Map<string, number>()
+            tagIdMap = new Map<number, string>()
+
+            // Populate maps with existing tags
+            const existingTags = await sonarrService.getTags()
+            for (const tag of existingTags) {
+              tagLabelMap.set(tag.label, tag.id)
+              tagIdMap.set(tag.id, tag.label)
+            }
+
+            // Determine which user tags need to be created
+            const tagsToCreate: Array<{
+              user: { id: number; name: string; alias?: string | null }
+              label: string
+            }> = []
+
+            for (const user of users) {
+              const tagLabel = this.getUserTagLabel(
+                user,
+                config.useAliasForTags,
+              )
+
+              if (!tagLabelMap.has(tagLabel)) {
+                tagsToCreate.push({
+                  user,
+                  label: tagLabel,
+                })
+              }
+            }
+
+            // Log what we're about to do
+            if (tagsToCreate.length > 0) {
+              this.log.info(
+                `Creating ${tagsToCreate.length} missing user tags for Sonarr instance ${instance.name}`,
+              )
+            } else {
+              this.log.info(
+                `All user tags already exist in Sonarr instance ${instance.name}`,
+              )
+            }
+
+            // Create missing tags one at a time
+            for (const tagInfo of tagsToCreate) {
+              try {
+                const newTag = await sonarrService.createTag(tagInfo.label)
+                tagLabelMap.set(tagInfo.label, newTag.id)
+                tagIdMap.set(newTag.id, tagInfo.label)
+                this.log.info(
+                  `Created tag "${tagInfo.label}" with ID ${newTag.id} for user ${tagInfo.user.name}`,
+                )
+              } catch (error) {
+                this.log.error(
+                  `Failed to create tag for user ${tagInfo.user.name}:`,
+                  error,
+                )
+              }
+            }
+
+            // Cache for future use
+            this.sonarrTagCache.set(instance.id, tagLabelMap)
+            this.sonarrIdCache.set(instance.id, tagIdMap)
           }
 
           // Get series from this instance
@@ -404,7 +639,7 @@ export class UserTagService {
                 SonarrItem & { tags: number[] }
               >(`series/${sonarrId}`)
 
-              // Get tag IDs for users
+              // Get tag IDs for users - using our cached tag map
               const userTagIds: number[] = []
 
               for (const userId of showUsers) {
@@ -418,24 +653,8 @@ export class UserTagService {
 
                   if (tagId) {
                     userTagIds.push(tagId)
-                  } else {
-                    // Create tag if it doesn't exist yet
-                    try {
-                      // Using public createTag method
-                      const newTag = await sonarrService.createTag(tagLabel)
-                      tagLabelMap.set(tagLabel, newTag.id)
-                      tagIdMap.set(newTag.id, tagLabel)
-                      userTagIds.push(newTag.id)
-                      this.log.info(
-                        `Created tag "${tagLabel}" with ID ${newTag.id} for user ${user.name}`,
-                      )
-                    } catch (tagError) {
-                      this.log.error(
-                        `Failed to create tag for user ${user.name}:`,
-                        tagError,
-                      )
-                    }
                   }
+                  // Tags should already exist from our initialization
                 }
               }
 
@@ -505,14 +724,6 @@ export class UserTagService {
    * @param watchlistItems All movie watchlist items
    * @returns Results of tagging operation
    */
-  /**
-   * Tag Radarr content using pre-fetched data
-   * This is the integrated mode for use with the StatusService
-   *
-   * @param movies All fetched movies from Radarr
-   * @param watchlistItems All movie watchlist items
-   * @returns Results of tagging operation
-   */
   async tagRadarrContentWithData(
     movies: RadarrItem[],
     watchlistItems: Array<{
@@ -553,19 +764,95 @@ export class UserTagService {
             continue
           }
 
-          // Get existing tags from Radarr - using public getTags method
-          const existingTags = await radarrService.getTags()
+          // IMPORTANT: Get/create ALL tags upfront for this instance
+          // First check if we have cached tags for this instance
+          let tagLabelMap: Map<string, number>
+          let tagIdMap: Map<number, string>
 
-          // Create a map of tag labels to IDs for quick lookup
-          const tagLabelMap = new Map<string, number>()
-          for (const tag of existingTags) {
-            tagLabelMap.set(tag.label, tag.id)
-          }
+          if (
+            this.radarrTagCache.has(instance.id) &&
+            this.radarrIdCache.has(instance.id)
+          ) {
+            const cachedLabelMap = this.radarrTagCache.get(instance.id)
+            const cachedIdMap = this.radarrIdCache.get(instance.id)
 
-          // Create a map of tag IDs to labels for reverse lookup
-          const tagIdMap = new Map<number, string>()
-          for (const tag of existingTags) {
-            tagIdMap.set(tag.id, tag.label)
+            if (cachedLabelMap && cachedIdMap) {
+              tagLabelMap = cachedLabelMap
+              tagIdMap = cachedIdMap
+              this.log.debug(
+                `Using cached tags for Radarr instance ${instance.name}`,
+              )
+            } else {
+              // Initialize maps if cache entries exist but are undefined
+              tagLabelMap = new Map<string, number>()
+              tagIdMap = new Map<number, string>()
+              this.log.debug(
+                `Cache entries exist but are undefined for Radarr instance ${instance.name}`,
+              )
+            }
+          } else {
+            // Initialize tag maps for this instance
+            tagLabelMap = new Map<string, number>()
+            tagIdMap = new Map<number, string>()
+
+            // Populate maps with existing tags
+            const existingTags = await radarrService.getTags()
+            for (const tag of existingTags) {
+              tagLabelMap.set(tag.label, tag.id)
+              tagIdMap.set(tag.id, tag.label)
+            }
+
+            // Determine which user tags need to be created
+            const tagsToCreate: Array<{
+              user: { id: number; name: string; alias?: string | null }
+              label: string
+            }> = []
+
+            for (const user of users) {
+              const tagLabel = this.getUserTagLabel(
+                user,
+                config.useAliasForTags,
+              )
+
+              if (!tagLabelMap.has(tagLabel)) {
+                tagsToCreate.push({
+                  user,
+                  label: tagLabel,
+                })
+              }
+            }
+
+            // Log what we're about to do
+            if (tagsToCreate.length > 0) {
+              this.log.info(
+                `Creating ${tagsToCreate.length} missing user tags for Radarr instance ${instance.name}`,
+              )
+            } else {
+              this.log.info(
+                `All user tags already exist in Radarr instance ${instance.name}`,
+              )
+            }
+
+            // Create missing tags one at a time
+            for (const tagInfo of tagsToCreate) {
+              try {
+                const newTag = await radarrService.createTag(tagInfo.label)
+                tagLabelMap.set(tagInfo.label, newTag.id)
+                tagIdMap.set(newTag.id, tagInfo.label)
+                this.log.info(
+                  `Created tag "${tagInfo.label}" with ID ${newTag.id} for user ${tagInfo.user.name}`,
+                )
+              } catch (error) {
+                this.log.error(
+                  `Failed to create tag for user ${tagInfo.user.name}:`,
+                  error,
+                )
+              }
+            }
+
+            // Cache for future use
+            this.radarrTagCache.set(instance.id, tagLabelMap)
+            this.radarrIdCache.set(instance.id, tagIdMap)
           }
 
           // Get movies from this instance
@@ -609,7 +896,7 @@ export class UserTagService {
                 RadarrItem & { tags: number[] }
               >(`movie/${radarrId}`)
 
-              // Get tag IDs for users
+              // Get tag IDs for users - using our cached tag map
               const userTagIds: number[] = []
 
               for (const userId of movieUsers) {
@@ -623,24 +910,8 @@ export class UserTagService {
 
                   if (tagId) {
                     userTagIds.push(tagId)
-                  } else {
-                    // Create tag if it doesn't exist yet
-                    try {
-                      // Using public createTag method
-                      const newTag = await radarrService.createTag(tagLabel)
-                      tagLabelMap.set(tagLabel, newTag.id)
-                      tagIdMap.set(newTag.id, tagLabel)
-                      userTagIds.push(newTag.id)
-                      this.log.info(
-                        `Created tag "${tagLabel}" with ID ${newTag.id} for user ${user.name}`,
-                      )
-                    } catch (tagError) {
-                      this.log.error(
-                        `Failed to create tag for user ${user.name}:`,
-                        tagError,
-                      )
-                    }
                   }
+                  // Tags should already exist from our initialization
                 }
               }
 
@@ -735,13 +1006,19 @@ export class UserTagService {
 
   /**
    * Get the tag label for a user
+   *
+   * @param user User object containing name and optional alias
+   * @param useAlias Whether to use alias instead of name when available
+   * @returns Formatted tag label in format "user:{displayName}"
    */
   private getUserTagLabel(
     user: { name: string; alias?: string | null },
     useAlias: boolean,
   ): string {
+    // When useAlias is true, use alias if it exists, otherwise use name
     const displayName = useAlias && user.alias ? user.alias : user.name
-    return `user:${displayName}`
+    // Important: Ensure consistent formatting, normalization, and case (lowercase)
+    return `user:${displayName.trim().toLowerCase()}`
   }
 
   /**
