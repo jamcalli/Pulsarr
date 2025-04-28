@@ -820,4 +820,79 @@ export class RadarrService {
       throw error
     }
   }
+
+  /**
+   * Get all tags from Radarr
+   *
+   * @returns Promise resolving to an array of tags
+   */
+  async getTags(): Promise<Array<{ id: number; label: string }>> {
+    return await this.getFromRadarr<Array<{ id: number; label: string }>>('tag')
+  }
+
+  /**
+   * Create a new tag in Radarr
+   *
+   * @param label Tag label
+   * @returns Promise resolving to the created tag
+   */
+  async createTag(label: string): Promise<{ id: number; label: string }> {
+    return await this.postToRadarr<{ id: number; label: string }>('tag', {
+      label,
+    })
+  }
+
+  /**
+   * Update the tags for a specific movie
+   *
+   * @param movieId The Radarr movie ID
+   * @param tagIds Array of tag IDs to apply
+   * @returns Promise resolving when the update is complete
+   */
+  async updateMovieTags(movieId: number, tagIds: number[]): Promise<void> {
+    try {
+      // First get the current movie to preserve all fields
+      const movie = await this.getFromRadarr<RadarrMovie & { tags: number[] }>(
+        `movie/${movieId}`,
+      )
+
+      // Update only the tags
+      movie.tags = tagIds
+
+      // Send the update
+      await this.putToRadarr(`movie/${movieId}`, movie)
+
+      this.log.debug(`Updated tags for movie ID ${movieId}`, { tagIds })
+    } catch (error) {
+      this.log.error(`Failed to update tags for movie ${movieId}:`, error)
+      throw error
+    }
+  }
+
+  /**
+   * Update a resource in Radarr using PUT
+   *
+   * @param endpoint API endpoint
+   * @param payload The data to send
+   * @returns Promise resolving to the response
+   */
+  async putToRadarr<T>(endpoint: string, payload: unknown): Promise<T> {
+    const config = this.radarrConfig
+    const url = new URL(`${config.radarrBaseUrl}/api/v3/${endpoint}`)
+    const response = await fetch(url.toString(), {
+      method: 'PUT',
+      headers: {
+        'X-Api-Key': config.radarrApiKey,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+
+    if (!response.ok) {
+      throw new Error(`Radarr API error: ${response.statusText}`)
+    }
+
+    return response.json() as Promise<T>
+  }
 }

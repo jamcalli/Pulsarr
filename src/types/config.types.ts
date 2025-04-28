@@ -91,6 +91,10 @@ export interface Config {
   // RSS Config
   selfRss?: string
   friendsRss?: string
+  // Tagging Config
+  useAliasForTags: boolean
+  tagUsersInSonarr: boolean
+  tagUsersInRadarr: boolean
   // Ready state
   _isReady: boolean
 }
