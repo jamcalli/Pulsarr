@@ -200,10 +200,6 @@ const schema = {
     friendsRss: {
       type: 'string',
     },
-    useAliasForTags: {
-      type: 'boolean',
-      default: true,
-    },
     tagUsersInSonarr: {
       type: 'boolean',
       default: false,
