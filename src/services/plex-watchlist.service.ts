@@ -18,7 +18,7 @@ import type {
   WatchlistGroup,
   TemptRssWatchlistItem,
 } from '@root/types/plex.types.js'
-
+import type { User } from '@root/types/config.types.js'
 import type { RssFeedsResponse } from '@schemas/plex/generate-rss-feeds.schema.js'
 
 export class PlexWatchlistService {
@@ -48,39 +48,48 @@ export class PlexWatchlistService {
     return results.every((result) => result === true)
   }
 
+  // Note: Moved away from supporting multiple tokens, which was never supported via the ui.
+  // If multi-token support is added back in the future, this method will need to be updated
+  // to handle multiple users and their respective watchlists
+
   async getSelfWatchlist() {
     if (this.config.plexTokens.length === 0) {
       throw new Error('No Plex token configured')
     }
 
-    const userMap = await this.ensureTokenUsers()
+    // Ensure users exist for tokens (this populates the database)
+    await this.ensureTokenUsers()
+
+    // Get the primary user directly
+    const primaryUser = await this.dbService.getPrimaryUser()
+    if (!primaryUser) {
+      throw new Error('Primary Plex user not found')
+    }
+
     const userWatchlistMap = new Map<Friend, Set<TokenWatchlistItem>>()
 
-    await Promise.all(
-      this.config.plexTokens.map(async (token, index) => {
-        const tokenConfig = {
-          ...this.config,
-          plexTokens: [token],
-        }
-        const username = `token${index + 1}`
-        const userId = userMap.get(username)
+    // Now use just the first token (for now we only support one)
+    const token = this.config.plexTokens[0]
+    const tokenConfig = {
+      ...this.config,
+      plexTokens: [token],
+    }
 
-        if (!userId) {
-          this.log.error(`No user ID found for token user: ${username}`)
-          return
-        }
-
-        const items = await fetchSelfWatchlist(tokenConfig, this.log, userId)
-
-        // Add user to map regardless of item count
-        const tokenUser: Friend = {
-          watchlistId: username,
-          username: username,
-          userId: userId,
-        }
-        userWatchlistMap.set(tokenUser, items)
-      }),
+    // Fetch items with the primary user ID
+    const items = await fetchSelfWatchlist(
+      tokenConfig,
+      this.log,
+      primaryUser.id,
     )
+
+    // Use the primary user's actual data
+    const tokenUser: Friend = {
+      watchlistId: primaryUser.name,
+      username: primaryUser.name,
+      userId: primaryUser.id,
+    }
+
+    userWatchlistMap.set(tokenUser, items)
 
     // Don't error out if a user has no items in their watch list.
     if (userWatchlistMap.size === 0) {
@@ -270,32 +279,102 @@ export class PlexWatchlistService {
     )
   }
 
+  /**
+   * Ensures users exist for each Plex token in the configuration
+   *
+   * Fetches the actual username from the Plex API for each token,
+   * creates new users if needed, and updates existing users.
+   * The first token is marked as the primary token user.
+   *
+   * @returns Promise resolving to a map of Plex usernames to user IDs
+   */
   private async ensureTokenUsers(): Promise<Map<string, number>> {
     const userMap = new Map<string, number>()
 
     await Promise.all(
-      this.config.plexTokens.map(async (_, index) => {
-        const username = `token${index + 1}`
+      this.config.plexTokens.map(async (token, index) => {
+        // Fetch the actual Plex username for this token
+        let plexUsername = `token${index + 1}` // Fallback name
+        const isPrimary = index === 0 // First token is primary
 
-        let user = await this.dbService.getUser(username)
+        try {
+          // Fetch the actual username from Plex API
+          const response = await fetch('https://plex.tv/api/v2/user', {
+            headers: {
+              'X-Plex-Token': token,
+              Accept: 'application/json',
+            },
+          })
+
+          if (response.ok) {
+            const userData = (await response.json()) as { username: string }
+            if (userData?.username) {
+              plexUsername = userData.username
+              this.log.info(
+                `Using actual Plex username: ${plexUsername} for token${index + 1}`,
+              )
+            }
+          }
+        } catch (error) {
+          this.log.error(
+            `Failed to fetch Plex username for token${index + 1}:`,
+            error,
+          )
+          // Continue with the fallback name
+        }
+
+        // Variable to hold our user
+        let user: User | undefined = undefined
+
+        // If this is the primary token, try to get the existing primary user
+        if (isPrimary) {
+          user = await this.dbService.getPrimaryUser()
+        }
 
         if (!user) {
+          // Check if a user with this name already exists
+          user = await this.dbService.getUser(plexUsername)
+        }
+
+        if (user) {
+          // Update existing user if needed
+          if (
+            user.is_primary_token !== isPrimary ||
+            user.name !== plexUsername
+          ) {
+            await this.dbService.updateUser(user.id, {
+              name: plexUsername,
+              is_primary_token: isPrimary,
+            })
+
+            // Reload the user to get updated data
+            user = await this.dbService.getUser(plexUsername)
+          }
+        } else {
+          // Create new user
           user = await this.dbService.createUser({
-            name: username,
+            name: plexUsername,
             apprise: null,
             alias: null,
             discord_id: null,
             notify_apprise: false,
             notify_discord: false,
             can_sync: true,
+            is_primary_token: isPrimary,
           })
         }
 
-        if (!user.id) throw new Error(`No ID for user ${username}`)
-        userMap.set(username, user.id)
+        // Safety check for user ID
+        if (!user || typeof user.id !== 'number') {
+          throw new Error(`Failed to create or retrieve user ${plexUsername}`)
+        }
+
+        userMap.set(plexUsername, user.id)
+        this.log.debug(`Mapped user ${plexUsername} to ID ${user.id}`)
       }),
     )
 
+    this.log.info(`Ensured users for ${this.config.plexTokens.length} tokens`)
     return userMap
   }
 
@@ -317,6 +396,7 @@ export class PlexWatchlistService {
             notify_apprise: false,
             notify_discord: false,
             can_sync: true,
+            is_primary_token: false,
           })
         }
 
@@ -943,11 +1023,16 @@ export class PlexWatchlistService {
       this.log,
     )
 
+    const primaryUser = await this.dbService.getPrimaryUser()
+    if (!primaryUser) {
+      throw new Error('No primary token user found')
+    }
+
     const watchlistGroup: WatchlistGroup = {
       user: {
-        watchlistId: 'token1',
-        username: 'token1',
-        userId: 1,
+        watchlistId: primaryUser.name,
+        username: primaryUser.name,
+        userId: primaryUser.id,
       },
       watchlist: this.mapRssItemsToWatchlist(
         selfItems as Set<TemptRssWatchlistItem>,

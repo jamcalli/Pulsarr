@@ -315,6 +315,7 @@ export default function UserEditModal({
       notify_apprise: values.notify_apprise,
       notify_discord: values.notify_discord,
       can_sync: values.can_sync,
+      is_primary_token: values.is_primary_token,
     }
 
     await onSave(user.id, updates)

@@ -188,6 +188,7 @@ export class DatabaseService {
       notify_apprise: Boolean(row.notify_apprise),
       notify_discord: Boolean(row.notify_discord),
       can_sync: Boolean(row.can_sync),
+      is_primary_token: Boolean(row.is_primary_token),
       created_at: row.created_at,
       updated_at: row.updated_at,
     } satisfies User
@@ -297,6 +298,7 @@ export class DatabaseService {
       notify_apprise: Boolean(row.notify_apprise),
       notify_discord: Boolean(row.notify_discord),
       can_sync: Boolean(row.can_sync),
+      is_primary_token: Boolean(row.is_primary_token),
       created_at: row.created_at,
       updated_at: row.updated_at,
     })) satisfies User[]
@@ -328,10 +330,34 @@ export class DatabaseService {
       notify_apprise: Boolean(row.notify_apprise),
       notify_discord: Boolean(row.notify_discord),
       can_sync: Boolean(row.can_sync),
+      is_primary_token: Boolean(row.is_primary_token),
       created_at: row.created_at,
       updated_at: row.updated_at,
       watchlist_count: Number(row.watchlist_count),
     })) satisfies (User & { watchlist_count: number })[]
+  }
+
+  /**
+   * Retrieves the primary user from the database
+   *
+   * @returns Promise resolving to the primary user if found, undefined otherwise
+   */
+  async getPrimaryUser(): Promise<User | undefined> {
+    try {
+      const primaryUser = await this.knex('users')
+        .where({ is_primary_token: true })
+        .first()
+
+      this.log.debug(
+        { userId: primaryUser?.id, username: primaryUser?.name },
+        'Retrieved primary user',
+      )
+
+      return primaryUser || undefined
+    } catch (error) {
+      this.log.error({ error }, 'Error retrieving primary user')
+      return undefined
+    }
   }
 
   /**

@@ -761,8 +761,8 @@ export class DiscordNotificationService {
           // Get all users to find the admin user
           const users = await this.fastify.db.getAllUsers()
 
-          // Find the admin user with username 'token1'
-          const adminUser = users.find((user) => user.name === 'token1')
+          // Find the admin user with username
+          const adminUser = users.find((user) => user.is_primary_token)
 
           // Only send DM notifications if content was deleted or safety was triggered
           const hasDeletedContent = results.total.deleted > 0
@@ -773,7 +773,7 @@ export class DiscordNotificationService {
           } else if (!adminUser || !adminUser.discord_id) {
             // Admin not found or doesn't have a Discord ID
             this.log.warn(
-              'Admin user (token1) not found or has no Discord ID - skipping delete sync DM notification',
+              'Admin user not found or has no Discord ID - skipping delete sync DM notification',
             )
           } else {
             // Admin exists and has a Discord ID - proceed with notification
