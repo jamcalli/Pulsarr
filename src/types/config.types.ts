@@ -92,7 +92,6 @@ export interface Config {
   selfRss?: string
   friendsRss?: string
   // Tagging Config
-  useAliasForTags: boolean
   tagUsersInSonarr: boolean
   tagUsersInRadarr: boolean
   // Ready state
