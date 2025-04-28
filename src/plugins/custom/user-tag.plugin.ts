@@ -9,12 +9,11 @@ const userTagPlugin: FastifyPluginAsync = async (fastify, opts) => {
   // Create the user tag service
   const userTagService = new UserTagService(fastify.log, fastify)
 
-  // Register the service
-  fastify.decorate('user-tags', userTagService)
+  fastify.decorate('userTags', userTagService)
 }
 
 export default fp(userTagPlugin, {
-  name: 'userTags',
+  name: 'user-tag',
   dependencies: ['database', 'sonarr-manager', 'radarr-manager'],
 })
 
