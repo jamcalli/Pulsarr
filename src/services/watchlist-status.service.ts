@@ -51,6 +51,29 @@ export class StatusService {
         dbWatchlistItems,
       )
       updateCount += junctionUpdates
+
+      // Apply user tags if the service is available and enabled
+      if (this.fastify.userTags) {
+        try {
+          // Create user tags first
+          await this.fastify.userTags.createSonarrUserTags()
+
+          // Apply tags using already fetched data
+          const tagResults =
+            await this.fastify.userTags.tagSonarrContentWithData(
+              existingSeries,
+              watchlistItems,
+            )
+
+          this.log.info('Applied user tags to Sonarr content', tagResults)
+        } catch (tagError) {
+          this.log.error(
+            'Error applying user tags to Sonarr content:',
+            tagError,
+          )
+        }
+      }
+
       return updateCount
     } catch (error) {
       this.log.error('Error syncing Sonarr statuses:', error)
@@ -79,6 +102,29 @@ export class StatusService {
         dbWatchlistItems,
       )
       updateCount += junctionUpdates
+
+      // Apply user tags if the service is available and enabled
+      if (this.fastify.userTags) {
+        try {
+          // Create user tags first
+          await this.fastify.userTags.createRadarrUserTags()
+
+          // Apply tags using already fetched data
+          const tagResults =
+            await this.fastify.userTags.tagRadarrContentWithData(
+              existingMovies,
+              watchlistItems,
+            )
+
+          this.log.info('Applied user tags to Radarr content', tagResults)
+        } catch (tagError) {
+          this.log.error(
+            'Error applying user tags to Radarr content:',
+            tagError,
+          )
+        }
+      }
+
       return updateCount
     } catch (error) {
       this.log.error('Error syncing Radarr statuses:', error)

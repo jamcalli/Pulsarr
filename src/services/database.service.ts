@@ -475,6 +475,9 @@ export class DatabaseService {
       deleteContinuingShow: Boolean(config.deleteContinuingShow),
       deleteFiles: Boolean(config.deleteFiles),
       respectUserSyncSetting: Boolean(config.respectUserSyncSetting),
+      useAliasForTags: Boolean(config.useAliasForTags),
+      tagUsersInSonarr: Boolean(config.tagUsersInSonarr),
+      tagUsersInRadarr: Boolean(config.tagUsersInRadarr),
       _isReady: Boolean(config._isReady),
     }
   }
@@ -530,6 +533,10 @@ export class DatabaseService {
         discordBotToken: config.discordBotToken,
         discordClientId: config.discordClientId,
         discordGuildId: config.discordGuildId,
+        // Tagging fields
+        useAliasForTags: config.useAliasForTags ?? true,
+        tagUsersInSonarr: config.tagUsersInSonarr ?? false,
+        tagUsersInRadarr: config.tagUsersInRadarr ?? false,
         // Ready state
         _isReady: config._isReady || false,
         // Timestamps

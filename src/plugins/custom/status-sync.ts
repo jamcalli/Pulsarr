@@ -21,6 +21,6 @@ export default fp(
   },
   {
     name: 'sync',
-    dependencies: ['database', 'sonarr-manager', 'radarr-manager'],
+    dependencies: ['database', 'sonarr-manager', 'radarr-manager', 'userTags'],
   },
 )
