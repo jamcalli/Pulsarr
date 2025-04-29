@@ -290,36 +290,53 @@ export class PlexWatchlistService {
    */
   private async ensureTokenUsers(): Promise<Map<string, number>> {
     const userMap = new Map<string, number>()
-
     await Promise.all(
       this.config.plexTokens.map(async (token, index) => {
         // Fetch the actual Plex username for this token
         let plexUsername = `token${index + 1}` // Fallback name
         const isPrimary = index === 0 // First token is primary
 
+        // Create AbortController for timeout
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 10000) // 10s timeout
+
         try {
-          // Fetch the actual username from Plex API
+          // Fetch the actual username from Plex API with timeout handling
           const response = await fetch('https://plex.tv/api/v2/user', {
             headers: {
               'X-Plex-Token': token,
               Accept: 'application/json',
             },
+            signal: controller.signal,
           })
+
+          // Clear timeout as request completed
+          clearTimeout(timeoutId)
 
           if (response.ok) {
             const userData = (await response.json()) as { username: string }
             if (userData?.username) {
               plexUsername = userData.username
-              this.log.info(
+              this.log.debug(
                 `Using actual Plex username: ${plexUsername} for token${index + 1}`,
               )
             }
           }
         } catch (error) {
-          this.log.error(
-            `Failed to fetch Plex username for token${index + 1}:`,
-            error,
-          )
+          // Clear timeout to prevent memory leaks
+          clearTimeout(timeoutId)
+
+          // Handle timeout errors specifically
+          if (error instanceof Error && error.name === 'AbortError') {
+            this.log.warn(
+              `Timeout fetching Plex username for token${index + 1} after 10s, using fallback name`,
+            )
+          } else {
+            this.log.error(
+              `Failed to fetch Plex username for token${index + 1}:`,
+              error,
+            )
+          }
           // Continue with the fallback name
         }
 
@@ -346,7 +363,6 @@ export class PlexWatchlistService {
               name: plexUsername,
               is_primary_token: isPrimary,
             })
-
             // Reload the user to get updated data
             user = await this.dbService.getUser(plexUsername)
           }
