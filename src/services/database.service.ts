@@ -455,6 +455,39 @@ export class DatabaseService {
     }
   }
 
+  /**
+   * Sets a user as the primary token user, ensuring only one user has this flag
+   *
+   * This method clears the primary flag from all users before setting it on the specified user,
+   * which ensures database consistency even if the unique constraint is not present.
+   *
+   * @param userId - ID of the user to set as primary
+   * @returns Promise resolving to true if successful
+   */
+  async setPrimaryUser(userId: number): Promise<boolean> {
+    try {
+      await this.knex.transaction(async (trx) => {
+        // Clear existing primary flags
+        await trx('users').where({ is_primary_token: true }).update({
+          is_primary_token: false,
+          updated_at: this.timestamp,
+        })
+
+        // Set the new primary user
+        await trx('users').where({ id: userId }).update({
+          is_primary_token: true,
+          updated_at: this.timestamp,
+        })
+      })
+
+      this.log.info(`Set user ID ${userId} as the primary token user`)
+      return true
+    } catch (error) {
+      this.log.error(`Error setting primary user ${userId}:`, error)
+      return false
+    }
+  }
+
   //=============================================================================
   // CONFIGURATION MANAGEMENT
   //=============================================================================

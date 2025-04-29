@@ -298,7 +298,7 @@ export class PlexWatchlistService {
 
         // Create AbortController for timeout
         const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 10000) // 10s timeout
+        const timeoutId = setTimeout(() => controller.abort(), 10_000) // 10s timeout
 
         try {
           // Fetch the actual username from Plex API with timeout handling
@@ -310,9 +310,6 @@ export class PlexWatchlistService {
             signal: controller.signal,
           })
 
-          // Clear timeout as request completed
-          clearTimeout(timeoutId)
-
           if (response.ok) {
             const userData = (await response.json()) as { username: string }
             if (userData?.username) {
@@ -323,9 +320,6 @@ export class PlexWatchlistService {
             }
           }
         } catch (error) {
-          // Clear timeout to prevent memory leaks
-          clearTimeout(timeoutId)
-
           // Handle timeout errors specifically
           if (error instanceof Error && error.name === 'AbortError') {
             this.log.warn(
@@ -338,6 +332,9 @@ export class PlexWatchlistService {
             )
           }
           // Continue with the fallback name
+        } finally {
+          // Always clear the timeout to prevent memory leaks
+          clearTimeout(timeoutId)
         }
 
         // Variable to hold our user
@@ -359,25 +356,55 @@ export class PlexWatchlistService {
             user.is_primary_token !== isPrimary ||
             user.name !== plexUsername
           ) {
+            // If this user should be primary, update primary status first
+            if (isPrimary && !user.is_primary_token) {
+              // Use the database service method to set primary user
+              await this.dbService.setPrimaryUser(user.id)
+            }
+
+            // Update other user details if needed
             await this.dbService.updateUser(user.id, {
               name: plexUsername,
               is_primary_token: isPrimary,
             })
+
             // Reload the user to get updated data
             user = await this.dbService.getUser(plexUsername)
           }
         } else {
-          // Create new user
-          user = await this.dbService.createUser({
-            name: plexUsername,
-            apprise: null,
-            alias: null,
-            discord_id: null,
-            notify_apprise: false,
-            notify_discord: false,
-            can_sync: true,
-            is_primary_token: isPrimary,
-          })
+          // If we're creating a primary user, ensure no other primaries exist
+          if (isPrimary) {
+            // Use the database service method to handle primary user setting
+            // We'll create the user first, then set it as primary
+            user = await this.dbService.createUser({
+              name: plexUsername,
+              apprise: null,
+              alias: null,
+              discord_id: null,
+              notify_apprise: false,
+              notify_discord: false,
+              can_sync: true,
+              is_primary_token: false, // Initially false, will set to true next
+            })
+
+            // Now set as primary using the database service method
+            await this.dbService.setPrimaryUser(user.id)
+
+            // Reload to get updated data
+            user = await this.dbService.getUser(user.id)
+          } else {
+            // Create regular non-primary user
+            user = await this.dbService.createUser({
+              name: plexUsername,
+              apprise: null,
+              alias: null,
+              discord_id: null,
+              notify_apprise: false,
+              notify_discord: false,
+              can_sync: true,
+              is_primary_token: false,
+            })
+          }
         }
 
         // Safety check for user ID
