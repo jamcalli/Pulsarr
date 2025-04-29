@@ -7,11 +7,6 @@ export async function up(knex: Knex): Promise<void> {
     // Add an index for faster lookups
     table.index('is_primary_token')
   })
-  
-  // Set the existing token1 user as the primary token user
-  await knex('users')
-    .where({ name: 'token1' })
-    .update({ is_primary_token: true })
 }
 
 export async function down(knex: Knex): Promise<void> {
