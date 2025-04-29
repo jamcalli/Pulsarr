@@ -506,7 +506,7 @@ export class DatabaseService {
       tagUsersInRadarr: Boolean(config.tagUsersInRadarr),
       cleanupOrphanedTags: Boolean(config.cleanupOrphanedTags),
       persistHistoricalTags: Boolean(config.persistHistoricalTags),
-      tagPrefix: config.tagPrefix || 'user',
+      tagPrefix: config.tagPrefix || 'pulsarr:user',
       _isReady: Boolean(config._isReady),
     }
   }
@@ -567,7 +567,7 @@ export class DatabaseService {
         tagUsersInRadarr: config.tagUsersInRadarr ?? false,
         cleanupOrphanedTags: config.cleanupOrphanedTags ?? true,
         persistHistoricalTags: config.persistHistoricalTags ?? false,
-        tagPrefix: config.tagPrefix || 'user',
+        tagPrefix: config.tagPrefix || 'pulsarr:user',
         // Ready state
         _isReady: config._isReady || false,
         // Timestamps
