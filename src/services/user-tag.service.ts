@@ -106,7 +106,7 @@ export class UserTagService {
    *
    * @param service - The Sonarr/Radarr service with getTags and createTag methods
    * @param users - Array of users
-   * @returns Maps of tag labels to IDs and IDs to labels, plus count of failed creations
+   * @returns Maps of tag labels to IDs and IDs to labels, plus counts of failed and created tags
    */
   private async ensureUserTags(
     service: MediaService,
@@ -115,6 +115,7 @@ export class UserTagService {
     tagLabelMap: Map<string, number>
     tagIdMap: Map<number, string>
     failedCount: number
+    createdCount: number
   }> {
     // Get ALL existing tags first
     const existingTags = await service.getTags()
@@ -123,10 +124,12 @@ export class UserTagService {
     const tagLabelMap = new Map<string, number>()
     const tagIdMap = new Map<number, string>()
     let failedCount = 0
+    let createdCount = 0
 
     for (const tag of existingTags) {
-      tagLabelMap.set(tag.label.toLowerCase(), tag.id)
-      tagIdMap.set(tag.id, tag.label.toLowerCase())
+      const lowerLabel = tag.label.toLowerCase()
+      tagLabelMap.set(lowerLabel, tag.id)
+      tagIdMap.set(tag.id, lowerLabel)
     }
 
     // Determine which user tags need to be created
@@ -134,8 +137,9 @@ export class UserTagService {
 
     for (const user of users) {
       const tagLabel = this.getUserTagLabel(user)
+      const lowerLabel = tagLabel.toLowerCase()
 
-      if (!tagLabelMap.has(tagLabel)) {
+      if (!tagLabelMap.has(lowerLabel)) {
         tagsToCreate.push({ user, label: tagLabel })
       }
     }
@@ -153,8 +157,10 @@ export class UserTagService {
     for (const tagInfo of tagsToCreate) {
       try {
         const newTag = await service.createTag(tagInfo.label)
-        tagLabelMap.set(tagInfo.label, newTag.id)
-        tagIdMap.set(newTag.id, tagInfo.label)
+        const lowerLabel = tagInfo.label.toLowerCase()
+        tagLabelMap.set(lowerLabel, newTag.id)
+        tagIdMap.set(newTag.id, lowerLabel)
+        createdCount++
         this.log.info(
           `Created tag "${tagInfo.label}" with ID ${newTag.id} for user ${tagInfo.user.name}`,
         )
@@ -167,7 +173,7 @@ export class UserTagService {
       }
     }
 
-    return { tagLabelMap, tagIdMap, failedCount }
+    return { tagLabelMap, tagIdMap, failedCount, createdCount }
   }
 
   /**
@@ -210,28 +216,20 @@ export class UserTagService {
           }
 
           // Use ensureUserTags to get/create all necessary tags
-          const { tagLabelMap, failedCount } = await this.ensureUserTags(
+          const { failedCount, createdCount } = await this.ensureUserTags(
             sonarrService,
             users,
           )
 
-          // Calculate skipped count based on existing tags that match user tags
-          let skippedCount = 0
-          for (const user of users) {
-            const tagLabel = this.getUserTagLabel(user)
-            if (tagLabelMap.has(tagLabel)) {
-              skippedCount++
-            }
-          }
-          results.skipped += skippedCount
-          results.failed += failedCount
+          // Calculate skipped count correctly
+          const skippedCount = users.length - createdCount - failedCount
 
-          // Count only successfully created tags (handling failed creations correctly)
-          const createdNow = users.length - skippedCount - failedCount
-          results.created += Math.max(createdNow, 0)
+          results.created += createdCount
+          results.failed += failedCount
+          results.skipped += Math.max(skippedCount, 0)
 
           this.log.info(
-            `Processed user tags for Sonarr instance ${instance.name}: created: ${createdNow}, skipped: ${skippedCount}, failed: ${failedCount}`,
+            `Processed user tags for Sonarr instance ${instance.name}: created: ${createdCount}, skipped: ${skippedCount}, failed: ${failedCount}`,
           )
         } catch (instanceError) {
           this.log.error(
@@ -288,28 +286,20 @@ export class UserTagService {
           }
 
           // Use ensureUserTags to get/create all necessary tags
-          const { tagLabelMap, failedCount } = await this.ensureUserTags(
+          const { failedCount, createdCount } = await this.ensureUserTags(
             radarrService,
             users,
           )
 
-          // Calculate skipped count based on existing tags that match user tags
-          let skippedCount = 0
-          for (const user of users) {
-            const tagLabel = this.getUserTagLabel(user)
-            if (tagLabelMap.has(tagLabel)) {
-              skippedCount++
-            }
-          }
-          results.skipped += skippedCount
-          results.failed += failedCount
+          // Calculate skipped count correctly
+          const skippedCount = users.length - createdCount - failedCount
 
-          // Count only successfully created tags (handling failed creations correctly)
-          const createdNow = users.length - skippedCount - failedCount
-          results.created += Math.max(createdNow, 0)
+          results.created += createdCount
+          results.failed += failedCount
+          results.skipped += Math.max(skippedCount, 0)
 
           this.log.info(
-            `Processed user tags for Radarr instance ${instance.name}: created: ${createdNow}, skipped: ${skippedCount}, failed: ${failedCount}`,
+            `Processed user tags for Radarr instance ${instance.name}: created: ${createdCount}, skipped: ${skippedCount}, failed: ${failedCount}`,
           )
         } catch (instanceError) {
           this.log.error(
