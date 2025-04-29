@@ -2,7 +2,8 @@ import type { FastifyPluginAsync } from 'fastify'
 import type { z } from 'zod'
 import {
   TaggingStatusResponseSchema,
-  TaggingOperationResponseSchema,
+  SyncTaggingResponseSchema,
+  CreateTaggingResponseSchema,
   CleanupResponseSchema,
   TaggingConfigSchema,
   ErrorSchema,
@@ -79,10 +80,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             throw reply.badRequest('Tag prefix cannot be empty')
           }
 
-          // Check if prefix contains only allowed characters
-          if (!/^[a-zA-Z0-9_-]+$/.test(configUpdate.tagPrefix)) {
+          // Updated regex to allow colons and dots in addition to letters, numbers, underscores, and hyphens
+          if (!/^[a-zA-Z0-9_\-:.]+$/.test(configUpdate.tagPrefix)) {
             throw reply.badRequest(
-              'Tag prefix can only contain letters, numbers, underscores, and hyphens',
+              'Tag prefix can only contain letters, numbers, underscores, hyphens, colons, and dots',
             )
           }
         }
@@ -128,13 +129,13 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
   // Create user tags in Sonarr and/or Radarr instances
   fastify.post<{
-    Reply: z.infer<typeof TaggingOperationResponseSchema>
+    Reply: z.infer<typeof CreateTaggingResponseSchema>
   }>(
     '/create',
     {
       schema: {
         response: {
-          200: TaggingOperationResponseSchema,
+          200: CreateTaggingResponseSchema,
           500: ErrorSchema,
         },
         tags: ['Tags'],
@@ -154,14 +155,17 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         return {
           success: true,
           message: `Created ${totalCreated} user tags across ${totalInstances} instances (${sonarrResults.created + sonarrResults.skipped} Sonarr, ${radarrResults.created + radarrResults.skipped} Radarr tags)`,
+          mode: 'create', // Add the discriminant
           sonarr: {
             created: sonarrResults.created,
             skipped: sonarrResults.skipped,
+            failed: sonarrResults.failed,
             instances: sonarrResults.instances,
           },
           radarr: {
             created: radarrResults.created,
             skipped: radarrResults.skipped,
+            failed: radarrResults.failed,
             instances: radarrResults.instances,
           },
         }
@@ -174,13 +178,13 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
   // Synchronize content with user tags in Sonarr and Radarr
   fastify.post<{
-    Reply: z.infer<typeof TaggingOperationResponseSchema>
+    Reply: z.infer<typeof SyncTaggingResponseSchema>
   }>(
     '/sync',
     {
       schema: {
         response: {
-          200: TaggingOperationResponseSchema,
+          200: SyncTaggingResponseSchema,
           500: ErrorSchema,
         },
         tags: ['Tags'],
@@ -198,6 +202,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         return {
           success: true,
           message: `Synchronized tags for ${totalTagged} items (${results.sonarr.tagged} Sonarr, ${results.radarr.tagged} Radarr)`,
+          mode: 'sync', // Add the discriminant
           sonarr: {
             tagged: results.sonarr.tagged,
             skipped: results.sonarr.skipped,

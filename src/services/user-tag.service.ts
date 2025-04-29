@@ -1010,6 +1010,14 @@ export class UserTagService {
    * @returns Formatted tag label in format "{prefix}:{name}"
    */
   private getUserTagLabel(user: { name: string }): string {
+    // Validate the tag prefix meets our requirements (consistent with API validation)
+    if (!/^[a-zA-Z0-9_\-:.]+$/.test(this.tagPrefix)) {
+      this.log.warn(
+        `Invalid tag prefix format: "${this.tagPrefix}". Using default "pulsarr:user" instead.`,
+      )
+      return `pulsarr:user:${user.name.trim().toLowerCase()}`
+    }
+
     return `${this.tagPrefix}:${user.name.trim().toLowerCase()}`
   }
 
