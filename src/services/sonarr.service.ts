@@ -782,4 +782,101 @@ export class SonarrService {
       throw error
     }
   }
+
+  /**
+   * Get all tags from Sonarr
+   *
+   * @returns Promise resolving to an array of tags
+   */
+  async getTags(): Promise<Array<{ id: number; label: string }>> {
+    return await this.getFromSonarr<Array<{ id: number; label: string }>>('tag')
+  }
+
+  /**
+   * Create a new tag in Sonarr
+   *
+   * @param label Tag label
+   * @returns Promise resolving to the created tag
+   */
+  async createTag(label: string): Promise<{ id: number; label: string }> {
+    try {
+      return await this.postToSonarr<{ id: number; label: string }>('tag', {
+        label,
+      })
+    } catch (err) {
+      if (
+        err instanceof Error &&
+        /409/.test(err.message) // Sonarr returns 409 Conflict if the tag exists
+      ) {
+        this.log.debug(
+          `Tag "${label}" already exists in Sonarr – skipping creation`,
+        )
+        // Fetch the existing tag so we can return its id
+        const existing = (await this.getTags()).find((t) => t.label === label)
+        if (existing) return existing
+      }
+      throw err
+    }
+  }
+
+  /**
+   * Update the tags for a specific series
+   *
+   * @param seriesId The Sonarr series ID
+   * @param tagIds Array of tag IDs to apply
+   * @returns Promise resolving when the update is complete
+   */
+  async updateSeriesTags(seriesId: number, tagIds: number[]): Promise<void> {
+    try {
+      // First get the current series to preserve all fields
+      const series = await this.getFromSonarr<
+        SonarrSeries & { tags: number[] }
+      >(`series/${seriesId}`)
+
+      series.tags = [...new Set(tagIds)]
+
+      // Send the update
+      await this.putToSonarr(`series/${seriesId}`, series)
+
+      this.log.debug(`Updated tags for series ID ${seriesId}`, { tagIds })
+    } catch (error) {
+      this.log.error(`Failed to update tags for series ${seriesId}:`, error)
+      throw error
+    }
+  }
+
+  /**
+   * Update a resource in Sonarr using PUT
+   *
+   * @param endpoint API endpoint
+   * @param payload The data to send
+   * @returns Promise resolving to the response or void for 204 responses
+   */
+  async putToSonarr<T>(
+    endpoint: string,
+    payload: unknown,
+  ): Promise<T | undefined> {
+    const config = this.sonarrConfig
+    const url = new URL(`${config.sonarrBaseUrl}/api/v3/${endpoint}`)
+    const response = await fetch(url.toString(), {
+      method: 'PUT',
+      headers: {
+        'X-Api-Key': config.sonarrApiKey,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+
+    if (!response.ok) {
+      throw new Error(`Sonarr API error: ${response.statusText}`)
+    }
+
+    // Some endpoints return 204 No Content
+    if (response.status === 204) {
+      return undefined
+    }
+
+    return response.json() as Promise<T>
+  }
 }

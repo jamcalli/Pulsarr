@@ -188,6 +188,7 @@ export class DatabaseService {
       notify_apprise: Boolean(row.notify_apprise),
       notify_discord: Boolean(row.notify_discord),
       can_sync: Boolean(row.can_sync),
+      is_primary_token: Boolean(row.is_primary_token),
       created_at: row.created_at,
       updated_at: row.updated_at,
     } satisfies User
@@ -297,6 +298,7 @@ export class DatabaseService {
       notify_apprise: Boolean(row.notify_apprise),
       notify_discord: Boolean(row.notify_discord),
       can_sync: Boolean(row.can_sync),
+      is_primary_token: Boolean(row.is_primary_token),
       created_at: row.created_at,
       updated_at: row.updated_at,
     })) satisfies User[]
@@ -328,10 +330,34 @@ export class DatabaseService {
       notify_apprise: Boolean(row.notify_apprise),
       notify_discord: Boolean(row.notify_discord),
       can_sync: Boolean(row.can_sync),
+      is_primary_token: Boolean(row.is_primary_token),
       created_at: row.created_at,
       updated_at: row.updated_at,
       watchlist_count: Number(row.watchlist_count),
     })) satisfies (User & { watchlist_count: number })[]
+  }
+
+  /**
+   * Retrieves the primary user from the database
+   *
+   * @returns Promise resolving to the primary user if found, undefined otherwise
+   */
+  async getPrimaryUser(): Promise<User | undefined> {
+    try {
+      const primaryUser = await this.knex('users')
+        .where({ is_primary_token: true })
+        .first()
+
+      this.log.debug(
+        { userId: primaryUser?.id, username: primaryUser?.name },
+        'Retrieved primary user',
+      )
+
+      return primaryUser || undefined
+    } catch (error) {
+      this.log.error({ error }, 'Error retrieving primary user')
+      return undefined
+    }
   }
 
   /**
@@ -429,6 +455,39 @@ export class DatabaseService {
     }
   }
 
+  /**
+   * Sets a user as the primary token user, ensuring only one user has this flag
+   *
+   * This method clears the primary flag from all users before setting it on the specified user,
+   * which ensures database consistency even if the unique constraint is not present.
+   *
+   * @param userId - ID of the user to set as primary
+   * @returns Promise resolving to true if successful
+   */
+  async setPrimaryUser(userId: number): Promise<boolean> {
+    try {
+      await this.knex.transaction(async (trx) => {
+        // Clear existing primary flags
+        await trx('users').where({ is_primary_token: true }).update({
+          is_primary_token: false,
+          updated_at: this.timestamp,
+        })
+
+        // Set the new primary user
+        await trx('users').where({ id: userId }).update({
+          is_primary_token: true,
+          updated_at: this.timestamp,
+        })
+      })
+
+      this.log.info(`Set user ID ${userId} as the primary token user`)
+      return true
+    } catch (error) {
+      this.log.error(`Error setting primary user ${userId}:`, error)
+      return false
+    }
+  }
+
   //=============================================================================
   // CONFIGURATION MANAGEMENT
   //=============================================================================
@@ -475,6 +534,12 @@ export class DatabaseService {
       deleteContinuingShow: Boolean(config.deleteContinuingShow),
       deleteFiles: Boolean(config.deleteFiles),
       respectUserSyncSetting: Boolean(config.respectUserSyncSetting),
+      // Tag configuration
+      tagUsersInSonarr: Boolean(config.tagUsersInSonarr),
+      tagUsersInRadarr: Boolean(config.tagUsersInRadarr),
+      cleanupOrphanedTags: Boolean(config.cleanupOrphanedTags),
+      persistHistoricalTags: Boolean(config.persistHistoricalTags),
+      tagPrefix: config.tagPrefix || 'pulsarr:user',
       _isReady: Boolean(config._isReady),
     }
   }
@@ -530,6 +595,12 @@ export class DatabaseService {
         discordBotToken: config.discordBotToken,
         discordClientId: config.discordClientId,
         discordGuildId: config.discordGuildId,
+        // User Tagging fields
+        tagUsersInSonarr: config.tagUsersInSonarr ?? false,
+        tagUsersInRadarr: config.tagUsersInRadarr ?? false,
+        cleanupOrphanedTags: config.cleanupOrphanedTags ?? true,
+        persistHistoricalTags: config.persistHistoricalTags ?? false,
+        tagPrefix: config.tagPrefix || 'pulsarr:user',
         // Ready state
         _isReady: config._isReady || false,
         // Timestamps
@@ -563,7 +634,8 @@ export class DatabaseService {
           key === 'discordClientId' ||
           key === 'discordGuildId' ||
           key === 'appriseUrl' ||
-          key === 'systemAppriseUrl'
+          key === 'systemAppriseUrl' ||
+          key === 'tagPrefix'
         ) {
           updateData[key] = value
         } else if (

@@ -7,6 +7,7 @@ export interface User {
   notify_apprise: boolean
   notify_discord: boolean
   can_sync: boolean
+  is_primary_token?: boolean
   created_at?: string
   updated_at?: string
 }
@@ -91,6 +92,12 @@ export interface Config {
   // RSS Config
   selfRss?: string
   friendsRss?: string
+  // Tagging Config
+  tagUsersInSonarr: boolean
+  tagUsersInRadarr: boolean
+  cleanupOrphanedTags: boolean
+  persistHistoricalTags: boolean
+  tagPrefix: string
   // Ready state
   _isReady: boolean
 }

@@ -56,6 +56,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     },
   )
 
+  // Updated PUT handler for /config route to avoid race conditions
   fastify.put<{
     Body: z.infer<typeof ConfigSchema>
     Reply: z.infer<typeof ConfigResponseSchema>
@@ -89,18 +90,34 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           )
         }
 
+        // First update the runtime config - if this fails, we won't update the DB
+        try {
+          await fastify.updateConfig(safeConfigUpdate)
+        } catch (configUpdateError) {
+          fastify.log.error('Error updating runtime config:', configUpdateError)
+          throw reply.badRequest('Failed to update runtime configuration')
+        }
+
+        // Now update the database since runtime config was successful
         const dbUpdated = await fastify.db.updateConfig(1, safeConfigUpdate)
         if (!dbUpdated) {
-          throw reply.badRequest('Failed to update configuration')
+          // Attempt to revert runtime config since DB update failed
+          try {
+            // Get the original config to revert to
+            const originalConfig = await fastify.db.getConfig(1)
+            if (originalConfig) {
+              await fastify.updateConfig(originalConfig)
+            }
+          } catch (revertError) {
+            fastify.log.error('Failed to revert runtime config:', revertError)
+          }
+          throw reply.badRequest('Failed to update configuration in database')
         }
 
         const savedConfig = await fastify.db.getConfig(1)
         if (!savedConfig) {
           throw reply.notFound('No configuration found after update')
         }
-
-        // Update the runtime config with the non-Apprise fields
-        await fastify.updateConfig(safeConfigUpdate)
 
         // For the response, merge the saved DB config with the runtime Apprise settings
         // We use fastify.config for the protected apprise settings since it has the current values
