@@ -95,6 +95,9 @@ export interface Config {
   // Tagging Config
   tagUsersInSonarr: boolean
   tagUsersInRadarr: boolean
+  cleanupOrphanedTags: boolean
+  persistHistoricalTags: boolean
+  tagPrefix: string
   // Ready state
   _isReady: boolean
 }

@@ -501,8 +501,12 @@ export class DatabaseService {
       deleteContinuingShow: Boolean(config.deleteContinuingShow),
       deleteFiles: Boolean(config.deleteFiles),
       respectUserSyncSetting: Boolean(config.respectUserSyncSetting),
+      // Tag configuration
       tagUsersInSonarr: Boolean(config.tagUsersInSonarr),
       tagUsersInRadarr: Boolean(config.tagUsersInRadarr),
+      cleanupOrphanedTags: Boolean(config.cleanupOrphanedTags),
+      persistHistoricalTags: Boolean(config.persistHistoricalTags),
+      tagPrefix: config.tagPrefix || 'user',
       _isReady: Boolean(config._isReady),
     }
   }
@@ -558,9 +562,12 @@ export class DatabaseService {
         discordBotToken: config.discordBotToken,
         discordClientId: config.discordClientId,
         discordGuildId: config.discordGuildId,
-        // Tagging fields
+        // User Tagging fields
         tagUsersInSonarr: config.tagUsersInSonarr ?? false,
         tagUsersInRadarr: config.tagUsersInRadarr ?? false,
+        cleanupOrphanedTags: config.cleanupOrphanedTags ?? true,
+        persistHistoricalTags: config.persistHistoricalTags ?? false,
+        tagPrefix: config.tagPrefix || 'user',
         // Ready state
         _isReady: config._isReady || false,
         // Timestamps
@@ -594,7 +601,8 @@ export class DatabaseService {
           key === 'discordClientId' ||
           key === 'discordGuildId' ||
           key === 'appriseUrl' ||
-          key === 'systemAppriseUrl'
+          key === 'systemAppriseUrl' ||
+          key === 'tagPrefix'
         ) {
           updateData[key] = value
         } else if (

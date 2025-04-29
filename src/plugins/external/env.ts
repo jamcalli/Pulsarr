@@ -208,6 +208,18 @@ const schema = {
       type: 'boolean',
       default: false,
     },
+    cleanupOrphanedTags: {
+      type: 'boolean',
+      default: true,
+    },
+    persistHistoricalTags: {
+      type: 'boolean',
+      default: false,
+    },
+    tagPrefix: {
+      type: 'string',
+      default: 'pulsarr:user',
+    },
   },
 }
 

@@ -21,6 +21,24 @@ interface TaggingResults {
 }
 
 /**
+ * Type for tag cleanup results
+ */
+interface TagCleanupResults {
+  removed: number
+  skipped: number
+  failed: number
+  instances: number
+}
+
+/**
+ * Type for orphaned tag cleanup results
+ */
+interface OrphanedTagCleanupResults {
+  radarr: TagCleanupResults
+  sonarr: TagCleanupResults
+}
+
+/**
  * Type for a generic media service (Sonarr or Radarr)
  */
 interface MediaService {
@@ -48,19 +66,38 @@ export class UserTagService {
   ) {}
 
   /**
-   * Get current tagging configuration
-   *
-   * @returns Current tagging configuration
+   * Get config value for tagging users in Sonarr
    */
-  async getTaggingConfig(): Promise<{
-    tagUsersInSonarr: boolean
-    tagUsersInRadarr: boolean
-  }> {
-    // Use fastify.config instead of direct DB access to honor .env settings
-    return {
-      tagUsersInSonarr: !!this.fastify.config.tagUsersInSonarr,
-      tagUsersInRadarr: !!this.fastify.config.tagUsersInRadarr,
-    }
+  private get tagUsersInSonarr(): boolean {
+    return this.fastify.config.tagUsersInSonarr
+  }
+
+  /**
+   * Get config value for tagging users in Radarr
+   */
+  private get tagUsersInRadarr(): boolean {
+    return this.fastify.config.tagUsersInRadarr
+  }
+
+  /**
+   * Get config value for cleaning up orphaned tags
+   */
+  private get cleanupOrphanedTags(): boolean {
+    return this.fastify.config.cleanupOrphanedTags
+  }
+
+  /**
+   * Get config value for persisting historical tags
+   */
+  private get persistHistoricalTags(): boolean {
+    return this.fastify.config.persistHistoricalTags
+  }
+
+  /**
+   * Get config value for tag prefix
+   */
+  private get tagPrefix(): string {
+    return this.fastify.config.tagPrefix || 'pulsarr:user'
   }
 
   /**
@@ -140,9 +177,7 @@ export class UserTagService {
     skipped: number
     instances: number
   }> {
-    const config = await this.getTaggingConfig()
-
-    if (!config.tagUsersInSonarr) {
+    if (!this.tagUsersInSonarr) {
       this.log.debug('Sonarr user tagging disabled, skipping tag creation')
       return { created: 0, skipped: 0, instances: 0 }
     }
@@ -217,9 +252,7 @@ export class UserTagService {
     skipped: number
     instances: number
   }> {
-    const config = await this.getTaggingConfig()
-
-    if (!config.tagUsersInRadarr) {
+    if (!this.tagUsersInRadarr) {
       this.log.debug('Radarr user tagging disabled, skipping tag creation')
       return { created: 0, skipped: 0, instances: 0 }
     }
@@ -301,9 +334,7 @@ export class UserTagService {
       title: string
     }>,
   ): Promise<TaggingResults> {
-    const config = await this.getTaggingConfig()
-
-    if (!config.tagUsersInSonarr) {
+    if (!this.tagUsersInSonarr) {
       this.log.debug('Sonarr user tagging disabled, skipping content tagging')
       return { tagged: 0, skipped: 0, failed: 0 }
     }
@@ -359,7 +390,8 @@ export class UserTagService {
                 }
               }
 
-              if (showUsers.size === 0) {
+              // Skip processing if no users have this in watchlist and we're not in cleanup mode
+              if (showUsers.size === 0 && this.persistHistoricalTags) {
                 results.skipped++
                 continue
               }
@@ -394,26 +426,26 @@ export class UserTagService {
                 }
               }
 
-              if (userTagIds.length === 0) {
-                results.skipped++
-                continue
-              }
-
               // Get existing tags and prepare new tag set
               const existingTags = seriesDetails.tags || []
 
-              // Filter out any existing user tags
-              const userTagLabels = new Set(
-                users.map((user) => this.getUserTagLabel(user)),
-              )
+              // If we want to preserve historical tags, we only add new ones
+              // but don't remove existing user tags
+              let newTags: number[]
 
-              const nonUserTagIds = existingTags.filter((tagId) => {
-                const tagLabel = tagIdMap.get(tagId)
-                return !tagLabel || !userTagLabels.has(tagLabel)
-              })
+              if (this.persistHistoricalTags) {
+                // Simply add any missing user tags
+                newTags = [...new Set([...existingTags, ...userTagIds])]
+              } else {
+                // Filter out any existing user tags and add current ones
+                const nonUserTagIds = existingTags.filter((tagId) => {
+                  const tagLabel = tagIdMap.get(tagId)
+                  return !tagLabel || !this.isAppUserTag(tagLabel)
+                })
 
-              // Combine non-user tags with new user tags
-              const newTags = [...new Set([...nonUserTagIds, ...userTagIds])]
+                // Combine non-user tags with new user tags
+                newTags = [...new Set([...nonUserTagIds, ...userTagIds])]
+              }
 
               // Only update if tags have changed
               if (!this.arraysEqual(existingTags, newTags)) {
@@ -467,9 +499,7 @@ export class UserTagService {
       title: string
     }>,
   ): Promise<TaggingResults> {
-    const config = await this.getTaggingConfig()
-
-    if (!config.tagUsersInRadarr) {
+    if (!this.tagUsersInRadarr) {
       this.log.debug('Radarr user tagging disabled, skipping content tagging')
       return { tagged: 0, skipped: 0, failed: 0 }
     }
@@ -525,7 +555,8 @@ export class UserTagService {
                 }
               }
 
-              if (movieUsers.size === 0) {
+              // Skip processing if no users have this in watchlist and we're not in cleanup mode
+              if (movieUsers.size === 0 && this.persistHistoricalTags) {
                 results.skipped++
                 continue
               }
@@ -560,26 +591,26 @@ export class UserTagService {
                 }
               }
 
-              if (userTagIds.length === 0) {
-                results.skipped++
-                continue
-              }
-
               // Get existing tags and prepare new tag set
               const existingTags = movieDetails.tags || []
 
-              // Filter out any existing user tags
-              const userTagLabels = new Set(
-                users.map((user) => this.getUserTagLabel(user)),
-              )
+              // If we want to preserve historical tags, we only add new ones
+              // but don't remove existing user tags
+              let newTags: number[]
 
-              const nonUserTagIds = existingTags.filter((tagId) => {
-                const tagLabel = tagIdMap.get(tagId)
-                return !tagLabel || !userTagLabels.has(tagLabel)
-              })
+              if (this.persistHistoricalTags) {
+                // Simply add any missing user tags
+                newTags = [...new Set([...existingTags, ...userTagIds])]
+              } else {
+                // Filter out any existing user tags and add current ones
+                const nonUserTagIds = existingTags.filter((tagId) => {
+                  const tagLabel = tagIdMap.get(tagId)
+                  return !tagLabel || !this.isAppUserTag(tagLabel)
+                })
 
-              // Combine non-user tags with new user tags
-              const newTags = [...new Set([...nonUserTagIds, ...userTagIds])]
+                // Combine non-user tags with new user tags
+                newTags = [...new Set([...nonUserTagIds, ...userTagIds])]
+              }
 
               // Only update if tags have changed
               if (!this.arraysEqual(existingTags, newTags)) {
@@ -626,9 +657,7 @@ export class UserTagService {
    * @returns Results of tagging operation
    */
   async syncSonarrTags(): Promise<TaggingResults> {
-    const config = await this.getTaggingConfig()
-
-    if (!config.tagUsersInSonarr) {
+    if (!this.tagUsersInSonarr) {
       this.log.debug('Sonarr user tagging disabled, skipping content tagging')
       return { tagged: 0, skipped: 0, failed: 0 }
     }
@@ -657,9 +686,7 @@ export class UserTagService {
    * @returns Results of tagging operation
    */
   async syncRadarrTags(): Promise<TaggingResults> {
-    const config = await this.getTaggingConfig()
-
-    if (!config.tagUsersInRadarr) {
+    if (!this.tagUsersInRadarr) {
       this.log.debug('Radarr user tagging disabled, skipping content tagging')
       return { tagged: 0, skipped: 0, failed: 0 }
     }
@@ -690,6 +717,7 @@ export class UserTagService {
   async syncAllTags(): Promise<{
     sonarr: TaggingResults
     radarr: TaggingResults
+    orphanedCleanup?: OrphanedTagCleanupResults
   }> {
     this.log.info('Starting complete user tag synchronization')
 
@@ -698,14 +726,271 @@ export class UserTagService {
       this.syncRadarrTags(),
     ])
 
+    // Handle orphaned tag cleanup if enabled
+    let orphanedCleanup: OrphanedTagCleanupResults | undefined = undefined
+
+    if (this.cleanupOrphanedTags) {
+      try {
+        orphanedCleanup = await this.cleanupOrphanedUserTags()
+        this.log.info('Completed orphaned user tag cleanup', orphanedCleanup)
+      } catch (cleanupError) {
+        this.log.error('Error during orphaned tag cleanup:', cleanupError)
+      }
+    }
+
     this.log.info('User tag synchronization complete', {
       sonarr: sonarrResults,
       radarr: radarrResults,
+      orphanedCleanup,
     })
 
     return {
       sonarr: sonarrResults,
       radarr: radarrResults,
+      orphanedCleanup,
+    }
+  }
+
+  /**
+   * Clean up tags for users that no longer exist in the system
+   * This removes tags for deleted users from all content
+   *
+   * @returns Results of cleanup operation
+   */
+  async cleanupOrphanedUserTags(): Promise<OrphanedTagCleanupResults> {
+    const results: OrphanedTagCleanupResults = {
+      radarr: { removed: 0, skipped: 0, failed: 0, instances: 0 },
+      sonarr: { removed: 0, skipped: 0, failed: 0, instances: 0 },
+    }
+
+    if (!this.cleanupOrphanedTags) {
+      this.log.info('Orphaned tag cleanup is disabled by configuration')
+      return results
+    }
+
+    try {
+      // Get all current users
+      const users = await this.fastify.db.getAllUsers()
+      const validUserTagLabels = new Set(
+        users.map((user) => this.getUserTagLabel(user)),
+      )
+
+      // Process Radarr instances
+      const radarrManager = this.fastify.radarrManager
+      const radarrInstances = await radarrManager.getAllInstances()
+      results.radarr.instances = radarrInstances.length
+
+      for (const instance of radarrInstances) {
+        try {
+          const radarrService = radarrManager.getRadarrService(instance.id)
+          if (!radarrService) {
+            this.log.warn(
+              `Radarr service for instance ${instance.name} not found, skipping orphaned tag cleanup`,
+            )
+            continue
+          }
+
+          // Get all tags from this instance
+          const tags = await radarrService.getTags()
+
+          // Find orphaned user tags (those with our prefix but no matching user)
+          const orphanedTags = tags.filter(
+            (tag) =>
+              this.isAppUserTag(tag.label) &&
+              !validUserTagLabels.has(tag.label.toLowerCase()),
+          )
+
+          if (orphanedTags.length === 0) {
+            this.log.info(
+              `No orphaned user tags found in Radarr instance ${instance.name}`,
+            )
+            continue
+          }
+
+          this.log.info(
+            `Found ${orphanedTags.length} orphaned user tags in Radarr instance ${instance.name}`,
+          )
+
+          // Get all movies to check for these tags
+          const movies = await radarrService.fetchMovies(true)
+          let processedCount = 0
+
+          // Process each movie to remove orphaned tags
+          for (const movie of Array.from(movies)) {
+            try {
+              // Extract Radarr ID
+              const radarrId = this.extractRadarrId(movie.guids)
+              if (radarrId === 0) {
+                results.radarr.skipped++
+                continue
+              }
+
+              // Get movie details with tags
+              const movieDetails = await radarrService.getFromRadarr<
+                RadarrItem & { tags: number[] }
+              >(`movie/${radarrId}`)
+              const existingTags = movieDetails.tags || []
+
+              // Check if this movie has any of the orphaned tags
+              const orphanedTagIds = orphanedTags.map((t) => t.id)
+              const hasOrphanedTags = existingTags.some((tagId) =>
+                orphanedTagIds.includes(tagId),
+              )
+
+              if (!hasOrphanedTags) {
+                results.radarr.skipped++
+                continue
+              }
+
+              // Filter out orphaned tags
+              const newTags = existingTags.filter(
+                (tagId) => !orphanedTagIds.includes(tagId),
+              )
+
+              // Update the movie tags
+              await radarrService.updateMovieTags(radarrId, newTags)
+              this.log.debug(
+                `Removed orphaned tags from movie "${movie.title}"`,
+              )
+              results.radarr.removed++
+
+              // Log progress periodically
+              processedCount++
+              if (processedCount % 10 === 0) {
+                this.log.info(
+                  `Processed ${processedCount}/${Array.from(movies).length} movies for orphaned tag cleanup in Radarr instance ${instance.name}`,
+                )
+              }
+            } catch (error) {
+              this.log.error(
+                `Error cleaning up orphaned tags for movie "${movie.title}":`,
+                error,
+              )
+              results.radarr.failed++
+            }
+          }
+
+          this.log.info(
+            `Completed orphaned tag cleanup for Radarr instance ${instance.name}: removed tags from ${results.radarr.removed} movies`,
+          )
+        } catch (instanceError) {
+          this.log.error(
+            `Error processing Radarr instance ${instance.name} for orphaned tag cleanup:`,
+            instanceError,
+          )
+        }
+      }
+
+      // Process Sonarr instances
+      const sonarrManager = this.fastify.sonarrManager
+      const sonarrInstances = await sonarrManager.getAllInstances()
+      results.sonarr.instances = sonarrInstances.length
+
+      for (const instance of sonarrInstances) {
+        try {
+          const sonarrService = sonarrManager.getSonarrService(instance.id)
+          if (!sonarrService) {
+            this.log.warn(
+              `Sonarr service for instance ${instance.name} not found, skipping orphaned tag cleanup`,
+            )
+            continue
+          }
+
+          // Get all tags from this instance
+          const tags = await sonarrService.getTags()
+
+          // Find orphaned user tags (those with our prefix but no matching user)
+          const orphanedTags = tags.filter(
+            (tag) =>
+              this.isAppUserTag(tag.label) &&
+              !validUserTagLabels.has(tag.label.toLowerCase()),
+          )
+
+          if (orphanedTags.length === 0) {
+            this.log.info(
+              `No orphaned user tags found in Sonarr instance ${instance.name}`,
+            )
+            continue
+          }
+
+          this.log.info(
+            `Found ${orphanedTags.length} orphaned user tags in Sonarr instance ${instance.name}`,
+          )
+
+          // Get all series to check for these tags
+          const allSeries = await sonarrService.fetchSeries(true)
+          let processedCount = 0
+
+          // Process each series to remove orphaned tags
+          for (const series of Array.from(allSeries)) {
+            try {
+              // Extract Sonarr ID
+              const sonarrId = this.extractSonarrId(series.guids)
+              if (sonarrId === 0) {
+                results.sonarr.skipped++
+                continue
+              }
+
+              // Get series details with tags
+              const seriesDetails = await sonarrService.getFromSonarr<
+                SonarrItem & { tags: number[] }
+              >(`series/${sonarrId}`)
+              const existingTags = seriesDetails.tags || []
+
+              // Check if this series has any of the orphaned tags
+              const orphanedTagIds = orphanedTags.map((t) => t.id)
+              const hasOrphanedTags = existingTags.some((tagId) =>
+                orphanedTagIds.includes(tagId),
+              )
+
+              if (!hasOrphanedTags) {
+                results.sonarr.skipped++
+                continue
+              }
+
+              // Filter out orphaned tags
+              const newTags = existingTags.filter(
+                (tagId) => !orphanedTagIds.includes(tagId),
+              )
+
+              // Update the series tags
+              await sonarrService.updateSeriesTags(sonarrId, newTags)
+              this.log.debug(
+                `Removed orphaned tags from series "${series.title}"`,
+              )
+              results.sonarr.removed++
+
+              // Log progress periodically
+              processedCount++
+              if (processedCount % 10 === 0) {
+                this.log.info(
+                  `Processed ${processedCount}/${Array.from(allSeries).length} series for orphaned tag cleanup in Sonarr instance ${instance.name}`,
+                )
+              }
+            } catch (error) {
+              this.log.error(
+                `Error cleaning up orphaned tags for series "${series.title}":`,
+                error,
+              )
+              results.sonarr.failed++
+            }
+          }
+
+          this.log.info(
+            `Completed orphaned tag cleanup for Sonarr instance ${instance.name}: removed tags from ${results.sonarr.removed} series`,
+          )
+        } catch (instanceError) {
+          this.log.error(
+            `Error processing Sonarr instance ${instance.name} for orphaned tag cleanup:`,
+            instanceError,
+          )
+        }
+      }
+
+      return results
+    } catch (error) {
+      this.log.error('Error cleaning up orphaned user tags:', error)
+      throw error
     }
   }
 
@@ -713,11 +998,20 @@ export class UserTagService {
    * Get the tag label for a user
    *
    * @param user User object containing name
-   * @returns Formatted tag label in format "user:{name}"
+   * @returns Formatted tag label in format "{prefix}:{name}"
    */
   private getUserTagLabel(user: { name: string }): string {
-    // Always use name (username)
-    return `user:${user.name.trim().toLowerCase()}`
+    return `${this.tagPrefix}:${user.name.trim().toLowerCase()}`
+  }
+
+  /**
+   * Check if a tag belongs to our application's user tagging system
+   *
+   * @param tagLabel The tag label to check
+   * @returns True if this is an application user tag
+   */
+  private isAppUserTag(tagLabel: string): boolean {
+    return tagLabel.toLowerCase().startsWith(`${this.tagPrefix}:`)
   }
 
   /**
