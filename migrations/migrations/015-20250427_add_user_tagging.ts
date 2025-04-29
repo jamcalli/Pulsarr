@@ -1,11 +1,9 @@
 import type { Knex } from 'knex'
 
 /**
- * Adds support for user tagging in Sonarr and Radarr.
- * 
- * This migration adds configuration options for user tagging:
- * - `tagUsersInSonarr` - Enable user tagging in Sonarr
- * - `tagUsersInRadarr` - Enable user tagging in Radarr
+ * Adds `tagUsersInSonarr` and `tagUsersInRadarr` boolean columns to the `configs` table to support user tagging configuration for Sonarr and Radarr.
+ *
+ * Both columns are added with a default value of `false`, and any existing rows with `NULL` values for these columns are updated to `false`.
  */
 export async function up(knex: Knex): Promise<void> {
   await knex.schema.alterTable('configs', (table) => {
@@ -26,7 +24,9 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Removes user tagging configuration options.
+ * Drops the user tagging configuration columns from the `configs` table.
+ *
+ * Removes the `tagUsersInSonarr` and `tagUsersInRadarr` columns to reverse the migration.
  */
 export async function down(knex: Knex): Promise<void> {
   await knex.schema.alterTable('configs', (table) => {

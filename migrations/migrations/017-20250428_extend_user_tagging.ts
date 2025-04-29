@@ -1,12 +1,9 @@
 import type { Knex } from 'knex'
 
 /**
- * Extends user tagging configuration with additional options.
- * 
- * This migration adds configuration options for user tagging:
- * - `cleanupOrphanedTags` - Remove tags for deleted users (default: true)
- * - `persistHistoricalTags` - Keep tags when items are removed from watchlists (default: false)
- * - `tagPrefix` - Prefix for user tags (default: 'pulsarr:user')
+ * Adds new user tagging configuration columns to the `configs` table.
+ *
+ * This migration introduces `cleanupOrphanedTags`, `persistHistoricalTags`, and `tagPrefix` columns with their respective default values, and updates existing rows where these columns are null.
  */
 export async function up(knex: Knex): Promise<void> {
   await knex.schema.alterTable('configs', (table) => {
@@ -31,7 +28,7 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Removes extended user tagging configuration options.
+ * Reverts the user tagging configuration extension by dropping related columns from the `configs` table.
  */
 export async function down(knex: Knex): Promise<void> {
   await knex.schema.alterTable('configs', (table) => {
