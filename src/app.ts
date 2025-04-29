@@ -111,6 +111,7 @@ export default async function serviceApp(
     root: resolve(import.meta.dirname, '../'),
     dev: process.argv.includes('--dev'),
     spa: true,
+    distDir: 'dist/client',
   })
 
   fastify.get('/', async (request, reply) => {
