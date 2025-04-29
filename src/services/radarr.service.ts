@@ -856,8 +856,7 @@ export class RadarrService {
         `movie/${movieId}`,
       )
 
-      // Update only the tags
-      movie.tags = tagIds
+      movie.tags = [...new Set(tagIds)]
 
       // Send the update
       await this.putToRadarr(`movie/${movieId}`, movie)
@@ -891,6 +890,12 @@ export class RadarrService {
 
     if (!response.ok) {
       throw new Error(`Radarr API error: ${response.statusText}`)
+    }
+
+    // Some endpoints return 204 No Content
+    if (response.status === 204) {
+      // @ts-expect-error -- caller expects void
+      return undefined
     }
 
     return response.json() as Promise<T>
