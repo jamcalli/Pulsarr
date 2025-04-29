@@ -837,9 +837,24 @@ export class RadarrService {
    * @returns Promise resolving to the created tag
    */
   async createTag(label: string): Promise<{ id: number; label: string }> {
-    return await this.postToRadarr<{ id: number; label: string }>('tag', {
-      label,
-    })
+    try {
+      return await this.postToRadarr<{ id: number; label: string }>('tag', {
+        label,
+      })
+    } catch (err) {
+      if (
+        err instanceof Error &&
+        /409/.test(err.message) // Radarr returns 409 Conflict if the tag exists
+      ) {
+        this.log.debug(
+          `Tag "${label}" already exists in Radarr – skipping creation`,
+        )
+        // Fetch the existing tag so we can return its id
+        const existing = (await this.getTags()).find((t) => t.label === label)
+        if (existing) return existing
+      }
+      throw err
+    }
   }
 
   /**
@@ -873,9 +888,12 @@ export class RadarrService {
    *
    * @param endpoint API endpoint
    * @param payload The data to send
-   * @returns Promise resolving to the response
+   * @returns Promise resolving to the response or void for 204 responses
    */
-  async putToRadarr<T>(endpoint: string, payload: unknown): Promise<T> {
+  async putToRadarr<T>(
+    endpoint: string,
+    payload: unknown,
+  ): Promise<T | undefined> {
     const config = this.radarrConfig
     const url = new URL(`${config.radarrBaseUrl}/api/v3/${endpoint}`)
     const response = await fetch(url.toString(), {
@@ -894,7 +912,6 @@ export class RadarrService {
 
     // Some endpoints return 204 No Content
     if (response.status === 204) {
-      // @ts-expect-error -- caller expects void
       return undefined
     }
 

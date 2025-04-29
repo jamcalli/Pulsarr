@@ -88,10 +88,28 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           }
         }
 
-        // Update the database config
+        // First update the runtime config - if this fails, we won't update the DB
+        try {
+          await fastify.updateConfig(configUpdate)
+        } catch (configUpdateError) {
+          fastify.log.error('Error updating runtime config:', configUpdateError)
+          throw reply.badRequest('Failed to update runtime configuration')
+        }
+
+        // Now update the database since runtime config was successful
         const dbUpdated = await fastify.db.updateConfig(1, configUpdate)
         if (!dbUpdated) {
-          throw reply.badRequest('Failed to update configuration')
+          // Attempt to revert runtime config since DB update failed
+          try {
+            // Get the original config to revert to
+            const originalConfig = await fastify.db.getConfig(1)
+            if (originalConfig) {
+              await fastify.updateConfig(originalConfig)
+            }
+          } catch (revertError) {
+            fastify.log.error('Failed to revert runtime config:', revertError)
+          }
+          throw reply.badRequest('Failed to update configuration in database')
         }
 
         // Get the updated config
@@ -99,9 +117,6 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         if (!savedConfig) {
           throw reply.notFound('No configuration found after update')
         }
-
-        // Update the runtime config
-        await fastify.updateConfig(configUpdate)
 
         // Return the updated config
         return {
@@ -143,19 +158,78 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const [sonarrResults, radarrResults] = await Promise.all([
-          fastify.userTags.createSonarrUserTags(),
-          fastify.userTags.createRadarrUserTags(),
+        // Check config first to avoid unnecessary API calls if tagging is disabled
+        const config = await fastify.db.getConfig(1)
+        if (!config) {
+          throw reply.notFound('Config not found in database')
+        }
+
+        // Prepare default results for disabled services
+        const sonarrResults = {
+          created: 0,
+          skipped: 0,
+          failed: 0,
+          instances: 0,
+        }
+
+        const radarrResults = {
+          created: 0,
+          skipped: 0,
+          failed: 0,
+          instances: 0,
+        }
+
+        // Only make API calls if the respective tagging feature is enabled
+        const sonarrPromise = config.tagUsersInSonarr
+          ? fastify.userTags.createSonarrUserTags()
+          : Promise.resolve({
+              created: 0,
+              skipped: 0,
+              failed: 0,
+              instances: 0,
+              message: 'Sonarr user tagging is disabled in configuration',
+            })
+
+        const radarrPromise = config.tagUsersInRadarr
+          ? fastify.userTags.createRadarrUserTags()
+          : Promise.resolve({
+              created: 0,
+              skipped: 0,
+              failed: 0,
+              instances: 0,
+              message: 'Radarr user tagging is disabled in configuration',
+            })
+
+        // Execute the enabled operations
+        const [sonarrTagResults, radarrTagResults] = await Promise.all([
+          sonarrPromise,
+          radarrPromise,
         ])
 
+        // Merge results
+        Object.assign(sonarrResults, sonarrTagResults)
+        Object.assign(radarrResults, radarrTagResults)
+
+        // If both services are disabled, adjust the success message
         const totalCreated = sonarrResults.created + radarrResults.created
         const totalSkipped = sonarrResults.skipped + radarrResults.skipped
         const totalInstances = sonarrResults.instances + radarrResults.instances
 
+        let message: string
+        if (!config.tagUsersInSonarr && !config.tagUsersInRadarr) {
+          message =
+            'Tag creation skipped: user tagging is disabled in configuration'
+        } else if (totalCreated === 0 && totalSkipped === 0) {
+          message =
+            'No tags were created or found (check if instances are configured)'
+        } else {
+          message = `Created ${totalCreated} user tags across ${totalInstances} instances (${sonarrResults.created + sonarrResults.skipped} Sonarr, ${radarrResults.created + radarrResults.skipped} Radarr tags)`
+        }
+
         return {
           success: true,
-          message: `Created ${totalCreated} user tags across ${totalInstances} instances (${sonarrResults.created + sonarrResults.skipped} Sonarr, ${radarrResults.created + radarrResults.skipped} Radarr tags)`,
-          mode: 'create', // Add the discriminant
+          message,
+          mode: 'create',
           sonarr: {
             created: sonarrResults.created,
             skipped: sonarrResults.skipped,
@@ -192,6 +266,47 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     },
     async (request, reply) => {
       try {
+        // Check config first to see if tagging is enabled at all
+        const config = await fastify.db.getConfig(1)
+        if (!config) {
+          throw reply.notFound('Config not found in database')
+        }
+
+        // If both Sonarr and Radarr tagging are disabled, return early
+        if (!config.tagUsersInSonarr && !config.tagUsersInRadarr) {
+          return {
+            success: false,
+            message:
+              'Tag synchronization skipped: user tagging is disabled in configuration',
+            mode: 'sync',
+            sonarr: {
+              tagged: 0,
+              skipped: 0,
+              failed: 0,
+            },
+            radarr: {
+              tagged: 0,
+              skipped: 0,
+              failed: 0,
+            },
+            orphanedCleanup: {
+              sonarr: {
+                skipped: 0,
+                failed: 0,
+                instances: 0,
+                removed: 0,
+              },
+              radarr: {
+                skipped: 0,
+                failed: 0,
+                instances: 0,
+                removed: 0,
+              },
+            },
+          }
+        }
+
+        // Proceed with sync operation
         const results = await fastify.userTags.syncAllTags()
 
         // Calculate totals
@@ -199,10 +314,18 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const totalSkipped = results.sonarr.skipped + results.radarr.skipped
         const totalFailed = results.sonarr.failed + results.radarr.failed
 
+        let message: string
+        if (totalTagged === 0 && totalSkipped === 0 && totalFailed === 0) {
+          message =
+            'No content found to tag (check if media is added to instances)'
+        } else {
+          message = `Synchronized tags for ${totalTagged} items (${results.sonarr.tagged} Sonarr, ${results.radarr.tagged} Radarr)`
+        }
+
         return {
           success: true,
-          message: `Synchronized tags for ${totalTagged} items (${results.sonarr.tagged} Sonarr, ${results.radarr.tagged} Radarr)`,
-          mode: 'sync', // Add the discriminant
+          message,
+          mode: 'sync',
           sonarr: {
             tagged: results.sonarr.tagged,
             skipped: results.sonarr.skipped,
@@ -240,7 +363,12 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       try {
         // Check if cleanup is enabled
         const config = await fastify.db.getConfig(1)
-        if (!config || !config.cleanupOrphanedTags) {
+        if (!config) {
+          throw reply.notFound('Config not found in database')
+        }
+
+        // If cleanup is disabled, return early with appropriate message
+        if (!config.cleanupOrphanedTags) {
           return {
             success: false,
             message: 'Tag cleanup is disabled in configuration',
@@ -259,14 +387,22 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           }
         }
 
+        // Proceed with cleanup operation
         const results = await fastify.userTags.cleanupOrphanedUserTags()
         const totalRemoved = results.radarr.removed + results.sonarr.removed
         const totalInstances =
           results.radarr.instances + results.sonarr.instances
 
+        let message: string
+        if (totalRemoved === 0) {
+          message = 'No orphaned tags found to clean up'
+        } else {
+          message = `Cleaned up ${totalRemoved} orphaned tags across ${totalInstances} instances`
+        }
+
         return {
           success: true,
-          message: `Cleaned up ${totalRemoved} orphaned tags across ${totalInstances} instances`,
+          message,
           radarr: results.radarr,
           sonarr: results.sonarr,
         }

@@ -799,9 +799,24 @@ export class SonarrService {
    * @returns Promise resolving to the created tag
    */
   async createTag(label: string): Promise<{ id: number; label: string }> {
-    return await this.postToSonarr<{ id: number; label: string }>('tag', {
-      label,
-    })
+    try {
+      return await this.postToSonarr<{ id: number; label: string }>('tag', {
+        label,
+      })
+    } catch (err) {
+      if (
+        err instanceof Error &&
+        /409/.test(err.message) // Sonarr returns 409 Conflict if the tag exists
+      ) {
+        this.log.debug(
+          `Tag "${label}" already exists in Sonarr – skipping creation`,
+        )
+        // Fetch the existing tag so we can return its id
+        const existing = (await this.getTags()).find((t) => t.label === label)
+        if (existing) return existing
+      }
+      throw err
+    }
   }
 
   /**
@@ -835,9 +850,12 @@ export class SonarrService {
    *
    * @param endpoint API endpoint
    * @param payload The data to send
-   * @returns Promise resolving to the response
+   * @returns Promise resolving to the response or void for 204 responses
    */
-  async putToSonarr<T>(endpoint: string, payload: unknown): Promise<T> {
+  async putToSonarr<T>(
+    endpoint: string,
+    payload: unknown,
+  ): Promise<T | undefined> {
     const config = this.sonarrConfig
     const url = new URL(`${config.sonarrBaseUrl}/api/v3/${endpoint}`)
     const response = await fetch(url.toString(), {
@@ -856,7 +874,6 @@ export class SonarrService {
 
     // Some endpoints return 204 No Content
     if (response.status === 204) {
-      // @ts-expect-error -- caller expects void
       return undefined
     }
 
