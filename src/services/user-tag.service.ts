@@ -1,5 +1,5 @@
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import { parseGuids, hasMatchingGuids } from '@utils/guid-handler.js'
+import { hasMatchingGuids } from '@utils/guid-handler.js'
 import type { SonarrItem } from '@root/types/sonarr.types.js'
 import type { RadarrItem } from '@root/types/radarr.types.js'
 
@@ -106,7 +106,7 @@ export class UserTagService {
    *
    * @param service - The Sonarr/Radarr service with getTags and createTag methods
    * @param users - Array of users
-   * @returns Maps of tag labels to IDs and IDs to labels
+   * @returns Maps of tag labels to IDs and IDs to labels, plus count of failed creations
    */
   private async ensureUserTags(
     service: MediaService,
@@ -114,6 +114,7 @@ export class UserTagService {
   ): Promise<{
     tagLabelMap: Map<string, number>
     tagIdMap: Map<number, string>
+    failedCount: number
   }> {
     // Get ALL existing tags first
     const existingTags = await service.getTags()
@@ -121,6 +122,7 @@ export class UserTagService {
     // Create maps for labels and IDs
     const tagLabelMap = new Map<string, number>()
     const tagIdMap = new Map<number, string>()
+    let failedCount = 0
 
     for (const tag of existingTags) {
       tagLabelMap.set(tag.label.toLowerCase(), tag.id)
@@ -161,10 +163,11 @@ export class UserTagService {
           `Failed to create tag "${tagInfo.label}" for user ${tagInfo.user.name}:`,
           error,
         )
+        failedCount++
       }
     }
 
-    return { tagLabelMap, tagIdMap }
+    return { tagLabelMap, tagIdMap, failedCount }
   }
 
   /**
@@ -175,14 +178,15 @@ export class UserTagService {
   async createSonarrUserTags(): Promise<{
     created: number
     skipped: number
+    failed: number
     instances: number
   }> {
     if (!this.tagUsersInSonarr) {
       this.log.debug('Sonarr user tagging disabled, skipping tag creation')
-      return { created: 0, skipped: 0, instances: 0 }
+      return { created: 0, skipped: 0, failed: 0, instances: 0 }
     }
 
-    const results = { created: 0, skipped: 0, instances: 0 }
+    const results = { created: 0, skipped: 0, failed: 0, instances: 0 }
 
     try {
       // Get all users
@@ -206,7 +210,7 @@ export class UserTagService {
           }
 
           // Use ensureUserTags to get/create all necessary tags
-          const { tagLabelMap } = await this.ensureUserTags(
+          const { tagLabelMap, failedCount } = await this.ensureUserTags(
             sonarrService,
             users,
           )
@@ -220,12 +224,14 @@ export class UserTagService {
             }
           }
           results.skipped += skippedCount
+          results.failed += failedCount
 
-          // Count new tags that were created
-          results.created += users.length - skippedCount
+          // Count only successfully created tags (handling failed creations correctly)
+          const createdNow = users.length - skippedCount - failedCount
+          results.created += Math.max(createdNow, 0)
 
           this.log.info(
-            `Processed user tags for Sonarr instance ${instance.name}: created: ${users.length - skippedCount}, skipped: ${skippedCount}`,
+            `Processed user tags for Sonarr instance ${instance.name}: created: ${createdNow}, skipped: ${skippedCount}, failed: ${failedCount}`,
           )
         } catch (instanceError) {
           this.log.error(
@@ -250,14 +256,15 @@ export class UserTagService {
   async createRadarrUserTags(): Promise<{
     created: number
     skipped: number
+    failed: number
     instances: number
   }> {
     if (!this.tagUsersInRadarr) {
       this.log.debug('Radarr user tagging disabled, skipping tag creation')
-      return { created: 0, skipped: 0, instances: 0 }
+      return { created: 0, skipped: 0, failed: 0, instances: 0 }
     }
 
-    const results = { created: 0, skipped: 0, instances: 0 }
+    const results = { created: 0, skipped: 0, failed: 0, instances: 0 }
 
     try {
       // Get all users
@@ -281,7 +288,7 @@ export class UserTagService {
           }
 
           // Use ensureUserTags to get/create all necessary tags
-          const { tagLabelMap } = await this.ensureUserTags(
+          const { tagLabelMap, failedCount } = await this.ensureUserTags(
             radarrService,
             users,
           )
@@ -295,12 +302,14 @@ export class UserTagService {
             }
           }
           results.skipped += skippedCount
+          results.failed += failedCount
 
-          // Count new tags that were created
-          results.created += users.length - skippedCount
+          // Count only successfully created tags (handling failed creations correctly)
+          const createdNow = users.length - skippedCount - failedCount
+          results.created += Math.max(createdNow, 0)
 
           this.log.info(
-            `Processed user tags for Radarr instance ${instance.name}: created: ${users.length - skippedCount}, skipped: ${skippedCount}`,
+            `Processed user tags for Radarr instance ${instance.name}: created: ${createdNow}, skipped: ${skippedCount}, failed: ${failedCount}`,
           )
         } catch (instanceError) {
           this.log.error(
