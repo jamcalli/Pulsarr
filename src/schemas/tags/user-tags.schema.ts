@@ -1,24 +1,25 @@
 import { z } from 'zod'
 
-/**
- * Schema for configuration settings
- */
-export const TaggingConfigSchema = z
-  .object({
-    tagUsersInSonarr: z.boolean().optional(),
-    tagUsersInRadarr: z.boolean().optional(),
-    cleanupOrphanedTags: z.boolean().optional(),
-    persistHistoricalTags: z.boolean().optional(),
-    tagPrefix: z.string().optional(),
-  })
-  .partial()
+// Configuration schema for user tagging
+export const TaggingConfigSchema = z.object({
+  tagUsersInSonarr: z.boolean(),
+  tagUsersInRadarr: z.boolean(),
+  cleanupOrphanedTags: z.boolean(),
+  persistHistoricalTags: z.boolean(),
+  tagPrefix: z.string(),
+})
 
-/**
- * Schema for response with tagging configuration
- */
+// Generic error schema
+export const ErrorSchema = z.object({
+  statusCode: z.number(),
+  error: z.string(),
+  message: z.string(),
+})
+
+// Status response schema
 export const TaggingStatusResponseSchema = z.object({
   success: z.boolean(),
-  message: z.string().optional(),
+  message: z.string(),
   config: z.object({
     tagUsersInSonarr: z.boolean(),
     tagUsersInRadarr: z.boolean(),
@@ -28,85 +29,73 @@ export const TaggingStatusResponseSchema = z.object({
   }),
 })
 
-/**
- * Schema for cleanup results for a single instance type
- */
-export const CleanupResultSchema = z.object({
-  removed: z.number(),
+// Base response schema with common fields
+const BaseResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+})
+
+// Create operation schemas with discriminant
+const CreateOperationResultSchema = z.object({
+  created: z.number(),
   skipped: z.number(),
   failed: z.number(),
   instances: z.number(),
 })
 
-/**
- * Schema for orphaned tag cleanup results
- */
-export const OrphanedCleanupResultSchema = z.object({
-  radarr: CleanupResultSchema,
-  sonarr: CleanupResultSchema,
+export const CreateTaggingResponseSchema = BaseResponseSchema.extend({
+  mode: z.literal('create'),
+  sonarr: CreateOperationResultSchema,
+  radarr: CreateOperationResultSchema,
 })
 
-/**
- * Schema for tagging operation response
- */
-export const TaggingOperationResponseSchema = z.object({
-  success: z.boolean(),
-  message: z.string(),
-  sonarr: z.union([
-    // For tag creation
-    z.object({
-      created: z.number(),
-      skipped: z.number(),
-      instances: z.number(),
-    }),
-    // For tag sync
-    z.object({
-      tagged: z.number(),
-      skipped: z.number(),
-      failed: z.number(),
-    }),
-  ]),
-  radarr: z.union([
-    // For tag creation
-    z.object({
-      created: z.number(),
-      skipped: z.number(),
-      instances: z.number(),
-    }),
-    // For tag sync
-    z.object({
-      tagged: z.number(),
-      skipped: z.number(),
-      failed: z.number(),
-    }),
-  ]),
-  orphanedCleanup: OrphanedCleanupResultSchema.optional(),
+// Sync operation schemas with discriminant
+const SyncOperationResultSchema = z.object({
+  tagged: z.number(),
+  skipped: z.number(),
+  failed: z.number(),
 })
 
-/**
- * Schema for cleanup response
- */
-export const CleanupResponseSchema = z.object({
-  success: z.boolean(),
-  message: z.string(),
-  radarr: CleanupResultSchema,
-  sonarr: CleanupResultSchema,
+export const SyncTaggingResponseSchema = BaseResponseSchema.extend({
+  mode: z.literal('sync'),
+  sonarr: SyncOperationResultSchema,
+  radarr: SyncOperationResultSchema,
+  orphanedCleanup: z
+    .object({
+      radarr: z.object({
+        removed: z.number(),
+        skipped: z.number(),
+        failed: z.number(),
+        instances: z.number(),
+      }),
+      sonarr: z.object({
+        removed: z.number(),
+        skipped: z.number(),
+        failed: z.number(),
+        instances: z.number(),
+      }),
+    })
+    .optional(),
 })
 
-/**
- * Schema for error responses
- */
-export const ErrorSchema = z.object({
-  message: z.string(),
-})
+// Union of the two operation types with proper discrimination
+export const TaggingOperationResponseSchema = z.discriminatedUnion('mode', [
+  CreateTaggingResponseSchema,
+  SyncTaggingResponseSchema,
+])
 
-// Export the types
-export type TaggingConfig = z.infer<typeof TaggingConfigSchema>
-export type TaggingStatusResponse = z.infer<typeof TaggingStatusResponseSchema>
-export type CleanupResult = z.infer<typeof CleanupResultSchema>
-export type OrphanedCleanupResult = z.infer<typeof OrphanedCleanupResultSchema>
-export type TaggingOperationResponse = z.infer<
-  typeof TaggingOperationResponseSchema
->
-export type CleanupResponse = z.infer<typeof CleanupResponseSchema>
-export type Error = z.infer<typeof ErrorSchema>
+// Cleanup response schema
+export const CleanupResponseSchema = BaseResponseSchema.extend({
+  radarr: z.object({
+    removed: z.number(),
+    skipped: z.number(),
+    failed: z.number(),
+    instances: z.number(),
+  }),
+  sonarr: z.object({
+    removed: z.number(),
+    skipped: z.number(),
+    failed: z.number(),
+    instances: z.number(),
+  }),
+})
