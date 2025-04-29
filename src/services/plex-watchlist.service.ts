@@ -779,7 +779,7 @@ export class PlexWatchlistService {
       key: item.id,
       type: templateItem.type,
       thumb: templateItem.thumb,
-      guids: parseGuids(templateItem.guids), // Use parseGuids instead of directly assigning
+      guids: parseGuids(templateItem.guids),
       genres: templateItem.genres || [],
       status: 'pending' as const,
       created_at: new Date().toISOString(),
@@ -840,7 +840,7 @@ export class PlexWatchlistService {
         key: item.key,
         thumb: item.thumb,
         type: item.type,
-        guids: parseGuids(item.guids), // Use parseGuids instead of item.guids || []
+        guids: parseGuids(item.guids),
         genres: item.genres || [],
         status: 'pending' as const,
         created_at: new Date().toISOString(),
@@ -997,7 +997,7 @@ export class PlexWatchlistService {
       title: item.title,
       type: item.type,
       thumb: item.thumb || undefined,
-      guids: parseGuids(item.guids), // Use parseGuids instead of array handling logic
+      guids: parseGuids(item.guids),
       genres: Array.isArray(item.genres)
         ? item.genres
         : item.genres
@@ -1076,7 +1076,7 @@ export class PlexWatchlistService {
       plexKey: item.key,
       type: item.type,
       thumb: item.thumb || '',
-      guids: parseGuids(item.guids), // Use parseGuids instead of array handling logic
+      guids: parseGuids(item.guids),
       genres: this.safeParseArray<string>(item.genres),
       status: 'pending' as const,
     }))
