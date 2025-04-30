@@ -47,7 +47,7 @@ export class StatusService {
       updateCount += junctionUpdates
 
       // Apply user tags if the service is available and enabled
-      if (this.fastify.userTags) {
+      if (this.fastify.userTags && this.fastify.config.tagUsersInSonarr) {
         try {
           // Create user tags first
           await this.fastify.userTags.createSonarrUserTags()
@@ -98,7 +98,7 @@ export class StatusService {
       updateCount += junctionUpdates
 
       // Apply user tags if the service is available and enabled
-      if (this.fastify.userTags) {
+      if (this.fastify.userTags && this.fastify.config.tagUsersInRadarr) {
         try {
           // Create user tags first
           await this.fastify.userTags.createRadarrUserTags()
