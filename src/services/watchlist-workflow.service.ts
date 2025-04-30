@@ -112,7 +112,6 @@ export class WatchlistWorkflowService {
     return this.fastify.plexWatchlist
   }
 
-  // Add this getter in WatchlistWorkflowService class
   /**
    * Access to content router service
    */
@@ -179,34 +178,85 @@ export class WatchlistWorkflowService {
       this.status = 'starting'
       this.isRunning = false
 
+      this.log.debug('Starting watchlist workflow initialization')
+
       // Clean up any existing manual sync jobs from previous runs
-      await this.cleanupExistingManualSync()
+      try {
+        this.log.debug('Cleaning up existing manual sync jobs')
+        await this.cleanupExistingManualSync()
+      } catch (cleanupError) {
+        this.log.warn(
+          'Error during cleanup of existing manual sync jobs (non-fatal)',
+          { error: cleanupError },
+        )
+        // Continue despite this error
+      }
 
       // Verify Plex connectivity
-      await this.plexService.pingPlex()
-      this.log.info('Plex connection verified')
+      try {
+        this.log.debug('Verifying Plex connectivity')
+        await this.plexService.pingPlex()
+        this.log.info('Plex connection verified')
+      } catch (plexError) {
+        this.log.error('Failed to verify Plex connectivity', {
+          error: plexError,
+        })
+        throw new Error('Failed to verify Plex connectivity', {
+          cause: plexError,
+        })
+      }
 
       // Try to generate RSS feeds first
-      const rssFeeds = await this.plexService.generateAndSaveRssFeeds()
+      try {
+        this.log.debug('Generating RSS feeds')
+        const rssFeeds = await this.plexService.generateAndSaveRssFeeds()
 
-      if ('error' in rssFeeds) {
-        this.log.warn(
-          'Failed to generate RSS feeds, falling back to manual sync',
-        )
-        await this.setupManualSyncFallback()
-        this.isUsingRssFallback = true
-      } else {
-        // Initialize RSS monitoring if feeds were generated successfully
-        await this.initializeRssSnapshots()
-        this.startRssCheck()
-        this.isUsingRssFallback = false
+        if ('error' in rssFeeds) {
+          this.log.warn(
+            'Failed to generate RSS feeds, falling back to manual sync',
+            { error: rssFeeds.error },
+          )
+          await this.setupManualSyncFallback()
+          this.isUsingRssFallback = true
+        } else {
+          // Initialize RSS monitoring if feeds were generated successfully
+          this.log.debug(
+            'RSS feeds generated successfully, initializing monitoring',
+          )
+          await this.initializeRssSnapshots()
+          this.startRssCheck()
+          this.isUsingRssFallback = false
+        }
+      } catch (rssError) {
+        this.log.error('Error generating or initializing RSS feeds', {
+          error: rssError,
+        })
+        throw new Error('Failed to generate or initialize RSS feeds', {
+          cause: rssError,
+        })
       }
 
       // Initial sync regardless of method
-      await this.fetchWatchlists()
-      await this.syncWatchlistItems()
+      try {
+        this.log.debug('Starting initial watchlist fetch')
+        await this.fetchWatchlists()
+
+        this.log.debug('Starting initial watchlist item sync')
+        await this.syncWatchlistItems()
+      } catch (syncError) {
+        this.log.error('Error during initial watchlist synchronization', {
+          error: syncError,
+          errorMessage:
+            syncError instanceof Error ? syncError.message : String(syncError),
+          errorStack: syncError instanceof Error ? syncError.stack : undefined,
+        })
+        throw new Error('Failed during initial watchlist synchronization', {
+          cause: syncError,
+        })
+      }
 
       // Start queue processor
+      this.log.debug('Starting queue processor')
       this.startQueueProcessor()
 
       // Update status to running after everything is initialized
@@ -222,7 +272,20 @@ export class WatchlistWorkflowService {
       this.status = 'stopped'
       this.isRunning = false
 
-      this.log.error('Error in Watchlist workflow:', error)
+      // Enhanced error logging
+      this.log.error('Error in Watchlist workflow:', {
+        error,
+        errorDetails:
+          error instanceof Error
+            ? {
+                message: error.message,
+                name: error.name,
+                stack: error.stack,
+                cause: error.cause,
+              }
+            : undefined,
+      })
+
       throw error
     }
   }
@@ -282,21 +345,59 @@ export class WatchlistWorkflowService {
     this.log.info('Refreshing watchlists')
 
     try {
-      // Fetch both self and friends watchlists in parallel
-      await Promise.all([
-        this.plexService.getSelfWatchlist(),
-        this.plexService.getOthersWatchlists(),
-      ])
+      // Fetch self watchlist with better error handling
+      try {
+        this.log.debug('Fetching self watchlist')
+        await this.plexService.getSelfWatchlist()
+      } catch (selfError) {
+        this.log.error('Error refreshing self watchlist:', {
+          error: selfError,
+          errorMessage:
+            selfError instanceof Error ? selfError.message : String(selfError),
+          errorStack: selfError instanceof Error ? selfError.stack : undefined,
+        })
+        throw new Error('Failed to refresh self watchlist', {
+          cause: selfError,
+        })
+      }
+
+      // Fetch friends watchlists with better error handling
+      try {
+        this.log.debug('Fetching friends watchlists')
+        await this.plexService.getOthersWatchlists()
+      } catch (friendsError) {
+        this.log.error('Error refreshing friends watchlists:', {
+          error: friendsError,
+          errorMessage:
+            friendsError instanceof Error
+              ? friendsError.message
+              : String(friendsError),
+          errorStack:
+            friendsError instanceof Error ? friendsError.stack : undefined,
+        })
+        throw new Error('Failed to refresh friends watchlists', {
+          cause: friendsError,
+        })
+      }
 
       this.log.info('Watchlists refreshed successfully')
 
       // Sync statuses with Sonarr/Radarr
-      const { shows, movies } = await this.showStatusService.syncAllStatuses()
-      this.log.info(
-        `Updated ${shows} show statuses and ${movies} movie statuses after watchlist refresh`,
-      )
+      try {
+        const { shows, movies } = await this.showStatusService.syncAllStatuses()
+        this.log.info(
+          `Updated ${shows} show statuses and ${movies} movie statuses after watchlist refresh`,
+        )
+      } catch (error) {
+        this.log.warn('Error syncing statuses (non-fatal):', error)
+        // Continue despite this error
+      }
     } catch (error) {
-      this.log.error('Error refreshing watchlists:', error)
+      this.log.error('Error refreshing watchlists:', {
+        error,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorStack: error instanceof Error ? error.stack : undefined,
+      })
       throw error
     }
   }
@@ -755,12 +856,13 @@ export class WatchlistWorkflowService {
 
       return true
     } catch (error) {
-      this.log.error(`Error processing movie ${item.title}:`, error)
-      this.log.debug('Failed item details:', {
-        title: item.title,
-        guids: item.guids,
-        type: item.type,
-        error: error instanceof Error ? error.message : error,
+      this.log.error(`Error processing movie ${item.title}:`, {
+        error,
+        details: {
+          title: item.title,
+          guids: item.guids,
+          type: item.type,
+        },
       })
       throw error
     }
@@ -820,12 +922,13 @@ export class WatchlistWorkflowService {
 
       return true
     } catch (error) {
-      this.log.error(`Error processing show ${item.title} in Sonarr:`, error)
-      this.log.debug('Failed item details:', {
-        title: item.title,
-        guids: item.guids,
-        type: item.type,
-        error: error instanceof Error ? error.message : error,
+      this.log.error(`Error processing show ${item.title} in Sonarr:`, {
+        error,
+        details: {
+          title: item.title,
+          guids: item.guids,
+          type: item.type,
+        },
       })
       throw error
     }
@@ -1067,7 +1170,11 @@ export class WatchlistWorkflowService {
         )
       }
     } catch (error) {
-      this.log.error('Error during watchlist sync:', error)
+      this.log.error('Error during watchlist sync:', {
+        error,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorStack: error instanceof Error ? error.stack : undefined,
+      })
       throw error
     }
   }
@@ -1123,10 +1230,11 @@ export class WatchlistWorkflowService {
         } catch (error) {
           this.status = 'stopped'
           this.isRunning = false
-          this.log.error('Error in Watchlist workflow:', {
-            message: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined,
-            details: error,
+          this.log.error('Error in queue processing:', {
+            error,
+            errorMessage:
+              error instanceof Error ? error.message : String(error),
+            errorStack: error instanceof Error ? error.stack : undefined,
           })
           throw error
         } finally {
@@ -1229,7 +1337,11 @@ export class WatchlistWorkflowService {
             await this.syncWatchlistItems()
             this.log.info('Manual watchlist reconciliation completed')
           } catch (error) {
-            this.log.error('Error in manual watchlist reconciliation:', error)
+            this.log.error('Error in manual watchlist reconciliation:', {
+              error,
+              errorMessage:
+                error instanceof Error ? error.message : String(error),
+            })
           }
         },
       )
@@ -1244,7 +1356,11 @@ export class WatchlistWorkflowService {
 
       this.log.info('Manual sync reconciliation scheduled for every 20 minutes')
     } catch (error) {
-      this.log.error('Error setting up manual sync fallback:', error)
+      this.log.error('Error setting up manual sync fallback:', {
+        error,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorStack: error instanceof Error ? error.stack : undefined,
+      })
       throw error
     }
   }
@@ -1264,7 +1380,11 @@ export class WatchlistWorkflowService {
         this.log.info('Successfully cleaned up existing manual sync job')
       }
     } catch (error) {
-      this.log.error('Error cleaning up existing manual sync job:', error)
+      this.log.error('Error cleaning up existing manual sync job:', {
+        error,
+        errorMessage: error instanceof Error ? error.message : String(error),
+      })
+      throw error
     }
   }
 }
