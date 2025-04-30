@@ -33,7 +33,6 @@ import {
   isCreateTagResponse,
   isSyncTagResponse,
   isCleanupTagResponse,
-  isRemoveTagsResponse,
 } from '@/features/utilities/hooks/useUserTags'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { Progress } from '@/components/ui/progress'
@@ -333,7 +332,7 @@ export function UserTagsForm() {
                                 value={sonarrTaggingProgress.progress}
                               />
                               {sonarrTaggingProgress.message && (
-                                <p className="text-xs text-muted-foreground mt-1">
+                                <p className="text-xs text-text mt-1">
                                   {sonarrTaggingProgress.message}
                                 </p>
                               )}
@@ -355,7 +354,7 @@ export function UserTagsForm() {
                                 value={radarrTaggingProgress.progress}
                               />
                               {radarrTaggingProgress.message && (
-                                <p className="text-xs text-muted-foreground mt-1">
+                                <p className="text-xs text-text mt-1">
                                   {radarrTaggingProgress.message}
                                 </p>
                               )}
@@ -387,7 +386,7 @@ export function UserTagsForm() {
                                 value={sonarrRemovalProgress.progress}
                               />
                               {sonarrRemovalProgress.message && (
-                                <p className="text-xs text-muted-foreground mt-1">
+                                <p className="text-xs text-text mt-1">
                                   {sonarrRemovalProgress.message}
                                 </p>
                               )}
@@ -409,7 +408,7 @@ export function UserTagsForm() {
                                 value={radarrRemovalProgress.progress}
                               />
                               {radarrRemovalProgress.message && (
-                                <p className="text-xs text-muted-foreground mt-1">
+                                <p className="text-xs text-text mt-1">
                                   {radarrRemovalProgress.message}
                                 </p>
                               )}
@@ -432,10 +431,10 @@ export function UserTagsForm() {
                                 <h5 className="text-xs font-medium text-text">
                                   Sonarr
                                 </h5>
-                                <ul className="mt-1 space-y-1 text-xs">
-                                  {isCreateTagResponse(lastActionResults) && (
-                                    <li>
-                                      <span className="text-text">
+                                <ul className="mt-1 space-y-1">
+                                  <li className="text-xs text-text">
+                                    {isCreateTagResponse(lastActionResults) && (
+                                      <>
                                         Created:{' '}
                                         {lastActionResults.sonarr.created},
                                         Skipped:{' '}
@@ -444,24 +443,22 @@ export function UserTagsForm() {
                                         {lastActionResults.sonarr.failed},
                                         Instances:{' '}
                                         {lastActionResults.sonarr.instances}
-                                      </span>
-                                    </li>
-                                  )}
-                                  {isSyncTagResponse(lastActionResults) && (
-                                    <li>
-                                      <span className="text-text">
+                                      </>
+                                    )}
+                                    {isSyncTagResponse(lastActionResults) && (
+                                      <>
                                         Tagged:{' '}
                                         {lastActionResults.sonarr.tagged},
                                         Skipped:{' '}
                                         {lastActionResults.sonarr.skipped},
                                         Failed:{' '}
                                         {lastActionResults.sonarr.failed}
-                                      </span>
-                                    </li>
-                                  )}
-                                  {isCleanupTagResponse(lastActionResults) && (
-                                    <li>
-                                      <span className="text-text">
+                                      </>
+                                    )}
+                                    {isCleanupTagResponse(
+                                      lastActionResults,
+                                    ) && (
+                                      <>
                                         Removed:{' '}
                                         {lastActionResults.sonarr.removed},
                                         Skipped:{' '}
@@ -470,9 +467,9 @@ export function UserTagsForm() {
                                         {lastActionResults.sonarr.failed},
                                         Instances:{' '}
                                         {lastActionResults.sonarr.instances}
-                                      </span>
-                                    </li>
-                                  )}
+                                      </>
+                                    )}
+                                  </li>
                                 </ul>
                               </div>
                             )}
@@ -483,10 +480,10 @@ export function UserTagsForm() {
                                 <h5 className="text-xs font-medium text-text">
                                   Radarr
                                 </h5>
-                                <ul className="mt-1 space-y-1 text-xs">
-                                  {isCreateTagResponse(lastActionResults) && (
-                                    <li>
-                                      <span className="text-text">
+                                <ul className="mt-1 space-y-1">
+                                  <li className="text-xs text-text">
+                                    {isCreateTagResponse(lastActionResults) && (
+                                      <>
                                         Created:{' '}
                                         {lastActionResults.radarr.created},
                                         Skipped:{' '}
@@ -495,24 +492,22 @@ export function UserTagsForm() {
                                         {lastActionResults.radarr.failed},
                                         Instances:{' '}
                                         {lastActionResults.radarr.instances}
-                                      </span>
-                                    </li>
-                                  )}
-                                  {isSyncTagResponse(lastActionResults) && (
-                                    <li>
-                                      <span className="text-text">
+                                      </>
+                                    )}
+                                    {isSyncTagResponse(lastActionResults) && (
+                                      <>
                                         Tagged:{' '}
                                         {lastActionResults.radarr.tagged},
                                         Skipped:{' '}
                                         {lastActionResults.radarr.skipped},
                                         Failed:{' '}
                                         {lastActionResults.radarr.failed}
-                                      </span>
-                                    </li>
-                                  )}
-                                  {isCleanupTagResponse(lastActionResults) && (
-                                    <li>
-                                      <span className="text-text">
+                                      </>
+                                    )}
+                                    {isCleanupTagResponse(
+                                      lastActionResults,
+                                    ) && (
+                                      <>
                                         Removed:{' '}
                                         {lastActionResults.radarr.removed},
                                         Skipped:{' '}
@@ -521,9 +516,9 @@ export function UserTagsForm() {
                                         {lastActionResults.radarr.failed},
                                         Instances:{' '}
                                         {lastActionResults.radarr.instances}
-                                      </span>
-                                    </li>
-                                  )}
+                                      </>
+                                    )}
+                                  </li>
                                 </ul>
                               </div>
                             )}
@@ -535,36 +530,32 @@ export function UserTagsForm() {
                                   <h5 className="text-xs font-medium text-text">
                                     Orphaned Cleanup
                                   </h5>
-                                  <ul className="mt-1 space-y-1 text-xs">
-                                    <li>
-                                      <span className="text-text">
-                                        Sonarr:{' '}
-                                        {
-                                          lastActionResults.orphanedCleanup
-                                            .sonarr.removed
-                                        }{' '}
-                                        removed,{' '}
-                                        {
-                                          lastActionResults.orphanedCleanup
-                                            .sonarr.skipped
-                                        }{' '}
-                                        skipped
-                                      </span>
+                                  <ul className="mt-1 space-y-1">
+                                    <li className="text-xs text-text">
+                                      Sonarr:{' '}
+                                      {
+                                        lastActionResults.orphanedCleanup.sonarr
+                                          .removed
+                                      }{' '}
+                                      removed,{' '}
+                                      {
+                                        lastActionResults.orphanedCleanup.sonarr
+                                          .skipped
+                                      }{' '}
+                                      skipped
                                     </li>
-                                    <li>
-                                      <span className="text-text">
-                                        Radarr:{' '}
-                                        {
-                                          lastActionResults.orphanedCleanup
-                                            .radarr.removed
-                                        }{' '}
-                                        removed,{' '}
-                                        {
-                                          lastActionResults.orphanedCleanup
-                                            .radarr.skipped
-                                        }{' '}
-                                        skipped
-                                      </span>
+                                    <li className="text-xs text-text">
+                                      Radarr:{' '}
+                                      {
+                                        lastActionResults.orphanedCleanup.radarr
+                                          .removed
+                                      }{' '}
+                                      removed,{' '}
+                                      {
+                                        lastActionResults.orphanedCleanup.radarr
+                                          .skipped
+                                      }{' '}
+                                      skipped
                                     </li>
                                   </ul>
                                 </div>
@@ -584,18 +575,14 @@ export function UserTagsForm() {
                             <h5 className="text-xs font-medium text-text">
                               Sonarr
                             </h5>
-                            <ul className="mt-1 space-y-1 text-xs">
-                              <li>
-                                <span className="text-text">
-                                  Items Updated:{' '}
-                                  {lastRemoveResults.sonarr.itemsUpdated}, Tags
-                                  Removed:{' '}
-                                  {lastRemoveResults.sonarr.tagsRemoved}, Tags
-                                  Deleted:{' '}
-                                  {lastRemoveResults.sonarr.tagsDeleted},
-                                  Instances:{' '}
-                                  {lastRemoveResults.sonarr.instances}
-                                </span>
+                            <ul className="mt-1 space-y-1">
+                              <li className="text-xs text-text">
+                                Items Updated:{' '}
+                                {lastRemoveResults.sonarr.itemsUpdated}, Tags
+                                Removed: {lastRemoveResults.sonarr.tagsRemoved},
+                                Tags Deleted:{' '}
+                                {lastRemoveResults.sonarr.tagsDeleted},
+                                Instances: {lastRemoveResults.sonarr.instances}
                               </li>
                             </ul>
                           </div>
@@ -605,18 +592,14 @@ export function UserTagsForm() {
                             <h5 className="text-xs font-medium text-text">
                               Radarr
                             </h5>
-                            <ul className="mt-1 space-y-1 text-xs">
-                              <li>
-                                <span className="text-text">
-                                  Items Updated:{' '}
-                                  {lastRemoveResults.radarr.itemsUpdated}, Tags
-                                  Removed:{' '}
-                                  {lastRemoveResults.radarr.tagsRemoved}, Tags
-                                  Deleted:{' '}
-                                  {lastRemoveResults.radarr.tagsDeleted},
-                                  Instances:{' '}
-                                  {lastRemoveResults.radarr.instances}
-                                </span>
+                            <ul className="mt-1 space-y-1">
+                              <li className="text-xs text-text">
+                                Items Updated:{' '}
+                                {lastRemoveResults.radarr.itemsUpdated}, Tags
+                                Removed: {lastRemoveResults.radarr.tagsRemoved},
+                                Tags Deleted:{' '}
+                                {lastRemoveResults.radarr.tagsDeleted},
+                                Instances: {lastRemoveResults.radarr.instances}
                               </li>
                             </ul>
                           </div>
