@@ -13,8 +13,10 @@ export interface ProgressEvent {
     | 'rss-feed'
     | 'system'
     | 'sync'
-    | 'tagging'
-    | 'tag-removal'
+    | 'sonarr-tagging'
+    | 'radarr-tagging'
+    | 'sonarr-tag-removal'
+    | 'radarr-tag-removal'
   phase: string
   progress: number
   message: string

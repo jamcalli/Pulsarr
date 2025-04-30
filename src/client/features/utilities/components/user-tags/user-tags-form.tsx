@@ -75,168 +75,86 @@ export function UserTagsForm() {
     handleRemoveTags,
   } = useUserTags()
 
-  // Improved progress state with separate messages
-  const [syncProgress, setSyncProgress] = useState({
-    sonarr: {
-      progress: 0,
-      message: '',
-    },
-    radarr: {
-      progress: 0,
-      message: '',
-    },
-    overall: {
-      progress: 0,
-      message: '',
-    },
+  // Progress state using separate variables for each service
+  const [sonarrTaggingProgress, setSonarrTaggingProgress] = useState({
+    progress: 0,
+    message: '',
   })
 
-  const [removeProgress, setRemoveProgress] = useState({
-    sonarr: {
-      progress: 0,
-      message: '',
-    },
-    radarr: {
-      progress: 0,
-      message: '',
-    },
-    overall: {
-      progress: 0,
-      message: '',
-    },
+  const [radarrTaggingProgress, setRadarrTaggingProgress] = useState({
+    progress: 0,
+    message: '',
   })
 
-  // Debug helper - uncomment to see progress events in console
-  /*
+  const [sonarrRemovalProgress, setSonarrRemovalProgress] = useState({
+    progress: 0,
+    message: '',
+  })
+
+  const [radarrRemovalProgress, setRadarrRemovalProgress] = useState({
+    progress: 0,
+    message: '',
+  })
+
+  // Subscribe to each specific event type
   useEffect(() => {
-    const unsubscribeTagging = useProgressStore.getState().subscribeToType(
-      'tagging',
-      (event) => {
-        console.log('Tagging progress event received:', event)
-      }
-    )
-    
-    const unsubscribeRemoval = useProgressStore.getState().subscribeToType(
-      'tag-removal',
-      (event) => {
-        console.log('Tag removal progress event received:', event)
-      }
-    )
-    
+    // Specific event type subscriptions
+    const unsubscribeSonarrTagging = useProgressStore
+      .getState()
+      .subscribeToType('sonarr-tagging', (event) => {
+        if (event.progress !== undefined) {
+          setSonarrTaggingProgress({
+            progress: event.progress,
+            message: event.message || sonarrTaggingProgress.message,
+          })
+        }
+      })
+
+    const unsubscribeRadarrTagging = useProgressStore
+      .getState()
+      .subscribeToType('radarr-tagging', (event) => {
+        if (event.progress !== undefined) {
+          setRadarrTaggingProgress({
+            progress: event.progress,
+            message: event.message || radarrTaggingProgress.message,
+          })
+        }
+      })
+
+    const unsubscribeSonarrRemoval = useProgressStore
+      .getState()
+      .subscribeToType('sonarr-tag-removal', (event) => {
+        if (event.progress !== undefined) {
+          setSonarrRemovalProgress({
+            progress: event.progress,
+            message: event.message || sonarrRemovalProgress.message,
+          })
+        }
+      })
+
+    const unsubscribeRadarrRemoval = useProgressStore
+      .getState()
+      .subscribeToType('radarr-tag-removal', (event) => {
+        if (event.progress !== undefined) {
+          setRadarrRemovalProgress({
+            progress: event.progress,
+            message: event.message || radarrRemovalProgress.message,
+          })
+        }
+      })
+
     return () => {
-      unsubscribeTagging()
-      unsubscribeRemoval()
+      unsubscribeSonarrTagging()
+      unsubscribeRadarrTagging()
+      unsubscribeSonarrRemoval()
+      unsubscribeRadarrRemoval()
     }
-  }, [])
-  */
-
-  // Subscribe to progress updates for tagging operations with improved handling
-  useEffect(() => {
-    const unsubscribe = useProgressStore
-      .getState()
-      .subscribeToType('tagging', (event) => {
-        if (event.progress !== undefined) {
-          setSyncProgress((prev) => {
-            const newState = { ...prev }
-
-            // Update overall message and progress by default
-            if (event.message) {
-              newState.overall = {
-                ...newState.overall,
-                message: event.message,
-                progress: event.progress,
-              }
-            }
-
-            // Update Sonarr progress and message
-            if (event.phase?.toLowerCase().includes('sonarr')) {
-              newState.sonarr = {
-                ...newState.sonarr,
-                progress: event.progress,
-                message: event.message || newState.sonarr.message,
-              }
-            }
-
-            // Update Radarr progress and message
-            else if (event.phase?.toLowerCase().includes('radarr')) {
-              newState.radarr = {
-                ...newState.radarr,
-                progress: event.progress,
-                message: event.message || newState.radarr.message,
-              }
-            }
-            // If there's no specific phase but there is progress, update both
-            else if (event.progress) {
-              // For general progress updates without specific service
-              if (
-                !event.phase?.toLowerCase().includes('sonarr') &&
-                !event.phase?.toLowerCase().includes('radarr')
-              ) {
-                newState.sonarr.progress = event.progress
-                newState.radarr.progress = event.progress
-              }
-            }
-
-            return newState
-          })
-        }
-      })
-    return unsubscribe
-  }, [])
-
-  // Subscribe to progress updates for tag removal operations with improved handling
-  useEffect(() => {
-    const unsubscribe = useProgressStore
-      .getState()
-      .subscribeToType('tag-removal', (event) => {
-        if (event.progress !== undefined) {
-          setRemoveProgress((prev) => {
-            const newState = { ...prev }
-
-            // Update overall message and progress by default
-            if (event.message) {
-              newState.overall = {
-                ...newState.overall,
-                message: event.message,
-                progress: event.progress,
-              }
-            }
-
-            // Update Sonarr progress and message
-            if (event.phase?.toLowerCase().includes('sonarr')) {
-              newState.sonarr = {
-                ...newState.sonarr,
-                progress: event.progress,
-                message: event.message || newState.sonarr.message,
-              }
-            }
-
-            // Update Radarr progress and message
-            else if (event.phase?.toLowerCase().includes('radarr')) {
-              newState.radarr = {
-                ...newState.radarr,
-                progress: event.progress,
-                message: event.message || newState.radarr.message,
-              }
-            }
-            // If there's no specific phase but there is progress, update both
-            else if (event.progress) {
-              // For general progress updates without specific service
-              if (
-                !event.phase?.toLowerCase().includes('sonarr') &&
-                !event.phase?.toLowerCase().includes('radarr')
-              ) {
-                newState.sonarr.progress = event.progress
-                newState.radarr.progress = event.progress
-              }
-            }
-
-            return newState
-          })
-        }
-      })
-    return unsubscribe
-  }, [])
+  }, [
+    sonarrTaggingProgress.message,
+    radarrTaggingProgress.message,
+    sonarrRemovalProgress.message,
+    radarrRemovalProgress.message,
+  ])
 
   // Determine the enabled status badge
   const isEnabled =
@@ -396,46 +314,53 @@ export function UserTagsForm() {
                       {isSyncingTags && (
                         <div className="mt-3 space-y-3">
                           {/* Overall progress message */}
-                          <p className="text-sm text-text">
-                            {syncProgress.overall.message ||
-                              'Synchronizing tags...'}
+                          <p className="text-sm text-text mb-2">
+                            Synchronizing tags...
                           </p>
 
                           {/* Sonarr progress bar */}
-                          <div>
-                            <div className="flex justify-between items-center mb-1">
-                              <span className="text-xs font-medium text-text">
-                                Sonarr
-                              </span>
-                              <span className="text-xs text-text">
-                                {syncProgress.sonarr.progress}%
-                              </span>
+                          {form.watch('tagUsersInSonarr') && (
+                            <div className="mb-4">
+                              <div className="flex justify-between items-center mb-1">
+                                <span className="text-xs font-medium text-text">
+                                  Sonarr
+                                </span>
+                                <span className="text-xs text-text">
+                                  {sonarrTaggingProgress.progress}%
+                                </span>
+                              </div>
+                              <Progress
+                                value={sonarrTaggingProgress.progress}
+                              />
+                              {sonarrTaggingProgress.message && (
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {sonarrTaggingProgress.message}
+                                </p>
+                              )}
                             </div>
-                            <Progress value={syncProgress.sonarr.progress} />
-                            {syncProgress.sonarr.message && (
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {syncProgress.sonarr.message}
-                              </p>
-                            )}
-                          </div>
+                          )}
 
                           {/* Radarr progress bar */}
-                          <div>
-                            <div className="flex justify-between items-center mb-1">
-                              <span className="text-xs font-medium text-text">
-                                Radarr
-                              </span>
-                              <span className="text-xs text-text">
-                                {syncProgress.radarr.progress}%
-                              </span>
+                          {form.watch('tagUsersInRadarr') && (
+                            <div>
+                              <div className="flex justify-between items-center mb-1">
+                                <span className="text-xs font-medium text-text">
+                                  Radarr
+                                </span>
+                                <span className="text-xs text-text">
+                                  {radarrTaggingProgress.progress}%
+                                </span>
+                              </div>
+                              <Progress
+                                value={radarrTaggingProgress.progress}
+                              />
+                              {radarrTaggingProgress.message && (
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {radarrTaggingProgress.message}
+                                </p>
+                              )}
                             </div>
-                            <Progress value={syncProgress.radarr.progress} />
-                            {syncProgress.radarr.message && (
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {syncProgress.radarr.message}
-                              </p>
-                            )}
-                          </div>
+                          )}
                         </div>
                       )}
 
@@ -443,46 +368,53 @@ export function UserTagsForm() {
                       {isRemovingTags && (
                         <div className="mt-3 space-y-3">
                           {/* Overall progress message */}
-                          <p className="text-sm text-text">
-                            {removeProgress.overall.message ||
-                              'Removing tags...'}
+                          <p className="text-sm text-text mb-2">
+                            Removing tags...
                           </p>
 
                           {/* Sonarr progress bar */}
-                          <div>
-                            <div className="flex justify-between items-center mb-1">
-                              <span className="text-xs font-medium text-text">
-                                Sonarr
-                              </span>
-                              <span className="text-xs text-text">
-                                {removeProgress.sonarr.progress}%
-                              </span>
+                          {form.watch('tagUsersInSonarr') && (
+                            <div className="mb-4">
+                              <div className="flex justify-between items-center mb-1">
+                                <span className="text-xs font-medium text-text">
+                                  Sonarr
+                                </span>
+                                <span className="text-xs text-text">
+                                  {sonarrRemovalProgress.progress}%
+                                </span>
+                              </div>
+                              <Progress
+                                value={sonarrRemovalProgress.progress}
+                              />
+                              {sonarrRemovalProgress.message && (
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {sonarrRemovalProgress.message}
+                                </p>
+                              )}
                             </div>
-                            <Progress value={removeProgress.sonarr.progress} />
-                            {removeProgress.sonarr.message && (
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {removeProgress.sonarr.message}
-                              </p>
-                            )}
-                          </div>
+                          )}
 
                           {/* Radarr progress bar */}
-                          <div>
-                            <div className="flex justify-between items-center mb-1">
-                              <span className="text-xs font-medium text-text">
-                                Radarr
-                              </span>
-                              <span className="text-xs text-text">
-                                {removeProgress.radarr.progress}%
-                              </span>
+                          {form.watch('tagUsersInRadarr') && (
+                            <div>
+                              <div className="flex justify-between items-center mb-1">
+                                <span className="text-xs font-medium text-text">
+                                  Radarr
+                                </span>
+                                <span className="text-xs text-text">
+                                  {radarrRemovalProgress.progress}%
+                                </span>
+                              </div>
+                              <Progress
+                                value={radarrRemovalProgress.progress}
+                              />
+                              {radarrRemovalProgress.message && (
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {radarrRemovalProgress.message}
+                                </p>
+                              )}
                             </div>
-                            <Progress value={removeProgress.radarr.progress} />
-                            {removeProgress.radarr.message && (
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {removeProgress.radarr.message}
-                              </p>
-                            )}
-                          </div>
+                          )}
                         </div>
                       )}
 

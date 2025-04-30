@@ -363,7 +363,7 @@ export class UserTagService {
       if (emitProgress) {
         this.emitProgress({
           operationId,
-          type: 'tagging',
+          type: 'sonarr-tagging',
           phase: 'start',
           progress: 0,
           message: 'Initializing Sonarr user tagging...',
@@ -383,7 +383,7 @@ export class UserTagService {
       if (emitProgress) {
         this.emitProgress({
           operationId,
-          type: 'tagging',
+          type: 'sonarr-tagging',
           phase: 'processing',
           progress: 5,
           message: `Processing ${sonarrInstances.length} Sonarr instances for tagging`,
@@ -408,7 +408,7 @@ export class UserTagService {
           if (emitProgress) {
             this.emitProgress({
               operationId,
-              type: 'tagging',
+              type: 'sonarr-tagging',
               phase: 'processing-instance',
               progress:
                 5 + Math.floor((instancesProcessed / totalInstances) * 30),
@@ -434,7 +434,7 @@ export class UserTagService {
           if (emitProgress) {
             this.emitProgress({
               operationId,
-              type: 'tagging',
+              type: 'sonarr-tagging',
               phase: 'tagging-series',
               progress:
                 35 + Math.floor((instancesProcessed / totalInstances) * 30),
@@ -550,7 +550,7 @@ export class UserTagService {
               )
               this.emitProgress({
                 operationId,
-                type: 'tagging',
+                type: 'sonarr-tagging',
                 phase: 'tagging-series',
                 progress: instanceProgressBase + itemProgress,
                 message: `Tagged ${seriesProcessed}/${instanceSeries.length} series in Sonarr instance ${instance.name}`,
@@ -580,7 +580,7 @@ export class UserTagService {
       if (emitProgress) {
         this.emitProgress({
           operationId,
-          type: 'tagging',
+          type: 'sonarr-tagging',
           phase: 'complete',
           progress: 100,
           message: `Completed tagging ${results.tagged} series across ${sonarrInstances.length} Sonarr instances`,
@@ -594,7 +594,7 @@ export class UserTagService {
       if (emitProgress) {
         this.emitProgress({
           operationId,
-          type: 'tagging',
+          type: 'sonarr-tagging',
           phase: 'error',
           progress: 100,
           message: `Error tagging Sonarr content: ${error}`,
@@ -635,7 +635,7 @@ export class UserTagService {
       if (emitProgress) {
         this.emitProgress({
           operationId,
-          type: 'tagging',
+          type: 'radarr-tagging',
           phase: 'start',
           progress: 0,
           message: 'Initializing Radarr user tagging...',
@@ -655,7 +655,7 @@ export class UserTagService {
       if (emitProgress) {
         this.emitProgress({
           operationId,
-          type: 'tagging',
+          type: 'radarr-tagging',
           phase: 'processing',
           progress: 5,
           message: `Processing ${radarrInstances.length} Radarr instances for tagging`,
@@ -680,7 +680,7 @@ export class UserTagService {
           if (emitProgress) {
             this.emitProgress({
               operationId,
-              type: 'tagging',
+              type: 'radarr-tagging',
               phase: 'processing-instance',
               progress:
                 5 + Math.floor((instancesProcessed / totalInstances) * 30),
@@ -706,7 +706,7 @@ export class UserTagService {
           if (emitProgress) {
             this.emitProgress({
               operationId,
-              type: 'tagging',
+              type: 'radarr-tagging',
               phase: 'tagging-movies',
               progress:
                 35 + Math.floor((instancesProcessed / totalInstances) * 30),
@@ -825,7 +825,7 @@ export class UserTagService {
               )
               this.emitProgress({
                 operationId,
-                type: 'tagging',
+                type: 'radarr-tagging',
                 phase: 'tagging-movies',
                 progress: instanceProgressBase + itemProgress,
                 message: `Tagged ${moviesProcessed}/${instanceMovies.length} movies in Radarr instance ${instance.name}`,
@@ -855,7 +855,7 @@ export class UserTagService {
       if (emitProgress) {
         this.emitProgress({
           operationId,
-          type: 'tagging',
+          type: 'radarr-tagging',
           phase: 'complete',
           progress: 100,
           message: `Completed tagging ${results.tagged} movies across ${radarrInstances.length} Radarr instances`,
@@ -869,7 +869,7 @@ export class UserTagService {
       if (emitProgress) {
         this.emitProgress({
           operationId,
-          type: 'tagging',
+          type: 'radarr-tagging',
           phase: 'error',
           progress: 100,
           message: `Error tagging Radarr content: ${error}`,
@@ -899,7 +899,7 @@ export class UserTagService {
       if (emitProgress) {
         this.emitProgress({
           operationId,
-          type: 'tagging',
+          type: 'sonarr-tagging',
           phase: 'start',
           progress: 0,
           message: 'Starting Sonarr tag synchronization...',
@@ -910,7 +910,7 @@ export class UserTagService {
       if (emitProgress) {
         this.emitProgress({
           operationId,
-          type: 'tagging',
+          type: 'sonarr-tagging',
           phase: 'creating-tags',
           progress: 5,
           message: 'Creating user tags in Sonarr...',
@@ -923,7 +923,7 @@ export class UserTagService {
       if (emitProgress) {
         this.emitProgress({
           operationId,
-          type: 'tagging',
+          type: 'sonarr-tagging',
           phase: 'fetching-data',
           progress: 20,
           message: 'Fetching series data from Sonarr...',
@@ -936,7 +936,7 @@ export class UserTagService {
       if (emitProgress) {
         this.emitProgress({
           operationId,
-          type: 'tagging',
+          type: 'sonarr-tagging',
           phase: 'fetching-watchlist',
           progress: 40,
           message: 'Fetching watchlist data...',
@@ -949,7 +949,7 @@ export class UserTagService {
       if (emitProgress) {
         this.emitProgress({
           operationId,
-          type: 'tagging',
+          type: 'sonarr-tagging',
           phase: 'applying-tags',
           progress: 60,
           message: `Applying tags to ${existingSeries.length} series...`,
@@ -964,7 +964,7 @@ export class UserTagService {
       if (emitProgress) {
         this.emitProgress({
           operationId,
-          type: 'tagging',
+          type: 'sonarr-tagging',
           phase: 'complete',
           progress: 100,
           message: `Completed Sonarr tag sync: tagged ${results.tagged} series, skipped ${results.skipped}, failed ${results.failed}`,
@@ -978,7 +978,7 @@ export class UserTagService {
       if (emitProgress) {
         this.emitProgress({
           operationId,
-          type: 'tagging',
+          type: 'sonarr-tagging',
           phase: 'error',
           progress: 100,
           message: `Error syncing Sonarr tags: ${error}`,
@@ -1008,7 +1008,7 @@ export class UserTagService {
       if (emitProgress) {
         this.emitProgress({
           operationId,
-          type: 'tagging',
+          type: 'radarr-tagging',
           phase: 'start',
           progress: 0,
           message: 'Starting Radarr tag synchronization...',
@@ -1019,7 +1019,7 @@ export class UserTagService {
       if (emitProgress) {
         this.emitProgress({
           operationId,
-          type: 'tagging',
+          type: 'radarr-tagging',
           phase: 'creating-tags',
           progress: 5,
           message: 'Creating user tags in Radarr...',
@@ -1032,7 +1032,7 @@ export class UserTagService {
       if (emitProgress) {
         this.emitProgress({
           operationId,
-          type: 'tagging',
+          type: 'radarr-tagging',
           phase: 'fetching-data',
           progress: 20,
           message: 'Fetching movie data from Radarr...',
@@ -1045,7 +1045,7 @@ export class UserTagService {
       if (emitProgress) {
         this.emitProgress({
           operationId,
-          type: 'tagging',
+          type: 'radarr-tagging',
           phase: 'fetching-watchlist',
           progress: 40,
           message: 'Fetching watchlist data...',
@@ -1058,7 +1058,7 @@ export class UserTagService {
       if (emitProgress) {
         this.emitProgress({
           operationId,
-          type: 'tagging',
+          type: 'radarr-tagging',
           phase: 'applying-tags',
           progress: 60,
           message: `Applying tags to ${existingMovies.length} movies...`,
@@ -1073,7 +1073,7 @@ export class UserTagService {
       if (emitProgress) {
         this.emitProgress({
           operationId,
-          type: 'tagging',
+          type: 'radarr-tagging',
           phase: 'complete',
           progress: 100,
           message: `Completed Radarr tag sync: tagged ${results.tagged} movies, skipped ${results.skipped}, failed ${results.failed}`,
@@ -1087,7 +1087,7 @@ export class UserTagService {
       if (emitProgress) {
         this.emitProgress({
           operationId,
-          type: 'tagging',
+          type: 'radarr-tagging',
           phase: 'error',
           progress: 100,
           message: `Error syncing Radarr tags: ${error}`,
@@ -1110,31 +1110,9 @@ export class UserTagService {
     orphanedCleanup?: OrphanedTagCleanupResults
   }> {
     this.log.info('Starting complete user tag synchronization in parallel')
-    const operationId = `all-tags-sync-${Date.now()}`
-    const emitProgress = this.hasActiveProgressConnections()
 
     try {
-      if (emitProgress) {
-        this.emitProgress({
-          operationId,
-          type: 'tagging',
-          phase: 'start',
-          progress: 0,
-          message: 'Starting complete user tag synchronization in parallel...',
-        })
-      }
-
       // Run Sonarr and Radarr tag syncs in parallel
-      if (emitProgress) {
-        this.emitProgress({
-          operationId,
-          type: 'tagging',
-          phase: 'parallel-sync',
-          progress: 5,
-          message: 'Syncing Sonarr and Radarr tags in parallel...',
-        })
-      }
-
       const [sonarrResults, radarrResults] = await Promise.all([
         this.syncSonarrTags(),
         this.syncRadarrTags(),
@@ -1145,31 +1123,11 @@ export class UserTagService {
 
       if (this.cleanupOrphanedTags) {
         try {
-          if (emitProgress) {
-            this.emitProgress({
-              operationId,
-              type: 'tagging',
-              phase: 'orphaned-cleanup',
-              progress: 75,
-              message: 'Cleaning up orphaned user tags...',
-            })
-          }
-
           orphanedCleanup = await this.cleanupOrphanedUserTags()
           this.log.info('Completed orphaned user tag cleanup', orphanedCleanup)
         } catch (cleanupError) {
           this.log.error('Error during orphaned tag cleanup:', cleanupError)
         }
-      }
-
-      if (emitProgress) {
-        this.emitProgress({
-          operationId,
-          type: 'tagging',
-          phase: 'complete',
-          progress: 100,
-          message: `Tag synchronization complete: Tagged ${sonarrResults.tagged} series and ${radarrResults.tagged} movies`,
-        })
       }
 
       this.log.info('User tag synchronization complete', {
@@ -1185,17 +1143,6 @@ export class UserTagService {
       }
     } catch (error) {
       this.log.error('Error in tag synchronization:', error)
-
-      if (emitProgress) {
-        this.emitProgress({
-          operationId,
-          type: 'tagging',
-          phase: 'error',
-          progress: 100,
-          message: `Error in tag synchronization: ${error}`,
-        })
-      }
-
       throw error
     }
   }
@@ -1217,37 +1164,12 @@ export class UserTagService {
       return results
     }
 
-    const operationId = `orphaned-tag-cleanup-${Date.now()}`
-    const emitProgress = this.hasActiveProgressConnections()
-
     try {
-      if (emitProgress) {
-        this.emitProgress({
-          operationId,
-          type: 'tagging',
-          phase: 'start',
-          progress: 0,
-          message: 'Starting orphaned user tag cleanup in parallel...',
-        })
-      }
-
       // Get all current users
       const users = await this.fastify.db.getAllUsers()
       const validUserTagLabels = new Set(
         users.map((user) => this.getUserTagLabel(user).toLowerCase()),
       )
-
-      // Process Radarr and Sonarr instances in parallel
-      if (emitProgress) {
-        this.emitProgress({
-          operationId,
-          type: 'tagging',
-          phase: 'parallel-cleanup',
-          progress: 5,
-          message:
-            'Processing Radarr and Sonarr instances for orphaned tags in parallel...',
-        })
-      }
 
       // Get managers and instances for both services
       const radarrManager = this.fastify.radarrManager
@@ -1263,48 +1185,17 @@ export class UserTagService {
 
       // Run the cleanup for both services in parallel
       const [radarrResults, sonarrResults] = await Promise.all([
-        this.cleanupOrphanedRadarrTags(
-          radarrInstances,
-          validUserTagLabels,
-          operationId,
-          emitProgress,
-        ),
-        this.cleanupOrphanedSonarrTags(
-          sonarrInstances,
-          validUserTagLabels,
-          operationId,
-          emitProgress,
-        ),
+        this.cleanupOrphanedRadarrTags(radarrInstances, validUserTagLabels),
+        this.cleanupOrphanedSonarrTags(sonarrInstances, validUserTagLabels),
       ])
 
       // Combine results
       results.radarr = radarrResults
       results.sonarr = sonarrResults
 
-      if (emitProgress) {
-        this.emitProgress({
-          operationId,
-          type: 'tagging',
-          phase: 'complete',
-          progress: 100,
-          message: `Completed orphaned tag cleanup: removed tags from ${results.radarr.removed} movies and ${results.sonarr.removed} series`,
-        })
-      }
-
       return results
     } catch (error) {
       this.log.error('Error cleaning up orphaned user tags:', error)
-
-      if (emitProgress) {
-        this.emitProgress({
-          operationId,
-          type: 'tagging',
-          phase: 'error',
-          progress: 100,
-          message: `Error cleaning up orphaned user tags: ${error}`,
-        })
-      }
-
       throw error
     }
   }
@@ -1351,7 +1242,7 @@ export class UserTagService {
       if (emitProgress) {
         this.emitProgress({
           operationId,
-          type: 'tag-removal',
+          type: 'sonarr-tag-removal',
           phase: 'start',
           progress: 0,
           message: 'Starting Sonarr user tag removal...',
@@ -1366,7 +1257,7 @@ export class UserTagService {
       if (emitProgress) {
         this.emitProgress({
           operationId,
-          type: 'tag-removal',
+          type: 'sonarr-tag-removal',
           phase: 'processing',
           progress: 5,
           message: `Processing ${sonarrInstances.length} Sonarr instances for tag removal`,
@@ -1392,7 +1283,7 @@ export class UserTagService {
               5 + Math.floor((instancesProcessed / sonarrInstances.length) * 30)
             this.emitProgress({
               operationId,
-              type: 'tag-removal',
+              type: 'sonarr-tag-removal',
               phase: 'processing-instance',
               progress: instanceProgress,
               message: `Processing Sonarr instance ${instance.name} (${instancesProcessed + 1}/${sonarrInstances.length})`,
@@ -1432,7 +1323,7 @@ export class UserTagService {
               Math.floor((instancesProcessed / sonarrInstances.length) * 30)
             this.emitProgress({
               operationId,
-              type: 'tag-removal',
+              type: 'sonarr-tag-removal',
               phase: 'processing-series',
               progress: instanceBaseProgress,
               message: `Processing ${Array.from(allSeries).length} series in Sonarr instance ${instance.name}`,
@@ -1525,7 +1416,7 @@ export class UserTagService {
               )
               this.emitProgress({
                 operationId,
-                type: 'tag-removal',
+                type: 'sonarr-tag-removal',
                 phase: 'processing-series',
                 progress: instanceBaseProgress + seriesProgress,
                 message: `Processed ${processedCount}/${Array.from(allSeries).length} series in Sonarr instance ${instance.name}`,
@@ -1556,7 +1447,7 @@ export class UserTagService {
                 Math.floor((instancesProcessed / sonarrInstances.length) * 30)
               this.emitProgress({
                 operationId,
-                type: 'tag-removal',
+                type: 'sonarr-tag-removal',
                 phase: 'deleting-tags',
                 progress: instanceBaseProgress,
                 message: `Deleting ${userTags.length} tag definitions from Sonarr instance ${instance.name}`,
@@ -1594,7 +1485,7 @@ export class UserTagService {
                 )
                 this.emitProgress({
                   operationId,
-                  type: 'tag-removal',
+                  type: 'sonarr-tag-removal',
                   phase: 'deleting-tags',
                   progress: tagBaseProgress + tagProgress,
                   message: `Deleted ${deletedCount}/${userTags.length} tag definitions from Sonarr instance ${instance.name}`,
@@ -1621,7 +1512,7 @@ export class UserTagService {
       if (emitProgress) {
         this.emitProgress({
           operationId,
-          type: 'tag-removal',
+          type: 'sonarr-tag-removal',
           phase: 'complete',
           progress: 100,
           message: `Completed Sonarr tag removal: updated ${results.itemsUpdated} series, removed ${results.tagsRemoved} tags, deleted ${results.tagsDeleted} tag definitions`,
@@ -1635,7 +1526,7 @@ export class UserTagService {
       if (emitProgress) {
         this.emitProgress({
           operationId,
-          type: 'tag-removal',
+          type: 'sonarr-tag-removal',
           phase: 'error',
           progress: 100,
           message: `Error removing Sonarr user tags: ${error}`,
@@ -1688,7 +1579,7 @@ export class UserTagService {
       if (emitProgress) {
         this.emitProgress({
           operationId,
-          type: 'tag-removal',
+          type: 'radarr-tag-removal',
           phase: 'start',
           progress: 0,
           message: 'Starting Radarr user tag removal...',
@@ -1703,7 +1594,7 @@ export class UserTagService {
       if (emitProgress) {
         this.emitProgress({
           operationId,
-          type: 'tag-removal',
+          type: 'radarr-tag-removal',
           phase: 'processing',
           progress: 5,
           message: `Processing ${radarrInstances.length} Radarr instances for tag removal`,
@@ -1729,7 +1620,7 @@ export class UserTagService {
               5 + Math.floor((instancesProcessed / radarrInstances.length) * 30)
             this.emitProgress({
               operationId,
-              type: 'tag-removal',
+              type: 'radarr-tag-removal',
               phase: 'processing-instance',
               progress: instanceProgress,
               message: `Processing Radarr instance ${instance.name} (${instancesProcessed + 1}/${radarrInstances.length})`,
@@ -1769,7 +1660,7 @@ export class UserTagService {
               Math.floor((instancesProcessed / radarrInstances.length) * 30)
             this.emitProgress({
               operationId,
-              type: 'tag-removal',
+              type: 'radarr-tag-removal',
               phase: 'processing-movies',
               progress: instanceBaseProgress,
               message: `Processing ${Array.from(allMovies).length} movies in Radarr instance ${instance.name}`,
@@ -1862,7 +1753,7 @@ export class UserTagService {
               )
               this.emitProgress({
                 operationId,
-                type: 'tag-removal',
+                type: 'radarr-tag-removal',
                 phase: 'processing-movies',
                 progress: instanceBaseProgress + moviesProgress,
                 message: `Processed ${processedCount}/${Array.from(allMovies).length} movies in Radarr instance ${instance.name}`,
@@ -1893,7 +1784,7 @@ export class UserTagService {
                 Math.floor((instancesProcessed / radarrInstances.length) * 30)
               this.emitProgress({
                 operationId,
-                type: 'tag-removal',
+                type: 'radarr-tag-removal',
                 phase: 'deleting-tags',
                 progress: instanceBaseProgress,
                 message: `Deleting ${userTags.length} tag definitions from Radarr instance ${instance.name}`,
@@ -1931,7 +1822,7 @@ export class UserTagService {
                 )
                 this.emitProgress({
                   operationId,
-                  type: 'tag-removal',
+                  type: 'radarr-tag-removal',
                   phase: 'deleting-tags',
                   progress: tagBaseProgress + tagProgress,
                   message: `Deleted ${deletedCount}/${userTags.length} tag definitions from Radarr instance ${instance.name}`,
@@ -1958,7 +1849,7 @@ export class UserTagService {
       if (emitProgress) {
         this.emitProgress({
           operationId,
-          type: 'tag-removal',
+          type: 'radarr-tag-removal',
           phase: 'complete',
           progress: 100,
           message: `Completed Radarr tag removal: updated ${results.itemsUpdated} movies, removed ${results.tagsRemoved} tags, deleted ${results.tagsDeleted} tag definitions`,
@@ -1972,7 +1863,7 @@ export class UserTagService {
       if (emitProgress) {
         this.emitProgress({
           operationId,
-          type: 'tag-removal',
+          type: 'radarr-tag-removal',
           phase: 'error',
           progress: 100,
           message: `Error removing Radarr user tags: ${error}`,
@@ -2012,31 +1903,7 @@ export class UserTagService {
       `Starting complete user tag removal in parallel (deleteDefinitions=${deleteTagDefinitions})`,
     )
 
-    const operationId = `all-tags-removal-${Date.now()}`
-    const emitProgress = this.hasActiveProgressConnections()
-
     try {
-      if (emitProgress) {
-        this.emitProgress({
-          operationId,
-          type: 'tag-removal',
-          phase: 'start',
-          progress: 0,
-          message: `Starting complete user tag removal${deleteTagDefinitions ? ' with tag definition deletion' : ''} in parallel...`,
-        })
-      }
-
-      // Remove Sonarr and Radarr tags in parallel
-      if (emitProgress) {
-        this.emitProgress({
-          operationId,
-          type: 'tag-removal',
-          phase: 'parallel-removal',
-          progress: 5,
-          message: 'Removing Sonarr and Radarr user tags in parallel...',
-        })
-      }
-
       // Run both removals in parallel
       const [sonarrResults, radarrResults] = await Promise.all([
         this.removeAllSonarrUserTags(deleteTagDefinitions),
@@ -2049,16 +1916,6 @@ export class UserTagService {
         sonarrResults.tagsRemoved + radarrResults.tagsRemoved
       const totalTagsDeleted =
         sonarrResults.tagsDeleted + radarrResults.tagsDeleted
-
-      if (emitProgress) {
-        this.emitProgress({
-          operationId,
-          type: 'tag-removal',
-          phase: 'complete',
-          progress: 100,
-          message: `Tag removal complete: updated ${totalItemsUpdated} items, removed ${totalTagsRemoved} tags, deleted ${totalTagsDeleted} tag definitions`,
-        })
-      }
 
       this.log.info('User tag removal complete', {
         itemsUpdated: totalItemsUpdated,
@@ -2074,17 +1931,6 @@ export class UserTagService {
       }
     } catch (error) {
       this.log.error('Error in complete tag removal:', error)
-
-      if (emitProgress) {
-        this.emitProgress({
-          operationId,
-          type: 'tag-removal',
-          phase: 'error',
-          progress: 100,
-          message: `Error in complete tag removal: ${error}`,
-        })
-      }
-
       throw error
     }
   }
@@ -2173,15 +2019,11 @@ export class UserTagService {
    *
    * @param sonarrInstances List of Sonarr instances
    * @param validUserTagLabels Set of valid user tag labels
-   * @param operationId ID for progress tracking
-   * @param emitProgress Whether to emit progress events
    * @returns Results of cleanup operation
    */
   private async cleanupOrphanedSonarrTags(
     sonarrInstances: Array<{ id: number; name: string }>,
     validUserTagLabels: Set<string>,
-    operationId: string,
-    emitProgress: boolean,
   ): Promise<TagCleanupResults> {
     const results: TagCleanupResults = {
       removed: 0,
@@ -2201,19 +2043,6 @@ export class UserTagService {
           )
           sonarrInstancesProcessed++
           continue
-        }
-
-        if (emitProgress) {
-          const sonarrProgress =
-            50 +
-            Math.floor((sonarrInstancesProcessed / sonarrInstances.length) * 20)
-          this.emitProgress({
-            operationId,
-            type: 'tagging',
-            phase: 'sonarr-cleanup',
-            progress: sonarrProgress,
-            message: `Processing Sonarr instance ${instance.name} (${sonarrInstancesProcessed + 1}/${sonarrInstances.length})`,
-          })
         }
 
         // Get all tags from this instance
@@ -2240,19 +2069,6 @@ export class UserTagService {
 
         // Get all series to check for these tags
         const allSeries = await sonarrService.fetchSeries(true)
-
-        if (emitProgress) {
-          const sonarrProgress =
-            70 +
-            Math.floor((sonarrInstancesProcessed / sonarrInstances.length) * 20)
-          this.emitProgress({
-            operationId,
-            type: 'tagging',
-            phase: 'sonarr-series-cleanup',
-            progress: sonarrProgress,
-            message: `Processing ${Array.from(allSeries).length} series in Sonarr instance ${instance.name}`,
-          })
-        }
 
         // Orphaned tag IDs for quick lookup
         const orphanedTagIds = new Set(orphanedTags.map((t) => t.id))
@@ -2317,24 +2133,6 @@ export class UserTagService {
           }
 
           processedCount += batch.length
-
-          if (emitProgress && Array.from(allSeries).length > 0) {
-            const sonarrBaseProgress =
-              70 +
-              Math.floor(
-                (sonarrInstancesProcessed / sonarrInstances.length) * 20,
-              )
-            const seriesProgress = Math.floor(
-              (processedCount / Array.from(allSeries).length) * 5,
-            )
-            this.emitProgress({
-              operationId,
-              type: 'tagging',
-              phase: 'sonarr-series-cleanup',
-              progress: sonarrBaseProgress + seriesProgress,
-              message: `Processed ${processedCount}/${Array.from(allSeries).length} series in Sonarr instance ${instance.name}`,
-            })
-          }
         }
 
         this.log.info(
@@ -2360,15 +2158,11 @@ export class UserTagService {
    *
    * @param radarrInstances List of Radarr instances
    * @param validUserTagLabels Set of valid user tag labels
-   * @param operationId ID for progress tracking
-   * @param emitProgress Whether to emit progress events
    * @returns Results of cleanup operation
    */
   private async cleanupOrphanedRadarrTags(
     radarrInstances: Array<{ id: number; name: string }>,
     validUserTagLabels: Set<string>,
-    operationId: string,
-    emitProgress: boolean,
   ): Promise<TagCleanupResults> {
     const results: TagCleanupResults = {
       removed: 0,
@@ -2388,19 +2182,6 @@ export class UserTagService {
           )
           radarrInstancesProcessed++
           continue
-        }
-
-        if (emitProgress) {
-          const radarrProgress =
-            5 +
-            Math.floor((radarrInstancesProcessed / radarrInstances.length) * 20)
-          this.emitProgress({
-            operationId,
-            type: 'tagging',
-            phase: 'radarr-cleanup',
-            progress: radarrProgress,
-            message: `Processing Radarr instance ${instance.name} (${radarrInstancesProcessed + 1}/${radarrInstances.length})`,
-          })
         }
 
         // Get all tags from this instance
@@ -2427,19 +2208,6 @@ export class UserTagService {
 
         // Get all movies to check for these tags
         const movies = await radarrService.fetchMovies(true)
-
-        if (emitProgress) {
-          const radarrProgress =
-            25 +
-            Math.floor((radarrInstancesProcessed / radarrInstances.length) * 20)
-          this.emitProgress({
-            operationId,
-            type: 'tagging',
-            phase: 'radarr-movie-cleanup',
-            progress: radarrProgress,
-            message: `Processing ${Array.from(movies).length} movies in Radarr instance ${instance.name}`,
-          })
-        }
 
         // Orphaned tag IDs for quick lookup
         const orphanedTagIds = new Set(orphanedTags.map((t) => t.id))
@@ -2504,24 +2272,6 @@ export class UserTagService {
           }
 
           processedCount += batch.length
-
-          if (emitProgress && Array.from(movies).length > 0) {
-            const radarrBaseProgress =
-              25 +
-              Math.floor(
-                (radarrInstancesProcessed / radarrInstances.length) * 20,
-              )
-            const movieProgress = Math.floor(
-              (processedCount / Array.from(movies).length) * 5,
-            )
-            this.emitProgress({
-              operationId,
-              type: 'tagging',
-              phase: 'radarr-movie-cleanup',
-              progress: radarrBaseProgress + movieProgress,
-              message: `Processed ${processedCount}/${Array.from(movies).length} movies in Radarr instance ${instance.name}`,
-            })
-          }
         }
 
         this.log.info(
