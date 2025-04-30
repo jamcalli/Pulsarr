@@ -104,8 +104,7 @@ export function useUserTags() {
     }
 
     fetchConfig()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [fetchUserTagsConfig, form.reset])
 
   // Handle form submission
   const onSubmit = useCallback(
