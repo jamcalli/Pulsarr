@@ -9,6 +9,7 @@ import {
   Trash2,
   Save,
   X,
+  HelpCircle,
 } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
 import {
@@ -28,6 +29,12 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import {
   useUserTags,
   isCreateTagResponse,
@@ -216,7 +223,13 @@ export function UserTagsForm() {
                       type="button"
                       size="sm"
                       onClick={handleCreateTags}
-                      disabled={isCreatingTags || !isEnabled}
+                      disabled={
+                        isCreatingTags ||
+                        !(
+                          lastResults?.config?.tagUsersInSonarr ||
+                          lastResults?.config?.tagUsersInRadarr
+                        )
+                      }
                       variant="noShadow"
                       className="h-8"
                     >
@@ -234,7 +247,13 @@ export function UserTagsForm() {
                       type="button"
                       size="sm"
                       onClick={handleSyncTags}
-                      disabled={isSyncingTags || !isEnabled}
+                      disabled={
+                        isSyncingTags ||
+                        !(
+                          lastResults?.config?.tagUsersInSonarr ||
+                          lastResults?.config?.tagUsersInRadarr
+                        )
+                      }
                       variant="noShadow"
                       className="h-8"
                     >
@@ -253,7 +272,8 @@ export function UserTagsForm() {
                       size="sm"
                       onClick={handleCleanupTags}
                       disabled={
-                        isCleaningTags || !form.watch('cleanupOrphanedTags')
+                        isCleaningTags ||
+                        !lastResults?.config?.cleanupOrphanedTags
                       }
                       variant="noShadow"
                       className="h-8"
@@ -272,7 +292,13 @@ export function UserTagsForm() {
                       type="button"
                       size="sm"
                       onClick={initiateRemoveTags}
-                      disabled={isRemovingTags || !isEnabled}
+                      disabled={
+                        isRemovingTags ||
+                        !(
+                          lastResults?.config?.tagUsersInSonarr ||
+                          lastResults?.config?.tagUsersInRadarr
+                        )
+                      }
                       variant="error"
                       className="h-8"
                     >
@@ -646,9 +672,26 @@ export function UserTagsForm() {
                                   onCheckedChange={field.onChange}
                                 />
                               </FormControl>
-                              <FormLabel className="text-text m-0">
-                                Tag Users in Sonarr
-                              </FormLabel>
+                              <div className="flex items-center">
+                                <FormLabel className="text-text m-0">
+                                  Tag Users in Sonarr
+                                </FormLabel>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p className="max-w-xs">
+                                        Automatically adds user-specific tags to
+                                        TV shows in Sonarr based on who added
+                                        them to their watchlist. Helps track
+                                        which users requested which content.
+                                      </p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </div>
                             </FormItem>
                           )}
                         />
@@ -664,9 +707,26 @@ export function UserTagsForm() {
                                   onCheckedChange={field.onChange}
                                 />
                               </FormControl>
-                              <FormLabel className="text-text m-0">
-                                Tag Users in Radarr
-                              </FormLabel>
+                              <div className="flex items-center">
+                                <FormLabel className="text-text m-0">
+                                  Tag Users in Radarr
+                                </FormLabel>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p className="max-w-xs">
+                                        Automatically adds user-specific tags to
+                                        movies in Radarr based on who added them
+                                        to their watchlist. Helps track which
+                                        users requested which content.
+                                      </p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </div>
                             </FormItem>
                           )}
                         />
@@ -682,9 +742,26 @@ export function UserTagsForm() {
                                   onCheckedChange={field.onChange}
                                 />
                               </FormControl>
-                              <FormLabel className="text-text m-0">
-                                Clean Up Orphaned Tags
-                              </FormLabel>
+                              <div className="flex items-center">
+                                <FormLabel className="text-text m-0">
+                                  Clean Up Orphaned Tags
+                                </FormLabel>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p className="max-w-xs">
+                                        Removes tags that no longer correspond
+                                        to active users. Prevents accumulation
+                                        of unused tags when users are deleted or
+                                        renamed.
+                                      </p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </div>
                             </FormItem>
                           )}
                         />
@@ -700,9 +777,26 @@ export function UserTagsForm() {
                                   onCheckedChange={field.onChange}
                                 />
                               </FormControl>
-                              <FormLabel className="text-text m-0">
-                                Persist Historical Tags
-                              </FormLabel>
+                              <div className="flex items-center">
+                                <FormLabel className="text-text m-0">
+                                  Persist Historical Tags
+                                </FormLabel>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p className="max-w-xs">
+                                        Maintains user tags even after content
+                                        is removed from a user's watchlist.
+                                        Preserves historical record of who
+                                        originally requested content.
+                                      </p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </div>
                             </FormItem>
                           )}
                         />
@@ -712,12 +806,63 @@ export function UserTagsForm() {
                           name="tagPrefix"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-text">
-                                Tag Prefix
-                              </FormLabel>
+                              <div className="flex items-center">
+                                <FormLabel className="text-text">
+                                  Tag Prefix
+                                </FormLabel>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p className="max-w-xs">
+                                        Defines the prefix used for all user
+                                        tags (e.g., 'pulsarr:user:username').
+                                        Helps identify Pulsarr-managed tags and
+                                        keeps them organized separately from
+                                        other tags in Sonarr/Radarr. Note:
+                                        Changing this requires removing existing
+                                        tags first, as old tags won't be
+                                        recognized with the new prefix.
+                                      </p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </div>
                               <FormControl>
-                                <Input {...field} placeholder="pulsarr:user" />
+                                <Input
+                                  {...field}
+                                  placeholder="pulsarr:user"
+                                  disabled={
+                                    lastRemoveResults === null ||
+                                    (lastRemoveResults &&
+                                      !(
+                                        lastRemoveResults.sonarr.tagsDeleted >
+                                          0 ||
+                                        lastRemoveResults.radarr.tagsDeleted > 0
+                                      ))
+                                  }
+                                />
                               </FormControl>
+                              {lastRemoveResults === null && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                  You must remove existing tags with "Delete Tag
+                                  Definitions" enabled before changing the
+                                  prefix.
+                                </p>
+                              )}
+                              {lastRemoveResults &&
+                                !(
+                                  lastRemoveResults.sonarr.tagsDeleted > 0 ||
+                                  lastRemoveResults.radarr.tagsDeleted > 0
+                                ) && (
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    You must remove existing tags with "Delete
+                                    Tag Definitions" enabled before changing the
+                                    prefix.
+                                  </p>
+                                )}
                               <FormMessage />
                             </FormItem>
                           )}
