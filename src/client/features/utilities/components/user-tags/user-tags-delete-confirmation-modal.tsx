@@ -74,12 +74,12 @@ export function UserTagsDeleteConfirmationModal({
             />
             <label
               htmlFor="delete-definitions"
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              className="text-sm font-medium text-text leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
               Also delete tag definitions
             </label>
           </div>
-          <p className="text-xs text-muted-foreground mt-1 ml-6">
+          <p className="text-xs text-text mt-1 ml-6">
             When enabled, this will also remove the user tag definitions from
             your Sonarr and Radarr instances, not just remove them from media.
           </p>
