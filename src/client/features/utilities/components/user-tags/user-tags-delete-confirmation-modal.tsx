@@ -40,6 +40,11 @@ export function UserTagsDeleteConfirmationModal({
 }: UserTagsDeleteConfirmationModalProps) {
   const [deleteTagDefinitions, setDeleteTagDefinitions] = useState(false)
 
+  const handleConfirm = () => {
+    onConfirm(deleteTagDefinitions)
+    onOpenChange(false)
+  }
+
   return (
     <Credenza open={open} onOpenChange={onOpenChange}>
       <CredenzaContent>
@@ -85,9 +90,7 @@ export function UserTagsDeleteConfirmationModal({
             </CredenzaClose>
             <Button
               variant="clear"
-              onClick={() => {
-                onConfirm(deleteTagDefinitions)
-              }}
+              onClick={handleConfirm}
               disabled={isSubmitting}
             >
               {isSubmitting ? 'Processing...' : 'Remove Tags'}
