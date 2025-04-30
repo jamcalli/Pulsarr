@@ -9,6 +9,7 @@ import {
   type CreateTaggingResponseSchema,
   type SyncTaggingResponseSchema,
   type CleanupResponseSchema,
+  type RemoveTagsResponseSchema,
 } from '@root/schemas/tags/user-tags.schema'
 import type { z } from 'zod'
 
@@ -19,6 +20,7 @@ type ActionResult =
   | z.infer<typeof CreateTaggingResponseSchema>
   | z.infer<typeof SyncTaggingResponseSchema>
   | z.infer<typeof CleanupResponseSchema>
+  | z.infer<typeof RemoveTagsResponseSchema>
 
 // Type guard functions
 export function isCreateTagResponse(
@@ -46,6 +48,14 @@ export function isCleanupTagResponse(
   )
 }
 
+export function isRemoveTagsResponse(
+  response: ActionResult,
+): response is z.infer<typeof RemoveTagsResponseSchema> {
+  return (
+    (response as z.infer<typeof RemoveTagsResponseSchema>).mode === 'remove'
+  )
+}
+
 /**
  * Custom React hook for managing user tagging configuration and operations.
  *
@@ -69,6 +79,10 @@ export function useUserTags() {
     createUserTags,
     syncUserTags,
     cleanupUserTags,
+    removeTagsResults,
+    showDeleteTagsConfirmation,
+    setShowDeleteTagsConfirmation,
+    removeUserTags,
   } = useUtilitiesStore()
 
   // Initialize form with default values
@@ -186,6 +200,32 @@ export function useUserTags() {
   // Only show loading skeleton on initial load, not on navigation
   const isLoading = !hasInitializedRef.current && loading.userTags
 
+  const initiateRemoveTags = useCallback(() => {
+    setShowDeleteTagsConfirmation(true)
+  }, [setShowDeleteTagsConfirmation])
+
+  const handleRemoveTags = useCallback(
+    async (deleteTagDefinitions: boolean) => {
+      try {
+        const result = await removeUserTags(deleteTagDefinitions)
+
+        toast({
+          description: result.message || 'User tags removed successfully',
+          variant: 'default',
+        })
+      } catch (err) {
+        // Error already handled in store, just for user notification
+        toast({
+          title: 'Error',
+          description:
+            err instanceof Error ? err.message : 'Failed to remove user tags',
+          variant: 'destructive',
+        })
+      }
+    },
+    [removeUserTags, toast],
+  )
+
   return {
     form,
     isSaving: loading.userTags,
@@ -201,5 +241,11 @@ export function useUserTags() {
     handleCreateTags,
     handleSyncTags,
     handleCleanupTags,
+    isRemovingTags: loading.removeUserTags,
+    showDeleteConfirmation: showDeleteTagsConfirmation,
+    setShowDeleteConfirmation: setShowDeleteTagsConfirmation,
+    lastRemoveResults: removeTagsResults,
+    initiateRemoveTags,
+    handleRemoveTags,
   }
 }
