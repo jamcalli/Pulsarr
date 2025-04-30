@@ -120,7 +120,7 @@ export default async function serviceApp(
     }
 
     // Check authentication method setting
-    const { shouldBypass, isAuthDisabled } = getAuthBypassStatus(
+    const { isAuthDisabled, isLocalBypass, shouldBypass } = getAuthBypassStatus(
       fastify,
       request,
     )
@@ -132,7 +132,7 @@ export default async function serviceApp(
     }
 
     // For local IP bypass
-    if (shouldBypass) {
+    if (isLocalBypass) {
       const hasUsers = await fastify.db.hasAdminUsers()
 
       if (hasUsers) {
