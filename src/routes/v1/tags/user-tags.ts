@@ -5,6 +5,8 @@ import {
   SyncTaggingResponseSchema,
   CreateTaggingResponseSchema,
   CleanupResponseSchema,
+  RemoveTagsRequestSchema,
+  RemoveTagsResponseSchema,
   TaggingConfigSchema,
   ErrorSchema,
 } from '@schemas/tags/user-tags.schema.js'
@@ -409,6 +411,95 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       } catch (err) {
         fastify.log.error('Error cleaning up orphaned tags:', err)
         throw reply.internalServerError('Unable to clean up orphaned tags')
+      }
+    },
+  )
+  // Remove all user tags from media
+  fastify.post<{
+    Body: { deleteTagDefinitions?: boolean }
+    Reply: z.infer<typeof RemoveTagsResponseSchema>
+  }>(
+    '/remove',
+    {
+      schema: {
+        body: RemoveTagsRequestSchema,
+        response: {
+          200: RemoveTagsResponseSchema,
+          500: ErrorSchema,
+        },
+        tags: ['Tags'],
+      },
+    },
+    async (request, reply) => {
+      try {
+        // Check if tagging is enabled
+        const config = await fastify.db.getConfig(1)
+        if (!config) {
+          throw reply.notFound('Config not found in database')
+        }
+
+        // If both Sonarr and Radarr tagging are disabled, return early
+        if (!config.tagUsersInSonarr && !config.tagUsersInRadarr) {
+          return {
+            success: false,
+            message:
+              'Tag removal skipped: user tagging is disabled in configuration',
+            mode: 'remove',
+            sonarr: {
+              itemsProcessed: 0,
+              itemsUpdated: 0,
+              tagsRemoved: 0,
+              tagsDeleted: 0,
+              failed: 0,
+              instances: 0,
+            },
+            radarr: {
+              itemsProcessed: 0,
+              itemsUpdated: 0,
+              tagsRemoved: 0,
+              tagsDeleted: 0,
+              failed: 0,
+              instances: 0,
+            },
+          }
+        }
+
+        // Extract option from request
+        const { deleteTagDefinitions = false } = request.body
+
+        // Call the service to remove all tags
+        const results =
+          await fastify.userTags.removeAllUserTags(deleteTagDefinitions)
+
+        // Calculate total items and tags for the response message
+        const totalItemsUpdated =
+          results.sonarr.itemsUpdated + results.radarr.itemsUpdated
+        const totalTagsRemoved =
+          results.sonarr.tagsRemoved + results.radarr.tagsRemoved
+        const totalTagsDeleted =
+          results.sonarr.tagsDeleted + results.radarr.tagsDeleted
+
+        // Build appropriate message based on results
+        let message = `Removed ${totalTagsRemoved} user tags from ${totalItemsUpdated} items`
+
+        if (deleteTagDefinitions) {
+          message += ` and deleted ${totalTagsDeleted} tag definitions`
+        }
+
+        if (totalItemsUpdated === 0 && totalTagsRemoved === 0) {
+          message = 'No user tags found to remove'
+        }
+
+        return {
+          success: true,
+          message,
+          mode: 'remove',
+          sonarr: results.sonarr,
+          radarr: results.radarr,
+        }
+      } catch (err) {
+        fastify.log.error('Error removing user tags:', err)
+        throw reply.internalServerError('Unable to remove user tags')
       }
     },
   )

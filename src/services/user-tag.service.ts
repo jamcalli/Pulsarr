@@ -1070,4 +1070,425 @@ export class UserTagService {
 
     return true
   }
+
+  /**
+   * Remove all user tags from media items in Sonarr
+   *
+   * @param deleteTagDefinitions Whether to delete the tag definitions after removing them from items
+   * @returns Results of tag removal operation
+   */
+  async removeAllSonarrUserTags(deleteTagDefinitions = false): Promise<{
+    itemsProcessed: number
+    itemsUpdated: number
+    tagsRemoved: number
+    tagsDeleted: number
+    failed: number
+    instances: number
+  }> {
+    if (!this.tagUsersInSonarr) {
+      this.log.debug('Sonarr user tagging disabled, skipping tag removal')
+      return {
+        itemsProcessed: 0,
+        itemsUpdated: 0,
+        tagsRemoved: 0,
+        tagsDeleted: 0,
+        failed: 0,
+        instances: 0,
+      }
+    }
+
+    const results = {
+      itemsProcessed: 0,
+      itemsUpdated: 0,
+      tagsRemoved: 0,
+      tagsDeleted: 0,
+      failed: 0,
+      instances: 0,
+    }
+
+    try {
+      // Process each Sonarr instance
+      const sonarrManager = this.fastify.sonarrManager
+      const sonarrInstances = await sonarrManager.getAllInstances()
+      results.instances = sonarrInstances.length
+
+      for (const instance of sonarrInstances) {
+        try {
+          const sonarrService = sonarrManager.getSonarrService(instance.id)
+
+          if (!sonarrService) {
+            this.log.warn(
+              `Sonarr service for instance ${instance.name} not found, skipping tag removal`,
+            )
+            continue
+          }
+
+          // Get all tags from this instance
+          const tags = await sonarrService.getTags()
+
+          // Find all user tags (those with our prefix)
+          const userTags = tags.filter((tag) => this.isAppUserTag(tag.label))
+
+          if (userTags.length === 0) {
+            this.log.info(
+              `No user tags found in Sonarr instance ${instance.name}, skipping`,
+            )
+            continue
+          }
+
+          this.log.info(
+            `Found ${userTags.length} user tags in Sonarr instance ${instance.name}`,
+          )
+
+          // Extract the IDs of user tags
+          const userTagIds = userTags.map((tag) => tag.id)
+
+          // Get all series to check for these tags
+          const allSeries = await sonarrService.fetchSeries(true)
+          this.log.info(
+            `Processing ${Array.from(allSeries).length} series in Sonarr instance ${instance.name} for tag removal`,
+          )
+
+          let instanceUpdatedCount = 0
+          let instanceTagsRemovedCount = 0
+          let processedCount = 0
+
+          // Process each series to remove user tags
+          for (const series of Array.from(allSeries)) {
+            try {
+              results.itemsProcessed++
+              processedCount++
+
+              // Extract Sonarr ID
+              const sonarrId = this.extractSonarrId(series.guids)
+              if (sonarrId === 0) {
+                continue
+              }
+
+              // Get series details with tags
+              const seriesDetails = await sonarrService.getFromSonarr<
+                SonarrItem & { tags: number[] }
+              >(`series/${sonarrId}`)
+              const existingTags = seriesDetails.tags || []
+
+              // Check if this series has any of our user tags
+              const hasUserTags = existingTags.some((tagId) =>
+                userTagIds.includes(tagId),
+              )
+
+              if (!hasUserTags) {
+                continue
+              }
+
+              // Filter out user tags
+              const newTags = existingTags.filter(
+                (tagId) => !userTagIds.includes(tagId),
+              )
+
+              const tagsRemoved = existingTags.length - newTags.length
+
+              // Update the series tags
+              await sonarrService.updateSeriesTags(sonarrId, newTags)
+              this.log.debug(
+                `Removed ${tagsRemoved} user tags from series "${series.title}"`,
+              )
+
+              instanceUpdatedCount++
+              instanceTagsRemovedCount += tagsRemoved
+              results.itemsUpdated++
+              results.tagsRemoved += tagsRemoved
+
+              // Log progress periodically
+              if (processedCount % 10 === 0) {
+                this.log.info(
+                  `Processed ${processedCount}/${Array.from(allSeries).length} series for tag removal in Sonarr instance ${instance.name}`,
+                )
+              }
+            } catch (error) {
+              this.log.error(
+                `Error removing tags from series "${series.title}":`,
+                error,
+              )
+              results.failed++
+            }
+          }
+
+          this.log.info(
+            `Completed tag removal for Sonarr instance ${instance.name}: ` +
+              `updated ${instanceUpdatedCount} series, removed ${instanceTagsRemovedCount} tags`,
+          )
+
+          // Delete tag definitions if requested
+          if (deleteTagDefinitions && userTags.length > 0) {
+            let deletedCount = 0
+
+            for (const tag of userTags) {
+              try {
+                await sonarrService.deleteTag(tag.id)
+                deletedCount++
+              } catch (error) {
+                this.log.error(
+                  `Error deleting tag ID ${tag.id} from Sonarr:`,
+                  error,
+                )
+              }
+            }
+
+            results.tagsDeleted = deletedCount
+            this.log.info(
+              `Deleted ${deletedCount} user tag definitions from Sonarr instance ${instance.name}`,
+            )
+          }
+        } catch (instanceError) {
+          this.log.error(
+            `Error processing Sonarr instance ${instance.name} for tag removal:`,
+            instanceError,
+          )
+        }
+      }
+
+      return results
+    } catch (error) {
+      this.log.error('Error removing Sonarr user tags:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Remove all user tags from media items in Radarr
+   *
+   * @param deleteTagDefinitions Whether to delete the tag definitions after removing them from items
+   * @returns Results of tag removal operation
+   */
+  async removeAllRadarrUserTags(deleteTagDefinitions = false): Promise<{
+    itemsProcessed: number
+    itemsUpdated: number
+    tagsRemoved: number
+    tagsDeleted: number
+    failed: number
+    instances: number
+  }> {
+    if (!this.tagUsersInRadarr) {
+      this.log.debug('Radarr user tagging disabled, skipping tag removal')
+      return {
+        itemsProcessed: 0,
+        itemsUpdated: 0,
+        tagsRemoved: 0,
+        tagsDeleted: 0,
+        failed: 0,
+        instances: 0,
+      }
+    }
+
+    const results = {
+      itemsProcessed: 0,
+      itemsUpdated: 0,
+      tagsRemoved: 0,
+      tagsDeleted: 0,
+      failed: 0,
+      instances: 0,
+    }
+
+    try {
+      // Process each Radarr instance
+      const radarrManager = this.fastify.radarrManager
+      const radarrInstances = await radarrManager.getAllInstances()
+      results.instances = radarrInstances.length
+
+      for (const instance of radarrInstances) {
+        try {
+          const radarrService = radarrManager.getRadarrService(instance.id)
+
+          if (!radarrService) {
+            this.log.warn(
+              `Radarr service for instance ${instance.name} not found, skipping tag removal`,
+            )
+            continue
+          }
+
+          // Get all tags from this instance
+          const tags = await radarrService.getTags()
+
+          // Find all user tags (those with our prefix)
+          const userTags = tags.filter((tag) => this.isAppUserTag(tag.label))
+
+          if (userTags.length === 0) {
+            this.log.info(
+              `No user tags found in Radarr instance ${instance.name}, skipping`,
+            )
+            continue
+          }
+
+          this.log.info(
+            `Found ${userTags.length} user tags in Radarr instance ${instance.name}`,
+          )
+
+          // Extract the IDs of user tags
+          const userTagIds = userTags.map((tag) => tag.id)
+
+          // Get all movies to check for these tags
+          const allMovies = await radarrService.fetchMovies(true)
+          this.log.info(
+            `Processing ${Array.from(allMovies).length} movies in Radarr instance ${instance.name} for tag removal`,
+          )
+
+          let instanceUpdatedCount = 0
+          let instanceTagsRemovedCount = 0
+          let processedCount = 0
+
+          // Process each movie to remove user tags
+          for (const movie of Array.from(allMovies)) {
+            try {
+              results.itemsProcessed++
+              processedCount++
+
+              // Extract Radarr ID
+              const radarrId = this.extractRadarrId(movie.guids)
+              if (radarrId === 0) {
+                continue
+              }
+
+              // Get movie details with tags
+              const movieDetails = await radarrService.getFromRadarr<
+                RadarrItem & { tags: number[] }
+              >(`movie/${radarrId}`)
+              const existingTags = movieDetails.tags || []
+
+              // Check if this movie has any of our user tags
+              const hasUserTags = existingTags.some((tagId) =>
+                userTagIds.includes(tagId),
+              )
+
+              if (!hasUserTags) {
+                continue
+              }
+
+              // Filter out user tags
+              const newTags = existingTags.filter(
+                (tagId) => !userTagIds.includes(tagId),
+              )
+
+              const tagsRemoved = existingTags.length - newTags.length
+
+              // Update the movie tags
+              await radarrService.updateMovieTags(radarrId, newTags)
+              this.log.debug(
+                `Removed ${tagsRemoved} user tags from movie "${movie.title}"`,
+              )
+
+              instanceUpdatedCount++
+              instanceTagsRemovedCount += tagsRemoved
+              results.itemsUpdated++
+              results.tagsRemoved += tagsRemoved
+
+              // Log progress periodically
+              if (processedCount % 10 === 0) {
+                this.log.info(
+                  `Processed ${processedCount}/${Array.from(allMovies).length} movies for tag removal in Radarr instance ${instance.name}`,
+                )
+              }
+            } catch (error) {
+              this.log.error(
+                `Error removing tags from movie "${movie.title}":`,
+                error,
+              )
+              results.failed++
+            }
+          }
+
+          this.log.info(
+            `Completed tag removal for Radarr instance ${instance.name}: ` +
+              `updated ${instanceUpdatedCount} movies, removed ${instanceTagsRemovedCount} tags`,
+          )
+
+          // Delete tag definitions if requested
+          if (deleteTagDefinitions && userTags.length > 0) {
+            let deletedCount = 0
+
+            for (const tag of userTags) {
+              try {
+                await radarrService.deleteTag(tag.id)
+                deletedCount++
+              } catch (error) {
+                this.log.error(
+                  `Error deleting tag ID ${tag.id} from Radarr:`,
+                  error,
+                )
+              }
+            }
+
+            results.tagsDeleted = deletedCount
+            this.log.info(
+              `Deleted ${deletedCount} user tag definitions from Radarr instance ${instance.name}`,
+            )
+          }
+        } catch (instanceError) {
+          this.log.error(
+            `Error processing Radarr instance ${instance.name} for tag removal:`,
+            instanceError,
+          )
+        }
+      }
+
+      return results
+    } catch (error) {
+      this.log.error('Error removing Radarr user tags:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Remove all user tags from all media items in both Sonarr and Radarr
+   * Optionally delete the tag definitions themselves
+   *
+   * @param deleteTagDefinitions Whether to delete the tag definitions after removing them from media items
+   * @returns Results of the removal operation
+   */
+  async removeAllUserTags(deleteTagDefinitions = false): Promise<{
+    sonarr: {
+      itemsProcessed: number
+      itemsUpdated: number
+      tagsRemoved: number
+      tagsDeleted: number
+      failed: number
+      instances: number
+    }
+    radarr: {
+      itemsProcessed: number
+      itemsUpdated: number
+      tagsRemoved: number
+      tagsDeleted: number
+      failed: number
+      instances: number
+    }
+  }> {
+    this.log.info(
+      `Starting complete user tag removal (deleteDefinitions=${deleteTagDefinitions})`,
+    )
+
+    const [sonarrResults, radarrResults] = await Promise.all([
+      this.removeAllSonarrUserTags(deleteTagDefinitions),
+      this.removeAllRadarrUserTags(deleteTagDefinitions),
+    ])
+
+    const totalItemsUpdated =
+      sonarrResults.itemsUpdated + radarrResults.itemsUpdated
+    const totalTagsRemoved =
+      sonarrResults.tagsRemoved + radarrResults.tagsRemoved
+    const totalTagsDeleted =
+      sonarrResults.tagsDeleted + radarrResults.tagsDeleted
+
+    this.log.info('User tag removal complete', {
+      itemsUpdated: totalItemsUpdated,
+      tagsRemoved: totalTagsRemoved,
+      tagsDeleted: totalTagsDeleted,
+      sonarr: sonarrResults,
+      radarr: radarrResults,
+    })
+
+    return {
+      sonarr: sonarrResults,
+      radarr: radarrResults,
+    }
+  }
 }
