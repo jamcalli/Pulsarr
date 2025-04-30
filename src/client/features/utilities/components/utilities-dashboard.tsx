@@ -3,6 +3,8 @@ import { DeleteSyncForm } from '@/features/utilities/components/delete-sync/dele
 import { DeleteSyncSkeleton } from '@/features/utilities/components/delete-sync/delete-sync-skeleton'
 import { PlexNotificationsForm } from '@/features/utilities/components/plex-notifications/plex-notifications-form'
 import { PlexNotificationsSkeleton } from '@/features/utilities/components/plex-notifications/plex-notifications-skeleton'
+import { UserTagsForm } from '@/features/utilities/components/user-tags/user-tags-form'
+import { UserTagsSkeleton } from '@/features/utilities/components/user-tags/user-tags-skeleton'
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 
 /**
@@ -46,6 +48,12 @@ export function UtilitiesDashboard() {
           <PlexNotificationsSkeleton />
         ) : (
           <PlexNotificationsForm />
+        )}
+
+        {isLoading || loading.schedules ? (
+          <UserTagsSkeleton />
+        ) : (
+          <UserTagsForm />
         )}
       </div>
     </div>
