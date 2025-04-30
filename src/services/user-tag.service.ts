@@ -334,8 +334,8 @@ export class UserTagService {
   }
 
   /**
-   * Tag Sonarr content using pre-fetched data with batching and progress reporting
-   * This is the integrated mode for use with the StatusService
+   * Tag Sonarr content using pre-fetched data with batching
+   * This is the integrated mode for use with the StatusService (internal only, no progress reporting)
    *
    * @param series All fetched series from Sonarr
    * @param watchlistItems All show watchlist items
@@ -356,20 +356,8 @@ export class UserTagService {
     }
 
     const results: TaggingResults = { tagged: 0, skipped: 0, failed: 0 }
-    const operationId = `sonarr-tagging-${Date.now()}`
-    const emitProgress = this.hasActiveProgressConnections()
 
     try {
-      if (emitProgress) {
-        this.emitProgress({
-          operationId,
-          type: 'sonarr-tagging',
-          phase: 'start',
-          progress: 0,
-          message: 'Initializing Sonarr user tagging...',
-        })
-      }
-
       // Get all users for tag lookup
       const users = await this.fastify.db.getAllUsers()
 
@@ -380,19 +368,6 @@ export class UserTagService {
       const sonarrManager = this.fastify.sonarrManager
       const sonarrInstances = await sonarrManager.getAllInstances()
 
-      if (emitProgress) {
-        this.emitProgress({
-          operationId,
-          type: 'sonarr-tagging',
-          phase: 'processing',
-          progress: 5,
-          message: `Processing ${sonarrInstances.length} Sonarr instances for tagging`,
-        })
-      }
-
-      let instancesProcessed = 0
-      const totalInstances = sonarrInstances.length
-
       for (const instance of sonarrInstances) {
         try {
           const sonarrService = sonarrManager.getSonarrService(instance.id)
@@ -401,19 +376,7 @@ export class UserTagService {
             this.log.warn(
               `Sonarr service for instance ${instance.name} not found, skipping tagging`,
             )
-            instancesProcessed++
             continue
-          }
-
-          if (emitProgress) {
-            this.emitProgress({
-              operationId,
-              type: 'sonarr-tagging',
-              phase: 'processing-instance',
-              progress:
-                5 + Math.floor((instancesProcessed / totalInstances) * 30),
-              message: `Processing Sonarr instance ${instance.name} (${instancesProcessed + 1}/${totalInstances})`,
-            })
           }
 
           // Get or create all necessary tags for this instance
@@ -430,17 +393,6 @@ export class UserTagService {
           this.log.info(
             `Processing ${instanceSeries.length} series in Sonarr instance ${instance.name} for user tagging`,
           )
-
-          if (emitProgress) {
-            this.emitProgress({
-              operationId,
-              type: 'sonarr-tagging',
-              phase: 'tagging-series',
-              progress:
-                35 + Math.floor((instancesProcessed / totalInstances) * 30),
-              message: `Tagging ${instanceSeries.length} series in Sonarr instance ${instance.name}`,
-            })
-          }
 
           // Process series in batches
           const BATCH_SIZE = 5 // Number of items to process in parallel
@@ -541,21 +493,6 @@ export class UserTagService {
             }
 
             seriesProcessed += batch.length
-
-            if (emitProgress) {
-              const instanceProgressBase =
-                35 + Math.floor((instancesProcessed / totalInstances) * 30)
-              const itemProgress = Math.floor(
-                (seriesProcessed / instanceSeries.length) * 30,
-              )
-              this.emitProgress({
-                operationId,
-                type: 'sonarr-tagging',
-                phase: 'tagging-series',
-                progress: instanceProgressBase + itemProgress,
-                message: `Tagged ${seriesProcessed}/${instanceSeries.length} series in Sonarr instance ${instance.name}`,
-              })
-            }
           }
 
           this.log.info(
@@ -566,48 +503,24 @@ export class UserTagService {
               failed: results.failed,
             },
           )
-
-          instancesProcessed++
         } catch (instanceError) {
           this.log.error(
             `Error processing Sonarr instance ${instance.name} for tagging:`,
             instanceError,
           )
-          instancesProcessed++
         }
-      }
-
-      if (emitProgress) {
-        this.emitProgress({
-          operationId,
-          type: 'sonarr-tagging',
-          phase: 'complete',
-          progress: 100,
-          message: `Completed tagging ${results.tagged} series across ${sonarrInstances.length} Sonarr instances`,
-        })
       }
 
       return results
     } catch (error) {
       this.log.error('Error tagging Sonarr content:', error)
-
-      if (emitProgress) {
-        this.emitProgress({
-          operationId,
-          type: 'sonarr-tagging',
-          phase: 'error',
-          progress: 100,
-          message: `Error tagging Sonarr content: ${error}`,
-        })
-      }
-
       throw error
     }
   }
 
   /**
-   * Tag Radarr content using pre-fetched data with batching and progress reporting
-   * This is the integrated mode for use with the StatusService
+   * Tag Radarr content using pre-fetched data with batching
+   * This is the integrated mode for use with the StatusService (internal only, no progress reporting)
    *
    * @param movies All fetched movies from Radarr
    * @param watchlistItems All movie watchlist items
@@ -628,20 +541,8 @@ export class UserTagService {
     }
 
     const results: TaggingResults = { tagged: 0, skipped: 0, failed: 0 }
-    const operationId = `radarr-tagging-${Date.now()}`
-    const emitProgress = this.hasActiveProgressConnections()
 
     try {
-      if (emitProgress) {
-        this.emitProgress({
-          operationId,
-          type: 'radarr-tagging',
-          phase: 'start',
-          progress: 0,
-          message: 'Initializing Radarr user tagging...',
-        })
-      }
-
       // Get all users for tag lookup
       const users = await this.fastify.db.getAllUsers()
 
@@ -652,19 +553,6 @@ export class UserTagService {
       const radarrManager = this.fastify.radarrManager
       const radarrInstances = await radarrManager.getAllInstances()
 
-      if (emitProgress) {
-        this.emitProgress({
-          operationId,
-          type: 'radarr-tagging',
-          phase: 'processing',
-          progress: 5,
-          message: `Processing ${radarrInstances.length} Radarr instances for tagging`,
-        })
-      }
-
-      let instancesProcessed = 0
-      const totalInstances = radarrInstances.length
-
       for (const instance of radarrInstances) {
         try {
           const radarrService = radarrManager.getRadarrService(instance.id)
@@ -673,19 +561,7 @@ export class UserTagService {
             this.log.warn(
               `Radarr service for instance ${instance.name} not found, skipping tagging`,
             )
-            instancesProcessed++
             continue
-          }
-
-          if (emitProgress) {
-            this.emitProgress({
-              operationId,
-              type: 'radarr-tagging',
-              phase: 'processing-instance',
-              progress:
-                5 + Math.floor((instancesProcessed / totalInstances) * 30),
-              message: `Processing Radarr instance ${instance.name} (${instancesProcessed + 1}/${totalInstances})`,
-            })
           }
 
           // Get or create all necessary tags for this instance
@@ -702,17 +578,6 @@ export class UserTagService {
           this.log.info(
             `Processing ${instanceMovies.length} movies in Radarr instance ${instance.name} for user tagging`,
           )
-
-          if (emitProgress) {
-            this.emitProgress({
-              operationId,
-              type: 'radarr-tagging',
-              phase: 'tagging-movies',
-              progress:
-                35 + Math.floor((instancesProcessed / totalInstances) * 30),
-              message: `Tagging ${instanceMovies.length} movies in Radarr instance ${instance.name}`,
-            })
-          }
 
           // Process movies in batches
           const BATCH_SIZE = 5 // Number of items to process in parallel
@@ -816,21 +681,6 @@ export class UserTagService {
             }
 
             moviesProcessed += batch.length
-
-            if (emitProgress) {
-              const instanceProgressBase =
-                35 + Math.floor((instancesProcessed / totalInstances) * 30)
-              const itemProgress = Math.floor(
-                (moviesProcessed / instanceMovies.length) * 30,
-              )
-              this.emitProgress({
-                operationId,
-                type: 'radarr-tagging',
-                phase: 'tagging-movies',
-                progress: instanceProgressBase + itemProgress,
-                message: `Tagged ${moviesProcessed}/${instanceMovies.length} movies in Radarr instance ${instance.name}`,
-              })
-            }
           }
 
           this.log.info(
@@ -841,48 +691,24 @@ export class UserTagService {
               failed: results.failed,
             },
           )
-
-          instancesProcessed++
         } catch (instanceError) {
           this.log.error(
             `Error processing Radarr instance ${instance.name} for tagging:`,
             instanceError,
           )
-          instancesProcessed++
         }
-      }
-
-      if (emitProgress) {
-        this.emitProgress({
-          operationId,
-          type: 'radarr-tagging',
-          phase: 'complete',
-          progress: 100,
-          message: `Completed tagging ${results.tagged} movies across ${radarrInstances.length} Radarr instances`,
-        })
       }
 
       return results
     } catch (error) {
       this.log.error('Error tagging Radarr content:', error)
-
-      if (emitProgress) {
-        this.emitProgress({
-          operationId,
-          type: 'radarr-tagging',
-          phase: 'error',
-          progress: 100,
-          message: `Error tagging Radarr content: ${error}`,
-        })
-      }
-
       throw error
     }
   }
 
   /**
    * Sync all Sonarr items with user tags - fetches all data internally
-   * This is the standalone mode for API calls
+   * This is the standalone mode for API calls - includes progress reporting
    *
    * @returns Results of tagging operation
    */
@@ -892,7 +718,7 @@ export class UserTagService {
       return { tagged: 0, skipped: 0, failed: 0 }
     }
 
-    const operationId = `sonarr-tag-sync-${Date.now()}`
+    const operationId = `sonarr-tagging-${Date.now()}`
     const emitProgress = this.hasActiveProgressConnections()
 
     try {
@@ -901,65 +727,57 @@ export class UserTagService {
           operationId,
           type: 'sonarr-tagging',
           phase: 'start',
-          progress: 0,
+          progress: 5,
           message: 'Starting Sonarr tag synchronization...',
         })
       }
 
       // Create user tags first
-      if (emitProgress) {
-        this.emitProgress({
-          operationId,
-          type: 'sonarr-tagging',
-          phase: 'creating-tags',
-          progress: 5,
-          message: 'Creating user tags in Sonarr...',
-        })
-      }
-
       await this.createSonarrUserTags()
 
       // Fetch all shows and series needed for tagging
-      if (emitProgress) {
-        this.emitProgress({
-          operationId,
-          type: 'sonarr-tagging',
-          phase: 'fetching-data',
-          progress: 20,
-          message: 'Fetching series data from Sonarr...',
-        })
-      }
-
       const existingSeries =
         await this.fastify.sonarrManager.fetchAllSeries(true)
 
-      if (emitProgress) {
-        this.emitProgress({
-          operationId,
-          type: 'sonarr-tagging',
-          phase: 'fetching-watchlist',
-          progress: 40,
-          message: 'Fetching watchlist data...',
-        })
-      }
-
       const watchlistItems = await this.fastify.db.getAllShowWatchlistItems()
 
-      // Apply tags using the fetched data
-      if (emitProgress) {
-        this.emitProgress({
-          operationId,
-          type: 'sonarr-tagging',
-          phase: 'applying-tags',
-          progress: 60,
-          message: `Applying tags to ${existingSeries.length} series...`,
-        })
-      }
+      // Count total series to process for progress reporting
+      const totalSeries = existingSeries.length
+      let processedSeries = 0
 
-      const results = await this.tagSonarrContentWithData(
-        existingSeries,
-        watchlistItems,
-      )
+      // Apply tags to series batches
+      const results: TaggingResults = { tagged: 0, skipped: 0, failed: 0 }
+      const BATCH_SIZE = 10
+
+      // Process all series in batches with progress reporting
+      for (let i = 0; i < existingSeries.length; i += BATCH_SIZE) {
+        const batch = existingSeries.slice(i, i + BATCH_SIZE)
+
+        // Tag the current batch
+        const batchResults = await this.tagSonarrContentWithData(
+          batch,
+          watchlistItems,
+        )
+
+        // Update counts
+        results.tagged += batchResults.tagged
+        results.skipped += batchResults.skipped
+        results.failed += batchResults.failed
+
+        // Update progress
+        processedSeries += batch.length
+
+        if (emitProgress && totalSeries > 0) {
+          const progress = 5 + Math.floor((processedSeries / totalSeries) * 90)
+          this.emitProgress({
+            operationId,
+            type: 'sonarr-tagging',
+            phase: 'tagging-series',
+            progress: progress,
+            message: `Tagged ${processedSeries}/${totalSeries} series`,
+          })
+        }
+      }
 
       if (emitProgress) {
         this.emitProgress({
@@ -991,7 +809,7 @@ export class UserTagService {
 
   /**
    * Sync all Radarr items with user tags - fetches all data internally
-   * This is the standalone mode for API calls
+   * This is the standalone mode for API calls - includes progress reporting
    *
    * @returns Results of tagging operation
    */
@@ -1001,7 +819,7 @@ export class UserTagService {
       return { tagged: 0, skipped: 0, failed: 0 }
     }
 
-    const operationId = `radarr-tag-sync-${Date.now()}`
+    const operationId = `radarr-tagging-${Date.now()}`
     const emitProgress = this.hasActiveProgressConnections()
 
     try {
@@ -1010,65 +828,57 @@ export class UserTagService {
           operationId,
           type: 'radarr-tagging',
           phase: 'start',
-          progress: 0,
+          progress: 5,
           message: 'Starting Radarr tag synchronization...',
         })
       }
 
       // Create user tags first
-      if (emitProgress) {
-        this.emitProgress({
-          operationId,
-          type: 'radarr-tagging',
-          phase: 'creating-tags',
-          progress: 5,
-          message: 'Creating user tags in Radarr...',
-        })
-      }
-
       await this.createRadarrUserTags()
 
       // Fetch all movies and watchlist items needed for tagging
-      if (emitProgress) {
-        this.emitProgress({
-          operationId,
-          type: 'radarr-tagging',
-          phase: 'fetching-data',
-          progress: 20,
-          message: 'Fetching movie data from Radarr...',
-        })
-      }
-
       const existingMovies =
         await this.fastify.radarrManager.fetchAllMovies(true)
 
-      if (emitProgress) {
-        this.emitProgress({
-          operationId,
-          type: 'radarr-tagging',
-          phase: 'fetching-watchlist',
-          progress: 40,
-          message: 'Fetching watchlist data...',
-        })
-      }
-
       const watchlistItems = await this.fastify.db.getAllMovieWatchlistItems()
 
-      // Apply tags using the fetched data
-      if (emitProgress) {
-        this.emitProgress({
-          operationId,
-          type: 'radarr-tagging',
-          phase: 'applying-tags',
-          progress: 60,
-          message: `Applying tags to ${existingMovies.length} movies...`,
-        })
-      }
+      // Count total movies to process for progress reporting
+      const totalMovies = existingMovies.length
+      let processedMovies = 0
 
-      const results = await this.tagRadarrContentWithData(
-        existingMovies,
-        watchlistItems,
-      )
+      // Apply tags to movie batches
+      const results: TaggingResults = { tagged: 0, skipped: 0, failed: 0 }
+      const BATCH_SIZE = 10
+
+      // Process all movies in batches with progress reporting
+      for (let i = 0; i < existingMovies.length; i += BATCH_SIZE) {
+        const batch = existingMovies.slice(i, i + BATCH_SIZE)
+
+        // Tag the current batch
+        const batchResults = await this.tagRadarrContentWithData(
+          batch,
+          watchlistItems,
+        )
+
+        // Update counts
+        results.tagged += batchResults.tagged
+        results.skipped += batchResults.skipped
+        results.failed += batchResults.failed
+
+        // Update progress
+        processedMovies += batch.length
+
+        if (emitProgress && totalMovies > 0) {
+          const progress = 5 + Math.floor((processedMovies / totalMovies) * 90)
+          this.emitProgress({
+            operationId,
+            type: 'radarr-tagging',
+            phase: 'tagging-movies',
+            progress: progress,
+            message: `Tagged ${processedMovies}/${totalMovies} movies`,
+          })
+        }
+      }
 
       if (emitProgress) {
         this.emitProgress({
@@ -1244,268 +1054,169 @@ export class UserTagService {
           operationId,
           type: 'sonarr-tag-removal',
           phase: 'start',
-          progress: 0,
+          progress: 5,
           message: 'Starting Sonarr user tag removal...',
         })
       }
 
-      // Process each Sonarr instance
+      // Get total series count and collect user tags across all instances
       const sonarrManager = this.fastify.sonarrManager
       const sonarrInstances = await sonarrManager.getAllInstances()
       results.instances = sonarrInstances.length
 
-      if (emitProgress) {
-        this.emitProgress({
-          operationId,
-          type: 'sonarr-tag-removal',
-          phase: 'processing',
-          progress: 5,
-          message: `Processing ${sonarrInstances.length} Sonarr instances for tag removal`,
-        })
-      }
+      // Collect all the series and tags data first
+      const instancesData = await Promise.all(
+        sonarrInstances.map(async (instance) => {
+          try {
+            const sonarrService = sonarrManager.getSonarrService(instance.id)
+            if (!sonarrService) return null
 
-      let instancesProcessed = 0
+            const tags = await sonarrService.getTags()
+            const userTags = tags.filter((tag) => this.isAppUserTag(tag.label))
 
-      for (const instance of sonarrInstances) {
-        try {
-          const sonarrService = sonarrManager.getSonarrService(instance.id)
+            if (userTags.length === 0) return null
 
-          if (!sonarrService) {
-            this.log.warn(
-              `Sonarr service for instance ${instance.name} not found, skipping tag removal`,
+            const allSeries = await sonarrService.fetchSeries(true)
+
+            return {
+              instance,
+              service: sonarrService,
+              userTags,
+              series: Array.from(allSeries),
+              userTagIds: userTags.map((tag) => tag.id),
+            }
+          } catch (error) {
+            this.log.error(
+              `Error collecting data from instance ${instance.name}:`,
+              error,
             )
-            instancesProcessed++
-            continue
+            return null
+          }
+        }),
+      )
+
+      // Filter out null entries
+      const validInstancesData = instancesData.filter((data) => data !== null)
+
+      // Calculate total series to process for progress reporting
+      const totalSeries = validInstancesData.reduce(
+        (sum, data) => sum + data.series.length,
+        0,
+      )
+
+      let totalProcessedSeries = 0
+
+      // Process each instance
+      for (const instanceData of validInstancesData) {
+        const { instance, service, userTags, series, userTagIds } = instanceData
+
+        this.log.info(
+          `Processing ${series.length} series in Sonarr instance ${instance.name} for tag removal`,
+        )
+
+        // Process in batches
+        const BATCH_SIZE = 10
+        let instanceProcessedSeries = 0
+
+        for (let i = 0; i < series.length; i += BATCH_SIZE) {
+          const batch = series.slice(i, i + BATCH_SIZE)
+
+          const batchPromises = batch.map(async (item) => {
+            try {
+              results.itemsProcessed++
+
+              // Extract Sonarr ID
+              const sonarrId = this.extractSonarrId(item.guids)
+              if (sonarrId === 0) {
+                return { updated: false, tagsRemoved: 0, failed: false }
+              }
+
+              // Get series details with tags
+              const seriesDetails = await service.getFromSonarr<
+                SonarrItem & { tags: number[] }
+              >(`series/${sonarrId}`)
+              const existingTags = seriesDetails.tags || []
+
+              // Check if this series has any of our user tags
+              const hasUserTags = existingTags.some((tagId) =>
+                userTagIds.includes(tagId),
+              )
+
+              if (!hasUserTags) {
+                return { updated: false, tagsRemoved: 0, failed: false }
+              }
+
+              // Filter out user tags
+              const newTags = existingTags.filter(
+                (tagId) => !userTagIds.includes(tagId),
+              )
+
+              const tagsRemoved = existingTags.length - newTags.length
+
+              // Update the series tags
+              await service.updateSeriesTags(sonarrId, newTags)
+
+              return { updated: true, tagsRemoved, failed: false }
+            } catch (error) {
+              this.log.error(
+                `Error removing tags from series "${item.title}":`,
+                error,
+              )
+              return { updated: false, tagsRemoved: 0, failed: true }
+            }
+          })
+
+          // Wait for batch to complete
+          const batchResults = await Promise.all(batchPromises)
+
+          // Update counts
+          for (const result of batchResults) {
+            if (result.updated) results.itemsUpdated++
+            if (result.tagsRemoved) results.tagsRemoved += result.tagsRemoved
+            if (result.failed) results.failed++
           }
 
-          if (emitProgress) {
-            const instanceProgress =
-              5 + Math.floor((instancesProcessed / sonarrInstances.length) * 30)
-            this.emitProgress({
-              operationId,
-              type: 'sonarr-tag-removal',
-              phase: 'processing-instance',
-              progress: instanceProgress,
-              message: `Processing Sonarr instance ${instance.name} (${instancesProcessed + 1}/${sonarrInstances.length})`,
-            })
-          }
+          // Update progress
+          instanceProcessedSeries += batch.length
+          totalProcessedSeries += batch.length
 
-          // Get all tags from this instance
-          const tags = await sonarrService.getTags()
-
-          // Find all user tags (those with our prefix)
-          const userTags = tags.filter((tag) => this.isAppUserTag(tag.label))
-
-          if (userTags.length === 0) {
-            this.log.info(
-              `No user tags found in Sonarr instance ${instance.name}, skipping`,
-            )
-            instancesProcessed++
-            continue
-          }
-
-          this.log.info(
-            `Found ${userTags.length} user tags in Sonarr instance ${instance.name}`,
-          )
-
-          // Extract the IDs of user tags
-          const userTagIds = userTags.map((tag) => tag.id)
-
-          // Get all series to check for these tags
-          const allSeries = await sonarrService.fetchSeries(true)
-          this.log.info(
-            `Processing ${Array.from(allSeries).length} series in Sonarr instance ${instance.name} for tag removal`,
-          )
-
-          if (emitProgress) {
-            const instanceBaseProgress =
-              35 +
-              Math.floor((instancesProcessed / sonarrInstances.length) * 30)
+          if (emitProgress && totalSeries > 0) {
+            const progress =
+              5 + Math.floor((totalProcessedSeries / totalSeries) * 85)
             this.emitProgress({
               operationId,
               type: 'sonarr-tag-removal',
               phase: 'processing-series',
-              progress: instanceBaseProgress,
-              message: `Processing ${Array.from(allSeries).length} series in Sonarr instance ${instance.name}`,
+              progress: progress,
+              message: `Processed ${instanceProcessedSeries}/${series.length} series in ${instance.name} (${totalProcessedSeries}/${totalSeries} total)`,
+            })
+          }
+        }
+
+        // Delete tag definitions if requested
+        if (deleteTagDefinitions && userTags.length > 0) {
+          if (emitProgress) {
+            this.emitProgress({
+              operationId,
+              type: 'sonarr-tag-removal',
+              phase: 'deleting-tags',
+              progress: 90,
+              message: `Deleting ${userTags.length} tag definitions from Sonarr instance ${instance.name}`,
             })
           }
 
-          let instanceUpdatedCount = 0
-          let instanceTagsRemovedCount = 0
-
-          // Process series in batches
-          const BATCH_SIZE = 10
-          let processedCount = 0
-
-          for (let i = 0; i < Array.from(allSeries).length; i += BATCH_SIZE) {
-            const batch = Array.from(allSeries).slice(i, i + BATCH_SIZE)
-            const batchPromises = batch.map(async (series) => {
-              try {
-                results.itemsProcessed++
-
-                // Extract Sonarr ID
-                const sonarrId = this.extractSonarrId(series.guids)
-                if (sonarrId === 0) {
-                  return { updated: false, tagsRemoved: 0, failed: false }
-                }
-
-                // Get series details with tags
-                const seriesDetails = await sonarrService.getFromSonarr<
-                  SonarrItem & { tags: number[] }
-                >(`series/${sonarrId}`)
-                const existingTags = seriesDetails.tags || []
-
-                // Check if this series has any of our user tags
-                const hasUserTags = existingTags.some((tagId) =>
-                  userTagIds.includes(tagId),
-                )
-
-                if (!hasUserTags) {
-                  return { updated: false, tagsRemoved: 0, failed: false }
-                }
-
-                // Filter out user tags
-                const newTags = existingTags.filter(
-                  (tagId) => !userTagIds.includes(tagId),
-                )
-
-                const tagsRemoved = existingTags.length - newTags.length
-
-                // Update the series tags
-                await sonarrService.updateSeriesTags(sonarrId, newTags)
-                this.log.debug(
-                  `Removed ${tagsRemoved} user tags from series "${series.title}"`,
-                )
-
-                return { updated: true, tagsRemoved, failed: false }
-              } catch (error) {
-                this.log.error(
-                  `Error removing tags from series "${series.title}":`,
-                  error,
-                )
-                return { updated: false, tagsRemoved: 0, failed: true }
-              }
-            })
-
-            // Wait for batch to complete
-            const batchResults = await Promise.all(batchPromises)
-
-            // Update counts
-            for (const result of batchResults) {
-              if (result.updated) {
-                results.itemsUpdated++
-                instanceUpdatedCount++
-              }
-              if (result.tagsRemoved > 0) {
-                results.tagsRemoved += result.tagsRemoved
-                instanceTagsRemovedCount += result.tagsRemoved
-              }
-              if (result.failed) {
-                results.failed++
-              }
-            }
-
-            processedCount += batch.length
-
-            if (emitProgress && Array.from(allSeries).length > 0) {
-              const instanceBaseProgress =
-                35 +
-                Math.floor((instancesProcessed / sonarrInstances.length) * 30)
-              const seriesProgress = Math.floor(
-                (processedCount / Array.from(allSeries).length) * 15,
-              )
-              this.emitProgress({
-                operationId,
-                type: 'sonarr-tag-removal',
-                phase: 'processing-series',
-                progress: instanceBaseProgress + seriesProgress,
-                message: `Processed ${processedCount}/${Array.from(allSeries).length} series in Sonarr instance ${instance.name}`,
-              })
-            }
-
-            // Log progress periodically
-            if (
-              processedCount % 50 === 0 ||
-              processedCount === Array.from(allSeries).length
-            ) {
-              this.log.info(
-                `Processed ${processedCount}/${Array.from(allSeries).length} series for tag removal in Sonarr instance ${instance.name}`,
+          // Process tag deletions
+          for (const tag of userTags) {
+            try {
+              await service.deleteTag(tag.id)
+              results.tagsDeleted++
+            } catch (error) {
+              this.log.error(
+                `Error deleting tag ID ${tag.id} from Sonarr:`,
+                error,
               )
             }
           }
-
-          this.log.info(
-            `Completed tag removal for Sonarr instance ${instance.name}: ` +
-              `updated ${instanceUpdatedCount} series, removed ${instanceTagsRemovedCount} tags`,
-          )
-
-          // Delete tag definitions if requested
-          if (deleteTagDefinitions && userTags.length > 0) {
-            if (emitProgress) {
-              const instanceBaseProgress =
-                65 +
-                Math.floor((instancesProcessed / sonarrInstances.length) * 30)
-              this.emitProgress({
-                operationId,
-                type: 'sonarr-tag-removal',
-                phase: 'deleting-tags',
-                progress: instanceBaseProgress,
-                message: `Deleting ${userTags.length} tag definitions from Sonarr instance ${instance.name}`,
-              })
-            }
-
-            // Process tag deletions in batches
-            const TAG_BATCH_SIZE = 5
-            let deletedCount = 0
-
-            for (let i = 0; i < userTags.length; i += TAG_BATCH_SIZE) {
-              const tagBatch = userTags.slice(i, i + TAG_BATCH_SIZE)
-              const tagPromises = tagBatch.map(async (tag) => {
-                try {
-                  await sonarrService.deleteTag(tag.id)
-                  return true
-                } catch (error) {
-                  this.log.error(
-                    `Error deleting tag ID ${tag.id} from Sonarr:`,
-                    error,
-                  )
-                  return false
-                }
-              })
-
-              const deleteResults = await Promise.all(tagPromises)
-              deletedCount += deleteResults.filter(Boolean).length
-
-              if (emitProgress) {
-                const tagBaseProgress =
-                  65 +
-                  Math.floor((instancesProcessed / sonarrInstances.length) * 30)
-                const tagProgress = Math.floor(
-                  (deletedCount / userTags.length) * 5,
-                )
-                this.emitProgress({
-                  operationId,
-                  type: 'sonarr-tag-removal',
-                  phase: 'deleting-tags',
-                  progress: tagBaseProgress + tagProgress,
-                  message: `Deleted ${deletedCount}/${userTags.length} tag definitions from Sonarr instance ${instance.name}`,
-                })
-              }
-            }
-
-            results.tagsDeleted += deletedCount
-            this.log.info(
-              `Deleted ${deletedCount} user tag definitions from Sonarr instance ${instance.name}`,
-            )
-          }
-
-          instancesProcessed++
-        } catch (instanceError) {
-          this.log.error(
-            `Error processing Sonarr instance ${instance.name} for tag removal:`,
-            instanceError,
-          )
-          instancesProcessed++
         }
       }
 
@@ -1581,268 +1292,169 @@ export class UserTagService {
           operationId,
           type: 'radarr-tag-removal',
           phase: 'start',
-          progress: 0,
+          progress: 5,
           message: 'Starting Radarr user tag removal...',
         })
       }
 
-      // Process each Radarr instance
+      // Get total movies count and collect user tags across all instances
       const radarrManager = this.fastify.radarrManager
       const radarrInstances = await radarrManager.getAllInstances()
       results.instances = radarrInstances.length
 
-      if (emitProgress) {
-        this.emitProgress({
-          operationId,
-          type: 'radarr-tag-removal',
-          phase: 'processing',
-          progress: 5,
-          message: `Processing ${radarrInstances.length} Radarr instances for tag removal`,
-        })
-      }
+      // Collect all the movies and tags data first
+      const instancesData = await Promise.all(
+        radarrInstances.map(async (instance) => {
+          try {
+            const radarrService = radarrManager.getRadarrService(instance.id)
+            if (!radarrService) return null
 
-      let instancesProcessed = 0
+            const tags = await radarrService.getTags()
+            const userTags = tags.filter((tag) => this.isAppUserTag(tag.label))
 
-      for (const instance of radarrInstances) {
-        try {
-          const radarrService = radarrManager.getRadarrService(instance.id)
+            if (userTags.length === 0) return null
 
-          if (!radarrService) {
-            this.log.warn(
-              `Radarr service for instance ${instance.name} not found, skipping tag removal`,
+            const allMovies = await radarrService.fetchMovies(true)
+
+            return {
+              instance,
+              service: radarrService,
+              userTags,
+              movies: Array.from(allMovies),
+              userTagIds: userTags.map((tag) => tag.id),
+            }
+          } catch (error) {
+            this.log.error(
+              `Error collecting data from instance ${instance.name}:`,
+              error,
             )
-            instancesProcessed++
-            continue
+            return null
+          }
+        }),
+      )
+
+      // Filter out null entries
+      const validInstancesData = instancesData.filter((data) => data !== null)
+
+      // Calculate total movies to process for progress reporting
+      const totalMovies = validInstancesData.reduce(
+        (sum, data) => sum + data.movies.length,
+        0,
+      )
+
+      let totalProcessedMovies = 0
+
+      // Process each instance
+      for (const instanceData of validInstancesData) {
+        const { instance, service, userTags, movies, userTagIds } = instanceData
+
+        this.log.info(
+          `Processing ${movies.length} movies in Radarr instance ${instance.name} for tag removal`,
+        )
+
+        // Process in batches
+        const BATCH_SIZE = 10
+        let instanceProcessedMovies = 0
+
+        for (let i = 0; i < movies.length; i += BATCH_SIZE) {
+          const batch = movies.slice(i, i + BATCH_SIZE)
+
+          const batchPromises = batch.map(async (item) => {
+            try {
+              results.itemsProcessed++
+
+              // Extract Radarr ID
+              const radarrId = this.extractRadarrId(item.guids)
+              if (radarrId === 0) {
+                return { updated: false, tagsRemoved: 0, failed: false }
+              }
+
+              // Get movie details with tags
+              const movieDetails = await service.getFromRadarr<
+                RadarrItem & { tags: number[] }
+              >(`movie/${radarrId}`)
+              const existingTags = movieDetails.tags || []
+
+              // Check if this movie has any of our user tags
+              const hasUserTags = existingTags.some((tagId) =>
+                userTagIds.includes(tagId),
+              )
+
+              if (!hasUserTags) {
+                return { updated: false, tagsRemoved: 0, failed: false }
+              }
+
+              // Filter out user tags
+              const newTags = existingTags.filter(
+                (tagId) => !userTagIds.includes(tagId),
+              )
+
+              const tagsRemoved = existingTags.length - newTags.length
+
+              // Update the movie tags
+              await service.updateMovieTags(radarrId, newTags)
+
+              return { updated: true, tagsRemoved, failed: false }
+            } catch (error) {
+              this.log.error(
+                `Error removing tags from movie "${item.title}":`,
+                error,
+              )
+              return { updated: false, tagsRemoved: 0, failed: true }
+            }
+          })
+
+          // Wait for batch to complete
+          const batchResults = await Promise.all(batchPromises)
+
+          // Update counts
+          for (const result of batchResults) {
+            if (result.updated) results.itemsUpdated++
+            if (result.tagsRemoved) results.tagsRemoved += result.tagsRemoved
+            if (result.failed) results.failed++
           }
 
-          if (emitProgress) {
-            const instanceProgress =
-              5 + Math.floor((instancesProcessed / radarrInstances.length) * 30)
-            this.emitProgress({
-              operationId,
-              type: 'radarr-tag-removal',
-              phase: 'processing-instance',
-              progress: instanceProgress,
-              message: `Processing Radarr instance ${instance.name} (${instancesProcessed + 1}/${radarrInstances.length})`,
-            })
-          }
+          // Update progress
+          instanceProcessedMovies += batch.length
+          totalProcessedMovies += batch.length
 
-          // Get all tags from this instance
-          const tags = await radarrService.getTags()
-
-          // Find all user tags (those with our prefix)
-          const userTags = tags.filter((tag) => this.isAppUserTag(tag.label))
-
-          if (userTags.length === 0) {
-            this.log.info(
-              `No user tags found in Radarr instance ${instance.name}, skipping`,
-            )
-            instancesProcessed++
-            continue
-          }
-
-          this.log.info(
-            `Found ${userTags.length} user tags in Radarr instance ${instance.name}`,
-          )
-
-          // Extract the IDs of user tags
-          const userTagIds = userTags.map((tag) => tag.id)
-
-          // Get all movies to check for these tags
-          const allMovies = await radarrService.fetchMovies(true)
-          this.log.info(
-            `Processing ${Array.from(allMovies).length} movies in Radarr instance ${instance.name} for tag removal`,
-          )
-
-          if (emitProgress) {
-            const instanceBaseProgress =
-              35 +
-              Math.floor((instancesProcessed / radarrInstances.length) * 30)
+          if (emitProgress && totalMovies > 0) {
+            const progress =
+              5 + Math.floor((totalProcessedMovies / totalMovies) * 85)
             this.emitProgress({
               operationId,
               type: 'radarr-tag-removal',
               phase: 'processing-movies',
-              progress: instanceBaseProgress,
-              message: `Processing ${Array.from(allMovies).length} movies in Radarr instance ${instance.name}`,
+              progress: progress,
+              message: `Processed ${instanceProcessedMovies}/${movies.length} movies in ${instance.name} (${totalProcessedMovies}/${totalMovies} total)`,
+            })
+          }
+        }
+
+        // Delete tag definitions if requested
+        if (deleteTagDefinitions && userTags.length > 0) {
+          if (emitProgress) {
+            this.emitProgress({
+              operationId,
+              type: 'radarr-tag-removal',
+              phase: 'deleting-tags',
+              progress: 90,
+              message: `Deleting ${userTags.length} tag definitions from Radarr instance ${instance.name}`,
             })
           }
 
-          let instanceUpdatedCount = 0
-          let instanceTagsRemovedCount = 0
-
-          // Process movies in batches
-          const BATCH_SIZE = 10
-          let processedCount = 0
-
-          for (let i = 0; i < Array.from(allMovies).length; i += BATCH_SIZE) {
-            const batch = Array.from(allMovies).slice(i, i + BATCH_SIZE)
-            const batchPromises = batch.map(async (movie) => {
-              try {
-                results.itemsProcessed++
-
-                // Extract Radarr ID
-                const radarrId = this.extractRadarrId(movie.guids)
-                if (radarrId === 0) {
-                  return { updated: false, tagsRemoved: 0, failed: false }
-                }
-
-                // Get movie details with tags
-                const movieDetails = await radarrService.getFromRadarr<
-                  RadarrItem & { tags: number[] }
-                >(`movie/${radarrId}`)
-                const existingTags = movieDetails.tags || []
-
-                // Check if this movie has any of our user tags
-                const hasUserTags = existingTags.some((tagId) =>
-                  userTagIds.includes(tagId),
-                )
-
-                if (!hasUserTags) {
-                  return { updated: false, tagsRemoved: 0, failed: false }
-                }
-
-                // Filter out user tags
-                const newTags = existingTags.filter(
-                  (tagId) => !userTagIds.includes(tagId),
-                )
-
-                const tagsRemoved = existingTags.length - newTags.length
-
-                // Update the movie tags
-                await radarrService.updateMovieTags(radarrId, newTags)
-                this.log.debug(
-                  `Removed ${tagsRemoved} user tags from movie "${movie.title}"`,
-                )
-
-                return { updated: true, tagsRemoved, failed: false }
-              } catch (error) {
-                this.log.error(
-                  `Error removing tags from movie "${movie.title}":`,
-                  error,
-                )
-                return { updated: false, tagsRemoved: 0, failed: true }
-              }
-            })
-
-            // Wait for batch to complete
-            const batchResults = await Promise.all(batchPromises)
-
-            // Update counts
-            for (const result of batchResults) {
-              if (result.updated) {
-                results.itemsUpdated++
-                instanceUpdatedCount++
-              }
-              if (result.tagsRemoved > 0) {
-                results.tagsRemoved += result.tagsRemoved
-                instanceTagsRemovedCount += result.tagsRemoved
-              }
-              if (result.failed) {
-                results.failed++
-              }
-            }
-
-            processedCount += batch.length
-
-            if (emitProgress && Array.from(allMovies).length > 0) {
-              const instanceBaseProgress =
-                35 +
-                Math.floor((instancesProcessed / radarrInstances.length) * 30)
-              const moviesProgress = Math.floor(
-                (processedCount / Array.from(allMovies).length) * 15,
-              )
-              this.emitProgress({
-                operationId,
-                type: 'radarr-tag-removal',
-                phase: 'processing-movies',
-                progress: instanceBaseProgress + moviesProgress,
-                message: `Processed ${processedCount}/${Array.from(allMovies).length} movies in Radarr instance ${instance.name}`,
-              })
-            }
-
-            // Log progress periodically
-            if (
-              processedCount % 50 === 0 ||
-              processedCount === Array.from(allMovies).length
-            ) {
-              this.log.info(
-                `Processed ${processedCount}/${Array.from(allMovies).length} movies for tag removal in Radarr instance ${instance.name}`,
+          // Process tag deletions
+          for (const tag of userTags) {
+            try {
+              await service.deleteTag(tag.id)
+              results.tagsDeleted++
+            } catch (error) {
+              this.log.error(
+                `Error deleting tag ID ${tag.id} from Radarr:`,
+                error,
               )
             }
           }
-
-          this.log.info(
-            `Completed tag removal for Radarr instance ${instance.name}: ` +
-              `updated ${instanceUpdatedCount} movies, removed ${instanceTagsRemovedCount} tags`,
-          )
-
-          // Delete tag definitions if requested
-          if (deleteTagDefinitions && userTags.length > 0) {
-            if (emitProgress) {
-              const instanceBaseProgress =
-                65 +
-                Math.floor((instancesProcessed / radarrInstances.length) * 30)
-              this.emitProgress({
-                operationId,
-                type: 'radarr-tag-removal',
-                phase: 'deleting-tags',
-                progress: instanceBaseProgress,
-                message: `Deleting ${userTags.length} tag definitions from Radarr instance ${instance.name}`,
-              })
-            }
-
-            // Process tag deletions in batches
-            const TAG_BATCH_SIZE = 5
-            let deletedCount = 0
-
-            for (let i = 0; i < userTags.length; i += TAG_BATCH_SIZE) {
-              const tagBatch = userTags.slice(i, i + TAG_BATCH_SIZE)
-              const tagPromises = tagBatch.map(async (tag) => {
-                try {
-                  await radarrService.deleteTag(tag.id)
-                  return true
-                } catch (error) {
-                  this.log.error(
-                    `Error deleting tag ID ${tag.id} from Radarr:`,
-                    error,
-                  )
-                  return false
-                }
-              })
-
-              const deleteResults = await Promise.all(tagPromises)
-              deletedCount += deleteResults.filter(Boolean).length
-
-              if (emitProgress) {
-                const tagBaseProgress =
-                  65 +
-                  Math.floor((instancesProcessed / radarrInstances.length) * 30)
-                const tagProgress = Math.floor(
-                  (deletedCount / userTags.length) * 5,
-                )
-                this.emitProgress({
-                  operationId,
-                  type: 'radarr-tag-removal',
-                  phase: 'deleting-tags',
-                  progress: tagBaseProgress + tagProgress,
-                  message: `Deleted ${deletedCount}/${userTags.length} tag definitions from Radarr instance ${instance.name}`,
-                })
-              }
-            }
-
-            results.tagsDeleted += deletedCount
-            this.log.info(
-              `Deleted ${deletedCount} user tag definitions from Radarr instance ${instance.name}`,
-            )
-          }
-
-          instancesProcessed++
-        } catch (instanceError) {
-          this.log.error(
-            `Error processing Radarr instance ${instance.name} for tag removal:`,
-            instanceError,
-          )
-          instancesProcessed++
         }
       }
 

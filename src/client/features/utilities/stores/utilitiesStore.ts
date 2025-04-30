@@ -10,11 +10,15 @@ import type {
   CreateTaggingResponseSchema,
   SyncTaggingResponseSchema,
   CleanupResponseSchema,
+  RemoveTagsResponseSchema,
 } from '@root/schemas/tags/user-tags.schema'
 import type { z } from 'zod'
 
 // Single type alias needed for the function parameter
 type TaggingConfig = z.infer<typeof TaggingConfigSchema>
+
+// Use the existing schema type for the return type
+export type TagRemovalResult = z.infer<typeof RemoveTagsResponseSchema>
 
 // Minimum loading delay for consistent UX
 const MIN_LOADING_DELAY = 500
@@ -23,25 +27,7 @@ export interface UtilitiesState {
   schedules: JobStatus[] | null
   deleteSyncDryRunResults: DeleteSyncResult | null
   isLoadingRef: boolean
-  removeTagsResults: {
-    sonarr: {
-      itemsProcessed: number
-      itemsUpdated: number
-      tagsRemoved: number
-      tagsDeleted: number
-      failed: number
-      instances: number
-    }
-    radarr: {
-      itemsProcessed: number
-      itemsUpdated: number
-      tagsRemoved: number
-      tagsDeleted: number
-      failed: number
-      instances: number
-    }
-    message?: string
-  } | null
+  removeTagsResults: TagRemovalResult | null
   showDeleteTagsConfirmation: boolean
   loading: {
     schedules: boolean
@@ -90,7 +76,7 @@ export interface UtilitiesState {
   syncUserTags: () => Promise<z.infer<typeof SyncTaggingResponseSchema>>
   cleanupUserTags: () => Promise<z.infer<typeof CleanupResponseSchema>>
   setShowDeleteTagsConfirmation: (show: boolean) => void
-  removeUserTags: (deleteTagDefinitions: boolean) => Promise<any>
+  removeUserTags: (deleteTagDefinitions: boolean) => Promise<TagRemovalResult>
 }
 
 export const useUtilitiesStore = create<UtilitiesState>()(
@@ -222,8 +208,10 @@ export const useUtilitiesStore = create<UtilitiesState>()(
       set({ showDeleteTagsConfirmation: show })
     },
 
-    // Remove user tags
-    removeUserTags: async (deleteTagDefinitions: boolean) => {
+    // Remove user tags with proper typing using the imported schema
+    removeUserTags: async (
+      deleteTagDefinitions: boolean,
+    ): Promise<TagRemovalResult> => {
       set((state) => ({
         ...state,
         loading: { ...state.loading, removeUserTags: true },
@@ -256,7 +244,7 @@ export const useUtilitiesStore = create<UtilitiesState>()(
           throw new Error(errorData.error || 'Failed to remove user tags')
         }
 
-        const data = await response.json()
+        const data: TagRemovalResult = await response.json()
 
         // Store the results
         set((state) => ({
