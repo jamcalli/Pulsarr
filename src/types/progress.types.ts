@@ -7,7 +7,14 @@ export type ProgressMetadata = WorkflowMetadata | Record<string, never>
 
 export interface ProgressEvent {
   operationId: string
-  type: 'self-watchlist' | 'others-watchlist' | 'rss-feed' | 'system' | 'sync' | 'tagging' | 'tag-removal'
+  type:
+    | 'self-watchlist'
+    | 'others-watchlist'
+    | 'rss-feed'
+    | 'system'
+    | 'sync'
+    | 'tagging'
+    | 'tag-removal'
   phase: string
   progress: number
   message: string
