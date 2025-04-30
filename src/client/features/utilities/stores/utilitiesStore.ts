@@ -23,6 +23,26 @@ export interface UtilitiesState {
   schedules: JobStatus[] | null
   deleteSyncDryRunResults: DeleteSyncResult | null
   isLoadingRef: boolean
+  removeTagsResults: {
+    sonarr: {
+      itemsProcessed: number
+      itemsUpdated: number
+      tagsRemoved: number
+      tagsDeleted: number
+      failed: number
+      instances: number
+    }
+    radarr: {
+      itemsProcessed: number
+      itemsUpdated: number
+      tagsRemoved: number
+      tagsDeleted: number
+      failed: number
+      instances: number
+    }
+    message?: string
+  } | null
+  showDeleteTagsConfirmation: boolean
   loading: {
     schedules: boolean
     deleteSyncDryRun: boolean
@@ -33,6 +53,7 @@ export interface UtilitiesState {
     createUserTags: boolean
     syncUserTags: boolean
     cleanupUserTags: boolean
+    removeUserTags: boolean
   }
   error: {
     schedules: string | null
@@ -44,6 +65,7 @@ export interface UtilitiesState {
     createUserTags: string | null
     syncUserTags: string | null
     cleanupUserTags: string | null
+    removeUserTags: string | null
   }
   hasLoadedSchedules: boolean
 
@@ -67,6 +89,8 @@ export interface UtilitiesState {
   createUserTags: () => Promise<z.infer<typeof CreateTaggingResponseSchema>>
   syncUserTags: () => Promise<z.infer<typeof SyncTaggingResponseSchema>>
   cleanupUserTags: () => Promise<z.infer<typeof CleanupResponseSchema>>
+  setShowDeleteTagsConfirmation: (show: boolean) => void
+  removeUserTags: (deleteTagDefinitions: boolean) => Promise<any>
 }
 
 export const useUtilitiesStore = create<UtilitiesState>()(
@@ -75,6 +99,8 @@ export const useUtilitiesStore = create<UtilitiesState>()(
     deleteSyncDryRunResults: null,
     hasLoadedSchedules: false,
     isLoadingRef: false,
+    removeTagsResults: null,
+    showDeleteTagsConfirmation: false,
     loading: {
       schedules: false,
       deleteSyncDryRun: false,
@@ -85,6 +111,7 @@ export const useUtilitiesStore = create<UtilitiesState>()(
       createUserTags: false,
       syncUserTags: false,
       cleanupUserTags: false,
+      removeUserTags: false,
     },
     error: {
       schedules: null,
@@ -96,6 +123,7 @@ export const useUtilitiesStore = create<UtilitiesState>()(
       createUserTags: null,
       syncUserTags: null,
       cleanupUserTags: null,
+      removeUserTags: null,
     },
 
     // Loading state management that mimics your pattern in other components
@@ -132,6 +160,7 @@ export const useUtilitiesStore = create<UtilitiesState>()(
           createUserTags: null,
           syncUserTags: null,
           cleanupUserTags: null,
+          removeUserTags: null,
         },
       }))
     },
@@ -186,6 +215,69 @@ export const useUtilitiesStore = create<UtilitiesState>()(
             schedules: err instanceof Error ? err.message : 'Unknown error',
           },
         }))
+      }
+    },
+
+    setShowDeleteTagsConfirmation: (show: boolean) => {
+      set({ showDeleteTagsConfirmation: show })
+    },
+
+    // Remove user tags
+    removeUserTags: async (deleteTagDefinitions: boolean) => {
+      set((state) => ({
+        ...state,
+        loading: { ...state.loading, removeUserTags: true },
+        error: { ...state.error, removeUserTags: null },
+      }))
+
+      try {
+        // Create a minimum loading time promise
+        const minimumLoadingTime = new Promise((resolve) =>
+          setTimeout(resolve, MIN_LOADING_DELAY),
+        )
+
+        // Execute fetch
+        const responsePromise = fetch('/v1/tags/remove', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ deleteTagDefinitions }),
+        })
+
+        // Wait for both the response and the minimum loading time
+        const [response] = await Promise.all([
+          responsePromise,
+          minimumLoadingTime,
+        ])
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Failed to remove user tags')
+        }
+
+        const data = await response.json()
+
+        // Store the results
+        set((state) => ({
+          ...state,
+          removeTagsResults: data,
+          loading: { ...state.loading, removeUserTags: false },
+        }))
+
+        return data
+      } catch (err) {
+        console.error('Error removing user tags:', err)
+        set((state) => ({
+          ...state,
+          loading: { ...state.loading, removeUserTags: false },
+          error: {
+            ...state.error,
+            removeUserTags:
+              err instanceof Error ? err.message : 'Failed to remove user tags',
+          },
+        }))
+        throw err
       }
     },
 
