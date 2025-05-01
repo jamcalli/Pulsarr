@@ -22,7 +22,12 @@ type ActionResult =
   | z.infer<typeof CleanupResponseSchema>
   | z.infer<typeof RemoveTagsResponseSchema>
 
-// Type guard functions
+/**
+ * Determines if the given action result is a create tag response.
+ *
+ * @param response - The action result to check.
+ * @returns True if {@link response} is a create tag response; otherwise, false.
+ */
 export function isCreateTagResponse(
   response: ActionResult,
 ): response is z.infer<typeof CreateTaggingResponseSchema> {
@@ -31,12 +36,24 @@ export function isCreateTagResponse(
   )
 }
 
+/**
+ * Determines whether the given action result is a sync tagging response.
+ *
+ * @param response - The action result to check.
+ * @returns True if {@link response} is a sync tagging response; otherwise, false.
+ */
 export function isSyncTagResponse(
   response: ActionResult,
 ): response is z.infer<typeof SyncTaggingResponseSchema> {
   return (response as z.infer<typeof SyncTaggingResponseSchema>).mode === 'sync'
 }
 
+/**
+ * Determines if the given action result is a cleanup tag response.
+ *
+ * @param response - The action result to check.
+ * @returns True if {@link response} matches the structure of a cleanup tag response; otherwise, false.
+ */
 export function isCleanupTagResponse(
   response: ActionResult,
 ): response is z.infer<typeof CleanupResponseSchema> {
@@ -48,6 +65,12 @@ export function isCleanupTagResponse(
   )
 }
 
+/**
+ * Determines whether the given action result is a remove tags response.
+ *
+ * @param response - The action result to check.
+ * @returns True if the response represents a remove tags operation; otherwise, false.
+ */
 export function isRemoveTagsResponse(
   response: ActionResult,
 ): response is z.infer<typeof RemoveTagsResponseSchema> {
@@ -57,10 +80,11 @@ export function isRemoveTagsResponse(
 }
 
 /**
- * Custom React hook for managing user tagging configuration and operations.
+ * React hook for managing user tagging configuration and related operations for Sonarr and Radarr.
  *
- * This hook integrates with the utilities store to manage state and API calls
- * for user tag operations across Sonarr and Radarr instances.
+ * Provides form state and handlers for fetching, updating, creating, syncing, cleaning up, and removing user tags, integrating with the utilities store and form validation.
+ *
+ * @returns An object containing form instance, loading and error states, last results, and action handlers for user tag management.
  */
 export function useUserTags() {
   const { toast } = useToast()
