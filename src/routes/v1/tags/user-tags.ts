@@ -82,7 +82,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             throw reply.badRequest('Tag prefix cannot be empty')
           }
 
-          // Updated regex to allow colons and dots in addition to letters, numbers, underscores, and hyphens
+          // Validate tag prefix format
           if (!/^[a-zA-Z0-9_\-:.]+$/.test(configUpdate.tagPrefix)) {
             throw reply.badRequest(
               'Tag prefix can only contain letters, numbers, underscores, hyphens, colons, and dots',
@@ -90,7 +90,14 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           }
         }
 
-        // First update the runtime config - if this fails, we won't update the DB
+        // Store current runtime values for revert if needed
+        const originalRuntimeValues = { ...configUpdate }
+        for (const key of Object.keys(originalRuntimeValues)) {
+          // biome-ignore lint/suspicious/noExplicitAny: This is a necessary type assertion for dynamic property access
+          ;(originalRuntimeValues as any)[key] = (fastify.config as any)[key]
+        }
+
+        // Update runtime config
         try {
           await fastify.updateConfig(configUpdate)
         } catch (configUpdateError) {
@@ -98,16 +105,12 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw reply.badRequest('Failed to update runtime configuration')
         }
 
-        // Now update the database since runtime config was successful
+        // Update the database
         const dbUpdated = await fastify.db.updateConfig(1, configUpdate)
         if (!dbUpdated) {
-          // Attempt to revert runtime config since DB update failed
+          // Revert runtime config using stored values
           try {
-            // Get the original config to revert to
-            const originalConfig = await fastify.db.getConfig(1)
-            if (originalConfig) {
-              await fastify.updateConfig(originalConfig)
-            }
+            await fastify.updateConfig(originalRuntimeValues)
           } catch (revertError) {
             fastify.log.error('Failed to revert runtime config:', revertError)
           }
@@ -120,7 +123,6 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw reply.notFound('No configuration found after update')
         }
 
-        // Return the updated config
         return {
           success: true,
           message: 'Tagging configuration updated successfully',

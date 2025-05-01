@@ -76,7 +76,6 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         // Create a copy of the config update without the protected Apprise fields
-        // but allow systemAppriseUrl to be updated
         const { enableApprise, appriseUrl, ...safeConfigUpdate } = request.body
 
         // If someone tries to update the protected fields, log a warning
@@ -90,7 +89,14 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           )
         }
 
-        // First update the runtime config - if this fails, we won't update the DB
+        // Store current runtime values for revert if needed
+        const originalRuntimeValues = { ...safeConfigUpdate }
+        for (const key of Object.keys(originalRuntimeValues)) {
+          // biome-ignore lint/suspicious/noExplicitAny: This is a necessary type assertion for dynamic property access
+          ;(originalRuntimeValues as any)[key] = (fastify.config as any)[key]
+        }
+
+        // First update the runtime config
         try {
           await fastify.updateConfig(safeConfigUpdate)
         } catch (configUpdateError) {
@@ -98,16 +104,12 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw reply.badRequest('Failed to update runtime configuration')
         }
 
-        // Now update the database since runtime config was successful
+        // Now update the database
         const dbUpdated = await fastify.db.updateConfig(1, safeConfigUpdate)
         if (!dbUpdated) {
-          // Attempt to revert runtime config since DB update failed
+          // Revert runtime config using stored values
           try {
-            // Get the original config to revert to
-            const originalConfig = await fastify.db.getConfig(1)
-            if (originalConfig) {
-              await fastify.updateConfig(originalConfig)
-            }
+            await fastify.updateConfig(originalRuntimeValues)
           } catch (revertError) {
             fastify.log.error('Failed to revert runtime config:', revertError)
           }
@@ -119,9 +121,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw reply.notFound('No configuration found after update')
         }
 
-        // For the response, merge the saved DB config with the runtime Apprise settings
-        // We use fastify.config for the protected apprise settings since it has the current values
-        // systemAppriseUrl comes from the database as it's allowed to be updated
+        // Merge saved DB config with runtime Apprise settings
         const mergedConfig = {
           ...savedConfig,
           enableApprise: fastify.config.enableApprise,
