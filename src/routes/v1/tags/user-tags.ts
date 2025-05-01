@@ -76,25 +76,13 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         // Create a copy of the config updates
         const configUpdate = { ...request.body }
 
-        // Validate tag prefix if provided
-        if (configUpdate.tagPrefix !== undefined) {
-          if (configUpdate.tagPrefix.trim() === '') {
-            throw reply.badRequest('Tag prefix cannot be empty')
-          }
-
-          // Validate tag prefix format
-          if (!/^[a-zA-Z0-9_\-:.]+$/.test(configUpdate.tagPrefix)) {
-            throw reply.badRequest(
-              'Tag prefix can only contain letters, numbers, underscores, hyphens, colons, and dots',
-            )
-          }
-        }
-
         // Store current runtime values for revert if needed
-        const originalRuntimeValues = { ...configUpdate }
-        for (const key of Object.keys(originalRuntimeValues)) {
-          // biome-ignore lint/suspicious/noExplicitAny: This is a necessary type assertion for dynamic property access
-          ;(originalRuntimeValues as any)[key] = (fastify.config as any)[key]
+        const originalRuntimeValues: Record<string, unknown> = {}
+        for (const key of Object.keys(configUpdate) as Array<
+          keyof typeof configUpdate
+        >) {
+          originalRuntimeValues[key] =
+            fastify.config[key as keyof typeof fastify.config]
         }
 
         // Update runtime config
