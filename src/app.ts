@@ -117,36 +117,58 @@ export default async function serviceApp(
   fastify.get('/', async (request, reply) => {
     // Check for existing session
     if (request.session.user) {
-      return reply.redirect('/app/dashboard')
+      // Use the in-memory config instead of querying the database
+      const hasPlexTokens = Boolean(
+        fastify.config.plexTokens &&
+          Array.isArray(fastify.config.plexTokens) &&
+          fastify.config.plexTokens.length > 0,
+      )
+      return reply.redirect(hasPlexTokens ? '/app/dashboard' : '/app/plex')
     }
 
     // Check authentication method setting
-    const { isAuthDisabled, isLocalBypass, shouldBypass } = getAuthBypassStatus(
+    const { isAuthDisabled, isLocalBypass } = getAuthBypassStatus(
       fastify,
       request,
     )
 
-    // If auth is completely disabled, go directly to dashboard
+    // CASE 1: Auth is completely disabled - no user account needed
     if (isAuthDisabled) {
       createTemporaryAdminSession(request)
-      return reply.redirect('/app/dashboard')
+
+      // Check if Plex tokens are configured
+      const hasPlexTokens = Boolean(
+        fastify.config.plexTokens &&
+          Array.isArray(fastify.config.plexTokens) &&
+          fastify.config.plexTokens.length > 0,
+      )
+
+      return reply.redirect(hasPlexTokens ? '/app/dashboard' : '/app/plex')
     }
 
-    // For local IP bypass
+    // CASE 2: Local IP bypass is active
     if (isLocalBypass) {
       const hasUsers = await fastify.db.hasAdminUsers()
 
       if (hasUsers) {
-        // Create a temporary session
+        // Create a temporary session for local IP
         createTemporaryAdminSession(request)
-        return reply.redirect('/app/dashboard')
+
+        // Check if Plex tokens are configured
+        const hasPlexTokens = Boolean(
+          fastify.config.plexTokens &&
+            Array.isArray(fastify.config.plexTokens) &&
+            fastify.config.plexTokens.length > 0,
+        )
+
+        return reply.redirect(hasPlexTokens ? '/app/dashboard' : '/app/plex')
       }
 
-      // No users exist yet, redirect to create user
+      // No users exist yet with local bypass, redirect to create user
       return reply.redirect('/app/create-user')
     }
 
-    // Normal flow - check if users exist
+    // CASE 3: Normal flow
     const hasUsers = await fastify.db.hasAdminUsers()
     return reply.redirect(hasUsers ? '/app/login' : '/app/create-user')
   })
@@ -163,42 +185,71 @@ export default async function serviceApp(
 
         const isCreateUserPage = request.url === '/app/create-user'
         const isLoginPage = request.url === '/app/login'
+        const isPlexPage = request.url === '/app/plex'
 
-        // CASE 1: Auth is completely disabled - create temp session and allow access
+        // Use the in-memory config to check if Plex tokens are configured
+        const hasPlexTokens = Boolean(
+          fastify.config.plexTokens &&
+            Array.isArray(fastify.config.plexTokens) &&
+            fastify.config.plexTokens.length > 0,
+        )
+
+        // CASE 1: Auth is completely disabled - no user account needed
         if (isAuthDisabled) {
-          if (isCreateUserPage || isLoginPage) {
-            return reply.redirect('/app/dashboard')
-          }
+          // Create temporary session
           createTemporaryAdminSession(request)
-          return // Allow access with temp session
-        }
 
-        // CASE 2: User already has a session - they can access anything except login/create
-        if (request.session.user) {
-          if (isCreateUserPage || isLoginPage) {
-            return reply.redirect('/app/dashboard')
+          // If trying to access login or create-user, redirect appropriately
+          if (isLoginPage || isCreateUserPage) {
+            return reply.redirect(
+              hasPlexTokens ? '/app/dashboard' : '/app/plex',
+            )
           }
-          return // Allow access to requested page
+
+          // Allow access to all other pages with the temp session
+          return
         }
 
-        // Check if users exist - only needed for remaining cases
+        // CASE 2: User already has a session
+        if (request.session.user) {
+          // If trying to access login or create-user, redirect appropriately
+          if (isLoginPage || isCreateUserPage) {
+            return reply.redirect(
+              hasPlexTokens ? '/app/dashboard' : '/app/plex',
+            )
+          }
+
+          // Allow access to requested page
+          return
+        }
+
+        // Check if users exist - needed for remaining cases
         const hasUsers = await fastify.db.hasAdminUsers()
 
         // CASE 3: Local IP bypass is active
         if (isLocalBypass) {
           if (hasUsers) {
-            if (isCreateUserPage || isLoginPage) {
-              return reply.redirect('/app/dashboard')
-            }
+            // Create temporary session for local users
             createTemporaryAdminSession(request)
-            return // Allow access with temp session
+
+            // If trying to access login or create-user, redirect appropriately
+            if (isLoginPage || isCreateUserPage) {
+              return reply.redirect(
+                hasPlexTokens ? '/app/dashboard' : '/app/plex',
+              )
+            }
+
+            // Allow access to all other pages with the temp session
+            return
           }
 
-          // With local bypass but no users
+          // No users exist yet with local bypass, force create-user page
           if (!isCreateUserPage) {
             return reply.redirect('/app/create-user')
           }
-          return // Allow access to create-user page
+
+          // Allow access to create-user page
+          return
         }
 
         // CASE 4: Normal auth flow - no bypassing
@@ -207,20 +258,23 @@ export default async function serviceApp(
           if (!isCreateUserPage) {
             return reply.redirect('/app/create-user')
           }
-          return // Allow access to create-user page
+
+          // Allow access to create-user page
+          return
         }
 
-        // CASE 5: Users exist, normal auth - redirect to login
-        if (!isLoginPage && !isCreateUserPage) {
-          return reply.redirect('/app/login')
-        }
-
+        // CASE 5: Users exist, normal auth flow
         // Prevent create-user access when users already exist
         if (isCreateUserPage) {
           return reply.redirect('/app/login')
         }
 
-        // Allow access to login page by default
+        // If trying to access any page other than login, redirect to login
+        if (!isLoginPage) {
+          return reply.redirect('/app/login')
+        }
+
+        // Allow access to login page
       },
     },
     (req, reply) => {
