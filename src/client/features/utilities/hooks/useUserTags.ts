@@ -94,6 +94,7 @@ export function useUserTags() {
   const [lastActionResults, setLastActionResults] =
     useState<ActionResult | null>(null)
   const hasInitializedRef = useRef(false)
+  const initialLoadRef = useRef(true)
 
   const {
     loading,
@@ -121,28 +122,37 @@ export function useUserTags() {
     },
   })
 
+  // Update form values when config data is available
+  const updateFormValues = useCallback(
+    (data: z.infer<typeof TaggingStatusResponseSchema>) => {
+      form.reset({
+        tagUsersInSonarr: data.config.tagUsersInSonarr,
+        tagUsersInRadarr: data.config.tagUsersInRadarr,
+        cleanupOrphanedTags: data.config.cleanupOrphanedTags,
+        persistHistoricalTags: data.config.persistHistoricalTags,
+        tagPrefix: data.config.tagPrefix,
+      })
+    },
+    [form],
+  )
+
   // Fetch the configuration on mount
   useEffect(() => {
     const fetchConfig = async () => {
+      if (!initialLoadRef.current) return
+
       try {
         const data = await fetchUserTagsConfig()
         setLastResults(data)
-
-        // Update form with the configuration
-        form.reset({
-          tagUsersInSonarr: data.config.tagUsersInSonarr,
-          tagUsersInRadarr: data.config.tagUsersInRadarr,
-          cleanupOrphanedTags: data.config.cleanupOrphanedTags,
-          persistHistoricalTags: data.config.persistHistoricalTags,
-          tagPrefix: data.config.tagPrefix,
-        })
+        updateFormValues(data)
+        initialLoadRef.current = false
       } catch (err) {
         // Error is already handled in the store
       }
     }
 
     fetchConfig()
-  }, [fetchUserTagsConfig, form.reset])
+  }, [fetchUserTagsConfig, updateFormValues])
 
   // Handle form submission
   const onSubmit = useCallback(
@@ -180,8 +190,10 @@ export function useUserTags() {
 
   // Handle form cancellation
   const handleCancel = useCallback(() => {
-    form.reset()
-  }, [form])
+    if (lastResults) {
+      updateFormValues(lastResults)
+    }
+  }, [lastResults, updateFormValues])
 
   // Create tags operation
   const handleCreateTags = useCallback(async () => {

@@ -98,6 +98,14 @@ export function UserTagsForm() {
   const isEnabled =
     form.watch('tagUsersInSonarr') || form.watch('tagUsersInRadarr')
 
+  // Determine if the tag prefix can be edited
+  const canEditTagPrefix =
+    isRemovingTags ||
+    !lastResults?.success ||
+    (lastRemoveResults &&
+      (lastRemoveResults.sonarr.tagsDeleted > 0 ||
+        lastRemoveResults.radarr.tagsDeleted > 0))
+
   return (
     <>
       <UserTagsDeleteConfirmationModal
@@ -235,6 +243,14 @@ export function UserTagsForm() {
                       </span>
                     </Button>
                   </div>
+
+                  {/* Notify users when they have unsaved changes */}
+                  {form.formState.isDirty && (
+                    <div className="mt-2 text-sm text-amber-600 dark:text-amber-400">
+                      You have unsaved changes. Please save your configuration
+                      before performing tag operations.
+                    </div>
+                  )}
                 </div>
 
                 <Separator />
@@ -757,29 +773,12 @@ export function UserTagsForm() {
                                 <Input
                                   {...field}
                                   placeholder="pulsarr:user"
-                                  disabled={
-                                    lastRemoveResults === null ||
-                                    (lastRemoveResults &&
-                                      !(
-                                        lastRemoveResults.sonarr.tagsDeleted >
-                                          0 ||
-                                        lastRemoveResults.radarr.tagsDeleted > 0
-                                      ))
-                                  }
+                                  disabled={!canEditTagPrefix}
                                 />
                               </FormControl>
-                              {lastRemoveResults === null && (
-                                <p className="text-xs text-gray-500 mt-1">
-                                  You must remove existing tags with "Delete Tag
-                                  Definitions" enabled before changing the
-                                  prefix.
-                                </p>
-                              )}
-                              {lastRemoveResults &&
-                                !(
-                                  lastRemoveResults.sonarr.tagsDeleted > 0 ||
-                                  lastRemoveResults.radarr.tagsDeleted > 0
-                                ) && (
+                              {lastResults?.success &&
+                                lastResults.config?.tagUsersInSonarr &&
+                                !canEditTagPrefix && (
                                   <p className="text-xs text-gray-500 mt-1">
                                     You must remove existing tags with "Delete
                                     Tag Definitions" enabled before changing the
