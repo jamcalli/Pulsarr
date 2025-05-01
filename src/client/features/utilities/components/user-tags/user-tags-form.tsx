@@ -246,7 +246,7 @@ export function UserTagsForm() {
 
                   {/* Notify users when they have unsaved changes */}
                   {form.formState.isDirty && (
-                    <div className="mt-2 text-sm text-amber-600 dark:text-amber-400">
+                    <div className="mt-2 text-sm text-error">
                       You have unsaved changes. Please save your configuration
                       before performing tag operations.
                     </div>
