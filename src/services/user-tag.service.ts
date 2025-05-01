@@ -161,11 +161,11 @@ export class UserTagService {
       }
     }
 
-    // Log summary of what we're about to do
+    // Log summary of what we're about to do (changed to DEBUG)
     if (tagsToCreate.length > 0) {
-      this.log.info(`Need to create ${tagsToCreate.length} missing user tags`)
+      this.log.debug(`Need to create ${tagsToCreate.length} missing user tags`)
     } else {
-      this.log.info(
+      this.log.debug(
         `All user tags already exist (${existingTags.length} total tags)`,
       )
     }
@@ -178,7 +178,7 @@ export class UserTagService {
         tagLabelMap.set(lowerLabel, newTag.id)
         tagIdMap.set(newTag.id, lowerLabel)
         createdCount++
-        this.log.info(
+        this.log.debug(
           `Created tag "${tagInfo.label}" with ID ${newTag.id} for user ${tagInfo.user.name}`,
         )
       } catch (error) {
@@ -390,13 +390,14 @@ export class UserTagService {
             (s) => s.sonarr_instance_id === instance.id,
           )
 
-          this.log.info(
+          // Log beginning of processing at DEBUG level
+          this.log.debug(
             `Processing ${instanceSeries.length} series in Sonarr instance ${instance.name} for user tagging`,
           )
 
           // Process series in batches
           const BATCH_SIZE = 5 // Number of items to process in parallel
-          let seriesProcessed = 0
+          const instanceResults = { tagged: 0, skipped: 0, failed: 0 }
 
           // Group the series for batch processing
           for (let i = 0; i < instanceSeries.length; i += BATCH_SIZE) {
@@ -420,7 +421,7 @@ export class UserTagService {
                 // Extract Sonarr ID
                 const sonarrId = this.extractSonarrId(show.guids)
                 if (sonarrId === 0) {
-                  this.log.warn(
+                  this.log.debug(
                     `Could not extract Sonarr ID from show "${show.title}", skipping tagging`,
                   )
                   return { tagged: false, skipped: true, failed: false }
@@ -487,21 +488,24 @@ export class UserTagService {
 
             // Update counts
             for (const result of batchResults) {
-              if (result.tagged) results.tagged++
-              if (result.skipped) results.skipped++
-              if (result.failed) results.failed++
+              if (result.tagged) {
+                instanceResults.tagged++
+                results.tagged++
+              }
+              if (result.skipped) {
+                instanceResults.skipped++
+                results.skipped++
+              }
+              if (result.failed) {
+                instanceResults.failed++
+                results.failed++
+              }
             }
-
-            seriesProcessed += batch.length
           }
 
-          this.log.info(
-            `Completed tagging for Sonarr instance ${instance.name}`,
-            {
-              tagged: results.tagged,
-              skipped: results.skipped,
-              failed: results.failed,
-            },
+          // Only log once at the end for this instance
+          this.log.debug(
+            `Completed tagging for Sonarr instance ${instance.name}: Processed ${instanceSeries.length} series (tagged: ${instanceResults.tagged}, skipped: ${instanceResults.skipped}, failed: ${instanceResults.failed})`,
           )
         } catch (instanceError) {
           this.log.error(
@@ -575,13 +579,14 @@ export class UserTagService {
             (m) => m.radarr_instance_id === instance.id,
           )
 
-          this.log.info(
+          // Log beginning of processing at DEBUG level
+          this.log.debug(
             `Processing ${instanceMovies.length} movies in Radarr instance ${instance.name} for user tagging`,
           )
 
           // Process movies in batches
           const BATCH_SIZE = 5 // Number of items to process in parallel
-          let moviesProcessed = 0
+          const instanceResults = { tagged: 0, skipped: 0, failed: 0 }
 
           // Group the movies for batch processing
           for (let i = 0; i < instanceMovies.length; i += BATCH_SIZE) {
@@ -605,7 +610,7 @@ export class UserTagService {
                 // Extract Radarr ID
                 const radarrId = this.extractRadarrId(movie.guids)
                 if (radarrId === 0) {
-                  this.log.warn(
+                  this.log.debug(
                     `Could not extract Radarr ID from movie "${movie.title}", skipping tagging`,
                   )
                   return { tagged: false, skipped: true, failed: false }
@@ -675,21 +680,24 @@ export class UserTagService {
 
             // Update counts
             for (const result of batchResults) {
-              if (result.tagged) results.tagged++
-              if (result.skipped) results.skipped++
-              if (result.failed) results.failed++
+              if (result.tagged) {
+                instanceResults.tagged++
+                results.tagged++
+              }
+              if (result.skipped) {
+                instanceResults.skipped++
+                results.skipped++
+              }
+              if (result.failed) {
+                instanceResults.failed++
+                results.failed++
+              }
             }
-
-            moviesProcessed += batch.length
           }
 
-          this.log.info(
-            `Completed tagging for Radarr instance ${instance.name}`,
-            {
-              tagged: results.tagged,
-              skipped: results.skipped,
-              failed: results.failed,
-            },
+          // Only log once at the end for this instance
+          this.log.debug(
+            `Completed tagging for Radarr instance ${instance.name}: Processed ${instanceMovies.length} movies (tagged: ${instanceResults.tagged}, skipped: ${instanceResults.skipped}, failed: ${instanceResults.failed})`,
           )
         } catch (instanceError) {
           this.log.error(
@@ -778,6 +786,11 @@ export class UserTagService {
           })
         }
       }
+
+      // Final logging summary - keep this at INFO level
+      this.log.info(
+        `Completed tagging for Sonarr instance. Sonarr: Processed ${totalSeries} series (tagged: ${results.tagged}, skipped: ${results.skipped}, failed: ${results.failed})`,
+      )
 
       if (emitProgress) {
         this.emitProgress({
@@ -880,6 +893,11 @@ export class UserTagService {
         }
       }
 
+      // Final logging summary - keep this at INFO level
+      this.log.info(
+        `Completed tagging for Radarr instance. Radarr: Processed ${totalMovies} movies (tagged: ${results.tagged}, skipped: ${results.skipped}, failed: ${results.failed})`,
+      )
+
       if (emitProgress) {
         this.emitProgress({
           operationId,
@@ -919,7 +937,7 @@ export class UserTagService {
     radarr: TaggingResults
     orphanedCleanup?: OrphanedTagCleanupResults
   }> {
-    this.log.info('Starting complete user tag synchronization in parallel')
+    this.log.info('Starting complete user tag synchronization')
 
     try {
       // Run Sonarr and Radarr tag syncs in parallel
@@ -934,16 +952,32 @@ export class UserTagService {
       if (this.cleanupOrphanedTags) {
         try {
           orphanedCleanup = await this.cleanupOrphanedUserTags()
-          this.log.info('Completed orphaned user tag cleanup', orphanedCleanup)
+          this.log.info('Completed orphaned user tag cleanup', {
+            sonarr: {
+              removed: orphanedCleanup.sonarr.removed,
+              failed: orphanedCleanup.sonarr.failed,
+            },
+            radarr: {
+              removed: orphanedCleanup.radarr.removed,
+              failed: orphanedCleanup.radarr.failed,
+            },
+          })
         } catch (cleanupError) {
           this.log.error('Error during orphaned tag cleanup:', cleanupError)
         }
       }
 
       this.log.info('User tag synchronization complete', {
-        sonarr: sonarrResults,
-        radarr: radarrResults,
-        orphanedCleanup,
+        sonarr: {
+          tagged: sonarrResults.tagged,
+          skipped: sonarrResults.skipped,
+          failed: sonarrResults.failed,
+        },
+        radarr: {
+          tagged: radarrResults.tagged,
+          skipped: radarrResults.skipped,
+          failed: radarrResults.failed,
+        },
       })
 
       return {
@@ -1554,15 +1588,21 @@ export class UserTagService {
    * @returns Formatted tag label in format "{prefix}:{name}"
    */
   private getUserTagLabel(user: { name: string }): string {
+    // Sanitize the username first
+    const sanitizedName = user.name
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9_\-:.]/g, '_') // keep safe charset
+
     // Validate the tag prefix meets our requirements (consistent with API validation)
     if (!/^[a-zA-Z0-9_\-:.]+$/.test(this.tagPrefix)) {
       this.log.warn(
         `Invalid tag prefix format: "${this.tagPrefix}". Using default "pulsarr:user" instead.`,
       )
-      return `pulsarr:user:${user.name.trim().toLowerCase()}`
+      return `pulsarr:user:${sanitizedName}`
     }
 
-    return `${this.tagPrefix}:${user.name.trim().toLowerCase()}`
+    return `${this.tagPrefix}:${sanitizedName}`
   }
 
   /**
@@ -1668,7 +1708,7 @@ export class UserTagService {
         )
 
         if (orphanedTags.length === 0) {
-          this.log.info(
+          this.log.debug(
             `No orphaned user tags found in Sonarr instance ${instance.name}`,
           )
           sonarrInstancesProcessed++
@@ -1807,7 +1847,7 @@ export class UserTagService {
         )
 
         if (orphanedTags.length === 0) {
-          this.log.info(
+          this.log.debug(
             `No orphaned user tags found in Radarr instance ${instance.name}`,
           )
           radarrInstancesProcessed++

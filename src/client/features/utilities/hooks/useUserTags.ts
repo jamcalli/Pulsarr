@@ -93,6 +93,13 @@ export function useUserTags() {
   > | null>(null)
   const [lastActionResults, setLastActionResults] =
     useState<ActionResult | null>(null)
+  const [localRemoveResults, setLocalRemoveResults] = useState<z.infer<
+    typeof RemoveTagsResponseSchema
+  > | null>(null)
+  const [tagDefinitionsDeleted, setTagDefinitionsDeleted] = useState(false)
+  // Track when tag deletion is complete
+  const [isTagDeletionComplete, setIsTagDeletionComplete] = useState(false)
+
   const hasInitializedRef = useRef(false)
   const initialLoadRef = useRef(true)
 
@@ -109,6 +116,13 @@ export function useUserTags() {
     setShowDeleteTagsConfirmation,
     removeUserTags,
   } = useUtilitiesStore()
+
+  // Update local remove results when store results change
+  useEffect(() => {
+    if (removeTagsResults) {
+      setLocalRemoveResults(removeTagsResults)
+    }
+  }, [removeTagsResults])
 
   // Initialize form with default values
   const form = useForm<UserTagsFormValues>({
@@ -146,6 +160,15 @@ export function useUserTags() {
         setLastResults(data)
         updateFormValues(data)
         initialLoadRef.current = false
+
+        // Reset tag definitions deleted state if there are active tags
+        if (
+          data.success &&
+          (data.config.tagUsersInSonarr || data.config.tagUsersInRadarr)
+        ) {
+          setTagDefinitionsDeleted(false)
+          setIsTagDeletionComplete(false)
+        }
       } catch (err) {
         // Error is already handled in the store
       }
@@ -166,6 +189,15 @@ export function useUserTags() {
 
         // Only reset the form after successful API call
         setLastResults(result)
+
+        // If we enable tagging, we can no longer edit the tag prefix
+        if (
+          result.success &&
+          (data.tagUsersInSonarr || data.tagUsersInRadarr)
+        ) {
+          setTagDefinitionsDeleted(false)
+          setIsTagDeletionComplete(false)
+        }
 
         toast({
           description:
@@ -198,6 +230,12 @@ export function useUserTags() {
   // Create tags operation
   const handleCreateTags = useCallback(async () => {
     try {
+      // Reset tag definitions deleted state when creating new tags
+      setTagDefinitionsDeleted(false)
+      setIsTagDeletionComplete(false)
+      // Clear previous remove results
+      setLocalRemoveResults(null)
+
       const result = await createUserTags()
       setLastActionResults(result)
 
@@ -213,6 +251,12 @@ export function useUserTags() {
   // Sync tags operation
   const handleSyncTags = useCallback(async () => {
     try {
+      // Reset tag definitions deleted state when syncing tags (which may create new ones)
+      setTagDefinitionsDeleted(false)
+      setIsTagDeletionComplete(false)
+      // Clear previous remove results
+      setLocalRemoveResults(null)
+
       const result = await syncUserTags()
       setLastActionResults(result)
 
@@ -228,6 +272,9 @@ export function useUserTags() {
   // Clean up orphaned tags operation
   const handleCleanupTags = useCallback(async () => {
     try {
+      // Clear previous remove results
+      setLocalRemoveResults(null)
+
       const result = await cleanupUserTags()
       setLastActionResults(result)
 
@@ -255,14 +302,31 @@ export function useUserTags() {
   const handleRemoveTags = useCallback(
     async (deleteTagDefinitions: boolean) => {
       try {
+        // Reset completion state at the start of operation
+        setIsTagDeletionComplete(false)
+
         const result = await removeUserTags(deleteTagDefinitions)
+
+        // Set the local remove results
+        setLocalRemoveResults(result)
+
+        // Only if delete tag definitions was selected and operation is complete
+        if (deleteTagDefinitions && !loading.removeUserTags) {
+          setIsTagDeletionComplete(true)
+          setTagDefinitionsDeleted(true)
+        } else {
+          setTagDefinitionsDeleted(false)
+        }
 
         toast({
           description: result.message || 'User tags removed successfully',
           variant: 'default',
         })
       } catch (err) {
-        // Error already handled in store, just for user notification
+        // Reset states on error
+        setIsTagDeletionComplete(false)
+        setTagDefinitionsDeleted(false)
+
         toast({
           title: 'Error',
           description:
@@ -271,7 +335,7 @@ export function useUserTags() {
         })
       }
     },
-    [removeUserTags, toast],
+    [removeUserTags, loading.removeUserTags, toast],
   )
 
   return {
@@ -284,6 +348,9 @@ export function useUserTags() {
     error: error.userTags,
     lastResults,
     lastActionResults,
+    lastRemoveResults: localRemoveResults,
+    tagDefinitionsDeleted,
+    isTagDeletionComplete,
     onSubmit,
     handleCancel,
     handleCreateTags,
@@ -292,7 +359,6 @@ export function useUserTags() {
     isRemovingTags: loading.removeUserTags,
     showDeleteConfirmation: showDeleteTagsConfirmation,
     setShowDeleteConfirmation: setShowDeleteTagsConfirmation,
-    lastRemoveResults: removeTagsResults,
     initiateRemoveTags,
     handleRemoveTags,
   }
