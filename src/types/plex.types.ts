@@ -43,17 +43,6 @@ export interface RssWatchlistResults {
   friends: WatchlistResponse
 }
 
-export interface User {
-  id: number
-  name: string
-  email: string
-  notify_email: boolean
-  notify_discord: boolean
-  can_sync: boolean
-  created_at?: string
-  updated_at?: string
-}
-
 export interface Item {
   title: string
   key: string

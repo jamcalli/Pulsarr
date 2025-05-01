@@ -200,6 +200,26 @@ const schema = {
     friendsRss: {
       type: 'string',
     },
+    tagUsersInSonarr: {
+      type: 'boolean',
+      default: false,
+    },
+    tagUsersInRadarr: {
+      type: 'boolean',
+      default: false,
+    },
+    cleanupOrphanedTags: {
+      type: 'boolean',
+      default: true,
+    },
+    persistHistoricalTags: {
+      type: 'boolean',
+      default: false,
+    },
+    tagPrefix: {
+      type: 'string',
+      default: 'pulsarr:user',
+    },
   },
 }
 

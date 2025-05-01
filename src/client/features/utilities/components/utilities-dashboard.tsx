@@ -3,16 +3,16 @@ import { DeleteSyncForm } from '@/features/utilities/components/delete-sync/dele
 import { DeleteSyncSkeleton } from '@/features/utilities/components/delete-sync/delete-sync-skeleton'
 import { PlexNotificationsForm } from '@/features/utilities/components/plex-notifications/plex-notifications-form'
 import { PlexNotificationsSkeleton } from '@/features/utilities/components/plex-notifications/plex-notifications-skeleton'
+import { UserTagsForm } from '@/features/utilities/components/user-tags/user-tags-form'
+import { UserTagsSkeleton } from '@/features/utilities/components/user-tags/user-tags-skeleton'
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 
 /**
- * Renders a utilities dashboard that displays various utility components.
+ * Renders the utilities dashboard with sections for DeleteSync, PlexNotifications, and UserTags.
  *
- * This component manages a smooth transition from a loading state to the fully rendered UI.
- * It monitors the global loading state and applies a delay before removing the local loading state
- * to prevent UI flickering. Currently includes the DeleteSync and PlexNotifications components.
+ * Displays skeleton placeholders while loading and transitions to the utility forms once data is available to ensure a smooth user experience.
  *
- * @returns A React element representing the utilities dashboard.
+ * @returns The utilities dashboard UI.
  */
 export function UtilitiesDashboard() {
   const [isLoading, setIsLoading] = useState(true)
@@ -46,6 +46,12 @@ export function UtilitiesDashboard() {
           <PlexNotificationsSkeleton />
         ) : (
           <PlexNotificationsForm />
+        )}
+
+        {isLoading || loading.schedules ? (
+          <UserTagsSkeleton />
+        ) : (
+          <UserTagsForm />
         )}
       </div>
     </div>

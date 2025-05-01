@@ -1,0 +1,362 @@
+import { useState, useCallback, useEffect, useRef } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useToast } from '@/hooks/use-toast'
+import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
+import {
+  TaggingConfigSchema,
+  type TaggingStatusResponseSchema,
+  type CreateTaggingResponseSchema,
+  type SyncTaggingResponseSchema,
+  type CleanupResponseSchema,
+  type RemoveTagsResponseSchema,
+} from '@root/schemas/tags/user-tags.schema'
+import type { z } from 'zod'
+
+export type UserTagsFormValues = z.infer<typeof TaggingConfigSchema>
+
+// Union type for action results
+type ActionResult =
+  | z.infer<typeof CreateTaggingResponseSchema>
+  | z.infer<typeof SyncTaggingResponseSchema>
+  | z.infer<typeof CleanupResponseSchema>
+  | z.infer<typeof RemoveTagsResponseSchema>
+
+/**
+ * Checks whether the provided action result represents a create tag response.
+ *
+ * @returns True if the response has a `mode` property equal to `'create'`; otherwise, false.
+ */
+export function isCreateTagResponse(
+  response: ActionResult,
+): response is z.infer<typeof CreateTaggingResponseSchema> {
+  return (
+    (response as z.infer<typeof CreateTaggingResponseSchema>).mode === 'create'
+  )
+}
+
+/**
+ * Checks if the provided action result represents a sync tagging response.
+ *
+ * @param response - The action result to evaluate.
+ * @returns True if the response has a `mode` property equal to `'sync'`; otherwise, false.
+ */
+export function isSyncTagResponse(
+  response: ActionResult,
+): response is z.infer<typeof SyncTaggingResponseSchema> {
+  return (response as z.infer<typeof SyncTaggingResponseSchema>).mode === 'sync'
+}
+
+/**
+ * Checks if an action result represents a cleanup tag response.
+ *
+ * @returns True if the response has a `radarr` property with a `removed` field and does not have a `mode` property; otherwise, false.
+ */
+export function isCleanupTagResponse(
+  response: ActionResult,
+): response is z.infer<typeof CleanupResponseSchema> {
+  // CleanupTagResponse doesn't have a mode property, but it has specific structure
+  return (
+    'radarr' in response &&
+    'removed' in response.radarr &&
+    !('mode' in response)
+  )
+}
+
+/**
+ * Checks if the given action result is a remove tags response.
+ *
+ * @returns True if the response has a `mode` property equal to `'remove'`; otherwise, false.
+ */
+export function isRemoveTagsResponse(
+  response: ActionResult,
+): response is z.infer<typeof RemoveTagsResponseSchema> {
+  return (
+    (response as z.infer<typeof RemoveTagsResponseSchema>).mode === 'remove'
+  )
+}
+
+/**
+ * React hook for managing user tagging configuration and actions for Sonarr and Radarr.
+ *
+ * Handles form state, validation, and provides handlers for fetching, updating, creating, syncing, cleaning up, and removing user tags. Integrates with the utilities store and displays toast notifications for operation results.
+ *
+ * @returns An object with the form instance, loading and error states, last results, tag deletion flags, and handlers for all user tag management operations.
+ */
+export function useUserTags() {
+  const { toast } = useToast()
+  const [lastResults, setLastResults] = useState<z.infer<
+    typeof TaggingStatusResponseSchema
+  > | null>(null)
+  const [lastActionResults, setLastActionResults] =
+    useState<ActionResult | null>(null)
+  const [localRemoveResults, setLocalRemoveResults] = useState<z.infer<
+    typeof RemoveTagsResponseSchema
+  > | null>(null)
+  const [tagDefinitionsDeleted, setTagDefinitionsDeleted] = useState(false)
+  // Track when tag deletion is complete
+  const [isTagDeletionComplete, setIsTagDeletionComplete] = useState(false)
+
+  const hasInitializedRef = useRef(false)
+  const initialLoadRef = useRef(true)
+
+  const {
+    loading,
+    error,
+    fetchUserTagsConfig,
+    updateUserTagsConfig,
+    createUserTags,
+    syncUserTags,
+    cleanupUserTags,
+    removeTagsResults,
+    showDeleteTagsConfirmation,
+    setShowDeleteTagsConfirmation,
+    removeUserTags,
+  } = useUtilitiesStore()
+
+  // Update local remove results when store results change
+  useEffect(() => {
+    if (removeTagsResults) {
+      setLocalRemoveResults(removeTagsResults)
+    }
+  }, [removeTagsResults])
+
+  // Initialize form with default values
+  const form = useForm<UserTagsFormValues>({
+    resolver: zodResolver(TaggingConfigSchema),
+    defaultValues: {
+      tagUsersInSonarr: false,
+      tagUsersInRadarr: false,
+      cleanupOrphanedTags: false,
+      persistHistoricalTags: false,
+      tagPrefix: 'pulsarr:user',
+    },
+  })
+
+  // Update form values when config data is available
+  const updateFormValues = useCallback(
+    (data: z.infer<typeof TaggingStatusResponseSchema>) => {
+      form.reset({
+        tagUsersInSonarr: data.config.tagUsersInSonarr,
+        tagUsersInRadarr: data.config.tagUsersInRadarr,
+        cleanupOrphanedTags: data.config.cleanupOrphanedTags,
+        persistHistoricalTags: data.config.persistHistoricalTags,
+        tagPrefix: data.config.tagPrefix,
+      })
+    },
+    [form],
+  )
+
+  // Fetch the configuration on mount
+  useEffect(() => {
+    const fetchConfig = async () => {
+      if (!initialLoadRef.current) return
+
+      try {
+        const data = await fetchUserTagsConfig()
+        setLastResults(data)
+        updateFormValues(data)
+        initialLoadRef.current = false
+
+        // Reset tag definitions deleted state if there are active tags
+        if (
+          data.success &&
+          (data.config.tagUsersInSonarr || data.config.tagUsersInRadarr)
+        ) {
+          setTagDefinitionsDeleted(false)
+          setIsTagDeletionComplete(false)
+        }
+      } catch (err) {
+        // Error is already handled in the store
+      }
+    }
+
+    fetchConfig()
+  }, [fetchUserTagsConfig, updateFormValues])
+
+  // Handle form submission
+  const onSubmit = useCallback(
+    async (data: UserTagsFormValues) => {
+      try {
+        // Make a copy of the form data
+        const formDataCopy = { ...data }
+
+        // Make the API call first, without resetting the form
+        const result = await updateUserTagsConfig(formDataCopy)
+
+        // Only reset the form after successful API call
+        setLastResults(result)
+
+        // If we enable tagging, we can no longer edit the tag prefix
+        if (
+          result.success &&
+          (data.tagUsersInSonarr || data.tagUsersInRadarr)
+        ) {
+          setTagDefinitionsDeleted(false)
+          setIsTagDeletionComplete(false)
+        }
+
+        toast({
+          description:
+            result.message || 'Tagging configuration updated successfully',
+          variant: 'default',
+        })
+
+        // Reset the form with the new values to clear dirty state after success
+        form.reset(formDataCopy)
+      } catch (err) {
+        // No need to touch the form state on error - it will remain dirty automatically
+        toast({
+          title: 'Error',
+          description:
+            err instanceof Error ? err.message : 'Failed to save configuration',
+          variant: 'destructive',
+        })
+      }
+    },
+    [form, toast, updateUserTagsConfig],
+  )
+
+  // Handle form cancellation
+  const handleCancel = useCallback(() => {
+    if (lastResults) {
+      updateFormValues(lastResults)
+    }
+  }, [lastResults, updateFormValues])
+
+  // Create tags operation
+  const handleCreateTags = useCallback(async () => {
+    try {
+      // Reset tag definitions deleted state when creating new tags
+      setTagDefinitionsDeleted(false)
+      setIsTagDeletionComplete(false)
+      // Clear previous remove results
+      setLocalRemoveResults(null)
+
+      const result = await createUserTags()
+      setLastActionResults(result)
+
+      toast({
+        description: result.message || 'User tags created successfully',
+        variant: 'default',
+      })
+    } catch (err) {
+      // Error is already handled in the store and displayed via toast
+    }
+  }, [createUserTags, toast])
+
+  // Sync tags operation
+  const handleSyncTags = useCallback(async () => {
+    try {
+      // Reset tag definitions deleted state when syncing tags (which may create new ones)
+      setTagDefinitionsDeleted(false)
+      setIsTagDeletionComplete(false)
+      // Clear previous remove results
+      setLocalRemoveResults(null)
+
+      const result = await syncUserTags()
+      setLastActionResults(result)
+
+      toast({
+        description: result.message || 'User tags synced successfully',
+        variant: 'default',
+      })
+    } catch (err) {
+      // Error is already handled in the store and displayed via toast
+    }
+  }, [syncUserTags, toast])
+
+  // Clean up orphaned tags operation
+  const handleCleanupTags = useCallback(async () => {
+    try {
+      // Clear previous remove results
+      setLocalRemoveResults(null)
+
+      const result = await cleanupUserTags()
+      setLastActionResults(result)
+
+      toast({
+        description: result.message || 'Orphaned tags cleaned up successfully',
+        variant: 'default',
+      })
+    } catch (err) {
+      // Error is already handled in the store and displayed via toast
+    }
+  }, [cleanupUserTags, toast])
+
+  // Check if on initial loading - don't show loading on navigation
+  if (!hasInitializedRef.current && !loading.userTags) {
+    hasInitializedRef.current = true
+  }
+
+  // Only show loading skeleton on initial load, not on navigation
+  const isLoading = !hasInitializedRef.current && loading.userTags
+
+  const initiateRemoveTags = useCallback(() => {
+    setShowDeleteTagsConfirmation(true)
+  }, [setShowDeleteTagsConfirmation])
+
+  const handleRemoveTags = useCallback(
+    async (deleteTagDefinitions: boolean) => {
+      try {
+        // Reset completion state at the start of operation
+        setIsTagDeletionComplete(false)
+
+        const result = await removeUserTags(deleteTagDefinitions)
+
+        // Set the local remove results
+        setLocalRemoveResults(result)
+
+        // Only if delete tag definitions was selected and operation is complete
+        if (deleteTagDefinitions && !loading.removeUserTags) {
+          setIsTagDeletionComplete(true)
+          setTagDefinitionsDeleted(true)
+        } else {
+          setTagDefinitionsDeleted(false)
+        }
+
+        toast({
+          description: result.message || 'User tags removed successfully',
+          variant: 'default',
+        })
+      } catch (err) {
+        // Reset states on error
+        setIsTagDeletionComplete(false)
+        setTagDefinitionsDeleted(false)
+
+        toast({
+          title: 'Error',
+          description:
+            err instanceof Error ? err.message : 'Failed to remove user tags',
+          variant: 'destructive',
+        })
+      }
+    },
+    [removeUserTags, loading.removeUserTags, toast],
+  )
+
+  return {
+    form,
+    isSaving: loading.userTags,
+    isLoading,
+    isCreatingTags: loading.createUserTags,
+    isSyncingTags: loading.syncUserTags,
+    isCleaningTags: loading.cleanupUserTags,
+    error: error.userTags,
+    lastResults,
+    lastActionResults,
+    lastRemoveResults: localRemoveResults,
+    tagDefinitionsDeleted,
+    isTagDeletionComplete,
+    onSubmit,
+    handleCancel,
+    handleCreateTags,
+    handleSyncTags,
+    handleCleanupTags,
+    isRemovingTags: loading.removeUserTags,
+    showDeleteConfirmation: showDeleteTagsConfirmation,
+    setShowDeleteConfirmation: setShowDeleteTagsConfirmation,
+    initiateRemoveTags,
+    handleRemoveTags,
+  }
+}

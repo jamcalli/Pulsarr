@@ -17,9 +17,9 @@ export const options = {
 }
 
 /**
- * Sets up and configures the Fastify server with plugin autoloading, Vite SPA integration, error handling, and authentication-aware routing.
+ * Configures the Fastify server with plugin autoloading, Vite SPA integration, global error handling, and authentication-aware routing.
  *
- * Registers middleware for form body parsing, loads external and custom plugins, and sets up route handlers. Integrates Vite for single-page application support. Implements global error and 404 handlers with logging and rate limiting. Defines root and app routes with conditional authentication, supporting disabled authentication, local IP bypass, and temporary admin session creation based on user existence and configuration.
+ * Registers middleware for form body parsing, loads external and custom plugins, and sets up route handlers. Integrates Vite for single-page application support. Implements global error and 404 handlers with logging and rate limiting. Defines root and app routes with conditional authentication logic, supporting disabled authentication, local IP bypass, and temporary admin session creation based on user existence and configuration.
  *
  * @remark
  * Authentication can be bypassed for local IPs or when disabled in configuration. If bypass is active and admin users exist, a temporary admin session is created; otherwise, users are redirected to create a user account.
@@ -120,15 +120,24 @@ export default async function serviceApp(
     }
 
     // Check authentication method setting
-    const { shouldBypass } = getAuthBypassStatus(fastify, request)
+    const { isAuthDisabled, isLocalBypass, shouldBypass } = getAuthBypassStatus(
+      fastify,
+      request,
+    )
 
-    if (shouldBypass) {
+    // If auth is completely disabled, go directly to dashboard
+    if (isAuthDisabled) {
+      createTemporaryAdminSession(request)
+      return reply.redirect('/app/dashboard')
+    }
+
+    // For local IP bypass
+    if (isLocalBypass) {
       const hasUsers = await fastify.db.hasAdminUsers()
 
       if (hasUsers) {
         // Create a temporary session
         createTemporaryAdminSession(request)
-
         return reply.redirect('/app/dashboard')
       }
 
@@ -145,53 +154,72 @@ export default async function serviceApp(
     '/app/*',
     {
       preHandler: async (request, reply) => {
-        // Check authentication method setting
+        // Get auth bypass status first
         const { isAuthDisabled, isLocalBypass } = getAuthBypassStatus(
           fastify,
           request,
         )
 
-        // For login and create-user pages
-        if (
-          request.url === '/app/login' ||
-          request.url === '/app/create-user'
-        ) {
-          if (request.session.user || isAuthDisabled || isLocalBypass) {
+        const isCreateUserPage = request.url === '/app/create-user'
+        const isLoginPage = request.url === '/app/login'
+
+        // CASE 1: Auth is completely disabled - create temp session and allow access
+        if (isAuthDisabled) {
+          if (isCreateUserPage || isLoginPage) {
             return reply.redirect('/app/dashboard')
           }
+          createTemporaryAdminSession(request)
+          return // Allow access with temp session
+        }
 
-          const hasUsers = await fastify.db.hasAdminUsers()
+        // CASE 2: User already has a session - they can access anything except login/create
+        if (request.session.user) {
+          if (isCreateUserPage || isLoginPage) {
+            return reply.redirect('/app/dashboard')
+          }
+          return // Allow access to requested page
+        }
 
-          if (!hasUsers && request.url === '/app/login') {
+        // Check if users exist - only needed for remaining cases
+        const hasUsers = await fastify.db.hasAdminUsers()
+
+        // CASE 3: Local IP bypass is active
+        if (isLocalBypass) {
+          if (hasUsers) {
+            if (isCreateUserPage || isLoginPage) {
+              return reply.redirect('/app/dashboard')
+            }
+            createTemporaryAdminSession(request)
+            return // Allow access with temp session
+          }
+
+          // With local bypass but no users
+          if (!isCreateUserPage) {
             return reply.redirect('/app/create-user')
           }
-
-          if (hasUsers && request.url === '/app/create-user') {
-            return reply.redirect('/app/login')
-          }
-
-          return
+          return // Allow access to create-user page
         }
 
-        // For all other app pages
-        if (!request.session.user) {
-          // If auth is disabled or this is a local connection with local bypass
-          if (isAuthDisabled || isLocalBypass) {
-            // Create a temporary session for the current request only
-            const hasUsers = await fastify.db.hasAdminUsers()
-
-            if (hasUsers) {
-              // Use a temporary session
-              createTemporaryAdminSession(request)
-            } else {
-              // No users exist yet, redirect to create user
-              return reply.redirect('/app/create-user')
-            }
-          } else {
-            // Regular auth required - redirect to login
-            return reply.redirect('/app/login')
+        // CASE 4: Normal auth flow - no bypassing
+        if (!hasUsers) {
+          // No users exist yet, force create-user page
+          if (!isCreateUserPage) {
+            return reply.redirect('/app/create-user')
           }
+          return // Allow access to create-user page
         }
+
+        // CASE 5: Users exist, normal auth - redirect to login
+        if (!isLoginPage && !isCreateUserPage) {
+          return reply.redirect('/app/login')
+        }
+
+        // Prevent create-user access when users already exist
+        if (isCreateUserPage) {
+          return reply.redirect('/app/login')
+        }
+
+        // Allow access to login page by default
       },
     },
     (req, reply) => {

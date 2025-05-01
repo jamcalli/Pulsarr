@@ -2,7 +2,7 @@
   <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/icons/pulsarr.svg" alt="Pulsarr Logo" width="150"/>
   <h1>Pulsarr</h1>
   <p>Real-time Plex watchlist monitoring, routing, and notification center</p>
-  
+
   ![Version](https://img.shields.io/github/v/release/jamcalli/pulsarr?include_prereleases&style=flat-square)
   ![License](https://img.shields.io/badge/license-GPL-blue?style=flat-square)
   ![Node](https://img.shields.io/badge/node-23.6.0-green?style=flat-square)
@@ -40,7 +40,7 @@ Want to contribute? Check out our [Contributing Guidelines](#contributing).
 
 ## Features
 
-- **Real-time & Interval-based Watchlist Monitoring**: 
+- **Real-time & Interval-based Watchlist Monitoring**:
   - Real-time monitoring through RSS feeds for Plex Pass users
   - 20-minute interval polling for non-Plex Pass users
   - All other features remain identical regardless of Plex Pass status
@@ -49,7 +49,7 @@ Want to contribute? Check out our [Contributing Guidelines](#contributing).
   - Route content based on genre, user, language, year, and certification
   - See [Advanced Content Routing](#advanced-content-routing) section for details
 - **Discord Integration**: User-friendly notification system with customizable settings via Discord bot commands. Allows users to customize their own notification settings.
-- **Apprise Integration**: Apprise can be used to route notifications. Apprise supports many different notifications methods including email, SMS, Slack, Telegram, and many more. Users can configure their own Apprise settings via the Discord bot, or admins can set these up via the UI. System notifications can also be sent through Apprise. Please see [Apprise Documentation](#apprise-notifications) below on setting up Pulsarr with Apprise. 
+- **Apprise Integration**: Apprise can be used to route notifications. Apprise supports many different notifications methods including email, SMS, Slack, Telegram, and many more. Users can configure their own Apprise settings via the Discord bot, or admins can set these up via the UI. System notifications can also be sent through Apprise. Please see [Apprise Documentation](#apprise-notifications) below on setting up Pulsarr with Apprise.
 - **Granular User Controls**: Choose which users can sync content from their watchlists.
 - **Automatic Configuration**: Self-configures webhook endpoints in Sonarr/Radarr to route notifications as soon as your content is ready.
 - **Smart Notification System**: Prevents notification spam with intelligent batching for season packs and individual episodes / movies.
@@ -80,11 +80,11 @@ Pulsarr uses a full-stack architecture designed for reliability and performance:
 ### Content Routing
 Pulsarr uses an intelligent workflow to process and route content:
 
-1. **Content Detection**: 
+1. **Content Detection**:
    - Plex Pass: Real-time monitoring via RSS feeds
    - Non-Plex Pass: Regular polling every 20 minutes
 2. **User Permissions**: Verifies if the user has sync permissions enabled
-3. **Content Analysis**: 
+3. **Content Analysis**:
    - Evaluates content metadata (genres, language, etc.)
    - Applies configured routing rules
    - Determines optimal target instance
@@ -165,7 +165,7 @@ services:
       - TZ=America/Los_Angeles
 ```
 
-The logger defaults to file logging. This can be changed by modifying the NODE_ARGS in the docker compose. Accepted values are `--log-terminal`, `--log-both`, or `--log-file` respectively. 
+The logger defaults to file logging. This can be changed by modifying the NODE_ARGS in the docker compose. Accepted values are `--log-terminal`, `--log-both`, or `--log-file` respectively.
 
 3. Pull the image and run Docker Compose to start the service:
 ```bash
@@ -228,9 +228,9 @@ The webhook endpoint can be used without creating a Discord bot. Point this webh
    - Go to the [Discord Developer Portal](https://discord.com/developers/applications)
    - Click "New Application" and give it a name (e.g., "Pulsarr")
    - Provide an icon too. Here is one you can use:
-   
+
      <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/icons/pulsarr-lg.png" width="250" alt="Pulsarr Logo">
-   
+
    - Go to the "Bot" section and click "Add Bot"
    - Under "Privileged Gateway Intents", enable "Message Content Intent"
    - Save your changes
@@ -259,18 +259,18 @@ The webhook endpoint can be used without creating a Discord bot. Point this webh
      - Guild ID (your Discord server ID - enable Developer Mode in Discord settings, then right-click your server and "Copy ID")
 
 5. Start Discord Bot
-   - After providing all the required fields, click the 'Start' button next to the Discord Bot Settings header. 
+   - After providing all the required fields, click the 'Start' button next to the Discord Bot Settings header.
    - Users can then use the `/notifications` command within your server. They will be prompted to enter their Plex username to create the association with their watchlist.
 
    <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Discord-Signup.png" width="400" alt="Discord Signup">
 
-   Users can now configure their own notification preferences. These can be accessed anytime by using the `/notifications` command. 
+   Users can now configure their own notification preferences. These can be accessed anytime by using the `/notifications` command.
 
    <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Discord-Settings.png" width="400" alt="Discord Settings">
 
    <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Discord-Edit-Modal.png" width="400" alt="Discord Edit Modal">
 
-**IMPORTANT**: The username for the Plex Token is ALWAYS token1. Please use this when setting your own notification preferences. 
+**NOTE**: The system now uses your actual Plex username for the primary token user. When setting notification preferences, use your Plex username.
 
 When your content is available, you will receive DMs like these:
 
@@ -313,7 +313,7 @@ services:
       - ./plugin:/plugin
       - ./attach:/attach
     restart: unless-stopped
-    
+
   pulsarr:
     image: lakker/pulsarr:latest
     container_name: pulsarr
@@ -409,7 +409,7 @@ The integration is pre-configured to work immediately with no additional setup s
 
 Users can configure their own Apprise notification methods in two ways:
 
-1. **Via Discord Bot**: 
+1. **Via Discord Bot**:
    - Users can use the `/notifications` command in Discord
    - This allows them to select Apprise as their notification method
    - Users will be notified about content availability automatically
@@ -440,7 +440,7 @@ For more information about Apprise itself, refer to the [official Apprise docume
 
 ## Configuration
 
-While Pulsarr is primarily configured through the web UI, you can also use environment variables in a .env file. Any values set in the .env file will override settings in the database. 
+While Pulsarr is primarily configured through the web UI, you can also use environment variables in a .env file. Any values set in the .env file will override settings in the database.
 
 ### Core Configuration
 
@@ -454,10 +454,10 @@ While Pulsarr is primarily configured through the web UI, you can also use envir
 Here is how your .env should look:
 
 ```
-baseUrl=http://localhost    
-port=3003                                                                   
+baseUrl=http://localhost
+port=3003
 logLevel=info
-cookieSecured=false                           
+cookieSecured=false
 ```
 
 ### Authentication Configuration
@@ -498,9 +498,9 @@ cookieSecret=xxxxxxxxxxxxxxxxxxxxxxxx  # Secret key for cookies (randomly genera
 cookieName=pulsarr                     # Name of the cookie
 cookieSecured=false                    # Set to true for HTTPS only
 logLevel=info                          # Logging level (defaults to silent. Recommended info)
-authenticationMethod=required          # Authentication method (required, requiredExceptLocal, disabled)  
+authenticationMethod=required          # Authentication method (required, requiredExceptLocal, disabled)
 closeGraceDelay=10000                  # Shutdown grace period in ms
-rateLimitMax=100                       # Max requests per time window 
+rateLimitMax=100                       # Max requests per time window
 syncIntervalSeconds=10                 # Sync interval in seconds
 queueProcessDelaySeconds=60            # Queue processing delay in seconds
 
@@ -555,7 +555,7 @@ maxDeletionPrevention=10               # Safeguard to prevent mass deletion. % o
 
 ## Usage
 
-1. Please read through the documentation and follow the [Quick Start Guide](#quick-start). 
+1. Please read through the documentation and follow the [Quick Start Guide](#quick-start).
 2. Access the web interface at `http://your-server:3003`
 3. You will be prompted to create an Admin account. Only a single admin account can be created.
 4. Configure your Plex, Sonarr, and Radarr connections
