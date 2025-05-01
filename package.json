@@ -61,7 +61,7 @@
     "@fastify/session": "^11.1.0",
     "@fastify/swagger": "^9.5.0",
     "@fastify/vite": "^8.1.1",
-    "@hookform/resolvers": "^5.0.1",
+    "@hookform/resolvers": "^4.0.0",
     "@radix-ui/react-accordion": "^1.2.8",
     "@radix-ui/react-alert-dialog": "^1.1.11",
     "@radix-ui/react-aspect-ratio": "^1.1.4",
@@ -102,7 +102,7 @@
     "pino-pretty": "^13.0.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "react-hook-form": "^7.56.1",
+    "react-hook-form": "^7.54.2",
     "react-router-dom": "^7.5.3",
     "recharts": "^2.15.3",
     "rotating-file-stream": "^3.2.6",
@@ -115,7 +115,7 @@
     "tsx": "^4.19.4",
     "vaul": "^1.1.2",
     "vite": "^6.3.3",
-    "zod": "^3.24.3",
+    "zod": "^3.24.2",
     "zustand": "^5.0.3"
   },
   "devDependencies": {
