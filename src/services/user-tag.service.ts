@@ -1656,13 +1656,12 @@ export class UserTagService {
     const setA = new Set(a)
     const setB = new Set(b)
 
+    // If sets have different sizes, there are duplicates
+    // and arrays can't be identical
     if (setA.size !== setB.size) return false
 
-    for (const item of setA) {
-      if (!setB.has(item)) return false
-    }
-
-    return true
+    // Check if every element in setA exists in setB
+    return [...setA].every((item) => setB.has(item))
   }
 
   /**

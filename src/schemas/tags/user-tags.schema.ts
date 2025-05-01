@@ -6,7 +6,13 @@ export const TaggingConfigSchema = z.object({
   tagUsersInRadarr: z.boolean(),
   cleanupOrphanedTags: z.boolean(),
   persistHistoricalTags: z.boolean(),
-  tagPrefix: z.string(),
+  tagPrefix: z
+    .string()
+    .min(1, { message: 'Tag prefix cannot be empty' })
+    .regex(/^[a-zA-Z0-9_\-:.]+$/, {
+      message:
+        'Tag prefix can only contain letters, numbers, underscores, hyphens, colons, and dots',
+    }),
 })
 
 // Generic error schema
