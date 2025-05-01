@@ -17,9 +17,9 @@ export const options = {
 }
 
 /**
- * Sets up and configures the Fastify server with plugin autoloading, Vite SPA integration, error handling, and authentication-aware routing.
+ * Configures the Fastify server with plugin autoloading, Vite SPA integration, global error handling, and authentication-aware routing.
  *
- * Registers middleware for form body parsing, loads external and custom plugins, and sets up route handlers. Integrates Vite for single-page application support. Implements global error and 404 handlers with logging and rate limiting. Defines root and app routes with conditional authentication, supporting disabled authentication, local IP bypass, and temporary admin session creation based on user existence and configuration.
+ * Registers middleware for form body parsing, loads external and custom plugins, and sets up route handlers. Integrates Vite for single-page application support. Implements global error and 404 handlers with logging and rate limiting. Defines root and app routes with conditional authentication logic, supporting disabled authentication, local IP bypass, and temporary admin session creation based on user existence and configuration.
  *
  * @remark
  * Authentication can be bypassed for local IPs or when disabled in configuration. If bypass is active and admin users exist, a temporary admin session is created; otherwise, users are redirected to create a user account.
