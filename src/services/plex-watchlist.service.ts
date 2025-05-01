@@ -108,7 +108,10 @@ export class PlexWatchlistService {
       existingItems,
     )
 
-    const processedItems = await this.processAndSaveNewItems(brandNewItems)
+    const processedItems = await this.processAndSaveNewItems(
+      brandNewItems,
+      true,
+    )
     await this.linkExistingItems(existingItemsToLink)
 
     const allItemsMap = new Map<Friend, Set<WatchlistItem>>()
@@ -561,6 +564,7 @@ export class PlexWatchlistService {
 
   private async processAndSaveNewItems(
     brandNewItems: Map<Friend, Set<TokenWatchlistItem>>,
+    isSelfWatchlist = false,
   ): Promise<Map<Friend, Set<WatchlistItem>>> {
     if (brandNewItems.size === 0) {
       return new Map<Friend, Set<WatchlistItem>>()
@@ -571,10 +575,8 @@ export class PlexWatchlistService {
     const operationId = `process-${Date.now()}`
     const emitProgress = this.fastify.progress.hasActiveConnections()
 
-    const firstUser = Array.from(brandNewItems.keys())[0]
-    const type = firstUser.username.startsWith('token')
-      ? 'self-watchlist'
-      : 'others-watchlist'
+    // Use the passed parameter to determine the type
+    const type = isSelfWatchlist ? 'self-watchlist' : 'others-watchlist'
 
     if (emitProgress) {
       this.fastify.progress.emit({
@@ -582,7 +584,7 @@ export class PlexWatchlistService {
         type,
         phase: 'start',
         progress: 0,
-        message: `Starting ${type === 'self-watchlist' ? 'self' : 'others'} watchlist processing`,
+        message: `Starting ${isSelfWatchlist ? 'self' : 'others'} watchlist processing`,
       })
     }
 
