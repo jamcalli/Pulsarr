@@ -148,14 +148,13 @@ export function useUserTags() {
   const onSubmit = useCallback(
     async (data: UserTagsFormValues) => {
       try {
-        // Store the current data to use for the actual update
+        // Make a copy of the form data
         const formDataCopy = { ...data }
 
-        // Reset form with current values to clear dirty state
-        form.reset(data, { keepValues: true })
-
-        // Now start the saving process after form is no longer dirty
+        // Make the API call first, without resetting the form
         const result = await updateUserTagsConfig(formDataCopy)
+
+        // Only reset the form after successful API call
         setLastResults(result)
 
         toast({
@@ -164,10 +163,16 @@ export function useUserTags() {
           variant: 'default',
         })
 
+        // Reset the form with the new values to clear dirty state after success
         form.reset(formDataCopy)
       } catch (err) {
-        // In case of error, we should restore the form's dirty state
-        form.reset(data, { keepDirty: true })
+        // No need to touch the form state on error - it will remain dirty automatically
+        toast({
+          title: 'Error',
+          description:
+            err instanceof Error ? err.message : 'Failed to save configuration',
+          variant: 'destructive',
+        })
       }
     },
     [form, toast, updateUserTagsConfig],

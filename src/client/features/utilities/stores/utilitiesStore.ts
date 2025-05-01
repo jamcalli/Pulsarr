@@ -79,6 +79,33 @@ export interface UtilitiesState {
   removeUserTags: (deleteTagDefinitions: boolean) => Promise<TagRemovalResult>
 }
 
+// Helper function to handle API responses and extract error messages
+const handleApiResponse = async <T>(
+  response: Response,
+  defaultErrorMessage: string,
+): Promise<T> => {
+  if (!response.ok) {
+    let errorMessage = defaultErrorMessage
+    try {
+      const errorData = await response.json()
+      errorMessage = errorData.error || errorMessage
+    } catch (_) {
+      // If JSON parsing fails, try to get the response text
+      try {
+        const textError = await response.text()
+        if (textError) {
+          errorMessage = textError
+        }
+      } catch (_) {
+        // Use default error message if both JSON and text extraction fail
+      }
+    }
+    throw new Error(errorMessage)
+  }
+
+  return response.json() as Promise<T>
+}
+
 export const useUtilitiesStore = create<UtilitiesState>()(
   devtools((set, get) => ({
     schedules: null,
@@ -179,11 +206,10 @@ export const useUtilitiesStore = create<UtilitiesState>()(
           minimumLoadingTime,
         ])
 
-        if (!response.ok) {
-          throw new Error('Failed to fetch schedules')
-        }
-
-        const data: JobStatus[] = await response.json()
+        const data = await handleApiResponse<JobStatus[]>(
+          response,
+          'Failed to fetch schedules',
+        )
 
         set((state) => ({
           ...state,
@@ -239,12 +265,10 @@ export const useUtilitiesStore = create<UtilitiesState>()(
           minimumLoadingTime,
         ])
 
-        if (!response.ok) {
-          const errorData = await response.json()
-          throw new Error(errorData.error || 'Failed to remove user tags')
-        }
-
-        const data: TagRemovalResult = await response.json()
+        const data = await handleApiResponse<TagRemovalResult>(
+          response,
+          'Failed to remove user tags',
+        )
 
         // Store the results
         set((state) => ({
@@ -296,11 +320,14 @@ export const useUtilitiesStore = create<UtilitiesState>()(
           minimumLoadingTime,
         ])
 
-        if (!response.ok) {
-          throw new Error('Failed to run delete sync dry run')
+        interface DryRunResponse {
+          results: DeleteSyncResult
         }
 
-        const data = await response.json()
+        const data = await handleApiResponse<DryRunResponse>(
+          response,
+          'Failed to run delete sync dry run',
+        )
 
         set((state) => ({
           ...state,
@@ -348,11 +375,14 @@ export const useUtilitiesStore = create<UtilitiesState>()(
           minimumLoadingTime,
         ])
 
-        if (!response.ok) {
-          throw new Error(`Failed to run schedule ${name}`)
+        interface RunResponse {
+          success: boolean
         }
 
-        const data = await response.json()
+        const data = await handleApiResponse<RunResponse>(
+          response,
+          `Failed to run schedule ${name}`,
+        )
 
         // Refresh schedules after running a job
         await get().fetchSchedules()
@@ -409,11 +439,14 @@ export const useUtilitiesStore = create<UtilitiesState>()(
           minimumLoadingTime,
         ])
 
-        if (!response.ok) {
-          throw new Error(`Failed to toggle schedule ${name}`)
+        interface ToggleResponse {
+          success: boolean
         }
 
-        const data = await response.json()
+        const data = await handleApiResponse<ToggleResponse>(
+          response,
+          `Failed to toggle schedule ${name}`,
+        )
 
         // Refresh schedules after toggling
         await get().fetchSchedules()
@@ -462,11 +495,9 @@ export const useUtilitiesStore = create<UtilitiesState>()(
           minimumLoadingTime,
         ])
 
-        if (!response.ok) {
-          throw new Error('Failed to fetch user tags configuration')
-        }
-
-        const data = await response.json()
+        const data = await handleApiResponse<
+          z.infer<typeof TaggingStatusResponseSchema>
+        >(response, 'Failed to fetch user tags configuration')
 
         set((state) => ({
           ...state,
@@ -519,11 +550,9 @@ export const useUtilitiesStore = create<UtilitiesState>()(
           minimumLoadingTime,
         ])
 
-        if (!response.ok) {
-          throw new Error('Failed to update user tags configuration')
-        }
-
-        const data = await response.json()
+        const data = await handleApiResponse<
+          z.infer<typeof TaggingStatusResponseSchema>
+        >(response, 'Failed to update user tags configuration')
 
         set((state) => ({
           ...state,
@@ -572,11 +601,9 @@ export const useUtilitiesStore = create<UtilitiesState>()(
           minimumLoadingTime,
         ])
 
-        if (!response.ok) {
-          throw new Error('Failed to create user tags')
-        }
-
-        const data = await response.json()
+        const data = await handleApiResponse<
+          z.infer<typeof CreateTaggingResponseSchema>
+        >(response, 'Failed to create user tags')
 
         set((state) => ({
           ...state,
@@ -623,11 +650,9 @@ export const useUtilitiesStore = create<UtilitiesState>()(
           minimumLoadingTime,
         ])
 
-        if (!response.ok) {
-          throw new Error('Failed to sync user tags')
-        }
-
-        const data = await response.json()
+        const data = await handleApiResponse<
+          z.infer<typeof SyncTaggingResponseSchema>
+        >(response, 'Failed to sync user tags')
 
         set((state) => ({
           ...state,
@@ -674,11 +699,9 @@ export const useUtilitiesStore = create<UtilitiesState>()(
           minimumLoadingTime,
         ])
 
-        if (!response.ok) {
-          throw new Error('Failed to clean up user tags')
-        }
-
-        const data = await response.json()
+        const data = await handleApiResponse<
+          z.infer<typeof CleanupResponseSchema>
+        >(response, 'Failed to clean up user tags')
 
         set((state) => ({
           ...state,
