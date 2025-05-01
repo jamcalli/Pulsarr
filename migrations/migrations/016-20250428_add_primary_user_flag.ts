@@ -1,13 +1,10 @@
 import type { Knex } from 'knex'
 
 /**
- * Applies the migration to add the `is_primary_token` column to the `users` table,
- * creates a unique index for rows where this flag is true, and sets the first user
- * named "token1" as the primary token user if it exists.
+ * Applies a migration that adds the `is_primary_token` column to the `users` table, creates a unique index for rows where this flag is true, and sets the first user named "token1" as the primary token user if present.
  *
  * @remark
- * The unique index `idx_unique_primary_token` enforces that only one user can have 
- * `is_primary_token` set to true in SQLite databases.
+ * The unique index `idx_unique_primary_token` ensures that only one user can have `is_primary_token` set to true in SQLite databases.
  */
 export async function up(knex: Knex): Promise<void> {
   // Add the column first
@@ -35,8 +32,7 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Reverts the migration by removing the `is_primary_token` column from the `users` table 
- * and dropping the associated unique index.
+ * Reverts the migration by dropping the unique index on `is_primary_token` and removing the column from the `users` table.
  */
 export async function down(knex: Knex): Promise<void> {
   // Drop the unique index

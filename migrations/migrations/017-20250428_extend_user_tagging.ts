@@ -1,9 +1,9 @@
 import type { Knex } from 'knex'
 
 /**
- * Adds new user tagging configuration columns to the `configs` table.
+ * Adds user tagging configuration columns to the `configs` table.
  *
- * This migration introduces `cleanupOrphanedTags`, `persistHistoricalTags`, and `tagPrefix` columns with their respective default values, and updates existing rows where these columns are null.
+ * Introduces the `cleanupOrphanedTags`, `persistHistoricalTags`, and `tagPrefix` columns with default values, and updates existing rows to ensure these columns are not null.
  */
 export async function up(knex: Knex): Promise<void> {
   await knex.schema.alterTable('configs', (table) => {
@@ -28,7 +28,9 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Reverts the user tagging configuration extension by dropping related columns from the `configs` table.
+ * Removes the user tagging configuration columns from the `configs` table.
+ *
+ * Drops the `cleanupOrphanedTags`, `persistHistoricalTags`, and `tagPrefix` columns to revert the migration.
  */
 export async function down(knex: Knex): Promise<void> {
   await knex.schema.alterTable('configs', (table) => {
