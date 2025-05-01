@@ -1130,7 +1130,9 @@ export class UserTagService {
       )
 
       // Filter out null entries
-      const validInstancesData = instancesData.filter((data) => data !== null)
+      const validInstancesData = instancesData.filter(
+        (data): data is NonNullable<typeof data> => data !== null,
+      )
 
       // Calculate total series to process for progress reporting
       const totalSeries = validInstancesData.reduce(
@@ -1155,7 +1157,7 @@ export class UserTagService {
         for (let i = 0; i < series.length; i += BATCH_SIZE) {
           const batch = series.slice(i, i + BATCH_SIZE)
 
-          const batchPromises = batch.map(async (item) => {
+          const batchPromises = batch.map(async (item: SonarrItem) => {
             try {
               results.itemsProcessed++
 
@@ -1172,7 +1174,7 @@ export class UserTagService {
               const existingTags = seriesDetails.tags || []
 
               // Check if this series has any of our user tags
-              const hasUserTags = existingTags.some((tagId) =>
+              const hasUserTags = existingTags.some((tagId: number) =>
                 userTagIds.includes(tagId),
               )
 
@@ -1182,7 +1184,7 @@ export class UserTagService {
 
               // Filter out user tags
               const newTags = existingTags.filter(
-                (tagId) => !userTagIds.includes(tagId),
+                (tagId: number) => !userTagIds.includes(tagId),
               )
 
               const tagsRemoved = existingTags.length - newTags.length
@@ -1368,7 +1370,9 @@ export class UserTagService {
       )
 
       // Filter out null entries
-      const validInstancesData = instancesData.filter((data) => data !== null)
+      const validInstancesData = instancesData.filter(
+        (data): data is NonNullable<typeof data> => data !== null,
+      )
 
       // Calculate total movies to process for progress reporting
       const totalMovies = validInstancesData.reduce(
@@ -1393,7 +1397,7 @@ export class UserTagService {
         for (let i = 0; i < movies.length; i += BATCH_SIZE) {
           const batch = movies.slice(i, i + BATCH_SIZE)
 
-          const batchPromises = batch.map(async (item) => {
+          const batchPromises = batch.map(async (item: RadarrItem) => {
             try {
               results.itemsProcessed++
 
@@ -1410,7 +1414,7 @@ export class UserTagService {
               const existingTags = movieDetails.tags || []
 
               // Check if this movie has any of our user tags
-              const hasUserTags = existingTags.some((tagId) =>
+              const hasUserTags = existingTags.some((tagId: number) =>
                 userTagIds.includes(tagId),
               )
 
@@ -1420,7 +1424,7 @@ export class UserTagService {
 
               // Filter out user tags
               const newTags = existingTags.filter(
-                (tagId) => !userTagIds.includes(tagId),
+                (tagId: number) => !userTagIds.includes(tagId),
               )
 
               const tagsRemoved = existingTags.length - newTags.length
