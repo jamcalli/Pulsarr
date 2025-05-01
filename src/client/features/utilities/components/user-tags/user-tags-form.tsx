@@ -48,14 +48,11 @@ import { UserTagsDeleteConfirmationModal } from '@/features/utilities/components
 import { useTaggingProgress } from '@/features/utilities/hooks/useTaggingProgress'
 
 /**
- * Renders the UserTagsForm component that provides an interface for managing user tagging.
+ * Displays a comprehensive form for configuring and managing user-based tagging for Sonarr and Radarr content.
  *
- * This component displays the current tagging configuration and provides actions to create tags,
- * synchronize content with tags, clean up orphaned tags, and remove all user tags. It presents a form for configuring
- * tag settings, such as which Arr instances to tag in, whether to clean up orphaned tags, and
- * the tag prefix to use.
+ * Provides controls to enable or disable tagging in Sonarr and Radarr, set tag prefix, clean up orphaned tags, and persist historical tags. Includes actions to create, synchronize, clean up, and remove user tags, with real-time progress feedback, operation results, and error handling.
  *
- * @returns A React element representing the user tagging management form.
+ * @returns A React element representing the user tag management interface.
  */
 export function UserTagsForm() {
   const isMobile = useMediaQuery('(max-width: 768px)')

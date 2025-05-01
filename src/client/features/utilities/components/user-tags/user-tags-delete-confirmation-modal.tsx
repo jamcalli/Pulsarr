@@ -21,16 +21,14 @@ interface UserTagsDeleteConfirmationModalProps {
 }
 
 /**
- * Renders a confirmation modal for removing user tags.
+ * Displays a modal dialog to confirm removal of all user tags from media items.
  *
- * This modal displays a warning message to confirm the user's intention to remove all user tags
- * from media items in Sonarr and Radarr instances. It provides an option to also delete the tag
- * definitions themselves, and buttons to either proceed with the removal or cancel the operation.
+ * Provides an option to also delete the tag definitions themselves, and allows the user to confirm or cancel the operation.
  *
- * @param open - Controls whether the modal is visible.
- * @param onOpenChange - Callback to update the modal's open state.
- * @param onConfirm - Callback invoked when the user confirms the deletion.
- * @param isSubmitting - Optional flag that, when true, disables the confirm button during submission.
+ * @param open - Whether the modal is visible.
+ * @param onOpenChange - Invoked to update the modal's open state.
+ * @param onConfirm - Called with a boolean indicating whether to delete tag definitions when the user confirms.
+ * @param isSubmitting - Optional; disables the confirm button and shows a processing state when true.
  */
 export function UserTagsDeleteConfirmationModal({
   open,

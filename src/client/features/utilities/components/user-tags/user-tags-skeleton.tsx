@@ -8,13 +8,11 @@ import {
 import { Separator } from '@/components/ui/separator'
 
 /**
- * Renders a skeleton loading UI for the "User Tags" feature.
+ * Displays a skeleton placeholder UI for the "User Tags" feature during data loading.
  *
- * This component displays a collapsible accordion card with placeholder elements
- * mimicking the layout of the User Tags interface. It provides a visual cue while
- * the actual data is being loaded.
+ * Renders a collapsible accordion with sections and skeleton elements that visually mimic the layout of the user tags interface, including action buttons and configuration fields.
  *
- * @returns A JSX element representing the loading state of the User Tags feature.
+ * @returns A JSX element representing the loading state for the User Tags feature.
  */
 export function UserTagsSkeleton() {
   return (
