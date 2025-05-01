@@ -4,6 +4,21 @@ import type {
   JobStatus,
   DeleteSyncResult,
 } from '@root/schemas/scheduler/scheduler.schema'
+import type {
+  TaggingConfigSchema,
+  TaggingStatusResponseSchema,
+  CreateTaggingResponseSchema,
+  SyncTaggingResponseSchema,
+  CleanupResponseSchema,
+  RemoveTagsResponseSchema,
+} from '@root/schemas/tags/user-tags.schema'
+import type { z } from 'zod'
+
+// Single type alias needed for the function parameter
+type TaggingConfig = z.infer<typeof TaggingConfigSchema>
+
+// Use the existing schema type for the return type
+export type TagRemovalResult = z.infer<typeof RemoveTagsResponseSchema>
 
 // Minimum loading delay for consistent UX
 const MIN_LOADING_DELAY = 500
@@ -12,12 +27,19 @@ export interface UtilitiesState {
   schedules: JobStatus[] | null
   deleteSyncDryRunResults: DeleteSyncResult | null
   isLoadingRef: boolean
+  removeTagsResults: TagRemovalResult | null
+  showDeleteTagsConfirmation: boolean
   loading: {
     schedules: boolean
     deleteSyncDryRun: boolean
     runSchedule: boolean
     toggleSchedule: boolean
     saveSettings: boolean
+    userTags: boolean
+    createUserTags: boolean
+    syncUserTags: boolean
+    cleanupUserTags: boolean
+    removeUserTags: boolean
   }
   error: {
     schedules: string | null
@@ -25,6 +47,11 @@ export interface UtilitiesState {
     runSchedule: string | null
     toggleSchedule: string | null
     saveSettings: string | null
+    userTags: string | null
+    createUserTags: string | null
+    syncUserTags: string | null
+    cleanupUserTags: string | null
+    removeUserTags: string | null
   }
   hasLoadedSchedules: boolean
 
@@ -37,6 +64,19 @@ export interface UtilitiesState {
   runScheduleNow: (name: string) => Promise<boolean>
   toggleScheduleStatus: (name: string, enabled: boolean) => Promise<boolean>
   resetErrors: () => void
+
+  // User tags functions
+  fetchUserTagsConfig: () => Promise<
+    z.infer<typeof TaggingStatusResponseSchema>
+  >
+  updateUserTagsConfig: (
+    config: TaggingConfig,
+  ) => Promise<z.infer<typeof TaggingStatusResponseSchema>>
+  createUserTags: () => Promise<z.infer<typeof CreateTaggingResponseSchema>>
+  syncUserTags: () => Promise<z.infer<typeof SyncTaggingResponseSchema>>
+  cleanupUserTags: () => Promise<z.infer<typeof CleanupResponseSchema>>
+  setShowDeleteTagsConfirmation: (show: boolean) => void
+  removeUserTags: (deleteTagDefinitions: boolean) => Promise<TagRemovalResult>
 }
 
 export const useUtilitiesStore = create<UtilitiesState>()(
@@ -45,12 +85,19 @@ export const useUtilitiesStore = create<UtilitiesState>()(
     deleteSyncDryRunResults: null,
     hasLoadedSchedules: false,
     isLoadingRef: false,
+    removeTagsResults: null,
+    showDeleteTagsConfirmation: false,
     loading: {
       schedules: false,
       deleteSyncDryRun: false,
       runSchedule: false,
       toggleSchedule: false,
       saveSettings: false,
+      userTags: false,
+      createUserTags: false,
+      syncUserTags: false,
+      cleanupUserTags: false,
+      removeUserTags: false,
     },
     error: {
       schedules: null,
@@ -58,6 +105,11 @@ export const useUtilitiesStore = create<UtilitiesState>()(
       runSchedule: null,
       toggleSchedule: null,
       saveSettings: null,
+      userTags: null,
+      createUserTags: null,
+      syncUserTags: null,
+      cleanupUserTags: null,
+      removeUserTags: null,
     },
 
     // Loading state management that mimics your pattern in other components
@@ -90,6 +142,11 @@ export const useUtilitiesStore = create<UtilitiesState>()(
           runSchedule: null,
           toggleSchedule: null,
           saveSettings: null,
+          userTags: null,
+          createUserTags: null,
+          syncUserTags: null,
+          cleanupUserTags: null,
+          removeUserTags: null,
         },
       }))
     },
@@ -144,6 +201,71 @@ export const useUtilitiesStore = create<UtilitiesState>()(
             schedules: err instanceof Error ? err.message : 'Unknown error',
           },
         }))
+      }
+    },
+
+    setShowDeleteTagsConfirmation: (show: boolean) => {
+      set({ showDeleteTagsConfirmation: show })
+    },
+
+    // Remove user tags with proper typing using the imported schema
+    removeUserTags: async (
+      deleteTagDefinitions: boolean,
+    ): Promise<TagRemovalResult> => {
+      set((state) => ({
+        ...state,
+        loading: { ...state.loading, removeUserTags: true },
+        error: { ...state.error, removeUserTags: null },
+      }))
+
+      try {
+        // Create a minimum loading time promise
+        const minimumLoadingTime = new Promise((resolve) =>
+          setTimeout(resolve, MIN_LOADING_DELAY),
+        )
+
+        // Execute fetch
+        const responsePromise = fetch('/v1/tags/remove', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ deleteTagDefinitions }),
+        })
+
+        // Wait for both the response and the minimum loading time
+        const [response] = await Promise.all([
+          responsePromise,
+          minimumLoadingTime,
+        ])
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Failed to remove user tags')
+        }
+
+        const data: TagRemovalResult = await response.json()
+
+        // Store the results
+        set((state) => ({
+          ...state,
+          removeTagsResults: data,
+          loading: { ...state.loading, removeUserTags: false },
+        }))
+
+        return data
+      } catch (err) {
+        console.error('Error removing user tags:', err)
+        set((state) => ({
+          ...state,
+          loading: { ...state.loading, removeUserTags: false },
+          error: {
+            ...state.error,
+            removeUserTags:
+              err instanceof Error ? err.message : 'Failed to remove user tags',
+          },
+        }))
+        throw err
       }
     },
 
@@ -314,6 +436,270 @@ export const useUtilitiesStore = create<UtilitiesState>()(
           },
         }))
         return false
+      }
+    },
+
+    // User Tags methods
+    fetchUserTagsConfig: async () => {
+      set((state) => ({
+        ...state,
+        loading: { ...state.loading, userTags: true },
+        error: { ...state.error, userTags: null },
+      }))
+
+      try {
+        // Create minimum loading time promise
+        const minimumLoadingTime = new Promise((resolve) =>
+          setTimeout(resolve, MIN_LOADING_DELAY),
+        )
+
+        // Execute fetch with corrected path
+        const responsePromise = fetch('/v1/tags/status')
+
+        // Wait for both the response and the minimum loading time
+        const [response] = await Promise.all([
+          responsePromise,
+          minimumLoadingTime,
+        ])
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch user tags configuration')
+        }
+
+        const data = await response.json()
+
+        set((state) => ({
+          ...state,
+          loading: { ...state.loading, userTags: false },
+        }))
+
+        return data
+      } catch (err) {
+        console.error('Error fetching user tags configuration:', err)
+        set((state) => ({
+          ...state,
+          loading: { ...state.loading, userTags: false },
+          error: {
+            ...state.error,
+            userTags:
+              err instanceof Error
+                ? err.message
+                : 'Failed to fetch user tags configuration',
+          },
+        }))
+        throw err
+      }
+    },
+
+    updateUserTagsConfig: async (config: TaggingConfig) => {
+      set((state) => ({
+        ...state,
+        loading: { ...state.loading, userTags: true },
+        error: { ...state.error, userTags: null },
+      }))
+
+      try {
+        // Create minimum loading time promise
+        const minimumLoadingTime = new Promise((resolve) =>
+          setTimeout(resolve, MIN_LOADING_DELAY),
+        )
+
+        // Execute fetch with corrected path
+        const responsePromise = fetch('/v1/tags/config', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(config),
+        })
+
+        // Wait for both the response and the minimum loading time
+        const [response] = await Promise.all([
+          responsePromise,
+          minimumLoadingTime,
+        ])
+
+        if (!response.ok) {
+          throw new Error('Failed to update user tags configuration')
+        }
+
+        const data = await response.json()
+
+        set((state) => ({
+          ...state,
+          loading: { ...state.loading, userTags: false },
+        }))
+
+        return data
+      } catch (err) {
+        console.error('Error updating user tags configuration:', err)
+        set((state) => ({
+          ...state,
+          loading: { ...state.loading, userTags: false },
+          error: {
+            ...state.error,
+            userTags:
+              err instanceof Error
+                ? err.message
+                : 'Failed to update user tags configuration',
+          },
+        }))
+        throw err
+      }
+    },
+
+    createUserTags: async () => {
+      set((state) => ({
+        ...state,
+        loading: { ...state.loading, createUserTags: true },
+        error: { ...state.error, createUserTags: null },
+      }))
+
+      try {
+        // Create minimum loading time promise
+        const minimumLoadingTime = new Promise((resolve) =>
+          setTimeout(resolve, MIN_LOADING_DELAY),
+        )
+
+        // Execute fetch with corrected path
+        const responsePromise = fetch('/v1/tags/create', {
+          method: 'POST',
+        })
+
+        // Wait for both the response and the minimum loading time
+        const [response] = await Promise.all([
+          responsePromise,
+          minimumLoadingTime,
+        ])
+
+        if (!response.ok) {
+          throw new Error('Failed to create user tags')
+        }
+
+        const data = await response.json()
+
+        set((state) => ({
+          ...state,
+          loading: { ...state.loading, createUserTags: false },
+        }))
+
+        return data
+      } catch (err) {
+        console.error('Error creating user tags:', err)
+        set((state) => ({
+          ...state,
+          loading: { ...state.loading, createUserTags: false },
+          error: {
+            ...state.error,
+            createUserTags:
+              err instanceof Error ? err.message : 'Failed to create user tags',
+          },
+        }))
+        throw err
+      }
+    },
+
+    syncUserTags: async () => {
+      set((state) => ({
+        ...state,
+        loading: { ...state.loading, syncUserTags: true },
+        error: { ...state.error, syncUserTags: null },
+      }))
+
+      try {
+        // Create minimum loading time promise
+        const minimumLoadingTime = new Promise((resolve) =>
+          setTimeout(resolve, MIN_LOADING_DELAY),
+        )
+
+        // Execute fetch with corrected path
+        const responsePromise = fetch('/v1/tags/sync', {
+          method: 'POST',
+        })
+
+        // Wait for both the response and the minimum loading time
+        const [response] = await Promise.all([
+          responsePromise,
+          minimumLoadingTime,
+        ])
+
+        if (!response.ok) {
+          throw new Error('Failed to sync user tags')
+        }
+
+        const data = await response.json()
+
+        set((state) => ({
+          ...state,
+          loading: { ...state.loading, syncUserTags: false },
+        }))
+
+        return data
+      } catch (err) {
+        console.error('Error syncing user tags:', err)
+        set((state) => ({
+          ...state,
+          loading: { ...state.loading, syncUserTags: false },
+          error: {
+            ...state.error,
+            syncUserTags:
+              err instanceof Error ? err.message : 'Failed to sync user tags',
+          },
+        }))
+        throw err
+      }
+    },
+
+    cleanupUserTags: async () => {
+      set((state) => ({
+        ...state,
+        loading: { ...state.loading, cleanupUserTags: true },
+        error: { ...state.error, cleanupUserTags: null },
+      }))
+
+      try {
+        // Create minimum loading time promise
+        const minimumLoadingTime = new Promise((resolve) =>
+          setTimeout(resolve, MIN_LOADING_DELAY),
+        )
+
+        // Execute fetch with corrected path
+        const responsePromise = fetch('/v1/tags/cleanup', {
+          method: 'POST',
+        })
+
+        // Wait for both the response and the minimum loading time
+        const [response] = await Promise.all([
+          responsePromise,
+          minimumLoadingTime,
+        ])
+
+        if (!response.ok) {
+          throw new Error('Failed to clean up user tags')
+        }
+
+        const data = await response.json()
+
+        set((state) => ({
+          ...state,
+          loading: { ...state.loading, cleanupUserTags: false },
+        }))
+
+        return data
+      } catch (err) {
+        console.error('Error cleaning up user tags:', err)
+        set((state) => ({
+          ...state,
+          loading: { ...state.loading, cleanupUserTags: false },
+          error: {
+            ...state.error,
+            cleanupUserTags:
+              err instanceof Error
+                ? err.message
+                : 'Failed to clean up user tags',
+          },
+        }))
+        throw err
       }
     },
   })),

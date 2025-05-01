@@ -879,4 +879,26 @@ export class SonarrService {
 
     return response.json() as Promise<T>
   }
+
+  /**
+   * Delete a tag from Sonarr
+   *
+   * @param tagId The ID of the tag to delete
+   * @returns Promise resolving when the delete operation is complete
+   */
+  async deleteTag(tagId: number): Promise<void> {
+    const config = this.sonarrConfig
+    const url = new URL(`${config.sonarrBaseUrl}/api/v3/tag/${tagId}`)
+
+    const response = await fetch(url.toString(), {
+      method: 'DELETE',
+      headers: {
+        'X-Api-Key': config.sonarrApiKey,
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`Sonarr API error: ${response.statusText}`)
+    }
+  }
 }

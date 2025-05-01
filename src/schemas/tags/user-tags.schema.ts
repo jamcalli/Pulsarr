@@ -78,10 +78,36 @@ export const SyncTaggingResponseSchema = BaseResponseSchema.extend({
     .optional(),
 })
 
+// Schema for the remove tags response
+export const RemoveTagsResponseSchema = BaseResponseSchema.extend({
+  mode: z.literal('remove'),
+  sonarr: z.object({
+    itemsProcessed: z.number(),
+    itemsUpdated: z.number(),
+    tagsRemoved: z.number(),
+    tagsDeleted: z.number(),
+    failed: z.number(),
+    instances: z.number(),
+  }),
+  radarr: z.object({
+    itemsProcessed: z.number(),
+    itemsUpdated: z.number(),
+    tagsRemoved: z.number(),
+    tagsDeleted: z.number(),
+    failed: z.number(),
+    instances: z.number(),
+  }),
+})
+
+export const RemoveTagsRequestSchema = z.object({
+  deleteTagDefinitions: z.boolean().optional().default(false),
+})
+
 // Union of the two operation types with proper discrimination
 export const TaggingOperationResponseSchema = z.discriminatedUnion('mode', [
   CreateTaggingResponseSchema,
   SyncTaggingResponseSchema,
+  RemoveTagsResponseSchema,
 ])
 
 // Cleanup response schema
