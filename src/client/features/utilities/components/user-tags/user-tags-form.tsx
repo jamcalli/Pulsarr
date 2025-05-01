@@ -68,6 +68,8 @@ export function UserTagsForm() {
     lastResults,
     lastActionResults,
     lastRemoveResults,
+    tagDefinitionsDeleted,
+    isTagDeletionComplete,
     showDeleteConfirmation,
     setShowDeleteConfirmation,
     onSubmit,
@@ -100,11 +102,7 @@ export function UserTagsForm() {
 
   // Determine if the tag prefix can be edited
   const canEditTagPrefix =
-    isRemovingTags ||
-    !lastResults?.success ||
-    (lastRemoveResults &&
-      (lastRemoveResults.sonarr.tagsDeleted > 0 ||
-        lastRemoveResults.radarr.tagsDeleted > 0))
+    (isTagDeletionComplete && tagDefinitionsDeleted) || !lastResults?.success
 
   return (
     <>
@@ -777,7 +775,8 @@ export function UserTagsForm() {
                                 />
                               </FormControl>
                               {lastResults?.success &&
-                                lastResults.config?.tagUsersInSonarr &&
+                                (lastResults.config?.tagUsersInSonarr ||
+                                  lastResults.config?.tagUsersInRadarr) &&
                                 !canEditTagPrefix && (
                                   <p className="text-xs text-gray-500 mt-1">
                                     You must remove existing tags with "Delete

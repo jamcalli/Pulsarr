@@ -344,9 +344,7 @@ export const useUtilitiesStore = create<UtilitiesState>()(
       },
 
       // Remove user tags with proper typing using the imported schema
-      removeUserTags: async (
-        deleteTagDefinitions: boolean,
-      ): Promise<TagRemovalResult> => {
+      removeUserTags: async (deleteTagDefinitions: boolean) => {
         return apiRequest<TagRemovalResult, { deleteTagDefinitions: boolean }>({
           url: '/v1/tags/remove',
           method: 'POST',
