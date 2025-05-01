@@ -80,12 +80,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         // If someone tries to update the protected fields, log a warning
         if (enableApprise !== undefined || appriseUrl !== undefined) {
-          fastify.log.warn(
-            'Attempt to update protected Apprise config via API was prevented',
-            {
-              enableApprise,
-              appriseUrl: appriseUrl ? '[redacted]' : undefined,
-            },
+          return reply.badRequest(
+            'enableApprise and appriseUrl are read-only via API',
           )
         }
 
