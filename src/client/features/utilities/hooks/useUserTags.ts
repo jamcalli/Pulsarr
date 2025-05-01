@@ -23,10 +23,9 @@ type ActionResult =
   | z.infer<typeof RemoveTagsResponseSchema>
 
 /**
- * Determines if the given action result is a create tag response.
+ * Checks whether the provided action result represents a create tag response.
  *
- * @param response - The action result to check.
- * @returns True if {@link response} is a create tag response; otherwise, false.
+ * @returns True if the response has a `mode` property equal to `'create'`; otherwise, false.
  */
 export function isCreateTagResponse(
   response: ActionResult,
@@ -37,10 +36,10 @@ export function isCreateTagResponse(
 }
 
 /**
- * Determines whether the given action result is a sync tagging response.
+ * Checks if the provided action result represents a sync tagging response.
  *
- * @param response - The action result to check.
- * @returns True if {@link response} is a sync tagging response; otherwise, false.
+ * @param response - The action result to evaluate.
+ * @returns True if the response has a `mode` property equal to `'sync'`; otherwise, false.
  */
 export function isSyncTagResponse(
   response: ActionResult,
@@ -49,10 +48,9 @@ export function isSyncTagResponse(
 }
 
 /**
- * Determines if the given action result is a cleanup tag response.
+ * Checks if an action result represents a cleanup tag response.
  *
- * @param response - The action result to check.
- * @returns True if {@link response} matches the structure of a cleanup tag response; otherwise, false.
+ * @returns True if the response has a `radarr` property with a `removed` field and does not have a `mode` property; otherwise, false.
  */
 export function isCleanupTagResponse(
   response: ActionResult,
@@ -66,10 +64,9 @@ export function isCleanupTagResponse(
 }
 
 /**
- * Determines whether the given action result is a remove tags response.
+ * Checks if the given action result is a remove tags response.
  *
- * @param response - The action result to check.
- * @returns True if the response represents a remove tags operation; otherwise, false.
+ * @returns True if the response has a `mode` property equal to `'remove'`; otherwise, false.
  */
 export function isRemoveTagsResponse(
   response: ActionResult,
@@ -80,11 +77,11 @@ export function isRemoveTagsResponse(
 }
 
 /**
- * React hook for managing user tagging configuration and related operations for Sonarr and Radarr.
+ * React hook for managing user tagging configuration and actions for Sonarr and Radarr.
  *
- * Provides form state and handlers for fetching, updating, creating, syncing, cleaning up, and removing user tags, integrating with the utilities store and form validation.
+ * Handles form state, validation, and provides handlers for fetching, updating, creating, syncing, cleaning up, and removing user tags. Integrates with the utilities store and displays toast notifications for operation results.
  *
- * @returns An object containing form instance, loading and error states, last results, and action handlers for user tag management.
+ * @returns An object with the form instance, loading and error states, last results, tag deletion flags, and handlers for all user tag management operations.
  */
 export function useUserTags() {
   const { toast } = useToast()

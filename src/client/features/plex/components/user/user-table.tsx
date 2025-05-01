@@ -64,13 +64,13 @@ interface UserTableProps {
 }
 
 /**
- * Displays a sortable, filterable, and paginated table of user watchlist data with support for column visibility, row selection, and bulk editing.
+ * Renders an interactive table for managing user watchlist data with sorting, filtering, pagination, column visibility toggling, row selection, and bulk editing.
  *
- * The table allows users to filter by username, toggle column visibility, select individual or all rows, and perform bulk or single-user edit actions. Pagination and sorting are available for relevant columns. Loading state is supported with skeleton rows and disabled controls.
+ * The table supports filtering by username, selecting individual or all rows, toggling column visibility, and editing users either individually or in bulk. Pagination and sorting are available for relevant columns. When loading, controls are disabled and skeleton rows are shown.
  *
- * @param users - Array of user watchlist data to display in the table.
+ * @param users - The user watchlist data to display.
  * @param onEditUser - Callback invoked when editing a single user.
- * @param isLoading - Optional flag to indicate loading state; disables controls and shows skeleton rows when true.
+ * @param isLoading - Optional flag indicating loading state; disables controls and displays skeleton rows when true.
  * @param onBulkEdit - Optional callback invoked with selected rows for bulk editing.
  */
 export default function UserTable({
