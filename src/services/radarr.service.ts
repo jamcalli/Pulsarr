@@ -917,4 +917,26 @@ export class RadarrService {
 
     return response.json() as Promise<T>
   }
+
+  /**
+   * Delete a tag from Radarr
+   *
+   * @param tagId The ID of the tag to delete
+   * @returns Promise resolving when the delete operation is complete
+   */
+  async deleteTag(tagId: number): Promise<void> {
+    const config = this.radarrConfig
+    const url = new URL(`${config.radarrBaseUrl}/api/v3/tag/${tagId}`)
+
+    const response = await fetch(url.toString(), {
+      method: 'DELETE',
+      headers: {
+        'X-Api-Key': config.radarrApiKey,
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`Radarr API error: ${response.statusText}`)
+    }
+  }
 }
