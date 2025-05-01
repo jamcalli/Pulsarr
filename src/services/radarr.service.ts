@@ -820,4 +820,123 @@ export class RadarrService {
       throw error
     }
   }
+
+  /**
+   * Get all tags from Radarr
+   *
+   * @returns Promise resolving to an array of tags
+   */
+  async getTags(): Promise<Array<{ id: number; label: string }>> {
+    return await this.getFromRadarr<Array<{ id: number; label: string }>>('tag')
+  }
+
+  /**
+   * Create a new tag in Radarr
+   *
+   * @param label Tag label
+   * @returns Promise resolving to the created tag
+   */
+  async createTag(label: string): Promise<{ id: number; label: string }> {
+    try {
+      return await this.postToRadarr<{ id: number; label: string }>('tag', {
+        label,
+      })
+    } catch (err) {
+      if (
+        err instanceof Error &&
+        /409/.test(err.message) // Radarr returns 409 Conflict if the tag exists
+      ) {
+        this.log.debug(
+          `Tag "${label}" already exists in Radarr – skipping creation`,
+        )
+        // Fetch the existing tag so we can return its id
+        const existing = (await this.getTags()).find((t) => t.label === label)
+        if (existing) return existing
+      }
+      throw err
+    }
+  }
+
+  /**
+   * Update the tags for a specific movie
+   *
+   * @param movieId The Radarr movie ID
+   * @param tagIds Array of tag IDs to apply
+   * @returns Promise resolving when the update is complete
+   */
+  async updateMovieTags(movieId: number, tagIds: number[]): Promise<void> {
+    try {
+      // First get the current movie to preserve all fields
+      const movie = await this.getFromRadarr<RadarrMovie & { tags: number[] }>(
+        `movie/${movieId}`,
+      )
+
+      movie.tags = [...new Set(tagIds)]
+
+      // Send the update
+      await this.putToRadarr(`movie/${movieId}`, movie)
+
+      this.log.debug(`Updated tags for movie ID ${movieId}`, { tagIds })
+    } catch (error) {
+      this.log.error(`Failed to update tags for movie ${movieId}:`, error)
+      throw error
+    }
+  }
+
+  /**
+   * Update a resource in Radarr using PUT
+   *
+   * @param endpoint API endpoint
+   * @param payload The data to send
+   * @returns Promise resolving to the response or void for 204 responses
+   */
+  async putToRadarr<T>(
+    endpoint: string,
+    payload: unknown,
+  ): Promise<T | undefined> {
+    const config = this.radarrConfig
+    const url = new URL(`${config.radarrBaseUrl}/api/v3/${endpoint}`)
+    const response = await fetch(url.toString(), {
+      method: 'PUT',
+      headers: {
+        'X-Api-Key': config.radarrApiKey,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+
+    if (!response.ok) {
+      throw new Error(`Radarr API error: ${response.statusText}`)
+    }
+
+    // Some endpoints return 204 No Content
+    if (response.status === 204) {
+      return undefined
+    }
+
+    return response.json() as Promise<T>
+  }
+
+  /**
+   * Delete a tag from Radarr
+   *
+   * @param tagId The ID of the tag to delete
+   * @returns Promise resolving when the delete operation is complete
+   */
+  async deleteTag(tagId: number): Promise<void> {
+    const config = this.radarrConfig
+    const url = new URL(`${config.radarrBaseUrl}/api/v3/tag/${tagId}`)
+
+    const response = await fetch(url.toString(), {
+      method: 'DELETE',
+      headers: {
+        'X-Api-Key': config.radarrApiKey,
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`Radarr API error: ${response.statusText}`)
+    }
+  }
 }

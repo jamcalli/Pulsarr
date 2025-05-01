@@ -63,6 +63,16 @@ interface UserTableProps {
   onBulkEdit?: (selectedRows: PlexUserTableRow[]) => void
 }
 
+/**
+ * Renders an interactive table for managing user watchlist data with sorting, filtering, pagination, column visibility toggling, row selection, and bulk editing.
+ *
+ * The table supports filtering by username, selecting individual or all rows, toggling column visibility, and editing users either individually or in bulk. Pagination and sorting are available for relevant columns. When loading, controls are disabled and skeleton rows are shown.
+ *
+ * @param users - The user watchlist data to display.
+ * @param onEditUser - Callback invoked when editing a single user.
+ * @param isLoading - Optional flag indicating loading state; disables controls and displays skeleton rows when true.
+ * @param onBulkEdit - Optional callback invoked with selected rows for bulk editing.
+ */
 export default function UserTable({
   users,
   onEditUser,
@@ -180,6 +190,7 @@ export default function UserTable({
         headerClassName: 'hidden xs:table-cell',
       },
     },
+
     {
       accessorKey: 'watchlist_count',
       header: ({ column }) => {
