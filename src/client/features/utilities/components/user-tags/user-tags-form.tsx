@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -45,6 +45,7 @@ import { useMediaQuery } from '@/hooks/use-media-query'
 import { Progress } from '@/components/ui/progress'
 import { useProgressStore } from '@/stores/progressStore'
 import { UserTagsDeleteConfirmationModal } from '@/features/utilities/components/user-tags/user-tags-delete-confirmation-modal'
+import { useTaggingProgress } from '@/features/utilities/hooks/useTaggingProgress'
 
 /**
  * Renders the UserTagsForm component that provides an interface for managing user tagging.
@@ -81,90 +82,11 @@ export function UserTagsForm() {
     handleRemoveTags,
   } = useUserTags()
 
-  // Progress state using separate variables for each service
-  const [sonarrTaggingProgress, setSonarrTaggingProgress] = useState({
-    progress: 0,
-    message: '',
-  })
-
-  const [radarrTaggingProgress, setRadarrTaggingProgress] = useState({
-    progress: 0,
-    message: '',
-  })
-
-  const [sonarrRemovalProgress, setSonarrRemovalProgress] = useState({
-    progress: 0,
-    message: '',
-  })
-
-  const [radarrRemovalProgress, setRadarrRemovalProgress] = useState({
-    progress: 0,
-    message: '',
-  })
-
-  // Subscribe to each specific event type
-  useEffect(() => {
-    // Specific event type subscriptions
-    const unsubscribeSonarrTagging = useProgressStore
-      .getState()
-      .subscribeToType('sonarr-tagging', (event) => {
-        if (event.progress !== undefined) {
-          setSonarrTaggingProgress({
-            progress: event.progress,
-            message: event.message || sonarrTaggingProgress.message,
-          })
-        }
-      })
-
-    const unsubscribeRadarrTagging = useProgressStore
-      .getState()
-      .subscribeToType('radarr-tagging', (event) => {
-        if (event.progress !== undefined) {
-          setRadarrTaggingProgress({
-            progress: event.progress,
-            message: event.message || radarrTaggingProgress.message,
-          })
-        }
-      })
-
-    const unsubscribeSonarrRemoval = useProgressStore
-      .getState()
-      .subscribeToType('sonarr-tag-removal', (event) => {
-        if (event.progress !== undefined) {
-          setSonarrRemovalProgress({
-            progress: event.progress,
-            message: event.message || sonarrRemovalProgress.message,
-          })
-        }
-      })
-
-    const unsubscribeRadarrRemoval = useProgressStore
-      .getState()
-      .subscribeToType('radarr-tag-removal', (event) => {
-        if (event.progress !== undefined) {
-          setRadarrRemovalProgress({
-            progress: event.progress,
-            message: event.message || radarrRemovalProgress.message,
-          })
-        }
-      })
-
-    return () => {
-      unsubscribeSonarrTagging()
-      unsubscribeRadarrTagging()
-      unsubscribeSonarrRemoval()
-      unsubscribeRadarrRemoval()
-    }
-  }, [
-    sonarrTaggingProgress.message,
-    radarrTaggingProgress.message,
-    sonarrRemovalProgress.message,
-    radarrRemovalProgress.message,
-  ])
-
-  // Determine the enabled status badge
-  const isEnabled =
-    form.watch('tagUsersInSonarr') || form.watch('tagUsersInRadarr')
+  // Use the custom hook for each progress type
+  const sonarrTaggingProgress = useTaggingProgress('sonarr-tagging')
+  const radarrTaggingProgress = useTaggingProgress('radarr-tagging')
+  const sonarrRemovalProgress = useTaggingProgress('sonarr-tag-removal')
+  const radarrRemovalProgress = useTaggingProgress('radarr-tag-removal')
 
   // Initialize progress connection
   useEffect(() => {
@@ -174,6 +96,10 @@ export function UserTagsForm() {
       progressStore.cleanup()
     }
   }, [])
+
+  // Determine the enabled status badge
+  const isEnabled =
+    form.watch('tagUsersInSonarr') || form.watch('tagUsersInRadarr')
 
   return (
     <>
