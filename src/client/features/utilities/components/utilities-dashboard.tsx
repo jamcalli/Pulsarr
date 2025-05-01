@@ -8,11 +8,11 @@ import { UserTagsSkeleton } from '@/features/utilities/components/user-tags/user
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 
 /**
- * Displays the utilities dashboard with sections for DeleteSync, PlexNotifications, and UserTags.
+ * Renders the utilities dashboard with sections for DeleteSync, PlexNotifications, and UserTags.
  *
- * Shows skeleton placeholders during loading and transitions smoothly to the utility forms once data is ready, preventing UI flicker.
+ * Displays skeleton placeholders while loading and transitions to the utility forms once data is available to ensure a smooth user experience.
  *
- * @returns The rendered utilities dashboard UI.
+ * @returns The utilities dashboard UI.
  */
 export function UtilitiesDashboard() {
   const [isLoading, setIsLoading] = useState(true)

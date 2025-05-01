@@ -14,12 +14,12 @@ type ProgressEventType =
   | 'radarr-tag-removal'
 
 /**
- * React hook that provides real-time progress updates for a specified tagging event type.
+ * React hook that returns real-time progress and status message for a given tagging event type.
  *
- * Subscribes to progress events of the given {@link type} and returns the current progress percentage and status message.
+ * Subscribes to progress updates for the specified {@link type} and provides the latest progress percentage and message.
  *
- * @param type - The tagging progress event type to monitor.
- * @returns An object with the current progress value and message for the specified event type.
+ * @param type - The tagging event type to track.
+ * @returns An object containing the current progress value and message.
  */
 export function useTaggingProgress(type: ProgressEventType) {
   const [progress, setProgress] = useState({ progress: 0, message: '' })
