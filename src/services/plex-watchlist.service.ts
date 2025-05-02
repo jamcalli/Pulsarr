@@ -9,7 +9,11 @@ import {
   getPlexWatchlistUrls,
   fetchWatchlistFromRss,
 } from '@utils/plex.js'
-import { parseGuids, hasMatchingParsedGuids } from '@utils/guid-handler.js'
+import {
+  parseGuids,
+  hasMatchingGuids,
+  hasMatchingParsedGuids,
+} from '@utils/guid-handler.js'
 import type {
   Item as WatchlistItem,
   TokenWatchlistItem,
@@ -22,9 +26,6 @@ import type { User } from '@root/types/config.types.js'
 import type { RssFeedsResponse } from '@schemas/plex/generate-rss-feeds.schema.js'
 
 export class PlexWatchlistService {
-  // Add a property to store the GUIDs snapshot
-  private existingGuidsSnapshot: Set<string> = new Set()
-
   constructor(
     private readonly log: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
@@ -36,34 +37,183 @@ export class PlexWatchlistService {
   }
 
   /**
-   * Initializes a snapshot of all existing GUIDs in the database
-   * Used to determine which items are genuinely new during a sync operation
+   * Creates a snapshot of existing GUIDs for a specific operation
+   *
+   * @returns Promise resolving to a Set of lowercase GUIDs
    */
-  private async initializeGuidsSnapshot(): Promise<void> {
-    // Clear the existing snapshot
-    this.existingGuidsSnapshot.clear()
-
+  private async createGuidsSnapshot(): Promise<Set<string>> {
     try {
-      // Get all existing watchlist items - using a combination of movie and show items
-      const movieItems = await this.dbService.getAllMovieWatchlistItems()
-      const showItems = await this.dbService.getAllShowWatchlistItems()
-      const allItems = [...movieItems, ...showItems]
+      // Use the optimized database method
+      const guids = await this.dbService.getAllGuidsMapped()
 
-      // Extract and store all GUIDs in lowercase for case-insensitive matching
-      for (const item of allItems) {
-        const guids = parseGuids(item.guids)
-        for (const guid of guids) {
-          this.existingGuidsSnapshot.add(guid.toLowerCase())
-        }
+      // Convert array to Set for O(1) lookups
+      const snapshot = new Set<string>()
+      for (const guid of guids) {
+        snapshot.add(guid.toLowerCase())
       }
 
       this.log.debug(
-        `Initialized GUIDs snapshot with ${this.existingGuidsSnapshot.size} unique GUIDs`,
+        `Created GUIDs snapshot with ${snapshot.size} unique GUIDs`,
+      )
+      return snapshot
+    } catch (error) {
+      this.log.error('Error creating GUIDs snapshot:', error)
+      return new Set()
+    }
+  }
+
+  /**
+   * Gets parsed GUIDs with caching to avoid repeated parsing
+   *
+   * @param guidCache - Cache Map to store parsed results
+   * @param source - Source GUIDs to parse
+   * @returns Array of parsed GUIDs
+   */
+  private getParsedGuids(
+    guidCache: Map<string, string[]>,
+    source: string | string[],
+  ): string[] {
+    // Handle undefined or null case
+    if (!source) {
+      return []
+    }
+
+    // Create a cache key
+    const cacheKey =
+      typeof source === 'string' ? source : JSON.stringify(source)
+
+    // Return from cache if available
+    if (guidCache.has(cacheKey)) {
+      const cachedValue = guidCache.get(cacheKey)
+      if (cachedValue) {
+        return cachedValue
+      }
+    }
+
+    // Parse and cache if not available
+    const parsed = parseGuids(source)
+    guidCache.set(cacheKey, parsed)
+    return parsed
+  }
+
+  /**
+   * Determines if a notification should be sent
+   *
+   * @param title - Item title
+   * @param existingNotifications - Set of existing notification titles
+   * @param guids - Item GUIDs
+   * @param existingGuidsSnapshot - Snapshot of GUIDs that existed before sync
+   * @returns Boolean indicating if notification should be sent
+   */
+  private shouldSendNotification(
+    title: string,
+    existingNotifications: Set<string>,
+    guids: string[],
+    existingGuidsSnapshot: Set<string>,
+  ): boolean {
+    // Check if notification already exists
+    if (existingNotifications.has(title)) {
+      this.log.info(
+        `Skipping notification for "${title}" - already sent previously`,
+      )
+      return false
+    }
+
+    // Check if any GUIDs existed before sync
+    for (const guid of guids) {
+      const normalizedGuid = guid.toLowerCase()
+      if (existingGuidsSnapshot.has(normalizedGuid)) {
+        this.log.info(
+          `Skipping notification for "${title}" - item with GUID ${guid} already existed before sync`,
+          { title, guid },
+        )
+        return false
+      }
+    }
+
+    return true
+  }
+
+  /**
+   * Sends watchlist notifications to a user
+   *
+   * @param user - User to notify
+   * @param item - Watchlist item details
+   * @returns Promise resolving to boolean indicating if any notifications were sent
+   */
+  private async sendWatchlistNotifications(
+    user: Friend, // Change parameter type to Friend
+    item: {
+      id?: number | string
+      title: string
+      type: string
+      thumb?: string
+    },
+  ): Promise<boolean> {
+    const username = user.username || 'Unknown User'
+    let discordSent = false
+    let appriseSent = false
+
+    // Send Discord notification (simplified without discord_id check)
+    try {
+      discordSent = await this.fastify.discord.sendMediaNotification({
+        username,
+        title: item.title,
+        type: item.type as 'movie' | 'show',
+        posterUrl: item.thumb,
+      })
+
+      this.log.info(
+        `Sent Discord notification to ${username} for "${item.title}"`,
+        { success: discordSent },
       )
     } catch (error) {
-      this.log.error('Error initializing GUIDs snapshot:', error)
-      // Continue with an empty snapshot in case of error
+      this.log.error('Error sending Discord webhook notification:', error)
     }
+
+    // Send Apprise notification
+    if (this.fastify.apprise?.isEnabled()) {
+      try {
+        appriseSent =
+          await this.fastify.apprise.sendWatchlistAdditionNotification({
+            title: item.title,
+            type: typeof item.type === 'string' ? item.type : 'unknown',
+            addedBy: {
+              name: username,
+            },
+            posterUrl: item.thumb,
+          })
+
+        this.log.info(
+          `Sent Apprise notification to ${username} for "${item.title}"`,
+          { success: appriseSent },
+        )
+      } catch (error) {
+        this.log.error('Error sending Apprise notification:', error)
+      }
+    }
+
+    // Record notification if either method succeeded
+    if (discordSent || appriseSent) {
+      const itemId =
+        typeof item.id === 'string' ? Number.parseInt(item.id, 10) : item.id
+
+      await this.dbService.createNotificationRecord({
+        watchlist_item_id:
+          itemId !== undefined && !Number.isNaN(itemId) ? itemId : null,
+        user_id: user.userId,
+        type: 'watchlist_add',
+        title: item.title,
+        message: `New ${item.type} added to watchlist`,
+        sent_to_discord: discordSent,
+        sent_to_apprise: appriseSent,
+        sent_to_webhook: true,
+      })
+
+      return true
+    }
+
+    return false
   }
 
   async pingPlex(): Promise<boolean> {
@@ -82,17 +232,13 @@ export class PlexWatchlistService {
     return results.every((result) => result === true)
   }
 
-  // Note: Moved away from supporting multiple tokens, which was never supported via the ui.
-  // If multi-token support is added back in the future, this method will need to be updated
-  // to handle multiple users and their respective watchlists
-
   async getSelfWatchlist() {
     if (this.config.plexTokens.length === 0) {
       throw new Error('No Plex token configured')
     }
 
-    // Initialize the GUIDs snapshot at the start of the process
-    await this.initializeGuidsSnapshot()
+    // Create a snapshot for this specific operation
+    const existingGuidsSnapshot = await this.createGuidsSnapshot()
 
     // Ensure users exist for tokens (this populates the database)
     await this.ensureTokenUsers()
@@ -177,6 +323,7 @@ export class PlexWatchlistService {
 
     await this.matchRssPendingItemsSelf(
       allItemsMap as Map<Friend, Set<TokenWatchlistItem>>,
+      existingGuidsSnapshot,
     )
 
     await this.checkForRemovedItems(userWatchlistMap)
@@ -226,8 +373,8 @@ export class PlexWatchlistService {
       throw new Error('No Plex token configured')
     }
 
-    // Initialize the GUIDs snapshot at the start of the process
-    await this.initializeGuidsSnapshot()
+    // Create a snapshot for this specific operation
+    const existingGuidsSnapshot = await this.createGuidsSnapshot()
 
     const friends = await getFriends(this.config, this.log)
 
@@ -310,6 +457,7 @@ export class PlexWatchlistService {
 
     await this.matchRssPendingItemsFriends(
       allItemsMap as Map<Friend, Set<TokenWatchlistItem>>,
+      existingGuidsSnapshot,
     )
 
     await this.checkForRemovedItems(userWatchlistMap)
@@ -320,52 +468,6 @@ export class PlexWatchlistService {
       existingItemsToLink,
       processedItems,
     )
-  }
-
-  /**
-   * Determines if a notification should be sent for a watchlist item
-   * based on existing notification records and pre-sync database content
-   *
-   * @param userId - The user ID to check notifications for
-   * @param item - The watchlist item to potentially notify about
-   * @param pendingGuids - Parsed GUIDs from the RSS feed
-   * @returns Boolean indicating if notification should be sent
-   */
-  private async shouldSendContentNotification(
-    userId: number,
-    item: { title: string; guids: string[] | string; type: string },
-    pendingGuids: string[],
-  ): Promise<boolean> {
-    // 1. Check for existing notification record
-    const existingNotification =
-      await this.dbService.getExistingWebhookNotification(
-        userId,
-        'watchlist_add',
-        item.title,
-      )
-
-    if (existingNotification) {
-      this.log.info(
-        `Skipping notification for "${item.title}" - already sent previously to user ID ${userId}`,
-      )
-      return false
-    }
-
-    // 2. Check if any GUIDs existed in the database BEFORE the sync started
-    // Using the GUIDs from the pending item (from RSS) for the check
-    for (const guid of pendingGuids) {
-      const normalizedGuid = guid.toLowerCase()
-      if (this.existingGuidsSnapshot.has(normalizedGuid)) {
-        this.log.info(
-          `Skipping notification for "${item.title}" - item with GUID ${guid} already existed before sync for user ID ${userId}`,
-          { itemTitle: item.title, guid, userId },
-        )
-        return false
-      }
-    }
-
-    // No existing notification record and no matching pre-existing GUIDs found
-    return true
   }
 
   /**
@@ -1053,7 +1155,7 @@ export class PlexWatchlistService {
       plexKey: item.key,
       type: item.type,
       thumb: item.thumb || '',
-      guids: parseGuids(item.guids), // Use parseGuids instead of safeParseArray
+      guids: parseGuids(item.guids), // Use parseGuids directly
       genres: this.safeParseArray<string>(item.genres), // Keep safeParseArray for genres
       status: 'pending' as const,
     }
@@ -1082,8 +1184,8 @@ export class PlexWatchlistService {
   async processRssWatchlists(): Promise<RssWatchlistResults> {
     const config = await this.ensureRssFeeds()
 
-    // Initialize the GUIDs snapshot at the start of the process
-    await this.initializeGuidsSnapshot()
+    // Create a snapshot for this specific operation
+    const existingGuidsSnapshot = await this.createGuidsSnapshot()
 
     const results: RssWatchlistResults = {
       self: {
@@ -1218,131 +1320,128 @@ export class PlexWatchlistService {
 
   async matchRssPendingItemsSelf(
     userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>,
+    existingGuidsSnapshot: Set<string>,
   ): Promise<void> {
     const pendingItems = await this.dbService.getTempRssItems('self')
 
     this.log.info(
       `Found ${pendingItems.length} pending RSS items to match during self sync`,
     )
+
+    if (pendingItems.length === 0) {
+      return
+    }
+
+    // Tracking statistics
     let matchCount = 0
     let noMatchCount = 0
     let duplicateCount = 0
     const matchedItemIds: number[] = []
     const duplicateItemIds: number[] = []
 
-    for (const pendingItem of pendingItems) {
-      const pendingGuids = parseGuids(pendingItem.guids)
+    // Cache for parsed GUIDs
+    const guidCache = new Map<string, string[]>()
 
-      this.log.debug(
-        `Processing RSS item "${pendingItem.title}" with GUIDs:`,
-        pendingGuids,
-      )
+    // Cache for notification checks - prefetch all at once
+    const notificationChecks = new Map<number, Map<string, boolean>>()
+
+    // Pre-process items to build title cache for each user
+    const userItemTitles = new Map<number, string[]>()
+
+    for (const [user, items] of userWatchlistMap.entries()) {
+      const titles: string[] = []
+      for (const item of items) {
+        if (item.title) {
+          titles.push(item.title)
+        }
+      }
+      userItemTitles.set(user.userId, titles)
+    }
+
+    // Prefetch all notification checks at once
+    await Promise.all(
+      Array.from(userItemTitles.entries()).map(async ([userId, titles]) => {
+        if (titles.length > 0) {
+          const checks = await this.dbService.checkExistingWebhooks(
+            userId,
+            titles,
+          )
+          notificationChecks.set(userId, checks)
+        }
+      }),
+    )
+
+    // Process each pending item
+    for (const pendingItem of pendingItems) {
+      const pendingGuids = this.getParsedGuids(guidCache, pendingItem.guids)
       let foundMatch = false
 
       for (const [user, items] of userWatchlistMap.entries()) {
         for (const item of items) {
-          const itemGuids = parseGuids(item.guids)
+          const itemGuids = this.getParsedGuids(guidCache, item.guids || [])
 
-          // Use the hasMatchingParsedGuids function that works with already-parsed arrays
-          const hasMatch = hasMatchingParsedGuids(pendingGuids, itemGuids)
-
-          if (hasMatch) {
+          // Use existing hasMatchingParsedGuids function
+          if (hasMatchingParsedGuids(pendingGuids, itemGuids)) {
             foundMatch = true
             matchCount++
             matchedItemIds.push(pendingItem.id)
 
             this.log.info(
               `Matched item "${pendingItem.title}" to user ${user.username}'s item "${item.title}"`,
-              {
-                pendingGuids,
-                itemGuids,
-                userId: user.userId,
-              },
+              { userId: user.userId },
             )
 
-            // Check if notification should be sent with pre-sync snapshot check
-            const shouldSendNotification =
-              await this.shouldSendContentNotification(
-                user.userId,
-                {
-                  title: item.title,
-                  guids: item.guids || [],
-                  type: item.type || 'unknown',
-                },
-                pendingGuids,
-              )
+            // Check if notification should be sent
+            let shouldSendNotification = true
 
-            if (!shouldSendNotification) {
-              continue // Skip to next item
+            // Check if already notified (using prefetched data)
+            const userNotifications = notificationChecks.get(user.userId)
+            if (userNotifications?.get(item.title)) {
+              this.log.info(
+                `Skipping notification for "${item.title}" - already sent previously to user ID ${user.userId}`,
+              )
+              shouldSendNotification = false
             }
 
-            // Send Discord webhook notification
-            let discordSent = false
-            try {
-              discordSent = await this.fastify.discord.sendMediaNotification({
-                username: user.username,
-                title: item.title,
-                type: item.type as 'movie' | 'show',
-                posterUrl: item.thumb,
-              })
-            } catch (error) {
-              this.log.error(
-                'Error sending Discord webhook notification:',
-                error,
-              )
-            }
-
-            // Send Apprise watchlist addition notification
-            let appriseSent = false
-            if (this.fastify.apprise?.isEnabled()) {
-              try {
-                appriseSent =
-                  await this.fastify.apprise.sendWatchlistAdditionNotification({
-                    title: item.title,
-                    type: typeof item.type === 'string' ? item.type : 'unknown',
-                    addedBy: {
-                      name: user.username,
-                    },
-                    posterUrl: item.thumb,
-                  })
-              } catch (error) {
-                this.log.error(
-                  'Error sending Apprise watchlist addition notification:',
-                  error,
-                )
+            // Check if existed before sync
+            if (shouldSendNotification) {
+              for (const guid of pendingGuids) {
+                const normalizedGuid = guid.toLowerCase()
+                if (existingGuidsSnapshot.has(normalizedGuid)) {
+                  this.log.info(
+                    `Skipping notification for "${item.title}" - item with GUID ${guid} already existed before sync for user ID ${user.userId}`,
+                    { itemTitle: item.title, guid, userId: user.userId },
+                  )
+                  shouldSendNotification = false
+                  break
+                }
               }
             }
 
-            // Record notification if either method succeeded
-            if (discordSent || appriseSent) {
-              const itemId =
-                typeof item.id === 'string'
-                  ? Number.parseInt(item.id, 10)
-                  : item.id
-
-              await this.dbService.createNotificationRecord({
-                watchlist_item_id: !Number.isNaN(itemId) ? itemId : null,
-                user_id: user.userId,
-                type: 'watchlist_add',
+            // Send notification if needed
+            if (shouldSendNotification) {
+              await this.sendWatchlistNotifications(user, {
+                id: item.id,
                 title: item.title,
-                message: `New ${item.type} added to watchlist (self sync)`,
-                sent_to_discord: discordSent,
-                sent_to_apprise: appriseSent,
-                sent_to_webhook: true,
+                type: item.type || 'unknown',
+                thumb: item.thumb,
               })
             }
 
-            break
+            break // Exit inner loop once we find a match
           }
         }
-        if (foundMatch) break
+
+        if (foundMatch) break // Exit outer loop once a match is found
       }
 
+      // Handle non-matching items
       if (!foundMatch) {
         noMatchCount++
 
         let existsInDatabase = false
 
+        // Check if item already exists in database
         for (const guid of pendingGuids) {
           const normalizedGuid = guid.toLowerCase()
           try {
@@ -1372,16 +1471,14 @@ export class PlexWatchlistService {
         } else {
           this.log.warn(
             `No match found for self RSS item "${pendingItem.title}" (possibly recently removed from watchlist)`,
-            {
-              itemTitle: pendingItem.title,
-              pendingGuids,
-            },
+            { itemTitle: pendingItem.title },
           )
           matchedItemIds.push(pendingItem.id)
         }
       }
     }
 
+    // Clean up processed items
     const allIdsToDelete = [...matchedItemIds, ...duplicateItemIds]
     if (allIdsToDelete.length > 0) {
       await this.dbService.deleteTempRssItems(allIdsToDelete)
@@ -1398,131 +1495,127 @@ export class PlexWatchlistService {
 
   async matchRssPendingItemsFriends(
     userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>,
+    existingGuidsSnapshot: Set<string>,
   ): Promise<void> {
     const pendingItems = await this.dbService.getTempRssItems('friends')
     this.log.info(
       `Found ${pendingItems.length} pending RSS items to match during friend sync`,
     )
 
+    if (pendingItems.length === 0) {
+      return
+    }
+
+    // Track statistics
     let matchCount = 0
     let noMatchCount = 0
     let duplicateCount = 0
     const matchedItemIds: number[] = []
     const duplicateItemIds: number[] = []
 
-    for (const pendingItem of pendingItems) {
-      const pendingGuids = parseGuids(pendingItem.guids)
+    // Cache for parsed GUIDs
+    const guidCache = new Map<string, string[]>()
 
-      this.log.debug(
-        `Processing RSS item "${pendingItem.title}" with GUIDs:`,
-        pendingGuids,
-      )
+    // Cache for notification checks - prefetch all at once
+    const notificationChecks = new Map<number, Map<string, boolean>>()
+
+    // Pre-process items to build title cache for each user
+    const userItemTitles = new Map<number, string[]>()
+
+    for (const [user, items] of userWatchlistMap.entries()) {
+      const titles: string[] = []
+      for (const item of items) {
+        if (item.title) {
+          titles.push(item.title)
+        }
+      }
+      userItemTitles.set(user.userId, titles)
+    }
+
+    // Prefetch all notification checks at once
+    await Promise.all(
+      Array.from(userItemTitles.entries()).map(async ([userId, titles]) => {
+        if (titles.length > 0) {
+          const checks = await this.dbService.checkExistingWebhooks(
+            userId,
+            titles,
+          )
+          notificationChecks.set(userId, checks)
+        }
+      }),
+    )
+
+    // Process each pending item
+    for (const pendingItem of pendingItems) {
+      const pendingGuids = this.getParsedGuids(guidCache, pendingItem.guids)
       let foundMatch = false
 
-      for (const [friend, items] of userWatchlistMap.entries()) {
+      for (const [user, items] of userWatchlistMap.entries()) {
         for (const item of items) {
-          const itemGuids = parseGuids(item.guids)
+          const itemGuids = this.getParsedGuids(guidCache, item.guids || [])
 
-          // Use the hasMatchingParsedGuids function that works with already-parsed arrays
-          const hasMatch = hasMatchingParsedGuids(pendingGuids, itemGuids)
-
-          if (hasMatch) {
+          // Use existing hasMatchingParsedGuids function
+          if (hasMatchingParsedGuids(pendingGuids, itemGuids)) {
             foundMatch = true
             matchCount++
             matchedItemIds.push(pendingItem.id)
 
             this.log.info(
-              `Matched item "${pendingItem.title}" to user ${friend.username}'s item "${item.title}"`,
-              {
-                pendingGuids,
-                itemGuids,
-                userId: friend.userId,
-              },
+              `Matched item "${pendingItem.title}" to user ${user.username}'s item "${item.title}"`,
+              { userId: user.userId },
             )
 
-            // Check if notification should be sent with pre-sync snapshot check
-            const shouldSendNotification =
-              await this.shouldSendContentNotification(
-                friend.userId,
-                {
-                  title: item.title,
-                  guids: item.guids || [],
-                  type: item.type || 'unknown',
-                },
-                pendingGuids,
-              )
+            // Check if notification should be sent
+            let shouldSendNotification = true
 
-            if (!shouldSendNotification) {
-              continue // Skip to next item
+            // Check if already notified (using prefetched data)
+            const userNotifications = notificationChecks.get(user.userId)
+            if (userNotifications?.get(item.title)) {
+              this.log.info(
+                `Skipping notification for "${item.title}" - already sent previously to user ID ${user.userId}`,
+              )
+              shouldSendNotification = false
             }
 
-            // Send Discord webhook notification
-            let discordSent = false
-            try {
-              discordSent = await this.fastify.discord.sendMediaNotification({
-                username: friend.username,
-                title: item.title,
-                type: item.type as 'movie' | 'show',
-                posterUrl: item.thumb,
-              })
-            } catch (error) {
-              this.log.error(
-                'Error sending Discord webhook notification:',
-                error,
-              )
-            }
-
-            // Send Apprise watchlist addition notification
-            let appriseSent = false
-            if (this.fastify.apprise?.isEnabled()) {
-              try {
-                appriseSent =
-                  await this.fastify.apprise.sendWatchlistAdditionNotification({
-                    title: item.title,
-                    type: typeof item.type === 'string' ? item.type : 'unknown',
-                    addedBy: {
-                      name: friend.username,
-                    },
-                    posterUrl: item.thumb,
-                  })
-              } catch (error) {
-                this.log.error(
-                  'Error sending Apprise watchlist addition notification:',
-                  error,
-                )
+            // Check if existed before sync
+            if (shouldSendNotification) {
+              for (const guid of pendingGuids) {
+                const normalizedGuid = guid.toLowerCase()
+                if (existingGuidsSnapshot.has(normalizedGuid)) {
+                  this.log.info(
+                    `Skipping notification for "${item.title}" - item with GUID ${guid} already existed before sync for user ID ${user.userId}`,
+                    { itemTitle: item.title, guid, userId: user.userId },
+                  )
+                  shouldSendNotification = false
+                  break
+                }
               }
             }
 
-            // Record notification if either method succeeded
-            if (discordSent || appriseSent) {
-              const itemId =
-                typeof item.id === 'string'
-                  ? Number.parseInt(item.id, 10)
-                  : item.id
-
-              await this.dbService.createNotificationRecord({
-                watchlist_item_id: !Number.isNaN(itemId) ? itemId : null,
-                user_id: friend.userId,
-                type: 'watchlist_add',
+            // Send notification if needed
+            if (shouldSendNotification) {
+              await this.sendWatchlistNotifications(user, {
+                id: item.id,
                 title: item.title,
-                message: `New ${item.type} added to watchlist`,
-                sent_to_discord: discordSent,
-                sent_to_apprise: appriseSent,
-                sent_to_webhook: true,
+                type: item.type || 'unknown',
+                thumb: item.thumb,
               })
             }
 
-            break
+            break // Exit inner loop once we find a match
           }
         }
-        if (foundMatch) break
+
+        if (foundMatch) break // Exit outer loop once a match is found
       }
 
+      // Handle non-matching items
       if (!foundMatch) {
         noMatchCount++
 
         let existsInDatabase = false
 
+        // Check if item already exists in database
         for (const guid of pendingGuids) {
           const normalizedGuid = guid.toLowerCase()
           try {
@@ -1552,16 +1645,14 @@ export class PlexWatchlistService {
         } else {
           this.log.warn(
             `No match found for friend RSS item "${pendingItem.title}" (possibly recently removed from watchlist)`,
-            {
-              itemTitle: pendingItem.title,
-              pendingGuids,
-            },
+            { itemTitle: pendingItem.title },
           )
           matchedItemIds.push(pendingItem.id)
         }
       }
     }
 
+    // Clean up processed items
     const allIdsToDelete = [...matchedItemIds, ...duplicateItemIds]
     if (allIdsToDelete.length > 0) {
       await this.dbService.deleteTempRssItems(allIdsToDelete)

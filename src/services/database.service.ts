@@ -69,6 +69,7 @@ import type {
   RadarrMovieLookupResponse,
   SonarrSeriesLookupResponse,
 } from '@root/types/content-lookup.types.js'
+import { parseGuids } from '@utils/guid-handler.js'
 
 export class DatabaseService {
   private readonly knex: Knex
@@ -1705,6 +1706,203 @@ export class DatabaseService {
     } catch (error) {
       this.log.error('Error in bulk update of watchlist items:', error)
       throw error
+    }
+  }
+
+  /**
+   * Retrieves all GUIDs from watchlist items in an optimized way
+   *
+   * @returns Promise resolving to array of lowercase GUIDs
+   */
+  async getAllGuidsMapped(): Promise<string[]> {
+    try {
+      // Fetch all items with guids
+      const rows = await this.knex('watchlist_items')
+        .whereNotNull('guids')
+        .where('guids', '!=', '[]')
+        .select('guids')
+
+      // Use your existing parseGuids utility
+      const guids = new Set<string>()
+
+      for (const row of rows) {
+        // Use your existing utility function to parse GUIDs consistently
+        const parsedGuids = parseGuids(row.guids)
+
+        for (const guid of parsedGuids) {
+          guids.add(guid.toLowerCase())
+        }
+      }
+
+      return Array.from(guids)
+    } catch (error) {
+      this.log.error('Error extracting all GUIDs:', error)
+      return []
+    }
+  }
+
+  /**
+   * Gets all notifications of a specific type for a user
+   *
+   * @param userId - ID of the user
+   * @param type - Type of notification to fetch
+   * @returns Promise resolving to array of notifications
+   */
+  async getNotificationsForUser(
+    userId: number,
+    type: string,
+  ): Promise<Array<{ title: string }>> {
+    try {
+      return await this.knex('notifications')
+        .where({
+          user_id: userId,
+          type: type,
+          sent_to_webhook: true,
+          notification_status: 'active',
+        })
+        .select('title')
+        .distinct()
+    } catch (error) {
+      this.log.error(`Error fetching notifications for user ${userId}:`, error)
+      return []
+    }
+  }
+
+  /**
+   * Gets all watchlist items with their GUIDs for type-based filtering
+   *
+   * @param types - Optional array of types to filter by (e.g., ['movie', 'show'])
+   * @returns Promise resolving to array of items with their guids
+   */
+  async getAllGuidsFromWatchlist(
+    types?: string[],
+  ): Promise<Array<{ id: number; guids: string[] }>> {
+    try {
+      let query = this.knex('watchlist_items')
+        .whereNotNull('guids')
+        .where('guids', '!=', '[]')
+        .select('id', 'guids')
+
+      // Apply type filtering if provided
+      if (types && types.length > 0) {
+        query = query.whereIn('type', types)
+      }
+
+      const items = await query
+
+      return items.map((item) => ({
+        id: item.id,
+        // Use your existing parseGuids utility
+        guids: parseGuids(item.guids),
+      }))
+    } catch (error) {
+      this.log.error('Error fetching watchlist GUIDs:', error)
+      return []
+    }
+  }
+
+  /**
+   * Batch check if items have had webhooks sent
+   *
+   * @param userId - The user ID to check
+   * @param titles - Array of titles to check for existing notifications
+   * @returns Promise resolving to a map of title to boolean (true if notification exists)
+   */
+  async checkExistingWebhooks(
+    userId: number,
+    titles: string[],
+  ): Promise<Map<string, boolean>> {
+    try {
+      if (titles.length === 0) {
+        return new Map()
+      }
+
+      const rows = await this.knex('notifications')
+        .where({
+          user_id: userId,
+          type: 'watchlist_add',
+          sent_to_webhook: true,
+        })
+        .whereIn('title', titles)
+        .select('title')
+        .distinct()
+
+      const result = new Map<string, boolean>()
+
+      // Initialize all titles as false (no notification)
+      for (const title of titles) {
+        result.set(title, false)
+      }
+
+      // Mark existing notifications as true
+      for (const row of rows) {
+        result.set(row.title, true)
+      }
+
+      return result
+    } catch (error) {
+      this.log.error(`Error batch checking webhooks for user ${userId}:`, error)
+      return new Map()
+    }
+  }
+
+  /**
+   * For better-sqlite3, raw queries need to be executed differently
+   *
+   * @returns Promise resolving to array of lowercase GUIDs
+   */
+  async getUniqueGuidsRaw(): Promise<string[]> {
+    try {
+      // Using knex.raw for better-sqlite3
+      const result = await this.knex.raw(`
+      WITH extracted_guids AS (
+        SELECT DISTINCT json_extract(value, '$') as guid
+        FROM watchlist_items
+        JOIN json_each(
+          CASE 
+            WHEN json_valid(guids) THEN guids
+            ELSE json_array(guids)
+          END
+        )
+        WHERE guids IS NOT NULL AND guids != '[]'
+      )
+      SELECT DISTINCT lower(guid) as guid 
+      FROM extracted_guids 
+      WHERE guid IS NOT NULL AND guid != '';
+    `)
+
+      // Extract guids from result rows - format depends on better-sqlite3 driver
+      if (Array.isArray(result)) {
+        return result.map((row) => row.guid || row[0]).filter(Boolean)
+      }
+
+      // If not an array, try to handle other result formats
+      if (result && typeof result === 'object') {
+        if ('rows' in result) {
+          // Some drivers return a {rows: []} structure
+          const rows = result.rows as Array<{ guid: string } | [string]>
+          return rows
+            .map((row) => {
+              if (Array.isArray(row)) return row[0]
+              return row.guid
+            })
+            .filter(Boolean)
+        }
+
+        if ('guid' in result) {
+          // Single result case
+          return [result.guid].filter(Boolean)
+        }
+      }
+
+      // Fallback to empty array if we couldn't extract guids
+      this.log.warn('Could not extract GUIDs from raw query result')
+      return []
+    } catch (error) {
+      this.log.error('Error in raw GUID extraction query:', error)
+
+      // Fallback to the standard method
+      return this.getAllGuidsMapped()
     }
   }
 
