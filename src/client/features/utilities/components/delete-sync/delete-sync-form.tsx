@@ -42,11 +42,11 @@ import { DeleteSyncDryRunModal } from '@/features/utilities/components/delete-sy
 import { useMediaQuery } from '@/hooks/use-media-query'
 
 /**
- * Provides a user interface for viewing and managing the delete synchronization job.
+ * Renders a form and controls for managing the delete synchronization job, including status display, scheduling, configuration, and action buttons.
  *
- * Displays the current job status, last and next run times, and allows users to enable or disable the job, run it immediately, or perform a dry run. Includes a form for configuring deletion options, safety settings, and notification preferences, with confirmation modals for sensitive actions.
+ * Allows users to enable or disable the job, run it immediately, perform a dry run, and configure deletion and notification settings. Confirmation modals are shown for sensitive actions, and validation errors are displayed as needed.
  *
- * @returns The React element for the delete synchronization management form.
+ * @returns The React element representing the delete synchronization management interface.
  */
 export function DeleteSyncForm() {
   const isMobile = useMediaQuery('(max-width: 768px)')
