@@ -17,12 +17,12 @@ export const options = {
 }
 
 /**
- * Configures the Fastify server with plugin autoloading, Vite SPA integration, global error handling, and authentication-aware routing.
+ * Sets up the Fastify server with plugin autoloading, Vite SPA integration, global error and 404 handling, and authentication-aware routing with conditional redirection.
  *
- * Registers middleware for form body parsing, loads external and custom plugins, and sets up route handlers. Integrates Vite for single-page application support. Implements global error and 404 handlers with logging and rate limiting. Defines root and app routes with conditional authentication logic, supporting disabled authentication, local IP bypass, and temporary admin session creation based on user existence and configuration.
+ * Registers middleware for form body parsing, loads external and custom plugins, and configures route handlers. Integrates Vite for serving a single-page application. Implements global error and not-found handlers with logging and rate limiting. Defines root and app routes that manage user sessions, authentication bypass, and redirects based on user existence and Plex token configuration.
  *
  * @remark
- * Authentication can be bypassed for local IPs or when disabled in configuration. If bypass is active and admin users exist, a temporary admin session is created; otherwise, users are redirected to create a user account.
+ * Authentication can be bypassed if disabled in configuration or for local IPs. In these cases, a temporary admin session is created if admin users exist; otherwise, users are redirected to create a user account. Redirects after authentication checks depend on whether Plex tokens are configured, sending users to the dashboard or Plex setup page accordingly.
  */
 export default async function serviceApp(
   fastify: FastifyInstance,
