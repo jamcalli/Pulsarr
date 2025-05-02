@@ -1322,349 +1322,22 @@ export class PlexWatchlistService {
     userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>,
     existingGuidsSnapshot: Set<string>,
   ): Promise<void> {
-    const pendingItems = await this.dbService.getTempRssItems('self')
-
-    this.log.info(
-      `Found ${pendingItems.length} pending RSS items to match during self sync`,
+    return this.processRssPendingItems(
+      userWatchlistMap,
+      existingGuidsSnapshot,
+      'self',
     )
-
-    if (pendingItems.length === 0) {
-      return
-    }
-
-    // Tracking statistics
-    let matchCount = 0
-    let noMatchCount = 0
-    let duplicateCount = 0
-    const matchedItemIds: number[] = []
-    const duplicateItemIds: number[] = []
-
-    // Cache for parsed GUIDs
-    const guidCache = new Map<string, string[]>()
-
-    // Cache for notification checks - prefetch all at once
-    const notificationChecks = new Map<number, Map<string, boolean>>()
-
-    // Pre-process items to build title cache for each user
-    const userItemTitles = new Map<number, string[]>()
-
-    for (const [user, items] of userWatchlistMap.entries()) {
-      const titles: string[] = []
-      for (const item of items) {
-        if (item.title) {
-          titles.push(item.title)
-        }
-      }
-      userItemTitles.set(user.userId, titles)
-    }
-
-    // Prefetch all notification checks at once
-    await Promise.all(
-      Array.from(userItemTitles.entries()).map(async ([userId, titles]) => {
-        if (titles.length > 0) {
-          const checks = await this.dbService.checkExistingWebhooks(
-            userId,
-            titles,
-          )
-          notificationChecks.set(userId, checks)
-        }
-      }),
-    )
-
-    // Process each pending item
-    for (const pendingItem of pendingItems) {
-      const pendingGuids = this.getParsedGuids(guidCache, pendingItem.guids)
-      let foundMatch = false
-
-      for (const [user, items] of userWatchlistMap.entries()) {
-        for (const item of items) {
-          const itemGuids = this.getParsedGuids(guidCache, item.guids || [])
-
-          // Use existing hasMatchingParsedGuids function
-          if (hasMatchingParsedGuids(pendingGuids, itemGuids)) {
-            foundMatch = true
-            matchCount++
-            matchedItemIds.push(pendingItem.id)
-
-            this.log.info(
-              `Matched item "${pendingItem.title}" to user ${user.username}'s item "${item.title}"`,
-              { userId: user.userId },
-            )
-
-            // Check if notification should be sent
-            let shouldSendNotification = true
-
-            // Check if already notified (using prefetched data)
-            const userNotifications = notificationChecks.get(user.userId)
-            if (userNotifications?.get(item.title)) {
-              this.log.info(
-                `Skipping notification for "${item.title}" - already sent previously to user ID ${user.userId}`,
-              )
-              shouldSendNotification = false
-            }
-
-            // Check if existed before sync
-            if (shouldSendNotification) {
-              for (const guid of pendingGuids) {
-                const normalizedGuid = guid.toLowerCase()
-                if (existingGuidsSnapshot.has(normalizedGuid)) {
-                  this.log.info(
-                    `Skipping notification for "${item.title}" - item with GUID ${guid} already existed before sync for user ID ${user.userId}`,
-                    { itemTitle: item.title, guid, userId: user.userId },
-                  )
-                  shouldSendNotification = false
-                  break
-                }
-              }
-            }
-
-            // Send notification if needed
-            if (shouldSendNotification) {
-              await this.sendWatchlistNotifications(user, {
-                id: item.id,
-                title: item.title,
-                type: item.type || 'unknown',
-                thumb: item.thumb,
-              })
-            }
-
-            break // Exit inner loop once we find a match
-          }
-        }
-
-        if (foundMatch) break // Exit outer loop once a match is found
-      }
-
-      // Handle non-matching items
-      if (!foundMatch) {
-        noMatchCount++
-
-        let existsInDatabase = false
-
-        // Check if item already exists in database
-        for (const guid of pendingGuids) {
-          const normalizedGuid = guid.toLowerCase()
-          try {
-            const existingItems =
-              await this.dbService.getWatchlistItemsByGuid(normalizedGuid)
-
-            if (existingItems && existingItems.length > 0) {
-              existsInDatabase = true
-              this.log.info(
-                `RSS item "${pendingItem.title}" already exists in watchlist database with GUID ${guid}`,
-                {
-                  itemTitle: pendingItem.title,
-                  guid,
-                  matchCount: existingItems.length,
-                },
-              )
-              break
-            }
-          } catch (error) {
-            this.log.error(`Error checking database for GUID ${guid}:`, error)
-          }
-        }
-
-        if (existsInDatabase) {
-          duplicateCount++
-          duplicateItemIds.push(pendingItem.id)
-        } else {
-          this.log.warn(
-            `No match found for self RSS item "${pendingItem.title}" (possibly recently removed from watchlist)`,
-            { itemTitle: pendingItem.title },
-          )
-          matchedItemIds.push(pendingItem.id)
-        }
-      }
-    }
-
-    // Clean up processed items
-    const allIdsToDelete = [...matchedItemIds, ...duplicateItemIds]
-    if (allIdsToDelete.length > 0) {
-      await this.dbService.deleteTempRssItems(allIdsToDelete)
-    }
-
-    this.log.info('Self RSS matching complete', {
-      totalChecked: pendingItems.length,
-      matched: matchCount,
-      unmatched: noMatchCount,
-      duplicatesCleanedUp: duplicateCount,
-      remainingUnmatched: noMatchCount - duplicateCount,
-    })
   }
 
   async matchRssPendingItemsFriends(
     userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>,
     existingGuidsSnapshot: Set<string>,
   ): Promise<void> {
-    const pendingItems = await this.dbService.getTempRssItems('friends')
-    this.log.info(
-      `Found ${pendingItems.length} pending RSS items to match during friend sync`,
+    return this.processRssPendingItems(
+      userWatchlistMap,
+      existingGuidsSnapshot,
+      'friends',
     )
-
-    if (pendingItems.length === 0) {
-      return
-    }
-
-    // Track statistics
-    let matchCount = 0
-    let noMatchCount = 0
-    let duplicateCount = 0
-    const matchedItemIds: number[] = []
-    const duplicateItemIds: number[] = []
-
-    // Cache for parsed GUIDs
-    const guidCache = new Map<string, string[]>()
-
-    // Cache for notification checks - prefetch all at once
-    const notificationChecks = new Map<number, Map<string, boolean>>()
-
-    // Pre-process items to build title cache for each user
-    const userItemTitles = new Map<number, string[]>()
-
-    for (const [user, items] of userWatchlistMap.entries()) {
-      const titles: string[] = []
-      for (const item of items) {
-        if (item.title) {
-          titles.push(item.title)
-        }
-      }
-      userItemTitles.set(user.userId, titles)
-    }
-
-    // Prefetch all notification checks at once
-    await Promise.all(
-      Array.from(userItemTitles.entries()).map(async ([userId, titles]) => {
-        if (titles.length > 0) {
-          const checks = await this.dbService.checkExistingWebhooks(
-            userId,
-            titles,
-          )
-          notificationChecks.set(userId, checks)
-        }
-      }),
-    )
-
-    // Process each pending item
-    for (const pendingItem of pendingItems) {
-      const pendingGuids = this.getParsedGuids(guidCache, pendingItem.guids)
-      let foundMatch = false
-
-      for (const [user, items] of userWatchlistMap.entries()) {
-        for (const item of items) {
-          const itemGuids = this.getParsedGuids(guidCache, item.guids || [])
-
-          // Use existing hasMatchingParsedGuids function
-          if (hasMatchingParsedGuids(pendingGuids, itemGuids)) {
-            foundMatch = true
-            matchCount++
-            matchedItemIds.push(pendingItem.id)
-
-            this.log.info(
-              `Matched item "${pendingItem.title}" to user ${user.username}'s item "${item.title}"`,
-              { userId: user.userId },
-            )
-
-            // Check if notification should be sent
-            let shouldSendNotification = true
-
-            // Check if already notified (using prefetched data)
-            const userNotifications = notificationChecks.get(user.userId)
-            if (userNotifications?.get(item.title)) {
-              this.log.info(
-                `Skipping notification for "${item.title}" - already sent previously to user ID ${user.userId}`,
-              )
-              shouldSendNotification = false
-            }
-
-            // Check if existed before sync
-            if (shouldSendNotification) {
-              for (const guid of pendingGuids) {
-                const normalizedGuid = guid.toLowerCase()
-                if (existingGuidsSnapshot.has(normalizedGuid)) {
-                  this.log.info(
-                    `Skipping notification for "${item.title}" - item with GUID ${guid} already existed before sync for user ID ${user.userId}`,
-                    { itemTitle: item.title, guid, userId: user.userId },
-                  )
-                  shouldSendNotification = false
-                  break
-                }
-              }
-            }
-
-            // Send notification if needed
-            if (shouldSendNotification) {
-              await this.sendWatchlistNotifications(user, {
-                id: item.id,
-                title: item.title,
-                type: item.type || 'unknown',
-                thumb: item.thumb,
-              })
-            }
-
-            break // Exit inner loop once we find a match
-          }
-        }
-
-        if (foundMatch) break // Exit outer loop once a match is found
-      }
-
-      // Handle non-matching items
-      if (!foundMatch) {
-        noMatchCount++
-
-        let existsInDatabase = false
-
-        // Check if item already exists in database
-        for (const guid of pendingGuids) {
-          const normalizedGuid = guid.toLowerCase()
-          try {
-            const existingItems =
-              await this.dbService.getWatchlistItemsByGuid(normalizedGuid)
-
-            if (existingItems && existingItems.length > 0) {
-              existsInDatabase = true
-              this.log.info(
-                `RSS item "${pendingItem.title}" already exists in watchlist database with GUID ${guid}`,
-                {
-                  itemTitle: pendingItem.title,
-                  guid,
-                  matchCount: existingItems.length,
-                },
-              )
-              break
-            }
-          } catch (error) {
-            this.log.error(`Error checking database for GUID ${guid}:`, error)
-          }
-        }
-
-        if (existsInDatabase) {
-          duplicateCount++
-          duplicateItemIds.push(pendingItem.id)
-        } else {
-          this.log.warn(
-            `No match found for friend RSS item "${pendingItem.title}" (possibly recently removed from watchlist)`,
-            { itemTitle: pendingItem.title },
-          )
-          matchedItemIds.push(pendingItem.id)
-        }
-      }
-    }
-
-    // Clean up processed items
-    const allIdsToDelete = [...matchedItemIds, ...duplicateItemIds]
-    if (allIdsToDelete.length > 0) {
-      await this.dbService.deleteTempRssItems(allIdsToDelete)
-    }
-
-    this.log.info('Friend RSS matching complete', {
-      totalChecked: pendingItems.length,
-      matched: matchCount,
-      unmatched: noMatchCount,
-      duplicatesCleanedUp: duplicateCount,
-      remainingUnmatched: noMatchCount - duplicateCount,
-    })
   }
 
   private async handleRemovedItems(
@@ -1696,5 +1369,206 @@ export class PlexWatchlistService {
 
       await this.handleRemovedItems(user.userId, currentKeys, fetchedKeys)
     }
+  }
+  /**
+   * Prepares notification and GUID caches for RSS item matching
+   *
+   * @param userWatchlistMap - Map of users to their watchlist items
+   * @returns Object containing the prepared caches
+   */
+  private async prepareRssMatchingCaches(
+    userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>,
+  ): Promise<{
+    guidCache: Map<string, string[]>
+    notificationChecks: Map<number, Map<string, boolean>>
+  }> {
+    // Cache for parsed GUIDs
+    const guidCache = new Map<string, string[]>()
+
+    // Cache for notification checks
+    const notificationChecks = new Map<number, Map<string, boolean>>()
+
+    // Pre-process items to build title cache for each user
+    const userItemTitles = new Map<number, string[]>()
+
+    for (const [user, items] of userWatchlistMap.entries()) {
+      const titles: string[] = []
+      for (const item of items) {
+        if (item.title) {
+          titles.push(item.title)
+        }
+      }
+      userItemTitles.set(user.userId, titles)
+    }
+
+    // Prefetch all notification checks at once
+    await Promise.all(
+      Array.from(userItemTitles.entries()).map(async ([userId, titles]) => {
+        if (titles.length > 0) {
+          const checks = await this.dbService.checkExistingWebhooks(
+            userId,
+            titles,
+          )
+          notificationChecks.set(userId, checks)
+        }
+      }),
+    )
+
+    return { guidCache, notificationChecks }
+  }
+
+  /**
+   * Process pending RSS items for matching and notification
+   *
+   * @param userWatchlistMap - Map of users to their watchlist items
+   * @param existingGuidsSnapshot - Snapshot of existing GUIDs before sync
+   * @param source - Source of RSS items ('self' or 'friends')
+   * @returns Promise resolving when processing is complete
+   */
+  private async processRssPendingItems(
+    userWatchlistMap: Map<Friend, Set<TokenWatchlistItem>>,
+    existingGuidsSnapshot: Set<string>,
+    source: 'self' | 'friends',
+  ): Promise<void> {
+    const pendingItems = await this.dbService.getTempRssItems(source)
+    this.log.info(
+      `Found ${pendingItems.length} pending RSS items to match during ${source} sync`,
+    )
+
+    if (pendingItems.length === 0) {
+      return
+    }
+
+    // Tracking statistics
+    let matchCount = 0
+    let noMatchCount = 0
+    let duplicateCount = 0
+    const matchedItemIds: number[] = []
+    const duplicateItemIds: number[] = []
+
+    // Prepare caches for efficient matching
+    const { guidCache, notificationChecks } =
+      await this.prepareRssMatchingCaches(userWatchlistMap)
+
+    // Process each pending item
+    for (const pendingItem of pendingItems) {
+      const pendingGuids = this.getParsedGuids(guidCache, pendingItem.guids)
+      let foundMatch = false
+
+      for (const [user, items] of userWatchlistMap.entries()) {
+        for (const item of items) {
+          const itemGuids = this.getParsedGuids(guidCache, item.guids || [])
+
+          // Use existing hasMatchingParsedGuids function
+          if (hasMatchingParsedGuids(pendingGuids, itemGuids)) {
+            foundMatch = true
+            matchCount++
+            matchedItemIds.push(pendingItem.id)
+
+            this.log.info(
+              `Matched item "${pendingItem.title}" to user ${user.username}'s item "${item.title}"`,
+              { userId: user.userId },
+            )
+
+            // Check if notification should be sent
+            let shouldSendNotification = true
+
+            // Check if already notified (using prefetched data)
+            const userNotifications = notificationChecks.get(user.userId)
+            if (userNotifications?.get(item.title)) {
+              this.log.info(
+                `Skipping notification for "${item.title}" - already sent previously to user ID ${user.userId}`,
+              )
+              shouldSendNotification = false
+            }
+
+            // Check if existed before sync
+            if (shouldSendNotification) {
+              for (const guid of pendingGuids) {
+                const normalizedGuid = guid.toLowerCase()
+                if (existingGuidsSnapshot.has(normalizedGuid)) {
+                  this.log.info(
+                    `Skipping notification for "${item.title}" - item with GUID ${guid} already existed before sync for user ID ${user.userId}`,
+                    { itemTitle: item.title, guid, userId: user.userId },
+                  )
+                  shouldSendNotification = false
+                  break
+                }
+              }
+            }
+
+            // Send notification if needed
+            if (shouldSendNotification) {
+              await this.sendWatchlistNotifications(user, {
+                id: item.id,
+                title: item.title,
+                type: item.type || 'unknown',
+                thumb: item.thumb,
+              })
+            }
+
+            break // Exit inner loop once we find a match
+          }
+        }
+
+        if (foundMatch) break // Exit outer loop once a match is found
+      }
+
+      // Handle non-matching items
+      if (!foundMatch) {
+        noMatchCount++
+
+        let existsInDatabase = false
+
+        // Check if item already exists in database
+        for (const guid of pendingGuids) {
+          const normalizedGuid = guid.toLowerCase()
+          try {
+            const existingItems =
+              await this.dbService.getWatchlistItemsByGuid(normalizedGuid)
+
+            if (existingItems && existingItems.length > 0) {
+              existsInDatabase = true
+              this.log.info(
+                `RSS item "${pendingItem.title}" already exists in watchlist database with GUID ${guid}`,
+                {
+                  itemTitle: pendingItem.title,
+                  guid,
+                  matchCount: existingItems.length,
+                },
+              )
+              break
+            }
+          } catch (error) {
+            this.log.error(`Error checking database for GUID ${guid}:`, error)
+          }
+        }
+
+        if (existsInDatabase) {
+          duplicateCount++
+          duplicateItemIds.push(pendingItem.id)
+        } else {
+          this.log.warn(
+            `No match found for ${source} RSS item "${pendingItem.title}" (possibly recently removed from watchlist)`,
+            { itemTitle: pendingItem.title },
+          )
+          matchedItemIds.push(pendingItem.id)
+        }
+      }
+    }
+
+    // Clean up processed items
+    const allIdsToDelete = [...matchedItemIds, ...duplicateItemIds]
+    if (allIdsToDelete.length > 0) {
+      await this.dbService.deleteTempRssItems(allIdsToDelete)
+    }
+
+    this.log.info(`${source} RSS matching complete`, {
+      totalChecked: pendingItems.length,
+      matched: matchCount,
+      unmatched: noMatchCount,
+      duplicatesCleanedUp: duplicateCount,
+      remainingUnmatched: noMatchCount - duplicateCount,
+    })
   }
 }

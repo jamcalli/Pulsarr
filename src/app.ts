@@ -131,7 +131,10 @@ export default async function serviceApp(
 
     // CASE 1: Auth is completely disabled - no user account needed
     if (isAuthDisabled) {
-      createTemporaryAdminSession(request)
+      // Only create a temporary session if one doesn't already exist
+      if (!request.session.user) {
+        createTemporaryAdminSession(request)
+      }
 
       // Check if Plex tokens are configured
       const hasPlexTokens = hasValidPlexTokens(fastify.config)
@@ -144,8 +147,10 @@ export default async function serviceApp(
       const hasUsers = await fastify.db.hasAdminUsers()
 
       if (hasUsers) {
-        // Create a temporary session for local IP
-        createTemporaryAdminSession(request)
+        // Only create a temporary session if one doesn't already exist
+        if (!request.session.user) {
+          createTemporaryAdminSession(request)
+        }
 
         // Check if Plex tokens are configured
         const hasPlexTokens = hasValidPlexTokens(fastify.config)
@@ -180,8 +185,10 @@ export default async function serviceApp(
 
         // CASE 1: Auth is completely disabled - no user account needed
         if (isAuthDisabled) {
-          // Create temporary session
-          createTemporaryAdminSession(request)
+          // Only create a temporary session if one doesn't already exist
+          if (!request.session.user) {
+            createTemporaryAdminSession(request)
+          }
 
           // If trying to access login or create-user, redirect appropriately
           if (isLoginPage || isCreateUserPage) {
@@ -213,8 +220,10 @@ export default async function serviceApp(
         // CASE 3: Local IP bypass is active
         if (isLocalBypass) {
           if (hasUsers) {
-            // Create temporary session for local users
-            createTemporaryAdminSession(request)
+            // Only create a temporary session if one doesn't already exist
+            if (!request.session.user) {
+              createTemporaryAdminSession(request)
+            }
 
             // If trying to access login or create-user, redirect appropriately
             if (isLoginPage || isCreateUserPage) {
