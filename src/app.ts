@@ -6,6 +6,7 @@ import type { FastifyInstance, FastifyPluginOptions } from 'fastify'
 import FastifyFormBody from '@fastify/formbody'
 import { getAuthBypassStatus } from '@utils/auth-bypass.js'
 import { createTemporaryAdminSession } from '@utils/session.js'
+import { hasValidPlexTokens } from '@utils/plex.js'
 
 export const options = {
   ajv: {
@@ -118,11 +119,7 @@ export default async function serviceApp(
     // Check for existing session
     if (request.session.user) {
       // Use the in-memory config instead of querying the database
-      const hasPlexTokens = Boolean(
-        fastify.config.plexTokens &&
-          Array.isArray(fastify.config.plexTokens) &&
-          fastify.config.plexTokens.length > 0,
-      )
+      const hasPlexTokens = hasValidPlexTokens(fastify.config)
       return reply.redirect(hasPlexTokens ? '/app/dashboard' : '/app/plex')
     }
 
@@ -137,11 +134,7 @@ export default async function serviceApp(
       createTemporaryAdminSession(request)
 
       // Check if Plex tokens are configured
-      const hasPlexTokens = Boolean(
-        fastify.config.plexTokens &&
-          Array.isArray(fastify.config.plexTokens) &&
-          fastify.config.plexTokens.length > 0,
-      )
+      const hasPlexTokens = hasValidPlexTokens(fastify.config)
 
       return reply.redirect(hasPlexTokens ? '/app/dashboard' : '/app/plex')
     }
@@ -155,11 +148,7 @@ export default async function serviceApp(
         createTemporaryAdminSession(request)
 
         // Check if Plex tokens are configured
-        const hasPlexTokens = Boolean(
-          fastify.config.plexTokens &&
-            Array.isArray(fastify.config.plexTokens) &&
-            fastify.config.plexTokens.length > 0,
-        )
+        const hasPlexTokens = hasValidPlexTokens(fastify.config)
 
         return reply.redirect(hasPlexTokens ? '/app/dashboard' : '/app/plex')
       }
@@ -185,14 +174,9 @@ export default async function serviceApp(
 
         const isCreateUserPage = request.url === '/app/create-user'
         const isLoginPage = request.url === '/app/login'
-        const isPlexPage = request.url === '/app/plex'
 
         // Use the in-memory config to check if Plex tokens are configured
-        const hasPlexTokens = Boolean(
-          fastify.config.plexTokens &&
-            Array.isArray(fastify.config.plexTokens) &&
-            fastify.config.plexTokens.length > 0,
-        )
+        const hasPlexTokens = hasValidPlexTokens(fastify.config)
 
         // CASE 1: Auth is completely disabled - no user account needed
         if (isAuthDisabled) {
