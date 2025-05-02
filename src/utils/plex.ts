@@ -9,10 +9,7 @@ import type {
   RssResponse,
 } from '@root/types/plex.types.js'
 import type { Config } from '@root/types/config.types.js'
-import type {
-  ProgressOptions,
-  ProgressService,
-} from '@root/types/progress.types.js'
+import type { ProgressService } from '@root/types/progress.types.js'
 
 export const pingPlex = async (
   token: string,
@@ -883,4 +880,17 @@ export const fetchWatchlistFromRss = async (
 
   log.debug(`Successfully processed ${items.size} items from RSS feed`)
   return items
+}
+
+/**
+ * Checks if the configuration includes at least one Plex token.
+ *
+ * @returns `true` if the configuration's `plexTokens` property is a non-empty array; otherwise, `false`.
+ */
+export function hasValidPlexTokens(config: Config): boolean {
+  return Boolean(
+    config.plexTokens &&
+      Array.isArray(config.plexTokens) &&
+      config.plexTokens.length > 0,
+  )
 }

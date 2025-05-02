@@ -42,14 +42,11 @@ import { DeleteSyncDryRunModal } from '@/features/utilities/components/delete-sy
 import { useMediaQuery } from '@/hooks/use-media-query'
 
 /**
- * Renders the DeleteSyncForm component that provides an interface for managing a delete synchronization job.
+ * Renders a form and controls for managing the delete synchronization job, including status display, scheduling, configuration, and action buttons.
  *
- * This component displays the current job status—including whether it is enabled, its last run details, and the next scheduled run—and
- * offers actions to enable/disable the job, run it immediately, or execute a dry run. It also presents a form for configuring deletion
- * options and safety settings, such as toggles for deleting movies, shows, files, and setting notification preferences. Confirmation
- * modals are used to ensure that users intentionally perform sensitive actions.
+ * Allows users to enable or disable the job, run it immediately, perform a dry run, and configure deletion and notification settings. Confirmation modals are shown for sensitive actions, and validation errors are displayed as needed.
  *
- * @returns A React element representing the delete synchronization management form.
+ * @returns The React element representing the delete synchronization management interface.
  */
 export function DeleteSyncForm() {
   const isMobile = useMediaQuery('(max-width: 768px)')
@@ -463,26 +460,23 @@ export function DeleteSyncForm() {
                                         </SelectTrigger>
                                       </FormControl>
                                       <SelectContent>
-                                        <SelectItem value="none">
-                                          None
-                                        </SelectItem>
-                                        <SelectItem value="discord-only">
-                                          Discord Only
+                                        <SelectItem value="all">
+                                          All Channels
                                         </SelectItem>
                                         <SelectItem value="apprise-only">
                                           Apprise Only
                                         </SelectItem>
-                                        <SelectItem value="all">
-                                          All Channels
+                                        <SelectItem value="discord-both">
+                                          Discord (Webhook + DM)
                                         </SelectItem>
-                                        <SelectItem value="webhook">
-                                          Discord Webhook
+                                        <SelectItem value="dm-only">
+                                          Discord (DM Only)
                                         </SelectItem>
-                                        <SelectItem value="message">
-                                          Discord DM
+                                        <SelectItem value="webhook-only">
+                                          Discord (Webhook Only)
                                         </SelectItem>
-                                        <SelectItem value="both">
-                                          Discord Both
+                                        <SelectItem value="none">
+                                          None
                                         </SelectItem>
                                       </SelectContent>
                                     </Select>
