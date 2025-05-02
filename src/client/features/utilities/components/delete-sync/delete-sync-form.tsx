@@ -463,26 +463,23 @@ export function DeleteSyncForm() {
                                         </SelectTrigger>
                                       </FormControl>
                                       <SelectContent>
-                                        <SelectItem value="none">
-                                          None
-                                        </SelectItem>
-                                        <SelectItem value="discord-only">
-                                          Discord Only
+                                        <SelectItem value="all">
+                                          All Channels
                                         </SelectItem>
                                         <SelectItem value="apprise-only">
                                           Apprise Only
                                         </SelectItem>
-                                        <SelectItem value="all">
-                                          All Channels
+                                        <SelectItem value="discord-both">
+                                          Discord (Webhook + DM)
                                         </SelectItem>
-                                        <SelectItem value="webhook">
-                                          Discord Webhook
+                                        <SelectItem value="dm-only">
+                                          Discord (DM Only)
                                         </SelectItem>
-                                        <SelectItem value="message">
-                                          Discord DM
+                                        <SelectItem value="webhook-only">
+                                          Discord (Webhook Only)
                                         </SelectItem>
-                                        <SelectItem value="both">
-                                          Discord Both
+                                        <SelectItem value="none">
+                                          None
                                         </SelectItem>
                                       </SelectContent>
                                     </Select>
