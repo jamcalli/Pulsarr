@@ -701,6 +701,9 @@ export class DiscordNotificationService {
       const notifySetting =
         notifyOption || this.fastify.config.deleteSyncNotify || 'none'
 
+      // Log the notification setting to help with debugging
+      this.log.info(`Delete sync notification setting: "${notifySetting}"`)
+
       // Skip all notifications if set to none
       if (notifySetting === 'none') {
         this.log.debug('Delete sync notifications disabled, skipping')
@@ -733,25 +736,39 @@ export class DiscordNotificationService {
         'both',
       ].includes(notifySetting)
 
-      // Send webhook notification if configured
-      if (sendWebhook && this.config.discordWebhookUrl) {
-        try {
-          const payload = {
-            embeds: [embed],
-            username: 'Pulsarr Delete Sync',
-            avatar_url:
-              'https://raw.githubusercontent.com/jamcalli/Pulsarr/master/src/client/assets/images/pulsarr.png',
-          }
+      // Log which notification methods will be attempted
+      this.log.debug(
+        `Will attempt to send notifications: Webhook=${sendWebhook}, DM=${sendDM}`,
+      )
 
-          const webhookSent = await this.sendNotification(payload)
-          if (webhookSent) {
-            successCount++
-            this.log.info('Delete sync webhook notification sent successfully')
-          } else {
-            this.log.warn('Failed to send delete sync webhook notification')
+      // Send webhook notification if configured
+      if (sendWebhook) {
+        if (!this.config.discordWebhookUrl) {
+          this.log.warn(
+            'Discord webhook URL not configured, cannot send webhook notification',
+          )
+        } else {
+          try {
+            const payload = {
+              embeds: [embed],
+              username: 'Pulsarr Delete Sync',
+              avatar_url:
+                'https://raw.githubusercontent.com/jamcalli/Pulsarr/master/src/client/assets/images/pulsarr.png',
+            }
+
+            this.log.debug('Attempting to send webhook notification')
+            const webhookSent = await this.sendNotification(payload)
+            if (webhookSent) {
+              successCount++
+              this.log.info(
+                'Delete sync webhook notification sent successfully',
+              )
+            } else {
+              this.log.warn('Failed to send delete sync webhook notification')
+            }
+          } catch (webhookError) {
+            this.log.error('Error sending webhook notification:', webhookError)
           }
-        } catch (webhookError) {
-          this.log.error('Error sending webhook notification:', webhookError)
         }
       }
 
@@ -764,16 +781,25 @@ export class DiscordNotificationService {
           // Find the admin user with username
           const adminUser = users.find((user) => user.is_primary_token)
 
-          // Only send DM notifications if content was deleted or safety was triggered
+          // Always send DM for dry runs or if there's any activity
+          // Changed this to be more permissive to fix the issue with "both" setting
           const hasDeletedContent = results.total.deleted > 0
-          const shouldNotify = hasDeletedContent || results.safetyTriggered
+          const hasSkippedContent = results.total.skipped > 0
+          const shouldNotify =
+            dryRun ||
+            hasDeletedContent ||
+            hasSkippedContent ||
+            results.safetyTriggered
 
           if (!shouldNotify) {
-            this.log.info('Skipping DM notification as no content was deleted')
-          } else if (!adminUser || !adminUser.discord_id) {
-            // Admin not found or doesn't have a Discord ID
+            this.log.info('Skipping DM notification as no activity to report')
+          } else if (!adminUser) {
             this.log.warn(
-              'Admin user not found or has no Discord ID - skipping delete sync DM notification',
+              'Admin user not found - skipping delete sync DM notification',
+            )
+          } else if (!adminUser.discord_id) {
+            this.log.warn(
+              `Admin user ${adminUser.name} has no Discord ID - skipping delete sync DM notification`,
             )
           } else {
             // Admin exists and has a Discord ID - proceed with notification
@@ -820,6 +846,9 @@ export class DiscordNotificationService {
         }
       }
 
+      this.log.info(
+        `Notification attempt complete: ${successCount} messages sent successfully`,
+      )
       return successCount > 0
     } catch (error) {
       this.log.error('Error sending delete sync notification:', error)

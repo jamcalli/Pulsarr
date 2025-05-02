@@ -33,3 +33,4 @@ config.json
 
 # repomix
 repomix*
+**/.claude/settings.local.json

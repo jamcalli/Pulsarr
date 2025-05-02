@@ -48,6 +48,12 @@ export class WatchlistWorkflowService {
   /** Current workflow status */
   private status: WorkflowStatus = 'stopped'
 
+  /** Tracks if the workflow is fully initialized */
+  private initialized = false
+
+  /** Tracks if the workflow is running in RSS mode */
+  private rssMode = false
+
   /** Interval timer for checking RSS feeds */
   private rssCheckInterval: NodeJS.Timeout | null = null
 
@@ -165,6 +171,24 @@ export class WatchlistWorkflowService {
   }
 
   /**
+   * Check if the workflow is fully initialized
+   *
+   * @returns boolean indicating if the workflow is fully initialized
+   */
+  isInitialized(): boolean {
+    return this.initialized
+  }
+
+  /**
+   * Check if the workflow is running in RSS mode
+   *
+   * @returns boolean indicating if the workflow is running in RSS mode
+   */
+  isRssMode(): boolean {
+    return this.rssMode
+  }
+
+  /**
    * Start the watchlist workflow
    *
    * Initializes connections to Plex, fetches watchlists, sets up RSS feeds,
@@ -218,6 +242,7 @@ export class WatchlistWorkflowService {
           )
           await this.setupManualSyncFallback()
           this.isUsingRssFallback = true
+          this.rssMode = false
         } else {
           // Initialize RSS monitoring if feeds were generated successfully
           this.log.debug(
@@ -226,6 +251,7 @@ export class WatchlistWorkflowService {
           await this.initializeRssSnapshots()
           this.startRssCheck()
           this.isUsingRssFallback = false
+          this.rssMode = true
         }
       } catch (rssError) {
         this.log.error('Error generating or initializing RSS feeds', {
@@ -262,6 +288,10 @@ export class WatchlistWorkflowService {
       // Update status to running after everything is initialized
       this.status = 'running'
       this.isRunning = true
+      this.initialized = true
+
+      // Set the RSS mode flag based on whether we're using RSS fallback
+      this.rssMode = !this.isUsingRssFallback
 
       this.log.info(
         `Watchlist workflow running in ${this.isUsingRssFallback ? 'manual sync' : 'RSS'} mode`,
@@ -271,6 +301,8 @@ export class WatchlistWorkflowService {
     } catch (error) {
       this.status = 'stopped'
       this.isRunning = false
+      this.initialized = false
+      this.rssMode = false
 
       // Enhanced error logging
       this.log.error('Error in Watchlist workflow:', {
@@ -332,6 +364,8 @@ export class WatchlistWorkflowService {
     // Update status
     this.isRunning = false
     this.status = 'stopped'
+    this.initialized = false
+    this.rssMode = false
 
     return true
   }
