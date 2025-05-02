@@ -22,6 +22,9 @@ import type { User } from '@root/types/config.types.js'
 import type { RssFeedsResponse } from '@schemas/plex/generate-rss-feeds.schema.js'
 
 export class PlexWatchlistService {
+  // Add a property to store the GUIDs snapshot
+  private existingGuidsSnapshot: Set<string> = new Set()
+
   constructor(
     private readonly log: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
@@ -30,6 +33,37 @@ export class PlexWatchlistService {
 
   private get config() {
     return this.fastify.config
+  }
+
+  /**
+   * Initializes a snapshot of all existing GUIDs in the database
+   * Used to determine which items are genuinely new during a sync operation
+   */
+  private async initializeGuidsSnapshot(): Promise<void> {
+    // Clear the existing snapshot
+    this.existingGuidsSnapshot.clear()
+
+    try {
+      // Get all existing watchlist items - using a combination of movie and show items
+      const movieItems = await this.dbService.getAllMovieWatchlistItems()
+      const showItems = await this.dbService.getAllShowWatchlistItems()
+      const allItems = [...movieItems, ...showItems]
+
+      // Extract and store all GUIDs in lowercase for case-insensitive matching
+      for (const item of allItems) {
+        const guids = parseGuids(item.guids)
+        for (const guid of guids) {
+          this.existingGuidsSnapshot.add(guid.toLowerCase())
+        }
+      }
+
+      this.log.debug(
+        `Initialized GUIDs snapshot with ${this.existingGuidsSnapshot.size} unique GUIDs`,
+      )
+    } catch (error) {
+      this.log.error('Error initializing GUIDs snapshot:', error)
+      // Continue with an empty snapshot in case of error
+    }
   }
 
   async pingPlex(): Promise<boolean> {
@@ -56,6 +90,9 @@ export class PlexWatchlistService {
     if (this.config.plexTokens.length === 0) {
       throw new Error('No Plex token configured')
     }
+
+    // Initialize the GUIDs snapshot at the start of the process
+    await this.initializeGuidsSnapshot()
 
     // Ensure users exist for tokens (this populates the database)
     await this.ensureTokenUsers()
@@ -189,6 +226,9 @@ export class PlexWatchlistService {
       throw new Error('No Plex token configured')
     }
 
+    // Initialize the GUIDs snapshot at the start of the process
+    await this.initializeGuidsSnapshot()
+
     const friends = await getFriends(this.config, this.log)
 
     // Early check for no friends
@@ -280,6 +320,52 @@ export class PlexWatchlistService {
       existingItemsToLink,
       processedItems,
     )
+  }
+
+  /**
+   * Determines if a notification should be sent for a watchlist item
+   * based on existing notification records and pre-sync database content
+   *
+   * @param userId - The user ID to check notifications for
+   * @param item - The watchlist item to potentially notify about
+   * @param pendingGuids - Parsed GUIDs from the RSS feed
+   * @returns Boolean indicating if notification should be sent
+   */
+  private async shouldSendContentNotification(
+    userId: number,
+    item: { title: string; guids: string[] | string; type: string },
+    pendingGuids: string[],
+  ): Promise<boolean> {
+    // 1. Check for existing notification record
+    const existingNotification =
+      await this.dbService.getExistingWebhookNotification(
+        userId,
+        'watchlist_add',
+        item.title,
+      )
+
+    if (existingNotification) {
+      this.log.info(
+        `Skipping notification for "${item.title}" - already sent previously to user ID ${userId}`,
+      )
+      return false
+    }
+
+    // 2. Check if any GUIDs existed in the database BEFORE the sync started
+    // Using the GUIDs from the pending item (from RSS) for the check
+    for (const guid of pendingGuids) {
+      const normalizedGuid = guid.toLowerCase()
+      if (this.existingGuidsSnapshot.has(normalizedGuid)) {
+        this.log.info(
+          `Skipping notification for "${item.title}" - item with GUID ${guid} already existed before sync for user ID ${userId}`,
+          { itemTitle: item.title, guid, userId },
+        )
+        return false
+      }
+    }
+
+    // No existing notification record and no matching pre-existing GUIDs found
+    return true
   }
 
   /**
@@ -996,6 +1082,9 @@ export class PlexWatchlistService {
   async processRssWatchlists(): Promise<RssWatchlistResults> {
     const config = await this.ensureRssFeeds()
 
+    // Initialize the GUIDs snapshot at the start of the process
+    await this.initializeGuidsSnapshot()
+
     const results: RssWatchlistResults = {
       self: {
         total: 0,
@@ -1154,7 +1243,7 @@ export class PlexWatchlistService {
         for (const item of items) {
           const itemGuids = parseGuids(item.guids)
 
-          // Use the new function that works with already-parsed arrays
+          // Use the hasMatchingParsedGuids function that works with already-parsed arrays
           const hasMatch = hasMatchingParsedGuids(pendingGuids, itemGuids)
 
           if (hasMatch) {
@@ -1171,19 +1260,20 @@ export class PlexWatchlistService {
               },
             )
 
-            // Check for existing notification to avoid duplicates
-            const existingNotification =
-              await this.dbService.getExistingWebhookNotification(
+            // Check if notification should be sent with pre-sync snapshot check
+            const shouldSendNotification =
+              await this.shouldSendContentNotification(
                 user.userId,
-                'watchlist_add',
-                item.title,
+                {
+                  title: item.title,
+                  guids: item.guids || [],
+                  type: item.type || 'unknown',
+                },
+                pendingGuids,
               )
 
-            if (existingNotification) {
-              this.log.info(
-                `Skipping webhook notification for "${item.title}" - already sent previously to user ${user.username}`,
-              )
-              break
+            if (!shouldSendNotification) {
+              continue // Skip to next item
             }
 
             // Send Discord webhook notification
@@ -1333,7 +1423,7 @@ export class PlexWatchlistService {
         for (const item of items) {
           const itemGuids = parseGuids(item.guids)
 
-          // Use the new function that works with already-parsed arrays
+          // Use the hasMatchingParsedGuids function that works with already-parsed arrays
           const hasMatch = hasMatchingParsedGuids(pendingGuids, itemGuids)
 
           if (hasMatch) {
@@ -1349,6 +1439,22 @@ export class PlexWatchlistService {
                 userId: friend.userId,
               },
             )
+
+            // Check if notification should be sent with pre-sync snapshot check
+            const shouldSendNotification =
+              await this.shouldSendContentNotification(
+                friend.userId,
+                {
+                  title: item.title,
+                  guids: item.guids || [],
+                  type: item.type || 'unknown',
+                },
+                pendingGuids,
+              )
+
+            if (!shouldSendNotification) {
+              continue // Skip to next item
+            }
 
             // Send Discord webhook notification
             let discordSent = false
