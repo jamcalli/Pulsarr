@@ -450,7 +450,7 @@ The `.env` file is required for the initial setup and contains essential configu
 
 Here is how your .env should look:
 
-```
+```env
 # Required settings
 baseUrl=http://your-server-ip   # Address where Pulsarr can be reached by Sonarr/Radarr
 port=3003                       # Port where Pulsarr is accessible
