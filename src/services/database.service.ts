@@ -142,7 +142,7 @@ export class DatabaseService {
   async createUser(
     userData: Omit<User, 'id' | 'created_at' | 'updated_at'>,
   ): Promise<User> {
-    const [id] = await this.knex('users')
+    const result = await this.knex('users')
       .insert({
         ...userData,
         created_at: this.timestamp,
@@ -150,11 +150,19 @@ export class DatabaseService {
       })
       .returning('id')
 
-    if (!id) throw new Error('Failed to create user')
+    // Handle different return formats
+    const id =
+      typeof result[0] === 'object' && result[0] !== null
+        ? result[0].id // Handle case where result is an array of objects
+        : result[0] // Handle case where result is an array of values
+
+    if (id === undefined || id === null) {
+      throw new Error('Failed to create user')
+    }
 
     const user: User = {
       ...userData,
-      id,
+      id: Number(id),
       created_at: this.timestamp,
       updated_at: this.timestamp,
     }
