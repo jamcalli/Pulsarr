@@ -11,9 +11,9 @@
 
 Pulsarr is an integration tool that bridges Plex watchlists with Sonarr and Radarr, enabling real-time media monitoring and automated content acquisition all from within the Plex App itself.
 
-Enjoy all the benefits of other content discovery systems without requiring users to use additional services. All the magic happens from the pimary users Plex Token.
+Enjoy all the benefits of other content discovery systems without requiring users to use additional services. All the magic happens from the primary user's Plex Token.
 
-It provides user-based watchlist synchronization for yourself and for friends, smart content routing based on genre, and notification capabilities (Discord and Apprise).
+It provides user-based watchlist synchronization for yourself and for friends, intelligent content routing based on multiple criteria, and notification capabilities (Discord and Apprise).
 
 Want to contribute? Check out our [Contributing Guidelines](#contributing).
 
@@ -137,7 +137,7 @@ The routing system processes all matching rules that target different instances,
 
 ### Prerequisites
 - Docker (recommended for deployment)
-- Plex Pass subscription (non Plex Pass coming soon)
+- Plex Pass subscription (non-Plex Pass users supported with 20-minute polling intervals)
 - Sonarr/Radarr installation(s)
 
 ### Installation Options
@@ -160,12 +160,7 @@ services:
     restart: unless-stopped
     env_file:
       - .env
-    environment:
-      - NODE_ARGS=--log-both
-      - TZ=America/Los_Angeles
 ```
-
-The logger defaults to file logging. This can be changed by modifying the NODE_ARGS in the docker compose. Accepted values are `--log-terminal`, `--log-both`, or `--log-file` respectively.
 
 3. Pull the image and run Docker Compose to start the service:
 ```bash
@@ -212,7 +207,7 @@ npm run start:prod
 4. Configure your Sonarr and Radarr connections on their respective pages:
    - Add instance details (URL, API key)
    - Configure default quality profiles and root folders
-   - Set up genre routing rules (optional). *Note: Multiple Genre Routes can be configured. E.g., You can have multiple 'Anime' routes, such as Anime to Instance A with root folder B, AND Anime to Instance B with root folder C, etc. Create as many as you'd like.*
+   - Set up content routing rules (optional). *Note: Multiple routing rules with complex conditions can be configured. Create as many as you'd like to handle different content types, users, languages, etc.*
 5. After configuring both Sonarr and Radarr, ensure that you set all the sync permissions for any friends' watchlists you'd like to include. Head to the `Plex` page where you'll find the user table at the bottom. Click the three dots on the right to modify any of the values. **IMPORTANT**: All users who would like to have their watchlists synced need to ensure that their [Account Visibility](https://app.plex.tv/desktop/#!/settings/account) is set to 'Friends Only' or 'Friends of Friends'. Also, disabling any user's sync will result in a delay (approximately 1 minute) before processing.
 6. Once you are satisfied, head to the `Dashboard` page and click on the Start button next to the Main Workflow heading. Be sure to toggle 'Auto Start' to true.
 
@@ -325,10 +320,6 @@ services:
     restart: unless-stopped
     env_file:
       - .env
-    environment:
-      - NODE_ARGS=--log-both
-      - TZ=America/Los_Angeles
-      - appriseUrl=http://apprise:8000
     depends_on:
       - apprise
 ```
@@ -376,9 +367,6 @@ services:
     restart: unless-stopped
     env_file:
       - .env
-    environment:
-      - NODE_ARGS=--log-both
-      - TZ=America/Los_Angeles
 ```
 
 When using separate compose files, you'll need to add the Apprise URL to your Pulsarr `.env` file:
@@ -440,25 +428,49 @@ For more information about Apprise itself, refer to the [official Apprise docume
 
 ## Configuration
 
-While Pulsarr is primarily configured through the web UI, you can also use environment variables in a .env file. Any values set in the .env file will override settings in the database.
+Pulsarr uses a hybrid configuration approach. Core application settings (like port, URL, logging) must be defined in a `.env` file, while application-specific settings are configured through the web UI after installation. 
+
+The `.env` file is required for the initial setup and contains essential configuration values. Any values set in the `.env` file will override settings stored in the database, giving you flexibility to customize your deployment.
+
+**Note about Apprise**: If you're using the Apprise integration, additional configuration values like `appriseUrl` should be included in your `.env` file. These values are only needed if you're running the Apprise container alongside Pulsarr.
 
 ### Core Configuration
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `port` | Backend port | `3003` |
-| `baseUrl` | Base Url (NEEDS TO BE THE ADDRESS THAT PULSARR CAN BE REACHED BY BOTH SONARR/RADARR) | `http://localhost` |
-| `LogLevel` | Logging level | `info` |
-| `CookieSecured` | Serve Cookie only via https (can omit unless setting to true) | `false` |
+| Variable | Description | Required? | Default |
+|----------|-------------|-----------|---------|
+| `baseUrl` | Base URL where Pulsarr can be reached by Sonarr/Radarr (e.g., `http://pulsarr` for Docker network or `http://your-server-ip`) | Yes | `http://localhost` |
+| `port` | Port where Pulsarr is accessible - works with baseUrl to form complete address | Yes | `3003` |
+| `TZ` | Your local timezone (e.g., America/New_York, Europe/London) | Yes | `UTC` |
+| `logLevel` | Logging level (silent, error, warn, info, debug, trace) | Recommended | `silent` |
+| `NODE_ARGS` | Logger configuration for Docker (`--log-both` recommended for most users) | Recommended | `--log-file` |
+| `cookieSecured` | Set to true ONLY if serving UI over HTTPS | No | `false` |
+| `appriseUrl` | URL for the Apprise server (only if using Apprise) | No* | None |
+
+*Required only if you're using the Apprise integration.
 
 Here is how your .env should look:
 
 ```
-baseUrl=http://localhost
-port=3003
-logLevel=info
-cookieSecured=false
+# Required settings
+baseUrl=http://your-server-ip   # Address where Pulsarr can be reached by Sonarr/Radarr
+port=3003                       # Port where Pulsarr is accessible
+TZ=America/Los_Angeles          # Set to your local timezone
+
+# Recommended settings
+logLevel=info                   # Default is 'silent', but 'info' is recommended
+NODE_ARGS=--log-both            # Default logs to file only, '--log-both' shows logs in terminal too
+
+# Optional settings
+cookieSecured=false             # Set to 'true' ONLY if serving UI over HTTPS
+
+# Only needed if using Apprise
+# appriseUrl=http://apprise:8000  # URL to your Apprise container
 ```
+
+**Note about NODE_ARGS**: Controls logging behavior in Docker. Options are:
+- `--log-terminal` - Log to terminal only
+- `--log-file` - Log to file only (default)
+- `--log-both` - Log to both terminal and file
 
 ### Authentication Configuration
 
@@ -497,7 +509,7 @@ dbPath=./data/db/pulsarr.db            # SQLite database location
 cookieSecret=xxxxxxxxxxxxxxxxxxxxxxxx  # Secret key for cookies (randomly generated by default)
 cookieName=pulsarr                     # Name of the cookie
 cookieSecured=false                    # Set to true for HTTPS only
-logLevel=info                          # Logging level (defaults to silent. Recommended info)
+logLevel=info                          # Logging level (defaults to silent. Recommended: info)
 authenticationMethod=required          # Authentication method (required, requiredExceptLocal, disabled)
 closeGraceDelay=10000                  # Shutdown grace period in ms
 rateLimitMax=100                       # Max requests per time window
@@ -543,6 +555,13 @@ radarrTags=[]                          # Tags as JSON array
 # Plex Configuration
 plexTokens=["xxxxxxxxxxxxxxxxxxxx"]    # Plex authentication token
 skipFriendSync=false                   # Skip syncing Plex friends
+
+# User Tagging Configuration
+tagUsersInSonarr=false                 # Enable automatic user tagging in Sonarr
+tagUsersInRadarr=false                 # Enable automatic user tagging in Radarr
+tagPrefix=pulsarr:user                 # Prefix for user tags - required alphanumeric, dash, underscore, colon, period only
+persistHistoricalTags=true             # When true, keeps tags even after content is removed from watchlist
+cleanupOrphanedTags=true               # When true, removes tags for deleted users during sync
 
 # Delete Configuration
 deleteMovie=false                      # Auto-delete movies setting
@@ -601,7 +620,7 @@ You can operate Delete Sync in several ways:
 2. **Run Now**: Manually trigger the deletion process immediately
 3. **Dry Run**: Preview what would be deleted without making any changes
 
-You can configure notifications to recieve information regarding your workflow:
+You can configure notifications to receive information regarding your workflow:
 
 <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Delete-Sync-Dry.png" width="400" alt="Delete Sync Dry">
 
@@ -621,6 +640,48 @@ Delete Sync includes several safety measures to prevent accidental data loss:
 
 - Begin with a dry run to understand the impact on your libraries
 - Consider keeping files for ended shows that may return for future seasons
+
+## User Tagging
+
+Pulsarr's User Tagging feature organizes your media by automatically adding user tags to content in Sonarr and Radarr, making it easy to track which users requested which content.
+
+### Key Features
+
+- **Automatic User Tracking**: Tags movies and shows with the usernames of people who added them to their watchlists
+- **Multi-Instance Support**: Works across all your Sonarr and Radarr instances simultaneously
+- **Customizable Prefix**: Configure your own prefix for user tags (default: "pulsarr:user")
+- **Historical Tracking**: Option to preserve tags for historical record-keeping even after items are removed from watchlists
+- **Tag Cleanup**: Automatically removes orphaned tags for users who no longer exist
+- **Batch Processing**: Efficiently processes large libraries with minimal performance impact
+
+### Usage Benefits
+
+- **Content Organization**: Easily identify who requested specific content
+- **User-Based Filtering**: Create custom filters in Sonarr/Radarr based on user tags
+- **Accountability**: Track which users are driving your media library growth
+- **Management**: Quickly find all content requested by specific users
+- **Integration**: Works seamlessly with Sonarr and Radarr's existing tag system
+
+### Configuration
+
+1. Navigate to the **Utilities** section in the Pulsarr web interface
+2. Find the User Tagging section
+3. Configure options including:
+   - Enable/disable tagging for Sonarr and Radarr
+   - Set a custom tag prefix
+   - Choose whether to preserve historical tags
+   - Enable/disable cleanup of orphaned tags
+4. Save your changes to apply the settings
+5. Click "Sync Tags Now" to immediately apply tags to all content
+
+### Advanced Settings
+
+- **Tag Prefix**: Customize the prefix used for all user tags (default: "pulsarr:user")
+- **Preserve Historical Tags**: When enabled, keeps tags even after content is removed from a user's watchlist
+- **Clean Up Orphaned Tags**: Automatically removes tags for deleted users
+- **Manual Tag Removal**: Option to remove all user tags if needed
+
+<img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/User-Tags.png" alt="User Tagging" width="80%"/>
 
 ## Plex Notifications
 
@@ -659,7 +720,8 @@ Once configured, anytime content is added, modified, or removed via Sonarr or Ra
   <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Dashboard6.png" alt="Dashboard6" width="80%"/>
   <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Sonarr.png" alt="Sonarr" width="80%"/>
   <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Radarr.png" alt="Radarr" width="80%"/>
-  <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Genre-Route.png" alt="Genre Route" width="80%"/>
+  <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Content-Route-1.png" alt="Content Router 1" width="80%"/>
+  <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Content-Route-2.png" alt="Content Router 2" width="80%"/>
   <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Delete-Sync.png" alt="Delete Sync" width="80%"/>
 </div>
 
