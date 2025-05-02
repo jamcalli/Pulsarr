@@ -294,6 +294,7 @@ export class PlexWatchlistService {
     const processedItems = await this.processAndSaveNewItems(
       brandNewItems,
       true,
+      existingGuidsSnapshot,
     )
     await this.linkExistingItems(existingItemsToLink)
 
@@ -435,7 +436,11 @@ export class PlexWatchlistService {
       existingItems,
     )
 
-    const processedItems = await this.processAndSaveNewItems(brandNewItems)
+    const processedItems = await this.processAndSaveNewItems(
+      brandNewItems,
+      false,
+      existingGuidsSnapshot,
+    )
     await this.linkExistingItems(existingItemsToLink)
 
     const allItemsMap = new Map<Friend, Set<WatchlistItem>>()
@@ -753,6 +758,7 @@ export class PlexWatchlistService {
   private async processAndSaveNewItems(
     brandNewItems: Map<Friend, Set<TokenWatchlistItem>>,
     isSelfWatchlist = false,
+    existingGuidsSnapshot?: Set<string>,
   ): Promise<Map<Friend, Set<WatchlistItem>>> {
     if (brandNewItems.size === 0) {
       return new Map<Friend, Set<WatchlistItem>>()
@@ -808,6 +814,15 @@ export class PlexWatchlistService {
 
         this.log.info(`Processed ${itemsToInsert.length} new items`)
 
+        // Send notifications directly if we have a GUID snapshot
+        // This handles the interval-based sync case (not RSS)
+        if (existingGuidsSnapshot) {
+          await this.sendNotificationsForNewItems(
+            processedItems,
+            existingGuidsSnapshot,
+          )
+        }
+
         if (emitProgress) {
           this.fastify.progress.emit({
             operationId,
@@ -825,6 +840,183 @@ export class PlexWatchlistService {
     throw new Error(
       'Expected Map<Friend, Set<WatchlistItem>> from processWatchlistItems',
     )
+  }
+
+  /**
+   * Checks if the RSS workflow is fully initialized and actively running
+   *
+   * @returns boolean indicating if RSS workflow is active and fully initialized
+   */
+  private isRssWorkflowActive(): boolean {
+    try {
+      // Check if the workflow service exists
+      if (!this.fastify.watchlistWorkflow) {
+        this.log.debug('Watchlist workflow service not found')
+        return false
+      }
+
+      // Check if the workflow is fully initialized and in RSS mode
+      const isInitialized =
+        this.fastify.watchlistWorkflow.isInitialized() === true
+      const isRssMode = this.fastify.watchlistWorkflow.isRssMode() === true
+      const isActive = isInitialized && isRssMode
+
+      if (isActive) {
+        this.log.debug('RSS workflow is active and fully initialized')
+      } else {
+        this.log.debug(
+          `RSS workflow is not yet active or fully initialized (initialized: ${isInitialized}, rssMode: ${isRssMode})`,
+        )
+      }
+
+      return isActive
+    } catch (error) {
+      this.log.error('Error checking RSS workflow status:', error)
+      return false
+    }
+  }
+
+  /**
+   * Sends notifications for newly added items during full sync
+   *
+   * Note: This method will send notifications during application startup or initial sync
+   * even when in RSS mode. Once the RSS workflow is fully initialized and active,
+   * notifications for new items will be handled by that process instead.
+   *
+   * @param processedItems - Map of users to their newly processed watchlist items
+   * @param existingGuidsSnapshot - Snapshot of GUIDs that existed before sync
+   */
+  private async sendNotificationsForNewItems(
+    processedItems: Map<Friend, Set<WatchlistItem>>,
+    existingGuidsSnapshot: Set<string>,
+  ): Promise<void> {
+    // Skip notification only if RSS workflow is fully initialized and active
+    // During startup/initial sync, we still send notifications even in RSS mode
+    if (this.isRssWorkflowActive()) {
+      this.log.info(
+        'Skipping direct notifications because RSS workflow is fully initialized and active',
+      )
+      return
+    }
+
+    const guidCache = new Map<string, string[]>()
+    let notificationsSent = 0
+
+    // Get notification cache for each user-title combination
+    const notificationChecks = new Map<number, Map<string, boolean>>()
+
+    this.log.info(
+      `Checking ${processedItems.size} users for potential notifications of new items`,
+    )
+
+    // Pre-process titles for each user to check existing notifications
+    const userItemTitles = new Map<number, string[]>()
+    for (const [user, items] of processedItems.entries()) {
+      if (!user.userId) continue
+
+      const titles: string[] = []
+      for (const item of items) {
+        if (item.title) titles.push(item.title)
+      }
+
+      if (titles.length > 0) {
+        userItemTitles.set(user.userId, titles)
+      }
+    }
+
+    // Fetch all notification checks in one batch per user
+    await Promise.all(
+      Array.from(userItemTitles.entries()).map(async ([userId, titles]) => {
+        try {
+          const checks = await this.dbService.checkExistingWebhooks(
+            userId,
+            titles,
+          )
+          notificationChecks.set(userId, checks)
+        } catch (error) {
+          this.log.error(
+            `Error checking existing notifications for user ${userId}:`,
+            error,
+          )
+          // Create an empty map for this user to avoid crashes
+          notificationChecks.set(userId, new Map())
+        }
+      }),
+    )
+
+    // Now process all items with the cached notification checks
+    for (const [user, items] of processedItems.entries()) {
+      if (!user.userId) continue
+
+      const userNotifications =
+        notificationChecks.get(user.userId) || new Map<string, boolean>()
+
+      for (const item of items) {
+        // Skip items without titles or types
+        if (!item.title || !item.type) continue
+
+        // Get and normalize GUIDs for this item
+        const itemGuids = this.getParsedGuids(guidCache, item.guids || [])
+
+        // Check if this item already has a notification
+        const hasExistingNotification =
+          userNotifications.get(item.title) === true
+
+        if (hasExistingNotification) {
+          this.log.info(
+            `Skipping notification for "${item.title}" - already sent previously to user ID ${user.userId}`,
+          )
+          continue
+        }
+
+        // Check if any GUIDs existed before sync
+        let existedBeforeSync = false
+        for (const guid of itemGuids) {
+          const normalizedGuid = guid.toLowerCase()
+          if (existingGuidsSnapshot.has(normalizedGuid)) {
+            this.log.info(
+              `Skipping notification for "${item.title}" - item with GUID ${guid} already existed before sync`,
+              { title: item.title, guid },
+            )
+            existedBeforeSync = true
+            break
+          }
+        }
+
+        if (!existedBeforeSync) {
+          // Send notification for this item
+          // Note: The processedItems contains WatchlistItem objects from the API
+          // which use 'plexKey' instead of 'key'
+          // Convert plexKey to string or number if present, otherwise undefined
+          const itemId =
+            'plexKey' in item
+              ? typeof item.plexKey === 'string' ||
+                typeof item.plexKey === 'number'
+                ? item.plexKey
+                : String(item.plexKey)
+              : undefined
+
+          const notificationSent = await this.sendWatchlistNotifications(user, {
+            id: itemId,
+            title: item.title,
+            type: item.type,
+            thumb: item.thumb,
+          })
+
+          if (notificationSent) {
+            notificationsSent++
+          }
+        }
+      }
+    }
+
+    if (notificationsSent > 0) {
+      this.log.info(
+        `Sent ${notificationsSent} notifications for newly added items during full sync`,
+      )
+    } else {
+      this.log.debug('No new notifications needed for full sync items')
+    }
   }
 
   private async linkExistingItems(
