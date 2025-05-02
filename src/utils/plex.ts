@@ -883,10 +883,9 @@ export const fetchWatchlistFromRss = async (
 }
 
 /**
- * Determines whether the configuration contains at least one valid Plex token.
+ * Checks if the configuration includes at least one Plex token.
  *
- * @param config - The configuration object to check.
- * @returns `true` if {@link config.plexTokens} is a non-empty array; otherwise, `false`.
+ * @returns `true` if the configuration's `plexTokens` property is a non-empty array; otherwise, `false`.
  */
 export function hasValidPlexTokens(config: Config): boolean {
   return Boolean(
