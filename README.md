@@ -5,8 +5,11 @@
 
   ![Version](https://img.shields.io/github/v/release/jamcalli/pulsarr?include_prereleases&style=flat-square)
   ![License](https://img.shields.io/badge/license-GPL-blue?style=flat-square)
-  ![Node](https://img.shields.io/badge/node-23.6.0-green?style=flat-square)
-  ![Status](https://img.shields.io/badge/status-beta-orange?style=flat-square)
+  ![Node](https://img.shields.io/badge/node-20%20LTS-green?style=flat-square)
+  ![Status](https://img.shields.io/badge/status-early--release-orange?style=flat-square)
+  ![Docker Pulls](https://img.shields.io/docker/pulls/lakker/pulsarr?style=flat-square)
+  ![Docker Image Size](https://img.shields.io/docker/image-size/lakker/pulsarr?style=flat-square)
+  ![GitHub Stars](https://img.shields.io/github/stars/jamcalli/pulsarr?style=flat-square)
 </div>
 
 Pulsarr is an integration tool that bridges Plex watchlists with Sonarr and Radarr, enabling real-time media monitoring and automated content acquisition all from within the Plex App itself.
@@ -178,7 +181,7 @@ In the meantime, you can install using the Docker Installation method above.
 #### Manual Installation
 
 **Prerequisites**
-- Node.js 23.6.0 or higher (for local build)
+- Node.js 20 LTS or higher (for local build)
 
 ```bash
 # Clone the repository
