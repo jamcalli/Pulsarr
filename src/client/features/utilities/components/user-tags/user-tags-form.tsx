@@ -753,16 +753,37 @@ export function UserTagsForm() {
                                       <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help" />
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                      <p className="max-w-xs">
-                                        Defines the prefix used for all user
-                                        tags (e.g., 'pulsarr:user:username').
-                                        Helps identify Pulsarr-managed tags and
-                                        keeps them organized separately from
-                                        other tags in Sonarr/Radarr. Note:
-                                        Changing this requires removing existing
-                                        tags first, as old tags won't be
-                                        recognized with the new prefix.
-                                      </p>
+                                      <div className="max-w-xs space-y-2">
+                                        <p>
+                                          Defines the prefix used for all user
+                                          tags. The final tag format will be:
+                                        </p>
+                                        <code className="bg-slate-700 text-white px-1 py-0.5 rounded block text-center">
+                                          {form.watch('tagPrefix') ||
+                                            'pulsarr:user'}
+                                          :username
+                                        </code>
+
+                                        <p className="text-xs">
+                                          <span className="font-semibold">
+                                            Examples:
+                                          </span>
+                                          <br />• With default prefix:{' '}
+                                          <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded">
+                                            pulsarr:user:john_doe
+                                          </code>
+                                          <br />• With "user" prefix:{' '}
+                                          <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded">
+                                            user:john_doe
+                                          </code>
+                                        </p>
+
+                                        <p>
+                                          Note: Changing this requires removing
+                                          existing tags first, as old tags won't
+                                          be recognized with the new prefix.
+                                        </p>
+                                      </div>
                                     </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
@@ -784,6 +805,13 @@ export function UserTagsForm() {
                                     prefix.
                                   </p>
                                 )}
+                              <p className="text-xs text-gray-500 mt-1">
+                                Final format:{' '}
+                                <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded">
+                                  {form.watch('tagPrefix') || 'pulsarr:user'}
+                                  :username
+                                </code>
+                              </p>
                               <FormMessage />
                             </FormItem>
                           )}
