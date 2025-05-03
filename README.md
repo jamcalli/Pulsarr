@@ -101,7 +101,7 @@ The notification system is designed to be informative:
 2. **Smart Queuing**: Groups multiple episodes from the same season to prevent notification spam (when importing non-season packs)
 3. **Batch Processing**: Intelligently batches season packs into single notifications
 4. **User Targeting**: Identifies users who have the show in their watchlist and have enabled notifications
-5. **Multi-channel Delivery**: Sends personalized notifications via Discord DMs, Email (coming soon), and can send global grabs via webhooks
+5. **Multi-channel Delivery**: Sends personalized notifications via Discord DMs, Apprise, and can send global grabs via webhooks and Apprise system notification endpoints
 6. **Customizable Preferences**: Each user can configure their notification preferences via Discord, or the admin can via the UI
 
 ## Advanced Content Routing
