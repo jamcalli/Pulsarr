@@ -125,14 +125,13 @@ Pulsarr offers a powerful predicate-based routing system that intelligently dire
   - Genre (e.g., Anime → dedicated instance)
   - User (e.g., specific users' content → specific profiles/folders)
   - Language (e.g., Spanish content → spanish content folder)
-  - Year (e.g., pre-2000 movies → classics folder)
+  - Year (e.g., pre-2000 movies → classics folder in another instance)
   - Certification (e.g., R-rated → separate folder)
 - **Visual Rule Builder**: Intuitive interface for creating and managing routing rules
-- **Priority-based Processing**: Assign weights to rules to control which takes precedence
-- **Rule Testing**: Verify routing behavior before applying
-- **Multi-Instance Routing**: Content can be simultaneously sent to multiple instances when different rules match, allowing for content to exist in multiple libraries or servers
+- **Priority-based Processing**: Assign weights to rules to control which takes precedence (used when multiple rules send content to the same instance)
+- **Multi-Instance Routing**: Content can be simultaneously sent to multiple instances when different rules match, allowing for content to exist in multiple instances
 
-**Example**: "Route Japanese Anime requested by specific users to the Anime instance with high-quality profile, while sending all other anime content to the standard instance."
+**Example**: "Route Japanese Anime requested by specific users to the Anime instance with high-quality profile, while sending all other anime content to the default instance."
 
 The routing system processes all matching rules that target different instances, allowing the same content to appear in multiple libraries as needed. When multiple rules target the same instance, only the highest priority rule is applied for that specific instance.
 
@@ -610,7 +609,7 @@ Navigate to the Utilities page in the Pulsarr web interface and configure your d
 - Content types to delete (movies, ended shows, continuing shows)
 - Whether to delete associated files from disk
 - User sync setting preferences (if someone isn't allowed to make requests, ignore their watchlist in the deletion process)
-- Notification preferences for deletion events (will send results to webhook, message, both, or none)
+- Notification preferences for deletion events (fully configurable)
 - Maximum deletion prevention threshold (a failsafe)
 
 Set up a schedule for automatic deletion operations
