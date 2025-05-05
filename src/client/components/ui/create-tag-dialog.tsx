@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { 
   Dialog, 
   DialogContent, 
@@ -10,9 +10,15 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Check } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import type { CreateTagBody, CreateTagResponse, Error } from '@root/schemas/radarr/create-tag.schema'
+
+// Set the same minimum loading delay as in plex
+const MIN_LOADING_DELAY = 500
+
+// Status type identical to usePlexUser hook
+type SaveStatus = 'idle' | 'loading' | 'success' | 'error'
 
 interface CreateTagDialogProps {
   open: boolean
@@ -31,7 +37,15 @@ export function CreateTagDialog({
 }: CreateTagDialogProps) {
   const { toast } = useToast()
   const [tagLabel, setTagLabel] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
+  
+  // Reset state when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setTagLabel('')
+      setSaveStatus('idle')
+    }
+  }, [open])
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -45,7 +59,7 @@ export function CreateTagDialog({
       return
     }
     
-    setIsSubmitting(true)
+    setSaveStatus('loading')
     
     try {
       const requestBody: CreateTagBody = {
@@ -53,7 +67,13 @@ export function CreateTagDialog({
         label: tagLabel.trim()
       }
       
-      const response = await fetch(`/v1/${instanceType}/create-tag`, {
+      // Create a minimum loading time exactly as in usePlexUser
+      const minimumLoadingTime = new Promise(resolve => 
+        setTimeout(resolve, MIN_LOADING_DELAY)
+      )
+      
+      // Execute the API request
+      const fetchPromise = fetch(`/v1/${instanceType}/create-tag`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -61,21 +81,29 @@ export function CreateTagDialog({
         body: JSON.stringify(requestBody)
       })
       
-      const data = await response.json() as CreateTagResponse | Error
-      
-      if (response.ok) {
-        toast({
-          description: `Tag "${tagLabel}" created successfully`,
-          variant: 'default'
+      // Wait for both the minimum time and the API response, exactly like in usePlexUser
+      await Promise.all([fetchPromise, minimumLoadingTime])
+        .then(async ([response]) => {
+          const data = await response.json() as CreateTagResponse | Error
+          
+          if (response.ok) {
+            toast({
+              description: `Tag "${tagLabel}" created successfully in ${instanceType === 'radarr' ? 'Radarr' : 'Sonarr'}`,
+              variant: 'default'
+            })
+            
+            setSaveStatus('success')
+            
+            // Show success state for half the MIN_LOADING_DELAY, exactly as in usePlexUser
+            await new Promise(resolve => setTimeout(resolve, MIN_LOADING_DELAY / 2))
+            onOpenChange(false)
+            onSuccess()
+          } else {
+            // Properly handle the error response
+            const errorMessage = 'message' in data ? data.message : 'Failed to create tag'
+            throw new Error(errorMessage)
+          }
         })
-        setTagLabel('')
-        onOpenChange(false)
-        onSuccess()
-      } else {
-        // Properly handle the error response
-        const errorMessage = 'message' in data ? data.message : 'Failed to create tag'
-        throw new Error(errorMessage)
-      }
     } catch (error) {
       console.error('Error creating tag:', error)
       toast({
@@ -83,21 +111,37 @@ export function CreateTagDialog({
         description: error instanceof Error ? error.message : 'Failed to create tag',
         variant: 'destructive'
       })
-    } finally {
-      setIsSubmitting(false)
+      
+      setSaveStatus('error')
+      
+      // Reset to idle state after a delay, exactly as in usePlexUser
+      await new Promise(resolve => setTimeout(resolve, MIN_LOADING_DELAY))
+      setSaveStatus('idle')
     }
   }
   
+  const handleOpenChange = (newOpen: boolean) => {
+    if (saveStatus === 'loading') {
+      return // Prevent closing while submitting
+    }
+    onOpenChange(newOpen)
+  }
+  
   return (
-    <Dialog open={open} onOpenChange={(newOpen) => {
-      if (!isSubmitting) {
-        onOpenChange(newOpen)
-        if (!newOpen) {
-          setTagLabel('')
-        }
-      }
-    }}>
-      <DialogContent className="sm:max-w-md">
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent 
+        className="sm:max-w-md"
+        onPointerDownOutside={(e) => {
+          if (saveStatus === 'loading') {
+            e.preventDefault()
+          }
+        }}
+        onEscapeKeyDown={(e) => {
+          if (saveStatus === 'loading') {
+            e.preventDefault()
+          }
+        }}
+      >
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle className="text-text">Create New Tag</DialogTitle>
@@ -113,8 +157,9 @@ export function CreateTagDialog({
               value={tagLabel}
               onChange={(e) => setTagLabel(e.target.value)}
               placeholder="Enter tag name"
-              disabled={isSubmitting}
+              disabled={saveStatus !== 'idle'}
               className="mt-1"
+              autoFocus
             />
           </div>
           
@@ -122,19 +167,25 @@ export function CreateTagDialog({
             <Button
               type="button"
               variant="neutral"
-              onClick={() => onOpenChange(false)}
-              disabled={isSubmitting}
+              onClick={() => handleOpenChange(false)}
+              disabled={saveStatus !== 'idle'}
             >
               Cancel
             </Button>
             <Button
               type="submit"
-              disabled={isSubmitting || !tagLabel.trim()}
+              disabled={saveStatus !== 'idle' || !tagLabel.trim()}
+              className="min-w-[100px] flex items-center justify-center gap-2"
             >
-              {isSubmitting ? (
+              {saveStatus === 'loading' ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                   Creating...
+                </>
+              ) : saveStatus === 'success' ? (
+                <>
+                  <Check className="h-4 w-4" />
+                  Created!
                 </>
               ) : (
                 'Create Tag'
