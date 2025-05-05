@@ -81,7 +81,7 @@ export function CreateTagDialog({
         body: JSON.stringify(requestBody)
       })
       
-      // Wait for both the minimum time and the API response, exactly like in usePlexUser
+      // Wait for both the minimum time and the API response
       await Promise.all([fetchPromise, minimumLoadingTime])
         .then(async ([response]) => {
           const data = await response.json() as CreateTagResponse | Error
@@ -94,7 +94,6 @@ export function CreateTagDialog({
             
             setSaveStatus('success')
             
-            // Show success state for half the MIN_LOADING_DELAY, exactly as in usePlexUser
             await new Promise(resolve => setTimeout(resolve, MIN_LOADING_DELAY / 2))
             onOpenChange(false)
             onSuccess()
