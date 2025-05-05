@@ -44,6 +44,7 @@ import { useToast } from '@/hooks/use-toast'
 import type { SonarrInstanceSchema } from '@/features/sonarr/store/schemas'
 import { SonarrSyncModal } from '@/features/sonarr/components/instance/sonarr-sync-modal'
 import { useMediaQuery } from '@/hooks/use-media-query'
+import { TagsMultiSelect } from '@/components/ui/tag-multi-select'
 
 interface InstanceCardProps {
   instance: SonarrInstance
@@ -414,6 +415,27 @@ export function InstanceCard({
                             Set as default instance
                           </span>
                         </div>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="tags"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-text">
+                          Instance Tags
+                        </FormLabel>
+                        <FormControl>
+                          <TagsMultiSelect
+                            field={field}
+                            instanceId={instance.id}
+                            instanceType="sonarr"
+                            isConnectionValid={isConnectionValid}
+                            // Tag IDs are stored as strings in the form data
+                          />
+                        </FormControl>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />

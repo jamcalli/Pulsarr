@@ -36,6 +36,7 @@ import type { RadarrInstance } from '@/features/radarr/types/types'
 import { useToast } from '@/hooks/use-toast'
 import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
 import { useMediaQuery } from '@/hooks/use-media-query'
+import { TagsMultiSelect } from '@/components/ui/tag-multi-select'
 
 interface InstanceCardProps {
   instance: RadarrInstance
@@ -339,6 +340,27 @@ export function InstanceCard({
                             Set as default instance
                           </span>
                         </div>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="tags"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-text">
+                          Instance Tags
+                        </FormLabel>
+                        <FormControl>
+                          <TagsMultiSelect
+                            field={field}
+                            instanceId={instance.id}
+                            instanceType="radarr"
+                            isConnectionValid={isConnectionValid}
+                            // Tag IDs are stored as strings in the form data
+                          />
+                        </FormControl>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
