@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { 
   Dialog, 
   DialogContent, 
@@ -14,38 +14,44 @@ import { Loader2, Check } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import type { CreateTagBody, CreateTagResponse, Error } from '@root/schemas/radarr/create-tag.schema'
 
-// Set the same minimum loading delay as in plex
-const MIN_LOADING_DELAY = 500
-
-// Status type identical to usePlexUser hook
+// Status type for tracking the dialog state
 type SaveStatus = 'idle' | 'loading' | 'success' | 'error'
 
-interface CreateTagDialogProps {
+interface TagCreationDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   instanceId: number
   instanceType: 'radarr' | 'sonarr'
+  instanceName?: string
   onSuccess: () => void
 }
 
-export function CreateTagDialog({
+/**
+ * A dialog component for creating tags in Radarr or Sonarr instances.
+ */
+export function TagCreationDialog({
   open,
   onOpenChange,
   instanceId,
   instanceType,
+  instanceName = '',
   onSuccess
-}: CreateTagDialogProps) {
+}: TagCreationDialogProps) {
   const { toast } = useToast()
   const [tagLabel, setTagLabel] = useState('')
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
   
-  // Reset state when dialog closes
-  useEffect(() => {
-    if (!open) {
+  // Handle dialog open state changes
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen && saveStatus !== 'loading') {
       setTagLabel('')
       setSaveStatus('idle')
     }
-  }, [open])
+    
+    if (saveStatus !== 'loading') {
+      onOpenChange(newOpen)
+    }
+  }
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -67,13 +73,10 @@ export function CreateTagDialog({
         label: tagLabel.trim()
       }
       
-      // Create a minimum loading time exactly as in usePlexUser
-      const minimumLoadingTime = new Promise(resolve => 
-        setTimeout(resolve, MIN_LOADING_DELAY)
-      )
+      // Execute with minimum loading time for better UX
+      const minimumLoadingTime = new Promise(resolve => setTimeout(resolve, 500))
       
-      // Execute the API request
-      const fetchPromise = fetch(`/v1/${instanceType}/create-tag`, {
+      const response = await fetch(`/v1/${instanceType}/create-tag`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -81,32 +84,33 @@ export function CreateTagDialog({
         body: JSON.stringify(requestBody)
       })
       
-      // Wait for both the minimum time and the API response
-      await Promise.all([fetchPromise, minimumLoadingTime])
-        .then(async ([response]) => {
-          const data = await response.json() as CreateTagResponse | Error
+      await minimumLoadingTime
+      
+      const data = await response.json() as CreateTagResponse | Error
+      
+      if (response.ok) {
+        // Format the instance name for the toast
+        const systemType = instanceType === 'radarr' ? 'Radarr' : 'Sonarr';
+        const displayName = instanceName 
+          ? `${systemType} instance "${instanceName}"`
+          : systemType;
           
-          if (response.ok) {
-            toast({
-              description: `Tag "${tagLabel}" created successfully in ${instanceType === 'radarr' ? 'Radarr' : 'Sonarr'}`,
-              variant: 'default'
-            })
-            
-            setSaveStatus('success')
-            
-            await new Promise(resolve => setTimeout(resolve, MIN_LOADING_DELAY / 2))
-            onOpenChange(false)
-            
-            // Call onSuccess after a brief delay to ensure the dialog is fully closed
-            setTimeout(() => {
-              onSuccess()
-            }, 100)
-          } else {
-            // Properly handle the error response
-            const errorMessage = 'message' in data ? data.message : 'Failed to create tag'
-            throw new Error(errorMessage)
-          }
+        toast({
+          description: `Tag "${tagLabel}" created successfully in ${displayName}`,
+          variant: 'default'
         })
+        
+        setSaveStatus('success')
+        
+        // Brief success state before closing
+        setTimeout(() => {
+          handleOpenChange(false)
+          onSuccess()
+        }, 250)
+      } else {
+        const errorMessage = 'message' in data ? data.message : 'Failed to create tag'
+        throw new Error(errorMessage)
+      }
     } catch (error) {
       console.error('Error creating tag:', error)
       toast({
@@ -116,18 +120,8 @@ export function CreateTagDialog({
       })
       
       setSaveStatus('error')
-      
-      // Reset to idle state after a delay, exactly as in usePlexUser
-      await new Promise(resolve => setTimeout(resolve, MIN_LOADING_DELAY))
-      setSaveStatus('idle')
+      setTimeout(() => setSaveStatus('idle'), 500)
     }
-  }
-  
-  const handleOpenChange = (newOpen: boolean) => {
-    if (saveStatus === 'loading') {
-      return // Prevent closing while submitting
-    }
-    onOpenChange(newOpen)
   }
   
   return (

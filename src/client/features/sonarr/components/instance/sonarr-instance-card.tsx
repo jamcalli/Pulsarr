@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import EditableCardHeader from '@/components/ui/editable-card-header'
 import { cn } from '@/lib/utils'
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Tooltip,
@@ -45,6 +45,7 @@ import type { SonarrInstanceSchema } from '@/features/sonarr/store/schemas'
 import { SonarrSyncModal } from '@/features/sonarr/components/instance/sonarr-sync-modal'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { TagsMultiSelect } from '@/components/ui/tag-multi-select'
+import { TagCreationDialog } from '@/components/ui/tag-creation-dialog'
 
 interface InstanceCardProps {
   instance: SonarrInstance
@@ -70,6 +71,7 @@ export function InstanceCard({
   const [showDeleteAlert, setShowDeleteAlert] = useState(false)
   const [showSyncModal, setShowSyncModal] = useState(false)
   const [isManualSync, setIsManualSync] = useState(false)
+  const [showTagCreationDialog, setShowTagCreationDialog] = useState(false)
   const instances = useSonarrStore((state) => state.instances)
   const instancesLoading = useSonarrStore((state) => state.instancesLoading)
   const setLoadingWithMinDuration = useSonarrStore(
@@ -182,6 +184,18 @@ export function InstanceCard({
     }
   }
 
+  // Separate function to fetch tags
+  const fetchTags = async (instanceId: number) => {
+    if (instanceId <= 0) return
+
+    try {
+      const response = await fetch(`/v1/sonarr/tags?instanceId=${instanceId}`)
+      await response.json()
+    } catch (error) {
+      console.error('Error fetching tags:', error)
+    }
+  }
+
   if (instancesLoading && instance.id !== -1 && isNavigationTest.current) {
     return <InstanceCardSkeleton />
   }
@@ -203,6 +217,14 @@ export function InstanceCard({
         syncedInstances={form.watch('syncedInstances') || []}
         instanceId={instance.id}
         isManualSync={isManualSync}
+      />
+      <TagCreationDialog
+        open={showTagCreationDialog}
+        onOpenChange={setShowTagCreationDialog}
+        instanceId={instance.id}
+        instanceType="sonarr"
+        instanceName={instance.name}
+        onSuccess={() => fetchTags(instance.id)}
       />
       <div className="relative">
         {(form.formState.isDirty || instance.id === -1) && (
@@ -426,15 +448,37 @@ export function InstanceCard({
                         <FormLabel className="text-text">
                           Instance Tags
                         </FormLabel>
-                        <FormControl>
-                          <TagsMultiSelect
-                            field={field}
-                            instanceId={instance.id}
-                            instanceType="sonarr"
-                            isConnectionValid={isConnectionValid}
-                            // Tag IDs are stored as strings in the form data
-                          />
-                        </FormControl>
+                        <div className="flex gap-2 items-center w-full">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="noShadow"
+                                  size="icon"
+                                  className="flex-shrink-0"
+                                  onClick={() => setShowTagCreationDialog(true)}
+                                  disabled={!isConnectionValid}
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Create a new tag</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+
+                          <FormControl>
+                            <TagsMultiSelect
+                              field={field}
+                              instanceId={instance.id}
+                              instanceType="sonarr"
+                              isConnectionValid={isConnectionValid}
+                              // Tag IDs are stored as strings in the form data
+                            />
+                          </FormControl>
+                        </div>
                         <FormMessage />
                       </FormItem>
                     )}
