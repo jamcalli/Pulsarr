@@ -12,10 +12,7 @@ export const CreateAdminErrorSchema = z.object({
 export const CreateAdminSchema = z.object({
   email: z.string().email(),
   username: z.string().min(3).max(255),
-  password: z
-    .string()
-    .min(8)
-    .regex(/^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).*$/),
+  password: z.string().min(8),
 })
 
 export type CreateAdminResponse = z.infer<typeof CreateAdminResponseSchema>
