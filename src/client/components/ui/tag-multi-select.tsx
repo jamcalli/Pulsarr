@@ -58,22 +58,28 @@ export const TagsMultiSelect = forwardRef<TagsMultiSelectRef, TagsMultiSelectPro
     field.onChange(values);
   }, [field]);
 
-  // Add abort property to fetchTags function
-  interface FetchTagsFunction {
-    (signal?: AbortSignal): Promise<void>;
-    abort?: () => void;
-  }
+  // Ref to store the current AbortController
+  const abortControllerRef = useRef<AbortController | null>(null);
+  
+  // Function to abort any ongoing request
+  const abortRequest = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+  }, []);
 
   // Fetch tags from the server
   const fetchTags = useCallback(async () => {
     if (!isConnectionValid || instanceId <= 0) return
     
-    const abort = new AbortController()
-    const { signal } = abort
+    // Cancel any previous request
+    abortRequest();
     
-    // Allow caller to cancel if component unmounts
-    (fetchTags as FetchTagsFunction).abort?.()        // cancel previous call
-    (fetchTags as FetchTagsFunction).abort = () => abort.abort()
+    // Create a new AbortController for this request
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+    const signal = abortController.signal
     
     setIsLoading(true)
     setLoadError(null)
@@ -125,7 +131,7 @@ export const TagsMultiSelect = forwardRef<TagsMultiSelectRef, TagsMultiSelectPro
   }, [isConnectionValid, instanceId, instanceType]);
   
   // Cancel any in-flight requests on unmount
-  useEffect(() => () => (fetchTags as FetchTagsFunction).abort?.(), []);
+  useEffect(() => () => abortRequest(), [abortRequest]);
   
   // Handle retry button click
   const handleRetryLoad = useCallback(() => {
