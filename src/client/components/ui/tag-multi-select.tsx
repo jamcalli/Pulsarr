@@ -69,7 +69,14 @@ export const TagsMultiSelect = forwardRef<TagsMultiSelectRef, TagsMultiSelectPro
       // No minimum loading time - match the timing of quality profile and root folder selects
       // Both use natural loading timing based on network requests
       
-      const response = await fetch(`/v1/${instanceType}/tags?instanceId=${instanceId}`)
+      const response = await fetch(
+        `/v1/${instanceType}/tags?instanceId=${instanceId}`,
+      )
+
+      if (!response.ok) {
+        throw new Error(`Request failed: ${response.status} ${response.statusText}`)
+      }
+
       const data = await response.json()
       
       if ('success' in data && data.success && Array.isArray(data.tags)) {
