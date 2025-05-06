@@ -39,7 +39,7 @@ export interface RadarrConnectionValues {
 // Extended with form-specific fields
 export interface RadarrInstanceFormValues extends RadarrConnectionValues {
   bypassIgnored: boolean
-  searchOnAdd: boolean
+  searchOnAdd?: boolean
   tags: string[]
   isDefault: boolean
   syncedInstances?: number[]
