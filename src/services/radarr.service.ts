@@ -547,7 +547,7 @@ export class RadarrService {
           : await this.resolveQualityProfileId(qualityProfiles)
 
       // Collection for valid tag IDs
-      let tagIds: string[] = []
+      const tagIds: string[] = []
 
       // Process override tags if provided
       if (overrideTags && overrideTags.length > 0) {
@@ -589,10 +589,28 @@ export class RadarrService {
           tagIds.push(tag.id.toString())
         }
       } else if (config.radarrTagIds) {
-        // Use the default tags from the config if no override
-        tagIds = Array.isArray(config.radarrTagIds)
-          ? config.radarrTagIds.map((id) => id.toString())
-          : []
+        // Use default tags from config, but still validate they exist
+        if (
+          Array.isArray(config.radarrTagIds) &&
+          config.radarrTagIds.length > 0
+        ) {
+          const existingTags = await this.getTags()
+
+          for (const tagId of config.radarrTagIds) {
+            const stringTagId = tagId.toString()
+            const tagExists = existingTags.some(
+              (t) => t.id.toString() === stringTagId,
+            )
+
+            if (tagExists) {
+              tagIds.push(stringTagId)
+            } else {
+              this.log.warn(
+                `Config tag ID ${stringTagId} not found in Radarr - skipping this tag`,
+              )
+            }
+          }
+        }
       }
 
       const movie: RadarrPost = {
