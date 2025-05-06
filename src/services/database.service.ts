@@ -686,6 +686,10 @@ export class DatabaseService {
       bypassIgnored: Boolean(instance.bypass_ignored),
       seasonMonitoring: instance.season_monitoring,
       monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
+      searchOnAdd:
+        instance.search_on_add === null
+          ? true
+          : Boolean(instance.search_on_add),
       tags: JSON.parse(instance.tags || '[]'),
       isDefault: Boolean(instance.is_default),
       syncedInstances: JSON.parse(instance.synced_instances || '[]'),
@@ -717,6 +721,10 @@ export class DatabaseService {
       bypassIgnored: Boolean(instance.bypass_ignored),
       seasonMonitoring: instance.season_monitoring,
       monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
+      searchOnAdd:
+        instance.search_on_add === null
+          ? true
+          : Boolean(instance.search_on_add),
       tags: JSON.parse(instance.tags || '[]'),
       isDefault: true,
       syncedInstances: JSON.parse(instance.synced_instances || '[]'),
@@ -744,6 +752,10 @@ export class DatabaseService {
       bypassIgnored: Boolean(instance.bypass_ignored),
       seasonMonitoring: instance.season_monitoring,
       monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
+      searchOnAdd:
+        instance.search_on_add === null
+          ? true
+          : Boolean(instance.search_on_add),
       tags: JSON.parse(instance.tags || '[]'),
       isDefault: Boolean(instance.is_default),
       syncedInstances: JSON.parse(instance.synced_instances || '[]'),
@@ -778,6 +790,7 @@ export class DatabaseService {
         monitor_new_items: this.normaliseMonitorNewItems(
           instance.monitorNewItems,
         ),
+        search_on_add: instance.searchOnAdd ?? true,
         tags: JSON.stringify(instance.tags || []),
         is_default: instance.isDefault ?? false,
         is_enabled: true,
@@ -858,6 +871,9 @@ export class DatabaseService {
           monitor_new_items: this.normaliseMonitorNewItems(
             updates.monitorNewItems,
           ),
+        }),
+        ...(typeof updates.searchOnAdd !== 'undefined' && {
+          search_on_add: updates.searchOnAdd,
         }),
         ...(typeof updates.tags !== 'undefined' && {
           tags: JSON.stringify(updates.tags),
@@ -968,6 +984,10 @@ export class DatabaseService {
       qualityProfile: instance.quality_profile,
       rootFolder: instance.root_folder,
       bypassIgnored: Boolean(instance.bypass_ignored),
+      searchOnAdd:
+        instance.search_on_add === null
+          ? true
+          : Boolean(instance.search_on_add),
       tags: JSON.parse(instance.tags || '[]'),
       isDefault: Boolean(instance.is_default),
       syncedInstances: JSON.parse(instance.synced_instances || '[]'),
@@ -995,6 +1015,10 @@ export class DatabaseService {
       qualityProfile: instance.quality_profile,
       rootFolder: instance.root_folder,
       bypassIgnored: Boolean(instance.bypass_ignored),
+      searchOnAdd:
+        instance.search_on_add === null
+          ? true
+          : Boolean(instance.search_on_add),
       tags: JSON.parse(instance.tags || '[]'),
       isDefault: true,
       syncedInstances: JSON.parse(instance.synced_instances || '[]'),
@@ -1018,6 +1042,10 @@ export class DatabaseService {
       qualityProfile: instance.quality_profile,
       rootFolder: instance.root_folder,
       bypassIgnored: Boolean(instance.bypass_ignored),
+      searchOnAdd:
+        instance.search_on_add === null
+          ? true
+          : Boolean(instance.search_on_add),
       tags: JSON.parse(instance.tags || '[]'),
       isDefault: Boolean(instance.is_default),
       syncedInstances: JSON.parse(instance.synced_instances || '[]'),
@@ -1048,6 +1076,7 @@ export class DatabaseService {
         quality_profile: instance.qualityProfile,
         root_folder: instance.rootFolder,
         bypass_ignored: instance.bypassIgnored,
+        search_on_add: instance.searchOnAdd ?? true,
         tags: JSON.stringify(instance.tags || []),
         is_default: instance.isDefault ?? false,
         is_enabled: true,
@@ -1102,6 +1131,9 @@ export class DatabaseService {
         }),
         ...(typeof updates.bypassIgnored !== 'undefined' && {
           bypass_ignored: updates.bypassIgnored,
+        }),
+        ...(typeof updates.searchOnAdd !== 'undefined' && {
+          search_on_add: updates.searchOnAdd,
         }),
         ...(typeof updates.tags !== 'undefined' && {
           tags: JSON.stringify(updates.tags),

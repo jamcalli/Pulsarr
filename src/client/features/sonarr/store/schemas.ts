@@ -18,6 +18,7 @@ const baseObjectSchema = z.object({
     Object.keys(SONARR_MONITORING_OPTIONS).includes(val as string),
   ),
   monitorNewItems: z.enum(['all', 'none']).default('all'),
+  searchOnAdd: z.boolean().default(true),
   tags: z.array(z.string()),
   isDefault: z.boolean(),
   syncedInstances: z.array(z.number()).optional(),

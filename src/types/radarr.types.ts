@@ -29,6 +29,7 @@ export interface RadarrConfiguration {
   radarrQualityProfileId: number | null | string
   radarrRootFolder: string | null
   radarrTagIds: string[]
+  searchOnAdd?: boolean
 }
 
 export interface RootFolder {
@@ -87,6 +88,7 @@ export interface RadarrInstance {
   tags: string[]
   isDefault: boolean
   syncedInstances?: number[]
+  searchOnAdd?: boolean
   data?: {
     qualityProfiles?: Array<{ id: number; name: string }>
     rootFolders?: Array<{ path: string }>

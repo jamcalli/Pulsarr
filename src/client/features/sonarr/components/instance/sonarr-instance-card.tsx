@@ -442,6 +442,29 @@ export function InstanceCard({
                   />
                   <FormField
                     control={form.control}
+                    name="searchOnAdd"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-text">
+                          Search on Add
+                        </FormLabel>
+                        <div className="flex h-10 items-center gap-2 px-3 py-2">
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              disabled={!isConnectionValid}
+                            />
+                          </FormControl>
+                          <span className="text-sm text-text text-muted-foreground">
+                            Automatically search for series when added
+                          </span>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
                     name="tags"
                     render={({ field }) => (
                       <FormItem>

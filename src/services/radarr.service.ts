@@ -281,6 +281,8 @@ export class RadarrService {
         radarrQualityProfileId: instance.qualityProfile || null,
         radarrRootFolder: instance.rootFolder || null,
         radarrTagIds: instance.tags,
+        searchOnAdd:
+          instance.searchOnAdd !== undefined ? instance.searchOnAdd : true,
       }
 
       this.log.info(
@@ -522,7 +524,8 @@ export class RadarrService {
     const config = this.radarrConfig
     try {
       const addOptions: RadarrAddOptions = {
-        searchForMovie: true,
+        searchForMovie:
+          config.searchOnAdd !== undefined ? config.searchOnAdd : true, // Default to true for backward compatibility
       }
 
       const tmdbId = this.extractTmdbId(item)

@@ -125,6 +125,7 @@ export default function RadarrConfigPage() {
                       baseUrl: 'http://localhost:7878',
                       apiKey: '',
                       bypassIgnored: false,
+                      searchOnAdd: true,
                       tags: [],
                       isDefault: instances.length === 0,
                       qualityProfile: '',

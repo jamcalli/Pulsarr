@@ -24,6 +24,8 @@ export function useRadarrInstanceForm({
       qualityProfile: instance.qualityProfile || '',
       rootFolder: instance.rootFolder || '',
       bypassIgnored: instance.bypassIgnored,
+      searchOnAdd:
+        instance.searchOnAdd !== undefined ? instance.searchOnAdd : true,
       tags: instance.tags,
       isDefault: isNew
         ? instances.length === 1 && instances[0].apiKey === API_KEY_PLACEHOLDER
@@ -50,6 +52,8 @@ export function useRadarrInstanceForm({
       qualityProfile: instance.qualityProfile || '',
       rootFolder: instance.rootFolder || '',
       bypassIgnored: instance.bypassIgnored,
+      searchOnAdd:
+        instance.searchOnAdd !== undefined ? instance.searchOnAdd : true,
       tags: instance.tags,
       isDefault: instance.isDefault,
       syncedInstances: instance.syncedInstances || [],
@@ -123,6 +127,8 @@ export function useRadarrInstanceForm({
           qualityProfile: instance.qualityProfile || '',
           rootFolder: instance.rootFolder || '',
           bypassIgnored: instance.bypassIgnored,
+          searchOnAdd:
+            instance.searchOnAdd !== undefined ? instance.searchOnAdd : true,
           tags: instance.tags,
           isDefault: instance.isDefault,
           syncedInstances: instance.syncedInstances || [],

@@ -123,6 +123,7 @@ export default function SonarrConfigPage() {
                       bypassIgnored: false,
                       seasonMonitoring: 'all',
                       monitorNewItems: 'all',
+                      searchOnAdd: true,
                       tags: [],
                       isDefault: instances.length === 0,
                       qualityProfile: '',
