@@ -558,8 +558,8 @@ export class SonarrService {
           ? overrideQualityProfileId
           : await this.resolveQualityProfileId(qualityProfiles)
 
-      // Collection for valid tag IDs
-      const tagIds: string[] = []
+      // Collection for valid tag IDs (using Set to avoid duplicates)
+      const tagIdsSet = new Set<string>()
 
       // Process override tags if provided
       if (overrideTags && overrideTags.length > 0) {
@@ -578,7 +578,7 @@ export class SonarrService {
 
             if (tagExists) {
               this.log.debug(`Using existing tag ID: ${tagId}`)
-              tagIds.push(tagId)
+              tagIdsSet.add(tagId)
               continue
             }
 
@@ -598,7 +598,7 @@ export class SonarrService {
             continue
           }
 
-          tagIds.push(tag.id.toString())
+          tagIdsSet.add(tag.id.toString())
         }
       } else if (config.sonarrTagIds) {
         // Use default tags from config, but still validate they exist
@@ -615,7 +615,7 @@ export class SonarrService {
             )
 
             if (tagExists) {
-              tagIds.push(stringTagId)
+              tagIdsSet.add(stringTagId)
             } else {
               this.log.warn(
                 `Config tag ID ${stringTagId} not found in Sonarr - skipping this tag`,
@@ -624,6 +624,9 @@ export class SonarrService {
           }
         }
       }
+
+      // Convert Set back to array for the API
+      const tags = Array.from(tagIdsSet)
 
       const show: SonarrPost = {
         title: item.title,
@@ -634,12 +637,12 @@ export class SonarrService {
         languageProfileId: null,
         monitored: true,
         monitorNewItems: config.sonarrMonitorNewItems || 'all',
-        tags: tagIds,
+        tags,
       }
 
       await this.postToSonarr<void>('series', show)
       this.log.info(
-        `Sent ${item.title} to Sonarr (Quality Profile: ${qualityProfileId}, Root Folder: ${rootFolderPath}, Tags: ${tagIds.length > 0 ? tagIds.join(', ') : 'none'})`,
+        `Sent ${item.title} to Sonarr (Quality Profile: ${qualityProfileId}, Root Folder: ${rootFolderPath}, Tags: ${tags.length > 0 ? tags.join(', ') : 'none'})`,
       )
     } catch (err) {
       this.log.debug(
@@ -1005,6 +1008,7 @@ export class SonarrService {
         SonarrSeries & { tags: number[] }
       >(`series/${seriesId}`)
 
+      // Use Set to deduplicate tags
       series.tags = [...new Set(tagIds)]
 
       // Send the update
