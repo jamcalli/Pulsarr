@@ -281,6 +281,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             typeof ruleData.quality_profile === 'string'
               ? Number.parseInt(ruleData.quality_profile, 10)
               : ruleData.quality_profile,
+          tags: Array.isArray(ruleData.tags) ? ruleData.tags : [],
           order: ruleData.order ?? 50,
           enabled: ruleData.enabled ?? true,
         })
@@ -297,6 +298,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           target_instance_id: builtRule.target_instance_id,
           root_folder: builtRule.root_folder || null,
           quality_profile: builtRule.quality_profile || null,
+          tags: builtRule.tags || [],
           order: builtRule.order || 50,
           enabled: builtRule.enabled !== undefined ? builtRule.enabled : true,
           metadata: null,
@@ -369,6 +371,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           updatesAsRouterRule.order = updates.order
         if (updates.enabled !== undefined)
           updatesAsRouterRule.enabled = updates.enabled
+        if (updates.tags !== undefined)
+          updatesAsRouterRule.tags = Array.isArray(updates.tags)
+            ? updates.tags
+            : []
 
         // Handle quality profile conversion
         if (updates.quality_profile !== undefined) {

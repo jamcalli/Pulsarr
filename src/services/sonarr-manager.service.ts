@@ -129,6 +129,7 @@ export class SonarrManagerService {
     syncing = false,
     rootFolder?: string,
     qualityProfile?: number | string | null,
+    tags?: string[],
   ): Promise<void> {
     // If no specific instance is provided, try to get the default instance
     let targetInstanceId = instanceId
@@ -179,10 +180,14 @@ export class SonarrManagerService {
         }
       }
 
+      // Use provided tags or instance default tags
+      const targetTags = tags || instance.tags || []
+
       await sonarrService.addToSonarr(
         sonarrItem,
         targetRootFolder,
         targetQualityProfileId,
+        targetTags,
       )
 
       await this.fastify.db.updateWatchlistItem(key, {
@@ -191,7 +196,7 @@ export class SonarrManagerService {
       })
 
       this.log.info(
-        `Successfully routed item to instance ${targetInstanceId} with quality profile ${targetQualityProfileId ?? 'default'}`,
+        `Successfully routed item to instance ${targetInstanceId} with quality profile ${targetQualityProfileId ?? 'default'} and tags ${targetTags.length ? targetTags.join(', ') : 'none'}`,
       )
     } catch (error) {
       this.log.error(

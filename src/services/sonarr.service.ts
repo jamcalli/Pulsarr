@@ -524,6 +524,7 @@ export class SonarrService {
     item: Item,
     overrideRootFolder?: string,
     overrideQualityProfileId?: number | string | null,
+    overrideTags?: string[],
   ): Promise<void> {
     const config = this.sonarrConfig
     try {
@@ -549,6 +550,55 @@ export class SonarrService {
           ? overrideQualityProfileId
           : await this.resolveQualityProfileId(qualityProfiles)
 
+      // Collection for valid tag IDs
+      let tagIds: string[] = []
+
+      // Process override tags if provided
+      if (overrideTags && overrideTags.length > 0) {
+        // Get all existing tags from Sonarr
+        const existingTags = await this.getTags()
+
+        // Process each tag from the override
+        for (const tagInput of overrideTags) {
+          // Handle numeric tag IDs
+          if (/^\d+$/.test(tagInput)) {
+            const tagId = tagInput.toString()
+            // Only use the tag ID if it exists in Sonarr
+            const tagExists = existingTags.some(
+              (t) => t.id.toString() === tagId,
+            )
+
+            if (tagExists) {
+              this.log.debug(`Using existing tag ID: ${tagId}`)
+              tagIds.push(tagId)
+              continue
+            }
+
+            this.log.warn(
+              `Tag ID ${tagId} not found in Sonarr - skipping this tag`,
+            )
+            continue
+          }
+
+          // Handle tag names
+          const tag = existingTags.find((t) => t.label === tagInput)
+
+          if (!tag) {
+            this.log.warn(
+              `Tag "${tagInput}" not found in Sonarr - skipping this tag`,
+            )
+            continue
+          }
+
+          tagIds.push(tag.id.toString())
+        }
+      } else if (config.sonarrTagIds) {
+        // Use the default tags from the config if no override
+        tagIds = Array.isArray(config.sonarrTagIds)
+          ? config.sonarrTagIds.map((id) => id.toString())
+          : []
+      }
+
       const show: SonarrPost = {
         title: item.title,
         tvdbId: tvdbId ? Number.parseInt(tvdbId, 10) : 0,
@@ -558,12 +608,12 @@ export class SonarrService {
         languageProfileId: null,
         monitored: true,
         monitorNewItems: config.sonarrMonitorNewItems || 'all',
-        tags: config.sonarrTagIds,
+        tags: tagIds,
       }
 
       await this.postToSonarr<void>('series', show)
       this.log.info(
-        `Sent ${item.title} to Sonarr (Quality Profile: ${qualityProfileId}, Root Folder: ${rootFolderPath})`,
+        `Sent ${item.title} to Sonarr (Quality Profile: ${qualityProfileId}, Root Folder: ${rootFolderPath}, Tags: ${tagIds.length > 0 ? tagIds.join(', ') : 'none'})`,
       )
     } catch (err) {
       this.log.debug(

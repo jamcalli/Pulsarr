@@ -520,6 +520,7 @@ export class RadarrService {
     item: Item,
     overrideRootFolder?: string,
     overrideQualityProfileId?: number | string | null,
+    overrideTags?: string[],
   ): Promise<void> {
     const config = this.radarrConfig
     try {
@@ -538,18 +539,67 @@ export class RadarrService {
           ? overrideQualityProfileId
           : await this.resolveQualityProfileId(qualityProfiles)
 
+      // Collection for valid tag IDs
+      let tagIds: string[] = []
+
+      // Process override tags if provided
+      if (overrideTags && overrideTags.length > 0) {
+        // Get all existing tags from Radarr
+        const existingTags = await this.getTags()
+
+        // Process each tag from the override
+        for (const tagInput of overrideTags) {
+          // Handle numeric tag IDs
+          if (/^\d+$/.test(tagInput)) {
+            const tagId = tagInput.toString()
+            // Only use the tag ID if it exists in Radarr
+            const tagExists = existingTags.some(
+              (t) => t.id.toString() === tagId,
+            )
+
+            if (tagExists) {
+              this.log.debug(`Using existing tag ID: ${tagId}`)
+              tagIds.push(tagId)
+              continue
+            }
+
+            this.log.warn(
+              `Tag ID ${tagId} not found in Radarr - skipping this tag`,
+            )
+            continue
+          }
+
+          // Handle tag names
+          const tag = existingTags.find((t) => t.label === tagInput)
+
+          if (!tag) {
+            this.log.warn(
+              `Tag "${tagInput}" not found in Radarr - skipping this tag`,
+            )
+            continue
+          }
+
+          tagIds.push(tag.id.toString())
+        }
+      } else if (config.radarrTagIds) {
+        // Use the default tags from the config if no override
+        tagIds = Array.isArray(config.radarrTagIds)
+          ? config.radarrTagIds.map((id) => id.toString())
+          : []
+      }
+
       const movie: RadarrPost = {
         title: item.title,
         tmdbId,
         qualityProfileId,
         rootFolderPath,
         addOptions,
-        tags: config.radarrTagIds,
+        tags: tagIds,
       }
 
       await this.postToRadarr<void>('movie', movie)
       this.log.info(
-        `Sent ${item.title} to Radarr (Quality Profile: ${qualityProfileId}, Root Folder: ${rootFolderPath})`,
+        `Sent ${item.title} to Radarr (Quality Profile: ${qualityProfileId}, Root Folder: ${rootFolderPath}, Tags: ${tagIds.length > 0 ? tagIds.join(', ') : 'none'})`,
       )
     } catch (err) {
       this.log.debug(

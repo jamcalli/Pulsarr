@@ -34,6 +34,7 @@ export function formatRule(
       order: rule.order,
       enabled: Boolean(rule.enabled),
       condition: criteria.condition,
+      tags: rule.tags || [],
       created_at: rule.created_at,
       updated_at: rule.updated_at,
     }
@@ -55,6 +56,7 @@ export function formatRule(
       order: rule.order,
       enabled: Boolean(rule.enabled),
       condition: undefined,
+      tags: rule.tags || [],
       created_at: rule.created_at,
       updated_at: rule.updated_at,
     }

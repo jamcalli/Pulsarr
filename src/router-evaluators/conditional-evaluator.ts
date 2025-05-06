@@ -165,6 +165,7 @@ export default function createConditionalEvaluator(
         instanceId: rule.target_instance_id,
         qualityProfile: rule.quality_profile,
         rootFolder: rule.root_folder,
+        tags: rule.tags || [],
         priority: rule.order || 50, // Default to 50 if not specified
       }))
     },

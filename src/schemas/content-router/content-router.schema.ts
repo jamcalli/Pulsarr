@@ -123,6 +123,7 @@ export const BaseRouterRuleSchema = z.object({
   condition: z.union([ConditionSchema, ConditionGroupSchema]).optional(),
   root_folder: z.string().optional(),
   quality_profile: z.union([z.number(), z.string()]).optional(),
+  tags: z.array(z.string()).optional().default([]),
   order: z.number().optional(),
   enabled: z.boolean().optional().default(true),
 })
@@ -196,6 +197,7 @@ export const ConditionalRouteFormSchema = z.object({
   quality_profile: z.string().min(1, {
     message: 'Quality Profile is required',
   }),
+  tags: z.array(z.string()).optional().default([]),
   enabled: z.boolean().default(true),
   order: z.number().int().min(1).max(100).default(50),
 })

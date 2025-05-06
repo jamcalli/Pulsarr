@@ -4841,6 +4841,8 @@ export class DatabaseService {
         typeof rule.criteria === 'string'
           ? JSON.parse(rule.criteria)
           : rule.criteria,
+      tags:
+        typeof rule.tags === 'string' ? JSON.parse(rule.tags) : rule.tags || [],
       metadata: rule.metadata
         ? typeof rule.metadata === 'string'
           ? JSON.parse(rule.metadata)
@@ -4867,6 +4869,8 @@ export class DatabaseService {
         typeof rule.criteria === 'string'
           ? JSON.parse(rule.criteria)
           : rule.criteria,
+      tags:
+        typeof rule.tags === 'string' ? JSON.parse(rule.tags) : rule.tags || [],
       metadata: rule.metadata
         ? typeof rule.metadata === 'string'
           ? JSON.parse(rule.metadata)
@@ -4901,6 +4905,8 @@ export class DatabaseService {
         typeof rule.criteria === 'string'
           ? JSON.parse(rule.criteria)
           : rule.criteria,
+      tags:
+        typeof rule.tags === 'string' ? JSON.parse(rule.tags) : rule.tags || [],
       metadata: rule.metadata
         ? typeof rule.metadata === 'string'
           ? JSON.parse(rule.metadata)
@@ -4921,6 +4927,7 @@ export class DatabaseService {
     const insertData = {
       ...rule,
       criteria: JSON.stringify(rule.criteria),
+      tags: rule.tags ? JSON.stringify(rule.tags) : JSON.stringify([]),
       metadata: rule.metadata ? JSON.stringify(rule.metadata) : null,
       created_at: this.timestamp,
       updated_at: this.timestamp,
@@ -4939,6 +4946,10 @@ export class DatabaseService {
         typeof createdRule.criteria === 'string'
           ? JSON.parse(createdRule.criteria)
           : createdRule.criteria,
+      tags:
+        typeof createdRule.tags === 'string'
+          ? JSON.parse(createdRule.tags)
+          : createdRule.tags || [],
       metadata: createdRule.metadata
         ? typeof createdRule.metadata === 'string'
           ? JSON.parse(createdRule.metadata)
@@ -4967,6 +4978,10 @@ export class DatabaseService {
       updateData.criteria = JSON.stringify(updates.criteria)
     }
 
+    if (updates.tags !== undefined) {
+      updateData.tags = JSON.stringify(updates.tags || [])
+    }
+
     if (updates.metadata !== undefined) {
       updateData.metadata = updates.metadata
         ? JSON.stringify(updates.metadata)
@@ -4991,6 +5006,10 @@ export class DatabaseService {
         typeof updatedRule.criteria === 'string'
           ? JSON.parse(updatedRule.criteria)
           : updatedRule.criteria,
+      tags:
+        typeof updatedRule.tags === 'string'
+          ? JSON.parse(updatedRule.tags)
+          : updatedRule.tags || [],
       metadata: updatedRule.metadata
         ? typeof updatedRule.metadata === 'string'
           ? JSON.parse(updatedRule.metadata)
@@ -5038,6 +5057,8 @@ export class DatabaseService {
         typeof rule.criteria === 'string'
           ? JSON.parse(rule.criteria)
           : rule.criteria,
+      tags:
+        typeof rule.tags === 'string' ? JSON.parse(rule.tags) : rule.tags || [],
       metadata: rule.metadata
         ? typeof rule.metadata === 'string'
           ? JSON.parse(rule.metadata)
@@ -5073,6 +5094,10 @@ export class DatabaseService {
           typeof rule.criteria === 'string'
             ? JSON.parse(rule.criteria)
             : rule.criteria,
+        tags:
+          typeof rule.tags === 'string'
+            ? JSON.parse(rule.tags)
+            : rule.tags || [],
         metadata: rule.metadata
           ? typeof rule.metadata === 'string'
             ? JSON.parse(rule.metadata)
@@ -5117,6 +5142,10 @@ export class DatabaseService {
         typeof updatedRule.criteria === 'string'
           ? JSON.parse(updatedRule.criteria)
           : updatedRule.criteria,
+      tags:
+        typeof updatedRule.tags === 'string'
+          ? JSON.parse(updatedRule.tags)
+          : updatedRule.tags || [],
       metadata: updatedRule.metadata
         ? typeof updatedRule.metadata === 'string'
           ? JSON.parse(updatedRule.metadata)
