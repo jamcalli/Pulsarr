@@ -4,6 +4,7 @@ import { MultiSelect } from '@/components/ui/multi-select'
 import { Button } from '@/components/ui/button'
 import { AlertCircle } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useToast } from '@/hooks/use-toast'
 
 interface TagOption {
   label: string
@@ -43,7 +44,8 @@ export const TagsMultiSelect = forwardRef<TagsMultiSelectRef, TagsMultiSelectPro
   isConnectionValid,
   disabled = false
 }, ref) => {
-
+  const { toast } = useToast()
+  
   // State hooks
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -94,6 +96,22 @@ export const TagsMultiSelect = forwardRef<TagsMultiSelectRef, TagsMultiSelectPro
       )
 
       if (!response.ok) {
+        // If it's a 404 error and we had previous values, clear them and continue
+        if (response.status === 404 && field.value && Array.isArray(field.value) && field.value.length > 0) {
+          // Reset field value since the tags no longer exist
+          field.onChange([]);
+          
+          // Show a toast notification instead of blocking the UI
+          toast({
+            title: "Tags not found",
+            description: "Previously selected tags no longer exist and have been cleared.",
+            variant: "destructive"
+          });
+          
+          setIsLoading(false);
+          setTags([]);
+          return;
+        }
         throw new Error(`Request failed: ${response.status} ${response.statusText}`)
       }
 

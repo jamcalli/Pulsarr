@@ -301,8 +301,9 @@ export default function createGenreEvaluator(
           break
       }
 
-      // Apply negation if needed
-      return negate ? !matched : matched
+      // Do not apply negation here - the content router service handles negation at a higher level.
+      // This prevents double-negation issues when condition.negate is true.
+      return matched
     },
 
     canEvaluateConditionField(field: string): boolean {
