@@ -546,8 +546,8 @@ export class RadarrService {
           ? overrideQualityProfileId
           : await this.resolveQualityProfileId(qualityProfiles)
 
-      // Collection for valid tag IDs
-      const tagIds: string[] = []
+      // Collection for valid tag IDs (using Set to avoid duplicates)
+      const tagIdsSet = new Set<string>()
 
       // Process override tags if provided
       if (overrideTags && overrideTags.length > 0) {
@@ -566,7 +566,7 @@ export class RadarrService {
 
             if (tagExists) {
               this.log.debug(`Using existing tag ID: ${tagId}`)
-              tagIds.push(tagId)
+              tagIdsSet.add(tagId)
               continue
             }
 
@@ -586,7 +586,7 @@ export class RadarrService {
             continue
           }
 
-          tagIds.push(tag.id.toString())
+          tagIdsSet.add(tag.id.toString())
         }
       } else if (config.radarrTagIds) {
         // Use default tags from config, but still validate they exist
@@ -603,7 +603,7 @@ export class RadarrService {
             )
 
             if (tagExists) {
-              tagIds.push(stringTagId)
+              tagIdsSet.add(stringTagId)
             } else {
               this.log.warn(
                 `Config tag ID ${stringTagId} not found in Radarr - skipping this tag`,
@@ -613,18 +613,21 @@ export class RadarrService {
         }
       }
 
+      // Convert Set back to array for the API
+      const tags = Array.from(tagIdsSet)
+
       const movie: RadarrPost = {
         title: item.title,
         tmdbId,
         qualityProfileId,
         rootFolderPath,
         addOptions,
-        tags: tagIds,
+        tags,
       }
 
       await this.postToRadarr<void>('movie', movie)
       this.log.info(
-        `Sent ${item.title} to Radarr (Quality Profile: ${qualityProfileId}, Root Folder: ${rootFolderPath}, Tags: ${tagIds.length > 0 ? tagIds.join(', ') : 'none'})`,
+        `Sent ${item.title} to Radarr (Quality Profile: ${qualityProfileId}, Root Folder: ${rootFolderPath}, Tags: ${tags.length > 0 ? tags.join(', ') : 'none'})`,
       )
     } catch (err) {
       this.log.debug(
@@ -1046,6 +1049,7 @@ export class RadarrService {
         `movie/${movieId}`,
       )
 
+      // Use Set to deduplicate tags
       movie.tags = [...new Set(tagIds)]
 
       // Send the update
