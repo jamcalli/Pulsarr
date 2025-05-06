@@ -12,10 +12,32 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Loader2, Check } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import type { CreateTagBody, CreateTagResponse, Error } from '@root/schemas/radarr/create-tag.schema'
+import type {
+  CreateTagBody as RadarrCreateTagBody,
+  CreateTagResponse as RadarrCreateTagResponse,
+  Error as RadarrError
+} from '@root/schemas/radarr/create-tag.schema'
+import type {
+  CreateTagBody as SonarrCreateTagBody,
+  CreateTagResponse as SonarrCreateTagResponse,
+  Error as SonarrError
+} from '@root/schemas/sonarr/create-tag.schema'
 
 // Status type for tracking the dialog state
 type SaveStatus = 'idle' | 'loading' | 'success' | 'error'
+
+// Type conditionals for Radarr and Sonarr
+type CreateTagBody<T extends 'radarr' | 'sonarr'> = T extends 'sonarr' 
+  ? SonarrCreateTagBody 
+  : RadarrCreateTagBody
+  
+type CreateTagResponse<T extends 'radarr' | 'sonarr'> = T extends 'sonarr' 
+  ? SonarrCreateTagResponse 
+  : RadarrCreateTagResponse
+  
+type CreateTagError<T extends 'radarr' | 'sonarr'> = T extends 'sonarr' 
+  ? SonarrError 
+  : RadarrError
 
 interface TagCreationDialogProps {
   open: boolean
@@ -68,7 +90,7 @@ export function TagCreationDialog({
     setSaveStatus('loading')
     
     try {
-      const requestBody: CreateTagBody = {
+      const requestBody: CreateTagBody<typeof instanceType> = {
         instanceId,
         label: tagLabel.trim()
       }
@@ -86,7 +108,7 @@ export function TagCreationDialog({
       
       await minimumLoadingTime
       
-      const data = await response.json() as CreateTagResponse | Error
+      const data = await response.json() as CreateTagResponse<typeof instanceType> | CreateTagError<typeof instanceType>
       
       if (response.ok) {
         // Format the instance name for the toast
@@ -108,7 +130,11 @@ export function TagCreationDialog({
           onSuccess()
         }, 250)
       } else {
-        const errorMessage = 'message' in data ? data.message : 'Failed to create tag'
+        // Type guard for error message
+        const isErrorType = (obj: any): obj is CreateTagError<typeof instanceType> => 
+          obj && 'message' in obj;
+        
+        const errorMessage = isErrorType(data) ? data.message : 'Failed to create tag'
         throw new Error(errorMessage)
       }
     } catch (error) {
