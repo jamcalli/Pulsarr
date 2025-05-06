@@ -248,6 +248,8 @@ export class SonarrService {
         sonarrTagIds: instance.tags,
         sonarrSeasonMonitoring: instance.seasonMonitoring,
         sonarrMonitorNewItems: instance.monitorNewItems || 'all',
+        searchOnAdd:
+          instance.searchOnAdd !== undefined ? instance.searchOnAdd : true,
       }
 
       this.log.info(
@@ -525,10 +527,14 @@ export class SonarrService {
   ): Promise<void> {
     const config = this.sonarrConfig
     try {
+      // Check if searchOnAdd property exists and use it, otherwise default to true for backward compatibility
+      const shouldSearch =
+        config.searchOnAdd !== undefined ? config.searchOnAdd : true
+
       const addOptions: SonarrAddOptions = {
         monitor: config.sonarrSeasonMonitoring,
-        searchForCutoffUnmetEpisodes: true,
-        searchForMissingEpisodes: true,
+        searchForCutoffUnmetEpisodes: shouldSearch,
+        searchForMissingEpisodes: shouldSearch,
       }
 
       const tvdbId = item.guids

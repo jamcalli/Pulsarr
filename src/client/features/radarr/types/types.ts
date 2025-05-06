@@ -14,6 +14,7 @@ export interface RadarrInstance {
   qualityProfile?: string
   rootFolder?: string
   bypassIgnored: boolean
+  searchOnAdd: boolean
   tags: string[]
   isDefault: boolean
   syncedInstances?: number[]
@@ -38,6 +39,7 @@ export interface RadarrConnectionValues {
 // Extended with form-specific fields
 export interface RadarrInstanceFormValues extends RadarrConnectionValues {
   bypassIgnored: boolean
+  searchOnAdd: boolean
   tags: string[]
   isDefault: boolean
   syncedInstances?: number[]

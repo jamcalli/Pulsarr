@@ -36,6 +36,8 @@ export function useSonarrInstanceForm({
       bypassIgnored: instance.bypassIgnored,
       seasonMonitoring: instance.seasonMonitoring as SonarrMonitoringType,
       monitorNewItems: instance.monitorNewItems || 'all',
+      searchOnAdd:
+        instance.searchOnAdd !== undefined ? instance.searchOnAdd : true,
       tags: instance.tags,
       isDefault: isNew
         ? instances.length === 1 && instances[0].apiKey === API_KEY_PLACEHOLDER
@@ -64,6 +66,8 @@ export function useSonarrInstanceForm({
       bypassIgnored: instance.bypassIgnored,
       seasonMonitoring: instance.seasonMonitoring as SonarrMonitoringType,
       monitorNewItems: instance.monitorNewItems || 'all',
+      searchOnAdd:
+        instance.searchOnAdd !== undefined ? instance.searchOnAdd : true,
       tags: instance.tags,
       isDefault: instance.isDefault,
       syncedInstances: instance.syncedInstances || [],
@@ -139,6 +143,8 @@ export function useSonarrInstanceForm({
           bypassIgnored: instance.bypassIgnored,
           seasonMonitoring: instance.seasonMonitoring as SonarrMonitoringType,
           monitorNewItems: instance.monitorNewItems || 'all',
+          searchOnAdd:
+            instance.searchOnAdd !== undefined ? instance.searchOnAdd : true,
           tags: instance.tags,
           isDefault: instance.isDefault,
           syncedInstances: instance.syncedInstances || [],

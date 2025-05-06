@@ -56,6 +56,7 @@ export function useSonarrInstance(instanceId: number) {
             bypassIgnored: false,
             seasonMonitoring: 'all',
             monitorNewItems: 'all',
+            searchOnAdd: true,
             tags: [],
             isDefault: false,
             syncedInstances: [],

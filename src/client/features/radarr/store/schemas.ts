@@ -12,6 +12,7 @@ const baseObjectSchema = z.object({
   baseUrl: urlWithoutTrailingSlash,
   apiKey: z.string().min(1, { message: 'API Key is required' }),
   bypassIgnored: z.boolean(),
+  searchOnAdd: z.boolean().default(true),
   tags: z.array(z.string()),
   isDefault: z.boolean(),
   syncedInstances: z.array(z.number()).optional(),
