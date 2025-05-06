@@ -559,7 +559,7 @@ export class SonarrService {
           : await this.resolveQualityProfileId(qualityProfiles)
 
       // Collection for valid tag IDs
-      let tagIds: string[] = []
+      const tagIds: string[] = []
 
       // Process override tags if provided
       if (overrideTags && overrideTags.length > 0) {
@@ -601,10 +601,28 @@ export class SonarrService {
           tagIds.push(tag.id.toString())
         }
       } else if (config.sonarrTagIds) {
-        // Use the default tags from the config if no override
-        tagIds = Array.isArray(config.sonarrTagIds)
-          ? config.sonarrTagIds.map((id) => id.toString())
-          : []
+        // Use default tags from config, but still validate they exist
+        if (
+          Array.isArray(config.sonarrTagIds) &&
+          config.sonarrTagIds.length > 0
+        ) {
+          const existingTags = await this.getTags()
+
+          for (const tagId of config.sonarrTagIds) {
+            const stringTagId = tagId.toString()
+            const tagExists = existingTags.some(
+              (t) => t.id.toString() === stringTagId,
+            )
+
+            if (tagExists) {
+              tagIds.push(stringTagId)
+            } else {
+              this.log.warn(
+                `Config tag ID ${stringTagId} not found in Sonarr - skipping this tag`,
+              )
+            }
+          }
+        }
       }
 
       const show: SonarrPost = {
