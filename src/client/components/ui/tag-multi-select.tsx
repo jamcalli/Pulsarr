@@ -58,9 +58,22 @@ export const TagsMultiSelect = forwardRef<TagsMultiSelectRef, TagsMultiSelectPro
     field.onChange(values);
   }, [field]);
 
+  // Add abort property to fetchTags function
+  interface FetchTagsFunction {
+    (signal?: AbortSignal): Promise<void>;
+    abort?: () => void;
+  }
+
   // Fetch tags from the server
   const fetchTags = useCallback(async () => {
     if (!isConnectionValid || instanceId <= 0) return
+    
+    const abort = new AbortController()
+    const { signal } = abort
+    
+    // Allow caller to cancel if component unmounts
+    (fetchTags as FetchTagsFunction).abort?.()        // cancel previous call
+    (fetchTags as FetchTagsFunction).abort = () => abort.abort()
     
     setIsLoading(true)
     setLoadError(null)
@@ -71,6 +84,7 @@ export const TagsMultiSelect = forwardRef<TagsMultiSelectRef, TagsMultiSelectPro
       
       const response = await fetch(
         `/v1/${instanceType}/tags?instanceId=${instanceId}`,
+        { signal }
       )
 
       if (!response.ok) {
@@ -84,20 +98,34 @@ export const TagsMultiSelect = forwardRef<TagsMultiSelectRef, TagsMultiSelectPro
           label: tag.label,
           value: tag.id.toString()
         }))
-        setTags(tagOptions)
-        tagsLoadedRef.current = true
+        if (!signal.aborted) {
+          setTags(tagOptions)
+          tagsLoadedRef.current = true
+        }
       } else {
         console.error(`Failed to fetch ${instanceType} tags:`, data)
         const errorMessage = 'message' in data ? data.message : `Failed to fetch ${instanceType} tags`
-        setLoadError(errorMessage as string)
+        if (!signal.aborted) {
+          setLoadError(errorMessage as string)
+        }
       }
     } catch (error) {
-      console.error(`Error fetching ${instanceType} tags:`, error)
-      setLoadError(`Error loading tags: ${error instanceof Error ? error.message : String(error)}`)
+      // Don't log abort errors - these are expected when component unmounts during fetch
+      if (!(error instanceof DOMException && error.name === 'AbortError')) {
+        console.error(`Error fetching ${instanceType} tags:`, error)
+        if (!signal.aborted) {
+          setLoadError(`Error loading tags: ${error instanceof Error ? error.message : String(error)}`)
+        }
+      }
     } finally {
-      setIsLoading(false)
+      if (!signal.aborted) {
+        setIsLoading(false)
+      }
     }
   }, [isConnectionValid, instanceId, instanceType]);
+  
+  // Cancel any in-flight requests on unmount
+  useEffect(() => () => (fetchTags as FetchTagsFunction).abort?.(), []);
   
   // Handle retry button click
   const handleRetryLoad = useCallback(() => {
