@@ -1,11 +1,9 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, forwardRef, useImperativeHandle } from 'react'
 import type { ControllerRenderProps } from 'react-hook-form'
 import { MultiSelect } from '@/components/ui/multi-select'
 import { Button } from '@/components/ui/button'
 import { AlertCircle } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
-import type { TagsResponse } from '@root/schemas/radarr/get-tags.schema'
-import type { Error } from '@root/schemas/radarr/get-quality-profiles.schema'
 
 interface TagOption {
   label: string
@@ -18,6 +16,10 @@ interface TagsMultiSelectProps {
   instanceType: 'radarr' | 'sonarr'
   isConnectionValid: boolean
   disabled?: boolean
+}
+
+export interface TagsMultiSelectRef {
+  refetchTags: () => Promise<void>
 }
 
 /**
@@ -34,13 +36,13 @@ interface TagsMultiSelectProps {
  *   isConnectionValid={isConnectionValid}
  * />
  */
-export function TagsMultiSelect({
+export const TagsMultiSelect = forwardRef<TagsMultiSelectRef, TagsMultiSelectProps>(({
   field,
   instanceId,
   instanceType,
   isConnectionValid,
   disabled = false
-}: TagsMultiSelectProps) {
+}, ref) => {
 
   // State hooks
   const [isLoading, setIsLoading] = useState(true)
@@ -64,13 +66,14 @@ export function TagsMultiSelect({
     setLoadError(null)
     
     try {
-      const minimumLoadingTime = new Promise(resolve => setTimeout(resolve, 250))
+      // No minimum loading time - match the timing of quality profile and root folder selects
+      // Both use natural loading timing based on network requests
       
       const response = await fetch(`/v1/${instanceType}/tags?instanceId=${instanceId}`)
-      const [data] = await Promise.all([response.json() as Promise<TagsResponse | Error>, minimumLoadingTime])
+      const data = await response.json()
       
       if ('success' in data && data.success && Array.isArray(data.tags)) {
-        const tagOptions = data.tags.map(tag => ({
+        const tagOptions = data.tags.map((tag: { id: number; label: string }) => ({
           label: tag.label,
           value: tag.id.toString()
         }))
@@ -79,7 +82,7 @@ export function TagsMultiSelect({
       } else {
         console.error(`Failed to fetch ${instanceType} tags:`, data)
         const errorMessage = 'message' in data ? data.message : `Failed to fetch ${instanceType} tags`
-        setLoadError(errorMessage)
+        setLoadError(errorMessage as string)
       }
     } catch (error) {
       console.error(`Error fetching ${instanceType} tags:`, error)
@@ -107,30 +110,47 @@ export function TagsMultiSelect({
     return []
   }, [field.value]);
   
-  // Handle initial values when tags load
+  // Store initial field value reference as soon as it's available
   useEffect(() => {
-    if (tags.length > 0 && pendingValueRef.current) {
-      tagsLoadedRef.current = true
-      field.onChange(pendingValueRef.current)
-      pendingValueRef.current = null
-    }
-  }, [tags, field]);
-  
-  // Fetch tags on mount
-  useEffect(() => {
-    fetchTags()
-  }, [fetchTags]);
-  
-  // Store initial field value as pending if tags haven't loaded
-  useEffect(() => {
-    if (field.value && !tagsLoadedRef.current) {
+    if (field.value) {
       if (Array.isArray(field.value)) {
         pendingValueRef.current = field.value
       } else if (field.value) {
         pendingValueRef.current = [field.value]
       }
     }
-  }, [field.value]);
+  }, []);
+  
+  // Handle initialization of tags and values
+  useEffect(() => {
+    // Only try to set values when tags are loaded and we have pending values
+    if (tags.length > 0 && pendingValueRef.current && pendingValueRef.current.length > 0) {
+      // Verify tags exist in options before setting value
+      const validTagValues = pendingValueRef.current.filter(tagId => 
+        tags.some(tag => tag.value === tagId)
+      );
+      
+      if (validTagValues.length > 0) {
+        // Set the field value without triggering form dirty state
+        field.onChange(validTagValues);
+      }
+      
+      tagsLoadedRef.current = true;
+      pendingValueRef.current = null;
+    }
+  }, [tags, field]);
+  
+  // Expose the fetchTags method through ref
+  useImperativeHandle(ref, () => ({
+    refetchTags: async () => {
+      await fetchTags()
+    }
+  }), [fetchTags]);
+
+  // Fetch tags on mount
+  useEffect(() => {
+    fetchTags()
+  }, [fetchTags]);
   return (
     <div className="flex-1 min-w-0">
       {isLoading ? (
@@ -161,4 +181,4 @@ export function TagsMultiSelect({
       )}
     </div>
   )
-}
+})

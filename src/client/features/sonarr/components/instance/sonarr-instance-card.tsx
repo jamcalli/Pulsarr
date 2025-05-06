@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import EditableCardHeader from '@/components/ui/editable-card-header'
 import { cn } from '@/lib/utils'
@@ -44,7 +44,10 @@ import { useToast } from '@/hooks/use-toast'
 import type { SonarrInstanceSchema } from '@/features/sonarr/store/schemas'
 import { SonarrSyncModal } from '@/features/sonarr/components/instance/sonarr-sync-modal'
 import { useMediaQuery } from '@/hooks/use-media-query'
-import { TagsMultiSelect } from '@/components/ui/tag-multi-select'
+import {
+  TagsMultiSelect,
+  type TagsMultiSelectRef,
+} from '@/components/ui/tag-multi-select'
 import { TagCreationDialog } from '@/components/ui/tag-creation-dialog'
 
 interface InstanceCardProps {
@@ -72,6 +75,7 @@ export function InstanceCard({
   const [showSyncModal, setShowSyncModal] = useState(false)
   const [isManualSync, setIsManualSync] = useState(false)
   const [showTagCreationDialog, setShowTagCreationDialog] = useState(false)
+  const tagsSelectRef = useRef<TagsMultiSelectRef>(null)
   const instances = useSonarrStore((state) => state.instances)
   const instancesLoading = useSonarrStore((state) => state.instancesLoading)
   const setLoadingWithMinDuration = useSonarrStore(
@@ -184,15 +188,17 @@ export function InstanceCard({
     }
   }
 
-  // Separate function to fetch tags
-  const fetchTags = async (instanceId: number) => {
-    if (instanceId <= 0) return
+  // Refresh tags via the TagsMultiSelect component
+  const refreshTags = async () => {
+    if (instance.id <= 0) return
 
     try {
-      const response = await fetch(`/v1/sonarr/tags?instanceId=${instanceId}`)
-      await response.json()
+      // Use the TagsMultiSelect ref to refresh tags
+      if (tagsSelectRef.current) {
+        await tagsSelectRef.current.refetchTags()
+      }
     } catch (error) {
-      console.error('Error fetching tags:', error)
+      console.error('Error refreshing tags:', error)
     }
   }
 
@@ -224,7 +230,7 @@ export function InstanceCard({
         instanceId={instance.id}
         instanceType="sonarr"
         instanceName={instance.name}
-        onSuccess={() => fetchTags(instance.id)}
+        onSuccess={refreshTags}
       />
       <div className="relative">
         {(form.formState.isDirty || instance.id === -1) && (
@@ -494,6 +500,7 @@ export function InstanceCard({
 
                           <FormControl>
                             <TagsMultiSelect
+                              ref={tagsSelectRef}
                               field={field}
                               instanceId={instance.id}
                               instanceType="sonarr"

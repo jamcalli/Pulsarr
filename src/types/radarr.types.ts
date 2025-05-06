@@ -20,7 +20,7 @@ export interface RadarrPost {
   qualityProfileId: number | null | string
   rootFolderPath: string | null
   addOptions: RadarrAddOptions
-  tags: string[]
+  tags: string[] // Keep as string[] for compatibility with existing code
 }
 
 export interface RadarrConfiguration {

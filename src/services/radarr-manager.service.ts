@@ -131,6 +131,7 @@ export class RadarrManagerService {
     syncing = false,
     rootFolder?: string,
     qualityProfile?: number | string | null,
+    tags?: string[],
   ): Promise<void> {
     // If no specific instance is provided, try to get the default instance
     let targetInstanceId = instanceId
@@ -181,10 +182,14 @@ export class RadarrManagerService {
         }
       }
 
+      // Use provided tags or instance default tags
+      const targetTags = tags || instance.tags || []
+
       await radarrService.addToRadarr(
         radarrItem,
         targetRootFolder,
         targetQualityProfileId,
+        targetTags,
       )
 
       await this.fastify.db.updateWatchlistItem(key, {
