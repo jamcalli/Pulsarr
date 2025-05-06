@@ -47,6 +47,19 @@ interface InstanceCardProps {
   setShowInstanceCard?: (show: boolean) => void
 }
 
+/**
+ * Displays and manages the configuration form for a Radarr instance, allowing users to view, edit, test, save, sync, tag, and delete instance settings within a card interface.
+ *
+ * @param instance - The Radarr instance data to display and edit.
+ * @param setShowInstanceCard - Optional function to control the visibility of the instance card.
+ *
+ * @returns The rendered instance card UI with form controls and modals for editing, syncing, tagging, and deleting the Radarr instance.
+ *
+ * @remark
+ * - Prevents saving unless the connection is successfully tested.
+ * - Triggers a sync modal if synced instances are changed and non-empty.
+ * - Integrates tag creation and refresh functionality for instance tags.
+ */
 export function InstanceCard({
   instance,
   setShowInstanceCard,
