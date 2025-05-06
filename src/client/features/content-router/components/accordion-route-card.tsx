@@ -401,6 +401,8 @@ const AccordionRouteCard = ({
           shouldDirty: true,
           shouldValidate: true,
         })
+        // Clear tags because they are instance-specific
+        form.setValue('tags', [], { shouldDirty: true })
       }
     },
     [form],
