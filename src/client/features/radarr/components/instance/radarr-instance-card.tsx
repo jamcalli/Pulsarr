@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import EditableCardHeader from '@/components/ui/editable-card-header'
 import { cn } from '@/lib/utils'
@@ -96,6 +96,7 @@ export function InstanceCard({
     saveStatus,
     isConnectionValid,
     isNavigationTest,
+    needsConfiguration,
     setTestStatus,
     setSaveStatus,
     setIsConnectionValid,
@@ -108,6 +109,24 @@ export function InstanceCard({
     isNew: instance.id === -1,
     isConnectionValid,
   })
+
+  // Add useEffect to preserve editing state for incomplete instances
+  useEffect(() => {
+    // Check if instance is incomplete but has valid connection
+    const isIncomplete =
+      (!instance.qualityProfile ||
+        instance.qualityProfile === '' ||
+        !instance.rootFolder ||
+        instance.rootFolder === '') &&
+      isConnectionValid
+
+    // If instance is incomplete and not already in dirty state, force dirty state
+    if (isIncomplete && !form.formState.isDirty) {
+      // Mark form as dirty to preserve editing UI state (halo, save/cancel buttons)
+      // Using a harmless field like name to keep the dirty state
+      form.setValue('name', instance.name, { shouldDirty: true })
+    }
+  }, [instance, isConnectionValid, form.formState.isDirty, form])
 
   const handleTest = async () => {
     const values = {
@@ -255,7 +274,9 @@ export function InstanceCard({
         onSuccess={refreshTags}
       />
       <div className="relative">
-        {(form.formState.isDirty || instance.id === -1) && (
+        {(form.formState.isDirty ||
+          instance.id === -1 ||
+          needsConfiguration) && (
           <div
             className={cn(
               'absolute -inset-0.5 rounded-lg border-2 z-50',
@@ -269,7 +290,7 @@ export function InstanceCard({
             title={form.watch('name')}
             isNew={instance.id === -1}
             isSaving={saveStatus === 'loading' || instancesLoading}
-            isDirty={form.formState.isDirty}
+            isDirty={form.formState.isDirty || needsConfiguration}
             isValid={form.formState.isValid && isConnectionValid}
             badge={instance.isDefault ? { text: 'Default' } : undefined}
             onSave={handleSave}

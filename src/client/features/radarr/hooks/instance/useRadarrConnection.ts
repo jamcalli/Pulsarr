@@ -19,6 +19,7 @@ export function useRadarrConnection(
     'idle' | 'loading' | 'success' | 'error'
   >('idle')
   const [isConnectionValid, setIsConnectionValid] = useState(false)
+  const [needsConfiguration, setNeedsConfiguration] = useState(false)
   const isNavigationTest = useRef(false)
   const hasInitialized = useRef(false)
   const { toast } = useToast()
@@ -50,6 +51,19 @@ export function useRadarrConnection(
     [],
   )
 
+  // Check if the instance needs configuration (missing required fields)
+  useEffect(() => {
+    // Only check when we have a valid instance
+    if (instance.id > 0) {
+      const needsConfig =
+        !instance.qualityProfile ||
+        instance.qualityProfile === '' ||
+        !instance.rootFolder ||
+        instance.rootFolder === ''
+      setNeedsConfiguration(needsConfig)
+    }
+  }, [instance])
+
   // Initialize component and test connection on mount
   useEffect(() => {
     const initializeComponent = async () => {
@@ -78,6 +92,21 @@ export function useRadarrConnection(
           if (result.success) {
             setIsConnectionValid(true)
             setTestStatus('success')
+
+            // Check if the instance needs additional configuration
+            // ONLY consider it needing configuration if it's missing quality profile or root folder
+            const needsConfig =
+              !instance.qualityProfile ||
+              instance.qualityProfile === '' ||
+              !instance.rootFolder ||
+              instance.rootFolder === ''
+
+            if (needsConfig) {
+              setNeedsConfiguration(true)
+            } else {
+              setNeedsConfiguration(false)
+            }
+
             if (
               !instance.data?.rootFolders ||
               !instance.data?.qualityProfiles
@@ -101,6 +130,8 @@ export function useRadarrConnection(
     instance.data?.qualityProfiles,
     instance.baseUrl,
     instance.apiKey,
+    instance.qualityProfile,
+    instance.rootFolder,
     testConnectionWithoutLoading,
     fetchInstanceData,
     setInstancesLoading,
@@ -191,11 +222,24 @@ export function useRadarrConnection(
 
               const newInstance = await createResponse.json()
 
+              // Check if required fields were provided
+              const hasRequiredFields =
+                values.qualityProfile &&
+                values.qualityProfile !== '' &&
+                values.rootFolder &&
+                values.rootFolder !== ''
+              if (!hasRequiredFields) {
+                setNeedsConfiguration(true)
+              } else {
+                setNeedsConfiguration(false)
+              }
+
               await Promise.all([
                 fetchInstances(),
                 fetchInstanceData(newInstance.id.toString()),
               ])
 
+              // Always close the add instance form - we'll show the persisted one from the database instead
               setShowInstanceCard?.(false)
             } else {
               await fetchInstanceData(instance.id.toString())
@@ -242,6 +286,7 @@ export function useRadarrConnection(
   const resetConnection = useCallback(() => {
     setTestStatus('idle')
     setIsConnectionValid(false)
+    setNeedsConfiguration(false)
     hasInitialized.current = false
   }, [])
 
@@ -254,6 +299,8 @@ export function useRadarrConnection(
     setIsConnectionValid,
     isNavigationTest,
     hasInitialized,
+    needsConfiguration,
+    setNeedsConfiguration,
     testConnection,
     testConnectionWithoutLoading,
     resetConnection,
