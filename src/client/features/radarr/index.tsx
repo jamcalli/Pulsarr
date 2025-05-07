@@ -9,11 +9,11 @@ import InstanceCardSkeleton from '@/features/radarr/components/instance/radarr-c
 import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
 
 /**
- * Displays the Radarr configuration interface with tabs for managing Radarr instances and content routing settings.
+ * Renders the Radarr configuration page with tabs for managing Radarr instances and content routing.
  *
- * Users can add, view, and configure Radarr instances, as well as manage content routing. The component initializes Radarr data on first render and conditionally renders loading states, configuration forms, or informational messages based on the current application state.
+ * Provides interfaces to add, view, and configure Radarr instances, as well as manage content routing settings. Initializes Radarr data on first render and displays loading states, configuration forms, or informational messages based on the current application state.
  *
- * @returns The Radarr configuration page UI.
+ * @returns The UI for the Radarr configuration page.
  */
 export default function RadarrConfigPage() {
   // Get these from the store
@@ -125,6 +125,7 @@ export default function RadarrConfigPage() {
                       baseUrl: 'http://localhost:7878',
                       apiKey: '',
                       bypassIgnored: false,
+                      searchOnAdd: true,
                       tags: [],
                       isDefault: instances.length === 0,
                       qualityProfile: '',

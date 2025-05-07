@@ -118,6 +118,7 @@ export const RuleBuilder = {
     condition: Condition | ConditionGroup
     root_folder?: string | null
     quality_profile?: number | null
+    tags?: string[]
     order?: number
     enabled?: boolean
   }): Omit<RouterRule, 'id' | 'created_at' | 'updated_at'> {
@@ -127,6 +128,7 @@ export const RuleBuilder = {
       enabled = true,
       root_folder = null,
       quality_profile = null,
+      tags = [],
       ...rest
     } = options
 
@@ -134,6 +136,7 @@ export const RuleBuilder = {
       ...rest,
       root_folder,
       quality_profile,
+      tags,
       order,
       enabled,
       type: 'conditional',

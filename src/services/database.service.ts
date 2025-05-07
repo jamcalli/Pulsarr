@@ -686,6 +686,10 @@ export class DatabaseService {
       bypassIgnored: Boolean(instance.bypass_ignored),
       seasonMonitoring: instance.season_monitoring,
       monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
+      searchOnAdd:
+        instance.search_on_add === null
+          ? true
+          : Boolean(instance.search_on_add),
       tags: JSON.parse(instance.tags || '[]'),
       isDefault: Boolean(instance.is_default),
       syncedInstances: JSON.parse(instance.synced_instances || '[]'),
@@ -717,6 +721,10 @@ export class DatabaseService {
       bypassIgnored: Boolean(instance.bypass_ignored),
       seasonMonitoring: instance.season_monitoring,
       monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
+      searchOnAdd:
+        instance.search_on_add === null
+          ? true
+          : Boolean(instance.search_on_add),
       tags: JSON.parse(instance.tags || '[]'),
       isDefault: true,
       syncedInstances: JSON.parse(instance.synced_instances || '[]'),
@@ -744,6 +752,10 @@ export class DatabaseService {
       bypassIgnored: Boolean(instance.bypass_ignored),
       seasonMonitoring: instance.season_monitoring,
       monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
+      searchOnAdd:
+        instance.search_on_add === null
+          ? true
+          : Boolean(instance.search_on_add),
       tags: JSON.parse(instance.tags || '[]'),
       isDefault: Boolean(instance.is_default),
       syncedInstances: JSON.parse(instance.synced_instances || '[]'),
@@ -778,6 +790,7 @@ export class DatabaseService {
         monitor_new_items: this.normaliseMonitorNewItems(
           instance.monitorNewItems,
         ),
+        search_on_add: instance.searchOnAdd ?? true,
         tags: JSON.stringify(instance.tags || []),
         is_default: instance.isDefault ?? false,
         is_enabled: true,
@@ -858,6 +871,9 @@ export class DatabaseService {
           monitor_new_items: this.normaliseMonitorNewItems(
             updates.monitorNewItems,
           ),
+        }),
+        ...(typeof updates.searchOnAdd !== 'undefined' && {
+          search_on_add: updates.searchOnAdd,
         }),
         ...(typeof updates.tags !== 'undefined' && {
           tags: JSON.stringify(updates.tags),
@@ -968,6 +984,10 @@ export class DatabaseService {
       qualityProfile: instance.quality_profile,
       rootFolder: instance.root_folder,
       bypassIgnored: Boolean(instance.bypass_ignored),
+      searchOnAdd:
+        instance.search_on_add === null
+          ? true
+          : Boolean(instance.search_on_add),
       tags: JSON.parse(instance.tags || '[]'),
       isDefault: Boolean(instance.is_default),
       syncedInstances: JSON.parse(instance.synced_instances || '[]'),
@@ -995,6 +1015,10 @@ export class DatabaseService {
       qualityProfile: instance.quality_profile,
       rootFolder: instance.root_folder,
       bypassIgnored: Boolean(instance.bypass_ignored),
+      searchOnAdd:
+        instance.search_on_add === null
+          ? true
+          : Boolean(instance.search_on_add),
       tags: JSON.parse(instance.tags || '[]'),
       isDefault: true,
       syncedInstances: JSON.parse(instance.synced_instances || '[]'),
@@ -1018,6 +1042,10 @@ export class DatabaseService {
       qualityProfile: instance.quality_profile,
       rootFolder: instance.root_folder,
       bypassIgnored: Boolean(instance.bypass_ignored),
+      searchOnAdd:
+        instance.search_on_add === null
+          ? true
+          : Boolean(instance.search_on_add),
       tags: JSON.parse(instance.tags || '[]'),
       isDefault: Boolean(instance.is_default),
       syncedInstances: JSON.parse(instance.synced_instances || '[]'),
@@ -1048,6 +1076,7 @@ export class DatabaseService {
         quality_profile: instance.qualityProfile,
         root_folder: instance.rootFolder,
         bypass_ignored: instance.bypassIgnored,
+        search_on_add: instance.searchOnAdd ?? true,
         tags: JSON.stringify(instance.tags || []),
         is_default: instance.isDefault ?? false,
         is_enabled: true,
@@ -1102,6 +1131,9 @@ export class DatabaseService {
         }),
         ...(typeof updates.bypassIgnored !== 'undefined' && {
           bypass_ignored: updates.bypassIgnored,
+        }),
+        ...(typeof updates.searchOnAdd !== 'undefined' && {
+          search_on_add: updates.searchOnAdd,
         }),
         ...(typeof updates.tags !== 'undefined' && {
           tags: JSON.stringify(updates.tags),
@@ -4809,6 +4841,8 @@ export class DatabaseService {
         typeof rule.criteria === 'string'
           ? JSON.parse(rule.criteria)
           : rule.criteria,
+      tags:
+        typeof rule.tags === 'string' ? JSON.parse(rule.tags) : rule.tags || [],
       metadata: rule.metadata
         ? typeof rule.metadata === 'string'
           ? JSON.parse(rule.metadata)
@@ -4835,6 +4869,8 @@ export class DatabaseService {
         typeof rule.criteria === 'string'
           ? JSON.parse(rule.criteria)
           : rule.criteria,
+      tags:
+        typeof rule.tags === 'string' ? JSON.parse(rule.tags) : rule.tags || [],
       metadata: rule.metadata
         ? typeof rule.metadata === 'string'
           ? JSON.parse(rule.metadata)
@@ -4869,6 +4905,8 @@ export class DatabaseService {
         typeof rule.criteria === 'string'
           ? JSON.parse(rule.criteria)
           : rule.criteria,
+      tags:
+        typeof rule.tags === 'string' ? JSON.parse(rule.tags) : rule.tags || [],
       metadata: rule.metadata
         ? typeof rule.metadata === 'string'
           ? JSON.parse(rule.metadata)
@@ -4889,6 +4927,7 @@ export class DatabaseService {
     const insertData = {
       ...rule,
       criteria: JSON.stringify(rule.criteria),
+      tags: rule.tags ? JSON.stringify(rule.tags) : JSON.stringify([]),
       metadata: rule.metadata ? JSON.stringify(rule.metadata) : null,
       created_at: this.timestamp,
       updated_at: this.timestamp,
@@ -4907,6 +4946,10 @@ export class DatabaseService {
         typeof createdRule.criteria === 'string'
           ? JSON.parse(createdRule.criteria)
           : createdRule.criteria,
+      tags:
+        typeof createdRule.tags === 'string'
+          ? JSON.parse(createdRule.tags)
+          : createdRule.tags || [],
       metadata: createdRule.metadata
         ? typeof createdRule.metadata === 'string'
           ? JSON.parse(createdRule.metadata)
@@ -4935,6 +4978,10 @@ export class DatabaseService {
       updateData.criteria = JSON.stringify(updates.criteria)
     }
 
+    if (updates.tags !== undefined) {
+      updateData.tags = JSON.stringify(updates.tags || [])
+    }
+
     if (updates.metadata !== undefined) {
       updateData.metadata = updates.metadata
         ? JSON.stringify(updates.metadata)
@@ -4959,6 +5006,10 @@ export class DatabaseService {
         typeof updatedRule.criteria === 'string'
           ? JSON.parse(updatedRule.criteria)
           : updatedRule.criteria,
+      tags:
+        typeof updatedRule.tags === 'string'
+          ? JSON.parse(updatedRule.tags)
+          : updatedRule.tags || [],
       metadata: updatedRule.metadata
         ? typeof updatedRule.metadata === 'string'
           ? JSON.parse(updatedRule.metadata)
@@ -5006,6 +5057,8 @@ export class DatabaseService {
         typeof rule.criteria === 'string'
           ? JSON.parse(rule.criteria)
           : rule.criteria,
+      tags:
+        typeof rule.tags === 'string' ? JSON.parse(rule.tags) : rule.tags || [],
       metadata: rule.metadata
         ? typeof rule.metadata === 'string'
           ? JSON.parse(rule.metadata)
@@ -5041,6 +5094,10 @@ export class DatabaseService {
           typeof rule.criteria === 'string'
             ? JSON.parse(rule.criteria)
             : rule.criteria,
+        tags:
+          typeof rule.tags === 'string'
+            ? JSON.parse(rule.tags)
+            : rule.tags || [],
         metadata: rule.metadata
           ? typeof rule.metadata === 'string'
             ? JSON.parse(rule.metadata)
@@ -5085,6 +5142,10 @@ export class DatabaseService {
         typeof updatedRule.criteria === 'string'
           ? JSON.parse(updatedRule.criteria)
           : updatedRule.criteria,
+      tags:
+        typeof updatedRule.tags === 'string'
+          ? JSON.parse(updatedRule.tags)
+          : updatedRule.tags || [],
       metadata: updatedRule.metadata
         ? typeof updatedRule.metadata === 'string'
           ? JSON.parse(updatedRule.metadata)

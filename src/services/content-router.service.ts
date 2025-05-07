@@ -366,7 +366,7 @@ export class ContentRouterService {
       processedInstanceIds.add(decision.instanceId)
 
       this.log.info(
-        `Routing "${item.title}" to instance ID ${decision.instanceId} with priority ${decision.priority || 50}`,
+        `Routing "${item.title}" to instance ID ${decision.instanceId} with priority ${decision.priority || 50}${decision.tags?.length ? ` and tags: ${decision.tags.join(', ')}` : ''}`,
       )
 
       try {
@@ -383,6 +383,7 @@ export class ContentRouterService {
             options.syncing,
             rootFolder,
             decision.qualityProfile,
+            decision.tags,
           )
         } else {
           // Convert rootFolder from string|null|undefined to string|undefined
@@ -396,6 +397,7 @@ export class ContentRouterService {
             options.syncing,
             rootFolder,
             decision.qualityProfile,
+            decision.tags,
           )
         }
         routeCount++
@@ -778,6 +780,7 @@ export class ContentRouterService {
                 syncing,
                 rootFolder,
                 syncedInstance.qualityProfile,
+                syncedInstance.tags,
               )
               routedInstances.push(syncedId)
             } catch (error) {
@@ -862,6 +865,7 @@ export class ContentRouterService {
                 syncing,
                 rootFolder,
                 syncedInstance.qualityProfile,
+                syncedInstance.tags,
               )
               routedInstances.push(syncedId)
             } catch (error) {

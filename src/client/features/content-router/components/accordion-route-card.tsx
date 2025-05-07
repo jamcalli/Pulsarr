@@ -26,6 +26,7 @@ import {
   HelpCircle,
   Loader2,
   Pen,
+  Plus,
   Save,
   Trash2,
   X,
@@ -46,6 +47,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { TagsMultiSelect } from '@/components/ui/tag-multi-select'
+import { TagCreationDialog } from '@/components/ui/tag-creation-dialog'
 import type {
   ConditionValue,
   ContentRouterRule,
@@ -117,6 +120,9 @@ const AccordionRouteCard = ({
   const [accordionValue, setAccordionValue] = useState<string | undefined>(
     undefined,
   )
+  const [showTagCreationDialog, setShowTagCreationDialog] = useState(false)
+  const tagsMultiSelectRef =
+    useRef<import('@/components/ui/tag-multi-select').TagsMultiSelectRef>(null)
 
   // Refs to track component state
   const isSavingRef = useRef(false)
@@ -192,6 +198,7 @@ const AccordionRouteCard = ({
         route?.quality_profile !== undefined && route?.quality_profile !== null
           ? route.quality_profile.toString()
           : '',
+      tags: route?.tags || [],
       enabled: route?.enabled !== false,
       order: route?.order ?? 50,
     }),
@@ -331,6 +338,7 @@ const AccordionRouteCard = ({
           route?.quality_profile !== null
             ? route.quality_profile.toString()
             : '',
+        tags: route?.tags || [],
         enabled: route?.enabled !== false,
         order: route?.order ?? 50,
       })
@@ -393,6 +401,8 @@ const AccordionRouteCard = ({
           shouldDirty: true,
           shouldValidate: true,
         })
+        // Clear tags because they are instance-specific
+        form.setValue('tags', [], { shouldDirty: true })
       }
     },
     [form],
@@ -424,6 +434,7 @@ const AccordionRouteCard = ({
             ? Number(data.quality_profile)
             : undefined,
           root_folder: data.root_folder,
+          tags: data.tags || [],
           enabled: data.enabled,
           order: data.order,
           condition: Array.isArray(data.condition?.conditions)
@@ -445,6 +456,7 @@ const AccordionRouteCard = ({
             ? Number(data.quality_profile)
             : undefined,
           root_folder: data.root_folder,
+          tags: data.tags || [],
           enabled: data.enabled,
           order: data.order,
         }
@@ -484,6 +496,7 @@ const AccordionRouteCard = ({
         route?.quality_profile !== undefined && route?.quality_profile !== null
           ? route.quality_profile.toString()
           : '',
+      tags: route?.tags || [],
       enabled: route?.enabled !== false,
       order: route?.order ?? 50,
     })
@@ -520,6 +533,20 @@ const AccordionRouteCard = ({
           )}
         />
       )}
+      <TagCreationDialog
+        open={showTagCreationDialog}
+        onOpenChange={setShowTagCreationDialog}
+        instanceId={Number(form.watch('target_instance_id'))}
+        instanceType={contentType}
+        instanceName={selectedInstance?.name}
+        onSuccess={() => {
+          // Refresh tags after creating a new one
+          if (tagsMultiSelectRef.current) {
+            tagsMultiSelectRef.current.refetchTags()
+          }
+        }}
+      />
+
       <Accordion
         type="single"
         collapsible
@@ -1013,6 +1040,69 @@ const AccordionRouteCard = ({
                       )}
                     />
                   </div>
+
+                  {/* Tags */}
+                  <FormField
+                    control={form.control}
+                    name="tags"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center space-x-2">
+                          <FormLabel className="text-text">Tags</FormLabel>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  Add tags to content that matches this route.
+                                  Tags will be applied when content is added to
+                                  the target instance.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                        <div className="flex gap-2 items-center w-full">
+                          <TagsMultiSelect
+                            ref={tagsMultiSelectRef}
+                            field={field}
+                            instanceId={Number(
+                              form.watch('target_instance_id'),
+                            )}
+                            instanceType={contentType}
+                            isConnectionValid={true}
+                          />
+
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="noShadow"
+                                  size="icon"
+                                  className="flex-shrink-0"
+                                  onClick={() => setShowTagCreationDialog(true)}
+                                  disabled={!selectedInstance?.id}
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Create a new tag</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                        <FormDescription className="text-xs">
+                          Optional tags to apply to content that matches this
+                          route
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
               </form>
             </Form>

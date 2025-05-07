@@ -11,6 +11,7 @@ const SonarrInstanceSchema = z.object({
   bypassIgnored: z.boolean().optional().default(false),
   seasonMonitoring: z.string().optional().default('all'),
   monitorNewItems: z.enum(['all', 'none']).default('all'),
+  searchOnAdd: z.boolean().optional().default(true),
   tags: z.array(z.string()).optional().default([]),
   isDefault: z.boolean().optional().default(false),
   syncedInstances: z.array(z.number()).optional(),
@@ -31,7 +32,12 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       },
     },
     async () => {
-      return await fastify.sonarrManager.getAllInstances()
+      const instances = await fastify.sonarrManager.getAllInstances()
+      // Ensure searchOnAdd is defined for all instances (default to true if missing)
+      return instances.map((instance) => ({
+        ...instance,
+        searchOnAdd: instance.searchOnAdd ?? true,
+      }))
     },
   )
 

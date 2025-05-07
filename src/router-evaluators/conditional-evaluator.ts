@@ -52,7 +52,7 @@ function isValidCondition(value: unknown): value is Condition | ConditionGroup {
 /**
  * Creates a routing evaluator that applies complex conditional rules to determine routing decisions for content items.
  *
- * The evaluator retrieves enabled conditional routing rules from the database, validates their condition structures, and evaluates each rule against the provided content item and routing context. If a rule's condition matches, it generates routing decisions specifying the target instance, quality profile, root folder, and priority.
+ * The evaluator retrieves enabled conditional routing rules from the database, validates their condition structures, and evaluates each rule against the provided content item and routing context. Matching rules generate routing decisions specifying the target instance, quality profile, root folder, tags, and priority.
  *
  * @returns A {@link RoutingEvaluator} configured to process conditional routing rules with the highest priority.
  */
@@ -165,6 +165,7 @@ export default function createConditionalEvaluator(
         instanceId: rule.target_instance_id,
         qualityProfile: rule.quality_profile,
         rootFolder: rule.root_folder,
+        tags: rule.tags || [],
         priority: rule.order || 50, // Default to 50 if not specified
       }))
     },

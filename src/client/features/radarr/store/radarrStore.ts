@@ -11,6 +11,7 @@ export interface RadarrInstance {
   qualityProfile?: string
   rootFolder?: string
   bypassIgnored: boolean
+  searchOnAdd: boolean
   tags: string[]
   isDefault: boolean
   syncedInstances?: number[]
