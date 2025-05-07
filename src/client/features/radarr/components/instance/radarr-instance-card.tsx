@@ -55,17 +55,20 @@ interface InstanceCardProps {
 }
 
 /**
- * Displays and manages the configuration form for a Radarr instance, allowing users to view, edit, test, save, sync, tag, and delete instance settings within a card interface.
+ * Renders a card interface for viewing and editing a Radarr instance's configuration, including connection, profile, tagging, synchronization, and deletion controls.
  *
- * @param instance - The Radarr instance data to display and edit.
+ * Provides form validation, connection testing, tag management, and synchronization workflows, with modals for delete confirmation, syncing, and tag creation. Prevents saving unless the connection is valid and displays UI indicators for unsaved or incomplete configurations.
+ *
+ * @param instance - The Radarr instance to display and edit.
  * @param setShowInstanceCard - Optional function to control the visibility of the instance card.
  *
- * @returns The rendered instance card UI with form controls and modals for editing, syncing, tagging, and deleting the Radarr instance.
+ * @returns The instance card UI with form controls and related modals.
  *
  * @remark
- * - Prevents saving unless the connection is successfully tested.
- * - Triggers a sync modal if synced instances are changed and non-empty.
- * - Integrates tag creation and refresh functionality for instance tags.
+ * - Saving is disabled until the connection is successfully tested.
+ * - If synced instances are changed and non-empty, a sync modal is triggered after saving.
+ * - Tag creation and refresh are integrated for instance tags.
+ * - If an error occurs when updating the default instance, the form resets the default status and displays the error message.
  */
 export function InstanceCard({
   instance,

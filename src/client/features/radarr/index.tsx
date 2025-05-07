@@ -9,11 +9,11 @@ import RadarrPageSkeleton from '@/features/radarr/components/instance/radarr-car
 import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
 
 /**
- * Renders the Radarr configuration page with tabs for managing Radarr instances and content routing.
+ * Displays the Radarr configuration interface with tabs for managing instances and content routing.
  *
- * Provides interfaces to add, view, and configure Radarr instances, as well as manage content routing settings. Initializes Radarr data on first render and displays loading states, configuration forms, or informational messages based on the current application state.
+ * Allows users to add, view, and configure Radarr instances, as well as manage content routing settings. Handles initialization and loading states, and conditionally renders forms or informational messages based on the current configuration.
  *
- * @returns The UI for the Radarr configuration page.
+ * @returns The rendered Radarr configuration page UI.
  */
 export default function RadarrConfigPage() {
   // Get these from the store
