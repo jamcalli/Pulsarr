@@ -299,6 +299,7 @@ export class SonarrService {
         }
       }
 
+      // First test basic connectivity
       const url = new URL(`${baseUrl}/ping`)
       const response = await fetch(url.toString(), {
         method: 'GET',
@@ -323,9 +324,54 @@ export class SonarrService {
         }
       }
 
-      return {
-        success: true,
-        message: 'Connection successful',
+      // Now check if we can access the notifications API to verify webhook capabilities
+      // This tests permission levels and API completeness
+      try {
+        // Temporarily set up configuration for API access
+        const tempConfig = {
+          sonarrBaseUrl: baseUrl,
+          sonarrApiKey: apiKey,
+          sonarrQualityProfileId: null,
+          sonarrRootFolder: null,
+          sonarrTagIds: [],
+          sonarrLanguageProfileId: 1, // Required for SonarrConfiguration
+          sonarrSeasonMonitoring: 'all', // Required for SonarrConfiguration
+          sonarrMonitorNewItems: 'all' as const, // Required for SonarrConfiguration with proper type
+        }
+
+        // Save current config to restore later
+        const savedConfig = this.config
+        this.config = tempConfig
+
+        // Test notifications API access
+        try {
+          await this.getFromSonarr<WebhookNotification[]>('notification')
+
+          // If we got here, API access for notifications works
+          // Restore original config
+          this.config = savedConfig
+
+          return {
+            success: true,
+            message: 'Connection successful and webhook API accessible',
+          }
+        } catch (notificationError) {
+          // Restore original config
+          this.config = savedConfig
+
+          return {
+            success: false,
+            message:
+              'Connected to Sonarr but cannot access notification API. Check API key permissions.',
+          }
+        }
+      } catch (error) {
+        // If something else went wrong in the notification check
+        return {
+          success: false,
+          message:
+            'Connected to Sonarr but webhook testing failed. Please check API key and permissions.',
+        }
       }
     } catch (error) {
       this.log.error('Connection test error:', error)
