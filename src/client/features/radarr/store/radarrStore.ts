@@ -12,6 +12,7 @@ export interface RadarrInstance {
   rootFolder?: string
   bypassIgnored: boolean
   searchOnAdd: boolean
+  minimumAvailability?: 'announced' | 'inCinemas' | 'released'
   tags: string[]
   isDefault: boolean
   syncedInstances?: number[]

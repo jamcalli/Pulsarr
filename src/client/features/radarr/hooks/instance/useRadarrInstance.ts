@@ -67,6 +67,7 @@ export function useRadarrInstance(instanceId: number) {
             rootFolder: '',
             bypassIgnored: false,
             searchOnAdd: true,
+            minimumAvailability: 'released',
             tags: [],
             isDefault: false,
             syncedInstances: [],

@@ -290,6 +290,7 @@ export class RadarrService {
         radarrTagIds: instance.tags,
         searchOnAdd:
           instance.searchOnAdd !== undefined ? instance.searchOnAdd : true,
+        minimumAvailability: instance.minimumAvailability || 'released',
       }
 
       this.log.info(
@@ -623,6 +624,7 @@ export class RadarrService {
         rootFolderPath,
         addOptions,
         tags,
+        minimumAvailability: config.minimumAvailability,
       }
 
       await this.postToRadarr<void>('movie', movie)

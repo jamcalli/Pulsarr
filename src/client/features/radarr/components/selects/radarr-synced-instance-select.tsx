@@ -48,7 +48,7 @@ function SyncedInstancesSelect({
       onValueChange={(values) => {
         field.onChange(values.map((v) => Number.parseInt(v)))
       }}
-      defaultValue={field.value?.map((id) => id.toString()) || []}
+      value={field.value?.map((id) => id.toString()) || []}
       placeholder="Select instances to sync with"
       variant="default"
       maxCount={1}
