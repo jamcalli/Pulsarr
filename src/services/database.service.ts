@@ -838,6 +838,37 @@ export class DatabaseService {
     id: number,
     updates: Partial<SonarrInstance>,
   ): Promise<void> {
+    // If trying to remove default status, check if this is the only instance or the only default
+    if (updates.isDefault === false) {
+      const instances = await this.knex('sonarr_instances')
+        .where('is_enabled', true)
+        .count({ count: '*' })
+        .first()
+
+      const defaultInstances = await this.knex('sonarr_instances')
+        .where('is_default', true)
+        .where('is_enabled', true)
+        .whereNot('id', id)
+        .count({ count: '*' })
+        .first()
+
+      const totalCount = instances?.count ? Number(instances.count) : 0
+      const defaultCount = defaultInstances?.count
+        ? Number(defaultInstances.count)
+        : 0
+
+      // If this is the only instance or the only default instance, throw an error
+      if (totalCount === 1 || defaultCount === 0) {
+        this.log.warn(
+          'Prevented removing default status from the only Sonarr instance',
+        )
+        throw new Error(
+          'Cannot remove default status from the only Sonarr instance',
+        )
+      }
+    }
+
+    // If setting as default, update other instances
     if (updates.isDefault) {
       await this.knex('sonarr_instances')
         .whereNot('id', id)
@@ -952,9 +983,42 @@ export class DatabaseService {
    */
   async deleteSonarrInstance(id: number): Promise<void> {
     try {
+      // Check if this is a default instance before deleting
+      const instanceToDelete = await this.knex('sonarr_instances')
+        .where('id', id)
+        .first()
+
+      const isDefault =
+        instanceToDelete?.is_default === 1 ||
+        instanceToDelete?.is_default === true
+
+      // First clean up references to this instance
       await this.cleanupDeletedSonarrInstanceReferences(id)
 
+      // Delete the instance
       await this.knex('sonarr_instances').where('id', id).delete()
+
+      // If this was a default instance, set a new default if any instances remain
+      if (isDefault) {
+        const remainingInstances = await this.knex('sonarr_instances')
+          .where('is_enabled', true)
+          .orderBy('id')
+          .select('id')
+          .first()
+
+        if (remainingInstances) {
+          await this.knex('sonarr_instances')
+            .where('id', remainingInstances.id)
+            .update({
+              is_default: true,
+              updated_at: this.timestamp,
+            })
+
+          this.log.info(
+            `Set Sonarr instance ${remainingInstances.id} as new default after deleting instance ${id}`,
+          )
+        }
+      }
 
       this.log.info(`Deleted Sonarr instance ${id} and cleaned up references`)
     } catch (error) {
@@ -1111,12 +1175,44 @@ export class DatabaseService {
     id: number,
     updates: Partial<RadarrInstance>,
   ): Promise<void> {
+    // If trying to remove default status, check if this is the only instance or the only default
+    if (updates.isDefault === false) {
+      const instances = await this.knex('radarr_instances')
+        .where('is_enabled', true)
+        .count({ count: '*' })
+        .first()
+
+      const defaultInstances = await this.knex('radarr_instances')
+        .where('is_default', true)
+        .where('is_enabled', true)
+        .whereNot('id', id)
+        .count({ count: '*' })
+        .first()
+
+      const totalCount = instances?.count ? Number(instances.count) : 0
+      const defaultCount = defaultInstances?.count
+        ? Number(defaultInstances.count)
+        : 0
+
+      // If this is the only instance or the only default instance, throw an error
+      if (totalCount === 1 || defaultCount === 0) {
+        this.log.warn(
+          'Prevented removing default status from the only Radarr instance',
+        )
+        throw new Error(
+          'Cannot remove default status from the only Radarr instance',
+        )
+      }
+    }
+
+    // If setting as default, update other instances
     if (updates.isDefault) {
       await this.knex('radarr_instances')
         .whereNot('id', id)
         .where('is_default', true)
         .update('is_default', false)
     }
+
     await this.knex('radarr_instances')
       .where('id', id)
       .update({
@@ -1219,9 +1315,42 @@ export class DatabaseService {
    */
   async deleteRadarrInstance(id: number): Promise<void> {
     try {
+      // Check if this is a default instance before deleting
+      const instanceToDelete = await this.knex('radarr_instances')
+        .where('id', id)
+        .first()
+
+      const isDefault =
+        instanceToDelete?.is_default === 1 ||
+        instanceToDelete?.is_default === true
+
+      // First clean up references to this instance
       await this.cleanupDeletedRadarrInstanceReferences(id)
 
+      // Delete the instance
       await this.knex('radarr_instances').where('id', id).delete()
+
+      // If this was a default instance, set a new default if any instances remain
+      if (isDefault) {
+        const remainingInstances = await this.knex('radarr_instances')
+          .where('is_enabled', true)
+          .orderBy('id')
+          .select('id')
+          .first()
+
+        if (remainingInstances) {
+          await this.knex('radarr_instances')
+            .where('id', remainingInstances.id)
+            .update({
+              is_default: true,
+              updated_at: this.timestamp,
+            })
+
+          this.log.info(
+            `Set Radarr instance ${remainingInstances.id} as new default after deleting instance ${id}`,
+          )
+        }
+      }
 
       this.log.info(`Deleted Radarr instance ${id} and cleaned up references`)
     } catch (error) {

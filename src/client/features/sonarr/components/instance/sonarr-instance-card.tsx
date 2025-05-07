@@ -162,11 +162,33 @@ export function InstanceCard({
       }
     } catch (error) {
       setSaveStatus('error')
+
+      // Check for specific error about default instance
+      const errorMessage =
+        error instanceof Error ? error.message : String(error)
+      console.log('Sonarr error handling in component:', {
+        errorMessage,
+        error,
+      }) // Debug log
+      const isDefaultError = errorMessage.includes('default')
+
       toast({
         title: 'Update Failed',
-        description: 'Failed to update Sonarr configuration',
+        description: isDefaultError
+          ? errorMessage // Use the actual error message from the API
+          : 'Failed to update Sonarr configuration',
         variant: 'destructive',
       })
+
+      // If it was a default error, reset the form to restore the default status
+      if (isDefaultError) {
+        // Reset the form but keep the current values except for isDefault
+        const currentValues = form.getValues()
+        form.reset({
+          ...currentValues,
+          isDefault: true, // Force this back to true
+        })
+      }
     } finally {
       setLoadingWithMinDuration(false)
       setSaveStatus('idle')
