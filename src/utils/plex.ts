@@ -16,7 +16,12 @@ interface RateLimitError extends Error {
   isRateLimitExhausted: boolean
 }
 
-// Type guard to check if an error is a RateLimitError
+/**
+ * Determines whether the provided error is a {@link RateLimitError}.
+ *
+ * @param error - The error to check.
+ * @returns `true` if the error is a {@link RateLimitError}; otherwise, `false`.
+ */
 function isRateLimitError(error: unknown): error is RateLimitError {
   return (
     error instanceof Error &&
