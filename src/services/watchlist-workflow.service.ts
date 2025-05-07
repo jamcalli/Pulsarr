@@ -374,44 +374,67 @@ export class WatchlistWorkflowService {
    * Fetch all watchlists (self and friends)
    *
    * Refreshes the local copy of watchlists and updates show/movie statuses.
+   * Self and friend watchlists are fetched in parallel to improve performance.
    */
   async fetchWatchlists(): Promise<void> {
     this.log.info('Refreshing watchlists')
 
     try {
-      // Fetch self watchlist with better error handling
-      try {
-        this.log.debug('Fetching self watchlist')
-        await this.plexService.getSelfWatchlist()
-      } catch (selfError) {
-        this.log.error('Error refreshing self watchlist:', {
-          error: selfError,
-          errorMessage:
-            selfError instanceof Error ? selfError.message : String(selfError),
-          errorStack: selfError instanceof Error ? selfError.stack : undefined,
-        })
-        throw new Error('Failed to refresh self watchlist', {
-          cause: selfError,
-        })
+      // Fetch both self and friends watchlists in parallel
+      const fetchResults = await Promise.allSettled([
+        // Self watchlist promise
+        (async () => {
+          try {
+            this.log.debug('Fetching self watchlist')
+            return await this.plexService.getSelfWatchlist()
+          } catch (selfError) {
+            this.log.error('Error refreshing self watchlist:', {
+              error: selfError,
+              errorMessage:
+                selfError instanceof Error
+                  ? selfError.message
+                  : String(selfError),
+              errorStack:
+                selfError instanceof Error ? selfError.stack : undefined,
+            })
+            throw new Error('Failed to refresh self watchlist', {
+              cause: selfError,
+            })
+          }
+        })(),
+
+        // Friends watchlist promise
+        (async () => {
+          try {
+            this.log.debug('Fetching friends watchlists')
+            return await this.plexService.getOthersWatchlists()
+          } catch (friendsError) {
+            this.log.error('Error refreshing friends watchlists:', {
+              error: friendsError,
+              errorMessage:
+                friendsError instanceof Error
+                  ? friendsError.message
+                  : String(friendsError),
+              errorStack:
+                friendsError instanceof Error ? friendsError.stack : undefined,
+            })
+            throw new Error('Failed to refresh friends watchlists', {
+              cause: friendsError,
+            })
+          }
+        })(),
+      ])
+
+      // Check for any failures
+      const selfResult = fetchResults[0]
+      const friendsResult = fetchResults[1]
+
+      if (selfResult.status === 'rejected') {
+        throw selfResult.reason
       }
 
-      // Fetch friends watchlists with better error handling
-      try {
-        this.log.debug('Fetching friends watchlists')
-        await this.plexService.getOthersWatchlists()
-      } catch (friendsError) {
-        this.log.error('Error refreshing friends watchlists:', {
-          error: friendsError,
-          errorMessage:
-            friendsError instanceof Error
-              ? friendsError.message
-              : String(friendsError),
-          errorStack:
-            friendsError instanceof Error ? friendsError.stack : undefined,
-        })
-        throw new Error('Failed to refresh friends watchlists', {
-          cause: friendsError,
-        })
+      if (friendsResult.status === 'rejected') {
+        throw friendsResult.reason
       }
 
       this.log.info('Watchlists refreshed successfully')
