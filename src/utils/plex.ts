@@ -11,6 +11,131 @@ import type {
 import type { Config } from '@root/types/config.types.js'
 import type { ProgressService } from '@root/types/progress.types.js'
 
+// Global rate limiting control
+// Using a singleton pattern to track and control rate limiting across all processes
+export class PlexRateLimiter {
+  private static instance: PlexRateLimiter
+  private isRateLimited = false
+  private cooldownEndTime = 0
+  private consecutiveRateLimits = 0
+  private baseMultiplier = 2 // seconds
+  private maxCooldown = 30 // seconds
+  private lastErrorTime = 0
+
+  // Singleton access
+  public static getInstance(): PlexRateLimiter {
+    if (!PlexRateLimiter.instance) {
+      PlexRateLimiter.instance = new PlexRateLimiter()
+    }
+    return PlexRateLimiter.instance
+  }
+
+  // Check if we're currently in a rate-limited state
+  public isLimited(): boolean {
+    const now = Date.now()
+    // Clear rate limited state if cooldown period has passed
+    if (this.isRateLimited && now > this.cooldownEndTime) {
+      this.isRateLimited = false
+    }
+    return this.isRateLimited
+  }
+
+  // Get remaining cooldown time in ms
+  public getRemainingCooldown(): number {
+    if (!this.isRateLimited) return 0
+    const remaining = this.cooldownEndTime - Date.now()
+    return remaining > 0 ? remaining : 0
+  }
+
+  // Set rate limited state with a specific duration, or use default exponential backoff
+  public setRateLimited(
+    retryAfterSeconds?: number,
+    log?: FastifyBaseLogger,
+  ): number {
+    // Track consecutive rate limits if they happen close together (within 10 seconds)
+    const now = Date.now()
+    if (now - this.lastErrorTime < 10000) {
+      this.consecutiveRateLimits++
+    } else {
+      this.consecutiveRateLimits = 1
+    }
+    this.lastErrorTime = now
+
+    // Calculate cooldown time
+    let cooldownSeconds = retryAfterSeconds || 0
+
+    if (!cooldownSeconds) {
+      // Apply exponential backoff with consecutive failure tracking
+      cooldownSeconds = Math.min(
+        this.baseMultiplier * 1.5 ** (this.consecutiveRateLimits - 1),
+        this.maxCooldown,
+      )
+    }
+
+    // Apply jitter (±10%) to avoid thundering herd
+    const jitter = cooldownSeconds * 0.1
+    cooldownSeconds += Math.random() * jitter * 2 - jitter
+
+    // Calculate end time of cooldown
+    this.cooldownEndTime = now + cooldownSeconds * 1000
+    this.isRateLimited = true
+
+    if (log) {
+      log.warn(
+        `Plex rate limit detected. Cooling down ALL processes for ${cooldownSeconds.toFixed(1)}s. Consecutive rate limits: ${this.consecutiveRateLimits}`,
+      )
+    }
+
+    return cooldownSeconds * 1000 // Return cooldown in ms
+  }
+
+  // Wait for cooldown if currently rate limited
+  public async waitIfLimited(
+    log?: FastifyBaseLogger,
+    progress?: {
+      progress: ProgressService
+      operationId: string
+      type: 'self-watchlist' | 'others-watchlist' | 'rss-feed' | 'system'
+      message?: string
+    },
+  ): Promise<boolean> {
+    if (this.isLimited()) {
+      const remaining = this.getRemainingCooldown()
+
+      if (remaining <= 0) return false
+
+      if (log) {
+        log.info(
+          `Waiting ${(remaining / 1000).toFixed(1)}s for Plex rate limit cooldown to expire`,
+        )
+      }
+
+      if (progress) {
+        progress.progress.emit({
+          operationId: progress.operationId,
+          type: progress.type,
+          phase: 'processing',
+          progress: 50, // Maintain middle progress during rate limit
+          message:
+            progress.message ||
+            `Rate limited by Plex API. Waiting ${Math.round(remaining / 1000)}s for cooldown...`,
+        })
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, remaining))
+      return true
+    }
+    return false
+  }
+
+  // Reset rate limited state (useful for testing)
+  public reset(): void {
+    this.isRateLimited = false
+    this.cooldownEndTime = 0
+    this.consecutiveRateLimits = 0
+  }
+}
+
 export const pingPlex = async (
   token: string,
   log: FastifyBaseLogger,
@@ -46,10 +171,22 @@ export const getWatchlist = async (
   log: FastifyBaseLogger,
   start = 0,
   retryCount = 0,
+  progressInfo?: {
+    progress: ProgressService
+    operationId: string
+    type: 'self-watchlist' | 'others-watchlist' | 'rss-feed' | 'system'
+  },
 ): Promise<PlexResponse> => {
   if (!token) {
     throw new Error('No Plex token provided')
   }
+
+  // Get rate limiter instance
+  const rateLimiter = PlexRateLimiter.getInstance()
+
+  // Wait if we're already rate limited before making any API call
+  await rateLimiter.waitIfLimited(log, progressInfo)
+
   const containerSize = 300
   const url = new URL(
     'https://metadata.provider.plex.tv/library/sections/watchlist/all',
@@ -68,17 +205,28 @@ export const getWatchlist = async (
     const contentType = response.headers.get('Content-Type')
     if (!response.ok) {
       if (response.status === 429) {
+        // Get retry-after header if provided
         const retryAfter = response.headers.get('Retry-After')
-        const retryAfterMs = retryAfter
-          ? Number.parseInt(retryAfter, 10) * 1000
-          : 1000 * 2 ** retryCount
-        log.warn(
-          `Rate limited. Retrying after ${retryAfterMs} ms. Attempt ${retryCount + 1}`,
-        )
-        await new Promise((resolve) => setTimeout(resolve, retryAfterMs))
-        return getWatchlist(token, log, start, retryCount + 1)
+        const retryAfterSec = retryAfter
+          ? Number.parseInt(retryAfter, 10)
+          : undefined
+
+        // Set global rate limiter with the retry-after value
+        rateLimiter.setRateLimited(retryAfterSec, log)
+
+        if (retryCount < 3) {
+          // Wait for the cooldown period
+          await rateLimiter.waitIfLimited(log, progressInfo)
+          // Try again after waiting
+          return getWatchlist(token, log, start, retryCount + 1, progressInfo)
+        }
+
+        log.warn(`Maximum retries reached for getWatchlist at start=${start}`)
+        return { MediaContainer: { Metadata: [], totalSize: 0 } }
       }
-      throw new Error(`Plex API error: ${response.statusText}`)
+      throw new Error(
+        `Plex API error: HTTP ${response.status} - ${response.statusText}`,
+      )
     }
 
     if (contentType?.includes('application/json')) {
@@ -100,8 +248,25 @@ export const getWatchlist = async (
 
     throw new Error(`Unexpected content type: ${contentType}`)
   } catch (error) {
+    // Check if the error is related to rate limiting
+    const errorStr = String(error)
+    if (
+      errorStr.includes('429') ||
+      errorStr.toLowerCase().includes('rate limit')
+    ) {
+      // Trigger global rate limiter
+      rateLimiter.setRateLimited(undefined, log)
+
+      if (retryCount < 3) {
+        // Wait for the cooldown period
+        await rateLimiter.waitIfLimited(log, progressInfo)
+        // Try again after waiting
+        return getWatchlist(token, log, start, retryCount + 1, progressInfo)
+      }
+    }
+
     log.error(`Error in getWatchlist: ${error}`)
-    // Incase of error return an empty response that matches the expected structure
+    // In case of error return an empty response that matches the expected structure
     return { MediaContainer: { Metadata: [], totalSize: 0 } }
   }
 }
@@ -414,20 +579,47 @@ export const getOthersWatchlist = async (
   getAllWatchlistItems?: (userId: number) => Promise<Item[]>,
 ): Promise<Map<Friend, Set<TokenWatchlistItem>>> => {
   const userWatchlistMap = new Map<Friend, Set<TokenWatchlistItem>>()
-  for (const [user, token] of friends) {
+  log.info(`Starting fetch of watchlists for ${friends.size} friends`)
+
+  // Create an array of promises, each processing one friend concurrently
+  const friendPromises = Array.from(friends).map(async ([user, token]) => {
     log.debug(`Processing friend: ${JSON.stringify(user)}`)
-    const watchlistItems = await getWatchlistForUser(
-      config,
-      log,
-      token,
-      user,
-      user.userId,
-      null,
-      0,
-      3,
-      getAllWatchlistItems,
-    )
-    userWatchlistMap.set(user, watchlistItems)
+    try {
+      const watchlistItems = await getWatchlistForUser(
+        config,
+        log,
+        token,
+        user,
+        user.userId,
+        null,
+        0,
+        3,
+        getAllWatchlistItems,
+      )
+      return { user, watchlistItems, success: true }
+    } catch (error) {
+      log.error(
+        `Error fetching watchlist for friend ${user.username}: ${error}`,
+      )
+      return {
+        user,
+        watchlistItems: new Set<TokenWatchlistItem>(),
+        success: false,
+      }
+    }
+  })
+
+  // Wait for all promises to resolve
+  const results = await Promise.all(friendPromises)
+
+  // Add each result to the map
+  for (const { user, watchlistItems, success } of results) {
+    if (success && watchlistItems.size > 0) {
+      userWatchlistMap.set(user, watchlistItems)
+      log.debug(
+        `Added ${watchlistItems.size} items for friend ${user.username}`,
+      )
+    }
   }
 
   const totalItems = Array.from(userWatchlistMap.values()).reduce(
@@ -435,7 +627,7 @@ export const getOthersWatchlist = async (
     0,
   )
   log.info(
-    `Others' watchlist fetched successfully with ${totalItems} total items`,
+    `Others' watchlist fetched successfully with ${totalItems} total items from ${userWatchlistMap.size} friends`,
   )
   return userWatchlistMap
 }
@@ -537,29 +729,22 @@ const toItemsBatch = async (
     totalItems: number
     username: string
   },
-  initialConcurrencyLimit = 5,
+  initialConcurrencyLimit = 3, // Starting with a lower limit to prevent initial rate limiting
 ): Promise<Map<TokenWatchlistItem, Set<Item>>> => {
   const results = new Map<TokenWatchlistItem, Set<Item>>()
   const queue = [...items]
   let processingCount = 0
   let batchCompletedCount = 0
-  let isRateLimited = false
   let currentConcurrencyLimit = initialConcurrencyLimit
-  let consecutiveRateLimits = 0
-  let cooldownTime = 2000 // Start with 2 seconds
+
+  // Get the global rate limiter instance
+  const rateLimiter = PlexRateLimiter.getInstance()
 
   // Process items in batches with controlled concurrency
   while (queue.length > 0 || processingCount > 0) {
-    // If rate limited, pause all processing with adaptive cooldown
-    if (isRateLimited) {
-      // Increase cooldown time if we've had multiple consecutive rate limits
-      const adaptiveCooldown =
-        consecutiveRateLimits > 1
-          ? Math.min(cooldownTime * 1.5, 30000) // Exponential up to 30s max
-          : cooldownTime
-
-      // Add slight randomization (±10%)
-      const finalCooldown = adaptiveCooldown * (0.9 + Math.random() * 0.2)
+    // Check if we're rate limited using the global rate limiter
+    if (rateLimiter.isLimited()) {
+      const cooldownMs = rateLimiter.getRemainingCooldown()
 
       if (progressTracker) {
         progressTracker.progress.emit({
@@ -570,27 +755,30 @@ const toItemsBatch = async (
             95,
             Math.floor((batchCompletedCount / items.length) * 90) + 5,
           ),
-          message: `Rate limited by Plex API. Cooling down for ${Math.round(finalCooldown / 1000)} seconds...`,
+          message: `Rate limited by Plex API. Cooling down for ${Math.round(cooldownMs / 1000)} seconds...`,
         })
       }
-      log.warn(
-        `Rate limit detected, pausing all requests for ${Math.round(finalCooldown / 1000)} seconds`,
+
+      // Wait for cooldown period
+      await rateLimiter.waitIfLimited(
+        log,
+        progressTracker
+          ? {
+              progress: progressTracker.progress,
+              operationId: progressTracker.operationId,
+              type: progressTracker.type,
+              message: `Rate limited by Plex API. Cooling down for ${Math.round(cooldownMs / 1000)} seconds...`,
+            }
+          : undefined,
       )
-      await new Promise((resolve) => setTimeout(resolve, finalCooldown))
-      isRateLimited = false
 
-      // After cooldown, reduce concurrency based on consecutive rate limits
-      if (consecutiveRateLimits > 1) {
-        currentConcurrencyLimit = Math.max(
-          1,
-          Math.floor(currentConcurrencyLimit * 0.6),
-        )
-      } else {
-        currentConcurrencyLimit = Math.max(1, currentConcurrencyLimit - 1)
-      }
-
+      // Reduce concurrency after a rate limit to avoid hitting limits again
+      currentConcurrencyLimit = Math.max(
+        1,
+        Math.floor(currentConcurrencyLimit * 0.7),
+      )
       log.info(
-        `Adjusted concurrency to ${currentConcurrencyLimit} after cooldown`,
+        `Adjusted concurrency to ${currentConcurrencyLimit} after global rate limit cooldown`,
       )
       continue
     }
@@ -600,12 +788,35 @@ const toItemsBatch = async (
       const item = queue.shift()
       if (item) {
         processingCount++
-        toItemsSingle(config, log, item)
+
+        // Pass progress info to toItemsSingle for rate limit notifications
+        const progressInfo = progressTracker
+          ? {
+              progress: progressTracker.progress,
+              operationId: progressTracker.operationId,
+              type: progressTracker.type,
+            }
+          : undefined
+
+        toItemsSingle(config, log, item, 0, 3, progressInfo)
           .then((itemSet) => {
             results.set(item, itemSet)
             processingCount--
             batchCompletedCount++
-            consecutiveRateLimits = 0 // Reset on success
+
+            // If we've processed several items successfully, we can gradually increase concurrency
+            if (
+              batchCompletedCount % 10 === 0 &&
+              currentConcurrencyLimit < initialConcurrencyLimit
+            ) {
+              currentConcurrencyLimit = Math.min(
+                currentConcurrencyLimit + 1,
+                initialConcurrencyLimit,
+              )
+              log.debug(
+                `Gradually increasing concurrency to ${currentConcurrencyLimit}`,
+              )
+            }
 
             if (progressTracker) {
               const totalCompletedItems =
@@ -625,15 +836,17 @@ const toItemsBatch = async (
             }
           })
           .catch((error) => {
+            // Note: We don't need to handle rate limiting here specifically anymore
+            // as toItemsSingle will now handle it with the global rate limiter
+            // But we'll still check just in case
             if (
               error.message?.includes('429') ||
               error.message?.toLowerCase().includes('rate limit')
             ) {
               // Put the item back in the queue
               queue.unshift(item)
-              isRateLimited = true
-              consecutiveRateLimits++
-              cooldownTime = Math.min(cooldownTime * 1.5, 30000) // Increase cooldown for next time
+              // Let the global rate limiter handle the cooldown timing
+              rateLimiter.setRateLimited(undefined, log)
             } else {
               log.error(`Error processing item ${item.title}:`, error)
               results.set(item, new Set())
@@ -661,8 +874,27 @@ const toItemsSingle = async (
   log: FastifyBaseLogger,
   item: TokenWatchlistItem,
   retryCount = 0,
-  maxRetries = 2,
+  maxRetries = 3,
+  progressInfo?: {
+    progress: ProgressService
+    operationId: string
+    type: 'self-watchlist' | 'others-watchlist' | 'rss-feed' | 'system'
+  },
 ): Promise<Set<Item>> => {
+  // Get the global rate limiter instance
+  const rateLimiter = PlexRateLimiter.getInstance()
+
+  // Wait if we're already rate limited before making any API call
+  await rateLimiter.waitIfLimited(
+    log,
+    progressInfo
+      ? {
+          ...progressInfo,
+          message: `Rate limited by Plex API. Waiting before processing "${item.title}"...`,
+        }
+      : undefined,
+  )
+
   try {
     const url = new URL(
       `https://discover.provider.plex.tv/library/metadata/${item.id}`,
@@ -675,6 +907,46 @@ const toItemsSingle = async (
       },
       signal: AbortSignal.timeout(5000),
     })
+
+    // Handle rate limiting specifically
+    if (response.status === 429) {
+      // Get retry-after header if provided
+      const retryAfter = response.headers.get('Retry-After')
+      const retryAfterSec = retryAfter
+        ? Number.parseInt(retryAfter, 10)
+        : undefined
+
+      // Set global rate limiter with the retry-after value
+      rateLimiter.setRateLimited(retryAfterSec, log)
+
+      if (retryCount < maxRetries) {
+        // Wait for the cooldown period to expire
+        await rateLimiter.waitIfLimited(
+          log,
+          progressInfo
+            ? {
+                ...progressInfo,
+                message: `Rate limited by Plex API. Waiting before retrying "${item.title}"...`,
+              }
+            : undefined,
+        )
+
+        // Try again after waiting
+        return toItemsSingle(
+          config,
+          log,
+          item,
+          retryCount + 1,
+          maxRetries,
+          progressInfo,
+        )
+      }
+
+      log.warn(
+        `Maximum retries (${maxRetries}) reached for ${item.title} due to rate limiting. Skipping item.`,
+      )
+      return new Set()
+    }
 
     if (!response.ok) {
       throw new Error(
@@ -709,9 +981,16 @@ const toItemsSingle = async (
         `Found item ${item.title} but no GUIDs. Retry ${retryCount + 1}/${maxRetries}`,
       )
       // Use exponential backoff
-      const backoffDelay = Math.min(200 * 1.5 ** retryCount, 1000)
+      const backoffDelay = Math.min(500 * 2 ** retryCount, 5000)
       await new Promise((resolve) => setTimeout(resolve, backoffDelay))
-      return toItemsSingle(config, log, item, retryCount + 1, maxRetries)
+      return toItemsSingle(
+        config,
+        log,
+        item,
+        retryCount + 1,
+        maxRetries,
+        progressInfo,
+      )
     }
 
     log.debug(
@@ -720,24 +999,60 @@ const toItemsSingle = async (
     return new Set(items)
   } catch (err) {
     const error = err as Error
-    if (error.message.includes('Plex API error')) {
+    const errorStr = String(error)
+
+    // Check if error is related to rate limiting
+    if (
+      errorStr.includes('429') ||
+      errorStr.toLowerCase().includes('rate limit')
+    ) {
+      // Trigger global rate limiter
+      rateLimiter.setRateLimited(undefined, log)
+
+      if (retryCount < maxRetries) {
+        // Wait for the cooldown period
+        await rateLimiter.waitIfLimited(
+          log,
+          progressInfo
+            ? {
+                ...progressInfo,
+                message: `Rate limited by Plex API. Waiting before retrying "${item.title}"...`,
+              }
+            : undefined,
+        )
+
+        // Try again after waiting
+        return toItemsSingle(
+          config,
+          log,
+          item,
+          retryCount + 1,
+          maxRetries,
+          progressInfo,
+        )
+      }
+    } else if (error.message.includes('Plex API error')) {
       if (retryCount < maxRetries) {
         log.warn(
           `Failed to find ${item.title} in Plex's database. Error: ${error.message}. Retry ${retryCount + 1}/${maxRetries}`,
         )
         // Use exponential backoff
-        const backoffDelay = Math.min(200 * 1.5 ** retryCount, 1000)
+        const backoffDelay = Math.min(500 * 2 ** retryCount, 5000)
         await new Promise((resolve) => setTimeout(resolve, backoffDelay))
-        return toItemsSingle(config, log, item, retryCount + 1, maxRetries)
+        return toItemsSingle(
+          config,
+          log,
+          item,
+          retryCount + 1,
+          maxRetries,
+          progressInfo,
+        )
       }
-      log.warn(
-        `Found item ${item.title} on the watchlist, but we cannot find this in Plex's database after ${maxRetries + 1} attempts. Last error: ${error.message}`,
-      )
-    } else {
-      log.error(
-        `Unable to fetch item details for ${item.title} after ${retryCount + 1} attempts: ${error}`,
-      )
     }
+
+    log.warn(
+      `Found item ${item.title} on the watchlist, but we cannot find this in Plex's database after ${maxRetries + 1} attempts. Last error: ${error.message}`,
+    )
     return new Set()
   }
 }

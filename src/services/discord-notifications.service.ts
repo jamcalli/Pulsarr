@@ -283,7 +283,7 @@ export class DiscordNotificationService {
 
   async sendNotification(payload: DiscordWebhookPayload): Promise<boolean> {
     if (!this.config.discordWebhookUrl) {
-      this.log.warn(
+      this.log.debug(
         'Attempted to send notification without webhook URL configured',
       )
       return false
