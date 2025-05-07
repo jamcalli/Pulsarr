@@ -320,77 +320,7 @@ export function InstanceCard({
                 </div>
 
                 {/* Instance Configuration */}
-                <div className="grid lg:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="syncedInstances"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-text">
-                          Sync With Instances
-                        </FormLabel>
-                        <div className="flex gap-2 items-center w-full">
-                          <div className="flex-1 min-w-0">
-                            <SyncedInstancesSelect
-                              field={field}
-                              instances={instances}
-                              currentInstanceId={instance.id}
-                              isDefault={instance.isDefault}
-                            />
-                          </div>
-                          {instance.isDefault &&
-                            field.value &&
-                            field.value.length > 0 && (
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      type="button"
-                                      variant="noShadow"
-                                      size="icon"
-                                      className="flex-shrink-0"
-                                      onClick={() => {
-                                        setIsManualSync(true)
-                                        setShowSyncModal(true)
-                                      }}
-                                    >
-                                      <RefreshCw className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Manually sync instances</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            )}
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="isDefault"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-text">
-                          Default Instance
-                        </FormLabel>
-                        <div className="flex h-10 items-center gap-2 px-3 py-2">
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                              disabled={!isConnectionValid}
-                            />
-                          </FormControl>
-                          <span className="text-sm text-text text-muted-foreground">
-                            Set as default instance
-                          </span>
-                        </div>
-                      </FormItem>
-                    )}
-                  />
+                <div className="grid lg:grid-cols-3 gap-4">
                   <FormField
                     control={form.control}
                     name="searchOnAdd"
@@ -484,6 +414,78 @@ export function InstanceCard({
                           </FormControl>
                         </div>
                         <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="syncedInstances"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-text">
+                          Sync With Instances
+                        </FormLabel>
+                        <div className="flex gap-2 items-center w-full">
+                          <div className="flex-1 min-w-0">
+                            <SyncedInstancesSelect
+                              field={field}
+                              instances={instances}
+                              currentInstanceId={instance.id}
+                              isDefault={instance.isDefault}
+                            />
+                          </div>
+                          {instance.isDefault &&
+                            field.value &&
+                            field.value.length > 0 && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      type="button"
+                                      variant="noShadow"
+                                      size="icon"
+                                      className="flex-shrink-0"
+                                      onClick={() => {
+                                        setIsManualSync(true)
+                                        setShowSyncModal(true)
+                                      }}
+                                    >
+                                      <RefreshCw className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Manually sync instances</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  {/* Empty cell to ensure Default Instance is in bottom-right */}
+                  <div />
+                  <FormField
+                    control={form.control}
+                    name="isDefault"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-text">
+                          Default Instance
+                        </FormLabel>
+                        <div className="flex h-10 items-center gap-2 px-3 py-2">
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              disabled={!isConnectionValid}
+                            />
+                          </FormControl>
+                          <span className="text-sm text-text text-muted-foreground">
+                            Set as default instance
+                          </span>
+                        </div>
                       </FormItem>
                     )}
                   />
