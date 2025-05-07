@@ -9,6 +9,19 @@ import type { UseFormReturn } from 'react-hook-form'
 import type { SonarrInstanceSchema } from '@/features/sonarr/store/schemas'
 
 /**
+ * Utility function to check if a Sonarr instance needs configuration
+ * Considers an instance as needing configuration if it's missing quality profile or root folder
+ */
+function checkNeedsConfiguration(instance: SonarrInstance) {
+  return (
+    !instance.qualityProfile ||
+    instance.qualityProfile === '' ||
+    !instance.rootFolder ||
+    instance.rootFolder === ''
+  )
+}
+
+/**
  * React hook for managing the connection state, validation, and configuration status of a Sonarr instance.
  *
  * Provides utilities to test the connection, track connection and save statuses, determine if additional configuration is needed, and reset the connection state. Handles instance creation, updating, and data fetching as part of the connection workflow.
@@ -67,11 +80,7 @@ export function useSonarrConnection(
   useEffect(() => {
     // Only check when we have a valid instance
     if (instance.id > 0) {
-      const needsConfig =
-        !instance.qualityProfile ||
-        instance.qualityProfile === '' ||
-        !instance.rootFolder ||
-        instance.rootFolder === ''
+      const needsConfig = checkNeedsConfiguration(instance)
       setNeedsConfiguration(needsConfig)
     }
   }, [instance])
@@ -107,11 +116,7 @@ export function useSonarrConnection(
 
             // Check if the instance needs additional configuration
             // ONLY consider it needing configuration if it's missing quality profile or root folder
-            const needsConfig =
-              !instance.qualityProfile ||
-              instance.qualityProfile === '' ||
-              !instance.rootFolder ||
-              instance.rootFolder === ''
+            const needsConfig = checkNeedsConfiguration(instance)
 
             if (needsConfig) {
               setNeedsConfiguration(true)
@@ -137,13 +142,7 @@ export function useSonarrConnection(
 
     initializeComponent()
   }, [
-    instance.id,
-    instance.data?.rootFolders,
-    instance.data?.qualityProfiles,
-    instance.baseUrl,
-    instance.apiKey,
-    instance.qualityProfile,
-    instance.rootFolder,
+    instance,
     testConnectionWithoutLoading,
     fetchInstanceData,
     setInstancesLoading,
@@ -235,11 +234,11 @@ export function useSonarrConnection(
               const newInstance = await createResponse.json()
 
               // Check if required fields were provided
-              const hasRequiredFields =
-                values.qualityProfile &&
-                values.qualityProfile !== '' &&
-                values.rootFolder &&
-                values.rootFolder !== ''
+              const hasRequiredFields = !checkNeedsConfiguration({
+                ...instance,
+                qualityProfile: values.qualityProfile,
+                rootFolder: values.rootFolder,
+              })
               if (!hasRequiredFields) {
                 setNeedsConfiguration(true)
               } else {

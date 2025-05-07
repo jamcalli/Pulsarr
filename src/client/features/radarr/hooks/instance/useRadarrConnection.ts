@@ -9,6 +9,19 @@ import type { UseFormReturn } from 'react-hook-form'
 import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
 
 /**
+ * Utility function to check if a Radarr instance needs configuration
+ * Considers an instance as needing configuration if it's missing quality profile or root folder
+ */
+function checkNeedsConfiguration(instance: RadarrInstance) {
+  return (
+    !instance.qualityProfile ||
+    instance.qualityProfile === '' ||
+    !instance.rootFolder ||
+    instance.rootFolder === ''
+  )
+}
+
+/**
  * React hook for managing the connection state and configuration lifecycle of a Radarr instance.
  *
  * Provides connection testing, initialization, and configuration validation for a given Radarr instance, including detection of missing required fields and management of related UI state.
@@ -64,11 +77,7 @@ export function useRadarrConnection(
   useEffect(() => {
     // Only check when we have a valid instance
     if (instance.id > 0) {
-      const needsConfig =
-        !instance.qualityProfile ||
-        instance.qualityProfile === '' ||
-        !instance.rootFolder ||
-        instance.rootFolder === ''
+      const needsConfig = checkNeedsConfiguration(instance)
       setNeedsConfiguration(needsConfig)
     }
   }, [instance])
@@ -104,11 +113,7 @@ export function useRadarrConnection(
 
             // Check if the instance needs additional configuration
             // ONLY consider it needing configuration if it's missing quality profile or root folder
-            const needsConfig =
-              !instance.qualityProfile ||
-              instance.qualityProfile === '' ||
-              !instance.rootFolder ||
-              instance.rootFolder === ''
+            const needsConfig = checkNeedsConfiguration(instance)
 
             if (needsConfig) {
               setNeedsConfiguration(true)
@@ -134,13 +139,7 @@ export function useRadarrConnection(
 
     initializeComponent()
   }, [
-    instance.id,
-    instance.data?.rootFolders,
-    instance.data?.qualityProfiles,
-    instance.baseUrl,
-    instance.apiKey,
-    instance.qualityProfile,
-    instance.rootFolder,
+    instance,
     testConnectionWithoutLoading,
     fetchInstanceData,
     setInstancesLoading,
@@ -232,11 +231,11 @@ export function useRadarrConnection(
               const newInstance = await createResponse.json()
 
               // Check if required fields were provided
-              const hasRequiredFields =
-                values.qualityProfile &&
-                values.qualityProfile !== '' &&
-                values.rootFolder &&
-                values.rootFolder !== ''
+              const hasRequiredFields = !checkNeedsConfiguration({
+                ...instance,
+                qualityProfile: values.qualityProfile,
+                rootFolder: values.rootFolder,
+              })
               if (!hasRequiredFields) {
                 setNeedsConfiguration(true)
               } else {
