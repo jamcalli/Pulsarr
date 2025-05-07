@@ -828,6 +828,185 @@ export class DatabaseService {
   }
 
   /**
+   * Normalises/validates minimumAvailability values for Radarr
+   * Validates against allowed values: 'announced', 'inCinemas', 'released'
+   * Throws error for invalid values, returns default 'released' for null/undefined
+   */
+  private normaliseMinimumAvailability(
+    value?: string | null,
+  ): 'announced' | 'inCinemas' | 'released' {
+    const allowed = ['announced', 'inCinemas', 'released'] as const
+    type MinimumAvailability = (typeof allowed)[number]
+    const defaultValue = 'released' as MinimumAvailability
+
+    // Return default for null/undefined
+    if (value === undefined || value === null) {
+      return defaultValue
+    }
+
+    // Check if value is allowed
+    const v = value.toString()
+    const isAllowed = allowed.some((allowedValue) => allowedValue === v)
+
+    if (!isAllowed) {
+      throw new Error(`Invalid minimumAvailability value: ${v}`)
+    }
+
+    return v as MinimumAvailability
+  }
+
+  /**
+   * Validates whether an instance can have its default status changed
+   * Shared helper for both Radarr and Sonarr instances to eliminate duplicated logic
+   *
+   * @param trx - Knex transaction object
+   * @param tableName - Table name (radarr_instances or sonarr_instances)
+   * @param instanceId - ID of the instance being updated
+   * @param newDefaultStatus - New default status value (true/false)
+   * @param serviceName - Service name for error messages (Radarr/Sonarr)
+   * @throws Error if default status cannot be changed
+   */
+  private async validateInstanceDefaultStatus(
+    trx: Knex.Transaction,
+    tableName: 'radarr_instances' | 'sonarr_instances',
+    instanceId: number,
+    newDefaultStatus: boolean | undefined,
+    serviceName: 'Radarr' | 'Sonarr',
+  ): Promise<void> {
+    // Determine what the desired default instance will be after this operation
+    let desiredDefaultId: number | null = null
+
+    if (newDefaultStatus === true) {
+      // This instance will be the default after the operation
+      desiredDefaultId = instanceId
+    } else if (newDefaultStatus === false) {
+      // Get the current instance to see if it's default now
+      const currentInstance = await trx(tableName)
+        .where('id', instanceId)
+        .first()
+
+      // Only check further if this instance is currently default and being unset
+      if (currentInstance?.is_default) {
+        // Look for any other enabled instance that could become default
+        const otherInstance = await trx(tableName)
+          .where('is_enabled', true)
+          .whereNot('id', instanceId)
+          .orderBy('id')
+          .first('id')
+
+        if (otherInstance) {
+          desiredDefaultId = otherInstance.id
+        }
+        // Else no default will exist after this operation
+      } else {
+        // This instance isn't currently default, so find current default
+        const currentDefault = await trx(tableName)
+          .where('is_default', true)
+          .first('id')
+
+        if (currentDefault) {
+          desiredDefaultId = currentDefault.id
+        }
+      }
+    } else {
+      // No change to default status requested, find current default
+      const currentDefault = await trx(tableName)
+        .where('is_default', true)
+        .first('id')
+
+      if (currentDefault?.id === instanceId) {
+        // This instance is already default
+        desiredDefaultId = instanceId
+      } else if (currentDefault) {
+        // Another instance is default
+        desiredDefaultId = currentDefault.id
+      }
+    }
+
+    // If trying to set instance as non-default, we need to check if it's allowed
+    if (newDefaultStatus === false) {
+      const currentInstance = await trx(tableName)
+        .where('id', instanceId)
+        .first()
+
+      // Only need additional checks if this instance is currently default
+      if (currentInstance?.is_default) {
+        // Check if this is the only instance
+        const totalInstancesCount = await trx(tableName)
+          .count({ count: '*' })
+          .first()
+
+        const totalCount = totalInstancesCount?.count
+          ? Number(totalInstancesCount.count)
+          : 0
+
+        // If there's only one instance total, it must be default
+        if (totalCount <= 1) {
+          this.log.warn(
+            `Cannot remove default status from the only ${serviceName} instance`,
+          )
+          throw new Error(
+            `Cannot remove default status from the only ${serviceName} instance`,
+          )
+        }
+
+        // If this is the only real instance (not placeholder), it must be default
+        const realInstancesCount = await trx(tableName)
+          .where('is_enabled', true)
+          .whereNot('api_key', 'placeholder')
+          .count({ count: '*' })
+          .first()
+
+        const realCount = realInstancesCount?.count
+          ? Number(realInstancesCount.count)
+          : 0
+
+        if (currentInstance.api_key !== 'placeholder' && realCount <= 1) {
+          this.log.warn(
+            `Cannot remove default status from the only real ${serviceName} instance`,
+          )
+          throw new Error(
+            `Cannot remove default status from the only real ${serviceName} instance`,
+          )
+        }
+
+        // If we're removing default status but no new default is identified, that's an error
+        if (desiredDefaultId === null) {
+          this.log.warn(
+            `Cannot remove default status without another ${serviceName} instance to make default`,
+          )
+          throw new Error(
+            `You must set another ${serviceName} instance as default first`,
+          )
+        }
+      }
+    }
+
+    // If setting as default, make all other instances non-default
+    if (newDefaultStatus === true) {
+      await trx(tableName).whereNot('id', instanceId).update({
+        is_default: false,
+        updated_at: this.timestamp,
+      })
+    }
+
+    // Final safety check - at least one instance must be default at the end
+    if (desiredDefaultId === null) {
+      // Get the current default
+      const currentDefault = await trx(tableName)
+        .where('is_default', true)
+        .first('id')
+
+      if (!currentDefault) {
+        this.log.warn(
+          `No ${serviceName} instance will be default after this operation`,
+        )
+        throw new Error(`At least one ${serviceName} instance must be default`)
+      }
+    }
+  }
+
+  /**
    * Updates an existing Sonarr instance
    *
    * @param id - ID of the Sonarr instance to update
@@ -838,54 +1017,66 @@ export class DatabaseService {
     id: number,
     updates: Partial<SonarrInstance>,
   ): Promise<void> {
-    if (updates.isDefault) {
-      await this.knex('sonarr_instances')
-        .whereNot('id', id)
-        .where('is_default', true)
-        .update('is_default', false)
+    // Force placeholder instances to be default (regardless of whether isDefault is false or undefined)
+    if (updates.apiKey === 'placeholder' && updates.isDefault !== true) {
+      updates.isDefault = true
+      this.log.warn('Forced placeholder instance to remain default')
     }
 
-    await this.knex('sonarr_instances')
-      .where('id', id)
-      .update({
-        ...(typeof updates.name !== 'undefined' && { name: updates.name }),
-        ...(typeof updates.baseUrl !== 'undefined' && {
-          base_url: updates.baseUrl,
-        }),
-        ...(typeof updates.apiKey !== 'undefined' && {
-          api_key: updates.apiKey,
-        }),
-        ...(typeof updates.qualityProfile !== 'undefined' && {
-          quality_profile: updates.qualityProfile,
-        }),
-        ...(typeof updates.rootFolder !== 'undefined' && {
-          root_folder: updates.rootFolder,
-        }),
-        ...(typeof updates.bypassIgnored !== 'undefined' && {
-          bypass_ignored: updates.bypassIgnored,
-        }),
-        ...(typeof updates.seasonMonitoring !== 'undefined' && {
-          season_monitoring: updates.seasonMonitoring,
-        }),
-        ...(typeof updates.monitorNewItems !== 'undefined' && {
-          monitor_new_items: this.normaliseMonitorNewItems(
-            updates.monitorNewItems,
-          ),
-        }),
-        ...(typeof updates.searchOnAdd !== 'undefined' && {
-          search_on_add: updates.searchOnAdd,
-        }),
-        ...(typeof updates.tags !== 'undefined' && {
-          tags: JSON.stringify(updates.tags),
-        }),
-        ...(typeof updates.isDefault !== 'undefined' && {
-          is_default: updates.isDefault,
-        }),
-        ...(typeof updates.syncedInstances !== 'undefined' && {
-          synced_instances: JSON.stringify(updates.syncedInstances),
-        }),
-        updated_at: this.timestamp,
-      })
+    // Use a transaction to ensure all operations are atomic
+    await this.knex.transaction(async (trx) => {
+      // Validate instance default status using the shared helper
+      await this.validateInstanceDefaultStatus(
+        trx,
+        'sonarr_instances',
+        id,
+        updates.isDefault,
+        'Sonarr',
+      )
+
+      // Finally, update the instance with all changes
+      await trx('sonarr_instances')
+        .where('id', id)
+        .update({
+          ...(typeof updates.name !== 'undefined' && { name: updates.name }),
+          ...(typeof updates.baseUrl !== 'undefined' && {
+            base_url: updates.baseUrl,
+          }),
+          ...(typeof updates.apiKey !== 'undefined' && {
+            api_key: updates.apiKey,
+          }),
+          ...(typeof updates.qualityProfile !== 'undefined' && {
+            quality_profile: updates.qualityProfile,
+          }),
+          ...(typeof updates.rootFolder !== 'undefined' && {
+            root_folder: updates.rootFolder,
+          }),
+          ...(typeof updates.bypassIgnored !== 'undefined' && {
+            bypass_ignored: updates.bypassIgnored,
+          }),
+          ...(typeof updates.seasonMonitoring !== 'undefined' && {
+            season_monitoring: updates.seasonMonitoring,
+          }),
+          ...(typeof updates.monitorNewItems !== 'undefined' && {
+            monitor_new_items: this.normaliseMonitorNewItems(
+              updates.monitorNewItems,
+            ),
+          }),
+          ...(typeof updates.searchOnAdd !== 'undefined' && {
+            search_on_add: updates.searchOnAdd,
+          }),
+          ...(typeof updates.tags !== 'undefined' && {
+            tags: JSON.stringify(updates.tags),
+          }),
+          ...(typeof updates.isDefault !== 'undefined' && {
+            is_default: updates.isDefault,
+          }),
+          ...(typeof updates.syncedInstances !== 'undefined' && {
+            synced_instances: JSON.stringify(updates.syncedInstances),
+          }),
+          updated_at: this.timestamp,
+        })
+    })
   }
 
   /**
@@ -896,11 +1087,23 @@ export class DatabaseService {
    * @param deletedId - ID of the deleted Sonarr instance
    * @returns Promise resolving to void when complete
    */
+  /**
+   * Cleans up references to a deleted Sonarr instance
+   * Removes the deleted instance ID from synced_instances fields of other instances
+   *
+   * @param deletedId - ID of the deleted Sonarr instance
+   * @param trx - Optional Knex transaction object
+   * @returns Promise resolving to void when complete
+   */
   async cleanupDeletedSonarrInstanceReferences(
     deletedId: number,
+    trx?: Knex.Transaction,
   ): Promise<void> {
     try {
-      const instances = await this.knex('sonarr_instances').select(
+      // Use the provided transaction or the regular knex instance
+      const queryBuilder = trx || this.knex
+
+      const instances = await queryBuilder('sonarr_instances').select(
         'id',
         'synced_instances',
       )
@@ -917,7 +1120,7 @@ export class DatabaseService {
               (id) => id !== deletedId,
             )
 
-            await this.knex('sonarr_instances')
+            await queryBuilder('sonarr_instances')
               .where('id', instance.id)
               .update({
                 synced_instances: JSON.stringify(updatedInstances),
@@ -952,9 +1155,50 @@ export class DatabaseService {
    */
   async deleteSonarrInstance(id: number): Promise<void> {
     try {
-      await this.cleanupDeletedSonarrInstanceReferences(id)
+      // Check if this is a default instance before deleting
+      const instanceToDelete = await this.knex('sonarr_instances')
+        .where('id', id)
+        .first()
 
-      await this.knex('sonarr_instances').where('id', id).delete()
+      if (!instanceToDelete) {
+        this.log.warn(`Sonarr instance ${id} not found for deletion`)
+        return
+      }
+
+      const isDefault =
+        instanceToDelete?.is_default === 1 ||
+        instanceToDelete?.is_default === true
+
+      // Use a transaction to ensure atomicity across all operations
+      await this.knex.transaction(async (trx) => {
+        // First clean up references to this instance with transaction
+        await this.cleanupDeletedSonarrInstanceReferences(id, trx)
+
+        // Delete the instance
+        await trx('sonarr_instances').where('id', id).delete()
+
+        // If this was a default instance, set a new default if any instances remain
+        if (isDefault) {
+          const remainingInstances = await trx('sonarr_instances')
+            .where('is_enabled', true)
+            .orderBy('id')
+            .select('id')
+            .first()
+
+          if (remainingInstances) {
+            await trx('sonarr_instances')
+              .where('id', remainingInstances.id)
+              .update({
+                is_default: true,
+                updated_at: this.timestamp,
+              })
+
+            this.log.info(
+              `Set Sonarr instance ${remainingInstances.id} as new default after deleting instance ${id}`,
+            )
+          }
+        }
+      })
 
       this.log.info(`Deleted Sonarr instance ${id} and cleaned up references`)
     } catch (error) {
@@ -988,6 +1232,9 @@ export class DatabaseService {
         instance.search_on_add === null
           ? true
           : Boolean(instance.search_on_add),
+      minimumAvailability: this.normaliseMinimumAvailability(
+        instance.minimum_availability,
+      ),
       tags: JSON.parse(instance.tags || '[]'),
       isDefault: Boolean(instance.is_default),
       syncedInstances: JSON.parse(instance.synced_instances || '[]'),
@@ -1019,6 +1266,9 @@ export class DatabaseService {
         instance.search_on_add === null
           ? true
           : Boolean(instance.search_on_add),
+      minimumAvailability: this.normaliseMinimumAvailability(
+        instance.minimum_availability,
+      ),
       tags: JSON.parse(instance.tags || '[]'),
       isDefault: true,
       syncedInstances: JSON.parse(instance.synced_instances || '[]'),
@@ -1046,6 +1296,9 @@ export class DatabaseService {
         instance.search_on_add === null
           ? true
           : Boolean(instance.search_on_add),
+      minimumAvailability: this.normaliseMinimumAvailability(
+        instance.minimum_availability,
+      ),
       tags: JSON.parse(instance.tags || '[]'),
       isDefault: Boolean(instance.is_default),
       syncedInstances: JSON.parse(instance.synced_instances || '[]'),
@@ -1077,6 +1330,9 @@ export class DatabaseService {
         root_folder: instance.rootFolder,
         bypass_ignored: instance.bypassIgnored,
         search_on_add: instance.searchOnAdd ?? true,
+        minimum_availability: this.normaliseMinimumAvailability(
+          instance.minimumAvailability,
+        ),
         tags: JSON.stringify(instance.tags || []),
         is_default: instance.isDefault ?? false,
         is_enabled: true,
@@ -1107,45 +1363,63 @@ export class DatabaseService {
     id: number,
     updates: Partial<RadarrInstance>,
   ): Promise<void> {
-    if (updates.isDefault) {
-      await this.knex('radarr_instances')
-        .whereNot('id', id)
-        .where('is_default', true)
-        .update('is_default', false)
+    // Force placeholder instances to be default (regardless of whether isDefault is false or undefined)
+    if (updates.apiKey === 'placeholder' && updates.isDefault !== true) {
+      updates.isDefault = true
+      this.log.warn('Forced placeholder instance to remain default')
     }
-    await this.knex('radarr_instances')
-      .where('id', id)
-      .update({
-        ...(typeof updates.name !== 'undefined' && { name: updates.name }),
-        ...(typeof updates.baseUrl !== 'undefined' && {
-          base_url: updates.baseUrl,
-        }),
-        ...(typeof updates.apiKey !== 'undefined' && {
-          api_key: updates.apiKey,
-        }),
-        ...(typeof updates.qualityProfile !== 'undefined' && {
-          quality_profile: updates.qualityProfile,
-        }),
-        ...(typeof updates.rootFolder !== 'undefined' && {
-          root_folder: updates.rootFolder,
-        }),
-        ...(typeof updates.bypassIgnored !== 'undefined' && {
-          bypass_ignored: updates.bypassIgnored,
-        }),
-        ...(typeof updates.searchOnAdd !== 'undefined' && {
-          search_on_add: updates.searchOnAdd,
-        }),
-        ...(typeof updates.tags !== 'undefined' && {
-          tags: JSON.stringify(updates.tags),
-        }),
-        ...(typeof updates.isDefault !== 'undefined' && {
-          is_default: updates.isDefault,
-        }),
-        ...(typeof updates.syncedInstances !== 'undefined' && {
-          synced_instances: JSON.stringify(updates.syncedInstances),
-        }),
-        updated_at: this.timestamp,
-      })
+
+    // Use a transaction to ensure all operations are atomic
+    await this.knex.transaction(async (trx) => {
+      // Validate instance default status using the shared helper
+      await this.validateInstanceDefaultStatus(
+        trx,
+        'radarr_instances',
+        id,
+        updates.isDefault,
+        'Radarr',
+      )
+
+      // Finally, update the instance with all changes
+      await trx('radarr_instances')
+        .where('id', id)
+        .update({
+          ...(typeof updates.name !== 'undefined' && { name: updates.name }),
+          ...(typeof updates.baseUrl !== 'undefined' && {
+            base_url: updates.baseUrl,
+          }),
+          ...(typeof updates.apiKey !== 'undefined' && {
+            api_key: updates.apiKey,
+          }),
+          ...(typeof updates.qualityProfile !== 'undefined' && {
+            quality_profile: updates.qualityProfile,
+          }),
+          ...(typeof updates.rootFolder !== 'undefined' && {
+            root_folder: updates.rootFolder,
+          }),
+          ...(typeof updates.bypassIgnored !== 'undefined' && {
+            bypass_ignored: updates.bypassIgnored,
+          }),
+          ...(typeof updates.searchOnAdd !== 'undefined' && {
+            search_on_add: updates.searchOnAdd,
+          }),
+          ...(typeof updates.minimumAvailability !== 'undefined' && {
+            minimum_availability: this.normaliseMinimumAvailability(
+              updates.minimumAvailability,
+            ),
+          }),
+          ...(typeof updates.tags !== 'undefined' && {
+            tags: JSON.stringify(updates.tags),
+          }),
+          ...(typeof updates.isDefault !== 'undefined' && {
+            is_default: updates.isDefault,
+          }),
+          ...(typeof updates.syncedInstances !== 'undefined' && {
+            synced_instances: JSON.stringify(updates.syncedInstances),
+          }),
+          updated_at: this.timestamp,
+        })
+    })
   }
 
   /**
@@ -1156,11 +1430,23 @@ export class DatabaseService {
    * @param deletedId - ID of the deleted Radarr instance
    * @returns Promise resolving to void when complete
    */
+  /**
+   * Cleans up references to a deleted Radarr instance
+   * Removes the deleted instance ID from synced_instances fields of other instances
+   *
+   * @param deletedId - ID of the deleted Radarr instance
+   * @param trx - Optional Knex transaction object
+   * @returns Promise resolving to void when complete
+   */
   async cleanupDeletedRadarrInstanceReferences(
     deletedId: number,
+    trx?: Knex.Transaction,
   ): Promise<void> {
     try {
-      const instances = await this.knex('radarr_instances').select(
+      // Use the provided transaction or the regular knex instance
+      const queryBuilder = trx || this.knex
+
+      const instances = await queryBuilder('radarr_instances').select(
         'id',
         'synced_instances',
       )
@@ -1177,7 +1463,7 @@ export class DatabaseService {
               (id) => id !== deletedId,
             )
 
-            await this.knex('radarr_instances')
+            await queryBuilder('radarr_instances')
               .where('id', instance.id)
               .update({
                 synced_instances: JSON.stringify(updatedInstances),
@@ -1212,9 +1498,50 @@ export class DatabaseService {
    */
   async deleteRadarrInstance(id: number): Promise<void> {
     try {
-      await this.cleanupDeletedRadarrInstanceReferences(id)
+      // Check if this is a default instance before deleting
+      const instanceToDelete = await this.knex('radarr_instances')
+        .where('id', id)
+        .first()
 
-      await this.knex('radarr_instances').where('id', id).delete()
+      if (!instanceToDelete) {
+        this.log.warn(`Radarr instance ${id} not found for deletion`)
+        return
+      }
+
+      const isDefault =
+        instanceToDelete?.is_default === 1 ||
+        instanceToDelete?.is_default === true
+
+      // Use a transaction to ensure atomicity across all operations
+      await this.knex.transaction(async (trx) => {
+        // First clean up references to this instance with transaction
+        await this.cleanupDeletedRadarrInstanceReferences(id, trx)
+
+        // Delete the instance
+        await trx('radarr_instances').where('id', id).delete()
+
+        // If this was a default instance, set a new default if any instances remain
+        if (isDefault) {
+          const remainingInstances = await trx('radarr_instances')
+            .where('is_enabled', true)
+            .orderBy('id')
+            .select('id')
+            .first()
+
+          if (remainingInstances) {
+            await trx('radarr_instances')
+              .where('id', remainingInstances.id)
+              .update({
+                is_default: true,
+                updated_at: this.timestamp,
+              })
+
+            this.log.info(
+              `Set Radarr instance ${remainingInstances.id} as new default after deleting instance ${id}`,
+            )
+          }
+        }
+      })
 
       this.log.info(`Deleted Radarr instance ${id} and cleaned up references`)
     } catch (error) {
@@ -4591,6 +4918,13 @@ export class DatabaseService {
           qualityProfile: instance.quality_profile,
           rootFolder: instance.root_folder,
           bypassIgnored: Boolean(instance.bypass_ignored),
+          searchOnAdd:
+            instance.search_on_add === null
+              ? true
+              : Boolean(instance.search_on_add),
+          minimumAvailability: this.normaliseMinimumAvailability(
+            instance.minimum_availability,
+          ),
           tags: JSON.parse(instance.tags || '[]'),
           isDefault: Boolean(instance.is_default),
           syncedInstances: JSON.parse(instance.synced_instances || '[]'),
