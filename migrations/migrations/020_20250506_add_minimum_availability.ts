@@ -4,8 +4,7 @@ import type { Knex } from 'knex'
  * Adds the `minimum_availability` column to the `radarr_instances` table with a default value of 'released'.
  *
  * @remarks
- * Introduces a configuration option to control when movies are considered available in Radarr.
- * Values can be 'announced', 'inCinemas', or 'released'.
+ * This migration introduces a configuration option for Radarr instances to specify when movies are considered available. Possible values include 'announced', 'inCinemas', or 'released'.
  */
 export async function up(knex: Knex): Promise<void> {
   // Add minimum_availability to radarr_instances
@@ -21,7 +20,7 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Removes the `minimum_availability` column from the `radarr_instances` table, reverting the migration.
+ * Reverts the migration by dropping the `minimum_availability` column from the `radarr_instances` table.
  */
 export async function down(knex: Knex): Promise<void> {
   await knex.schema.alterTable('radarr_instances', (table) => {
