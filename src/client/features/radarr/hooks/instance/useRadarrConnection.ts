@@ -8,6 +8,15 @@ import type {
 import type { UseFormReturn } from 'react-hook-form'
 import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
 
+/**
+ * React hook for managing the connection state and configuration lifecycle of a Radarr instance.
+ *
+ * Provides connection testing, initialization, and configuration validation for a given Radarr instance, including detection of missing required fields and management of related UI state.
+ *
+ * @param instance - The Radarr instance to manage.
+ * @param setShowInstanceCard - Optional callback to control the visibility of the instance card UI.
+ * @returns An object containing connection and save statuses, configuration state, refs for navigation and initialization, and functions for testing, resetting, and validating the Radarr connection.
+ */
 export function useRadarrConnection(
   instance: RadarrInstance,
   setShowInstanceCard?: (show: boolean) => void,
