@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { ContentRouterContext } from '@/features/content-router/hooks/useContentRouter'
 import {
   Accordion,
   AccordionContent,
@@ -832,16 +833,20 @@ const AccordionRouteCard = ({
                                   </Button>
                                 </div>
                               ) : (
-                                <ConditionGroupComponent
-                                  value={
-                                    field.value as unknown as IConditionGroup
-                                  }
-                                  onChange={field.onChange}
-                                  evaluatorMetadata={evaluatorMetadata}
-                                  genres={genres}
-                                  onGenreDropdownOpen={onGenreDropdownOpen}
-                                  isLoading={loading}
-                                />
+                                <ContentRouterContext.Provider
+                                  value={{ contentType }}
+                                >
+                                  <ConditionGroupComponent
+                                    value={
+                                      field.value as unknown as IConditionGroup
+                                    }
+                                    onChange={field.onChange}
+                                    evaluatorMetadata={evaluatorMetadata}
+                                    genres={genres}
+                                    onGenreDropdownOpen={onGenreDropdownOpen}
+                                    isLoading={loading}
+                                  />
+                                </ContentRouterContext.Provider>
                               )}
                             </div>
                           </FormControl>

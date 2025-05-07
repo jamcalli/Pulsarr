@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useContext } from 'react'
+import { ContentRouterContext } from '@/features/content-router/hooks/useContentRouter'
 import {
   Select,
   SelectContent,
@@ -109,12 +110,20 @@ const ConditionBuilder = ({
           return
         }
 
+        // Filter evaluators to those compatible with the current content type
+        const compatibleEvaluators = evaluatorMetadataRef.current.filter(
+          (e) =>
+            !e.contentType ||
+            e.contentType === 'both' ||
+            e.contentType === contentType,
+        )
+
         // Find which evaluator supports this field
-        // Using evaluatorMetadataRef.current to get latest metadata
+        // Using compatible evaluators from the filtered list
         let fieldEvaluator = null
         let fieldInfo = null
 
-        for (const evaluator of evaluatorMetadataRef.current) {
+        for (const evaluator of compatibleEvaluators) {
           const foundField = evaluator.supportedFields.find(
             (f) => f.name === fieldName,
           )
@@ -235,12 +244,24 @@ const ConditionBuilder = ({
     }
   }, [onChange]) // Remove evaluatorMetadata dependency since we use the ref
 
+  // Get the content type from context
+  const routerContext = useContext(ContentRouterContext)
+  const contentType = routerContext?.contentType || 'both'
+
   // Update available fields when metadata changes - with optimized dependencies
   useEffect(() => {
     if (!evaluatorMetadata || evaluatorMetadata.length === 0) return
 
+    // Filter evaluators based on content type compatibility
+    const compatibleEvaluators = filteredEvaluators.filter(
+      (e) =>
+        !e.contentType ||
+        e.contentType === 'both' ||
+        e.contentType === contentType,
+    )
+
     // Create fields list and sort alphabetically
-    const allFields = filteredEvaluators
+    const allFields = compatibleEvaluators
       .flatMap((e) => e.supportedFields)
       .sort((a, b) => a.name.localeCompare(b.name))
 
@@ -251,8 +272,8 @@ const ConditionBuilder = ({
       let foundEvaluator: EvaluatorMetadata | null = null
       let fieldInfo: FieldInfo | null = null
 
-      // Find which evaluator supports this field
-      for (const evaluator of evaluatorMetadata) {
+      // Find which compatible evaluator supports this field
+      for (const evaluator of compatibleEvaluators) {
         const foundField = evaluator.supportedFields.find(
           (f) => f.name === value.field,
         )
@@ -292,7 +313,13 @@ const ConditionBuilder = ({
       setValueTypes([])
       setOperatorDescription('')
     }
-  }, [evaluatorMetadata, value.field, value.operator, filteredEvaluators])
+  }, [
+    evaluatorMetadata,
+    value.field,
+    value.operator,
+    filteredEvaluators,
+    contentType,
+  ])
 
   if (isLoading) {
     return (

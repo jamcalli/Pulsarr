@@ -7,7 +7,19 @@ import {
 import {
   EvaluatorMetadataResponseSchema,
   EvaluatorMetadataErrorSchema,
+  type FieldInfo,
+  type OperatorInfo,
 } from '@schemas/content-router/evaluator-metadata.schema.js'
+
+// Local type for evaluator metadata with contentType
+interface EvaluatorMetadataWithContentType {
+  name: string
+  description: string
+  priority: number
+  supportedFields?: FieldInfo[]
+  supportedOperators?: Record<string, OperatorInfo[]>
+  contentType?: 'radarr' | 'sonarr' | 'both'
+}
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   // Get router plugin information
@@ -62,7 +74,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const metadata = fastify.contentRouter.getEvaluatorsMetadata()
+        const metadata =
+          fastify.contentRouter.getEvaluatorsMetadata() as EvaluatorMetadataWithContentType[]
 
         // Normalize the data to match the schema
         const normalizedMetadata = metadata.map((evaluator) => ({
@@ -71,6 +84,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           priority: evaluator.priority,
           supportedFields: evaluator.supportedFields || [],
           supportedOperators: evaluator.supportedOperators || {},
+          contentType: evaluator.contentType || 'both',
         }))
 
         return {

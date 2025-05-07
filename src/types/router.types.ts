@@ -131,6 +131,9 @@ export interface RoutingEvaluator {
   supportedFields?: FieldInfo[]
   supportedOperators?: Record<string, OperatorInfo[]>
 
+  // Content type this evaluator applies to ('radarr', 'sonarr', or 'both')
+  contentType?: 'radarr' | 'sonarr' | 'both'
+
   // Optional helper methods can be defined in individual evaluators
   // but they won't be called directly by the ContentRouterService
   [key: string]: unknown
