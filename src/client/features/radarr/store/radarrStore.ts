@@ -285,7 +285,24 @@ export const useRadarrStore = create<RadarrState>()(
         })
 
         if (!response.ok) {
-          throw new Error('Failed to update instance')
+          // Get the error message from the response
+          let errorMessage = 'Failed to update instance'
+
+          try {
+            const errorData = await response.json()
+            console.log('API error response:', errorData) // Debug log
+
+            // Use the error message from the API response if available
+            if (errorData && typeof errorData.message === 'string') {
+              errorMessage = errorData.message
+            }
+          } catch (jsonError) {
+            console.log('Failed to parse error JSON:', jsonError) // Debug log
+            // If we can't parse the JSON, fall back to status text
+            errorMessage = `Failed to update instance: ${response.statusText}`
+          }
+
+          throw new Error(errorMessage)
         }
 
         await get().fetchInstances()

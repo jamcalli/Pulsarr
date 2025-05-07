@@ -78,13 +78,39 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         params: z.object({ id: z.coerce.number() }),
         body: RadarrInstanceSchema.partial(),
         tags: ['Radarr Configuration'],
+        response: {
+          400: z.object({
+            statusCode: z.number(),
+            error: z.string(),
+            message: z.string(),
+          }),
+        },
       },
     },
     async (request, reply) => {
       const { id } = request.params
       const updates = request.body
-      await fastify.radarrManager.updateInstance(id, updates)
-      reply.status(204)
+
+      try {
+        await fastify.radarrManager.updateInstance(id, updates)
+        reply.status(204)
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('default')) {
+          // Handle the specific case where default status can't be removed
+          console.log('Sending error response:', error.message) // Debug log
+          reply
+            .status(400)
+            .header('Content-Type', 'application/json; charset=utf-8')
+            .send({
+              statusCode: 400,
+              error: 'Bad Request',
+              message: error.message,
+            })
+        } else {
+          // Rethrow for generic error handling
+          throw error
+        }
+      }
     },
   )
 
