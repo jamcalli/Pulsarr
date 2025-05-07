@@ -58,15 +58,11 @@ export function useSonarrInstance(instanceId: number) {
             monitorNewItems: 'all',
             searchOnAdd: true,
             tags: [],
-            isDefault: false,
+            isDefault: true, // Always set placeholder instance as default
             syncedInstances: [],
           }
 
-          await updateInstance(instanceId, {
-            ...defaultInstance,
-            qualityProfile: '',
-            rootFolder: '',
-          })
+          await updateInstance(instanceId, defaultInstance)
 
           form.reset(defaultInstance, {
             keepDirty: false,

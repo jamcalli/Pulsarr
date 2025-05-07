@@ -95,7 +95,6 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       } catch (error) {
         if (error instanceof Error && error.message.includes('default')) {
           // Handle the specific case where default status can't be removed
-          console.log('Sending sonarr error response:', error.message) // Debug log
           reply
             .status(400)
             .header('Content-Type', 'application/json; charset=utf-8')

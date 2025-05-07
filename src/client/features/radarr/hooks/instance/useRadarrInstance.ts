@@ -69,7 +69,7 @@ export function useRadarrInstance(instanceId: number) {
             searchOnAdd: true,
             minimumAvailability: 'released',
             tags: [],
-            isDefault: false,
+            isDefault: true, // Always set placeholder instance as default
             syncedInstances: [],
           }
 

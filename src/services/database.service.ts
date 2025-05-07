@@ -838,85 +838,143 @@ export class DatabaseService {
     id: number,
     updates: Partial<SonarrInstance>,
   ): Promise<void> {
-    // If trying to remove default status, check if this is the only instance or the only default
-    if (updates.isDefault === false) {
-      const instances = await this.knex('sonarr_instances')
-        .where('is_enabled', true)
-        .count({ count: '*' })
-        .first()
+    // Force placeholder instances to be default
+    if (updates.apiKey === 'placeholder' && updates.isDefault === false) {
+      updates.isDefault = true
+      this.log.warn('Forced placeholder instance to remain default')
+    }
 
-      const defaultInstances = await this.knex('sonarr_instances')
-        .where('is_default', true)
-        .where('is_enabled', true)
+    // Use a transaction to ensure all operations are atomic
+    await this.knex.transaction(async (trx) => {
+      // First check if another instance is being set to default in this transaction
+      // This needs to be OUTSIDE of the updates.isDefault check to handle
+      // when we're in the process of swapping defaults between instances
+      const anyInstanceBeingSetToDefault = await trx('sonarr_instances')
         .whereNot('id', id)
-        .count({ count: '*' })
+        .where('is_default', false) // Currently not default
+        .where(function () {
+          // But is trying to become default
+          // NOTE: We can't directly check if they're being set to default in this transaction,
+          // so we use this as a reasonable approximation - does another non-default instance exist?
+          this.where('is_enabled', true)
+        })
         .first()
 
-      const totalCount = instances?.count ? Number(instances.count) : 0
-      const defaultCount = defaultInstances?.count
-        ? Number(defaultInstances.count)
-        : 0
+      // If trying to set instance as non-default, we need to check if it's allowed
+      if (updates.isDefault === false) {
+        const currentInstance = await trx('sonarr_instances')
+          .where('id', id)
+          .first()
 
-      // If this is the only instance or the only default instance, throw an error
-      if (totalCount === 1 || defaultCount === 0) {
-        this.log.warn(
-          'Prevented removing default status from the only Sonarr instance',
-        )
-        throw new Error(
-          'Cannot remove default status from the only Sonarr instance',
-        )
+        // Only need additional checks if this instance is currently default
+        if (currentInstance?.is_default) {
+          // Check if this is the only instance
+          const totalInstancesCount = await trx('sonarr_instances')
+            .count({ count: '*' })
+            .first()
+
+          const totalCount = totalInstancesCount?.count
+            ? Number(totalInstancesCount.count)
+            : 0
+
+          // If there's only one instance total, it must be default
+          if (totalCount <= 1) {
+            this.log.warn(
+              'Cannot remove default status from the only Sonarr instance',
+            )
+            throw new Error(
+              'Cannot remove default status from the only Sonarr instance',
+            )
+          }
+
+          // If this is the only real instance (not placeholder), it must be default
+          const realInstancesCount = await trx('sonarr_instances')
+            .where('is_enabled', true)
+            .whereNot('api_key', 'placeholder')
+            .count({ count: '*' })
+            .first()
+
+          const realCount = realInstancesCount?.count
+            ? Number(realInstancesCount.count)
+            : 0
+
+          if (currentInstance.api_key !== 'placeholder' && realCount <= 1) {
+            this.log.warn(
+              'Cannot remove default status from the only real Sonarr instance',
+            )
+            throw new Error(
+              'Cannot remove default status from the only real Sonarr instance',
+            )
+          }
+
+          // Check if there's already another default instance
+          const otherDefaultExists = await trx('sonarr_instances')
+            .where('is_default', true)
+            .whereNot('id', id)
+            .first()
+
+          // If no other default exists and we're not in the process of making another one default,
+          // this instance must remain default
+          if (!otherDefaultExists && !anyInstanceBeingSetToDefault) {
+            this.log.warn(
+              'Cannot remove default status without another default instance',
+            )
+            throw new Error('You must set another instance as default first')
+          }
+        }
       }
-    }
 
-    // If setting as default, update other instances
-    if (updates.isDefault) {
-      await this.knex('sonarr_instances')
-        .whereNot('id', id)
-        .where('is_default', true)
-        .update('is_default', false)
-    }
+      // If setting as default, make all other instances non-default
+      if (updates.isDefault === true) {
+        await trx('sonarr_instances').whereNot('id', id).update({
+          is_default: false,
+          updated_at: this.timestamp,
+        })
+      }
 
-    await this.knex('sonarr_instances')
-      .where('id', id)
-      .update({
-        ...(typeof updates.name !== 'undefined' && { name: updates.name }),
-        ...(typeof updates.baseUrl !== 'undefined' && {
-          base_url: updates.baseUrl,
-        }),
-        ...(typeof updates.apiKey !== 'undefined' && {
-          api_key: updates.apiKey,
-        }),
-        ...(typeof updates.qualityProfile !== 'undefined' && {
-          quality_profile: updates.qualityProfile,
-        }),
-        ...(typeof updates.rootFolder !== 'undefined' && {
-          root_folder: updates.rootFolder,
-        }),
-        ...(typeof updates.bypassIgnored !== 'undefined' && {
-          bypass_ignored: updates.bypassIgnored,
-        }),
-        ...(typeof updates.seasonMonitoring !== 'undefined' && {
-          season_monitoring: updates.seasonMonitoring,
-        }),
-        ...(typeof updates.monitorNewItems !== 'undefined' && {
-          monitor_new_items: this.normaliseMonitorNewItems(
-            updates.monitorNewItems,
-          ),
-        }),
-        ...(typeof updates.searchOnAdd !== 'undefined' && {
-          search_on_add: updates.searchOnAdd,
-        }),
-        ...(typeof updates.tags !== 'undefined' && {
-          tags: JSON.stringify(updates.tags),
-        }),
-        ...(typeof updates.isDefault !== 'undefined' && {
-          is_default: updates.isDefault,
-        }),
-        ...(typeof updates.syncedInstances !== 'undefined' && {
-          synced_instances: JSON.stringify(updates.syncedInstances),
-        }),
-        updated_at: this.timestamp,
-      })
+      // Finally, update the instance with all changes
+      await trx('sonarr_instances')
+        .where('id', id)
+        .update({
+          ...(typeof updates.name !== 'undefined' && { name: updates.name }),
+          ...(typeof updates.baseUrl !== 'undefined' && {
+            base_url: updates.baseUrl,
+          }),
+          ...(typeof updates.apiKey !== 'undefined' && {
+            api_key: updates.apiKey,
+          }),
+          ...(typeof updates.qualityProfile !== 'undefined' && {
+            quality_profile: updates.qualityProfile,
+          }),
+          ...(typeof updates.rootFolder !== 'undefined' && {
+            root_folder: updates.rootFolder,
+          }),
+          ...(typeof updates.bypassIgnored !== 'undefined' && {
+            bypass_ignored: updates.bypassIgnored,
+          }),
+          ...(typeof updates.seasonMonitoring !== 'undefined' && {
+            season_monitoring: updates.seasonMonitoring,
+          }),
+          ...(typeof updates.monitorNewItems !== 'undefined' && {
+            monitor_new_items: this.normaliseMonitorNewItems(
+              updates.monitorNewItems,
+            ),
+          }),
+          ...(typeof updates.searchOnAdd !== 'undefined' && {
+            search_on_add: updates.searchOnAdd,
+          }),
+          ...(typeof updates.tags !== 'undefined' && {
+            tags: JSON.stringify(updates.tags),
+          }),
+          ...(typeof updates.isDefault !== 'undefined' && {
+            is_default: updates.isDefault,
+          }),
+          ...(typeof updates.syncedInstances !== 'undefined' && {
+            synced_instances: JSON.stringify(updates.syncedInstances),
+          }),
+          updated_at: this.timestamp,
+        })
+    })
   }
 
   /**
@@ -1175,80 +1233,138 @@ export class DatabaseService {
     id: number,
     updates: Partial<RadarrInstance>,
   ): Promise<void> {
-    // If trying to remove default status, check if this is the only instance or the only default
-    if (updates.isDefault === false) {
-      const instances = await this.knex('radarr_instances')
-        .where('is_enabled', true)
-        .count({ count: '*' })
-        .first()
+    // Force placeholder instances to be default
+    if (updates.apiKey === 'placeholder' && updates.isDefault === false) {
+      updates.isDefault = true
+      this.log.warn('Forced placeholder instance to remain default')
+    }
 
-      const defaultInstances = await this.knex('radarr_instances')
-        .where('is_default', true)
-        .where('is_enabled', true)
+    // Use a transaction to ensure all operations are atomic
+    await this.knex.transaction(async (trx) => {
+      // First check if another instance is being set to default in this transaction
+      // This needs to be OUTSIDE of the updates.isDefault check to handle
+      // when we're in the process of swapping defaults between instances
+      const anyInstanceBeingSetToDefault = await trx('radarr_instances')
         .whereNot('id', id)
-        .count({ count: '*' })
+        .where('is_default', false) // Currently not default
+        .where(function () {
+          // But is trying to become default
+          // NOTE: We can't directly check if they're being set to default in this transaction,
+          // so we use this as a reasonable approximation - does another non-default instance exist?
+          this.where('is_enabled', true)
+        })
         .first()
 
-      const totalCount = instances?.count ? Number(instances.count) : 0
-      const defaultCount = defaultInstances?.count
-        ? Number(defaultInstances.count)
-        : 0
+      // If trying to set instance as non-default, we need to check if it's allowed
+      if (updates.isDefault === false) {
+        const currentInstance = await trx('radarr_instances')
+          .where('id', id)
+          .first()
 
-      // If this is the only instance or the only default instance, throw an error
-      if (totalCount === 1 || defaultCount === 0) {
-        this.log.warn(
-          'Prevented removing default status from the only Radarr instance',
-        )
-        throw new Error(
-          'Cannot remove default status from the only Radarr instance',
-        )
+        // Only need additional checks if this instance is currently default
+        if (currentInstance?.is_default) {
+          // Check if this is the only instance
+          const totalInstancesCount = await trx('radarr_instances')
+            .count({ count: '*' })
+            .first()
+
+          const totalCount = totalInstancesCount?.count
+            ? Number(totalInstancesCount.count)
+            : 0
+
+          // If there's only one instance total, it must be default
+          if (totalCount <= 1) {
+            this.log.warn(
+              'Cannot remove default status from the only Radarr instance',
+            )
+            throw new Error(
+              'Cannot remove default status from the only Radarr instance',
+            )
+          }
+
+          // If this is the only real instance (not placeholder), it must be default
+          const realInstancesCount = await trx('radarr_instances')
+            .where('is_enabled', true)
+            .whereNot('api_key', 'placeholder')
+            .count({ count: '*' })
+            .first()
+
+          const realCount = realInstancesCount?.count
+            ? Number(realInstancesCount.count)
+            : 0
+
+          if (currentInstance.api_key !== 'placeholder' && realCount <= 1) {
+            this.log.warn(
+              'Cannot remove default status from the only real Radarr instance',
+            )
+            throw new Error(
+              'Cannot remove default status from the only real Radarr instance',
+            )
+          }
+
+          // Check if there's already another default instance
+          const otherDefaultExists = await trx('radarr_instances')
+            .where('is_default', true)
+            .whereNot('id', id)
+            .first()
+
+          // If no other default exists and we're not in the process of making another one default,
+          // this instance must remain default
+          if (!otherDefaultExists && !anyInstanceBeingSetToDefault) {
+            this.log.warn(
+              'Cannot remove default status without another default instance',
+            )
+            throw new Error('You must set another instance as default first')
+          }
+        }
       }
-    }
 
-    // If setting as default, update other instances
-    if (updates.isDefault) {
-      await this.knex('radarr_instances')
-        .whereNot('id', id)
-        .where('is_default', true)
-        .update('is_default', false)
-    }
+      // If setting as default, make all other instances non-default
+      if (updates.isDefault === true) {
+        await trx('radarr_instances').whereNot('id', id).update({
+          is_default: false,
+          updated_at: this.timestamp,
+        })
+      }
 
-    await this.knex('radarr_instances')
-      .where('id', id)
-      .update({
-        ...(typeof updates.name !== 'undefined' && { name: updates.name }),
-        ...(typeof updates.baseUrl !== 'undefined' && {
-          base_url: updates.baseUrl,
-        }),
-        ...(typeof updates.apiKey !== 'undefined' && {
-          api_key: updates.apiKey,
-        }),
-        ...(typeof updates.qualityProfile !== 'undefined' && {
-          quality_profile: updates.qualityProfile,
-        }),
-        ...(typeof updates.rootFolder !== 'undefined' && {
-          root_folder: updates.rootFolder,
-        }),
-        ...(typeof updates.bypassIgnored !== 'undefined' && {
-          bypass_ignored: updates.bypassIgnored,
-        }),
-        ...(typeof updates.searchOnAdd !== 'undefined' && {
-          search_on_add: updates.searchOnAdd,
-        }),
-        ...(typeof updates.minimumAvailability !== 'undefined' && {
-          minimum_availability: updates.minimumAvailability,
-        }),
-        ...(typeof updates.tags !== 'undefined' && {
-          tags: JSON.stringify(updates.tags),
-        }),
-        ...(typeof updates.isDefault !== 'undefined' && {
-          is_default: updates.isDefault,
-        }),
-        ...(typeof updates.syncedInstances !== 'undefined' && {
-          synced_instances: JSON.stringify(updates.syncedInstances),
-        }),
-        updated_at: this.timestamp,
-      })
+      // Finally, update the instance with all changes
+      await trx('radarr_instances')
+        .where('id', id)
+        .update({
+          ...(typeof updates.name !== 'undefined' && { name: updates.name }),
+          ...(typeof updates.baseUrl !== 'undefined' && {
+            base_url: updates.baseUrl,
+          }),
+          ...(typeof updates.apiKey !== 'undefined' && {
+            api_key: updates.apiKey,
+          }),
+          ...(typeof updates.qualityProfile !== 'undefined' && {
+            quality_profile: updates.qualityProfile,
+          }),
+          ...(typeof updates.rootFolder !== 'undefined' && {
+            root_folder: updates.rootFolder,
+          }),
+          ...(typeof updates.bypassIgnored !== 'undefined' && {
+            bypass_ignored: updates.bypassIgnored,
+          }),
+          ...(typeof updates.searchOnAdd !== 'undefined' && {
+            search_on_add: updates.searchOnAdd,
+          }),
+          ...(typeof updates.minimumAvailability !== 'undefined' && {
+            minimum_availability: updates.minimumAvailability,
+          }),
+          ...(typeof updates.tags !== 'undefined' && {
+            tags: JSON.stringify(updates.tags),
+          }),
+          ...(typeof updates.isDefault !== 'undefined' && {
+            is_default: updates.isDefault,
+          }),
+          ...(typeof updates.syncedInstances !== 'undefined' && {
+            synced_instances: JSON.stringify(updates.syncedInstances),
+          }),
+          updated_at: this.timestamp,
+        })
+    })
   }
 
   /**
