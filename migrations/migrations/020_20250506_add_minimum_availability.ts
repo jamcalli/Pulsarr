@@ -1,7 +1,7 @@
 import type { Knex } from 'knex'
 
 /**
- * Adds the `minimum_availability` column to the `radarr_instances` table with a default value of 'announced'.
+ * Adds the `minimum_availability` column to the `radarr_instances` table with a default value of 'released'.
  *
  * @remarks
  * Introduces a configuration option to control when movies are considered available in Radarr.
