@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import EditableCardHeader from '@/components/ui/editable-card-header'
 import { cn } from '@/lib/utils'
@@ -56,14 +56,16 @@ interface InstanceCardProps {
 }
 
 /**
- * Renders a configuration card for managing a Sonarr instance, providing form controls to view, edit, test, sync, and delete instance settings.
+ * Displays a configuration card for managing a Sonarr instance, allowing users to view, edit, test, sync, and delete instance settings.
  *
- * The card includes fields for connection details, quality profile, root folder, season monitoring, instance syncing, monitoring options, default instance selection, search-on-add, and tag management. It integrates with global state, supports asynchronous operations for testing connections, saving changes, syncing, deleting, and refreshing tags, and provides user feedback through toasts and modals.
+ * The card provides form controls for connection details, quality profile, root folder, monitoring options, season monitoring, syncing with other instances, default instance selection, and tag management. It integrates with global state, supports asynchronous operations for testing connections, saving changes, syncing, deleting, and refreshing tags, and provides user feedback through toasts and modals.
  *
  * @param instance - The Sonarr instance to display and configure.
  * @param setShowInstanceCard - Optional callback to control the visibility of the card.
  *
  * @returns The Sonarr instance configuration card UI.
+ *
+ * @remark If the instance is incomplete but has a valid connection, the form is automatically marked as dirty to preserve editing state. When attempting to update the default instance and a conflict occurs, the form resets the `isDefault` field to `true` and displays the error message.
  */
 export function InstanceCard({
   instance,
@@ -93,6 +95,7 @@ export function InstanceCard({
     saveStatus,
     isConnectionValid,
     isNavigationTest,
+    needsConfiguration,
     setTestStatus,
     setSaveStatus,
     setIsConnectionValid,
@@ -105,6 +108,24 @@ export function InstanceCard({
     isNew: instance.id === -1,
     isConnectionValid,
   })
+
+  // Add useEffect to preserve editing state for incomplete instances
+  useEffect(() => {
+    // Check if instance is incomplete but has valid connection
+    const isIncomplete =
+      (!instance.qualityProfile ||
+        instance.qualityProfile === '' ||
+        !instance.rootFolder ||
+        instance.rootFolder === '') &&
+      isConnectionValid
+
+    // If instance is incomplete and not already in dirty state, force dirty state
+    if (isIncomplete && !form.formState.isDirty) {
+      // Mark form as dirty to preserve editing UI state (halo, save/cancel buttons)
+      // Using a harmless field like name to keep the dirty state
+      form.setValue('name', instance.name, { shouldDirty: true })
+    }
+  }, [instance, isConnectionValid, form.formState.isDirty, form])
 
   const handleTest = async () => {
     const values = {
@@ -162,11 +183,33 @@ export function InstanceCard({
       }
     } catch (error) {
       setSaveStatus('error')
+
+      // Check for specific error about default instance
+      const errorMessage =
+        error instanceof Error ? error.message : String(error)
+      console.log('Sonarr error handling in component:', {
+        errorMessage,
+        error,
+      }) // Debug log
+      const isDefaultError = errorMessage.includes('default')
+
       toast({
         title: 'Update Failed',
-        description: 'Failed to update Sonarr configuration',
+        description: isDefaultError
+          ? errorMessage // Use the actual error message from the API
+          : 'Failed to update Sonarr configuration',
         variant: 'destructive',
       })
+
+      // If it was a default error, reset the form to restore the default status
+      if (isDefaultError) {
+        // Reset the form but keep the current values except for isDefault
+        const currentValues = form.getValues()
+        form.reset({
+          ...currentValues,
+          isDefault: true, // Force this back to true
+        })
+      }
     } finally {
       setLoadingWithMinDuration(false)
       setSaveStatus('idle')
@@ -233,7 +276,9 @@ export function InstanceCard({
         onSuccess={refreshTags}
       />
       <div className="relative">
-        {(form.formState.isDirty || instance.id === -1) && (
+        {(form.formState.isDirty ||
+          instance.id === -1 ||
+          needsConfiguration) && (
           <div
             className={cn(
               'absolute -inset-0.5 rounded-lg border-2 z-50',
@@ -247,7 +292,7 @@ export function InstanceCard({
             title={form.watch('name')}
             isNew={instance.id === -1}
             isSaving={saveStatus === 'loading' || instancesLoading}
-            isDirty={form.formState.isDirty}
+            isDirty={form.formState.isDirty || needsConfiguration}
             isValid={form.formState.isValid && isConnectionValid}
             badge={instance.isDefault ? { text: 'Default' } : undefined}
             onSave={handleSave}
@@ -318,6 +363,99 @@ export function InstanceCard({
 
                 {/* Instance Configuration */}
                 <div className="grid lg:grid-cols-3 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="monitorNewItems"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-text">
+                          Monitor New Items
+                        </FormLabel>
+                        <div className="flex h-10 items-center gap-2 px-3 py-2">
+                          <FormControl>
+                            <Switch
+                              checked={field.value === 'all'}
+                              onCheckedChange={(checked) => {
+                                field.onChange(checked ? 'all' : 'none')
+                              }}
+                              disabled={!isConnectionValid}
+                            />
+                          </FormControl>
+                          <span className="text-sm text-text text-muted-foreground">
+                            Automatically monitor new items
+                          </span>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="searchOnAdd"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-text">
+                          Search on Add
+                        </FormLabel>
+                        <div className="flex h-10 items-center gap-2 px-3 py-2">
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              disabled={!isConnectionValid}
+                            />
+                          </FormControl>
+                          <span className="text-sm text-text text-muted-foreground">
+                            Automatically search for series when added
+                          </span>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="tags"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-text">
+                          Instance Tags
+                        </FormLabel>
+                        <div className="flex gap-2 items-center w-full">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="noShadow"
+                                  size="icon"
+                                  className="flex-shrink-0"
+                                  onClick={() => setShowTagCreationDialog(true)}
+                                  disabled={!isConnectionValid}
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Create a new tag</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+
+                          <FormControl>
+                            <TagsMultiSelect
+                              ref={tagsSelectRef}
+                              field={field}
+                              instanceId={instance.id}
+                              instanceType="sonarr"
+                              isConnectionValid={isConnectionValid}
+                              // Tag IDs are stored as strings in the form data
+                            />
+                          </FormControl>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   <FormField
                     control={form.control}
                     name="seasonMonitoring"
@@ -399,32 +537,6 @@ export function InstanceCard({
                   />
                   <FormField
                     control={form.control}
-                    name="monitorNewItems"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-text">
-                          Monitor New Items
-                        </FormLabel>
-                        <div className="flex h-10 items-center gap-2 px-3 py-2">
-                          <FormControl>
-                            <Switch
-                              checked={field.value === 'all'}
-                              onCheckedChange={(checked) => {
-                                field.onChange(checked ? 'all' : 'none')
-                              }}
-                              disabled={!isConnectionValid}
-                            />
-                          </FormControl>
-                          <span className="text-sm text-text text-muted-foreground">
-                            Automatically monitor new items
-                          </span>
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
                     name="isDefault"
                     render={({ field }) => (
                       <FormItem>
@@ -443,73 +555,6 @@ export function InstanceCard({
                             Set as default instance
                           </span>
                         </div>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="searchOnAdd"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-text">
-                          Search on Add
-                        </FormLabel>
-                        <div className="flex h-10 items-center gap-2 px-3 py-2">
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                              disabled={!isConnectionValid}
-                            />
-                          </FormControl>
-                          <span className="text-sm text-text text-muted-foreground">
-                            Automatically search for series when added
-                          </span>
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="tags"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-text">
-                          Instance Tags
-                        </FormLabel>
-                        <div className="flex gap-2 items-center w-full">
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  type="button"
-                                  variant="noShadow"
-                                  size="icon"
-                                  className="flex-shrink-0"
-                                  onClick={() => setShowTagCreationDialog(true)}
-                                  disabled={!isConnectionValid}
-                                >
-                                  <Plus className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Create a new tag</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-
-                          <FormControl>
-                            <TagsMultiSelect
-                              ref={tagsSelectRef}
-                              field={field}
-                              instanceId={instance.id}
-                              instanceType="sonarr"
-                              isConnectionValid={isConnectionValid}
-                              // Tag IDs are stored as strings in the form data
-                            />
-                          </FormControl>
-                        </div>
-                        <FormMessage />
                       </FormItem>
                     )}
                   />

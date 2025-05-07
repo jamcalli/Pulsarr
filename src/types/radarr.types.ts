@@ -21,7 +21,10 @@ export interface RadarrPost {
   rootFolderPath: string | null
   addOptions: RadarrAddOptions
   tags: string[] // Keep as string[] for compatibility with existing code
+  minimumAvailability?: MinimumAvailability
 }
+
+export type MinimumAvailability = 'announced' | 'inCinemas' | 'released'
 
 export interface RadarrConfiguration {
   radarrApiKey: string
@@ -30,6 +33,7 @@ export interface RadarrConfiguration {
   radarrRootFolder: string | null
   radarrTagIds: string[]
   searchOnAdd?: boolean
+  minimumAvailability?: MinimumAvailability
 }
 
 export interface RootFolder {
@@ -89,6 +93,7 @@ export interface RadarrInstance {
   isDefault: boolean
   syncedInstances?: number[]
   searchOnAdd?: boolean
+  minimumAvailability?: MinimumAvailability
   data?: {
     qualityProfiles?: Array<{ id: number; name: string }>
     rootFolders?: Array<{ path: string }>
