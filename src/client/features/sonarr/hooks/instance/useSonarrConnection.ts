@@ -8,6 +8,18 @@ import type {
 import type { UseFormReturn } from 'react-hook-form'
 import type { SonarrInstanceSchema } from '@/features/sonarr/store/schemas'
 
+/**
+ * React hook for managing the connection state, validation, and configuration status of a Sonarr instance.
+ *
+ * Provides utilities to test the connection, track connection and save statuses, determine if additional configuration is needed, and reset the connection state. Handles instance creation, updating, and data fetching as part of the connection workflow.
+ *
+ * @param instance - The Sonarr instance to manage.
+ * @param setShowInstanceCard - Optional callback to control the visibility of the instance card UI.
+ * @returns An object containing connection and configuration state, status setters, refs, and functions for testing and resetting the connection.
+ *
+ * @remark
+ * The `needsConfiguration` state indicates if the instance is missing required fields (`qualityProfile` or `rootFolder`) and may require further setup after a successful connection.
+ */
 export function useSonarrConnection(
   instance: SonarrInstance,
   setShowInstanceCard?: (show: boolean) => void,
