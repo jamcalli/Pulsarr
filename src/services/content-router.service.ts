@@ -916,6 +916,7 @@ export class ContentRouterService {
     priority: number
     supportedFields?: FieldInfo[]
     supportedOperators?: Record<string, OperatorInfo[]>
+    contentType?: 'radarr' | 'sonarr' | 'both'
   }> {
     return this.evaluators.map((evaluator) => ({
       name: evaluator.name,
@@ -923,6 +924,7 @@ export class ContentRouterService {
       priority: evaluator.priority,
       supportedFields: evaluator.supportedFields || [],
       supportedOperators: evaluator.supportedOperators || {},
+      contentType: evaluator.contentType || 'both',
     }))
   }
 }
