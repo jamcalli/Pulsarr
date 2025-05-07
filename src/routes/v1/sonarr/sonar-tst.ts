@@ -120,12 +120,52 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       schema: {
         params: z.object({ id: z.coerce.number() }),
         tags: ['Sonarr Configuration'],
+        response: {
+          400: z.object({
+            statusCode: z.number(),
+            error: z.string(),
+            message: z.string(),
+          }),
+          500: z.object({
+            statusCode: z.number(),
+            error: z.string(),
+            message: z.string(),
+          }),
+        },
       },
     },
     async (request, reply) => {
       const { id } = request.params
-      await fastify.sonarrManager.removeInstance(id)
-      reply.status(204)
+
+      try {
+        await fastify.sonarrManager.removeInstance(id)
+        reply.status(204)
+      } catch (error) {
+        if (error instanceof Error) {
+          const statusCode = error.message.includes('not found') ? 400 : 500
+          const errorType =
+            statusCode === 400 ? 'Bad Request' : 'Internal Server Error'
+
+          reply
+            .status(statusCode)
+            .header('Content-Type', 'application/json; charset=utf-8')
+            .send({
+              statusCode,
+              error: errorType,
+              message: error.message,
+            })
+        } else {
+          reply
+            .status(500)
+            .header('Content-Type', 'application/json; charset=utf-8')
+            .send({
+              statusCode: 500,
+              error: 'Internal Server Error',
+              message:
+                'An unknown error occurred when deleting the Sonarr instance',
+            })
+        }
+      }
     },
   )
 }
