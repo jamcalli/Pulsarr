@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import EditableCardHeader from '@/components/ui/editable-card-header'
 import { cn } from '@/lib/utils'
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Tooltip,
@@ -44,6 +44,11 @@ import { useToast } from '@/hooks/use-toast'
 import type { SonarrInstanceSchema } from '@/features/sonarr/store/schemas'
 import { SonarrSyncModal } from '@/features/sonarr/components/instance/sonarr-sync-modal'
 import { useMediaQuery } from '@/hooks/use-media-query'
+import {
+  TagsMultiSelect,
+  type TagsMultiSelectRef,
+} from '@/components/ui/tag-multi-select'
+import { TagCreationDialog } from '@/components/ui/tag-creation-dialog'
 
 interface InstanceCardProps {
   instance: SonarrInstance
@@ -51,14 +56,14 @@ interface InstanceCardProps {
 }
 
 /**
- * Displays a configuration card for managing a Sonarr instance, allowing users to view, edit, test, sync, and delete instance settings.
+ * Renders a configuration card for managing a Sonarr instance, providing form controls to view, edit, test, sync, and delete instance settings.
  *
- * The card provides form fields for connection details, quality profile, root folder, season monitoring, syncing with other instances, monitoring new items, and setting the default instance. It integrates with global state, handles asynchronous operations for testing connections, saving changes, syncing, and deletion, and provides user feedback via toasts and modals.
+ * The card includes fields for connection details, quality profile, root folder, season monitoring, instance syncing, monitoring options, default instance selection, search-on-add, and tag management. It integrates with global state, supports asynchronous operations for testing connections, saving changes, syncing, deleting, and refreshing tags, and provides user feedback through toasts and modals.
  *
  * @param instance - The Sonarr instance to display and configure.
  * @param setShowInstanceCard - Optional callback to control the visibility of the card.
  *
- * @returns The rendered Sonarr instance configuration card UI.
+ * @returns The Sonarr instance configuration card UI.
  */
 export function InstanceCard({
   instance,
@@ -69,6 +74,8 @@ export function InstanceCard({
   const [showDeleteAlert, setShowDeleteAlert] = useState(false)
   const [showSyncModal, setShowSyncModal] = useState(false)
   const [isManualSync, setIsManualSync] = useState(false)
+  const [showTagCreationDialog, setShowTagCreationDialog] = useState(false)
+  const tagsSelectRef = useRef<TagsMultiSelectRef>(null)
   const instances = useSonarrStore((state) => state.instances)
   const instancesLoading = useSonarrStore((state) => state.instancesLoading)
   const setLoadingWithMinDuration = useSonarrStore(
@@ -181,6 +188,20 @@ export function InstanceCard({
     }
   }
 
+  // Refresh tags via the TagsMultiSelect component
+  const refreshTags = async () => {
+    if (instance.id <= 0) return
+
+    try {
+      // Use the TagsMultiSelect ref to refresh tags
+      if (tagsSelectRef.current) {
+        await tagsSelectRef.current.refetchTags()
+      }
+    } catch (error) {
+      console.error('Error refreshing tags:', error)
+    }
+  }
+
   if (instancesLoading && instance.id !== -1 && isNavigationTest.current) {
     return <InstanceCardSkeleton />
   }
@@ -202,6 +223,14 @@ export function InstanceCard({
         syncedInstances={form.watch('syncedInstances') || []}
         instanceId={instance.id}
         isManualSync={isManualSync}
+      />
+      <TagCreationDialog
+        open={showTagCreationDialog}
+        onOpenChange={setShowTagCreationDialog}
+        instanceId={instance.id}
+        instanceType="sonarr"
+        instanceName={instance.name}
+        onSuccess={refreshTags}
       />
       <div className="relative">
         {(form.formState.isDirty || instance.id === -1) && (
@@ -414,6 +443,73 @@ export function InstanceCard({
                             Set as default instance
                           </span>
                         </div>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="searchOnAdd"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-text">
+                          Search on Add
+                        </FormLabel>
+                        <div className="flex h-10 items-center gap-2 px-3 py-2">
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              disabled={!isConnectionValid}
+                            />
+                          </FormControl>
+                          <span className="text-sm text-text text-muted-foreground">
+                            Automatically search for series when added
+                          </span>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="tags"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-text">
+                          Instance Tags
+                        </FormLabel>
+                        <div className="flex gap-2 items-center w-full">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="noShadow"
+                                  size="icon"
+                                  className="flex-shrink-0"
+                                  onClick={() => setShowTagCreationDialog(true)}
+                                  disabled={!isConnectionValid}
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Create a new tag</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+
+                          <FormControl>
+                            <TagsMultiSelect
+                              ref={tagsSelectRef}
+                              field={field}
+                              instanceId={instance.id}
+                              instanceType="sonarr"
+                              isConnectionValid={isConnectionValid}
+                              // Tag IDs are stored as strings in the form data
+                            />
+                          </FormControl>
+                        </div>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />

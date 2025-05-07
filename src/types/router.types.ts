@@ -20,6 +20,7 @@ export interface RouterRule {
   target_instance_id: number
   root_folder?: string | null
   quality_profile?: number | null
+  tags?: string[]
   order: number
   enabled: boolean
   metadata?: RadarrMovieLookupResponse | SonarrSeriesLookupResponse | null

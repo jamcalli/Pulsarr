@@ -12,6 +12,8 @@ export interface SonarrInstance {
   rootFolder?: string
   bypassIgnored: boolean
   seasonMonitoring: string
+  monitorNewItems?: 'all' | 'none'
+  searchOnAdd: boolean
   tags: string[]
   isDefault: boolean
   syncedInstances?: number[]

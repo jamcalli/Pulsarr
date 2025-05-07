@@ -323,7 +323,9 @@ export default function createLanguageEvaluator(
           break
       }
 
-      return negate ? !result : result
+      // Do not apply negation here - the content router service handles negation at a higher level.
+      // This prevents double-negation issues when condition.negate is true.
+      return result
     },
 
     canEvaluateConditionField(field: string): boolean {

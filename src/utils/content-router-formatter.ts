@@ -2,14 +2,14 @@ import type { ContentRouterRule } from '@schemas/content-router/content-router.s
 import type { RouterRule } from '@root/types/router.types.js'
 
 /**
- * Formats a router rule object into a standardized API response.
+ * Converts a router rule into a standardized API response object.
  *
- * Attempts to parse the {@link rule.criteria} property as JSON if it is a string, extracting the `condition` field for the response. If parsing fails, the `condition` field is set to `undefined` to ensure a valid response object.
+ * Parses the `criteria` property of the input rule to extract the `condition` field, handling both stringified and object forms. If parsing fails, the `condition` is set to `undefined` to ensure a valid response structure. The returned object includes all relevant rule fields, including `tags`, defaulting to an empty array if not present.
  *
- * @param rule - The router rule to convert.
- * @returns A formatted router rule suitable for API responses.
+ * @param rule - The router rule to format for API output.
+ * @returns The formatted router rule object for API responses.
  *
- * @remark If {@link rule.criteria} is an invalid JSON string, the function logs the error (if a logger is provided) and sets `condition` to `undefined` in the result.
+ * @remark If `criteria` is an invalid JSON string, the function logs the error (if a logger is provided) and sets `condition` to `undefined` in the result.
  */
 export function formatRule(
   rule: RouterRule,
@@ -34,6 +34,7 @@ export function formatRule(
       order: rule.order,
       enabled: Boolean(rule.enabled),
       condition: criteria.condition,
+      tags: rule.tags || [],
       created_at: rule.created_at,
       updated_at: rule.updated_at,
     }
@@ -55,6 +56,7 @@ export function formatRule(
       order: rule.order,
       enabled: Boolean(rule.enabled),
       condition: undefined,
+      tags: rule.tags || [],
       created_at: rule.created_at,
       updated_at: rule.updated_at,
     }

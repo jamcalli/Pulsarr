@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import EditableCardHeader from '@/components/ui/editable-card-header'
 import { cn } from '@/lib/utils'
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Tooltip,
@@ -36,12 +36,30 @@ import type { RadarrInstance } from '@/features/radarr/types/types'
 import { useToast } from '@/hooks/use-toast'
 import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
 import { useMediaQuery } from '@/hooks/use-media-query'
+import {
+  TagsMultiSelect,
+  type TagsMultiSelectRef,
+} from '@/components/ui/tag-multi-select'
+import { TagCreationDialog } from '@/components/ui/tag-creation-dialog'
 
 interface InstanceCardProps {
   instance: RadarrInstance
   setShowInstanceCard?: (show: boolean) => void
 }
 
+/**
+ * Displays and manages the configuration form for a Radarr instance, allowing users to view, edit, test, save, sync, tag, and delete instance settings within a card interface.
+ *
+ * @param instance - The Radarr instance data to display and edit.
+ * @param setShowInstanceCard - Optional function to control the visibility of the instance card.
+ *
+ * @returns The rendered instance card UI with form controls and modals for editing, syncing, tagging, and deleting the Radarr instance.
+ *
+ * @remark
+ * - Prevents saving unless the connection is successfully tested.
+ * - Triggers a sync modal if synced instances are changed and non-empty.
+ * - Integrates tag creation and refresh functionality for instance tags.
+ */
 export function InstanceCard({
   instance,
   setShowInstanceCard,
@@ -51,6 +69,8 @@ export function InstanceCard({
   const [showDeleteAlert, setShowDeleteAlert] = useState(false)
   const [showSyncModal, setShowSyncModal] = useState(false)
   const [isManualSync, setIsManualSync] = useState(false)
+  const [showTagCreationDialog, setShowTagCreationDialog] = useState(false)
+  const tagsSelectRef = useRef<TagsMultiSelectRef>(null)
 
   const instances = useRadarrStore((state) => state.instances)
   const instancesLoading = useRadarrStore((state) => state.instancesLoading)
@@ -164,6 +184,20 @@ export function InstanceCard({
     }
   }
 
+  // Refresh tags for the specified instance
+  const refreshTags = async () => {
+    if (instance.id <= 0) return
+
+    try {
+      // Use the TagsMultiSelect ref to refresh tags
+      if (tagsSelectRef.current) {
+        await tagsSelectRef.current.refetchTags()
+      }
+    } catch (error) {
+      console.error('Error refreshing tags:', error)
+    }
+  }
+
   if (instancesLoading && instance.id !== -1 && isNavigationTest.current) {
     return <InstanceCardSkeleton />
   }
@@ -185,6 +219,14 @@ export function InstanceCard({
         syncedInstances={form.watch('syncedInstances') || []}
         instanceId={instance.id}
         isManualSync={isManualSync}
+      />
+      <TagCreationDialog
+        open={showTagCreationDialog}
+        onOpenChange={setShowTagCreationDialog}
+        instanceId={instance.id}
+        instanceType="radarr"
+        instanceName={instance.name}
+        onSuccess={refreshTags}
       />
       <div className="relative">
         {(form.formState.isDirty || instance.id === -1) && (
@@ -339,6 +381,73 @@ export function InstanceCard({
                             Set as default instance
                           </span>
                         </div>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="searchOnAdd"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-text">
+                          Search on Add
+                        </FormLabel>
+                        <div className="flex h-10 items-center gap-2 px-3 py-2">
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              disabled={!isConnectionValid}
+                            />
+                          </FormControl>
+                          <span className="text-sm text-text text-muted-foreground">
+                            Automatically search for movies when added
+                          </span>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="tags"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-text">
+                          Instance Tags
+                        </FormLabel>
+                        <div className="flex gap-2 items-center w-full">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="noShadow"
+                                  size="icon"
+                                  className="flex-shrink-0"
+                                  onClick={() => setShowTagCreationDialog(true)}
+                                  disabled={!isConnectionValid}
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Create a new tag</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+
+                          <FormControl>
+                            <TagsMultiSelect
+                              ref={tagsSelectRef}
+                              field={field}
+                              instanceId={instance.id}
+                              instanceType="radarr"
+                              isConnectionValid={isConnectionValid}
+                              // Tag IDs are stored as strings in the form data
+                            />
+                          </FormControl>
+                        </div>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />

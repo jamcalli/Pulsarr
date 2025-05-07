@@ -9,6 +9,7 @@ const RadarrInstanceSchema = z.object({
   qualityProfile: z.union([z.string(), z.number()]).nullish(),
   rootFolder: z.string().nullish(),
   bypassIgnored: z.boolean().optional().default(false),
+  searchOnAdd: z.boolean().optional().default(true),
   tags: z.array(z.string()).optional().default([]),
   isDefault: z.boolean().optional().default(false),
   syncedInstances: z.array(z.number()).optional(),
@@ -29,7 +30,12 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       },
     },
     async () => {
-      return await fastify.radarrManager.getAllInstances()
+      const instances = await fastify.radarrManager.getAllInstances()
+      // Ensure searchOnAdd is defined for all instances (default to true if missing)
+      return instances.map((instance) => ({
+        ...instance,
+        searchOnAdd: instance.searchOnAdd ?? true,
+      }))
     },
   )
 
