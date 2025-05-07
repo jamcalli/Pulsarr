@@ -10,6 +10,10 @@ const RadarrInstanceSchema = z.object({
   rootFolder: z.string().nullish(),
   bypassIgnored: z.boolean().optional().default(false),
   searchOnAdd: z.boolean().optional().default(true),
+  minimumAvailability: z
+    .enum(['announced', 'inCinemas', 'released'])
+    .optional()
+    .default('released'),
   tags: z.array(z.string()).optional().default([]),
   isDefault: z.boolean().optional().default(false),
   syncedInstances: z.array(z.number()).optional(),
@@ -31,10 +35,11 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     },
     async () => {
       const instances = await fastify.radarrManager.getAllInstances()
-      // Ensure searchOnAdd is defined for all instances (default to true if missing)
+      // Ensure defaults are provided for all instances
       return instances.map((instance) => ({
         ...instance,
         searchOnAdd: instance.searchOnAdd ?? true,
+        minimumAvailability: instance.minimumAvailability ?? 'released',
       }))
     },
   )

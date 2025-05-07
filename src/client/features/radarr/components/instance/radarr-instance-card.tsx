@@ -41,6 +41,13 @@ import {
   type TagsMultiSelectRef,
 } from '@/components/ui/tag-multi-select'
 import { TagCreationDialog } from '@/components/ui/tag-creation-dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 interface InstanceCardProps {
   instance: RadarrInstance
@@ -404,6 +411,35 @@ export function InstanceCard({
                             Automatically search for movies when added
                           </span>
                         </div>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="minimumAvailability"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-text">
+                          Minimum Availability
+                        </FormLabel>
+                        <Select
+                          disabled={!isConnectionValid}
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select availability" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="announced">Announced</SelectItem>
+                            <SelectItem value="inCinemas">
+                              In Cinemas
+                            </SelectItem>
+                            <SelectItem value="released">Released</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </FormItem>
                     )}
                   />

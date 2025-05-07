@@ -7,12 +7,15 @@ const urlWithoutTrailingSlash = z
     message: 'URL should not end with a trailing slash (/)',
   })
 
+const minimumAvailabilityEnum = z.enum(['announced', 'inCinemas', 'released'])
+
 const baseObjectSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   baseUrl: urlWithoutTrailingSlash,
   apiKey: z.string().min(1, { message: 'API Key is required' }),
   bypassIgnored: z.boolean(),
   searchOnAdd: z.boolean().default(true),
+  minimumAvailability: minimumAvailabilityEnum.default('released'),
   tags: z.array(z.string()),
   isDefault: z.boolean(),
   syncedInstances: z.array(z.number()).optional(),

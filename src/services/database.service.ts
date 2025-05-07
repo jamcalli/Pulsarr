@@ -988,6 +988,7 @@ export class DatabaseService {
         instance.search_on_add === null
           ? true
           : Boolean(instance.search_on_add),
+      minimumAvailability: instance.minimum_availability || 'released',
       tags: JSON.parse(instance.tags || '[]'),
       isDefault: Boolean(instance.is_default),
       syncedInstances: JSON.parse(instance.synced_instances || '[]'),
@@ -1019,6 +1020,7 @@ export class DatabaseService {
         instance.search_on_add === null
           ? true
           : Boolean(instance.search_on_add),
+      minimumAvailability: instance.minimum_availability || 'released',
       tags: JSON.parse(instance.tags || '[]'),
       isDefault: true,
       syncedInstances: JSON.parse(instance.synced_instances || '[]'),
@@ -1046,6 +1048,7 @@ export class DatabaseService {
         instance.search_on_add === null
           ? true
           : Boolean(instance.search_on_add),
+      minimumAvailability: instance.minimum_availability || 'released',
       tags: JSON.parse(instance.tags || '[]'),
       isDefault: Boolean(instance.is_default),
       syncedInstances: JSON.parse(instance.synced_instances || '[]'),
@@ -1077,6 +1080,7 @@ export class DatabaseService {
         root_folder: instance.rootFolder,
         bypass_ignored: instance.bypassIgnored,
         search_on_add: instance.searchOnAdd ?? true,
+        minimum_availability: instance.minimumAvailability || 'released',
         tags: JSON.stringify(instance.tags || []),
         is_default: instance.isDefault ?? false,
         is_enabled: true,
@@ -1134,6 +1138,9 @@ export class DatabaseService {
         }),
         ...(typeof updates.searchOnAdd !== 'undefined' && {
           search_on_add: updates.searchOnAdd,
+        }),
+        ...(typeof updates.minimumAvailability !== 'undefined' && {
+          minimum_availability: updates.minimumAvailability,
         }),
         ...(typeof updates.tags !== 'undefined' && {
           tags: JSON.stringify(updates.tags),
@@ -4591,6 +4598,11 @@ export class DatabaseService {
           qualityProfile: instance.quality_profile,
           rootFolder: instance.root_folder,
           bypassIgnored: Boolean(instance.bypass_ignored),
+          searchOnAdd:
+            instance.search_on_add === null
+              ? true
+              : Boolean(instance.search_on_add),
+          minimumAvailability: instance.minimum_availability || 'released',
           tags: JSON.parse(instance.tags || '[]'),
           isDefault: Boolean(instance.is_default),
           syncedInstances: JSON.parse(instance.synced_instances || '[]'),

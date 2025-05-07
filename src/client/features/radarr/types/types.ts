@@ -15,6 +15,7 @@ export interface RadarrInstance {
   rootFolder?: string
   bypassIgnored: boolean
   searchOnAdd: boolean
+  minimumAvailability?: 'announced' | 'inCinemas' | 'released'
   tags: string[]
   isDefault: boolean
   syncedInstances?: number[]
@@ -40,6 +41,7 @@ export interface RadarrConnectionValues {
 export interface RadarrInstanceFormValues extends RadarrConnectionValues {
   bypassIgnored: boolean
   searchOnAdd?: boolean
+  minimumAvailability?: 'announced' | 'inCinemas' | 'released'
   tags: string[]
   isDefault: boolean
   syncedInstances?: number[]
