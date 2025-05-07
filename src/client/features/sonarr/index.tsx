@@ -5,7 +5,7 @@ import { Separator } from '@/components/ui/separator'
 import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
 import AccordionContentRouterSection from '@/features/content-router/components/accordion-content-router-section'
 import { InstanceCard } from '@/features/sonarr/components/instance/sonarr-instance-card'
-import InstanceCardSkeleton from '@/features/sonarr/components/instance/sonarr-card-skeleton'
+import SonarrPageSkeleton from '@/features/sonarr/components/instance/sonarr-card-skeleton'
 import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
 
 /**
@@ -53,18 +53,7 @@ export default function SonarrConfigPage() {
   )
 
   if (instancesLoading && hasRealInstances) {
-    return (
-      <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
-        <div className="grid gap-6">
-          <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold text-text">
-              Sonarr Configuration
-            </h2>
-          </div>
-          <InstanceCardSkeleton />
-        </div>
-      </div>
-    )
+    return <SonarrPageSkeleton />
   }
 
   return (
