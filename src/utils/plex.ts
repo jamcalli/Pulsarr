@@ -11,6 +11,20 @@ import type {
 import type { Config } from '@root/types/config.types.js'
 import type { ProgressService } from '@root/types/progress.types.js'
 
+// Custom error interface for rate limit errors
+interface RateLimitError extends Error {
+  isRateLimitExhausted: boolean
+}
+
+// Type guard to check if an error is a RateLimitError
+function isRateLimitError(error: unknown): error is RateLimitError {
+  return (
+    error instanceof Error &&
+    'isRateLimitExhausted' in error &&
+    (error as RateLimitError).isRateLimitExhausted === true
+  )
+}
+
 // Global rate limiting control
 // Using a singleton pattern to track and control rate limiting across all processes
 export class PlexRateLimiter {
@@ -75,6 +89,9 @@ export class PlexRateLimiter {
     // Apply jitter (±10%) to avoid thundering herd
     const jitter = cooldownSeconds * 0.1
     cooldownSeconds += Math.random() * jitter * 2 - jitter
+
+    // Ensure final value never exceeds maxCooldown after jitter
+    cooldownSeconds = Math.min(cooldownSeconds, this.maxCooldown)
 
     // Calculate end time of cooldown
     this.cooldownEndTime = now + cooldownSeconds * 1000
@@ -221,8 +238,14 @@ export const getWatchlist = async (
           return getWatchlist(token, log, start, retryCount + 1, progressInfo)
         }
 
+        // Instead of returning an empty result, throw a specific error
+        // that can be handled by callers
         log.warn(`Maximum retries reached for getWatchlist at start=${start}`)
-        return { MediaContainer: { Metadata: [], totalSize: 0 } }
+        const error = new Error(
+          `Rate limit exceeded: Maximum retries (${retryCount}) reached when fetching watchlist`,
+        ) as RateLimitError
+        error.isRateLimitExhausted = true
+        throw error
       }
       throw new Error(
         `Plex API error: HTTP ${response.status} - ${response.statusText}`,
@@ -289,49 +312,62 @@ export const fetchSelfWatchlist = async (
     try {
       while (true) {
         log.debug(`Fetching watchlist for token with start: ${currentStart}`)
-        const response = await getWatchlist(token, log, currentStart)
+        try {
+          const response = await getWatchlist(token, log, currentStart)
 
-        const metadata = response?.MediaContainer?.Metadata || []
-        const totalSize = response?.MediaContainer?.totalSize || 0
+          const metadata = response?.MediaContainer?.Metadata || []
+          const totalSize = response?.MediaContainer?.totalSize || 0
 
-        if (metadata.length === 0 && currentStart === 0) {
-          log.info('User has no items in their watchlist')
-          break
-        }
-
-        const items = metadata.map((metadata) => {
-          const key = metadata.key
-            ? metadata.key
-                .replace('/library/metadata/', '')
-                .replace('/children', '')
-            : `temp-${Date.now()}-${Math.random()}`
-
-          return {
-            title: metadata.title || 'Unknown Title',
-            id: key,
-            key: key,
-            thumb: metadata.thumb || null,
-            type: metadata.type || 'unknown',
-            guids: [],
-            genres: [],
-            user_id: userId,
-            status: 'pending',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
+          if (metadata.length === 0 && currentStart === 0) {
+            log.info('User has no items in their watchlist')
+            break
           }
-        })
 
-        log.debug(`Found ${items.length} items in current page`)
-        for (const item of items) {
-          allItems.add(item as TokenWatchlistItem)
+          const items = metadata.map((metadata) => {
+            const key = metadata.key
+              ? metadata.key
+                  .replace('/library/metadata/', '')
+                  .replace('/children', '')
+              : `temp-${Date.now()}-${Math.random()}`
+
+            return {
+              title: metadata.title || 'Unknown Title',
+              id: key,
+              key: key,
+              thumb: metadata.thumb || null,
+              type: metadata.type || 'unknown',
+              guids: [],
+              genres: [],
+              user_id: userId,
+              status: 'pending',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            }
+          })
+
+          log.debug(`Found ${items.length} items in current page`)
+          for (const item of items) {
+            allItems.add(item as TokenWatchlistItem)
+          }
+
+          if (totalSize <= currentStart + items.length) {
+            log.debug('Completed processing all pages for current token')
+            break
+          }
+
+          currentStart += items.length
+        } catch (innerError) {
+          // Check if this is a rate limit exhaustion error
+          if (isRateLimitError(innerError)) {
+            log.warn(
+              `Rate limit exhausted while fetching watchlist for token at start=${currentStart}. Moving to next token.`,
+            )
+            // Break out of the loop for this token and move on to the next one
+            break
+          }
+          // For other errors, rethrow to be handled by outer catch
+          throw innerError
         }
-
-        if (totalSize <= currentStart + items.length) {
-          log.debug('Completed processing all pages for current token')
-          break
-        }
-
-        currentStart += items.length
       }
     } catch (err) {
       log.error(`Error fetching watchlist for token: ${err}`)
@@ -512,6 +548,15 @@ export const getWatchlistForUser = async (
       }
     }
   } catch (err) {
+    // Check if this is a rate limit exhaustion error
+    if (isRateLimitError(err)) {
+      log.warn(
+        `Rate limit exhausted while fetching watchlist for user ${user.username}. Propagating error.`,
+      )
+      // Propagate the rate limit error so the caller can handle it appropriately
+      throw err
+    }
+
     if (retryCount < maxRetries) {
       const retryDelay = Math.min(1000 * 2 ** retryCount, 10000)
       log.warn(
@@ -581,36 +626,65 @@ export const getOthersWatchlist = async (
   const userWatchlistMap = new Map<Friend, Set<TokenWatchlistItem>>()
   log.info(`Starting fetch of watchlists for ${friends.size} friends`)
 
-  // Create an array of promises, each processing one friend concurrently
-  const friendPromises = Array.from(friends).map(async ([user, token]) => {
-    log.debug(`Processing friend: ${JSON.stringify(user)}`)
-    try {
-      const watchlistItems = await getWatchlistForUser(
-        config,
-        log,
-        token,
-        user,
-        user.userId,
-        null,
-        0,
-        3,
-        getAllWatchlistItems,
-      )
-      return { user, watchlistItems, success: true }
-    } catch (error) {
-      log.error(
-        `Error fetching watchlist for friend ${user.username}: ${error}`,
-      )
-      return {
-        user,
-        watchlistItems: new Set<TokenWatchlistItem>(),
-        success: false,
-      }
-    }
-  })
+  // Simple concurrency pool implementation
+  const MAX_CONCURRENT = 4 // Maximum number of concurrent friend fetches
+  const friendsArray = Array.from(friends)
+  const results: Array<{
+    user: Friend & { userId: number }
+    watchlistItems: Set<TokenWatchlistItem>
+    success: boolean
+  }> = []
 
-  // Wait for all promises to resolve
-  const results = await Promise.all(friendPromises)
+  // Create batches of friends to process
+  for (let i = 0; i < friendsArray.length; i += MAX_CONCURRENT) {
+    const batch = friendsArray.slice(i, i + MAX_CONCURRENT)
+    log.debug(
+      `Processing batch of ${batch.length} friends (${i + 1}-${Math.min(i + batch.length, friendsArray.length)} of ${friendsArray.length})`,
+    )
+
+    // Process this batch concurrently
+    const batchPromises = batch.map(async ([user, token]) => {
+      log.debug(`Processing friend: ${JSON.stringify(user)}`)
+      try {
+        const watchlistItems = await getWatchlistForUser(
+          config,
+          log,
+          token,
+          user,
+          user.userId,
+          null,
+          0,
+          3,
+          getAllWatchlistItems,
+        )
+        return { user, watchlistItems, success: true }
+      } catch (error) {
+        if (isRateLimitError(error)) {
+          log.warn(
+            `Rate limit exhausted while fetching watchlist for friend ${user.username}. Skipping.`,
+          )
+        } else {
+          log.error(
+            `Error fetching watchlist for friend ${user.username}: ${error}`,
+          )
+        }
+        return {
+          user,
+          watchlistItems: new Set<TokenWatchlistItem>(),
+          success: false,
+        }
+      }
+    })
+
+    // Wait for the current batch to complete before processing the next batch
+    const batchResults = await Promise.all(batchPromises)
+    results.push(...batchResults)
+
+    // Introduce a small delay between batches to avoid rate limits
+    if (i + MAX_CONCURRENT < friendsArray.length) {
+      await new Promise((resolve) => setTimeout(resolve, 500))
+    }
+  }
 
   // Add each result to the map
   for (const { user, watchlistItems, success } of results) {
@@ -737,6 +811,10 @@ const toItemsBatch = async (
   let batchCompletedCount = 0
   let currentConcurrencyLimit = initialConcurrencyLimit
 
+  // Track successful consecutive batches for concurrency recovery
+  let consecutiveSuccessCount = 0
+  const RECOVERY_THRESHOLD = 5 // Number of successful items needed before attempting recovery
+
   // Get the global rate limiter instance
   const rateLimiter = PlexRateLimiter.getInstance()
 
@@ -745,6 +823,9 @@ const toItemsBatch = async (
     // Check if we're rate limited using the global rate limiter
     if (rateLimiter.isLimited()) {
       const cooldownMs = rateLimiter.getRemainingCooldown()
+
+      // Reset consecutive success counter when rate limited
+      consecutiveSuccessCount = 0
 
       if (progressTracker) {
         progressTracker.progress.emit({
@@ -803,19 +884,33 @@ const toItemsBatch = async (
             results.set(item, itemSet)
             processingCount--
             batchCompletedCount++
+            consecutiveSuccessCount++ // Increment success counter
 
-            // If we've processed several items successfully, we can gradually increase concurrency
-            if (
-              batchCompletedCount % 10 === 0 &&
-              currentConcurrencyLimit < initialConcurrencyLimit
-            ) {
-              currentConcurrencyLimit = Math.min(
-                currentConcurrencyLimit + 1,
-                initialConcurrencyLimit,
-              )
-              log.debug(
-                `Gradually increasing concurrency to ${currentConcurrencyLimit}`,
-              )
+            // Recovery logic - increase concurrency more aggressively
+            if (currentConcurrencyLimit < initialConcurrencyLimit) {
+              // Faster recovery for consecutive successes
+              if (consecutiveSuccessCount >= RECOVERY_THRESHOLD) {
+                // More aggressive recovery after a string of successes
+                currentConcurrencyLimit = Math.min(
+                  currentConcurrencyLimit + 1,
+                  initialConcurrencyLimit,
+                )
+                log.debug(
+                  `Concurrency recovery: increasing to ${currentConcurrencyLimit} after ${consecutiveSuccessCount} consecutive successes`,
+                )
+                // Reset counter but don't drop it to zero to maintain some "credit"
+                consecutiveSuccessCount = Math.floor(RECOVERY_THRESHOLD / 2)
+              }
+              // Also keep the gradual recovery for regular batches
+              else if (batchCompletedCount % 10 === 0) {
+                currentConcurrencyLimit = Math.min(
+                  currentConcurrencyLimit + 1,
+                  initialConcurrencyLimit,
+                )
+                log.debug(
+                  `Gradually increasing concurrency to ${currentConcurrencyLimit}`,
+                )
+              }
             }
 
             if (progressTracker) {
@@ -839,7 +934,28 @@ const toItemsBatch = async (
             // Note: We don't need to handle rate limiting here specifically anymore
             // as toItemsSingle will now handle it with the global rate limiter
             // But we'll still check just in case
-            if (
+            // Check if this is a rate limit exhaustion error
+            if (isRateLimitError(error)) {
+              log.warn(
+                `Rate limit exhausted while processing item ${item.title}. Putting back in queue.`,
+              )
+              // Put the item back in the queue
+              queue.unshift(item)
+              // Let the global rate limiter handle the cooldown timing
+              rateLimiter.setRateLimited(undefined, log)
+              // Reset consecutive success counter
+              consecutiveSuccessCount = 0
+              // Reduce concurrency after a rate limit exhaustion
+              currentConcurrencyLimit = Math.max(
+                1,
+                Math.floor(currentConcurrencyLimit * 0.7),
+              )
+              log.info(
+                `Reduced concurrency to ${currentConcurrencyLimit} after rate limit exhaustion`,
+              )
+            }
+            // Check for other rate limit related errors
+            else if (
               error.message?.includes('429') ||
               error.message?.toLowerCase().includes('rate limit')
             ) {
@@ -847,6 +963,8 @@ const toItemsBatch = async (
               queue.unshift(item)
               // Let the global rate limiter handle the cooldown timing
               rateLimiter.setRateLimited(undefined, log)
+              // Reset consecutive success counter
+              consecutiveSuccessCount = 0
             } else {
               log.error(`Error processing item ${item.title}:`, error)
               results.set(item, new Set())
@@ -1002,6 +1120,15 @@ const toItemsSingle = async (
     const errorStr = String(error)
 
     // Check if error is related to rate limiting
+    // Check if this is already a rate limit exhaustion error
+    if (isRateLimitError(error)) {
+      log.warn(
+        `Rate limit already exhausted for "${item.title}". Propagating error.`,
+      )
+      throw error
+    }
+
+    // Check if error is related to rate limiting
     if (
       errorStr.includes('429') ||
       errorStr.toLowerCase().includes('rate limit')
@@ -1031,7 +1158,16 @@ const toItemsSingle = async (
           progressInfo,
         )
       }
-    } else if (error.message.includes('Plex API error')) {
+
+      // When retries are exhausted, create a proper error to propagate
+      const rateLimitError = new Error(
+        `Rate limit exceeded: Maximum retries (${maxRetries}) reached when processing item "${item.title}"`,
+      ) as RateLimitError
+      rateLimitError.isRateLimitExhausted = true
+      throw rateLimitError
+    }
+
+    if (error.message.includes('Plex API error')) {
       if (retryCount < maxRetries) {
         log.warn(
           `Failed to find ${item.title} in Plex's database. Error: ${error.message}. Retry ${retryCount + 1}/${maxRetries}`,
