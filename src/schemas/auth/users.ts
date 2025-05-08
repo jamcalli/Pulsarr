@@ -1,9 +1,8 @@
 import { z } from 'zod'
 
-const passwordPattern =
-  /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).*$/
-
-const PasswordSchema = z.string().min(8).regex(passwordPattern)
+const PasswordSchema = z
+  .string()
+  .min(8, 'Password must be at least 8 characters')
 
 export const UpdateCredentialsSchema = z.object({
   currentPassword: PasswordSchema,

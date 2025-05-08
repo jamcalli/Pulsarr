@@ -687,9 +687,7 @@ export class DatabaseService {
       seasonMonitoring: instance.season_monitoring,
       monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
       searchOnAdd:
-        instance.search_on_add === null
-          ? true
-          : Boolean(instance.search_on_add),
+        instance.search_on_add == null ? true : Boolean(instance.search_on_add),
       tags: JSON.parse(instance.tags || '[]'),
       isDefault: Boolean(instance.is_default),
       syncedInstances: JSON.parse(instance.synced_instances || '[]'),
@@ -722,9 +720,7 @@ export class DatabaseService {
       seasonMonitoring: instance.season_monitoring,
       monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
       searchOnAdd:
-        instance.search_on_add === null
-          ? true
-          : Boolean(instance.search_on_add),
+        instance.search_on_add == null ? true : Boolean(instance.search_on_add),
       tags: JSON.parse(instance.tags || '[]'),
       isDefault: true,
       syncedInstances: JSON.parse(instance.synced_instances || '[]'),
@@ -753,9 +749,7 @@ export class DatabaseService {
       seasonMonitoring: instance.season_monitoring,
       monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
       searchOnAdd:
-        instance.search_on_add === null
-          ? true
-          : Boolean(instance.search_on_add),
+        instance.search_on_add == null ? true : Boolean(instance.search_on_add),
       tags: JSON.parse(instance.tags || '[]'),
       isDefault: Boolean(instance.is_default),
       syncedInstances: JSON.parse(instance.synced_instances || '[]'),
@@ -844,15 +838,22 @@ export class DatabaseService {
       return defaultValue
     }
 
-    // Check if value is allowed
-    const v = value.toString()
-    const isAllowed = allowed.some((allowedValue) => allowedValue === v)
+    // Normalize the input value by trimming whitespace and converting to lowercase
+    const v = value.toString().trim()
+    const canonical = v.toLowerCase()
 
-    if (!isAllowed) {
+    // Find the matching allowed value (case-insensitive)
+    const match = allowed.find(
+      (allowedValue) => allowedValue.toLowerCase() === canonical,
+    )
+
+    // If no match is found, throw an error
+    if (!match) {
       throw new Error(`Invalid minimumAvailability value: ${v}`)
     }
 
-    return v as MinimumAvailability
+    // Return the properly cased value from the allowed list
+    return match as MinimumAvailability
   }
 
   /**
@@ -1229,9 +1230,7 @@ export class DatabaseService {
       rootFolder: instance.root_folder,
       bypassIgnored: Boolean(instance.bypass_ignored),
       searchOnAdd:
-        instance.search_on_add === null
-          ? true
-          : Boolean(instance.search_on_add),
+        instance.search_on_add == null ? true : Boolean(instance.search_on_add),
       minimumAvailability: this.normaliseMinimumAvailability(
         instance.minimum_availability,
       ),
@@ -1263,9 +1262,7 @@ export class DatabaseService {
       rootFolder: instance.root_folder,
       bypassIgnored: Boolean(instance.bypass_ignored),
       searchOnAdd:
-        instance.search_on_add === null
-          ? true
-          : Boolean(instance.search_on_add),
+        instance.search_on_add == null ? true : Boolean(instance.search_on_add),
       minimumAvailability: this.normaliseMinimumAvailability(
         instance.minimum_availability,
       ),
@@ -1293,9 +1290,7 @@ export class DatabaseService {
       rootFolder: instance.root_folder,
       bypassIgnored: Boolean(instance.bypass_ignored),
       searchOnAdd:
-        instance.search_on_add === null
-          ? true
-          : Boolean(instance.search_on_add),
+        instance.search_on_add == null ? true : Boolean(instance.search_on_add),
       minimumAvailability: this.normaliseMinimumAvailability(
         instance.minimum_availability,
       ),
@@ -5189,7 +5184,7 @@ export class DatabaseService {
       ...rule,
       enabled: Boolean(rule.enabled),
       search_on_add:
-        rule.search_on_add !== null ? Boolean(rule.search_on_add) : null,
+        rule.search_on_add == null ? null : Boolean(rule.search_on_add),
       criteria:
         typeof rule.criteria === 'string'
           ? JSON.parse(rule.criteria)

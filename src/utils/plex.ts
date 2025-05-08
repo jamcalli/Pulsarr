@@ -95,8 +95,8 @@ export class PlexRateLimiter {
     const jitter = cooldownSeconds * 0.1
     cooldownSeconds += Math.random() * jitter * 2 - jitter
 
-    // Ensure final value never exceeds maxCooldown after jitter
-    cooldownSeconds = Math.min(cooldownSeconds, this.maxCooldown)
+    // Clamp to [0.1s, maxCooldown] after jitter
+    cooldownSeconds = Math.min(Math.max(cooldownSeconds, 0.1), this.maxCooldown)
 
     // Calculate end time of cooldown
     this.cooldownEndTime = now + cooldownSeconds * 1000
@@ -291,11 +291,19 @@ export const getWatchlist = async (
         // Try again after waiting
         return getWatchlist(token, log, start, retryCount + 1, progressInfo)
       }
+
+      // Create rate limit error when retries are exhausted
+      const rateLimitError = new Error(
+        `Rate limit exceeded: Maximum retries (${retryCount}) reached when fetching watchlist`,
+      ) as RateLimitError
+      rateLimitError.isRateLimitExhausted = true
+      log.error(`Error in getWatchlist: ${rateLimitError.message}`)
+      throw rateLimitError
     }
 
-    log.error(`Error in getWatchlist: ${error}`)
-    // In case of error return an empty response that matches the expected structure
-    return { MediaContainer: { Metadata: [], totalSize: 0 } }
+    // Log error and rethrow to let callers decide how to handle the failure
+    log.error('Error in getWatchlist', error)
+    throw error
   }
 }
 

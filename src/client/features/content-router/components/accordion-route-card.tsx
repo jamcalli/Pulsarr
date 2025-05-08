@@ -164,28 +164,35 @@ const AccordionRouteCard = ({
   const routeIdRef = useRef<string | number | null>(getRouteId(route, isNew))
 
   // Create a default initial condition group for new routes
-  const getInitialConditionValue = useCallback((): ConditionGroup => {
-    // Check if route has condition
-    if (route?.condition) {
-      return route.condition
-    }
+  const getInitialConditionValue = useCallback(
+    (
+      sourceRoute?:
+        | ExtendedContentRouterRule
+        | Partial<ExtendedContentRouterRule>,
+    ): ConditionGroup => {
+      // Check if source route has condition
+      if (sourceRoute?.condition) {
+        return sourceRoute.condition
+      }
 
-    // Check if route has criteria with condition
-    if (
-      route?.criteria &&
-      'condition' in route.criteria &&
-      route.criteria.condition
-    ) {
-      return route.criteria.condition
-    }
+      // Check if source route has criteria with condition
+      if (
+        sourceRoute?.criteria &&
+        'condition' in sourceRoute.criteria &&
+        sourceRoute.criteria.condition
+      ) {
+        return sourceRoute.criteria.condition
+      }
 
-    // Default condition group
-    return {
-      operator: 'AND',
-      conditions: [],
-      negate: false,
-    }
-  }, [route])
+      // Default condition group
+      return {
+        operator: 'AND',
+        conditions: [],
+        negate: false,
+      }
+    },
+    [],
+  )
 
   // Helper function to build default values
   const buildDefaultValues = useCallback(
@@ -203,7 +210,7 @@ const AccordionRouteCard = ({
         name:
           routeObj?.name ||
           `New ${routeContentType === 'radarr' ? 'Movie' : 'Show'} Route`,
-        condition: getInitialConditionValue(),
+        condition: getInitialConditionValue(routeObj),
         target_instance_id:
           routeObj?.target_instance_id ||
           (instancesList.length > 0 ? instancesList[0].id : 0),

@@ -327,38 +327,34 @@ export class SonarrService {
       // Now check if we can access the notifications API to verify webhook capabilities
       // This tests permission levels and API completeness
       try {
-        // Temporarily set up configuration for API access
-        const tempConfig = {
-          sonarrBaseUrl: baseUrl,
-          sonarrApiKey: apiKey,
-          sonarrQualityProfileId: null,
-          sonarrRootFolder: null,
-          sonarrTagIds: [],
-          sonarrLanguageProfileId: 1, // Required for SonarrConfiguration
-          sonarrSeasonMonitoring: 'all', // Required for SonarrConfiguration
-          sonarrMonitorNewItems: 'all' as const, // Required for SonarrConfiguration with proper type
+        // Create a helper function to make a GET request without modifying service state
+        const rawGet = async <T>(endpoint: string): Promise<T> => {
+          const url = new URL(`${baseUrl}/api/v3/${endpoint}`)
+          const response = await fetch(url.toString(), {
+            method: 'GET',
+            headers: {
+              'X-Api-Key': apiKey,
+              Accept: 'application/json',
+            },
+          })
+
+          if (!response.ok) {
+            throw new Error(`Sonarr API error: ${response.statusText}`)
+          }
+
+          return response.json() as Promise<T>
         }
 
-        // Save current config to restore later
-        const savedConfig = this.config
-        this.config = tempConfig
-
-        // Test notifications API access
+        // Test notifications API access with dedicated helper function
         try {
-          await this.getFromSonarr<WebhookNotification[]>('notification')
+          await rawGet<WebhookNotification[]>('notification')
 
           // If we got here, API access for notifications works
-          // Restore original config
-          this.config = savedConfig
-
           return {
             success: true,
             message: 'Connection successful and webhook API accessible',
           }
         } catch (notificationError) {
-          // Restore original config
-          this.config = savedConfig
-
           return {
             success: false,
             message:
