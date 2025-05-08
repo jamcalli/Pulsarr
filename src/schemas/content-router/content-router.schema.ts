@@ -123,8 +123,13 @@ export const BaseRouterRuleSchema = z.object({
   condition: z.union([ConditionSchema, ConditionGroupSchema]).optional(),
   root_folder: z.string().optional(),
   quality_profile: z.union([z.number(), z.string()]).optional(),
+  tags: z.array(z.string()).optional().default([]),
   order: z.number().optional(),
   enabled: z.boolean().optional().default(true),
+  search_on_add: z.boolean().nullable().optional(),
+  // For Sonarr only - sending this with Radarr rules will be rejected by the API
+  // Additional validation happens in the route handlers
+  season_monitoring: z.string().nullable().optional(),
 })
 
 // For the ConditionalRouteFormSchema (used in the frontend)
@@ -196,6 +201,7 @@ export const ConditionalRouteFormSchema = z.object({
   quality_profile: z.string().min(1, {
     message: 'Quality Profile is required',
   }),
+  tags: z.array(z.string()).optional().default([]),
   enabled: z.boolean().default(true),
   order: z.number().int().min(1).max(100).default(50),
 })
@@ -264,6 +270,55 @@ export type ContentRouterRule = z.infer<typeof RouterRuleSchema>
 export type ContentRouterRuleUpdate = z.infer<
   typeof ContentRouterRuleUpdateSchema
 >
+
+/**
+ * Normalizes the input value for the `search_on_add` field.
+ *
+ * Converts the input to a boolean if it is defined and not null; returns `undefined` if the input is `undefined` or `null`.
+ *
+ * @param value - The value to normalize.
+ * @returns The normalized boolean value, or `undefined` if the input is `undefined` or `null`.
+ */
+export function normalizeSearchOnAdd(value: unknown): boolean | undefined {
+  if (value === undefined || value === null) {
+    return undefined
+  }
+  return Boolean(value)
+}
+
+/**
+ * Normalizes and validates a season monitoring value.
+ *
+ * Converts the input to a lowercase string and returns it if it matches a predefined set of valid season monitoring values. Returns 'all' if the input is invalid, or undefined if the input is null or undefined.
+ *
+ * @param value - The value to normalize and validate.
+ * @returns The normalized season monitoring value, or undefined if the input is null or undefined.
+ */
+export function normalizeSeasonMonitoring(value: unknown): string | undefined {
+  if (value === undefined || value === null) {
+    return undefined
+  }
+
+  const validValues = [
+    'unknown',
+    'all',
+    'future',
+    'missing',
+    'existing',
+    'firstSeason',
+    'lastSeason',
+    'latestSeason',
+    'pilot',
+    'recent',
+    'monitorSpecials',
+    'unmonitorSpecials',
+    'none',
+    'skip',
+  ]
+  const strValue = String(value).toLowerCase()
+
+  return validValues.includes(strValue) ? strValue : 'all'
+}
 export type ContentRouterRuleToggle = z.infer<
   typeof ContentRouterRuleToggleSchema
 >

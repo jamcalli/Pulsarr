@@ -12,6 +12,8 @@ export interface SonarrInstance {
   rootFolder?: string
   bypassIgnored: boolean
   seasonMonitoring: string
+  monitorNewItems?: 'all' | 'none'
+  searchOnAdd: boolean
   tags: string[]
   isDefault: boolean
   syncedInstances?: number[]
@@ -278,7 +280,24 @@ export const useSonarrStore = create<SonarrState>()(
         })
 
         if (!response.ok) {
-          throw new Error('Failed to update instance')
+          // Get the error message from the response
+          let errorMessage = 'Failed to update instance'
+
+          try {
+            const errorData = await response.json()
+            console.log('Sonarr API error response:', errorData) // Debug log
+
+            // Use the error message from the API response if available
+            if (errorData && typeof errorData.message === 'string') {
+              errorMessage = errorData.message
+            }
+          } catch (jsonError) {
+            console.log('Failed to parse Sonarr error JSON:', jsonError) // Debug log
+            // If we can't parse the JSON, fall back to status text
+            errorMessage = `Failed to update instance: ${response.statusText}`
+          }
+
+          throw new Error(errorMessage)
         }
 
         await get().fetchInstances()

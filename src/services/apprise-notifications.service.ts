@@ -50,7 +50,7 @@ export class AppriseNotificationService {
   ): Promise<boolean> {
     try {
       if (!targetUrl) {
-        this.log.warn('Attempted to send notification without target URL')
+        this.log.debug('Attempted to send notification without target URL')
         return false
       }
 
@@ -244,7 +244,7 @@ export class AppriseNotificationService {
       // Check if system Apprise URL is configured
       const systemUrl = this.config.systemAppriseUrl
       if (!systemUrl) {
-        this.log.warn(
+        this.log.debug(
           'System Apprise URL not configured, skipping system notification',
         )
         return false
@@ -327,7 +327,7 @@ export class AppriseNotificationService {
     try {
       const systemUrl = this.config.systemAppriseUrl
       if (!systemUrl) {
-        this.log.warn(
+        this.log.debug(
           'System Apprise URL not configured, skipping delete sync notification',
         )
         return false
@@ -502,7 +502,7 @@ export class AppriseNotificationService {
       // Check if system Apprise URL is configured
       const systemUrl = this.config.systemAppriseUrl
       if (!systemUrl) {
-        this.log.warn(
+        this.log.debug(
           'System Apprise URL not configured, skipping watchlist addition notification',
         )
         return false

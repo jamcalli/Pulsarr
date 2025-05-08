@@ -7,6 +7,7 @@ import type {
   Condition,
   FieldInfo,
   OperatorInfo,
+  RouterRule,
 } from '@root/types/router.types.js'
 import {
   isRadarrResponse,
@@ -15,14 +16,14 @@ import {
 import safeRegex from 'safe-regex'
 
 /**
- * Creates a routing evaluator that applies routing decisions and condition evaluations based on content certification or rating metadata.
+ * Creates a routing evaluator that applies routing decisions and condition checks based on content certification or rating metadata from Radarr and Sonarr sources.
  *
- * The evaluator supports the "certification" field with operators such as equals, notEquals, contains, notContains, in, notIn, and regex. It extracts certification information from Radarr and Sonarr metadata and matches it against routing rules for movies and TV shows.
+ * The evaluator supports the "certification" field with operators including equals, notEquals, contains, notContains, in, notIn, and regex. It extracts certification information from content metadata and matches it against routing rules for movies and TV shows.
  *
  * @returns A {@link RoutingEvaluator} that routes content items according to their certification metadata.
  *
  * @remark
- * Regular expression operators are evaluated with safety checks to prevent unsafe patterns. Only the "certification" field is supported for evaluation and condition checks.
+ * Regular expression operators are evaluated with safety checks to prevent unsafe or catastrophic patterns. Only the "certification" field is supported for evaluation and condition checks.
  */
 export default function createCertificationEvaluator(
   fastify: FastifyInstance,
@@ -171,7 +172,14 @@ export default function createCertificationEvaluator(
       }
 
       const isMovie = context.contentType === 'movie'
-      const rules = await fastify.db.getRouterRulesByType('certification')
+
+      let rules: RouterRule[] = []
+      try {
+        rules = await fastify.db.getRouterRulesByType('certification')
+      } catch (err) {
+        fastify.log.error({ err }, 'Certification evaluator - DB query failed')
+        return null
+      }
 
       // Filter rules by target type and ensure they're enabled
       const contentTypeRules = rules.filter(
@@ -255,7 +263,10 @@ export default function createCertificationEvaluator(
         instanceId: rule.target_instance_id,
         qualityProfile: rule.quality_profile,
         rootFolder: rule.root_folder,
+        tags: rule.tags || [],
         priority: rule.order || 50, // Default to 50 if not specified
+        searchOnAdd: rule.search_on_add,
+        seasonMonitoring: rule.season_monitoring,
       }))
     },
 
@@ -331,7 +342,9 @@ export default function createCertificationEvaluator(
           break
       }
 
-      return negate ? !result : result
+      // Do not apply negation here - the content router service handles negation at a higher level.
+      // This prevents double-negation issues when condition.negate is true.
+      return result
     },
 
     canEvaluateConditionField(field: string): boolean {

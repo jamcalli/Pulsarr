@@ -4,6 +4,16 @@ import { useToast } from '@/hooks/use-toast'
 import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
 import type { UseFormReturn } from 'react-hook-form'
 
+/**
+ * React hook for accessing and managing a specific Radarr instance by ID.
+ *
+ * Provides the current instance, all instances, and functions to update, delete, and fetch instance data. If the last real instance is deleted, the configuration is reset to a default placeholder instance instead of being removed.
+ *
+ * @param instanceId - The ID of the Radarr instance to manage.
+ * @returns An object containing the current instance, all instances, and functions to update, delete, and fetch instance data.
+ *
+ * @remark When deleting the last real instance, a default placeholder instance is created and set as the default.
+ */
 export function useRadarrInstance(instanceId: number) {
   const { toast } = useToast()
   const instance = useRadarrStore((state) =>
@@ -58,8 +68,10 @@ export function useRadarrInstance(instanceId: number) {
             qualityProfile: '',
             rootFolder: '',
             bypassIgnored: false,
+            searchOnAdd: true,
+            minimumAvailability: 'released',
             tags: [],
-            isDefault: false,
+            isDefault: true, // Always set placeholder instance as default
             syncedInstances: [],
           }
 

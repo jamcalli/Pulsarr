@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, createContext } from 'react'
 import { useToast } from '@/hooks/use-toast'
 import type {
   ContentRouterRule,
@@ -11,6 +11,14 @@ import type {
 export interface UseContentRouterParams {
   targetType: 'radarr' | 'sonarr'
 }
+
+// Create a context for the current content router target type
+export interface ContentRouterContextType {
+  contentType: 'radarr' | 'sonarr'
+}
+
+export const ContentRouterContext =
+  createContext<ContentRouterContextType | null>(null)
 
 /**
  * React hook for managing content routing rules for a given target type.

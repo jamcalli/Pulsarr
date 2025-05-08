@@ -150,8 +150,11 @@ export const ConditionalRouteFormSchema = z.object({
   quality_profile: z.string().min(1, {
     message: 'Quality Profile is required',
   }),
+  tags: z.array(z.string()).default([]),
   enabled: z.boolean().default(true),
   order: z.number().int().min(1).max(100).default(50),
+  search_on_add: z.boolean().optional(),
+  season_monitoring: z.string().optional(),
 })
 
 export type ConditionalRouteFormValues = z.infer<
@@ -176,6 +179,7 @@ export const GenreRouteFormSchema = z.object({
   quality_profile: z.string().min(1, {
     message: 'Quality Profile is required',
   }),
+  tags: z.array(z.string()).default([]),
   enabled: z.boolean().default(true),
   order: z.number().int().min(1).max(100).default(50),
 })
@@ -244,6 +248,7 @@ export const YearRouteFormSchema = z.object({
   quality_profile: z.string().min(1, {
     message: 'Quality Profile is required',
   }),
+  tags: z.array(z.string()).default([]),
   enabled: z.boolean().default(true),
   yearCriteria: YearCriteriaFormSchema,
   order: z.number().int().min(1).max(100).default(50),
@@ -268,6 +273,7 @@ export const LanguageRouteFormSchema = z.object({
   quality_profile: z.string().min(1, {
     message: 'Quality Profile is required',
   }),
+  tags: z.array(z.string()).default([]),
   enabled: z.boolean().default(true),
   order: z.number().int().min(1).max(100).default(50),
 })
@@ -290,6 +296,7 @@ export const UserRouteFormSchema = z.object({
   quality_profile: z.string().min(1, {
     message: 'Quality Profile is required',
   }),
+  tags: z.array(z.string()).default([]),
   enabled: z.boolean().default(true),
   order: z.number().int().min(1).max(100).default(50),
 })

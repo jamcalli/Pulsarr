@@ -1,7 +1,7 @@
 import type { ContentItem } from './router.types.js'
 
 export interface RadarrAddOptions {
-  searchForMovie: boolean
+  searchForMovie: boolean | null
 }
 
 export interface RadarrMovie {
@@ -20,8 +20,11 @@ export interface RadarrPost {
   qualityProfileId: number | null | string
   rootFolderPath: string | null
   addOptions: RadarrAddOptions
-  tags: string[]
+  tags: string[] // Keep as string[] for compatibility with existing code
+  minimumAvailability?: MinimumAvailability
 }
+
+export type MinimumAvailability = 'announced' | 'inCinemas' | 'released'
 
 export interface RadarrConfiguration {
   radarrApiKey: string
@@ -29,6 +32,8 @@ export interface RadarrConfiguration {
   radarrQualityProfileId: number | null | string
   radarrRootFolder: string | null
   radarrTagIds: string[]
+  searchOnAdd?: boolean
+  minimumAvailability?: MinimumAvailability
 }
 
 export interface RootFolder {
@@ -87,6 +92,8 @@ export interface RadarrInstance {
   tags: string[]
   isDefault: boolean
   syncedInstances?: number[]
+  searchOnAdd?: boolean
+  minimumAvailability?: MinimumAvailability
   data?: {
     qualityProfiles?: Array<{ id: number; name: string }>
     rootFolders?: Array<{ path: string }>

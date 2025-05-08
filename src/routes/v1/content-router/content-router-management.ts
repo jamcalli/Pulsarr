@@ -266,6 +266,17 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       try {
         const ruleData = request.body
 
+        // Validate target_type-specific fields
+        if (
+          ruleData.target_type === 'radarr' &&
+          ruleData.season_monitoring !== null &&
+          ruleData.season_monitoring !== undefined
+        ) {
+          return reply.badRequest(
+            'season_monitoring field is not supported for Radarr rules',
+          )
+        }
+
         // Use RuleBuilder to create a properly structured rule
         const builtRule = RuleBuilder.createRule({
           name: ruleData.name,
@@ -281,8 +292,11 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             typeof ruleData.quality_profile === 'string'
               ? Number.parseInt(ruleData.quality_profile, 10)
               : ruleData.quality_profile,
+          tags: Array.isArray(ruleData.tags) ? ruleData.tags : [],
           order: ruleData.order ?? 50,
           enabled: ruleData.enabled ?? true,
+          search_on_add: ruleData.search_on_add,
+          season_monitoring: ruleData.season_monitoring,
         })
 
         // Prepare the rule for database insertion, ensuring required fields have values
@@ -297,9 +311,12 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           target_instance_id: builtRule.target_instance_id,
           root_folder: builtRule.root_folder || null,
           quality_profile: builtRule.quality_profile || null,
+          tags: builtRule.tags || [],
           order: builtRule.order || 50,
           enabled: builtRule.enabled !== undefined ? builtRule.enabled : true,
           metadata: null,
+          search_on_add: ruleData.search_on_add,
+          season_monitoring: ruleData.season_monitoring,
         }
 
         const createdRule = await fastify.db.createRouterRule(formattedRuleData)
@@ -352,6 +369,20 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw reply.notFound(`Router rule with ID ${id} not found`)
         }
 
+        // Determine the target_type (either from updates or from existing rule)
+        const targetType = updates.target_type || existingRule.target_type
+
+        // Validate target_type-specific fields
+        if (
+          targetType === 'radarr' &&
+          updates.season_monitoring !== null &&
+          updates.season_monitoring !== undefined
+        ) {
+          return reply.badRequest(
+            'season_monitoring field is not supported for Radarr rules',
+          )
+        }
+
         // Prepare updates for the database
         const updatesAsRouterRule: Partial<
           Omit<RouterRule, 'id' | 'created_at' | 'updated_at'>
@@ -369,6 +400,14 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           updatesAsRouterRule.order = updates.order
         if (updates.enabled !== undefined)
           updatesAsRouterRule.enabled = updates.enabled
+        if (updates.tags !== undefined)
+          updatesAsRouterRule.tags = Array.isArray(updates.tags)
+            ? updates.tags
+            : []
+        if (updates.search_on_add !== undefined)
+          updatesAsRouterRule.search_on_add = updates.search_on_add
+        if (updates.season_monitoring !== undefined)
+          updatesAsRouterRule.season_monitoring = updates.season_monitoring
 
         // Handle quality profile conversion
         if (updates.quality_profile !== undefined) {
