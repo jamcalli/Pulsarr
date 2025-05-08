@@ -873,7 +873,7 @@ export class ContentRouterService {
                 syncedInstance.qualityProfile,
                 syncedInstance.tags,
                 syncedInstance.searchOnAdd,
-                syncedInstance.seasonMonitoring
+                syncedInstance.seasonMonitoring,
               )
               routedInstances.push(syncedId)
             } catch (error) {
