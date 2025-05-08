@@ -13,10 +13,11 @@ import {
   FormDescription,
 } from '@/components/ui/form'
 import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from '@/components/ui/hover-card'
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import { useConfigStore } from '@/stores/configStore'
@@ -181,18 +182,17 @@ export function AppriseForm({ isInitialized }: AppriseFormProps) {
           <div className="text-sm font-semibold text-text">
             Apprise Server URL
           </div>
-          <HoverCard>
-            <HoverCardTrigger asChild>
-              <InfoIcon className="h-4 w-4 text-text cursor-help" />
-            </HoverCardTrigger>
-            <HoverCardContent className="w-80">
-              <p>
-                This value is set via environment variables or .env file and
-                cannot be changed through the UI. The Apprise service status is
-                determined at server startup.
-              </p>
-            </HoverCardContent>
-          </HoverCard>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <InfoIcon className="h-4 w-4 text-text cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                Set via environment variables or .env file. Cannot be changed
+                through the UI.
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
         <div className="mt-1">
           <Input
@@ -217,18 +217,17 @@ export function AppriseForm({ isInitialized }: AppriseFormProps) {
                   <FormLabel className="text-text">
                     System Apprise URL
                   </FormLabel>
-                  <HoverCard>
-                    <HoverCardTrigger asChild>
-                      <InfoIcon className="h-4 w-4 text-text cursor-help" />
-                    </HoverCardTrigger>
-                    <HoverCardContent className="w-80">
-                      <p>
-                        URL for system-wide notifications (like delete sync
-                        operations). This can be any valid Apprise notification
-                        URL format, or multiple separated by commas.
-                      </p>
-                    </HoverCardContent>
-                  </HoverCard>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <InfoIcon className="h-4 w-4 text-text cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        URL for system-wide notifications. Supports multiple
+                        comma-separated URLs.
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
                 <FormControl>
                   <Input
