@@ -156,10 +156,14 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
       // All webhooks are valid
       return {
         valid: true,
-        webhooks: result.urls.map((url: { url: string }) => ({
-          id: url.url.split('/').slice(-2, -1)[0],
-          token: url.url.split('/').slice(-1)[0],
-        })),
+        webhooks: result.urls.map((url: { url: string }) => {
+          // Parse the URL and get the path components, filtering out empty strings
+          const pathParts = new URL(url.url).pathname.split('/').filter(Boolean)
+          return {
+            id: pathParts[pathParts.length - 2],
+            token: pathParts[pathParts.length - 1],
+          }
+        }),
         count: result.urls.length,
         originalCount: result.urls.length + (result.duplicateCount || 0),
         duplicateCount: result.duplicateCount || 0,
