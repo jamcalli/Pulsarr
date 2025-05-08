@@ -69,11 +69,13 @@ function isValidYearValue(
 }
 
 /**
- * Creates a routing evaluator for determining routing decisions based on the release year of content items.
+ * Creates a routing evaluator that determines routing decisions and evaluates conditions based on the release year of content items.
  *
- * The evaluator supports multiple operators for the "year" field, including exact match, range, and array membership. It retrieves year-based routing rules from the database, filters them by content type and enabled status, and matches them against the content's release year to generate routing decisions. It also provides condition evaluation for year-based rules and exposes metadata describing supported fields and operators.
+ * The evaluator supports various operators for the "year" field, including exact match, inequality, range, and array membership. It retrieves year-based routing rules from the database, filters them by content type and enabled status, and matches them against the content's release year to generate routing decisions. It also provides condition evaluation for year-based rules and exposes metadata describing supported fields and operators.
  *
  * @returns A {@link RoutingEvaluator} instance for evaluating routing rules and conditions based on content release year.
+ *
+ * @remark If the database query for routing rules fails, the evaluator logs the error and returns {@code null} from the {@code evaluate} method.
  */
 export default function createYearEvaluator(
   fastify: FastifyInstance,
