@@ -196,7 +196,13 @@ export default function createSeasonEvaluator(
       }
 
       // Get all season-based router rules
-      const rules = await fastify.db.getRouterRulesByType('season')
+      let rules
+      try {
+        rules = await fastify.db.getRouterRulesByType('season')
+      } catch (err) {
+        fastify.log.error({ err }, 'Season evaluator - DB query failed')
+        return null
+      }
 
       // Filter rules to only include those for Sonarr and that are enabled
       const sonarrRules = rules.filter(

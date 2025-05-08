@@ -171,7 +171,14 @@ export default function createCertificationEvaluator(
       }
 
       const isMovie = context.contentType === 'movie'
-      const rules = await fastify.db.getRouterRulesByType('certification')
+      
+      let rules
+      try {
+        rules = await fastify.db.getRouterRulesByType('certification')
+      } catch (err) {
+        fastify.log.error({ err }, 'Certification evaluator - DB query failed')
+        return null
+      }
 
       // Filter rules by target type and ensure they're enabled
       const contentTypeRules = rules.filter(
