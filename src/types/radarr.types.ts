@@ -1,7 +1,7 @@
 import type { ContentItem } from './router.types.js'
 
 export interface RadarrAddOptions {
-  searchForMovie: boolean
+  searchForMovie: boolean | null
 }
 
 export interface RadarrMovie {

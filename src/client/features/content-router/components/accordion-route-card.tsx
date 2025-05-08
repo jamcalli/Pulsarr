@@ -6,6 +6,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
+import { Separator } from '@/components/ui/separator'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import {
@@ -33,6 +34,7 @@ import {
   X,
   Power,
 } from 'lucide-react'
+import { SONARR_MONITORING_OPTIONS } from '@/features/sonarr/store/constants'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import ConditionGroupComponent from '@/features/content-router/components/condition-group'
 import {
@@ -48,6 +50,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import { TagsMultiSelect } from '@/components/ui/tag-multi-select'
 import { TagCreationDialog } from '@/components/ui/tag-creation-dialog'
 import type {
@@ -185,8 +188,13 @@ const AccordionRouteCard = ({
   }, [route])
 
   // Create memoized default values to prevent unnecessary form resets
-  const defaultValues = useMemo(
-    () => ({
+  const defaultValues = useMemo(() => {
+    // Find the selected instance to get default values if needed
+    const selectedInst = instances.find(
+      (inst) => inst.id === route?.target_instance_id,
+    )
+
+    return {
       name:
         route?.name ||
         `New ${contentType === 'radarr' ? 'Movie' : 'Show'} Route`,
@@ -202,9 +210,23 @@ const AccordionRouteCard = ({
       tags: route?.tags || [],
       enabled: route?.enabled !== false,
       order: route?.order ?? 50,
-    }),
-    [route, getInitialConditionValue, instances, contentType],
-  )
+      // For search_on_add, default to the instance setting or true if not set
+      search_on_add:
+        route?.search_on_add !== undefined && route?.search_on_add !== null
+          ? route.search_on_add
+          : selectedInst?.searchOnAdd !== undefined
+            ? selectedInst.searchOnAdd
+            : true,
+      // For season_monitoring (Sonarr only), default to the instance setting or 'all' if not set
+      season_monitoring:
+        contentType === 'sonarr'
+          ? route?.season_monitoring ||
+            (selectedInst && 'seasonMonitoring' in selectedInst
+              ? selectedInst.seasonMonitoring
+              : 'all')
+          : undefined,
+    }
+  }, [route, getInitialConditionValue, instances, contentType])
 
   // Setup form with validation
   const form = useForm<ConditionalRouteFormValues>({
@@ -325,6 +347,11 @@ const AccordionRouteCard = ({
 
     // Only reset if route actually changed to prevent toast-induced resets
     if (shouldResetForm && !isNew) {
+      // Find the selected instance to get default values if needed
+      const selectedInst = instances.find(
+        (inst) => inst.id === route?.target_instance_id,
+      )
+
       form.reset({
         name:
           route?.name ||
@@ -342,6 +369,21 @@ const AccordionRouteCard = ({
         tags: route?.tags || [],
         enabled: route?.enabled !== false,
         order: route?.order ?? 50,
+        // For search_on_add, default to the instance setting or true if not set
+        search_on_add:
+          route?.search_on_add !== undefined && route?.search_on_add !== null
+            ? route.search_on_add
+            : selectedInst?.searchOnAdd !== undefined
+              ? selectedInst.searchOnAdd
+              : true,
+        // For season_monitoring (Sonarr only), default to the instance setting or 'all' if not set
+        season_monitoring:
+          contentType === 'sonarr'
+            ? route?.season_monitoring ||
+              (selectedInst && 'seasonMonitoring' in selectedInst
+                ? selectedInst.seasonMonitoring
+                : 'all')
+            : undefined,
       })
       setLocalTitle(route?.name || '')
       hasInitializedForm.current = true
@@ -404,9 +446,40 @@ const AccordionRouteCard = ({
         })
         // Clear tags because they are instance-specific
         form.setValue('tags', [], { shouldDirty: true })
+
+        // Update the advanced settings based on the selected instance
+        const newSelectedInstance = instances.find(
+          (inst) => inst.id === instanceId,
+        )
+        if (newSelectedInstance) {
+          // Set search_on_add default from the selected instance
+          form.setValue(
+            'search_on_add',
+            newSelectedInstance.searchOnAdd !== undefined
+              ? newSelectedInstance.searchOnAdd
+              : true,
+            { shouldDirty: true },
+          )
+
+          // For Sonarr, set season_monitoring default
+          if (contentType === 'sonarr') {
+            if (
+              'seasonMonitoring' in newSelectedInstance &&
+              newSelectedInstance.seasonMonitoring
+            ) {
+              form.setValue(
+                'season_monitoring',
+                newSelectedInstance.seasonMonitoring,
+                { shouldDirty: true },
+              )
+            } else {
+              form.setValue('season_monitoring', 'all', { shouldDirty: true })
+            }
+          }
+        }
       }
     },
-    [form],
+    [form, instances, contentType],
   )
 
   const targetInstanceId = useWatch({
@@ -418,6 +491,41 @@ const AccordionRouteCard = ({
     () => instances.find((inst) => inst.id === targetInstanceId),
     [instances, targetInstanceId],
   )
+
+  // Update advanced settings when selected instance changes
+  useEffect(() => {
+    if (selectedInstance) {
+      // Only update if the values haven't been explicitly set
+      if (form.getValues('search_on_add') === undefined) {
+        form.setValue(
+          'search_on_add',
+          selectedInstance.searchOnAdd !== undefined
+            ? selectedInstance.searchOnAdd
+            : true,
+          { shouldDirty: false },
+        )
+      }
+
+      // Only for Sonarr content, update season monitoring
+      if (
+        contentType === 'sonarr' &&
+        form.getValues('season_monitoring') === undefined
+      ) {
+        if (
+          'seasonMonitoring' in selectedInstance &&
+          selectedInstance.seasonMonitoring
+        ) {
+          form.setValue(
+            'season_monitoring',
+            selectedInstance.seasonMonitoring,
+            { shouldDirty: false },
+          )
+        } else {
+          form.setValue('season_monitoring', 'all', { shouldDirty: false })
+        }
+      }
+    }
+  }, [selectedInstance, form, contentType])
 
   // Handle form submission
   const handleSubmit = async (data: ConditionalRouteFormValues) => {
@@ -441,6 +549,10 @@ const AccordionRouteCard = ({
           condition: Array.isArray(data.condition?.conditions)
             ? (data.condition as ConditionGroup)
             : { operator: 'AND', conditions: [], negate: false },
+          search_on_add:
+            data.search_on_add === null ? undefined : data.search_on_add,
+          season_monitoring:
+            contentType === 'sonarr' ? data.season_monitoring : undefined,
         }
 
         await onSave(routeData)
@@ -460,6 +572,10 @@ const AccordionRouteCard = ({
           tags: data.tags || [],
           enabled: data.enabled,
           order: data.order,
+          search_on_add:
+            data.search_on_add === null ? undefined : data.search_on_add,
+          season_monitoring:
+            contentType === 'sonarr' ? data.season_monitoring : undefined,
         }
 
         await onSave(updatePayload)
@@ -484,6 +600,10 @@ const AccordionRouteCard = ({
 
   const handleCancel = () => {
     // Reset the form to its initial values
+    const selectedInst = instances.find(
+      (inst) => inst.id === route?.target_instance_id,
+    )
+
     form.reset({
       name:
         route?.name ||
@@ -500,6 +620,21 @@ const AccordionRouteCard = ({
       tags: route?.tags || [],
       enabled: route?.enabled !== false,
       order: route?.order ?? 50,
+      // For search_on_add, default to the instance setting or true if not set
+      search_on_add:
+        route?.search_on_add !== undefined && route?.search_on_add !== null
+          ? route.search_on_add
+          : selectedInst?.searchOnAdd !== undefined
+            ? selectedInst.searchOnAdd
+            : true,
+      // For season_monitoring (Sonarr only), default to the instance setting or 'all' if not set
+      season_monitoring:
+        contentType === 'sonarr'
+          ? route?.season_monitoring ||
+            (selectedInst && 'seasonMonitoring' in selectedInst
+              ? selectedInst.seasonMonitoring
+              : 'all')
+          : undefined,
     })
 
     // Reset the local title state
@@ -1046,68 +1181,139 @@ const AccordionRouteCard = ({
                     />
                   </div>
 
-                  {/* Tags */}
-                  <FormField
-                    control={form.control}
-                    name="tags"
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="flex items-center space-x-2">
-                          <FormLabel className="text-text">Tags</FormLabel>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="max-w-xs">
-                                  Add tags to content that matches this route.
-                                  Tags will be applied when content is added to
-                                  the target instance.
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </div>
-                        <div className="flex gap-2 items-center w-full">
-                          <TagsMultiSelect
-                            ref={tagsMultiSelectRef}
-                            field={field}
-                            instanceId={Number(
-                              form.watch('target_instance_id'),
-                            )}
-                            instanceType={contentType}
-                            isConnectionValid={true}
-                          />
+                  {/* Separator for Advanced Settings */}
+                  <Separator className="my-4" />
 
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  type="button"
-                                  variant="noShadow"
-                                  size="icon"
-                                  className="flex-shrink-0"
-                                  onClick={() => setShowTagCreationDialog(true)}
-                                  disabled={!selectedInstance?.id}
-                                >
-                                  <Plus className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Create a new tag</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </div>
-                        <FormDescription className="text-xs">
-                          Optional tags to apply to content that matches this
-                          route
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {/* Advanced Settings */}
+                  <h3 className="font-medium text-text mb-4">
+                    Advanced Settings
+                  </h3>
+
+                  {/* Season Monitoring - Sonarr Only */}
+                  {contentType === 'sonarr' && (
+                    <div className="mb-4">
+                      <FormField
+                        control={form.control}
+                        name="season_monitoring"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-text">
+                              Season Monitoring
+                            </FormLabel>
+                            <Select
+                              value={field.value || 'all'}
+                              onValueChange={field.onChange}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select monitoring strategy" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {Object.entries(SONARR_MONITORING_OPTIONS).map(
+                                  ([value, label]) => (
+                                    <SelectItem key={value} value={value}>
+                                      {label}
+                                    </SelectItem>
+                                  ),
+                                )}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  )}
+
+                  {/* Search on Add and Tags in same row */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    {/* Search on Add */}
+                    <FormField
+                      control={form.control}
+                      name="search_on_add"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-text">
+                            Search on Add
+                          </FormLabel>
+                          <div className="flex h-10 items-center gap-2 px-3 py-2">
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <span className="text-sm text-text text-muted-foreground">
+                              Automatically search for content when added
+                            </span>
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Tags */}
+                    <FormField
+                      control={form.control}
+                      name="tags"
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="flex items-center space-x-2">
+                            <FormLabel className="text-text">Tags</FormLabel>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="max-w-xs">
+                                    Add tags to content that matches this route.
+                                    Tags will be applied when content is added
+                                    to the target instance.
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                          <div className="flex gap-2 items-center w-full">
+                            <TagsMultiSelect
+                              ref={tagsMultiSelectRef}
+                              field={field}
+                              instanceId={Number(
+                                form.watch('target_instance_id'),
+                              )}
+                              instanceType={contentType}
+                              isConnectionValid={true}
+                            />
+
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    type="button"
+                                    variant="noShadow"
+                                    size="icon"
+                                    className="flex-shrink-0"
+                                    onClick={() =>
+                                      setShowTagCreationDialog(true)
+                                    }
+                                    disabled={!selectedInstance?.id}
+                                  >
+                                    <Plus className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Create a new tag</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                 </div>
               </form>
             </Form>

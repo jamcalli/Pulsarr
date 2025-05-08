@@ -130,6 +130,8 @@ export class SonarrManagerService {
     rootFolder?: string,
     qualityProfile?: number | string | null,
     tags?: string[],
+    searchOnAdd?: boolean | null,
+    seasonMonitoring?: string | null,
   ): Promise<void> {
     // If no specific instance is provided, try to get the default instance
     let targetInstanceId = instanceId
@@ -183,11 +185,25 @@ export class SonarrManagerService {
       // Use provided tags or instance default tags
       const targetTags = tags || instance.tags || []
 
+      // Handle search on add option (use provided value or instance default)
+      const targetSearchOnAdd =
+        searchOnAdd !== undefined
+          ? searchOnAdd
+          : instance.searchOnAdd !== undefined
+            ? instance.searchOnAdd
+            : true // Default to true for backward compatibility
+
+      // Use provided season monitoring or instance default
+      const targetSeasonMonitoring =
+        seasonMonitoring || instance.seasonMonitoring || 'all'
+
       await sonarrService.addToSonarr(
         sonarrItem,
         targetRootFolder,
         targetQualityProfileId,
         targetTags,
+        targetSearchOnAdd,
+        targetSeasonMonitoring,
       )
 
       await this.fastify.db.updateWatchlistItem(key, {

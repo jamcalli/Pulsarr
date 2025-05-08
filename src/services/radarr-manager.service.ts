@@ -5,6 +5,7 @@ import type {
   RadarrInstance,
   RadarrGenreRoute,
   ConnectionTestResult,
+  MinimumAvailability,
 } from '@root/types/radarr.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { TemptRssWatchlistItem } from '@root/types/plex.types.js'
@@ -132,6 +133,8 @@ export class RadarrManagerService {
     rootFolder?: string,
     qualityProfile?: number | string | null,
     tags?: string[],
+    searchOnAdd?: boolean | null,
+    minimumAvailability?: MinimumAvailability,
   ): Promise<void> {
     // If no specific instance is provided, try to get the default instance
     let targetInstanceId = instanceId
@@ -185,11 +188,27 @@ export class RadarrManagerService {
       // Use provided tags or instance default tags
       const targetTags = tags || instance.tags || []
 
+      // Handle search on add option (use provided value or instance default)
+      const targetSearchOnAdd =
+        searchOnAdd !== undefined
+          ? searchOnAdd
+          : instance.searchOnAdd !== undefined
+            ? instance.searchOnAdd
+            : true // Default to true for backward compatibility
+
+      // Use provided minimum availability or instance default
+      const targetMinimumAvailability =
+        minimumAvailability ||
+        instance.minimumAvailability ||
+        ('released' as MinimumAvailability)
+
       await radarrService.addToRadarr(
         radarrItem,
         targetRootFolder,
         targetQualityProfileId,
         targetTags,
+        targetSearchOnAdd,
+        targetMinimumAvailability,
       )
 
       await this.fastify.db.updateWatchlistItem(key, {

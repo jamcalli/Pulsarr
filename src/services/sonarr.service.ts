@@ -579,15 +579,27 @@ export class SonarrService {
     overrideRootFolder?: string,
     overrideQualityProfileId?: number | string | null,
     overrideTags?: string[],
+    overrideSearchOnAdd?: boolean | null,
+    overrideSeasonMonitoring?: string | null,
   ): Promise<void> {
     const config = this.sonarrConfig
     try {
-      // Check if searchOnAdd property exists and use it, otherwise default to true for backward compatibility
+      // Check if searchOnAdd parameter or property exists and use it, otherwise default to true
       const shouldSearch =
-        config.searchOnAdd !== undefined ? config.searchOnAdd : true
+        overrideSearchOnAdd !== undefined && overrideSearchOnAdd !== null
+          ? overrideSearchOnAdd
+          : config.searchOnAdd !== undefined
+            ? config.searchOnAdd
+            : true
+
+      // Season monitoring strategy - prefer override, then config, then default to 'all'
+      const monitorStrategy =
+        overrideSeasonMonitoring && overrideSeasonMonitoring !== null
+          ? overrideSeasonMonitoring
+          : config.sonarrSeasonMonitoring || 'all'
 
       const addOptions: SonarrAddOptions = {
-        monitor: config.sonarrSeasonMonitoring,
+        monitor: monitorStrategy,
         searchForCutoffUnmetEpisodes: shouldSearch,
         searchForMissingEpisodes: shouldSearch,
       }

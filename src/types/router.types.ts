@@ -24,6 +24,8 @@ export interface RouterRule {
   order: number
   enabled: boolean
   metadata?: RadarrMovieLookupResponse | SonarrSeriesLookupResponse | null
+  search_on_add?: boolean | null
+  season_monitoring?: string | null
   created_at: string
   updated_at: string
 }
@@ -49,6 +51,8 @@ export interface RoutingDecision {
   rootFolder?: string | null
   tags?: string[]
   priority: number // Higher number = higher priority
+  searchOnAdd?: boolean | null // Whether to automatically search when added
+  seasonMonitoring?: string | null // For Sonarr: which seasons to monitor
 }
 
 // Condition system types

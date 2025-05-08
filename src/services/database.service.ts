@@ -5162,15 +5162,34 @@ export class DatabaseService {
    *
    * @returns Promise resolving to array of all router rules
    */
-  async getAllRouterRules(): Promise<RouterRule[]> {
-    const rules = await this.knex('router_rules')
-      .select('*')
-      .orderBy('order', 'desc')
-      .orderBy('id', 'asc')
-
-    return rules.map((rule) => ({
+  /**
+   * Helper method to format a router rule from the database
+   * Ensures proper type conversions for boolean fields and JSON parsing
+   */
+  private formatRouterRule(rule: {
+    id: number
+    name: string
+    type: string
+    criteria: string | Record<string, unknown>
+    target_type: 'sonarr' | 'radarr'
+    target_instance_id: number
+    root_folder?: string | null
+    quality_profile?: number | null
+    tags?: string | string[]
+    order: number
+    enabled: number | boolean
+    metadata?: string | null
+    search_on_add?: number | boolean | null
+    season_monitoring?: string | null
+    created_at: string
+    updated_at: string
+    [key: string]: unknown
+  }): RouterRule {
+    return {
       ...rule,
       enabled: Boolean(rule.enabled),
+      search_on_add:
+        rule.search_on_add !== null ? Boolean(rule.search_on_add) : null,
       criteria:
         typeof rule.criteria === 'string'
           ? JSON.parse(rule.criteria)
@@ -5182,7 +5201,16 @@ export class DatabaseService {
           ? JSON.parse(rule.metadata)
           : rule.metadata
         : null,
-    }))
+    }
+  }
+
+  async getAllRouterRules(): Promise<RouterRule[]> {
+    const rules = await this.knex('router_rules')
+      .select('*')
+      .orderBy('order', 'desc')
+      .orderBy('id', 'asc')
+
+    return rules.map((rule) => this.formatRouterRule(rule))
   }
 
   /**
@@ -5196,21 +5224,7 @@ export class DatabaseService {
 
     if (!rule) return null
 
-    return {
-      ...rule,
-      enabled: Boolean(rule.enabled),
-      criteria:
-        typeof rule.criteria === 'string'
-          ? JSON.parse(rule.criteria)
-          : rule.criteria,
-      tags:
-        typeof rule.tags === 'string' ? JSON.parse(rule.tags) : rule.tags || [],
-      metadata: rule.metadata
-        ? typeof rule.metadata === 'string'
-          ? JSON.parse(rule.metadata)
-          : rule.metadata
-        : null,
-    }
+    return this.formatRouterRule(rule)
   }
 
   /**
@@ -5232,21 +5246,7 @@ export class DatabaseService {
 
     const rules = await query.orderBy('order', 'desc').orderBy('id', 'asc')
 
-    return rules.map((rule) => ({
-      ...rule,
-      enabled: Boolean(rule.enabled),
-      criteria:
-        typeof rule.criteria === 'string'
-          ? JSON.parse(rule.criteria)
-          : rule.criteria,
-      tags:
-        typeof rule.tags === 'string' ? JSON.parse(rule.tags) : rule.tags || [],
-      metadata: rule.metadata
-        ? typeof rule.metadata === 'string'
-          ? JSON.parse(rule.metadata)
-          : rule.metadata
-        : null,
-    }))
+    return rules.map((rule) => this.formatRouterRule(rule))
   }
 
   /**
@@ -5384,21 +5384,7 @@ export class DatabaseService {
       .orderBy('order', 'desc')
       .orderBy('id', 'asc')
 
-    return rules.map((rule) => ({
-      ...rule,
-      enabled: Boolean(rule.enabled),
-      criteria:
-        typeof rule.criteria === 'string'
-          ? JSON.parse(rule.criteria)
-          : rule.criteria,
-      tags:
-        typeof rule.tags === 'string' ? JSON.parse(rule.tags) : rule.tags || [],
-      metadata: rule.metadata
-        ? typeof rule.metadata === 'string'
-          ? JSON.parse(rule.metadata)
-          : rule.metadata
-        : null,
-    }))
+    return rules.map((rule) => this.formatRouterRule(rule))
   }
 
   /**
@@ -5421,23 +5407,7 @@ export class DatabaseService {
         `Found ${rules.length} router rules for target type: ${targetType}`,
       )
 
-      return rules.map((rule) => ({
-        ...rule,
-        enabled: Boolean(rule.enabled),
-        criteria:
-          typeof rule.criteria === 'string'
-            ? JSON.parse(rule.criteria)
-            : rule.criteria,
-        tags:
-          typeof rule.tags === 'string'
-            ? JSON.parse(rule.tags)
-            : rule.tags || [],
-        metadata: rule.metadata
-          ? typeof rule.metadata === 'string'
-            ? JSON.parse(rule.metadata)
-            : rule.metadata
-          : null,
-      }))
+      return rules.map((rule) => this.formatRouterRule(rule))
     } catch (error) {
       this.log.error(
         `Error fetching router rules by target type ${targetType}:`,
@@ -5727,6 +5697,8 @@ export class DatabaseService {
     order?: number
     enabled?: boolean
     metadata?: RadarrMovieLookupResponse | SonarrSeriesLookupResponse | null
+    search_on_add?: boolean
+    season_monitoring?: string
   }): Promise<RouterRule> {
     // Validate condition before proceeding
     const validationResult = this.validateCondition(rule.condition)
@@ -5749,6 +5721,8 @@ export class DatabaseService {
       order: rule.order ?? 50,
       enabled: rule.enabled ?? true,
       metadata: rule.metadata ? JSON.stringify(rule.metadata) : null,
+      search_on_add: rule.search_on_add,
+      season_monitoring: rule.season_monitoring,
       created_at: this.timestamp,
       updated_at: this.timestamp,
     }
@@ -5785,6 +5759,8 @@ export class DatabaseService {
       order?: number
       enabled?: boolean
       metadata?: RadarrMovieLookupResponse | SonarrSeriesLookupResponse | null
+      search_on_add?: boolean
+      season_monitoring?: string
     },
   ): Promise<RouterRule> {
     // Validate condition if provided
@@ -5815,6 +5791,10 @@ export class DatabaseService {
       updateData.quality_profile = updates.quality_profile
     if (updates.order !== undefined) updateData.order = updates.order
     if (updates.enabled !== undefined) updateData.enabled = updates.enabled
+    if (updates.search_on_add !== undefined)
+      updateData.search_on_add = updates.search_on_add
+    if (updates.season_monitoring !== undefined)
+      updateData.season_monitoring = updates.season_monitoring
 
     // Update condition within criteria, preserving other criteria fields
     if (updates.condition !== undefined) {
