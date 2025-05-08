@@ -187,46 +187,60 @@ const AccordionRouteCard = ({
     }
   }, [route])
 
+  // Helper function to build default values
+  const buildDefaultValues = useCallback(
+    (
+      routeObj: ExtendedContentRouterRule | Partial<ExtendedContentRouterRule>,
+      instancesList: Array<RadarrInstance | SonarrInstance>,
+      routeContentType: 'radarr' | 'sonarr',
+    ) => {
+      // Find the selected instance to get default values if needed
+      const selectedInst = instancesList.find(
+        (inst) => inst.id === routeObj?.target_instance_id,
+      )
+
+      return {
+        name:
+          routeObj?.name ||
+          `New ${routeContentType === 'radarr' ? 'Movie' : 'Show'} Route`,
+        condition: getInitialConditionValue(),
+        target_instance_id:
+          routeObj?.target_instance_id ||
+          (instancesList.length > 0 ? instancesList[0].id : 0),
+        root_folder: routeObj?.root_folder || '',
+        quality_profile:
+          routeObj?.quality_profile !== undefined &&
+          routeObj?.quality_profile !== null
+            ? routeObj.quality_profile.toString()
+            : '',
+        tags: routeObj?.tags || [],
+        enabled: routeObj?.enabled !== false,
+        order: routeObj?.order ?? 50,
+        // For search_on_add, default to the instance setting or true if not set
+        search_on_add:
+          routeObj?.search_on_add !== undefined &&
+          routeObj?.search_on_add !== null
+            ? routeObj.search_on_add
+            : selectedInst?.searchOnAdd !== undefined
+              ? selectedInst.searchOnAdd
+              : true,
+        // For season_monitoring (Sonarr only), default to the instance setting or 'all' if not set
+        season_monitoring:
+          routeContentType === 'sonarr'
+            ? routeObj?.season_monitoring ||
+              (selectedInst && 'seasonMonitoring' in selectedInst
+                ? selectedInst.seasonMonitoring
+                : 'all')
+            : undefined,
+      }
+    },
+    [getInitialConditionValue],
+  )
+
   // Create memoized default values to prevent unnecessary form resets
   const defaultValues = useMemo(() => {
-    // Find the selected instance to get default values if needed
-    const selectedInst = instances.find(
-      (inst) => inst.id === route?.target_instance_id,
-    )
-
-    return {
-      name:
-        route?.name ||
-        `New ${contentType === 'radarr' ? 'Movie' : 'Show'} Route`,
-      condition: getInitialConditionValue(),
-      target_instance_id:
-        route?.target_instance_id ||
-        (instances.length > 0 ? instances[0].id : 0),
-      root_folder: route?.root_folder || '',
-      quality_profile:
-        route?.quality_profile !== undefined && route?.quality_profile !== null
-          ? route.quality_profile.toString()
-          : '',
-      tags: route?.tags || [],
-      enabled: route?.enabled !== false,
-      order: route?.order ?? 50,
-      // For search_on_add, default to the instance setting or true if not set
-      search_on_add:
-        route?.search_on_add !== undefined && route?.search_on_add !== null
-          ? route.search_on_add
-          : selectedInst?.searchOnAdd !== undefined
-            ? selectedInst.searchOnAdd
-            : true,
-      // For season_monitoring (Sonarr only), default to the instance setting or 'all' if not set
-      season_monitoring:
-        contentType === 'sonarr'
-          ? route?.season_monitoring ||
-            (selectedInst && 'seasonMonitoring' in selectedInst
-              ? selectedInst.seasonMonitoring
-              : 'all')
-          : undefined,
-    }
-  }, [route, getInitialConditionValue, instances, contentType])
+    return buildDefaultValues(route, instances, contentType)
+  }, [route, buildDefaultValues, instances, contentType])
 
   // Setup form with validation
   const form = useForm<ConditionalRouteFormValues>({
@@ -347,44 +361,7 @@ const AccordionRouteCard = ({
 
     // Only reset if route actually changed to prevent toast-induced resets
     if (shouldResetForm && !isNew) {
-      // Find the selected instance to get default values if needed
-      const selectedInst = instances.find(
-        (inst) => inst.id === route?.target_instance_id,
-      )
-
-      form.reset({
-        name:
-          route?.name ||
-          `New ${contentType === 'radarr' ? 'Movie' : 'Show'} Route`,
-        condition: getInitialConditionValue(),
-        target_instance_id:
-          route?.target_instance_id ||
-          (instances.length > 0 ? instances[0].id : 0),
-        root_folder: route?.root_folder || '',
-        quality_profile:
-          route?.quality_profile !== undefined &&
-          route?.quality_profile !== null
-            ? route.quality_profile.toString()
-            : '',
-        tags: route?.tags || [],
-        enabled: route?.enabled !== false,
-        order: route?.order ?? 50,
-        // For search_on_add, default to the instance setting or true if not set
-        search_on_add:
-          route?.search_on_add !== undefined && route?.search_on_add !== null
-            ? route.search_on_add
-            : selectedInst?.searchOnAdd !== undefined
-              ? selectedInst.searchOnAdd
-              : true,
-        // For season_monitoring (Sonarr only), default to the instance setting or 'all' if not set
-        season_monitoring:
-          contentType === 'sonarr'
-            ? route?.season_monitoring ||
-              (selectedInst && 'seasonMonitoring' in selectedInst
-                ? selectedInst.seasonMonitoring
-                : 'all')
-            : undefined,
-      })
+      form.reset(buildDefaultValues(route, instances, contentType))
       setLocalTitle(route?.name || '')
       hasInitializedForm.current = true
     }
@@ -392,10 +369,10 @@ const AccordionRouteCard = ({
     route,
     isNew,
     form,
-    getInitialConditionValue,
     instances,
     contentType,
     getRouteId,
+    buildDefaultValues,
   ])
 
   const handleTitleChange = useCallback(
@@ -600,42 +577,7 @@ const AccordionRouteCard = ({
 
   const handleCancel = () => {
     // Reset the form to its initial values
-    const selectedInst = instances.find(
-      (inst) => inst.id === route?.target_instance_id,
-    )
-
-    form.reset({
-      name:
-        route?.name ||
-        `New ${contentType === 'radarr' ? 'Movie' : 'Show'} Route`,
-      condition: getInitialConditionValue(),
-      target_instance_id:
-        route?.target_instance_id ||
-        (instances.length > 0 ? instances[0].id : 0),
-      root_folder: route?.root_folder || '',
-      quality_profile:
-        route?.quality_profile !== undefined && route?.quality_profile !== null
-          ? route.quality_profile.toString()
-          : '',
-      tags: route?.tags || [],
-      enabled: route?.enabled !== false,
-      order: route?.order ?? 50,
-      // For search_on_add, default to the instance setting or true if not set
-      search_on_add:
-        route?.search_on_add !== undefined && route?.search_on_add !== null
-          ? route.search_on_add
-          : selectedInst?.searchOnAdd !== undefined
-            ? selectedInst.searchOnAdd
-            : true,
-      // For season_monitoring (Sonarr only), default to the instance setting or 'all' if not set
-      season_monitoring:
-        contentType === 'sonarr'
-          ? route?.season_monitoring ||
-            (selectedInst && 'seasonMonitoring' in selectedInst
-              ? selectedInst.seasonMonitoring
-              : 'all')
-          : undefined,
-    })
+    form.reset(buildDefaultValues(route, instances, contentType))
 
     // Reset the local title state
     setLocalTitle(route?.name || '')

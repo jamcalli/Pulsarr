@@ -7,6 +7,7 @@ import type {
   Condition,
   FieldInfo,
   OperatorInfo,
+  RouterRule,
 } from '@root/types/router.types.js'
 import { isSonarrResponse } from '@root/types/content-lookup.types.js'
 
@@ -196,7 +197,7 @@ export default function createSeasonEvaluator(
       }
 
       // Get all season-based router rules
-      let rules
+      let rules: RouterRule[] = []
       try {
         rules = await fastify.db.getRouterRulesByType('season')
       } catch (err) {

@@ -8,6 +8,7 @@ import {
   ConditionGroup,
   type FieldInfo,
   type OperatorInfo,
+  type RouterRule,
 } from '@root/types/router.types.js'
 
 /**
@@ -134,15 +135,15 @@ export default function createGenreEvaluator(
         return null
       }
       const isMovie = context.contentType === 'movie'
-      
-      let rules
+
+      let rules: RouterRule[] = []
       try {
         rules = await fastify.db.getRouterRulesByType('genre')
       } catch (err) {
         fastify.log.error({ err }, 'Genre evaluator - DB query failed')
         return null
       }
-      
+
       // Filter rules by target type (radarr/sonarr) and enabled status
       const contentTypeRules = rules.filter(
         (rule) =>

@@ -8,6 +8,7 @@ import type {
   ConditionGroup,
   FieldInfo,
   OperatorInfo,
+  RouterRule,
 } from '@root/types/router.types.js'
 
 /**
@@ -96,12 +97,15 @@ export default function createConditionalEvaluator(
       context: RoutingContext,
     ): Promise<boolean> {
       const isMovie = context.contentType === 'movie'
-      
-      let rules
+
+      let rules: RouterRule[] = []
       try {
         rules = await fastify.db.getRouterRulesByType('conditional')
       } catch (err) {
-        fastify.log.error({ err }, 'Conditional evaluator (canEvaluate) - DB query failed')
+        fastify.log.error(
+          { err },
+          'Conditional evaluator (canEvaluate) - DB query failed',
+        )
         return false
       }
 
@@ -119,12 +123,15 @@ export default function createConditionalEvaluator(
       context: RoutingContext,
     ): Promise<RoutingDecision[] | null> {
       const isMovie = context.contentType === 'movie'
-      
-      let rules
+
+      let rules: RouterRule[] = []
       try {
         rules = await fastify.db.getRouterRulesByType('conditional')
       } catch (err) {
-        fastify.log.error({ err }, 'Conditional evaluator (evaluate) - DB query failed')
+        fastify.log.error(
+          { err },
+          'Conditional evaluator (evaluate) - DB query failed',
+        )
         return null
       }
 
