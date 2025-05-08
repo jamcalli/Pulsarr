@@ -32,6 +32,7 @@
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import knex, { type Knex } from 'knex'
 import type { Config, User } from '@root/types/config.types.js'
+import { DefaultInstanceError } from '@root/types/errors.js'
 import type {
   TokenWatchlistItem,
   Item as WatchlistItem,
@@ -1002,7 +1003,9 @@ export class DatabaseService {
         this.log.warn(
           `No ${serviceName} instance will be default after this operation`,
         )
-        throw new Error(`At least one ${serviceName} instance must be default`)
+        throw new DefaultInstanceError(
+          `At least one ${serviceName} instance must be default`,
+        )
       }
     }
   }

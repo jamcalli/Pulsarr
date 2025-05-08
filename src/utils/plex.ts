@@ -30,6 +30,68 @@ function isRateLimitError(error: unknown): error is RateLimitError {
   )
 }
 
+/**
+ * Helper function to handle rate limit errors and retries
+ * Centralizes the logic for handling both HTTP 429 responses and caught rate limit errors
+ */
+async function handleRateLimitAndRetry(
+  config: Config,
+  log: FastifyBaseLogger,
+  item: TokenWatchlistItem,
+  retryCount: number,
+  maxRetries: number,
+  progressInfo?: {
+    progress: ProgressService
+    operationId: string
+    type: 'self-watchlist' | 'others-watchlist' | 'rss-feed' | 'system'
+  },
+  retryAfterSec?: number,
+): Promise<Set<Item>> {
+  // Set global rate limiter with the retry-after value
+  const rateLimiter = PlexRateLimiter.getInstance()
+  rateLimiter.setRateLimited(retryAfterSec, log)
+
+  if (retryCount < maxRetries) {
+    // Wait for the cooldown period to expire
+    await rateLimiter.waitIfLimited(
+      log,
+      progressInfo
+        ? {
+            ...progressInfo,
+            message: `Rate limited by Plex API. Waiting before retrying "${item.title}"...`,
+          }
+        : undefined,
+    )
+
+    // Try again after waiting
+    return toItemsSingle(
+      config,
+      log,
+      item,
+      retryCount + 1,
+      maxRetries,
+      progressInfo,
+    )
+  }
+
+  // Create rate limit error when retries are exhausted
+  const rateLimitError = new Error(
+    `Rate limit exceeded: Maximum retries (${maxRetries}) reached when processing item "${item.title}"`,
+  ) as RateLimitError
+  rateLimitError.isRateLimitExhausted = true
+
+  if (retryAfterSec === undefined) {
+    // This is a caught error, not an HTTP 429
+    throw rateLimitError
+  }
+
+  // This is from an HTTP 429
+  log.warn(
+    `Maximum retries (${maxRetries}) reached for ${item.title} due to rate limiting. Skipping item.`,
+  )
+  return new Set()
+}
+
 // Global rate limiting control
 // Using a singleton pattern to track and control rate limiting across all processes
 export class PlexRateLimiter {
@@ -899,31 +961,20 @@ const toItemsBatch = async (
             batchCompletedCount++
             consecutiveSuccessCount++ // Increment success counter
 
-            // Recovery logic - increase concurrency more aggressively
-            if (currentConcurrencyLimit < initialConcurrencyLimit) {
-              // Faster recovery for consecutive successes
-              if (consecutiveSuccessCount >= RECOVERY_THRESHOLD) {
-                // More aggressive recovery after a string of successes
-                currentConcurrencyLimit = Math.min(
-                  currentConcurrencyLimit + 1,
-                  initialConcurrencyLimit,
-                )
-                log.debug(
-                  `Concurrency recovery: increasing to ${currentConcurrencyLimit} after ${consecutiveSuccessCount} consecutive successes`,
-                )
-                // Reset counter but don't drop it to zero to maintain some "credit"
-                consecutiveSuccessCount = Math.floor(RECOVERY_THRESHOLD / 2)
-              }
-              // Also keep the gradual recovery for regular batches
-              else if (batchCompletedCount % 10 === 0) {
-                currentConcurrencyLimit = Math.min(
-                  currentConcurrencyLimit + 1,
-                  initialConcurrencyLimit,
-                )
-                log.debug(
-                  `Gradually increasing concurrency to ${currentConcurrencyLimit}`,
-                )
-              }
+            // Recovery logic - increase concurrency based on consecutive successes
+            if (
+              currentConcurrencyLimit < initialConcurrencyLimit &&
+              consecutiveSuccessCount >= RECOVERY_THRESHOLD
+            ) {
+              currentConcurrencyLimit = Math.min(
+                currentConcurrencyLimit + 1,
+                initialConcurrencyLimit,
+              )
+              log.debug(
+                `Concurrency recovery: increasing to ${currentConcurrencyLimit} after ${consecutiveSuccessCount} consecutive successes`,
+              )
+              // Reset counter but don't drop it to zero to maintain some "credit"
+              consecutiveSuccessCount = Math.floor(RECOVERY_THRESHOLD / 2)
             }
 
             if (progressTracker) {
@@ -1047,36 +1098,16 @@ const toItemsSingle = async (
         ? Number.parseInt(retryAfter, 10)
         : undefined
 
-      // Set global rate limiter with the retry-after value
-      rateLimiter.setRateLimited(retryAfterSec, log)
-
-      if (retryCount < maxRetries) {
-        // Wait for the cooldown period to expire
-        await rateLimiter.waitIfLimited(
-          log,
-          progressInfo
-            ? {
-                ...progressInfo,
-                message: `Rate limited by Plex API. Waiting before retrying "${item.title}"...`,
-              }
-            : undefined,
-        )
-
-        // Try again after waiting
-        return toItemsSingle(
-          config,
-          log,
-          item,
-          retryCount + 1,
-          maxRetries,
-          progressInfo,
-        )
-      }
-
-      log.warn(
-        `Maximum retries (${maxRetries}) reached for ${item.title} due to rate limiting. Skipping item.`,
+      // Use the centralized helper function to handle rate limiting and retries
+      return handleRateLimitAndRetry(
+        config,
+        log,
+        item,
+        retryCount,
+        maxRetries,
+        progressInfo,
+        retryAfterSec,
       )
-      return new Set()
     }
 
     if (!response.ok) {
@@ -1146,38 +1177,15 @@ const toItemsSingle = async (
       errorStr.includes('429') ||
       errorStr.toLowerCase().includes('rate limit')
     ) {
-      // Trigger global rate limiter
-      rateLimiter.setRateLimited(undefined, log)
-
-      if (retryCount < maxRetries) {
-        // Wait for the cooldown period
-        await rateLimiter.waitIfLimited(
-          log,
-          progressInfo
-            ? {
-                ...progressInfo,
-                message: `Rate limited by Plex API. Waiting before retrying "${item.title}"...`,
-              }
-            : undefined,
-        )
-
-        // Try again after waiting
-        return toItemsSingle(
-          config,
-          log,
-          item,
-          retryCount + 1,
-          maxRetries,
-          progressInfo,
-        )
-      }
-
-      // When retries are exhausted, create a proper error to propagate
-      const rateLimitError = new Error(
-        `Rate limit exceeded: Maximum retries (${maxRetries}) reached when processing item "${item.title}"`,
-      ) as RateLimitError
-      rateLimitError.isRateLimitExhausted = true
-      throw rateLimitError
+      // Use the centralized helper function to handle rate limiting and retries
+      return handleRateLimitAndRetry(
+        config,
+        log,
+        item,
+        retryCount,
+        maxRetries,
+        progressInfo,
+      )
     }
 
     if (error.message.includes('Plex API error')) {

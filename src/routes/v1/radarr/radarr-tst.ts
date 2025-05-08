@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
+import { DefaultInstanceError } from '@root/types/errors.js'
 
 // Zod schema for Radarr instance configuration
 const RadarrInstanceSchema = z.object({
@@ -97,7 +98,18 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         await fastify.radarrManager.updateInstance(id, updates)
         reply.status(204)
       } catch (error) {
-        if (error instanceof Error && error.message.includes('default')) {
+        fastify.log.debug('Caught error in radarr route handler:', {
+          error,
+          type: error instanceof Error ? error.constructor.name : typeof error,
+          message: error instanceof Error ? error.message : String(error),
+          isDefaultError: error instanceof DefaultInstanceError,
+        })
+
+        // Special handling for default instance errors
+        if (
+          error instanceof DefaultInstanceError ||
+          (error instanceof Error && error.message.includes('default'))
+        ) {
           // Handle the specific case where default status can't be removed
           reply
             .status(400)

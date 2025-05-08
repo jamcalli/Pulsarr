@@ -184,8 +184,25 @@ export function InstanceCard({
       setSaveStatus('error')
 
       // Check for specific error about default instance
-      const errorMessage =
-        error instanceof Error ? error.message : String(error)
+      // Get the error message either from a direct Error object or from a fetch() response
+      let errorMessage = error instanceof Error ? error.message : String(error)
+
+      // Try to extract message from response data if it's a fetch error
+      try {
+        if (
+          error instanceof Response ||
+          (typeof error === 'object' &&
+            error &&
+            'status' in error &&
+            error.status === 400)
+        ) {
+          const data = await (error as Response).json()
+          errorMessage = data.message || errorMessage
+        }
+      } catch (e) {
+        // If we can't parse the error as JSON, just use the error message we already have
+      }
+
       console.log('Sonarr error handling in component:', {
         errorMessage,
         error,
@@ -206,7 +223,9 @@ export function InstanceCard({
         const currentValues = form.getValues()
         form.reset({
           ...currentValues,
-          isDefault: true, // Force this back to true
+          // Restore the value that actually exists in the DB
+          // so the form is clean and the user can proceed.
+          isDefault: instance.isDefault,
         })
       }
     } finally {

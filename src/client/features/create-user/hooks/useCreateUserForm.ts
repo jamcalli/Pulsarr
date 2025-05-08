@@ -48,7 +48,11 @@ export function useCreateUserForm() {
           body: JSON.stringify(submitData),
         })
 
-        const responseData = await response.json()
+        const responseData = response.ok
+          ? await response.json()
+          : await response.json().catch(() => ({
+              message: response.statusText || 'Failed to create user',
+            }))
 
         if (response.ok) {
           setStatus('success')

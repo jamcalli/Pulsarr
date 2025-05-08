@@ -40,7 +40,9 @@ export function LogoutAlert({ open, onOpenChange }: LogoutAlertProps) {
         body: JSON.stringify({}),
       });
       
-      const data = await response.json();
+      const data = response.ok 
+        ? await response.json()
+        : await response.json().catch(() => ({ success: false, message: response.statusText }));
       
       if (response.ok && data.success) {
         toast({
