@@ -385,7 +385,7 @@ export class ContentRouterService {
             decision.qualityProfile,
             decision.tags,
             decision.searchOnAdd,
-            undefined, // We don't have minimumAvailability in the current interface
+            decision.minimumAvailability,
           )
         } else {
           // Convert rootFolder from string|null|undefined to string|undefined
@@ -872,6 +872,8 @@ export class ContentRouterService {
                 rootFolder,
                 syncedInstance.qualityProfile,
                 syncedInstance.tags,
+                syncedInstance.searchOnAdd,
+                syncedInstance.seasonMonitoring
               )
               routedInstances.push(syncedId)
             } catch (error) {
