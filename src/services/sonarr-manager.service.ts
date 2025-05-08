@@ -212,7 +212,7 @@ export class SonarrManagerService {
       })
 
       this.log.info(
-        `Successfully routed item to instance ${targetInstanceId} with quality profile ${targetQualityProfileId ?? 'default'} and tags ${targetTags.length ? targetTags.join(', ') : 'none'}`,
+        `Successfully routed item to instance ${targetInstanceId} with quality profile ${targetQualityProfileId ?? 'default'}, tags ${targetTags.length ? targetTags.join(', ') : 'none'}, search on add ${targetSearchOnAdd ? 'enabled' : 'disabled'}, and season monitoring set to '${targetSeasonMonitoring}'`,
       )
     } catch (error) {
       this.log.error(

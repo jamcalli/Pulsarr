@@ -217,7 +217,7 @@ export class RadarrManagerService {
       })
 
       this.log.info(
-        `Successfully routed item to instance ${targetInstanceId} with quality profile ${targetQualityProfileId ?? 'default'}`,
+        `Successfully routed item to instance ${targetInstanceId} with quality profile ${targetQualityProfileId ?? 'default'}, search on add: ${targetSearchOnAdd}, minimum availability: ${targetMinimumAvailability}`,
       )
     } catch (error) {
       this.log.error(
