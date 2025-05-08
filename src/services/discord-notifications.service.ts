@@ -289,26 +289,77 @@ export class DiscordNotificationService {
       return false
     }
 
-    try {
-      this.log.debug({ payload }, 'Sending Discord webhook notification')
-      const response = await fetch(this.config.discordWebhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
+    // Split webhook URLs by comma and trim whitespace
+    const webhookUrls = this.config.discordWebhookUrl
+      .split(',')
+      .map((url) => url.trim())
+      .filter((url) => url.length > 0)
 
-      if (!response.ok) {
-        this.log.error(
-          { status: response.status },
-          'Discord webhook request failed',
+    if (webhookUrls.length === 0) {
+      this.log.debug('No valid webhook URLs found after parsing')
+      return false
+    }
+
+    try {
+      this.log.debug(
+        { webhookCount: webhookUrls.length, payload },
+        'Sending Discord webhook notification to multiple endpoints',
+      )
+
+      const results = await Promise.allSettled(
+        webhookUrls.map(async (webhookUrl) => {
+          try {
+            const response = await fetch(webhookUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            })
+
+            if (!response.ok) {
+              this.log.warn(
+                { url: webhookUrl, status: response.status },
+                'Discord webhook request failed for one endpoint',
+              )
+              return false
+            }
+            return true
+          } catch (error) {
+            this.log.warn(
+              { url: webhookUrl, error },
+              'Error sending to one Discord webhook endpoint',
+            )
+            return false
+          }
+        }),
+      )
+
+      // Check results
+      const successCount = results.filter(
+        (result) => result.status === 'fulfilled' && result.value === true,
+      ).length
+
+      const totalEndpoints = webhookUrls.length
+      const allSucceeded = successCount === totalEndpoints
+      const someSucceeded = successCount > 0
+
+      if (allSucceeded) {
+        this.log.info(
+          `Discord webhooks sent successfully to all ${totalEndpoints} endpoints`,
         )
-        return false
+        return true
       }
 
-      this.log.info('Discord webhook sent successfully')
-      return true
+      if (someSucceeded) {
+        this.log.warn(
+          `Discord webhooks sent to ${successCount}/${totalEndpoints} endpoints`,
+        )
+        return true // Return true as long as at least one succeeded
+      }
+
+      this.log.error('All Discord webhook requests failed')
+      return false
     } catch (error) {
-      this.log.error({ error }, 'Error sending Discord webhook')
+      this.log.error({ error }, 'Error in Discord webhook processing')
       return false
     }
   }

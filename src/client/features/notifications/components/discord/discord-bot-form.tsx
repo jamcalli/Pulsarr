@@ -13,10 +13,11 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from '@/components/ui/hover-card'
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { useToast } from '@/hooks/use-toast'
 import { useConfigStore } from '@/stores/configStore'
 import { DiscordStatusBadge } from '@/components/ui/discord-bot-status-badge'
@@ -207,17 +208,16 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
               <FormItem>
                 <div className="flex items-center gap-1">
                   <FormLabel className="text-text">Discord Bot Token</FormLabel>
-                  <HoverCard>
-                    <HoverCardTrigger asChild>
-                      <InfoIcon className="h-4 w-4 text-text cursor-help" />
-                    </HoverCardTrigger>
-                    <HoverCardContent className="w-80">
-                      <p>
-                        The token for your Discord bot. You can create a bot and
-                        get this token from the Discord Developer Portal.
-                      </p>
-                    </HoverCardContent>
-                  </HoverCard>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <InfoIcon className="h-4 w-4 text-text cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        Bot token from Discord Developer Portal.
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
                 <FormControl>
                   <Input
@@ -247,18 +247,17 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
                     <FormLabel className="text-text">
                       Discord Client ID
                     </FormLabel>
-                    <HoverCard>
-                      <HoverCardTrigger asChild>
-                        <InfoIcon className="h-4 w-4 text-text cursor-help" />
-                      </HoverCardTrigger>
-                      <HoverCardContent className="w-80">
-                        <p>
-                          The Client ID of your Discord application. Found in
-                          the Discord Developer Portal under your application's
-                          General Information.
-                        </p>
-                      </HoverCardContent>
-                    </HoverCard>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <InfoIcon className="h-4 w-4 text-text cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          Client ID from your Discord application's General
+                          Information page.
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                   <FormControl>
                     <Input
@@ -287,18 +286,17 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
                     <FormLabel className="text-text">
                       Discord Guild ID
                     </FormLabel>
-                    <HoverCard>
-                      <HoverCardTrigger asChild>
-                        <InfoIcon className="h-4 w-4 text-text cursor-help" />
-                      </HoverCardTrigger>
-                      <HoverCardContent className="w-80">
-                        <p>
-                          The ID of your Discord server (guild). You can find
-                          this by enabling Developer Mode in Discord and
-                          right-clicking on your server.
-                        </p>
-                      </HoverCardContent>
-                    </HoverCard>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <InfoIcon className="h-4 w-4 text-text cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          Server ID found by enabling Developer Mode and
+                          right-clicking your server.
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                   <FormControl>
                     <Input
