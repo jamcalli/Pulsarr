@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import EditableCardHeader from '@/components/ui/editable-card-header'
 import { cn } from '@/lib/utils'
-import { RefreshCw, Plus } from 'lucide-react'
+import { RefreshCw, Plus, HelpCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Tooltip,
@@ -368,9 +368,26 @@ export function InstanceCard({
                     name="monitorNewItems"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-text">
-                          Monitor New Items
-                        </FormLabel>
+                        <div className="flex items-center space-x-2">
+                          <FormLabel className="text-text">
+                            Monitor New Items
+                          </FormLabel>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  When enabled, new series will automatically be
+                                  monitored when added to Sonarr. When disabled,
+                                  new series will be added but not monitored for
+                                  new episodes.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
                         <div className="flex h-10 items-center gap-2 px-3 py-2">
                           <FormControl>
                             <Switch
@@ -394,9 +411,26 @@ export function InstanceCard({
                     name="searchOnAdd"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-text">
-                          Search on Add
-                        </FormLabel>
+                        <div className="flex items-center space-x-2">
+                          <FormLabel className="text-text">
+                            Search on Add
+                          </FormLabel>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  When enabled, Sonarr will automatically search
+                                  for episodes when a series is added. This
+                                  setting can be overridden by content router
+                                  rules on a per-route basis.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
                         <div className="flex h-10 items-center gap-2 px-3 py-2">
                           <FormControl>
                             <Switch
@@ -417,9 +451,26 @@ export function InstanceCard({
                     name="tags"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-text">
-                          Instance Tags
-                        </FormLabel>
+                        <div className="flex items-center space-x-2">
+                          <FormLabel className="text-text">
+                            Instance Tags
+                          </FormLabel>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  Tags that are automatically applied to all
+                                  series added to this Sonarr instance. Content
+                                  router rules can override these tags with
+                                  their own tag settings.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
                         <div className="flex gap-2 items-center w-full">
                           <TooltipProvider>
                             <Tooltip>
