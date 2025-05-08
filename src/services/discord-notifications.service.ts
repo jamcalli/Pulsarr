@@ -312,12 +312,14 @@ export class DiscordNotificationService {
     }
 
     try {
+      const endpointWord = webhookUrls.length === 1 ? 'endpoint' : 'endpoints'
       this.log.debug(
         { webhookCount: webhookUrls.length, payload },
-        'Sending Discord webhook notification to multiple endpoints',
+        `Sending Discord webhook notification to ${webhookUrls.length} ${endpointWord}`,
       )
 
-      const results = await Promise.allSettled(
+      // Use Promise.all with error handling inside each promise
+      const results = await Promise.all(
         webhookUrls.map(async (webhookUrl) => {
           try {
             const response = await fetch(webhookUrl, {
@@ -344,10 +346,8 @@ export class DiscordNotificationService {
         }),
       )
 
-      // Check results
-      const successCount = results.filter(
-        (result) => result.status === 'fulfilled' && result.value === true,
-      ).length
+      // Count successful (true) results
+      const successCount = results.filter(Boolean).length
 
       const totalEndpoints = webhookUrls.length
       const allSucceeded = successCount === totalEndpoints
@@ -452,24 +452,34 @@ export class DiscordNotificationService {
     url: string,
   ): Promise<{ valid: boolean; error?: string }> {
     try {
-      // Check format first
-      if (!url.includes('discord.com/api/webhooks')) {
-        return { valid: false, error: 'Invalid webhook URL format' }
+      // Validate URL structure properly with URL parser
+      let parsedUrl: URL
+      try {
+        parsedUrl = new URL(url)
+      } catch (e) {
+        return { valid: false, error: 'Invalid URL format' }
       }
 
-      // Include a friendly message to show in Discord
-      const payload = {
-        content: 'Test Webhook. Hello from Pulsarr! 👋',
-        username: 'Pulsarr Webhook Test',
-        avatar_url:
-          'https://raw.githubusercontent.com/jamcalli/Pulsarr/master/src/client/assets/images/pulsarr.png',
+      // Ensure it's a proper Discord webhook URL
+      if (
+        parsedUrl.protocol !== 'https:' ||
+        !parsedUrl.hostname.endsWith('discord.com') ||
+        !parsedUrl.pathname.startsWith('/api/webhooks/')
+      ) {
+        return { valid: false, error: 'Invalid Discord webhook URL format' }
       }
 
-      // Make the request
+      // Check port if explicitly specified (should be 443 for HTTPS)
+      if (parsedUrl.port && parsedUrl.port !== '443') {
+        return { valid: false, error: 'Invalid port for Discord webhook' }
+      }
+
+      // Use GET request instead of POST to validate the webhook URL
+      // This avoids creating test messages in Discord channels
+      // GET returns webhook metadata (id, token, etc.) if valid
       const response = await fetch(url, {
-        method: 'POST',
+        method: 'GET',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
       })
 
       if (!response.ok) {
