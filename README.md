@@ -127,6 +127,7 @@ Pulsarr offers a powerful predicate-based routing system that intelligently dire
   - Language (e.g., Spanish content → spanish content folder)
   - Year (e.g., pre-2000 movies → classics folder in another instance)
   - Certification (e.g., R-rated → separate folder)
+  - Season (e.g., shows with more than 5 seasons → lower quality profile -> add only first season)
 - **Visual Rule Builder**: Intuitive interface for creating and managing routing rules
 - **Priority-based Processing**: Assign weights to rules to control which takes precedence (used when multiple rules send content to the same instance)
 - **Multi-Instance Routing**: Content can be simultaneously sent to multiple instances when different rules match, allowing for content to exist in multiple instances
@@ -134,6 +135,7 @@ Pulsarr offers a powerful predicate-based routing system that intelligently dire
 **Example**: "Route Japanese Anime requested by specific users to the Anime instance with high-quality profile, while sending all other anime content to the default instance."
 
 The routing system processes all matching rules that target different instances, allowing the same content to appear in multiple libraries as needed. When multiple rules target the same instance, only the highest priority rule is applied for that specific instance.
+
 
 ## Quick Start
 
