@@ -7,6 +7,7 @@ import type {
   Condition,
   FieldInfo,
   OperatorInfo,
+  RouterRule,
 } from '@root/types/router.types.js'
 import { extractYear } from '@root/types/content-lookup.types.js'
 
@@ -162,8 +163,8 @@ export default function createYearEvaluator(
       }
 
       const isMovie = context.contentType === 'movie'
-      
-      let rules
+
+      let rules: RouterRule[] = []
       try {
         rules = await fastify.db.getRouterRulesByType('year')
       } catch (err) {

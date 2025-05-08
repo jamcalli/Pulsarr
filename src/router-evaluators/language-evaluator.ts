@@ -8,6 +8,7 @@ import {
   ConditionGroup,
   type FieldInfo,
   type OperatorInfo,
+  type RouterRule,
 } from '@root/types/router.types.js'
 import {
   isRadarrResponse,
@@ -145,8 +146,8 @@ export default function createLanguageEvaluator(
       }
 
       const isMovie = context.contentType === 'movie'
-      
-      let rules
+
+      let rules: RouterRule[] = []
       try {
         rules = await fastify.db.getRouterRulesByType('language')
       } catch (err) {

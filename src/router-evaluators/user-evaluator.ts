@@ -8,6 +8,7 @@ import {
   ConditionGroup,
   type FieldInfo,
   type OperatorInfo,
+  type RouterRule,
 } from '@root/types/router.types.js'
 
 /**
@@ -179,8 +180,8 @@ export default function createUserEvaluator(
       }
 
       const isMovie = context.contentType === 'movie'
-      
-      let rules
+
+      let rules: RouterRule[] = []
       try {
         rules = await fastify.db.getRouterRulesByType('user')
       } catch (err) {
