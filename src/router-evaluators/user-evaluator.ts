@@ -12,9 +12,9 @@ import {
 } from '@root/types/router.types.js'
 
 /**
- * Creates a routing evaluator that routes content based on the requesting user's ID or username.
+ * Creates a routing evaluator that determines routing decisions based on the requesting user's ID or username.
  *
- * The evaluator supports user-based routing rules using the `user` field, allowing exact matches, inclusion/exclusion lists, and regular expression matching on usernames or IDs. It provides methods to determine if evaluation is possible for a given context, to evaluate routing rules for the current user, and to test if a user-based condition matches the context.
+ * The evaluator supports user-based routing rules using the `user` field, allowing for exact matches, inclusion/exclusion lists, and regular expression matching on usernames or IDs. It provides methods to check if evaluation is possible for a given context, to evaluate routing rules for the current user, and to test if a user-based condition matches the context.
  *
  * @returns A {@link RoutingEvaluator} configured for user-based routing decisions.
  *

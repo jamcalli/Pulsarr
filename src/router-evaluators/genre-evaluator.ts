@@ -52,7 +52,7 @@ function isValidGenreValue(value: unknown): value is string | string[] {
 /**
  * Creates a routing evaluator that determines routing decisions for content items based on genre-matching rules.
  *
- * The evaluator supports only the "genres" field and provides operators for matching genres, including `contains`, `in`, `notContains`, `notIn`, `equals`, and `regex`. It retrieves genre-based routing rules from the database, filters them by content type (movie or series), and evaluates whether a content item's genres satisfy the rule criteria to produce routing decisions.
+ * The evaluator supports only the "genres" field and provides operators for matching genres, including `contains`, `in`, `notContains`, `notIn`, `equals`, and `regex`. It retrieves genre-based routing rules from the database, filters them by content type, and evaluates whether a content item's genres satisfy the rule criteria to produce routing decisions. The evaluator also supports evaluating individual genre conditions for conditional routing logic.
  *
  * @returns A {@link RoutingEvaluator} specialized for genre-based routing.
  *

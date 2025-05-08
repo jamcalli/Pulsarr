@@ -16,14 +16,14 @@ import {
 import safeRegex from 'safe-regex'
 
 /**
- * Creates a routing evaluator that applies routing decisions and condition evaluations based on content certification or rating metadata.
+ * Creates a routing evaluator that applies routing decisions and condition checks based on content certification or rating metadata from Radarr and Sonarr sources.
  *
- * The evaluator supports the "certification" field with operators such as equals, notEquals, contains, notContains, in, notIn, and regex. It extracts certification information from Radarr and Sonarr metadata and matches it against routing rules for movies and TV shows.
+ * The evaluator supports the "certification" field with operators including equals, notEquals, contains, notContains, in, notIn, and regex. It extracts certification information from content metadata and matches it against routing rules for movies and TV shows.
  *
  * @returns A {@link RoutingEvaluator} that routes content items according to their certification metadata.
  *
  * @remark
- * Regular expression operators are evaluated with safety checks to prevent unsafe patterns. Only the "certification" field is supported for evaluation and condition checks.
+ * Regular expression operators are evaluated with safety checks to prevent unsafe or catastrophic patterns. Only the "certification" field is supported for evaluation and condition checks.
  */
 export default function createCertificationEvaluator(
   fastify: FastifyInstance,
