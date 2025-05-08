@@ -169,7 +169,8 @@ export default function createSeasonEvaluator(
   return {
     name: 'Season Router',
     description: 'Routes TV shows based on season numbers',
-    priority: 68, // Lower than language (65) but higher than year (70)
+    // Priority chosen to sit between language (65) and year (70)
+    priority: 68,
     supportedFields,
     supportedOperators,
     contentType: 'sonarr', // Specify that this evaluator is only for Sonarr/TV shows
@@ -262,9 +263,9 @@ export default function createSeasonEvaluator(
               ? seasonValue.max
               : Number.POSITIVE_INFINITY
 
-          return seasons.some(
-            (season) => season >= minSeason && season <= maxSeason,
-          )
+          const minSeen = Math.min(...seasons)
+          const maxSeen = Math.max(...seasons)
+          return minSeen <= maxSeason && maxSeen >= minSeason
         }
 
         return false
@@ -341,9 +342,9 @@ export default function createSeasonEvaluator(
         const maxSeason =
           typeof value.max === 'number' ? value.max : Number.POSITIVE_INFINITY
 
-        result = seasons.some(
-          (season) => season >= minSeason && season <= maxSeason,
-        )
+        const minSeen = Math.min(...seasons)
+        const maxSeen = Math.max(...seasons)
+        result = minSeen <= maxSeason && maxSeen >= minSeason
       }
 
       // Do not apply negation here - the content router service handles negation at a higher level.

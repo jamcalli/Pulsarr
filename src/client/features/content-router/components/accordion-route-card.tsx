@@ -429,28 +429,34 @@ const AccordionRouteCard = ({
           (inst) => inst.id === instanceId,
         )
         if (newSelectedInstance) {
-          // Set search_on_add default from the selected instance
-          form.setValue(
-            'search_on_add',
-            newSelectedInstance.searchOnAdd !== undefined
-              ? newSelectedInstance.searchOnAdd
-              : true,
-            { shouldDirty: true },
-          )
+          // Set search_on_add default from the selected instance, but only if not already changed by user
+          if (!form.formState.dirtyFields.search_on_add) {
+            form.setValue(
+              'search_on_add',
+              newSelectedInstance.searchOnAdd !== undefined
+                ? newSelectedInstance.searchOnAdd
+                : true,
+              { shouldDirty: false },
+            )
+          }
 
-          // For Sonarr, set season_monitoring default
+          // For Sonarr, set season_monitoring default, but only if not already changed by user
           if (contentType === 'sonarr') {
-            if (
-              'seasonMonitoring' in newSelectedInstance &&
-              newSelectedInstance.seasonMonitoring
-            ) {
-              form.setValue(
-                'season_monitoring',
-                newSelectedInstance.seasonMonitoring,
-                { shouldDirty: true },
-              )
-            } else {
-              form.setValue('season_monitoring', 'all', { shouldDirty: true })
+            if (!form.formState.dirtyFields.season_monitoring) {
+              if (
+                'seasonMonitoring' in newSelectedInstance &&
+                newSelectedInstance.seasonMonitoring
+              ) {
+                form.setValue(
+                  'season_monitoring',
+                  newSelectedInstance.seasonMonitoring,
+                  { shouldDirty: false },
+                )
+              } else {
+                form.setValue('season_monitoring', 'all', {
+                  shouldDirty: false,
+                })
+              }
             }
           }
         }
@@ -469,40 +475,8 @@ const AccordionRouteCard = ({
     [instances, targetInstanceId],
   )
 
-  // Update advanced settings when selected instance changes
-  useEffect(() => {
-    if (selectedInstance) {
-      // Only update if the values haven't been explicitly set
-      if (form.getValues('search_on_add') === undefined) {
-        form.setValue(
-          'search_on_add',
-          selectedInstance.searchOnAdd !== undefined
-            ? selectedInstance.searchOnAdd
-            : true,
-          { shouldDirty: false },
-        )
-      }
-
-      // Only for Sonarr content, update season monitoring
-      if (
-        contentType === 'sonarr' &&
-        form.getValues('season_monitoring') === undefined
-      ) {
-        if (
-          'seasonMonitoring' in selectedInstance &&
-          selectedInstance.seasonMonitoring
-        ) {
-          form.setValue(
-            'season_monitoring',
-            selectedInstance.seasonMonitoring,
-            { shouldDirty: false },
-          )
-        } else {
-          form.setValue('season_monitoring', 'all', { shouldDirty: false })
-        }
-      }
-    }
-  }, [selectedInstance, form, contentType])
+  // We don't need this effect as the same logic is already in handleInstanceChange
+  // and will be triggered when a new instance is selected
 
   // Handle form submission
   const handleSubmit = async (data: ConditionalRouteFormValues) => {
@@ -1184,6 +1158,7 @@ const AccordionRouteCard = ({
                               <Switch
                                 checked={field.value}
                                 onCheckedChange={field.onChange}
+                                aria-label="Search on Add"
                               />
                             </FormControl>
                             <span className="text-sm text-text text-muted-foreground">
