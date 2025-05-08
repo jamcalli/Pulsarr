@@ -119,7 +119,11 @@ export function TagCreationDialog({
       
       await minimumLoadingTime
       
-      const data = await response.json() as CreateTagResponse<typeof instanceType> | CreateTagError<typeof instanceType>
+      const data = response.ok
+        ? await response.json() as CreateTagResponse<typeof instanceType>
+        : await response
+            .json()
+            .catch(() => ({ message: response.statusText })) as CreateTagError<typeof instanceType>
       
       if (response.ok) {
         // Format the instance name for the toast

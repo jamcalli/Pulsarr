@@ -54,10 +54,17 @@ export const TagsMultiSelect = forwardRef<TagsMultiSelectRef, TagsMultiSelectPro
   // Ref hooks
   const pendingValueRef = useRef<string[] | null>(null)
   const tagsLoadedRef = useRef(false)
+  const isInternalUpdateRef = useRef(false)
   
   // Handle tag selection changes
   const handleValueChange = useCallback((values: string[]) => {
+    // Set flag to indicate this update is from user interaction
+    isInternalUpdateRef.current = true;
     field.onChange(values);
+    // Reset flag after update
+    setTimeout(() => {
+      isInternalUpdateRef.current = false;
+    }, 0);
   }, [field]);
 
   // Ref to store the current AbortController
@@ -99,7 +106,11 @@ export const TagsMultiSelect = forwardRef<TagsMultiSelectRef, TagsMultiSelectPro
         // If it's a 404 error and we had previous values, clear them and continue
         if (response.status === 404 && field.value && Array.isArray(field.value) && field.value.length > 0) {
           // Reset field value since the tags no longer exist
+          isInternalUpdateRef.current = true;
           field.onChange([]);
+          setTimeout(() => {
+            isInternalUpdateRef.current = false;
+          }, 0);
           
           // Show a toast notification instead of blocking the UI
           toast({
@@ -169,32 +180,51 @@ export const TagsMultiSelect = forwardRef<TagsMultiSelectRef, TagsMultiSelectPro
     return []
   }, [field.value]);
   
-  // Store field value reference whenever it changes before tags are loaded
+  // Update pending value reference when the field value changes from parent component
+  // but not when we internally updated it
   useEffect(() => {
+    // Skip if we triggered the update internally via handleValueChange
+    if (isInternalUpdateRef.current) return;
+    
+    // Skip if we already loaded tags - we only care about initialization
+    if (tagsLoadedRef.current) return;
+    
     if (field.value) {
       if (Array.isArray(field.value)) {
-        pendingValueRef.current = field.value
-      } else if (field.value) {
-        pendingValueRef.current = [field.value]
+        pendingValueRef.current = field.value;
+      } else {
+        pendingValueRef.current = [field.value];
       }
+    } else {
+      // Handle the case where the field value is cleared from outside
+      pendingValueRef.current = [];
     }
   }, [field.value]);
   
   // Handle initialization of tags and values
   useEffect(() => {
     // Only try to set values when tags are loaded and we have pending values
-    if (tags.length > 0 && pendingValueRef.current && pendingValueRef.current.length > 0) {
-      // Verify tags exist in options before setting value
-      const validTagValues = pendingValueRef.current.filter(tagId => 
-        tags.some(tag => tag.value === tagId)
-      );
+    if (tags.length > 0 && pendingValueRef.current !== null) {
+      // First mark that we've loaded tags to prevent re-processing
+      tagsLoadedRef.current = true;
       
-      if (validTagValues.length > 0) {
-        // Set the field value without triggering form dirty state
-        field.onChange(validTagValues);
+      if (pendingValueRef.current.length > 0) {
+        // Verify tags exist in options before setting value
+        const validTagValues = pendingValueRef.current.filter(tagId => 
+          tags.some(tag => tag.value === tagId)
+        );
+        
+        if (validTagValues.length > 0) {
+          // Set the field value without triggering form dirty state
+          isInternalUpdateRef.current = true;
+          field.onChange(validTagValues);
+          setTimeout(() => {
+            isInternalUpdateRef.current = false;
+          }, 0);
+        }
       }
       
-      tagsLoadedRef.current = true;
+      // Clear pending values after processing
       pendingValueRef.current = null;
     }
   }, [tags, field]);
