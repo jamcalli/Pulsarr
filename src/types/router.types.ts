@@ -53,6 +53,7 @@ export interface RoutingDecision {
   priority: number // Higher number = higher priority
   searchOnAdd?: boolean | null // Whether to automatically search when added
   seasonMonitoring?: string | null // For Sonarr: which seasons to monitor
+  minimumAvailability?: 'announced' | 'inCinemas' | 'released' // For Radarr: minimum availability setting
 }
 
 // Condition system types
