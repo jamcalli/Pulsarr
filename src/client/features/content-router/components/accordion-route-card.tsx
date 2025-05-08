@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { ContentRouterContext } from '@/features/content-router/hooks/useContentRouter'
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
+import { Separator } from '@/components/ui/separator'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import {
@@ -32,6 +34,7 @@ import {
   X,
   Power,
 } from 'lucide-react'
+import { SONARR_MONITORING_OPTIONS } from '@/features/sonarr/store/constants'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import ConditionGroupComponent from '@/features/content-router/components/condition-group'
 import {
@@ -47,6 +50,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import { TagsMultiSelect } from '@/components/ui/tag-multi-select'
 import { TagCreationDialog } from '@/components/ui/tag-creation-dialog'
 import type {
@@ -183,27 +187,60 @@ const AccordionRouteCard = ({
     }
   }, [route])
 
-  // Create memoized default values to prevent unnecessary form resets
-  const defaultValues = useMemo(
-    () => ({
-      name:
-        route?.name ||
-        `New ${contentType === 'radarr' ? 'Movie' : 'Show'} Route`,
-      condition: getInitialConditionValue(),
-      target_instance_id:
-        route?.target_instance_id ||
-        (instances.length > 0 ? instances[0].id : 0),
-      root_folder: route?.root_folder || '',
-      quality_profile:
-        route?.quality_profile !== undefined && route?.quality_profile !== null
-          ? route.quality_profile.toString()
-          : '',
-      tags: route?.tags || [],
-      enabled: route?.enabled !== false,
-      order: route?.order ?? 50,
-    }),
-    [route, getInitialConditionValue, instances, contentType],
+  // Helper function to build default values
+  const buildDefaultValues = useCallback(
+    (
+      routeObj: ExtendedContentRouterRule | Partial<ExtendedContentRouterRule>,
+      instancesList: Array<RadarrInstance | SonarrInstance>,
+      routeContentType: 'radarr' | 'sonarr',
+    ) => {
+      // Find the selected instance to get default values if needed
+      const selectedInst = instancesList.find(
+        (inst) => inst.id === routeObj?.target_instance_id,
+      )
+
+      return {
+        name:
+          routeObj?.name ||
+          `New ${routeContentType === 'radarr' ? 'Movie' : 'Show'} Route`,
+        condition: getInitialConditionValue(),
+        target_instance_id:
+          routeObj?.target_instance_id ||
+          (instancesList.length > 0 ? instancesList[0].id : 0),
+        root_folder: routeObj?.root_folder || '',
+        quality_profile:
+          routeObj?.quality_profile !== undefined &&
+          routeObj?.quality_profile !== null
+            ? routeObj.quality_profile.toString()
+            : '',
+        tags: routeObj?.tags || [],
+        enabled: routeObj?.enabled !== false,
+        order: routeObj?.order ?? 50,
+        // For search_on_add, default to the instance setting or true if not set
+        search_on_add:
+          routeObj?.search_on_add !== undefined &&
+          routeObj?.search_on_add !== null
+            ? routeObj.search_on_add
+            : selectedInst?.searchOnAdd !== undefined
+              ? selectedInst.searchOnAdd
+              : true,
+        // For season_monitoring (Sonarr only), default to the instance setting or 'all' if not set
+        season_monitoring:
+          routeContentType === 'sonarr'
+            ? routeObj?.season_monitoring ||
+              (selectedInst && 'seasonMonitoring' in selectedInst
+                ? selectedInst.seasonMonitoring
+                : 'all')
+            : undefined,
+      }
+    },
+    [getInitialConditionValue],
   )
+
+  // Create memoized default values to prevent unnecessary form resets
+  const defaultValues = useMemo(() => {
+    return buildDefaultValues(route, instances, contentType)
+  }, [route, buildDefaultValues, instances, contentType])
 
   // Setup form with validation
   const form = useForm<ConditionalRouteFormValues>({
@@ -324,24 +361,7 @@ const AccordionRouteCard = ({
 
     // Only reset if route actually changed to prevent toast-induced resets
     if (shouldResetForm && !isNew) {
-      form.reset({
-        name:
-          route?.name ||
-          `New ${contentType === 'radarr' ? 'Movie' : 'Show'} Route`,
-        condition: getInitialConditionValue(),
-        target_instance_id:
-          route?.target_instance_id ||
-          (instances.length > 0 ? instances[0].id : 0),
-        root_folder: route?.root_folder || '',
-        quality_profile:
-          route?.quality_profile !== undefined &&
-          route?.quality_profile !== null
-            ? route.quality_profile.toString()
-            : '',
-        tags: route?.tags || [],
-        enabled: route?.enabled !== false,
-        order: route?.order ?? 50,
-      })
+      form.reset(buildDefaultValues(route, instances, contentType))
       setLocalTitle(route?.name || '')
       hasInitializedForm.current = true
     }
@@ -349,10 +369,10 @@ const AccordionRouteCard = ({
     route,
     isNew,
     form,
-    getInitialConditionValue,
     instances,
     contentType,
     getRouteId,
+    buildDefaultValues,
   ])
 
   const handleTitleChange = useCallback(
@@ -403,9 +423,46 @@ const AccordionRouteCard = ({
         })
         // Clear tags because they are instance-specific
         form.setValue('tags', [], { shouldDirty: true })
+
+        // Update the advanced settings based on the selected instance
+        const newSelectedInstance = instances.find(
+          (inst) => inst.id === instanceId,
+        )
+        if (newSelectedInstance) {
+          // Set search_on_add default from the selected instance, but only if not already changed by user
+          if (!form.formState.dirtyFields.search_on_add) {
+            form.setValue(
+              'search_on_add',
+              newSelectedInstance.searchOnAdd !== undefined
+                ? newSelectedInstance.searchOnAdd
+                : true,
+              { shouldDirty: false },
+            )
+          }
+
+          // For Sonarr, set season_monitoring default, but only if not already changed by user
+          if (contentType === 'sonarr') {
+            if (!form.formState.dirtyFields.season_monitoring) {
+              if (
+                'seasonMonitoring' in newSelectedInstance &&
+                newSelectedInstance.seasonMonitoring
+              ) {
+                form.setValue(
+                  'season_monitoring',
+                  newSelectedInstance.seasonMonitoring,
+                  { shouldDirty: false },
+                )
+              } else {
+                form.setValue('season_monitoring', 'all', {
+                  shouldDirty: false,
+                })
+              }
+            }
+          }
+        }
       }
     },
-    [form],
+    [form, instances, contentType],
   )
 
   const targetInstanceId = useWatch({
@@ -417,6 +474,9 @@ const AccordionRouteCard = ({
     () => instances.find((inst) => inst.id === targetInstanceId),
     [instances, targetInstanceId],
   )
+
+  // We don't need this effect as the same logic is already in handleInstanceChange
+  // and will be triggered when a new instance is selected
 
   // Handle form submission
   const handleSubmit = async (data: ConditionalRouteFormValues) => {
@@ -440,6 +500,10 @@ const AccordionRouteCard = ({
           condition: Array.isArray(data.condition?.conditions)
             ? (data.condition as ConditionGroup)
             : { operator: 'AND', conditions: [], negate: false },
+          search_on_add:
+            data.search_on_add === null ? undefined : data.search_on_add,
+          season_monitoring:
+            contentType === 'sonarr' ? data.season_monitoring : undefined,
         }
 
         await onSave(routeData)
@@ -459,6 +523,10 @@ const AccordionRouteCard = ({
           tags: data.tags || [],
           enabled: data.enabled,
           order: data.order,
+          search_on_add:
+            data.search_on_add === null ? undefined : data.search_on_add,
+          season_monitoring:
+            contentType === 'sonarr' ? data.season_monitoring : undefined,
         }
 
         await onSave(updatePayload)
@@ -483,23 +551,7 @@ const AccordionRouteCard = ({
 
   const handleCancel = () => {
     // Reset the form to its initial values
-    form.reset({
-      name:
-        route?.name ||
-        `New ${contentType === 'radarr' ? 'Movie' : 'Show'} Route`,
-      condition: getInitialConditionValue(),
-      target_instance_id:
-        route?.target_instance_id ||
-        (instances.length > 0 ? instances[0].id : 0),
-      root_folder: route?.root_folder || '',
-      quality_profile:
-        route?.quality_profile !== undefined && route?.quality_profile !== null
-          ? route.quality_profile.toString()
-          : '',
-      tags: route?.tags || [],
-      enabled: route?.enabled !== false,
-      order: route?.order ?? 50,
-    })
+    form.reset(buildDefaultValues(route, instances, contentType))
 
     // Reset the local title state
     setLocalTitle(route?.name || '')
@@ -832,16 +884,20 @@ const AccordionRouteCard = ({
                                   </Button>
                                 </div>
                               ) : (
-                                <ConditionGroupComponent
-                                  value={
-                                    field.value as unknown as IConditionGroup
-                                  }
-                                  onChange={field.onChange}
-                                  evaluatorMetadata={evaluatorMetadata}
-                                  genres={genres}
-                                  onGenreDropdownOpen={onGenreDropdownOpen}
-                                  isLoading={loading}
-                                />
+                                <ContentRouterContext.Provider
+                                  value={{ contentType }}
+                                >
+                                  <ConditionGroupComponent
+                                    value={
+                                      field.value as unknown as IConditionGroup
+                                    }
+                                    onChange={field.onChange}
+                                    evaluatorMetadata={evaluatorMetadata}
+                                    genres={genres}
+                                    onGenreDropdownOpen={onGenreDropdownOpen}
+                                    isLoading={loading}
+                                  />
+                                </ContentRouterContext.Provider>
                               )}
                             </div>
                           </FormControl>
@@ -1041,68 +1097,140 @@ const AccordionRouteCard = ({
                     />
                   </div>
 
-                  {/* Tags */}
-                  <FormField
-                    control={form.control}
-                    name="tags"
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="flex items-center space-x-2">
-                          <FormLabel className="text-text">Tags</FormLabel>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="max-w-xs">
-                                  Add tags to content that matches this route.
-                                  Tags will be applied when content is added to
-                                  the target instance.
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </div>
-                        <div className="flex gap-2 items-center w-full">
-                          <TagsMultiSelect
-                            ref={tagsMultiSelectRef}
-                            field={field}
-                            instanceId={Number(
-                              form.watch('target_instance_id'),
-                            )}
-                            instanceType={contentType}
-                            isConnectionValid={true}
-                          />
+                  {/* Separator for Advanced Settings */}
+                  <Separator className="my-4" />
 
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  type="button"
-                                  variant="noShadow"
-                                  size="icon"
-                                  className="flex-shrink-0"
-                                  onClick={() => setShowTagCreationDialog(true)}
-                                  disabled={!selectedInstance?.id}
-                                >
-                                  <Plus className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Create a new tag</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </div>
-                        <FormDescription className="text-xs">
-                          Optional tags to apply to content that matches this
-                          route
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {/* Advanced Settings */}
+                  <h3 className="font-medium text-text mb-4">
+                    Advanced Settings
+                  </h3>
+
+                  {/* Season Monitoring - Sonarr Only */}
+                  {contentType === 'sonarr' && (
+                    <div className="mb-4">
+                      <FormField
+                        control={form.control}
+                        name="season_monitoring"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-text">
+                              Season Monitoring
+                            </FormLabel>
+                            <Select
+                              value={field.value || 'all'}
+                              onValueChange={field.onChange}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select monitoring strategy" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {Object.entries(SONARR_MONITORING_OPTIONS).map(
+                                  ([value, label]) => (
+                                    <SelectItem key={value} value={value}>
+                                      {label}
+                                    </SelectItem>
+                                  ),
+                                )}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  )}
+
+                  {/* Search on Add and Tags in same row */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    {/* Search on Add */}
+                    <FormField
+                      control={form.control}
+                      name="search_on_add"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-text">
+                            Search on Add
+                          </FormLabel>
+                          <div className="flex h-10 items-center gap-2 px-3 py-2">
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                                aria-label="Search on Add"
+                              />
+                            </FormControl>
+                            <span className="text-sm text-text text-muted-foreground">
+                              Automatically search for content when added
+                            </span>
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {/* Tags */}
+                    <FormField
+                      control={form.control}
+                      name="tags"
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="flex items-center space-x-2">
+                            <FormLabel className="text-text">Tags</FormLabel>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="max-w-xs">
+                                    Add tags to content that matches this route.
+                                    Tags will be applied when content is added
+                                    to the target instance.
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                          <div className="flex gap-2 items-center w-full">
+                            <TagsMultiSelect
+                              ref={tagsMultiSelectRef}
+                              field={field}
+                              instanceId={Number(
+                                form.watch('target_instance_id'),
+                              )}
+                              instanceType={contentType}
+                              isConnectionValid={true}
+                            />
+
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    type="button"
+                                    variant="noShadow"
+                                    size="icon"
+                                    className="flex-shrink-0"
+                                    onClick={() =>
+                                      setShowTagCreationDialog(true)
+                                    }
+                                    disabled={!selectedInstance?.id}
+                                  >
+                                    <Plus className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Create a new tag</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
                 </div>
               </form>
             </Form>

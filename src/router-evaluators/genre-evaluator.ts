@@ -8,6 +8,7 @@ import {
   ConditionGroup,
   type FieldInfo,
   type OperatorInfo,
+  type RouterRule,
 } from '@root/types/router.types.js'
 
 /**
@@ -51,7 +52,7 @@ function isValidGenreValue(value: unknown): value is string | string[] {
 /**
  * Creates a routing evaluator that determines routing decisions for content items based on genre-matching rules.
  *
- * The evaluator supports only the "genres" field and provides operators for matching genres, including `contains`, `in`, `notContains`, `notIn`, `equals`, and `regex`. It retrieves genre-based routing rules from the database, filters them by content type (movie or series), and evaluates whether a content item's genres satisfy the rule criteria to produce routing decisions.
+ * The evaluator supports only the "genres" field and provides operators for matching genres, including `contains`, `in`, `notContains`, `notIn`, `equals`, and `regex`. It retrieves genre-based routing rules from the database, filters them by content type, and evaluates whether a content item's genres satisfy the rule criteria to produce routing decisions. The evaluator also supports evaluating individual genre conditions for conditional routing logic.
  *
  * @returns A {@link RoutingEvaluator} specialized for genre-based routing.
  *
@@ -134,7 +135,15 @@ export default function createGenreEvaluator(
         return null
       }
       const isMovie = context.contentType === 'movie'
-      const rules = await fastify.db.getRouterRulesByType('genre')
+
+      let rules: RouterRule[] = []
+      try {
+        rules = await fastify.db.getRouterRulesByType('genre')
+      } catch (err) {
+        fastify.log.error({ err }, 'Genre evaluator - DB query failed')
+        return null
+      }
+
       // Filter rules by target type (radarr/sonarr) and enabled status
       const contentTypeRules = rules.filter(
         (rule) =>
@@ -224,7 +233,10 @@ export default function createGenreEvaluator(
         instanceId: rule.target_instance_id,
         qualityProfile: rule.quality_profile,
         rootFolder: rule.root_folder,
+        tags: rule.tags || [],
         priority: rule.order || 50, // Default to 50 if not specified
+        searchOnAdd: rule.search_on_add,
+        seasonMonitoring: rule.season_monitoring,
       }))
     },
 

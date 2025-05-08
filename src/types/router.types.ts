@@ -24,6 +24,8 @@ export interface RouterRule {
   order: number
   enabled: boolean
   metadata?: RadarrMovieLookupResponse | SonarrSeriesLookupResponse | null
+  search_on_add?: boolean | null
+  season_monitoring?: string | null
   created_at: string
   updated_at: string
 }
@@ -49,6 +51,9 @@ export interface RoutingDecision {
   rootFolder?: string | null
   tags?: string[]
   priority: number // Higher number = higher priority
+  searchOnAdd?: boolean | null // Whether to automatically search when added
+  seasonMonitoring?: string | null // For Sonarr: which seasons to monitor
+  minimumAvailability?: 'announced' | 'inCinemas' | 'released' // For Radarr: minimum availability setting
 }
 
 // Condition system types
@@ -130,6 +135,9 @@ export interface RoutingEvaluator {
   // New metadata properties for self-describing evaluators
   supportedFields?: FieldInfo[]
   supportedOperators?: Record<string, OperatorInfo[]>
+
+  // Content type this evaluator applies to ('radarr', 'sonarr', or 'both')
+  contentType?: 'radarr' | 'sonarr' | 'both'
 
   // Optional helper methods can be defined in individual evaluators
   // but they won't be called directly by the ContentRouterService

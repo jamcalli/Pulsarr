@@ -12,6 +12,7 @@ import type {
   PingResponse,
   ConnectionTestResult,
   WebhookNotification,
+  MinimumAvailability,
 } from '@root/types/radarr.types.js'
 
 export class RadarrService {
@@ -529,12 +530,18 @@ export class RadarrService {
     overrideRootFolder?: string,
     overrideQualityProfileId?: number | string | null,
     overrideTags?: string[],
+    overrideSearchOnAdd?: boolean | null,
+    overrideMinimumAvailability?: MinimumAvailability,
   ): Promise<void> {
     const config = this.radarrConfig
     try {
       const addOptions: RadarrAddOptions = {
         searchForMovie:
-          config.searchOnAdd !== undefined ? config.searchOnAdd : true, // Default to true for backward compatibility
+          overrideSearchOnAdd !== undefined && overrideSearchOnAdd !== null
+            ? overrideSearchOnAdd
+            : config.searchOnAdd !== undefined
+              ? config.searchOnAdd
+              : true, // Default to true for backward compatibility
       }
 
       const tmdbId = this.extractTmdbId(item)
@@ -624,7 +631,10 @@ export class RadarrService {
         rootFolderPath,
         addOptions,
         tags,
-        minimumAvailability: config.minimumAvailability,
+        minimumAvailability:
+          overrideMinimumAvailability ||
+          config.minimumAvailability ||
+          ('released' as MinimumAvailability),
       }
 
       await this.postToRadarr<void>('movie', movie)

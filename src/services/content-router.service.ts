@@ -9,8 +9,11 @@ import type {
   FieldInfo,
   OperatorInfo,
 } from '@root/types/router.types.js'
-import type { SonarrItem } from '@root/types/sonarr.types.js'
-import type { Item as RadarrItem } from '@root/types/radarr.types.js'
+import type { SonarrItem, SonarrInstance } from '@root/types/sonarr.types.js'
+import type {
+  Item as RadarrItem,
+  RadarrInstance,
+} from '@root/types/radarr.types.js'
 import { resolve, join, dirname } from 'node:path'
 import { readdir } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
@@ -192,7 +195,16 @@ export class ContentRouterService {
     )
 
     // OPTIMIZATION: Check if any router rules exist at all
-    const hasAnyRules = await this.fastify.db.hasAnyRouterRules()
+    let hasAnyRules = false
+    try {
+      hasAnyRules = await this.fastify.db.hasAnyRouterRules()
+    } catch (error) {
+      this.log.error(
+        `Error checking for router rules for "${item.title}":`,
+        error,
+      )
+      // Continue with default routing path on error
+    }
 
     // If no rules exist and we're not in a special routing scenario,
     // skip directly to default routing
@@ -256,12 +268,15 @@ export class ContentRouterService {
 
     // IMPORTANT: Enrich item with metadata before evaluation
     // Only do this if we have rules that might use the enriched data
-    const enrichedItem = hasAnyRules
-      ? await this.enrichItemMetadata(item, context)
-      : item
-
+    let enrichedItem = item
     if (hasAnyRules) {
-      this.log.debug(`Enriched metadata for "${item.title}"`)
+      try {
+        enrichedItem = await this.enrichItemMetadata(item, context)
+        this.log.debug(`Enriched metadata for "${item.title}"`)
+      } catch (error) {
+        this.log.error(`Failed to enrich metadata for "${item.title}":`, error)
+        // Continue with original item if enrichment fails
+      }
     }
 
     // Step 2: Evaluate all applicable evaluators to get routing decisions
@@ -384,6 +399,8 @@ export class ContentRouterService {
             rootFolder,
             decision.qualityProfile,
             decision.tags,
+            decision.searchOnAdd,
+            decision.minimumAvailability,
           )
         } else {
           // Convert rootFolder from string|null|undefined to string|undefined
@@ -398,6 +415,8 @@ export class ContentRouterService {
             rootFolder,
             decision.qualityProfile,
             decision.tags,
+            decision.searchOnAdd,
+            decision.seasonMonitoring,
           )
         }
         routeCount++
@@ -470,10 +489,19 @@ export class ContentRouterService {
       // Fetch metadata from appropriate API based on content type
       if (isMovie) {
         // Get Radarr service for movie lookups using default instance
-        const defaultInstance = await this.fastify.db.getDefaultRadarrInstance()
-        if (!defaultInstance) {
-          this.log.warn(
-            'No default Radarr instance available for metadata lookup',
+        let defaultInstance: RadarrInstance | null = null
+        try {
+          defaultInstance = await this.fastify.db.getDefaultRadarrInstance()
+          if (!defaultInstance) {
+            this.log.warn(
+              'No default Radarr instance available for metadata lookup',
+            )
+            return item
+          }
+        } catch (error) {
+          this.log.error(
+            `Database error fetching default Radarr instance for metadata lookup of "${item.title}":`,
+            error,
           )
           return item
         }
@@ -512,10 +540,19 @@ export class ContentRouterService {
         }
       } else {
         // Get Sonarr service for TV show lookups using default instance
-        const defaultInstance = await this.fastify.db.getDefaultSonarrInstance()
-        if (!defaultInstance) {
-          this.log.warn(
-            'No default Sonarr instance available for metadata lookup',
+        let defaultInstance: SonarrInstance | null = null
+        try {
+          defaultInstance = await this.fastify.db.getDefaultSonarrInstance()
+          if (!defaultInstance) {
+            this.log.warn(
+              'No default Sonarr instance available for metadata lookup',
+            )
+            return item
+          }
+        } catch (error) {
+          this.log.error(
+            `Database error fetching default Sonarr instance for metadata lookup of "${item.title}":`,
+            error,
           )
           return item
         }
@@ -699,9 +736,18 @@ export class ContentRouterService {
       // Handle movies and shows differently since they use different managers
       if (contentType === 'movie') {
         // Step 1: Get the default Radarr instance
-        const defaultInstance = await this.fastify.db.getDefaultRadarrInstance()
-        if (!defaultInstance) {
-          this.log.warn('No default Radarr instance found for routing')
+        let defaultInstance: RadarrInstance | null = null
+        try {
+          defaultInstance = await this.fastify.db.getDefaultRadarrInstance()
+          if (!defaultInstance) {
+            this.log.warn('No default Radarr instance found for routing')
+            return []
+          }
+        } catch (error) {
+          this.log.error(
+            `Database error getting default Radarr instance for "${item.title}":`,
+            error,
+          )
           return []
         }
 
@@ -742,7 +788,17 @@ export class ContentRouterService {
         // Only proceed if there are synced instances
         if (syncedInstanceIds.length > 0) {
           // Get all Radarr instances to look up details
-          const allInstances = await this.fastify.db.getAllRadarrInstances()
+          let allInstances: RadarrInstance[] = []
+          try {
+            allInstances = await this.fastify.db.getAllRadarrInstances()
+          } catch (error) {
+            this.log.error(
+              `Failed to retrieve all Radarr instances for "${item.title}":`,
+              error,
+            )
+            // Continue with empty list if we can't get instances
+          }
+
           const instanceMap = new Map(
             allInstances.map((instance) => [instance.id, instance]),
           )
@@ -781,6 +837,8 @@ export class ContentRouterService {
                 rootFolder,
                 syncedInstance.qualityProfile,
                 syncedInstance.tags,
+                syncedInstance.searchOnAdd,
+                syncedInstance.minimumAvailability,
               )
               routedInstances.push(syncedId)
             } catch (error) {
@@ -795,9 +853,18 @@ export class ContentRouterService {
       } else {
         // TV shows - Similar implementation as movies but using Sonarr
         // Step 1: Get the default Sonarr instance
-        const defaultInstance = await this.fastify.db.getDefaultSonarrInstance()
-        if (!defaultInstance) {
-          this.log.warn('No default Sonarr instance found for routing')
+        let defaultInstance: SonarrInstance | null = null
+        try {
+          defaultInstance = await this.fastify.db.getDefaultSonarrInstance()
+          if (!defaultInstance) {
+            this.log.warn('No default Sonarr instance found for routing')
+            return []
+          }
+        } catch (error) {
+          this.log.error(
+            `Database error getting default Sonarr instance for "${item.title}":`,
+            error,
+          )
           return []
         }
 
@@ -835,7 +902,17 @@ export class ContentRouterService {
             : []
 
         if (syncedInstanceIds.length > 0) {
-          const allInstances = await this.fastify.db.getAllSonarrInstances()
+          let allInstances: SonarrInstance[] = []
+          try {
+            allInstances = await this.fastify.db.getAllSonarrInstances()
+          } catch (error) {
+            this.log.error(
+              `Failed to retrieve all Sonarr instances for "${item.title}":`,
+              error,
+            )
+            // Continue with empty list if we can't get instances
+          }
+
           const instanceMap = new Map(
             allInstances.map((instance) => [instance.id, instance]),
           )
@@ -866,6 +943,8 @@ export class ContentRouterService {
                 rootFolder,
                 syncedInstance.qualityProfile,
                 syncedInstance.tags,
+                syncedInstance.searchOnAdd,
+                syncedInstance.seasonMonitoring,
               )
               routedInstances.push(syncedId)
             } catch (error) {
@@ -916,6 +995,7 @@ export class ContentRouterService {
     priority: number
     supportedFields?: FieldInfo[]
     supportedOperators?: Record<string, OperatorInfo[]>
+    contentType?: 'radarr' | 'sonarr' | 'both'
   }> {
     return this.evaluators.map((evaluator) => ({
       name: evaluator.name,
@@ -923,6 +1003,7 @@ export class ContentRouterService {
       priority: evaluator.priority,
       supportedFields: evaluator.supportedFields || [],
       supportedOperators: evaluator.supportedOperators || {},
+      contentType: evaluator.contentType || 'both',
     }))
   }
 }
