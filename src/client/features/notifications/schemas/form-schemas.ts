@@ -1,9 +1,60 @@
 import { z } from 'zod'
 
+// Helper function to parse webhook URLs from a string
+function parseWebhookUrls(value?: string): string[] {
+  const trimmed = value?.trim() ?? ''
+  if (trimmed.length === 0) return []
+
+  return trimmed
+    .split(',')
+    .map((url) => url.trim())
+    .filter(Boolean)
+}
+
 // Discord webhook form schema
 export const webhookFormSchema = z
   .object({
-    discordWebhookUrl: z.string().optional(),
+    discordWebhookUrl: z
+      .string()
+      .optional()
+      .refine(
+        (value): value is string => {
+          // Parse URLs using the helper
+          const urls = parseWebhookUrls(value)
+
+          // Make sure we have at least one URL after filtering
+          if (urls.length === 0) {
+            // Empty input is valid
+            return value === undefined || value.trim() === ''
+          }
+
+          // Check that all URLs are valid
+          return urls.every((url) => url.includes('discord.com/api/webhooks'))
+        },
+        {
+          message: 'All URLs must be valid Discord webhook URLs',
+        },
+      )
+      // Add custom validation to track invalid URLs for better error messaging
+      .superRefine((value, ctx) => {
+        // Parse URLs using the helper
+        const urls = parseWebhookUrls(value)
+        if (urls.length === 0) return
+
+        const invalidUrls = urls.filter(
+          (url) => !url.includes('discord.com/api/webhooks'),
+        )
+
+        if (invalidUrls.length > 0) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Invalid Discord webhook URL${
+              invalidUrls.length > 1 ? 's' : ''
+            }: ${invalidUrls.join(', ')}`,
+            path: ['discordWebhookUrl'],
+          })
+        }
+      }),
     _connectionTested: z.boolean().optional().default(false),
   })
   .superRefine((data, ctx) => {

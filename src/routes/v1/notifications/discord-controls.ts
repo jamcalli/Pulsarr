@@ -3,7 +3,11 @@ import type { FastifyPluginAsync } from 'fastify'
 import type { z } from 'zod'
 import {
   DiscordBotResponseSchema,
+  WebhookValidationRequestSchema,
+  WebhookValidationResponseSchema,
   ErrorSchema,
+  type WebhookValidationRequest,
+  type WebhookValidationResponse,
 } from '@schemas/notifications/discord-control.schema.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
@@ -101,6 +105,95 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         fastify.log.error('Error stopping Discord bot:', err)
         throw reply.internalServerError('Unable to stop Discord bot')
+      }
+    },
+  )
+
+  // Validate Discord Webhooks
+  fastify.post<{
+    Body: WebhookValidationRequest
+    Reply: WebhookValidationResponse
+  }>(
+    '/validatewebhook',
+    {
+      schema: {
+        body: WebhookValidationRequestSchema,
+        response: {
+          200: WebhookValidationResponseSchema,
+          400: ErrorSchema,
+          500: ErrorSchema,
+        },
+        tags: ['Notifications'],
+      },
+    },
+    async (request, reply) => {
+      try {
+        const { webhookUrls } = request.body
+
+        // Trim and handle whitespace-only input
+        const trimmedInput = webhookUrls.trim()
+        if (trimmedInput.length === 0) {
+          return reply.badRequest('No webhook URLs provided')
+        }
+
+        // Split, trim, filter empty and deduplicate
+        const allUrls = trimmedInput
+          .split(',')
+          .map((url) => url.trim())
+          .filter((url) => url.length > 0)
+
+        const uniqueUrls = [...new Set(allUrls)]
+        const duplicateCount = allUrls.length - uniqueUrls.length
+
+        // Check for empty URL list after filtering
+        if (uniqueUrls.length === 0) {
+          return reply.badRequest('No valid webhook URLs provided')
+        }
+
+        // Limit the number of URLs to process (prevent DoS)
+        const MAX_URLS = 20
+        if (uniqueUrls.length > MAX_URLS) {
+          return reply.badRequest(
+            `Too many webhook URLs. Maximum allowed is ${MAX_URLS}`,
+          )
+        }
+
+        // Validate each URL
+        const results = await Promise.all(
+          uniqueUrls.map(async (url) => {
+            const result = await fastify.discord.validateWebhook(url)
+            return { url, ...result }
+          }),
+        )
+
+        // Check if all webhooks are valid
+        const allValid = results.every((result) => result.valid)
+
+        // Helper function for pluralization
+        function plural(count: number, word: string): string {
+          return `${count} ${word}${count === 1 ? '' : 's'}`
+        }
+
+        return {
+          success: true,
+          valid: allValid,
+          urls: results,
+          duplicateCount: duplicateCount > 0 ? duplicateCount : undefined,
+          message: allValid
+            ? `Successfully validated ${plural(results.length, 'webhook')}${
+                duplicateCount > 0
+                  ? ` (${plural(duplicateCount, 'duplicate URL')} removed)`
+                  : ''
+              }`
+            : 'One or more webhooks failed validation',
+        }
+      } catch (err) {
+        if (err instanceof Error && 'statusCode' in err) {
+          throw err
+        }
+
+        fastify.log.error('Error validating webhooks:', err)
+        throw reply.internalServerError('Unable to validate webhooks')
       }
     },
   )

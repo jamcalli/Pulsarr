@@ -13,10 +13,11 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from '@/components/ui/hover-card'
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import { useConfigStore } from '@/stores/configStore'
@@ -179,20 +180,17 @@ export function GeneralSettingsForm({
                   <FormLabel className="text-text">
                     Queue Wait Time (minutes)
                   </FormLabel>
-                  <HoverCard>
-                    <HoverCardTrigger asChild>
-                      <InfoIcon className="h-4 w-4 text-text cursor-help" />
-                    </HoverCardTrigger>
-                    <HoverCardContent className="w-80">
-                      <p>
-                        Time to wait in milliseconds before processing queued
-                        notification events. This is used when multiple episode
-                        downloads are detected to group them together rather
-                        than sending immediate individual notifications (2
-                        minutes default).
-                      </p>
-                    </HoverCardContent>
-                  </HoverCard>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <InfoIcon className="h-4 w-4 text-text cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        Time to wait before processing queued notifications.
+                        Groups multiple episodes together.
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
                 <FormControl>
                   <Input
@@ -218,21 +216,17 @@ export function GeneralSettingsForm({
                   <FormLabel className="text-text">
                     New Episode Threshold (hours)
                   </FormLabel>
-                  <HoverCard>
-                    <HoverCardTrigger asChild>
-                      <InfoIcon className="h-4 w-4 text-text cursor-help" />
-                    </HoverCardTrigger>
-                    <HoverCardContent className="w-80">
-                      <p>
-                        Time threshold that determines how recently an episode
-                        must have aired to receive immediate notifications.
-                        Episodes that aired within this window (48 hours/2 days
-                        default) trigger instant notifications, while older
-                        episodes are batched together to reduce notification
-                        spam.
-                      </p>
-                    </HoverCardContent>
-                  </HoverCard>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <InfoIcon className="h-4 w-4 text-text cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        Threshold for immediate notifications. Recent episodes
+                        get instant alerts, older ones are batched.
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
                 <FormControl>
                   <Input
@@ -258,19 +252,17 @@ export function GeneralSettingsForm({
                   <FormLabel className="text-text">
                     Upgrade Buffer Time (seconds)
                   </FormLabel>
-                  <HoverCard>
-                    <HoverCardTrigger asChild>
-                      <InfoIcon className="h-4 w-4 text-text cursor-help" />
-                    </HoverCardTrigger>
-                    <HoverCardContent className="w-80">
-                      <p>
-                        Buffer time between file quality upgrades to prevent
-                        duplicate notifications when Sonarr is upgrading the
-                        same episode within a short timeframe (2 seconds
-                        default).
-                      </p>
-                    </HoverCardContent>
-                  </HoverCard>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <InfoIcon className="h-4 w-4 text-text cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        Buffer time between quality upgrades to prevent
+                        duplicate notifications.
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
                 <FormControl>
                   <Input
