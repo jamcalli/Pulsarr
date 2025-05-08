@@ -11,10 +11,9 @@ export const LoginErrorSchema = z.object({
   message: z.string(),
 })
 
-const passwordPattern =
-  /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).*$/
-
-export const PasswordSchema = z.string().min(8).regex(passwordPattern)
+export const PasswordSchema = z
+  .string()
+  .min(8, 'Password must be at least 8 characters')
 
 export const CredentialsSchema = z.object({
   email: z.string().email().max(255),

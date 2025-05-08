@@ -54,6 +54,16 @@ export default fp(
       try {
         fastify.log.info('Waiting for config to be ready...')
         await fastify.waitForConfig()
+
+        // Check if workflow is already running or starting before attempting to start
+        const currentStatus = watchlistWorkflow.getStatus()
+        if (currentStatus === 'running' || currentStatus === 'starting') {
+          fastify.log.info(
+            `Config ready, but workflow is already ${currentStatus}. Skipping auto-start.`,
+          )
+          return
+        }
+
         fastify.log.info('Config ready, starting workflow')
         await watchlistWorkflow.startWorkflow()
       } catch (err) {

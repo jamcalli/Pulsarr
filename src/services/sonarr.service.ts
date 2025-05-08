@@ -17,6 +17,11 @@ import type {
 export class SonarrService {
   private config: SonarrConfiguration | null = null
   private webhookInitialized = false
+  private instanceId?: number // The current instance ID (set during initialization)
+  private tagsCache: Map<number, Array<{ id: number; label: string }>> =
+    new Map()
+  private tagsCacheExpiry: Map<number, number> = new Map()
+  private TAG_CACHE_TTL = 30000 // 30 seconds in milliseconds
 
   constructor(
     private readonly log: FastifyBaseLogger,
@@ -221,6 +226,9 @@ export class SonarrService {
         )
       }
 
+      // Store the instance ID for caching purposes
+      this.instanceId = instance.id
+
       // Skip webhook setup for placeholder credentials
       if (instance.apiKey === 'placeholder') {
         this.log.info(
@@ -248,6 +256,8 @@ export class SonarrService {
         sonarrTagIds: instance.tags,
         sonarrSeasonMonitoring: instance.seasonMonitoring,
         sonarrMonitorNewItems: instance.monitorNewItems || 'all',
+        searchOnAdd:
+          instance.searchOnAdd !== undefined ? instance.searchOnAdd : true,
       }
 
       this.log.info(
@@ -289,6 +299,7 @@ export class SonarrService {
         }
       }
 
+      // First test basic connectivity
       const url = new URL(`${baseUrl}/ping`)
       const response = await fetch(url.toString(), {
         method: 'GET',
@@ -313,9 +324,50 @@ export class SonarrService {
         }
       }
 
-      return {
-        success: true,
-        message: 'Connection successful',
+      // Now check if we can access the notifications API to verify webhook capabilities
+      // This tests permission levels and API completeness
+      try {
+        // Create a helper function to make a GET request without modifying service state
+        const rawGet = async <T>(endpoint: string): Promise<T> => {
+          const url = new URL(`${baseUrl}/api/v3/${endpoint}`)
+          const response = await fetch(url.toString(), {
+            method: 'GET',
+            headers: {
+              'X-Api-Key': apiKey,
+              Accept: 'application/json',
+            },
+          })
+
+          if (!response.ok) {
+            throw new Error(`Sonarr API error: ${response.statusText}`)
+          }
+
+          return response.json() as Promise<T>
+        }
+
+        // Test notifications API access with dedicated helper function
+        try {
+          await rawGet<WebhookNotification[]>('notification')
+
+          // If we got here, API access for notifications works
+          return {
+            success: true,
+            message: 'Connection successful and webhook API accessible',
+          }
+        } catch (notificationError) {
+          return {
+            success: false,
+            message:
+              'Connected to Sonarr but cannot access notification API. Check API key permissions.',
+          }
+        }
+      } catch (error) {
+        // If something else went wrong in the notification check
+        return {
+          success: false,
+          message:
+            'Connected to Sonarr but webhook testing failed. Please check API key and permissions.',
+        }
       }
     } catch (error) {
       this.log.error('Connection test error:', error)
@@ -522,13 +574,30 @@ export class SonarrService {
     item: Item,
     overrideRootFolder?: string,
     overrideQualityProfileId?: number | string | null,
+    overrideTags?: string[],
+    overrideSearchOnAdd?: boolean | null,
+    overrideSeasonMonitoring?: string | null,
   ): Promise<void> {
     const config = this.sonarrConfig
     try {
+      // Check if searchOnAdd parameter or property exists and use it, otherwise default to true
+      const shouldSearch =
+        overrideSearchOnAdd !== undefined && overrideSearchOnAdd !== null
+          ? overrideSearchOnAdd
+          : config.searchOnAdd !== undefined
+            ? config.searchOnAdd
+            : true
+
+      // Season monitoring strategy - prefer override, then config, then default to 'all'
+      const monitorStrategy =
+        overrideSeasonMonitoring && overrideSeasonMonitoring !== null
+          ? overrideSeasonMonitoring
+          : config.sonarrSeasonMonitoring || 'all'
+
       const addOptions: SonarrAddOptions = {
-        monitor: config.sonarrSeasonMonitoring,
-        searchForCutoffUnmetEpisodes: true,
-        searchForMissingEpisodes: true,
+        monitor: monitorStrategy,
+        searchForCutoffUnmetEpisodes: shouldSearch,
+        searchForMissingEpisodes: shouldSearch,
       }
 
       const tvdbId = item.guids
@@ -543,6 +612,76 @@ export class SonarrService {
           ? overrideQualityProfileId
           : await this.resolveQualityProfileId(qualityProfiles)
 
+      // Collection for valid tag IDs (using Set to avoid duplicates)
+      const tagIdsSet = new Set<string>()
+
+      // Process override tags if provided
+      if (overrideTags && overrideTags.length > 0) {
+        // Get all existing tags from Sonarr
+        const existingTags = await this.getTags()
+
+        // Process each tag from the override
+        for (const tagInput of overrideTags) {
+          // Handle numeric tag IDs
+          if (/^\d+$/.test(tagInput)) {
+            const tagId = tagInput.toString()
+            // Only use the tag ID if it exists in Sonarr
+            const tagExists = existingTags.some(
+              (t) => t.id.toString() === tagId,
+            )
+
+            if (tagExists) {
+              this.log.debug(`Using existing tag ID: ${tagId}`)
+              tagIdsSet.add(tagId)
+              continue
+            }
+
+            this.log.warn(
+              `Tag ID ${tagId} not found in Sonarr - skipping this tag`,
+            )
+            continue
+          }
+
+          // Handle tag names
+          const tag = existingTags.find((t) => t.label === tagInput)
+
+          if (!tag) {
+            this.log.warn(
+              `Tag "${tagInput}" not found in Sonarr - skipping this tag`,
+            )
+            continue
+          }
+
+          tagIdsSet.add(tag.id.toString())
+        }
+      } else if (config.sonarrTagIds) {
+        // Use default tags from config, but still validate they exist
+        if (
+          Array.isArray(config.sonarrTagIds) &&
+          config.sonarrTagIds.length > 0
+        ) {
+          const existingTags = await this.getTags()
+
+          for (const tagId of config.sonarrTagIds) {
+            const stringTagId = tagId.toString()
+            const tagExists = existingTags.some(
+              (t) => t.id.toString() === stringTagId,
+            )
+
+            if (tagExists) {
+              tagIdsSet.add(stringTagId)
+            } else {
+              this.log.warn(
+                `Config tag ID ${stringTagId} not found in Sonarr - skipping this tag`,
+              )
+            }
+          }
+        }
+      }
+
+      // Convert Set back to array for the API
+      const tags = Array.from(tagIdsSet)
+
       const show: SonarrPost = {
         title: item.title,
         tvdbId: tvdbId ? Number.parseInt(tvdbId, 10) : 0,
@@ -552,12 +691,12 @@ export class SonarrService {
         languageProfileId: null,
         monitored: true,
         monitorNewItems: config.sonarrMonitorNewItems || 'all',
-        tags: config.sonarrTagIds,
+        tags,
       }
 
       await this.postToSonarr<void>('series', show)
       this.log.info(
-        `Sent ${item.title} to Sonarr (Quality Profile: ${qualityProfileId}, Root Folder: ${rootFolderPath})`,
+        `Sent ${item.title} to Sonarr (Quality Profile: ${qualityProfileId}, Root Folder: ${rootFolderPath}, Tags: ${tags.length > 0 ? tags.join(', ') : 'none'})`,
       )
     } catch (err) {
       this.log.debug(
@@ -784,12 +923,94 @@ export class SonarrService {
   }
 
   /**
-   * Get all tags from Sonarr
+   * Get all tags from Sonarr with caching
    *
    * @returns Promise resolving to an array of tags
    */
   async getTags(): Promise<Array<{ id: number; label: string }>> {
+    // Skip cache if service not properly initialized or no instance ID
+    if (!this.instanceId) {
+      return this.getTagsWithoutCache()
+    }
+
+    const now = Date.now()
+    const cacheExpiry = this.tagsCacheExpiry.get(this.instanceId)
+
+    // Return cached data if valid
+    if (
+      cacheExpiry &&
+      now < cacheExpiry &&
+      this.tagsCache.has(this.instanceId)
+    ) {
+      this.log.debug(`Using cached tags for Sonarr instance ${this.instanceId}`)
+      const cachedTags = this.tagsCache.get(this.instanceId)
+      return cachedTags || []
+    }
+
+    return this.refreshTagsCache(this.instanceId)
+  }
+
+  /**
+   * Get tags directly from Sonarr without using cache
+   *
+   * @private
+   * @returns Promise resolving to array of tags
+   */
+  private async getTagsWithoutCache(): Promise<
+    Array<{ id: number; label: string }>
+  > {
     return await this.getFromSonarr<Array<{ id: number; label: string }>>('tag')
+  }
+
+  /**
+   * Refresh the tags cache for this instance
+   *
+   * @private
+   * @param instanceId The instance ID to refresh cache for
+   * @returns Promise resolving to array of tags
+   */
+  private async refreshTagsCache(
+    instanceId: number,
+  ): Promise<Array<{ id: number; label: string }>> {
+    try {
+      const tags = await this.getTagsWithoutCache()
+
+      // Update cache with fresh data
+      this.tagsCache.set(instanceId, tags)
+      this.tagsCacheExpiry.set(instanceId, Date.now() + this.TAG_CACHE_TTL)
+
+      return tags
+    } catch (error) {
+      this.log.error(
+        `Failed to refresh tags cache for Sonarr instance ${instanceId}:`,
+        error,
+      )
+
+      // If cache refresh fails but we have stale data, return that
+      if (this.tagsCache.has(instanceId)) {
+        this.log.warn(
+          `Using stale tags cache for Sonarr instance ${instanceId}`,
+        )
+        const cachedTags = this.tagsCache.get(instanceId)
+        return cachedTags || []
+      }
+
+      throw error
+    }
+  }
+
+  /**
+   * Invalidate the tags cache for this instance
+   * Should be called whenever tags are created or deleted
+   */
+  public invalidateTagsCache(): void {
+    if (this.instanceId) {
+      this.tagsCache.delete(this.instanceId)
+      this.tagsCacheExpiry.delete(this.instanceId)
+      this.log.debug(
+        `Invalidated tags cache for Sonarr instance ${this.instanceId}`,
+      )
+    }
   }
 
   /**
@@ -800,9 +1021,17 @@ export class SonarrService {
    */
   async createTag(label: string): Promise<{ id: number; label: string }> {
     try {
-      return await this.postToSonarr<{ id: number; label: string }>('tag', {
-        label,
-      })
+      const result = await this.postToSonarr<{ id: number; label: string }>(
+        'tag',
+        {
+          label,
+        },
+      )
+
+      // Invalidate the tags cache since we've added a new tag
+      this.invalidateTagsCache()
+
+      return result
     } catch (err) {
       if (
         err instanceof Error &&
@@ -833,6 +1062,7 @@ export class SonarrService {
         SonarrSeries & { tags: number[] }
       >(`series/${seriesId}`)
 
+      // Use Set to deduplicate tags
       series.tags = [...new Set(tagIds)]
 
       // Send the update
@@ -900,5 +1130,8 @@ export class SonarrService {
     if (!response.ok) {
       throw new Error(`Sonarr API error: ${response.statusText}`)
     }
+
+    // Invalidate the tags cache since we've deleted a tag
+    this.invalidateTagsCache()
   }
 }

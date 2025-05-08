@@ -58,6 +58,7 @@ interface MultiSelectProps
     VariantProps<typeof multiSelectVariants> {
   options: Option[] | OptionGroup[]
   onValueChange: (value: string[]) => void
+  value?: string[]
   defaultValue?: string[]
   placeholder?: string
   animation?: number
@@ -77,6 +78,7 @@ export const MultiSelect = React.forwardRef<
       options,
       onValueChange,
       variant,
+      value,
       defaultValue = [],
       placeholder = 'Select options',
       animation = 0,
@@ -89,10 +91,18 @@ export const MultiSelect = React.forwardRef<
     },
     ref,
   ) => {
+    // Use value prop if present, otherwise use defaultValue
     const [selectedValues, setSelectedValues] =
-      React.useState<string[]>(defaultValue)
+      React.useState<string[]>(value || defaultValue)
     const [isPopoverOpen, setIsPopoverOpen] = React.useState(false)
     const [isAnimating, setIsAnimating] = React.useState(false)
+      
+    // Update internal state when value prop changes
+    React.useEffect(() => {
+      if (value !== undefined) {
+        setSelectedValues(value)
+      }
+    }, [value])
 
     // Detect if options are grouped by checking the first element
     const isGrouped = React.useMemo(() => {

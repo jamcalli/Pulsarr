@@ -48,7 +48,11 @@ export function useLoginForm() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password }),
         })
-        const responseData = await response.json()
+        const responseData = response.ok
+          ? await response.json()
+          : await response.json().catch(() => ({
+              message: response.statusText || 'Authentication failed',
+            }))
         if (response.ok) {
           setStatus('success')
           toast({

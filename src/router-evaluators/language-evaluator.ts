@@ -8,6 +8,7 @@ import {
   ConditionGroup,
   type FieldInfo,
   type OperatorInfo,
+  type RouterRule,
 } from '@root/types/router.types.js'
 import {
   isRadarrResponse,
@@ -145,7 +146,14 @@ export default function createLanguageEvaluator(
       }
 
       const isMovie = context.contentType === 'movie'
-      const rules = await fastify.db.getRouterRulesByType('language')
+
+      let rules: RouterRule[] = []
+      try {
+        rules = await fastify.db.getRouterRulesByType('language')
+      } catch (err) {
+        fastify.log.error({ err }, 'Language evaluator - DB query failed')
+        return null
+      }
 
       // Filter rules by target type and enabled status
       const contentTypeRules = rules.filter(
@@ -242,7 +250,10 @@ export default function createLanguageEvaluator(
         instanceId: rule.target_instance_id,
         qualityProfile: rule.quality_profile,
         rootFolder: rule.root_folder,
+        tags: rule.tags || [],
         priority: rule.order || 50, // Default to 50 if not specified
+        searchOnAdd: rule.search_on_add,
+        seasonMonitoring: rule.season_monitoring,
       }))
     },
 
@@ -323,7 +334,9 @@ export default function createLanguageEvaluator(
           break
       }
 
-      return negate ? !result : result
+      // Do not apply negation here - the content router service handles negation at a higher level.
+      // This prevents double-negation issues when condition.negate is true.
+      return result
     },
 
     canEvaluateConditionField(field: string): boolean {

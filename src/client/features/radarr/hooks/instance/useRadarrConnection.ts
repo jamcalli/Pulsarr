@@ -8,6 +8,28 @@ import type {
 import type { UseFormReturn } from 'react-hook-form'
 import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
 
+/**
+ * Utility function to check if a Radarr instance needs configuration
+ * Considers an instance as needing configuration if it's missing quality profile or root folder
+ */
+function checkNeedsConfiguration(instance: RadarrInstance) {
+  return (
+    !instance.qualityProfile ||
+    instance.qualityProfile === '' ||
+    !instance.rootFolder ||
+    instance.rootFolder === ''
+  )
+}
+
+/**
+ * React hook for managing the connection state and configuration lifecycle of a Radarr instance.
+ *
+ * Provides connection testing, initialization, and configuration validation for a given Radarr instance, including detection of missing required fields and management of related UI state.
+ *
+ * @param instance - The Radarr instance to manage.
+ * @param setShowInstanceCard - Optional callback to control the visibility of the instance card UI.
+ * @returns An object containing connection and save statuses, configuration state, refs for navigation and initialization, and functions for testing, resetting, and validating the Radarr connection.
+ */
 export function useRadarrConnection(
   instance: RadarrInstance,
   setShowInstanceCard?: (show: boolean) => void,
@@ -19,6 +41,7 @@ export function useRadarrConnection(
     'idle' | 'loading' | 'success' | 'error'
   >('idle')
   const [isConnectionValid, setIsConnectionValid] = useState(false)
+  const [needsConfiguration, setNeedsConfiguration] = useState(false)
   const isNavigationTest = useRef(false)
   const hasInitialized = useRef(false)
   const { toast } = useToast()
@@ -50,6 +73,15 @@ export function useRadarrConnection(
     [],
   )
 
+  // Check if the instance needs configuration (missing required fields)
+  useEffect(() => {
+    // Only check when we have a valid instance
+    if (instance.id > 0) {
+      const needsConfig = checkNeedsConfiguration(instance)
+      setNeedsConfiguration(needsConfig)
+    }
+  }, [instance])
+
   // Initialize component and test connection on mount
   useEffect(() => {
     const initializeComponent = async () => {
@@ -78,6 +110,17 @@ export function useRadarrConnection(
           if (result.success) {
             setIsConnectionValid(true)
             setTestStatus('success')
+
+            // Check if the instance needs additional configuration
+            // ONLY consider it needing configuration if it's missing quality profile or root folder
+            const needsConfig = checkNeedsConfiguration(instance)
+
+            if (needsConfig) {
+              setNeedsConfiguration(true)
+            } else {
+              setNeedsConfiguration(false)
+            }
+
             if (
               !instance.data?.rootFolders ||
               !instance.data?.qualityProfiles
@@ -96,11 +139,7 @@ export function useRadarrConnection(
 
     initializeComponent()
   }, [
-    instance.id,
-    instance.data?.rootFolders,
-    instance.data?.qualityProfiles,
-    instance.baseUrl,
-    instance.apiKey,
+    instance,
     testConnectionWithoutLoading,
     fetchInstanceData,
     setInstancesLoading,
@@ -191,11 +230,24 @@ export function useRadarrConnection(
 
               const newInstance = await createResponse.json()
 
+              // Check if required fields were provided
+              const hasRequiredFields = !checkNeedsConfiguration({
+                ...instance,
+                qualityProfile: values.qualityProfile,
+                rootFolder: values.rootFolder,
+              })
+              if (!hasRequiredFields) {
+                setNeedsConfiguration(true)
+              } else {
+                setNeedsConfiguration(false)
+              }
+
               await Promise.all([
                 fetchInstances(),
                 fetchInstanceData(newInstance.id.toString()),
               ])
 
+              // Always close the add instance form - we'll show the persisted one from the database instead
               setShowInstanceCard?.(false)
             } else {
               await fetchInstanceData(instance.id.toString())
@@ -242,6 +294,7 @@ export function useRadarrConnection(
   const resetConnection = useCallback(() => {
     setTestStatus('idle')
     setIsConnectionValid(false)
+    setNeedsConfiguration(false)
     hasInitialized.current = false
   }, [])
 
@@ -254,6 +307,8 @@ export function useRadarrConnection(
     setIsConnectionValid,
     isNavigationTest,
     hasInitialized,
+    needsConfiguration,
+    setNeedsConfiguration,
     testConnection,
     testConnectionWithoutLoading,
     resetConnection,

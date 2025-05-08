@@ -8,12 +8,13 @@ import {
   ConditionGroup,
   type FieldInfo,
   type OperatorInfo,
+  type RouterRule,
 } from '@root/types/router.types.js'
 
 /**
- * Creates a routing evaluator that routes content based on the requesting user's ID or username.
+ * Creates a routing evaluator that determines routing decisions based on the requesting user's ID or username.
  *
- * The evaluator supports user-based routing rules using the `user` field, allowing exact matches, inclusion/exclusion lists, and regular expression matching on usernames or IDs. It provides methods to determine if evaluation is possible for a given context, to evaluate routing rules for the current user, and to test if a user-based condition matches the context.
+ * The evaluator supports user-based routing rules using the `user` field, allowing for exact matches, inclusion/exclusion lists, and regular expression matching on usernames or IDs. It provides methods to check if evaluation is possible for a given context, to evaluate routing rules for the current user, and to test if a user-based condition matches the context.
  *
  * @returns A {@link RoutingEvaluator} configured for user-based routing decisions.
  *
@@ -179,7 +180,14 @@ export default function createUserEvaluator(
       }
 
       const isMovie = context.contentType === 'movie'
-      const rules = await fastify.db.getRouterRulesByType('user')
+
+      let rules: RouterRule[] = []
+      try {
+        rules = await fastify.db.getRouterRulesByType('user')
+      } catch (err) {
+        fastify.log.error({ err }, 'User evaluator - DB query failed')
+        return null
+      }
 
       // Filter to only rules for the current content type and enabled
       const contentTypeRules = rules.filter(
@@ -243,7 +251,10 @@ export default function createUserEvaluator(
         instanceId: rule.target_instance_id,
         qualityProfile: rule.quality_profile,
         rootFolder: rule.root_folder,
+        tags: rule.tags || [],
         priority: rule.order || 50, // Default to 50 if not specified
+        searchOnAdd: rule.search_on_add,
+        seasonMonitoring: rule.season_monitoring,
       }))
     },
 
@@ -297,8 +308,9 @@ export default function createUserEvaluator(
           break
       }
 
-      // Apply negation if needed
-      return negate ? !result : result
+      // Do not apply negation here - the content router service handles negation at a higher level.
+      // This prevents double-negation issues when condition.negate is true.
+      return result
     },
 
     canEvaluateConditionField(field: string): boolean {

@@ -9,6 +9,13 @@ import {
 } from '@/features/radarr/store/schemas'
 import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
 
+/**
+ * Manages state, validation, and synchronization for a Radarr instance configuration form.
+ *
+ * Integrates `react-hook-form` with Zod schemas to handle both new and existing Radarr instances, synchronizing form values with instance data and connection status. Provides utilities for resetting the form, updating the title, and responding to connection validation changes.
+ *
+ * @returns An object containing the form instance, a ref to the form container, and utility callbacks for form management.
+ */
 export function useRadarrInstanceForm({
   instance,
   instances,
@@ -24,6 +31,9 @@ export function useRadarrInstanceForm({
       qualityProfile: instance.qualityProfile || '',
       rootFolder: instance.rootFolder || '',
       bypassIgnored: instance.bypassIgnored,
+      searchOnAdd:
+        instance.searchOnAdd !== undefined ? instance.searchOnAdd : true,
+      minimumAvailability: instance.minimumAvailability || 'released',
       tags: instance.tags,
       isDefault: isNew
         ? instances.length === 1 && instances[0].apiKey === API_KEY_PLACEHOLDER
@@ -50,6 +60,9 @@ export function useRadarrInstanceForm({
       qualityProfile: instance.qualityProfile || '',
       rootFolder: instance.rootFolder || '',
       bypassIgnored: instance.bypassIgnored,
+      searchOnAdd:
+        instance.searchOnAdd !== undefined ? instance.searchOnAdd : true,
+      minimumAvailability: instance.minimumAvailability || 'released',
       tags: instance.tags,
       isDefault: instance.isDefault,
       syncedInstances: instance.syncedInstances || [],
@@ -123,6 +136,9 @@ export function useRadarrInstanceForm({
           qualityProfile: instance.qualityProfile || '',
           rootFolder: instance.rootFolder || '',
           bypassIgnored: instance.bypassIgnored,
+          searchOnAdd:
+            instance.searchOnAdd !== undefined ? instance.searchOnAdd : true,
+          minimumAvailability: instance.minimumAvailability || 'released',
           tags: instance.tags,
           isDefault: instance.isDefault,
           syncedInstances: instance.syncedInstances || [],

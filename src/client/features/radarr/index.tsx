@@ -5,15 +5,15 @@ import { Separator } from '@/components/ui/separator'
 import { useRadarrStore } from '@/features/radarr/store/radarrStore'
 import AccordionContentRouterSection from '@/features/content-router/components/accordion-content-router-section'
 import { InstanceCard } from '@/features/radarr/components/instance/radarr-instance-card'
-import InstanceCardSkeleton from '@/features/radarr/components/instance/radarr-card-skeleton'
+import RadarrPageSkeleton from '@/features/radarr/components/instance/radarr-card-skeleton'
 import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
 
 /**
- * Displays the Radarr configuration interface with tabs for managing Radarr instances and content routing settings.
+ * Displays the Radarr configuration interface with tabs for managing instances and content routing.
  *
- * Users can add, view, and configure Radarr instances, as well as manage content routing. The component initializes Radarr data on first render and conditionally renders loading states, configuration forms, or informational messages based on the current application state.
+ * Allows users to add, view, and configure Radarr instances, as well as manage content routing settings. Handles initialization and loading states, and conditionally renders forms or informational messages based on the current configuration.
  *
- * @returns The Radarr configuration page UI.
+ * @returns The rendered Radarr configuration page UI.
  */
 export default function RadarrConfigPage() {
   // Get these from the store
@@ -57,18 +57,7 @@ export default function RadarrConfigPage() {
   )
 
   if (instancesLoading && hasRealInstances) {
-    return (
-      <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
-        <div className="grid gap-6">
-          <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold text-text">
-              Radarr Configuration
-            </h2>
-          </div>
-          <InstanceCardSkeleton />
-        </div>
-      </div>
-    )
+    return <RadarrPageSkeleton />
   }
 
   return (
@@ -125,6 +114,7 @@ export default function RadarrConfigPage() {
                       baseUrl: 'http://localhost:7878',
                       apiKey: '',
                       bypassIgnored: false,
+                      searchOnAdd: true,
                       tags: [],
                       isDefault: instances.length === 0,
                       qualityProfile: '',

@@ -1,7 +1,7 @@
 export interface SonarrAddOptions {
-  monitor: string
-  searchForCutoffUnmetEpisodes: boolean
-  searchForMissingEpisodes: boolean
+  monitor: string | null
+  searchForCutoffUnmetEpisodes: boolean | null
+  searchForMissingEpisodes: boolean | null
 }
 
 interface QualityItem {
@@ -126,6 +126,7 @@ export interface SonarrConfiguration {
   sonarrTagIds: string[]
   sonarrSeasonMonitoring: string
   sonarrMonitorNewItems?: 'all' | 'none'
+  searchOnAdd?: boolean
 }
 
 export interface SonarrInstance {
@@ -141,6 +142,7 @@ export interface SonarrInstance {
   tags: string[]
   isDefault: boolean
   syncedInstances?: number[]
+  searchOnAdd?: boolean
   data?: {
     qualityProfiles?: Array<{ id: number; name: string }>
     rootFolders?: Array<{ path: string }>

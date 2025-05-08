@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import EditableCardHeader from '@/components/ui/editable-card-header'
 import { cn } from '@/lib/utils'
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw, Plus, HelpCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Tooltip,
@@ -36,12 +36,33 @@ import type { RadarrInstance } from '@/features/radarr/types/types'
 import { useToast } from '@/hooks/use-toast'
 import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
 import { useMediaQuery } from '@/hooks/use-media-query'
+import {
+  TagsMultiSelect,
+  type TagsMultiSelectRef,
+} from '@/components/ui/tag-multi-select'
+import { TagCreationDialog } from '@/components/ui/tag-creation-dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 interface InstanceCardProps {
   instance: RadarrInstance
   setShowInstanceCard?: (show: boolean) => void
 }
 
+/**
+ * Displays a card interface for viewing and editing a Radarr instance's configuration, including connection settings, profiles, tags, synchronization, and deletion options.
+ *
+ * The component manages form state, connection testing, tag creation, and synchronization workflows, providing modals for delete confirmation, syncing, and tag creation. Saving is only enabled after a successful connection test, and the UI indicates unsaved or incomplete configurations. If synced instances are modified and non-empty, a sync modal is shown after saving. Tag management is integrated, allowing creation and refresh of tags. If an error occurs when updating the default instance, the form resets the default status and displays the error message.
+ *
+ * @param instance - The Radarr instance to display and edit.
+ * @param setShowInstanceCard - Optional function to control the visibility of the instance card.
+ * @returns The rendered instance card UI with form controls and related modals.
+ */
 export function InstanceCard({
   instance,
   setShowInstanceCard,
@@ -51,6 +72,8 @@ export function InstanceCard({
   const [showDeleteAlert, setShowDeleteAlert] = useState(false)
   const [showSyncModal, setShowSyncModal] = useState(false)
   const [isManualSync, setIsManualSync] = useState(false)
+  const [showTagCreationDialog, setShowTagCreationDialog] = useState(false)
+  const tagsSelectRef = useRef<TagsMultiSelectRef>(null)
 
   const instances = useRadarrStore((state) => state.instances)
   const instancesLoading = useRadarrStore((state) => state.instancesLoading)
@@ -69,6 +92,7 @@ export function InstanceCard({
     saveStatus,
     isConnectionValid,
     isNavigationTest,
+    needsConfiguration,
     setTestStatus,
     setSaveStatus,
     setIsConnectionValid,
@@ -81,6 +105,24 @@ export function InstanceCard({
     isNew: instance.id === -1,
     isConnectionValid,
   })
+
+  // Add useEffect to preserve editing state for incomplete instances
+  useEffect(() => {
+    // Check if instance is incomplete but has valid connection
+    const isIncomplete =
+      (!instance.qualityProfile ||
+        instance.qualityProfile === '' ||
+        !instance.rootFolder ||
+        instance.rootFolder === '') &&
+      isConnectionValid
+
+    // If instance is incomplete and not already in dirty state, force dirty state
+    if (isIncomplete && !form.formState.isDirty) {
+      // Mark form as dirty to preserve editing UI state (halo, save/cancel buttons)
+      // Using a harmless field like name to keep the dirty state
+      form.setValue('name', instance.name, { shouldDirty: true })
+    }
+  }, [instance, isConnectionValid, form.formState.isDirty, form])
 
   const handleTest = async () => {
     const values = {
@@ -138,11 +180,52 @@ export function InstanceCard({
       }
     } catch (error) {
       setSaveStatus('error')
+
+      // Check for specific error about default instance
+      // Get the error message either from a direct Error object or from a fetch() response
+      let errorMessage = error instanceof Error ? error.message : String(error)
+
+      // Try to extract message from response data if it's a fetch error
+      try {
+        if (
+          error instanceof Response ||
+          (typeof error === 'object' &&
+            error &&
+            'status' in error &&
+            error.status === 400)
+        ) {
+          const data = await (error as Response).json()
+          errorMessage = data.message || errorMessage
+        }
+      } catch (e) {
+        // If we can't parse the error as JSON, just use the error message we already have
+      }
+
+      console.log('Radarr error handling in component:', {
+        errorMessage,
+        error,
+      }) // Debug log
+      const isDefaultError = errorMessage.includes('default')
+
       toast({
         title: 'Update Failed',
-        description: 'Failed to update Radarr configuration',
+        description: isDefaultError
+          ? errorMessage // Use the actual error message from the API
+          : 'Failed to update Radarr configuration',
         variant: 'destructive',
       })
+
+      // If it was a default error, reset the form to restore the default status
+      if (isDefaultError) {
+        // Reset the form but keep the current values except for isDefault
+        const currentValues = form.getValues()
+        form.reset({
+          ...currentValues,
+          // Restore the value that actually exists in the DB
+          // so the form is clean and the user can proceed.
+          isDefault: instance.isDefault,
+        })
+      }
     } finally {
       setLoadingWithMinDuration(false)
       setSaveStatus('idle')
@@ -161,6 +244,20 @@ export function InstanceCard({
       setShowInstanceCard?.(false)
     } else {
       resetForm()
+    }
+  }
+
+  // Refresh tags for the specified instance
+  const refreshTags = async () => {
+    if (instance.id <= 0) return
+
+    try {
+      // Use the TagsMultiSelect ref to refresh tags
+      if (tagsSelectRef.current) {
+        await tagsSelectRef.current.refetchTags()
+      }
+    } catch (error) {
+      console.error('Error refreshing tags:', error)
     }
   }
 
@@ -186,8 +283,18 @@ export function InstanceCard({
         instanceId={instance.id}
         isManualSync={isManualSync}
       />
+      <TagCreationDialog
+        open={showTagCreationDialog}
+        onOpenChange={setShowTagCreationDialog}
+        instanceId={instance.id}
+        instanceType="radarr"
+        instanceName={instance.name}
+        onSuccess={refreshTags}
+      />
       <div className="relative">
-        {(form.formState.isDirty || instance.id === -1) && (
+        {(form.formState.isDirty ||
+          instance.id === -1 ||
+          needsConfiguration) && (
           <div
             className={cn(
               'absolute -inset-0.5 rounded-lg border-2 z-50',
@@ -201,7 +308,7 @@ export function InstanceCard({
             title={form.watch('name')}
             isNew={instance.id === -1}
             isSaving={saveStatus === 'loading' || instancesLoading}
-            isDirty={form.formState.isDirty}
+            isDirty={form.formState.isDirty || needsConfiguration}
             isValid={form.formState.isValid && isConnectionValid}
             badge={instance.isDefault ? { text: 'Default' } : undefined}
             onSave={handleSave}
@@ -271,7 +378,158 @@ export function InstanceCard({
                 </div>
 
                 {/* Instance Configuration */}
-                <div className="grid lg:grid-cols-2 gap-4">
+                <div className="grid lg:grid-cols-3 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="searchOnAdd"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center space-x-2">
+                          <FormLabel className="text-text">
+                            Search on Add
+                          </FormLabel>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  When enabled, Radarr will automatically search
+                                  for movies when they are added. This setting
+                                  can be overridden by content router rules on a
+                                  per-route basis.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                        <div className="flex h-10 items-center gap-2 px-3 py-2">
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              disabled={!isConnectionValid}
+                            />
+                          </FormControl>
+                          <span className="text-sm text-text text-muted-foreground">
+                            Automatically search for movies when added
+                          </span>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="minimumAvailability"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center space-x-2">
+                          <FormLabel className="text-text">
+                            Minimum Availability
+                          </FormLabel>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  Determines when movies are considered
+                                  available:
+                                  <br />• <strong>Announced</strong>: As soon as
+                                  movie is added to TMDb
+                                  <br />• <strong>In Cinemas</strong>: When
+                                  movie is in theaters
+                                  <br />• <strong>Released</strong>: When
+                                  digital/physical release is available
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                        <Select
+                          disabled={!isConnectionValid}
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select availability" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="announced">Announced</SelectItem>
+                            <SelectItem value="inCinemas">
+                              In Cinemas
+                            </SelectItem>
+                            <SelectItem value="released">Released</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="tags"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center space-x-2">
+                          <FormLabel className="text-text">
+                            Instance Tags
+                          </FormLabel>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  Tags that are automatically applied to all
+                                  movies added to this Radarr instance. Content
+                                  router rules can override these tags with
+                                  their own tag settings.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                        <div className="flex gap-2 items-center w-full">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="noShadow"
+                                  size="icon"
+                                  className="flex-shrink-0"
+                                  onClick={() => setShowTagCreationDialog(true)}
+                                  disabled={!isConnectionValid}
+                                >
+                                  <Plus className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Create a new tag</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+
+                          <FormControl>
+                            <TagsMultiSelect
+                              ref={tagsSelectRef}
+                              field={field}
+                              instanceId={instance.id}
+                              instanceType="radarr"
+                              isConnectionValid={isConnectionValid}
+                              // Tag IDs are stored as strings in the form data
+                            />
+                          </FormControl>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   <FormField
                     control={form.control}
                     name="syncedInstances"
@@ -319,6 +577,8 @@ export function InstanceCard({
                       </FormItem>
                     )}
                   />
+                  {/* Empty cell to ensure Default Instance is in bottom-right */}
+                  <div />
                   <FormField
                     control={form.control}
                     name="isDefault"

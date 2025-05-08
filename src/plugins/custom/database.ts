@@ -153,7 +153,6 @@ export default fp(
     try {
       await initializeConfig()
     } catch (error) {
-      console.log('Error initializing config:', error)
       fastify.log.error('Failed to initialize config:', error)
     }
   },

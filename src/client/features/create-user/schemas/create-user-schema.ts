@@ -1,15 +1,8 @@
 import * as z from 'zod'
 
-const passwordPattern =
-  /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).*$/
-
 export const PasswordSchema = z
   .string()
   .min(8, 'Password must be at least 8 characters')
-  .regex(
-    passwordPattern,
-    'Password must include uppercase, lowercase, number and special character',
-  )
 
 export const EmailSchema = z
   .string()

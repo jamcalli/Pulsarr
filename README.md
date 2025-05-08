@@ -127,6 +127,7 @@ Pulsarr offers a powerful predicate-based routing system that intelligently dire
   - Language (e.g., Spanish content → spanish content folder)
   - Year (e.g., pre-2000 movies → classics folder in another instance)
   - Certification (e.g., R-rated → separate folder)
+  - Season (e.g., shows with more than 5 seasons → lower quality profile -> add only first season)
 - **Visual Rule Builder**: Intuitive interface for creating and managing routing rules
 - **Priority-based Processing**: Assign weights to rules to control which takes precedence (used when multiple rules send content to the same instance)
 - **Multi-Instance Routing**: Content can be simultaneously sent to multiple instances when different rules match, allowing for content to exist in multiple instances
@@ -134,6 +135,7 @@ Pulsarr offers a powerful predicate-based routing system that intelligently dire
 **Example**: "Route Japanese Anime requested by specific users to the Anime instance with high-quality profile, while sending all other anime content to the default instance."
 
 The routing system processes all matching rules that target different instances, allowing the same content to appear in multiple libraries as needed. When multiple rules target the same instance, only the highest priority rule is applied for that specific instance.
+
 
 ## Quick Start
 
@@ -220,6 +222,11 @@ npm run start:prod
 The webhook endpoint can be used without creating a Discord bot. Point this webhook at an admin-only channel to view notifications about who added what. You will receive webhooks like this:
 
 <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Webhook-grab.png" width="400" alt="Webhook Grab">
+
+You can configure multiple Discord webhook URLs by separating them with commas. This allows you to send notifications to multiple channels or servers simultaneously. For example:
+```
+https://discord.com/api/webhooks/id1/token1,https://discord.com/api/webhooks/id2/token2
+```
 
 1. Create a Discord Bot
    - Go to the [Discord Developer Portal](https://discord.com/developers/applications)
@@ -519,7 +526,7 @@ syncIntervalSeconds=10                 # Sync interval in seconds
 queueProcessDelaySeconds=60            # Queue processing delay in seconds
 
 # Discord Configuration
-discordWebhookUrl=https://discord.com/api/webhooks/xxxx/xxxx  # Webhook URL
+discordWebhookUrl=https://discord.com/api/webhooks/xxxx/xxxx  # Webhook URL(s), separate multiple with commas
 discordBotToken=xxxx.xxxx.xxxx                                # Bot token
 discordClientId=xxxxxxxxxxxx                                  # Client ID
 discordGuildId=xxxxxxxxxxxx                                   # Server ID

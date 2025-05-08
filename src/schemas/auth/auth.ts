@@ -10,7 +10,10 @@ export interface AdminUser {
 
 export const CredentialsSchema = z.object({
   email: z.string().email().max(255),
-  password: z.string().min(1).max(255),
+  password: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .max(255),
 })
 
 export type Credentials = z.infer<typeof CredentialsSchema>

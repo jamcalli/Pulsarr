@@ -17,11 +17,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from '@/components/ui/hover-card'
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/hooks/use-toast'
 import { useConfigStore } from '@/stores/configStore'
@@ -109,44 +104,86 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
     }
   }
 
-  // Function to validate Discord webhook URL
-  const validateDiscordWebhook = async (url: string) => {
+  // Function to validate Discord webhook URLs (supports comma-separated URLs)
+  const validateDiscordWebhook = async (urlInput: string) => {
     try {
-      if (!url || !url.includes('discord.com/api/webhooks')) {
-        return { valid: false, error: 'Invalid webhook URL format' }
+      // Trim the input and treat whitespace-only as empty
+      const trimmed = urlInput?.trim() ?? ''
+      if (trimmed.length === 0) {
+        return { valid: false, error: 'No webhook URLs provided' }
       }
 
-      // Perform a GET request to the webhook URL
-      const response = await fetch(url, {
-        method: 'GET',
+      // Call our backend validation endpoint
+      const response = await fetch('/v1/notifications/validatewebhook', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ webhookUrls: trimmed }),
       })
 
-      // Check if the response is ok (status in the range 200-299)
-      if (response.ok) {
-        const data = await response.json()
-
-        // If we can get the webhook details, it's valid
-        if (data?.id && data.token) {
-          return { valid: true, webhook: data }
+      if (!response.ok) {
+        let message = 'Error validating webhooks'
+        try {
+          const errorData = await response.json()
+          message = errorData?.message ?? message
+        } catch (_) {
+          // Ignore JSON parse failures and use default message
+        }
+        return {
+          valid: false,
+          error: message,
         }
       }
 
-      return { valid: false, error: 'Invalid webhook URL' }
+      const result = await response.json()
+
+      // Map the server response to the expected format
+      if (!result.valid) {
+        // Get invalid URLs
+        const invalidUrls = result.urls
+          .filter((url: { valid: boolean }) => !url.valid)
+          .map((url: { url: string }) => url.url)
+          .join(', ')
+
+        const singularOrPlural = invalidUrls.split(',').length === 1 ? '' : 's'
+        return {
+          valid: false,
+          error: `Invalid webhook URL${singularOrPlural}: ${invalidUrls}`,
+        }
+      }
+
+      // All webhooks are valid
+      return {
+        valid: true,
+        webhooks: result.urls.map((url: { url: string }) => {
+          try {
+            const parts = new URL(url.url).pathname.split('/').filter(Boolean)
+            if (parts.length < 2) {
+              throw new Error('Unexpected webhook format')
+            }
+            // We've already checked that parts.length >= 2, so these values will exist
+            return { id: parts.at(-2) ?? '', token: parts.at(-1) ?? '' }
+          } catch {
+            return { id: undefined, token: undefined }
+          }
+        }),
+        count: result.urls.length,
+        originalCount: result.urls.length + (result.duplicateCount || 0),
+        duplicateCount: result.duplicateCount || 0,
+      }
     } catch (error) {
       console.error('Webhook validation error:', error)
-      return { valid: false, error: 'Error validating webhook' }
+      return { valid: false, error: 'Error validating webhooks' }
     }
   }
 
   const testWebhook = async () => {
-    const webhookUrl = webhookForm.getValues('discordWebhookUrl')
+    const webhookUrls = webhookForm.getValues('discordWebhookUrl')
 
-    if (!webhookUrl) {
+    if (!webhookUrls) {
       toast({
-        description: 'Please enter a webhook URL to test',
+        description: 'Please enter webhook URLs to test',
         variant: 'destructive',
       })
       return
@@ -159,7 +196,7 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
       )
 
       const [result] = await Promise.all([
-        validateDiscordWebhook(webhookUrl),
+        validateDiscordWebhook(webhookUrls),
         minimumLoadingTime,
       ])
 
@@ -171,8 +208,23 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
           shouldValidate: true,
         })
         webhookForm.clearErrors('discordWebhookUrl')
+
+        // Get webhook count for user feedback
+        const webhookCount = result.count || 1
+        let countText =
+          webhookCount === 1
+            ? 'Discord webhook URL is valid!'
+            : `All ${webhookCount} Discord webhook URLs are valid!`
+
+        // Add information about duplicates if any were found
+        if (result.duplicateCount && result.duplicateCount > 0) {
+          countText += ` (${result.duplicateCount} duplicate ${
+            result.duplicateCount === 1 ? 'URL was' : 'URLs were'
+          } removed)`
+        }
+
         toast({
-          description: 'Discord webhook URL is valid!',
+          description: countText,
           variant: 'default',
         })
       } else {
@@ -198,7 +250,7 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
         message: 'Please test connection before saving',
       })
       toast({
-        description: 'Failed to validate webhook URL',
+        description: 'Failed to validate webhook URLs',
         variant: 'destructive',
       })
     } finally {
@@ -221,9 +273,34 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
         setTimeout(resolve, 500),
       )
 
+      // Deduplicate URLs before saving
+      let webhookUrls = data.discordWebhookUrl
+      if (webhookUrls) {
+        // Trim the input first to handle whitespace-only input
+        const trimmedInput = webhookUrls.trim()
+
+        if (trimmedInput.length === 0) {
+          // If it's just whitespace, save as empty string
+          webhookUrls = ''
+        } else {
+          // Split, trim, filter empty and deduplicate
+          const uniqueUrls = [
+            ...new Set(
+              trimmedInput
+                .split(',')
+                .map((url: string) => url.trim())
+                .filter((url: string) => url.length > 0),
+            ),
+          ]
+
+          // Join back to comma-separated string
+          webhookUrls = uniqueUrls.join(',')
+        }
+      }
+
       await Promise.all([
         updateConfig({
-          discordWebhookUrl: data.discordWebhookUrl,
+          discordWebhookUrl: webhookUrls,
         }),
         minimumLoadingTime,
       ])
@@ -324,27 +401,25 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
               <FormItem>
                 <div className="flex items-center gap-1">
                   <FormLabel className="text-text">
-                    System Discord Webhook URL
+                    System Discord Webhook URL(s)
                   </FormLabel>
-                  <HoverCard>
-                    <HoverCardTrigger asChild>
-                      <InfoIcon className="h-4 w-4 text-text cursor-help" />
-                    </HoverCardTrigger>
-                    <HoverCardContent className="w-80">
-                      <p>
-                        Discord webhook URL for sending system notifications.
-                        You can create a webhook in your Discord server settings
-                        under Integrations &gt; Webhooks. Test the connection
-                        before saving.
-                      </p>
-                    </HoverCardContent>
-                  </HoverCard>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <InfoIcon className="h-4 w-4 text-text cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        Discord webhook URL(s) for sending system notifications.
+                        Multiple URLs can be separated by commas.
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
                 <FormControl>
                   <div className="flex gap-2">
                     <Input
                       {...field}
-                      placeholder="Enter Discord Webhook URL"
+                      placeholder="Enter Discord Webhook URL(s), separate multiple with commas"
                       type="text"
                       disabled={
                         webhookStatus === 'loading' ||
@@ -462,8 +537,8 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
         open={showClearAlert}
         onOpenChange={setShowClearAlert}
         onConfirm={handleClearWebhook}
-        title="Clear Discord Webhook?"
-        description="This will remove the Discord webhook URL from your configuration."
+        title="Clear Discord Webhooks?"
+        description="This will remove all Discord webhook URLs from your configuration."
       />
     </div>
   )
