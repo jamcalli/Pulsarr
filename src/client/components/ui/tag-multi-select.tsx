@@ -169,7 +169,7 @@ export const TagsMultiSelect = forwardRef<TagsMultiSelectRef, TagsMultiSelectPro
     return []
   }, [field.value]);
   
-  // Store initial field value reference as soon as it's available
+  // Store field value reference whenever it changes before tags are loaded
   useEffect(() => {
     if (field.value) {
       if (Array.isArray(field.value)) {
@@ -178,7 +178,7 @@ export const TagsMultiSelect = forwardRef<TagsMultiSelectRef, TagsMultiSelectPro
         pendingValueRef.current = [field.value]
       }
     }
-  }, []);
+  }, [field.value]);
   
   // Handle initialization of tags and values
   useEffect(() => {

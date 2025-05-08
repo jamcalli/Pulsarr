@@ -189,17 +189,12 @@ export class RadarrManagerService {
       const targetTags = tags || instance.tags || []
 
       // Handle search on add option (use provided value or instance default)
-      const targetSearchOnAdd =
-        searchOnAdd !== undefined
-          ? searchOnAdd
-          : instance.searchOnAdd !== undefined
-            ? instance.searchOnAdd
-            : true // Default to true for backward compatibility
+      const targetSearchOnAdd = searchOnAdd ?? instance.searchOnAdd ?? true // Default to true for backward compatibility
 
       // Use provided minimum availability or instance default
       const targetMinimumAvailability =
-        minimumAvailability ||
-        instance.minimumAvailability ||
+        minimumAvailability ??
+        instance.minimumAvailability ??
         ('released' as MinimumAvailability)
 
       await radarrService.addToRadarr(
