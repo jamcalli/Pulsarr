@@ -289,11 +289,22 @@ export class DiscordNotificationService {
       return false
     }
 
-    // Split webhook URLs by comma and trim whitespace
-    const webhookUrls = this.config.discordWebhookUrl
-      .split(',')
-      .map((url) => url.trim())
-      .filter((url) => url.length > 0)
+    // Trim the input string first to handle whitespace-only input
+    const trimmedInput = this.config.discordWebhookUrl?.trim() ?? ''
+    if (trimmedInput.length === 0) {
+      this.log.debug('Webhook URL is empty or contains only whitespace')
+      return false
+    }
+
+    // Split webhook URLs by comma, trim whitespace, and deduplicate
+    const webhookUrls = [
+      ...new Set(
+        trimmedInput
+          .split(',')
+          .map((url) => url.trim())
+          .filter((url) => url.length > 0),
+      ),
+    ]
 
     if (webhookUrls.length === 0) {
       this.log.debug('No valid webhook URLs found after parsing')
@@ -429,6 +440,52 @@ export class DiscordNotificationService {
       username: 'Pulsarr',
       avatar_url:
         'https://raw.githubusercontent.com/jamcalli/Pulsarr/master/src/client/assets/images/pulsarr.png',
+    }
+  }
+
+  /**
+   * Validates a Discord webhook URL
+   * @param url The Discord webhook URL to validate
+   * @returns Object indicating if the webhook is valid with optional error message
+   */
+  async validateWebhook(
+    url: string,
+  ): Promise<{ valid: boolean; error?: string }> {
+    try {
+      // Check format first
+      if (!url.includes('discord.com/api/webhooks')) {
+        return { valid: false, error: 'Invalid webhook URL format' }
+      }
+
+      // Include a friendly message to show in Discord
+      const payload = {
+        content: 'Test Webhook. Hello from Pulsarr! 👋',
+        username: 'Pulsarr Webhook Test',
+        avatar_url:
+          'https://raw.githubusercontent.com/jamcalli/Pulsarr/master/src/client/assets/images/pulsarr.png',
+      }
+
+      // Make the request
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      if (!response.ok) {
+        return {
+          valid: false,
+          error: `Request failed with status ${response.status}: ${response.statusText}`,
+        }
+      }
+
+      return { valid: true }
+    } catch (error) {
+      this.log.error({ error, url }, 'Error validating webhook')
+      return {
+        valid: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }
     }
   }
 

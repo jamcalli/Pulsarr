@@ -107,80 +107,56 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
   // Function to validate Discord webhook URLs (supports comma-separated URLs)
   const validateDiscordWebhook = async (urlInput: string) => {
     try {
-      if (!urlInput) {
+      // Trim the input and treat whitespace-only as empty
+      const trimmed = urlInput?.trim() ?? ''
+      if (trimmed.length === 0) {
         return { valid: false, error: 'No webhook URLs provided' }
       }
 
-      // Split by comma and trim whitespace
-      const urls = urlInput
-        .split(',')
-        .map((url) => url.trim())
-        .filter((url) => url.length > 0)
+      // Call our backend validation endpoint
+      const response = await fetch('/v1/notifications/validatewebhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ webhookUrls: trimmed }),
+      })
 
-      if (urls.length === 0) {
-        return { valid: false, error: 'No valid webhook URLs found' }
-      }
-
-      // Check if each URL has the correct format
-      for (const url of urls) {
-        if (!url.includes('discord.com/api/webhooks')) {
-          return {
-            valid: false,
-            error: `Invalid webhook URL format: ${url}`,
-          }
+      if (!response.ok) {
+        const errorData = await response.json()
+        return {
+          valid: false,
+          error: errorData.message || 'Error validating webhooks',
         }
       }
 
-      // Validate each webhook URL
-      const validationResults = await Promise.all(
-        urls.map(async (url) => {
-          try {
-            // Perform a GET request to validate the webhook URL
-            const response = await fetch(url, {
-              method: 'GET',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-            })
+      const result = await response.json()
 
-            // Check if the response is ok (status in the range 200-299)
-            if (response.ok) {
-              const data = await response.json()
-              // If we can get the webhook details, it's valid
-              if (data?.id && data.token) {
-                return { url, valid: true, webhook: data }
-              }
-            }
-
-            return { url, valid: false, error: 'Invalid webhook URL' }
-          } catch (error) {
-            console.error(`Webhook validation error for ${url}:`, error)
-            return { url, valid: false, error: 'Error validating webhook' }
-          }
-        }),
-      )
-
-      // Check if all webhooks are valid
-      const invalidWebhooks = validationResults.filter(
-        (result) => !result.valid,
-      )
-
-      if (invalidWebhooks.length > 0) {
-        // Some webhooks are invalid
-        const invalidUrls = invalidWebhooks
-          .map((result) => result.url)
+      // Map the server response to the expected format
+      if (!result.valid) {
+        // Get invalid URLs
+        const invalidUrls = result.urls
+          .filter((url: { valid: boolean }) => !url.valid)
+          .map((url: { url: string }) => url.url)
           .join(', ')
+
+        const singularOrPlural = invalidUrls.split(',').length === 1 ? '' : 's'
         return {
           valid: false,
-          error: `Invalid webhook URLs: ${invalidUrls}`,
+          error: `Invalid webhook URL${singularOrPlural}: ${invalidUrls}`,
         }
       }
 
       // All webhooks are valid
       return {
         valid: true,
-        webhooks: validationResults.map((result) => result.webhook),
-        count: urls.length,
+        webhooks: result.urls.map((url: { url: string }) => ({
+          id: url.url.split('/').slice(-2, -1)[0],
+          token: url.url.split('/').slice(-1)[0],
+        })),
+        count: result.urls.length,
+        originalCount: result.urls.length + (result.duplicateCount || 0),
+        duplicateCount: result.duplicateCount || 0,
       }
     } catch (error) {
       console.error('Webhook validation error:', error)
@@ -221,10 +197,17 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
 
         // Get webhook count for user feedback
         const webhookCount = result.count || 1
-        const countText =
-          webhookCount > 1
-            ? `All ${webhookCount} Discord webhooks are valid!`
-            : 'Discord webhook URL is valid!'
+        let countText =
+          webhookCount === 1
+            ? 'Discord webhook URL is valid!'
+            : `All ${webhookCount} Discord webhook URLs are valid!`
+
+        // Add information about duplicates if any were found
+        if (result.duplicateCount && result.duplicateCount > 0) {
+          countText += ` (${result.duplicateCount} duplicate ${
+            result.duplicateCount === 1 ? 'URL was' : 'URLs were'
+          } removed)`
+        }
 
         toast({
           description: countText,
@@ -276,9 +259,34 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
         setTimeout(resolve, 500),
       )
 
+      // Deduplicate URLs before saving
+      let webhookUrls = data.discordWebhookUrl
+      if (webhookUrls) {
+        // Trim the input first to handle whitespace-only input
+        const trimmedInput = webhookUrls.trim()
+
+        if (trimmedInput.length === 0) {
+          // If it's just whitespace, save as empty string
+          webhookUrls = ''
+        } else {
+          // Split, trim, filter empty and deduplicate
+          const uniqueUrls = [
+            ...new Set(
+              trimmedInput
+                .split(',')
+                .map((url: string) => url.trim())
+                .filter((url: string) => url.length > 0),
+            ),
+          ]
+
+          // Join back to comma-separated string
+          webhookUrls = uniqueUrls.join(',')
+        }
+      }
+
       await Promise.all([
         updateConfig({
-          discordWebhookUrl: data.discordWebhookUrl,
+          discordWebhookUrl: webhookUrls,
         }),
         minimumLoadingTime,
       ])

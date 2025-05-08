@@ -7,22 +7,48 @@ export const webhookFormSchema = z
       .string()
       .optional()
       .refine(
-        (value) => {
-          // Allow empty string
-          if (!value) return true
+        (value): value is string => {
+          // Trim the input and treat whitespace-only as empty
+          const trimmed = value?.trim() ?? ''
+          if (trimmed.length === 0) return true
 
           // Split by commas and validate each URL
-          const urls = value
+          const urls = trimmed
             .split(',')
             .map((url) => url.trim())
             .filter(Boolean)
+
+          // Check that all URLs are valid
           return urls.every((url) => url.includes('discord.com/api/webhooks'))
         },
         {
-          message:
-            'One or more webhook URLs are not valid Discord webhook URLs',
+          message: 'All URLs must be valid Discord webhook URLs',
         },
-      ),
+      )
+      // Add custom validation to track invalid URLs for better error messaging
+      .superRefine((value, ctx) => {
+        if (!value || value.trim().length === 0) return
+
+        const urls = value
+          .trim()
+          .split(',')
+          .map((url) => url.trim())
+          .filter(Boolean)
+
+        const invalidUrls = urls.filter(
+          (url) => !url.includes('discord.com/api/webhooks'),
+        )
+
+        if (invalidUrls.length > 0) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Invalid Discord webhook URL${
+              invalidUrls.length > 1 ? 's' : ''
+            }: ${invalidUrls.join(', ')}`,
+            path: [],
+          })
+        }
+      }),
     _connectionTested: z.boolean().optional().default(false),
   })
   .superRefine((data, ctx) => {
