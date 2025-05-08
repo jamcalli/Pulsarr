@@ -40,7 +40,7 @@ export interface RadarrConnectionValues {
 // Extended with form-specific fields
 export interface RadarrInstanceFormValues extends RadarrConnectionValues {
   bypassIgnored: boolean
-  searchOnAdd?: boolean
+  searchOnAdd: boolean
   minimumAvailability?: 'announced' | 'inCinemas' | 'released'
   tags: string[]
   isDefault: boolean
