@@ -1,5 +1,16 @@
 import { z } from 'zod'
 
+// Helper function to parse webhook URLs from a string
+function parseWebhookUrls(value?: string): string[] {
+  const trimmed = value?.trim() ?? ''
+  if (trimmed.length === 0) return []
+
+  return trimmed
+    .split(',')
+    .map((url) => url.trim())
+    .filter(Boolean)
+}
+
 // Discord webhook form schema
 export const webhookFormSchema = z
   .object({
@@ -8,15 +19,14 @@ export const webhookFormSchema = z
       .optional()
       .refine(
         (value): value is string => {
-          // Trim the input and treat whitespace-only as empty
-          const trimmed = value?.trim() ?? ''
-          if (trimmed.length === 0) return true
+          // Parse URLs using the helper
+          const urls = parseWebhookUrls(value)
 
-          // Split by commas and validate each URL
-          const urls = trimmed
-            .split(',')
-            .map((url) => url.trim())
-            .filter(Boolean)
+          // Make sure we have at least one URL after filtering
+          if (urls.length === 0) {
+            // Empty input is valid
+            return value === undefined || value.trim() === ''
+          }
 
           // Check that all URLs are valid
           return urls.every((url) => url.includes('discord.com/api/webhooks'))
@@ -27,13 +37,9 @@ export const webhookFormSchema = z
       )
       // Add custom validation to track invalid URLs for better error messaging
       .superRefine((value, ctx) => {
-        if (!value || value.trim().length === 0) return
-
-        const urls = value
-          .trim()
-          .split(',')
-          .map((url) => url.trim())
-          .filter(Boolean)
+        // Parse URLs using the helper
+        const urls = parseWebhookUrls(value)
+        if (urls.length === 0) return
 
         const invalidUrls = urls.filter(
           (url) => !url.includes('discord.com/api/webhooks'),
@@ -45,7 +51,7 @@ export const webhookFormSchema = z
             message: `Invalid Discord webhook URL${
               invalidUrls.length > 1 ? 's' : ''
             }: ${invalidUrls.join(', ')}`,
-            path: [],
+            path: ['discordWebhookUrl'],
           })
         }
       }),

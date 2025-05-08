@@ -123,10 +123,16 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
       })
 
       if (!response.ok) {
-        const errorData = await response.json()
+        let message = 'Error validating webhooks'
+        try {
+          const errorData = await response.json()
+          message = errorData?.message ?? message
+        } catch (_) {
+          // Ignore JSON parse failures and use default message
+        }
         return {
           valid: false,
-          error: errorData.message || 'Error validating webhooks',
+          error: message,
         }
       }
 
@@ -523,8 +529,8 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
         open={showClearAlert}
         onOpenChange={setShowClearAlert}
         onConfirm={handleClearWebhook}
-        title="Clear Discord Webhook?"
-        description="This will remove the Discord webhook URL from your configuration."
+        title="Clear Discord Webhooks?"
+        description="This will remove all Discord webhook URLs from your configuration."
       />
     </div>
   )

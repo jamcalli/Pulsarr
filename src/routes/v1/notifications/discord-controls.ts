@@ -145,6 +145,19 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const uniqueUrls = [...new Set(allUrls)]
         const duplicateCount = allUrls.length - uniqueUrls.length
 
+        // Check for empty URL list after filtering
+        if (uniqueUrls.length === 0) {
+          return reply.badRequest('No valid webhook URLs provided')
+        }
+
+        // Limit the number of URLs to process (prevent DoS)
+        const MAX_URLS = 20
+        if (uniqueUrls.length > MAX_URLS) {
+          return reply.badRequest(
+            `Too many webhook URLs. Maximum allowed is ${MAX_URLS}`,
+          )
+        }
+
         // Validate each URL
         const results = await Promise.all(
           uniqueUrls.map(async (url) => {
@@ -156,13 +169,22 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         // Check if all webhooks are valid
         const allValid = results.every((result) => result.valid)
 
+        // Helper function for pluralization
+        function plural(count: number, word: string): string {
+          return `${count} ${word}${count === 1 ? '' : 's'}`
+        }
+
         return {
           success: true,
           valid: allValid,
           urls: results,
           duplicateCount: duplicateCount > 0 ? duplicateCount : undefined,
           message: allValid
-            ? `Successfully validated ${results.length} webhook${results.length > 1 ? 's' : ''}${duplicateCount > 0 ? ` (${duplicateCount} duplicate${duplicateCount > 1 ? 's' : ''} removed)` : ''}`
+            ? `Successfully validated ${plural(results.length, 'webhook')}${
+                duplicateCount > 0
+                  ? ` (${plural(duplicateCount, 'duplicate URL')} removed)`
+                  : ''
+              }`
             : 'One or more webhooks failed validation',
         }
       } catch (err) {
