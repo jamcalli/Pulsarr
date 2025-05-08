@@ -37,6 +37,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       return instances.map((instance) => ({
         ...instance,
         searchOnAdd: instance.searchOnAdd ?? true,
+        tags: (instance.tags ?? []).map((t) => t.toString()),
       }))
     },
   )
@@ -77,6 +78,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         body: SonarrInstanceSchema.partial(),
         tags: ['Sonarr Configuration'],
         response: {
+          204: { type: 'null' },
           400: z.object({
             statusCode: z.number(),
             error: z.string(),
@@ -121,6 +123,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         params: z.object({ id: z.coerce.number() }),
         tags: ['Sonarr Configuration'],
         response: {
+          204: { type: 'null' },
           400: z.object({
             statusCode: z.number(),
             error: z.string(),

@@ -40,6 +40,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         ...instance,
         searchOnAdd: instance.searchOnAdd ?? true,
         minimumAvailability: instance.minimumAvailability ?? 'released',
+        tags: (instance.tags ?? []).map((t) => t.toString()),
       }))
     },
   )
@@ -79,6 +80,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         body: RadarrInstanceSchema.partial(),
         tags: ['Radarr Configuration'],
         response: {
+          204: { type: 'null' },
           400: z.object({
             statusCode: z.number(),
             error: z.string(),
@@ -123,6 +125,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         params: z.object({ id: z.coerce.number() }),
         tags: ['Radarr Configuration'],
         response: {
+          204: { type: 'null' },
           400: z.object({
             statusCode: z.number(),
             error: z.string(),

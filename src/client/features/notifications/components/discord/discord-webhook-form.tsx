@@ -157,11 +157,15 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
       return {
         valid: true,
         webhooks: result.urls.map((url: { url: string }) => {
-          // Parse the URL and get the path components, filtering out empty strings
-          const pathParts = new URL(url.url).pathname.split('/').filter(Boolean)
-          return {
-            id: pathParts[pathParts.length - 2],
-            token: pathParts[pathParts.length - 1],
+          try {
+            const parts = new URL(url.url).pathname.split('/').filter(Boolean)
+            if (parts.length < 2) {
+              throw new Error('Unexpected webhook format')
+            }
+            // We've already checked that parts.length >= 2, so these values will exist
+            return { id: parts.at(-2) ?? '', token: parts.at(-1) ?? '' }
+          } catch {
+            return { id: undefined, token: undefined }
           }
         }),
         count: result.urls.length,

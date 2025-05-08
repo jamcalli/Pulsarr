@@ -47,12 +47,13 @@ function isSeasonRange(value: unknown): value is SeasonRange {
     typeof value === 'object' &&
     value !== null &&
     ('min' in value || 'max' in value) &&
-    (!('min' in value) ||
-      typeof value.min === 'number' ||
-      value.min === undefined) &&
-    (!('max' in value) ||
-      typeof value.max === 'number' ||
-      value.max === undefined)
+    (() => {
+      const v = value as Record<string, unknown>
+      return (
+        (!('min' in v) || typeof v.min === 'number' || v.min === undefined) &&
+        (!('max' in v) || typeof v.max === 'number' || v.max === undefined)
+      )
+    })()
   )
 }
 
@@ -169,6 +170,60 @@ export default function createSeasonEvaluator(
     )
   }
 
+  /**
+   * Determines if a set of seasons matches a criterion with the specified operator.
+   *
+   * @param operator - The comparison operator to use
+   * @param value - The value to compare against
+   * @param seasons - Array of season numbers to evaluate
+   * @returns True if the seasons match the criterion according to the operator, otherwise false
+   */
+  function matchesSeason(
+    operator: string,
+    value: unknown,
+    seasons: number[],
+  ): boolean {
+    // Handle different operator types
+    if (isNumber(value)) {
+      switch (operator) {
+        case 'equals':
+          return seasons.includes(value)
+        case 'notEquals':
+          return !seasons.includes(value)
+        case 'greaterThan':
+          return seasons.some((season) => season > value)
+        case 'lessThan':
+          return seasons.some((season) => season < value)
+        default:
+          return false
+      }
+    }
+
+    if (isNumberArray(value)) {
+      switch (operator) {
+        case 'in':
+          return seasons.some((season) => value.includes(season))
+        case 'notIn':
+          return !seasons.some((season) => value.includes(season))
+        default:
+          return false
+      }
+    }
+
+    if (isSeasonRange(value) && operator === 'between') {
+      const minSeason =
+        typeof value.min === 'number' ? value.min : Number.NEGATIVE_INFINITY
+      const maxSeason =
+        typeof value.max === 'number' ? value.max : Number.POSITIVE_INFINITY
+
+      const minSeen = Math.min(...seasons)
+      const maxSeen = Math.max(...seasons)
+      return minSeen <= maxSeason && maxSeen >= minSeason
+    }
+
+    return false
+  }
+
   return {
     name: 'Season Router',
     description: 'Routes TV shows based on season numbers',
@@ -221,57 +276,14 @@ export default function createSeasonEvaluator(
         }
 
         const seasonValue = rule.criteria.season
-        const operator = rule.criteria.operator || 'equals'
+        const operator = (rule.criteria.operator as string) || 'equals'
 
         if (!isValidSeasonValue(seasonValue)) {
           return false
         }
 
-        // Different logic based on the operator - matching year evaluator pattern
-        if (isNumber(seasonValue)) {
-          switch (operator) {
-            case 'equals':
-              return seasons.includes(seasonValue)
-            case 'notEquals':
-              return !seasons.includes(seasonValue)
-            case 'greaterThan':
-              return seasons.some((season) => season > seasonValue)
-            case 'lessThan':
-              return seasons.some((season) => season < seasonValue)
-            default:
-              return false
-          }
-        }
-
-        // Array of seasons
-        if (isNumberArray(seasonValue)) {
-          switch (operator) {
-            case 'in':
-              return seasons.some((season) => seasonValue.includes(season))
-            case 'notIn':
-              return !seasons.some((season) => seasonValue.includes(season))
-            default:
-              return false
-          }
-        }
-
-        // Range object
-        if (isSeasonRange(seasonValue) && operator === 'between') {
-          const minSeason =
-            typeof seasonValue.min === 'number'
-              ? seasonValue.min
-              : Number.NEGATIVE_INFINITY
-          const maxSeason =
-            typeof seasonValue.max === 'number'
-              ? seasonValue.max
-              : Number.POSITIVE_INFINITY
-
-          const minSeen = Math.min(...seasons)
-          const maxSeen = Math.max(...seasons)
-          return minSeen <= maxSeason && maxSeen >= minSeason
-        }
-
-        return false
+        // Use the shared helper function to match seasons
+        return matchesSeason(operator, seasonValue, seasons)
       })
 
       if (matchingRules.length === 0) {
@@ -312,43 +324,9 @@ export default function createSeasonEvaluator(
       }
 
       const { operator, value } = condition
-      let result = false
 
-      // Handle different operator types
-      if (isNumber(value)) {
-        switch (operator) {
-          case 'equals':
-            result = seasons.includes(value)
-            break
-          case 'notEquals':
-            result = !seasons.includes(value)
-            break
-          case 'greaterThan':
-            result = seasons.some((season) => season > value)
-            break
-          case 'lessThan':
-            result = seasons.some((season) => season < value)
-            break
-        }
-      } else if (isNumberArray(value)) {
-        switch (operator) {
-          case 'in':
-            result = seasons.some((season) => value.includes(season))
-            break
-          case 'notIn':
-            result = !seasons.some((season) => value.includes(season))
-            break
-        }
-      } else if (isSeasonRange(value) && operator === 'between') {
-        const minSeason =
-          typeof value.min === 'number' ? value.min : Number.NEGATIVE_INFINITY
-        const maxSeason =
-          typeof value.max === 'number' ? value.max : Number.POSITIVE_INFINITY
-
-        const minSeen = Math.min(...seasons)
-        const maxSeen = Math.max(...seasons)
-        result = minSeen <= maxSeason && maxSeen >= minSeason
-      }
+      // Use the shared helper function to match seasons
+      const result = matchesSeason(operator, value, seasons)
 
       // Do not apply negation here - the content router service handles negation at a higher level.
       // This prevents double-negation issues when condition.negate is true.

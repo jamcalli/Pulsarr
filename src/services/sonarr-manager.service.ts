@@ -186,16 +186,11 @@ export class SonarrManagerService {
       const targetTags = tags || instance.tags || []
 
       // Handle search on add option (use provided value or instance default)
-      const targetSearchOnAdd =
-        searchOnAdd !== undefined
-          ? searchOnAdd
-          : instance.searchOnAdd !== undefined
-            ? instance.searchOnAdd
-            : true // Default to true for backward compatibility
+      const targetSearchOnAdd = searchOnAdd ?? instance.searchOnAdd ?? true // Default to true for backward compatibility
 
       // Use provided season monitoring or instance default
       const targetSeasonMonitoring =
-        seasonMonitoring || instance.seasonMonitoring || 'all'
+        seasonMonitoring ?? instance.seasonMonitoring ?? 'all'
 
       await sonarrService.addToSonarr(
         sonarrItem,
