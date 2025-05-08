@@ -35,6 +35,9 @@ export function formatRule(
       enabled: Boolean(rule.enabled),
       condition: criteria.condition,
       tags: rule.tags || [],
+      search_on_add:
+        rule.search_on_add !== null ? Boolean(rule.search_on_add) : null,
+      season_monitoring: rule.season_monitoring,
       created_at: rule.created_at,
       updated_at: rule.updated_at,
     }
@@ -57,6 +60,9 @@ export function formatRule(
       enabled: Boolean(rule.enabled),
       condition: undefined,
       tags: rule.tags || [],
+      search_on_add:
+        rule.search_on_add !== null ? Boolean(rule.search_on_add) : null,
+      season_monitoring: rule.season_monitoring,
       created_at: rule.created_at,
       updated_at: rule.updated_at,
     }
