@@ -1,11 +1,9 @@
 import type { Knex } from 'knex'
 
 /**
- * Adds 'search_on_add' and 'season_monitoring' columns to the router_rules table for custom instance overrides.
- * 
- * This migration supports the content router's ability to override default instance settings on a per-route basis:
- * - search_on_add: For both Radarr and Sonarr routes, controls whether an automatic search is performed when content is added
- * - season_monitoring: For Sonarr routes only, specifies which seasons should be monitored (e.g., 'all', 'future', 'latest', etc.)
+ * Alters the `router_rules` table by adding `search_on_add` and `season_monitoring` columns to enable per-route instance overrides.
+ *
+ * Adds a nullable boolean column `search_on_add` to control automatic search behavior for Radarr and Sonarr routes, and a nullable string column `season_monitoring` to specify season monitoring preferences for Sonarr routes.
  */
 export async function up(knex: Knex): Promise<void> {
   await knex.schema.alterTable('router_rules', (table) => {
@@ -18,7 +16,7 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Reverts the migration by removing the 'search_on_add' and 'season_monitoring' columns from the router_rules table.
+ * Removes the 'search_on_add' and 'season_monitoring' columns from the 'router_rules' table to revert the migration.
  */
 export async function down(knex: Knex): Promise<void> {
   await knex.schema.alterTable('router_rules', (table) => {
