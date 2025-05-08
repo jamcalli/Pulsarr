@@ -162,7 +162,14 @@ export default function createYearEvaluator(
       }
 
       const isMovie = context.contentType === 'movie'
-      const rules = await fastify.db.getRouterRulesByType('year')
+      
+      let rules
+      try {
+        rules = await fastify.db.getRouterRulesByType('year')
+      } catch (err) {
+        fastify.log.error({ err }, 'Year evaluator - DB query failed')
+        return null
+      }
 
       // Filter rules by target type and enabled status
       const contentTypeRules = rules.filter(

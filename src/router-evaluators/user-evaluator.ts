@@ -179,7 +179,14 @@ export default function createUserEvaluator(
       }
 
       const isMovie = context.contentType === 'movie'
-      const rules = await fastify.db.getRouterRulesByType('user')
+      
+      let rules
+      try {
+        rules = await fastify.db.getRouterRulesByType('user')
+      } catch (err) {
+        fastify.log.error({ err }, 'User evaluator - DB query failed')
+        return null
+      }
 
       // Filter to only rules for the current content type and enabled
       const contentTypeRules = rules.filter(

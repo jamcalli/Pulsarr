@@ -96,7 +96,14 @@ export default function createConditionalEvaluator(
       context: RoutingContext,
     ): Promise<boolean> {
       const isMovie = context.contentType === 'movie'
-      const rules = await fastify.db.getRouterRulesByType('conditional')
+      
+      let rules
+      try {
+        rules = await fastify.db.getRouterRulesByType('conditional')
+      } catch (err) {
+        fastify.log.error({ err }, 'Conditional evaluator (canEvaluate) - DB query failed')
+        return false
+      }
 
       const contentTypeRules = rules.filter(
         (rule) =>
@@ -112,7 +119,14 @@ export default function createConditionalEvaluator(
       context: RoutingContext,
     ): Promise<RoutingDecision[] | null> {
       const isMovie = context.contentType === 'movie'
-      const rules = await fastify.db.getRouterRulesByType('conditional')
+      
+      let rules
+      try {
+        rules = await fastify.db.getRouterRulesByType('conditional')
+      } catch (err) {
+        fastify.log.error({ err }, 'Conditional evaluator (evaluate) - DB query failed')
+        return null
+      }
 
       const contentTypeRules = rules.filter(
         (rule) =>

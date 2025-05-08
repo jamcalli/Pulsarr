@@ -134,7 +134,15 @@ export default function createGenreEvaluator(
         return null
       }
       const isMovie = context.contentType === 'movie'
-      const rules = await fastify.db.getRouterRulesByType('genre')
+      
+      let rules
+      try {
+        rules = await fastify.db.getRouterRulesByType('genre')
+      } catch (err) {
+        fastify.log.error({ err }, 'Genre evaluator - DB query failed')
+        return null
+      }
+      
       // Filter rules by target type (radarr/sonarr) and enabled status
       const contentTypeRules = rules.filter(
         (rule) =>

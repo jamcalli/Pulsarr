@@ -145,7 +145,14 @@ export default function createLanguageEvaluator(
       }
 
       const isMovie = context.contentType === 'movie'
-      const rules = await fastify.db.getRouterRulesByType('language')
+      
+      let rules
+      try {
+        rules = await fastify.db.getRouterRulesByType('language')
+      } catch (err) {
+        fastify.log.error({ err }, 'Language evaluator - DB query failed')
+        return null
+      }
 
       // Filter rules by target type and enabled status
       const contentTypeRules = rules.filter(
