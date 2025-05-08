@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import EditableCardHeader from '@/components/ui/editable-card-header'
 import { cn } from '@/lib/utils'
-import { RefreshCw, Plus } from 'lucide-react'
+import { RefreshCw, Plus, HelpCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Tooltip,
@@ -56,16 +56,15 @@ interface InstanceCardProps {
 }
 
 /**
- * Displays a configuration card for managing a Sonarr instance, allowing users to view, edit, test, sync, and delete instance settings.
+ * Renders a configuration card for managing a Sonarr instance, providing a form interface to view, edit, test, sync, and delete instance settings.
  *
- * The card provides form controls for connection details, quality profile, root folder, monitoring options, season monitoring, syncing with other instances, default instance selection, and tag management. It integrates with global state, supports asynchronous operations for testing connections, saving changes, syncing, deleting, and refreshing tags, and provides user feedback through toasts and modals.
+ * The card includes controls for connection details, quality profile, root folder, monitoring options, season monitoring, syncing with other instances, default instance selection, and tag management. It integrates with global state, supports asynchronous operations for testing connections, saving changes, syncing, deleting, and refreshing tags, and provides user feedback through toasts and modals.
  *
  * @param instance - The Sonarr instance to display and configure.
  * @param setShowInstanceCard - Optional callback to control the visibility of the card.
- *
  * @returns The Sonarr instance configuration card UI.
  *
- * @remark If the instance is incomplete but has a valid connection, the form is automatically marked as dirty to preserve editing state. When attempting to update the default instance and a conflict occurs, the form resets the `isDefault` field to `true` and displays the error message.
+ * @remark If the instance is incomplete but has a valid connection, the form is automatically marked as dirty to preserve editing state. If updating the default instance results in a conflict, the form resets the `isDefault` field to `true` and displays the error message.
  */
 export function InstanceCard({
   instance,
@@ -368,9 +367,26 @@ export function InstanceCard({
                     name="monitorNewItems"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-text">
-                          Monitor New Items
-                        </FormLabel>
+                        <div className="flex items-center space-x-2">
+                          <FormLabel className="text-text">
+                            Monitor New Items
+                          </FormLabel>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  When enabled, new series will automatically be
+                                  monitored when added to Sonarr. When disabled,
+                                  new series will be added but not monitored for
+                                  new episodes.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
                         <div className="flex h-10 items-center gap-2 px-3 py-2">
                           <FormControl>
                             <Switch
@@ -394,9 +410,26 @@ export function InstanceCard({
                     name="searchOnAdd"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-text">
-                          Search on Add
-                        </FormLabel>
+                        <div className="flex items-center space-x-2">
+                          <FormLabel className="text-text">
+                            Search on Add
+                          </FormLabel>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  When enabled, Sonarr will automatically search
+                                  for episodes when a series is added. This
+                                  setting can be overridden by content router
+                                  rules on a per-route basis.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
                         <div className="flex h-10 items-center gap-2 px-3 py-2">
                           <FormControl>
                             <Switch
@@ -417,9 +450,26 @@ export function InstanceCard({
                     name="tags"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-text">
-                          Instance Tags
-                        </FormLabel>
+                        <div className="flex items-center space-x-2">
+                          <FormLabel className="text-text">
+                            Instance Tags
+                          </FormLabel>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  Tags that are automatically applied to all
+                                  series added to this Sonarr instance. Content
+                                  router rules can override these tags with
+                                  their own tag settings.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
                         <div className="flex gap-2 items-center w-full">
                           <TooltipProvider>
                             <Tooltip>

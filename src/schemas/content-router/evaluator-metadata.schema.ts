@@ -24,6 +24,7 @@ export const EvaluatorMetadataSchema = z.object({
   supportedOperators: z
     .record(z.string(), z.array(OperatorInfoSchema))
     .default({}),
+  contentType: z.enum(['radarr', 'sonarr', 'both']).optional(),
 })
 
 // Response schema for evaluator metadata

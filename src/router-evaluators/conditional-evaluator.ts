@@ -8,6 +8,7 @@ import type {
   ConditionGroup,
   FieldInfo,
   OperatorInfo,
+  RouterRule,
 } from '@root/types/router.types.js'
 
 /**
@@ -50,11 +51,13 @@ function isValidCondition(value: unknown): value is Condition | ConditionGroup {
 }
 
 /**
- * Creates a routing evaluator that applies complex conditional rules to determine routing decisions for content items.
+ * Creates a routing evaluator that applies conditional rules from the database to determine routing decisions for content items.
  *
- * The evaluator retrieves enabled conditional routing rules from the database, validates their condition structures, and evaluates each rule against the provided content item and routing context. Matching rules generate routing decisions specifying the target instance, quality profile, root folder, tags, and priority.
+ * The evaluator fetches enabled conditional routing rules, validates their condition structures, and evaluates each rule against the provided content item and routing context. For each rule whose condition matches, a routing decision is generated specifying the target instance, quality profile, root folder, tags, priority, search-on-add, and season monitoring settings.
  *
  * @returns A {@link RoutingEvaluator} configured to process conditional routing rules with the highest priority.
+ *
+ * @remark If the database query fails, the evaluator logs an error and returns `false` from `canEvaluate` or `null` from `evaluate`.
  */
 export default function createConditionalEvaluator(
   fastify: FastifyInstance,
@@ -96,7 +99,17 @@ export default function createConditionalEvaluator(
       context: RoutingContext,
     ): Promise<boolean> {
       const isMovie = context.contentType === 'movie'
-      const rules = await fastify.db.getRouterRulesByType('conditional')
+
+      let rules: RouterRule[] = []
+      try {
+        rules = await fastify.db.getRouterRulesByType('conditional')
+      } catch (err) {
+        fastify.log.error(
+          { err },
+          'Conditional evaluator (canEvaluate) - DB query failed',
+        )
+        return false
+      }
 
       const contentTypeRules = rules.filter(
         (rule) =>
@@ -112,7 +125,17 @@ export default function createConditionalEvaluator(
       context: RoutingContext,
     ): Promise<RoutingDecision[] | null> {
       const isMovie = context.contentType === 'movie'
-      const rules = await fastify.db.getRouterRulesByType('conditional')
+
+      let rules: RouterRule[] = []
+      try {
+        rules = await fastify.db.getRouterRulesByType('conditional')
+      } catch (err) {
+        fastify.log.error(
+          { err },
+          'Conditional evaluator (evaluate) - DB query failed',
+        )
+        return null
+      }
 
       const contentTypeRules = rules.filter(
         (rule) =>
@@ -167,6 +190,8 @@ export default function createConditionalEvaluator(
         rootFolder: rule.root_folder,
         tags: rule.tags || [],
         priority: rule.order || 50, // Default to 50 if not specified
+        searchOnAdd: rule.search_on_add,
+        seasonMonitoring: rule.season_monitoring,
       }))
     },
   }

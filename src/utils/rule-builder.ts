@@ -121,6 +121,8 @@ export const RuleBuilder = {
     tags?: string[]
     order?: number
     enabled?: boolean
+    search_on_add?: boolean | null
+    season_monitoring?: string | null
   }): Omit<RouterRule, 'id' | 'created_at' | 'updated_at'> {
     const {
       condition,
@@ -129,6 +131,8 @@ export const RuleBuilder = {
       root_folder = null,
       quality_profile = null,
       tags = [],
+      search_on_add,
+      season_monitoring,
       ...rest
     } = options
 
@@ -142,6 +146,8 @@ export const RuleBuilder = {
       type: 'conditional',
       criteria: { condition },
       metadata: null,
+      search_on_add,
+      season_monitoring,
     }
   },
 }

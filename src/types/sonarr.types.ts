@@ -1,7 +1,7 @@
 export interface SonarrAddOptions {
-  monitor: string
-  searchForCutoffUnmetEpisodes: boolean
-  searchForMissingEpisodes: boolean
+  monitor: string | null
+  searchForCutoffUnmetEpisodes: boolean | null
+  searchForMissingEpisodes: boolean | null
 }
 
 interface QualityItem {

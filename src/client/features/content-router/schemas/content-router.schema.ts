@@ -153,6 +153,8 @@ export const ConditionalRouteFormSchema = z.object({
   tags: z.array(z.string()).default([]),
   enabled: z.boolean().default(true),
   order: z.number().int().min(1).max(100).default(50),
+  search_on_add: z.boolean().optional(),
+  season_monitoring: z.string().optional(),
 })
 
 export type ConditionalRouteFormValues = z.infer<

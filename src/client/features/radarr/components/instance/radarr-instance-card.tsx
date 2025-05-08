@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import EditableCardHeader from '@/components/ui/editable-card-header'
 import { cn } from '@/lib/utils'
-import { RefreshCw, Plus } from 'lucide-react'
+import { RefreshCw, Plus, HelpCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   Tooltip,
@@ -55,20 +55,13 @@ interface InstanceCardProps {
 }
 
 /**
- * Renders a card interface for viewing and editing a Radarr instance's configuration, including connection, profile, tagging, synchronization, and deletion controls.
+ * Displays a card interface for viewing and editing a Radarr instance's configuration, including connection settings, profiles, tags, synchronization, and deletion options.
  *
- * Provides form validation, connection testing, tag management, and synchronization workflows, with modals for delete confirmation, syncing, and tag creation. Prevents saving unless the connection is valid and displays UI indicators for unsaved or incomplete configurations.
+ * The component manages form state, connection testing, tag creation, and synchronization workflows, providing modals for delete confirmation, syncing, and tag creation. Saving is only enabled after a successful connection test, and the UI indicates unsaved or incomplete configurations. If synced instances are modified and non-empty, a sync modal is shown after saving. Tag management is integrated, allowing creation and refresh of tags. If an error occurs when updating the default instance, the form resets the default status and displays the error message.
  *
  * @param instance - The Radarr instance to display and edit.
  * @param setShowInstanceCard - Optional function to control the visibility of the instance card.
- *
- * @returns The instance card UI with form controls and related modals.
- *
- * @remark
- * - Saving is disabled until the connection is successfully tested.
- * - If synced instances are changed and non-empty, a sync modal is triggered after saving.
- * - Tag creation and refresh are integrated for instance tags.
- * - If an error occurs when updating the default instance, the form resets the default status and displays the error message.
+ * @returns The rendered instance card UI with form controls and related modals.
  */
 export function InstanceCard({
   instance,
@@ -369,9 +362,26 @@ export function InstanceCard({
                     name="searchOnAdd"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-text">
-                          Search on Add
-                        </FormLabel>
+                        <div className="flex items-center space-x-2">
+                          <FormLabel className="text-text">
+                            Search on Add
+                          </FormLabel>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  When enabled, Radarr will automatically search
+                                  for movies when they are added. This setting
+                                  can be overridden by content router rules on a
+                                  per-route basis.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
                         <div className="flex h-10 items-center gap-2 px-3 py-2">
                           <FormControl>
                             <Switch
@@ -392,9 +402,30 @@ export function InstanceCard({
                     name="minimumAvailability"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-text">
-                          Minimum Availability
-                        </FormLabel>
+                        <div className="flex items-center space-x-2">
+                          <FormLabel className="text-text">
+                            Minimum Availability
+                          </FormLabel>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  Determines when movies are considered
+                                  available:
+                                  <br />• <strong>Announced</strong>: As soon as
+                                  movie is added to TMDb
+                                  <br />• <strong>In Cinemas</strong>: When
+                                  movie is in theaters
+                                  <br />• <strong>Released</strong>: When
+                                  digital/physical release is available
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
                         <Select
                           disabled={!isConnectionValid}
                           onValueChange={field.onChange}
@@ -421,9 +452,26 @@ export function InstanceCard({
                     name="tags"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-text">
-                          Instance Tags
-                        </FormLabel>
+                        <div className="flex items-center space-x-2">
+                          <FormLabel className="text-text">
+                            Instance Tags
+                          </FormLabel>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  Tags that are automatically applied to all
+                                  movies added to this Radarr instance. Content
+                                  router rules can override these tags with
+                                  their own tag settings.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
                         <div className="flex gap-2 items-center w-full">
                           <TooltipProvider>
                             <Tooltip>
