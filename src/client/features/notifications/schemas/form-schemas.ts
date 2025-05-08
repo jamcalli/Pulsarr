@@ -3,7 +3,26 @@ import { z } from 'zod'
 // Discord webhook form schema
 export const webhookFormSchema = z
   .object({
-    discordWebhookUrl: z.string().optional(),
+    discordWebhookUrl: z
+      .string()
+      .optional()
+      .refine(
+        (value) => {
+          // Allow empty string
+          if (!value) return true
+
+          // Split by commas and validate each URL
+          const urls = value
+            .split(',')
+            .map((url) => url.trim())
+            .filter(Boolean)
+          return urls.every((url) => url.includes('discord.com/api/webhooks'))
+        },
+        {
+          message:
+            'One or more webhook URLs are not valid Discord webhook URLs',
+        },
+      ),
     _connectionTested: z.boolean().optional().default(false),
   })
   .superRefine((data, ctx) => {

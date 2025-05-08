@@ -221,6 +221,11 @@ The webhook endpoint can be used without creating a Discord bot. Point this webh
 
 <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Webhook-grab.png" width="400" alt="Webhook Grab">
 
+You can configure multiple Discord webhook URLs by separating them with commas. This allows you to send notifications to multiple channels or servers simultaneously. For example:
+```
+https://discord.com/api/webhooks/id1/token1,https://discord.com/api/webhooks/id2/token2
+```
+
 1. Create a Discord Bot
    - Go to the [Discord Developer Portal](https://discord.com/developers/applications)
    - Click "New Application" and give it a name (e.g., "Pulsarr")
@@ -519,7 +524,7 @@ syncIntervalSeconds=10                 # Sync interval in seconds
 queueProcessDelaySeconds=60            # Queue processing delay in seconds
 
 # Discord Configuration
-discordWebhookUrl=https://discord.com/api/webhooks/xxxx/xxxx  # Webhook URL
+discordWebhookUrl=https://discord.com/api/webhooks/xxxx/xxxx  # Webhook URL(s), separate multiple with commas
 discordBotToken=xxxx.xxxx.xxxx                                # Bot token
 discordClientId=xxxxxxxxxxxx                                  # Client ID
 discordGuildId=xxxxxxxxxxxx                                   # Server ID
