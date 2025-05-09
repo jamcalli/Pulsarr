@@ -5,7 +5,7 @@ import type { SonarrInstanceSchema } from '@/features/sonarr/store/schemas'
 import type { UseFormReturn } from 'react-hook-form'
 
 /**
- * Provides Sonarr instance data and management handlers for a specific instance ID.
+ * Provides Sonarr instance data and management handlers for a given instance ID.
  *
  * Returns the current Sonarr instance, all instances, and functions to update, delete, and fetch data for the specified instance.
  *

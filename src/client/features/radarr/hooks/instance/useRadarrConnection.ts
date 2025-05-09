@@ -9,8 +9,12 @@ import type { UseFormReturn } from 'react-hook-form'
 import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
 
 /**
- * Utility function to check if a Radarr instance needs configuration
- * Considers an instance as needing configuration if it's missing quality profile or root folder
+ * Determines whether a Radarr instance requires additional configuration.
+ *
+ * Returns `true` if the instance is missing a `qualityProfile` or `rootFolder`, or if either is an empty string; otherwise, returns `false`.
+ *
+ * @param instance - The Radarr instance to check.
+ * @returns `true` if configuration is needed; otherwise, `false`.
  */
 function checkNeedsConfiguration(instance: RadarrInstance) {
   return (
@@ -22,9 +26,9 @@ function checkNeedsConfiguration(instance: RadarrInstance) {
 }
 
 /**
- * React hook for managing the connection state and configuration lifecycle of a Radarr instance.
+ * React hook for managing the connection state, configuration requirements, and lifecycle of a Radarr instance.
  *
- * Provides connection testing, initialization, and configuration validation for a given Radarr instance, including detection of missing required fields and management of related UI state.
+ * Handles connection testing, initialization, and validation of required configuration fields for a given Radarr instance. Tracks UI state for connection and save operations, determines if additional configuration is needed, and provides functions for testing and resetting the connection.
  *
  * @param instance - The Radarr instance to manage.
  * @param setShowInstanceCard - Optional callback to control the visibility of the instance card UI.
