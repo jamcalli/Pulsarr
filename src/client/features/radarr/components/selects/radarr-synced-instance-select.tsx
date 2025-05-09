@@ -6,16 +6,16 @@ import { Computer } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 
 /**
- * Renders a multi-select UI for choosing Radarr instances to sync with, available only for the default instance.
+ * Displays a multi-select component for selecting Radarr instances to sync with, restricted to the default instance.
  *
- * Displays a warning if syncing is not available or if there are no other valid instances to sync with. Filters out the current instance and any with a placeholder API key from the selectable options.
+ * Shows a warning badge if syncing is unavailable due to not being the default instance or lacking additional valid instances. Only instances other than the current one and with a non-placeholder API key are selectable.
  *
- * @param field - Controller render props for managing the synced instances form field.
- * @param instances - List of all Radarr instances.
+ * @param field - Form controller props for the synced instances field.
+ * @param instances - All available Radarr instances.
  * @param currentInstanceId - The ID of the current Radarr instance.
- * @param isDefault - Whether the current instance is the default.
+ * @param isDefault - Indicates if the current instance is the default.
  *
- * @returns A multi-select component for instance selection, or a warning badge if syncing is unavailable.
+ * @returns The multi-select UI for instance selection, or a warning badge if selection is not possible.
  */
 function SyncedInstancesSelect({
   field,

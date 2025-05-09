@@ -31,6 +31,13 @@ interface DiscordBotFormProps {
   isInitialized: boolean
 }
 
+/****
+ * Renders a form for configuring Discord bot settings, including bot token, client ID, and guild ID.
+ *
+ * The form uses schema validation, displays contextual tooltips for each field, and manages submission and clearing of settings with user feedback. It interacts with a global configuration store to persist changes and provides status indicators for loading, success, and error states.
+ *
+ * @param isInitialized - Indicates whether the form is ready for user interaction.
+ */
 export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
   const { toast } = useToast()
   const config = useConfigStore((state) => state.config)

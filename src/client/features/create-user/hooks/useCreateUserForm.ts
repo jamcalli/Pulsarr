@@ -8,6 +8,11 @@ import {
   type CreateUserFormSchema,
 } from '@/features/create-user/schemas/create-user-schema'
 
+/**
+ * Provides state and logic for a user creation form, including validation, submission handling, and error management.
+ *
+ * @returns An object containing the form instance, current submission status, backend error message, a ref for the email input, and the submit handler function.
+ */
 export function useCreateUserForm() {
   const navigate = useNavigate()
   const { toast } = useToast()
