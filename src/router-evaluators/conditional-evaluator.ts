@@ -42,7 +42,7 @@ function isConditionGroup(value: unknown): value is ConditionGroup {
 }
 
 /**
- * Determines whether the given value is a valid {@link Condition} or {@link ConditionGroup}.
+ * Checks if a value is a valid condition or condition group for routing evaluation.
  *
  * @returns True if the value is a {@link Condition} or {@link ConditionGroup}; otherwise, false.
  */
@@ -53,7 +53,7 @@ function isValidCondition(value: unknown): value is Condition | ConditionGroup {
 /**
  * Creates a routing evaluator that applies conditional rules from the database to determine routing decisions for content items.
  *
- * The evaluator fetches enabled conditional routing rules, validates their condition structures, and evaluates each rule against the provided content item and routing context. For each rule whose condition matches, a routing decision is generated specifying the target instance, quality profile, root folder, tags, priority, search-on-add, and season monitoring settings.
+ * The evaluator retrieves enabled conditional routing rules, validates their condition structures, and evaluates each rule against the provided content item and routing context. For each rule whose condition matches, a routing decision is generated specifying the target instance, quality profile, root folder, tags, priority, search-on-add, and season monitoring settings.
  *
  * @returns A {@link RoutingEvaluator} configured to process conditional routing rules with the highest priority.
  *

@@ -169,7 +169,17 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         // Check if all webhooks are valid
         const allValid = results.every((result) => result.valid)
 
-        // Helper function for pluralization
+        /**
+         * Returns a string with the count and correctly pluralized form of the given word.
+         *
+         * @param count - The quantity to display.
+         * @param word - The word to pluralize.
+         * @returns A string combining {@link count} and the singular or plural form of {@link word}.
+         *
+         * @example
+         * plural(1, "apple") // "1 apple"
+         * plural(3, "apple") // "3 apples"
+         */
         function plural(count: number, word: string): string {
           return `${count} ${word}${count === 1 ? '' : 's'}`
         }

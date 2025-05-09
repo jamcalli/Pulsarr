@@ -56,7 +56,7 @@ function isYearRange(value: unknown): value is YearRange {
 }
 
 /**
- * Determines whether the input is a valid year value.
+ * Checks if the input is a valid year value for routing evaluation.
  *
  * A valid year value is a number, an array of numbers, or a {@link YearRange} object with optional `min` and/or `max` properties.
  *
@@ -69,9 +69,9 @@ function isValidYearValue(
 }
 
 /**
- * Creates a routing evaluator that determines routing decisions and evaluates conditions based on the release year of content items.
+ * Creates a routing evaluator for content items based on their release year.
  *
- * The evaluator supports various operators for the "year" field, including exact match, inequality, range, and array membership. It retrieves year-based routing rules from the database, filters them by content type and enabled status, and matches them against the content's release year to generate routing decisions. It also provides condition evaluation for year-based rules and exposes metadata describing supported fields and operators.
+ * The evaluator enables routing and condition evaluation using a variety of operators on the "year" field, including exact match, inequality, range, and array membership. It retrieves year-based routing rules from the database, filters them by content type and enabled status, and matches them against the content item's release year to generate routing decisions. It also provides condition evaluation for year-based rules and exposes metadata describing supported fields and operators.
  *
  * @returns A {@link RoutingEvaluator} instance for evaluating routing rules and conditions based on content release year.
  *
