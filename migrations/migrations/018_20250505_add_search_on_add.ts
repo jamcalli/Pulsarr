@@ -1,7 +1,7 @@
 import type { Knex } from 'knex'
 
 /**
- * Adds the `search_on_add` column to the `radarr_instances` and `sonarr_instances` tables with a default value of true.
+ * Adds the `search_on_add` column with a default value of true to the `radarr_instances` and `sonarr_instances` tables.
  *
  * @remarks
  * Introduces a configuration option to control whether automatic searches are performed when new content is added to Radarr or Sonarr.
@@ -30,7 +30,7 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Removes the `search_on_add` column from both `radarr_instances` and `sonarr_instances` tables, reverting the migration.
+ * Drops the `search_on_add` column from the `radarr_instances` and `sonarr_instances` tables to revert the migration.
  */
 export async function down(knex: Knex): Promise<void> {
   await knex.schema.alterTable('radarr_instances', (table) => {

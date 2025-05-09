@@ -12,19 +12,19 @@ import type {
 import { isSonarrResponse } from '@root/types/content-lookup.types.js'
 
 /**
- * Checks if the input is an array consisting only of numbers.
+ * Determines whether the input is an array containing only numbers.
  *
- * @param value - The value to test.
- * @returns True if {@link value} is an array where every element is a number; otherwise, false.
+ * @param value - The value to check.
+ * @returns True if the input is an array and every element is a number; otherwise, false.
  */
 function isNumberArray(value: unknown): value is number[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'number')
 }
 
 /**
- * Checks if the given value is a number.
+ * Determines whether the provided value is a number.
  *
- * @returns True if the value is a number; otherwise, false.
+ * @returns True if the value is of type number; otherwise, false.
  */
 function isNumber(value: unknown): value is number {
   return typeof value === 'number'
@@ -37,10 +37,10 @@ interface SeasonRange {
 }
 
 /**
- * Checks if a value is a {@link SeasonRange} object with optional numeric `min` and/or `max` properties.
+ * Determines whether a value is a {@link SeasonRange} object with optional numeric `min` and/or `max` properties.
  *
- * @param value - The value to test.
- * @returns `true` if the value is an object containing at least one of `min` or `max`, where each is either a number or undefined; otherwise, `false`.
+ * @param value - The value to check.
+ * @returns `true` if {@link value} is an object containing at least one of `min` or `max`, and each is either a number or undefined; otherwise, `false`.
  */
 function isSeasonRange(value: unknown): value is SeasonRange {
   return (
@@ -58,11 +58,11 @@ function isSeasonRange(value: unknown): value is SeasonRange {
 }
 
 /**
- * Checks if the input is a valid season value for routing evaluation.
+ * Determines whether the input is a valid season value for routing rules.
  *
- * A valid season value is a number, an array of numbers, or an object representing a season range with optional `min` and/or `max` properties.
+ * A valid season value is a number, an array of numbers, or an object with optional `min` and/or `max` properties representing a season range.
  *
- * @returns `true` if the input is a number, an array of numbers, or a season range object; otherwise, `false`.
+ * @returns `true` if the input is a valid season value; otherwise, `false`.
  */
 function isValidSeasonValue(
   value: unknown,
@@ -71,13 +71,13 @@ function isValidSeasonValue(
 }
 
 /**
- * Creates a routing evaluator for TV show content that applies routing rules based on season numbers extracted from Sonarr metadata.
+ * Creates a routing evaluator that applies season-based routing rules to TV show content using season numbers from Sonarr metadata.
  *
- * The evaluator supports the "season" field with operators including equals, notEquals, greaterThan, lessThan, in, notIn, and between. It matches content items to routing rules by comparing their season numbers to rule criteria, and returns routing decisions for matching rules.
+ * The evaluator supports the "season" field with operators such as equals, notEquals, greaterThan, lessThan, in, notIn, and between, matching content items to routing rules based on their season numbers.
  *
- * @returns A {@link RoutingEvaluator} specialized for season-based routing of Sonarr TV shows.
+ * @returns A {@link RoutingEvaluator} configured for season-based routing of Sonarr TV shows.
  *
- * @remark This evaluator only operates on content of type "show" with valid Sonarr season metadata. It does not handle negation within condition evaluation; negation is managed by the routing service.
+ * @remark This evaluator only processes content of type "show" with valid Sonarr season metadata. Negation logic is not handled internally and must be managed by the routing service.
  */
 export default function createSeasonEvaluator(
   fastify: FastifyInstance,
@@ -137,12 +137,12 @@ export default function createSeasonEvaluator(
   }
 
   /**
-   * Returns an array of season numbers extracted from the Sonarr metadata of a content item.
+   * Extracts season numbers from the Sonarr metadata of a content item.
    *
-   * If the content item does not contain valid Sonarr season metadata, returns an empty array.
+   * Returns an array of season numbers if present; otherwise, returns an empty array.
    *
-   * @param item - The content item to extract season numbers from.
-   * @returns An array of season numbers, or an empty array if none are found.
+   * @param item - The content item from which to extract season numbers.
+   * @returns An array of season numbers, or an empty array if no valid Sonarr season metadata is found.
    */
   function extractSeasons(item: ContentItem): number[] {
     if (
@@ -156,10 +156,12 @@ export default function createSeasonEvaluator(
   }
 
   /**
-   * Determines whether a content item contains Sonarr season metadata.
+   * Checks if a content item contains valid Sonarr season metadata.
    *
-   * @param item - The content item to check for season data.
-   * @returns True if the item's metadata includes a non-empty array of Sonarr seasons; otherwise, false.
+   * Returns true if the item's metadata is a Sonarr response with a non-empty array of seasons; otherwise, returns false.
+   *
+   * @param item - The content item to check.
+   * @returns True if Sonarr season data is present; otherwise, false.
    */
   function hasSeasonData(item: ContentItem): boolean {
     return (
@@ -171,12 +173,14 @@ export default function createSeasonEvaluator(
   }
 
   /**
-   * Determines if a set of seasons matches a criterion with the specified operator.
+   * Checks if a set of season numbers satisfies a given operator and value criterion.
    *
-   * @param operator - The comparison operator to use
-   * @param value - The value to compare against
-   * @param seasons - Array of season numbers to evaluate
-   * @returns True if the seasons match the criterion according to the operator, otherwise false
+   * Supports single number comparisons (equals, notEquals, greaterThan, lessThan), array membership (in, notIn), and range checks (between) for season numbers.
+   *
+   * @param operator - The comparison operator to apply ("equals", "notEquals", "greaterThan", "lessThan", "in", "notIn", or "between").
+   * @param value - The criterion value, which may be a number, array of numbers, or a season range object depending on the operator.
+   * @param seasons - The array of season numbers to evaluate.
+   * @returns True if the seasons match the specified criterion; otherwise, false.
    */
   function matchesSeason(
     operator: string,

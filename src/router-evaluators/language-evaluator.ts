@@ -16,14 +16,14 @@ import {
 } from '@root/types/content-lookup.types.js'
 
 /**
- * Creates a routing evaluator that directs content items based on their original language metadata.
+ * Creates a routing evaluator that determines routing decisions for content items based on their original language metadata.
  *
- * The evaluator enables routing and conditional logic using the "language" field, supporting operators for equality, inequality, substring matching, set membership, and regular expressions. It integrates with Radarr and Sonarr metadata formats and retrieves language-based routing rules from the database to determine routing outcomes.
+ * The evaluator supports conditional logic using the "language" field, with operators for equality, inequality, substring matching, set membership, and regular expressions. It integrates with Radarr and Sonarr metadata formats and retrieves language-based routing rules from the database to generate routing decisions.
  *
- * @returns A {@link RoutingEvaluator} that provides language-based routing and condition evaluation for content items.
+ * @returns A {@link RoutingEvaluator} that enables language-based routing and condition evaluation for content items.
  *
  * @remark
- * Only content items with original language metadata from Radarr or Sonarr are eligible for evaluation. Invalid regular expressions in rules or conditions are logged and result in no match.
+ * Only content items with original language metadata from Radarr or Sonarr are eligible for evaluation. If a rule or condition contains an invalid regular expression, the error is logged and the rule or condition is skipped.
  */
 export default function createLanguageEvaluator(
   fastify: FastifyInstance,
