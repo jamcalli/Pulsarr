@@ -162,8 +162,13 @@ export class DeleteSyncService {
       )
 
       // Make sure the Plex server is initialized if needed
-      if (this.config.enablePlexPlaylistProtection && !this.plexServer.isInitialized()) {
-        this.log.info('Plex playlist protection enabled but not initialized - initializing now')
+      if (
+        this.config.enablePlexPlaylistProtection &&
+        !this.plexServer.isInitialized()
+      ) {
+        this.log.info(
+          'Plex playlist protection enabled but not initialized - initializing now',
+        )
         await this.initialize()
       }
 
