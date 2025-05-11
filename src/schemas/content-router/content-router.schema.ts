@@ -272,12 +272,10 @@ export type ContentRouterRuleUpdate = z.infer<
 >
 
 /**
- * Normalizes the input value for the `search_on_add` field.
- *
- * Converts the input to a boolean if it is defined and not null; returns `undefined` if the input is `undefined` or `null`.
+ * Converts a value to a boolean for the `search_on_add` field, or returns `undefined` if the input is `null` or `undefined`.
  *
  * @param value - The value to normalize.
- * @returns The normalized boolean value, or `undefined` if the input is `undefined` or `null`.
+ * @returns A boolean representation of {@link value}, or `undefined` if {@link value} is `null` or `undefined`.
  */
 export function normalizeSearchOnAdd(value: unknown): boolean | undefined {
   if (value === undefined || value === null) {
@@ -287,11 +285,11 @@ export function normalizeSearchOnAdd(value: unknown): boolean | undefined {
 }
 
 /**
- * Normalizes and validates a season monitoring value.
+ * Normalizes a season monitoring value to a valid lowercase string.
  *
- * Converts the input to a lowercase string and returns it if it matches a predefined set of valid season monitoring values. Returns 'all' if the input is invalid, or undefined if the input is null or undefined.
+ * Converts the input to a lowercase string and returns it if it matches a valid season monitoring option; returns 'all' if the input is invalid, or undefined if the input is null or undefined.
  *
- * @param value - The value to normalize and validate.
+ * @param value - The season monitoring value to normalize.
  * @returns The normalized season monitoring value, or undefined if the input is null or undefined.
  */
 export function normalizeSeasonMonitoring(value: unknown): string | undefined {

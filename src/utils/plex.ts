@@ -17,10 +17,10 @@ interface RateLimitError extends Error {
 }
 
 /**
- * Determines whether the provided error is a {@link RateLimitError}.
+ * Checks if the given error is a {@link RateLimitError} indicating rate limit exhaustion.
  *
- * @param error - The error to check.
- * @returns `true` if the error is a {@link RateLimitError}; otherwise, `false`.
+ * @param error - The value to test.
+ * @returns `true` if {@link error} is a {@link RateLimitError}; otherwise, `false`.
  */
 function isRateLimitError(error: unknown): error is RateLimitError {
   return (
@@ -31,8 +31,18 @@ function isRateLimitError(error: unknown): error is RateLimitError {
 }
 
 /**
- * Helper function to handle rate limit errors and retries
- * Centralizes the logic for handling both HTTP 429 responses and caught rate limit errors
+ * Handles Plex API rate limit errors and manages retries for a single watchlist item.
+ *
+ * Sets the global rate limiter cooldown, waits for the cooldown if retries remain, and retries processing the item. If the maximum number of retries is reached, either throws a `RateLimitError` (for caught errors) or returns an empty set (for HTTP 429 responses).
+ *
+ * @param item - The watchlist item being processed.
+ * @param retryCount - The current retry attempt count.
+ * @param maxRetries - The maximum number of allowed retries.
+ * @param progressInfo - Optional progress reporting context.
+ * @param retryAfterSec - Optional cooldown duration in seconds from the Plex API.
+ * @returns A set of processed {@link Item} objects, or an empty set if retries are exhausted due to HTTP 429.
+ *
+ * @throws {RateLimitError} When the maximum number of retries is reached due to rate limiting (except for HTTP 429 responses).
  */
 async function handleRateLimitAndRetry(
   config: Config,

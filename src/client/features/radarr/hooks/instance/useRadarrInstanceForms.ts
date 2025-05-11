@@ -10,11 +10,11 @@ import {
 import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
 
 /**
- * Manages state, validation, and synchronization for a Radarr instance configuration form.
+ * Provides a React hook for managing a Radarr instance configuration form, including state, validation, and synchronization with instance data and connection status.
  *
- * Integrates `react-hook-form` with Zod schemas to handle both new and existing Radarr instances, synchronizing form values with instance data and connection status. Provides utilities for resetting the form, updating the title, and responding to connection validation changes.
+ * Integrates `react-hook-form` with Zod schemas to support both new and existing Radarr instances. The hook initializes form values from the provided instance, updates form state in response to connection validation, and offers utilities for resetting the form and updating the title field. It also manages internal tracking fields to ensure connection testing state is accurate when credentials change.
  *
- * @returns An object containing the form instance, a ref to the form container, and utility callbacks for form management.
+ * @returns An object containing the form instance, a ref to the form container element, and utility callbacks for form management.
  */
 export function useRadarrInstanceForm({
   instance,
