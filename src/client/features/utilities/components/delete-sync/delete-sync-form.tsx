@@ -432,6 +432,60 @@ export function DeleteSyncForm() {
 
                             <FormField
                               control={form.control}
+                              name="enablePlexPlaylistProtection"
+                              render={({ field }) => (
+                                <FormItem className="flex items-center space-x-2">
+                                  <FormControl>
+                                    <Switch
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                    />
+                                  </FormControl>
+                                  <FormLabel className="text-text m-0">
+                                    Enable Plex Playlist Protection
+                                  </FormLabel>
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="plexProtectionPlaylistName"
+                              render={({ field }) => (
+                                <FormItem className="space-y-2">
+                                  <div
+                                    className={`flex ${isMobile ? 'flex-col items-start gap-2' : 'items-center justify-between'}`}
+                                  >
+                                    <FormLabel className="text-text mb-0">
+                                      Protection Playlist Name
+                                    </FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        {...field}
+                                        value={
+                                          isSaving && submittedValues
+                                            ? submittedValues.plexProtectionPlaylistName ||
+                                              ''
+                                            : field.value || ''
+                                        }
+                                        className={isMobile ? 'w-full' : 'w-48'}
+                                        placeholder="Do Not Delete"
+                                        disabled={
+                                          isSaving ||
+                                          !form.watch(
+                                            'enablePlexPlaylistProtection',
+                                          )
+                                        }
+                                      />
+                                    </FormControl>
+                                  </div>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
                               name="deleteSyncNotify"
                               render={({ field }) => (
                                 <FormItem className="space-y-2">
