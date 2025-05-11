@@ -17,6 +17,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       schema: {
         response: {
           200: ConfigResponseSchema,
+          400: ConfigErrorSchema,
           404: ConfigErrorSchema,
           500: ConfigErrorSchema,
         },
@@ -75,6 +76,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         response: {
           200: ConfigResponseSchema,
           400: ConfigErrorSchema,
+          404: ConfigErrorSchema,
           500: ConfigErrorSchema,
         },
         tags: ['Config'],

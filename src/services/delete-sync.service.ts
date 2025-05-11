@@ -769,7 +769,8 @@ export class DeleteSyncService {
 
       for (const movie of existingMovies) {
         // Check if movie exists in any watchlist
-        const exists = movie.guids.some((guid) => watchlistGuids.has(guid))
+        const movieGuidList = parseGuids(movie.guids)
+        const exists = movieGuidList.some((guid) => watchlistGuids.has(guid))
 
         if (!exists) {
           const instanceId = movie.radarr_instance_id
@@ -801,7 +802,7 @@ export class DeleteSyncService {
               // Check for any movie GUID in the protected set
               let isProtected = false
 
-              for (const guid of movie.guids) {
+              for (const guid of movieGuidList) {
                 if (this.protectedGuids.has(guid)) {
                   this.log.debug(
                     `Movie "${movie.title}" is protected by GUID "${guid}"`,
@@ -834,7 +835,7 @@ export class DeleteSyncService {
             // Add to the list of movies to delete (or would delete in dry run)
             moviesToDelete.push({
               title: movie.title,
-              guid: movie.guids[0] || 'unknown',
+              guid: movieGuidList[0] || 'unknown',
               instance: instanceId.toString(),
             })
 
@@ -851,7 +852,7 @@ export class DeleteSyncService {
                   title: movie.title,
                   instanceId,
                   deleteFiles: this.config.deleteFiles,
-                  guids: movie.guids,
+                  guids: movieGuidList,
                 },
               )
             }
@@ -865,7 +866,7 @@ export class DeleteSyncService {
                   title: movie.title,
                   instanceId,
                   deleteFiles: this.config.deleteFiles,
-                  guids: movie.guids,
+                  guids: movieGuidList,
                 },
               )
             }
@@ -877,7 +878,7 @@ export class DeleteSyncService {
                 movie: {
                   title: movie.title,
                   instanceId: movie.radarr_instance_id,
-                  guids: movie.guids,
+                  guids: movieGuidList,
                 },
               },
             )
@@ -906,7 +907,8 @@ export class DeleteSyncService {
 
       for (const show of existingSeries) {
         // Check if show exists in any watchlist
-        const exists = show.guids.some((guid) => watchlistGuids.has(guid))
+        const showGuidList = parseGuids(show.guids)
+        const exists = showGuidList.some((guid) => watchlistGuids.has(guid))
 
         if (!exists) {
           // Determine if this is a continuing or ended show
@@ -964,7 +966,7 @@ export class DeleteSyncService {
               // Check for any show GUID in the protected set
               let isProtected = false
 
-              for (const guid of show.guids) {
+              for (const guid of showGuidList) {
                 if (this.protectedGuids.has(guid)) {
                   this.log.debug(
                     `Show "${show.title}" is protected by GUID "${guid}"`,
@@ -1002,7 +1004,7 @@ export class DeleteSyncService {
             // Add to the list of shows to delete (or would delete in dry run)
             showsToDelete.push({
               title: show.title,
-              guid: show.guids[0] || 'unknown',
+              guid: showGuidList[0] || 'unknown',
               instance: instanceId.toString(),
             })
 
@@ -1020,7 +1022,7 @@ export class DeleteSyncService {
                   instanceId,
                   status: isContinuing ? 'continuing' : 'ended',
                   deleteFiles: this.config.deleteFiles,
-                  guids: show.guids,
+                  guids: showGuidList,
                 },
               )
             }
@@ -1040,7 +1042,7 @@ export class DeleteSyncService {
                   instanceId,
                   status: isContinuing ? 'continuing' : 'ended',
                   deleteFiles: this.config.deleteFiles,
-                  guids: show.guids,
+                  guids: showGuidList,
                 },
               )
             }
@@ -1053,7 +1055,7 @@ export class DeleteSyncService {
                   title: show.title,
                   instanceId: show.sonarr_instance_id,
                   status: isContinuing ? 'continuing' : 'ended',
-                  guids: show.guids,
+                  guids: showGuidList,
                 },
               },
             )
@@ -1130,6 +1132,7 @@ export class DeleteSyncService {
 
     // Release cached resources after processing completes
     this.plexServer.clearWorkflowCaches()
+    this.protectedGuids = null
 
     return deletionSummary
   }
