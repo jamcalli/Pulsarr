@@ -160,6 +160,7 @@ export class PlexServerService {
   private serverConnections: PlexServerConnectionInfo[] | null = null
   private serverMachineId: string | null = null
   private connectionTimestamp = 0
+  private selectedConnectionUrl: string | null = null // Track which URL we've selected
 
   // User-related cache
   private users: PlexUser[] | null = null
@@ -196,6 +197,18 @@ export class PlexServerService {
     return this.config.plexProtectionPlaylistName || 'Do Not Delete'
   }
 
+  // Track initialization state
+  private initialized = false
+
+  /**
+   * Check if the service has been properly initialized
+   *
+   * @returns true if service is initialized, false otherwise
+   */
+  isInitialized(): boolean {
+    return this.initialized
+  }
+
   /**
    * Initializes the service by loading connections and users
    * Called during application startup to prepare the service
@@ -212,6 +225,7 @@ export class PlexServerService {
         this.log.error(
           'Failed to initialize PlexServerService - no connections available',
         )
+        this.initialized = false
         return false
       }
 
@@ -233,9 +247,11 @@ export class PlexServerService {
         )
       }
 
+      this.initialized = true
       return true
     } catch (error) {
       this.log.error('Error initializing PlexServerService:', error)
+      this.initialized = false
       return false
     }
   }
@@ -322,9 +338,15 @@ export class PlexServerService {
         connections[0].isDefault = true
       }
 
-      // Reconcile with manually configured URL if present
+      // Check for manually configured URL that's not the default value
       const configUrl = this.config.plexServerUrl
-      if (configUrl) {
+      const defaultUrl = 'http://localhost:32400'
+
+      // Only use the URL if it's configured and not the default value
+      if (configUrl && configUrl !== defaultUrl) {
+        this.log.info(`Found manually configured Plex URL: ${configUrl}`)
+
+        // Try to match with discovered connections
         const configMatch = connections.find(
           (c) =>
             c.url === configUrl ||
@@ -338,15 +360,31 @@ export class PlexServerService {
             c.isDefault = false
           }
           configMatch.isDefault = true
+          this.log.info(
+            'Manually configured URL matches a discovered connection - setting as default',
+          )
         } else {
-          // Add manually configured URL as a non-default option
+          // Add manually configured URL as override
           connections.push({
             url: configUrl,
-            local: false,
+            local: false, // Can't determine if it's local without discovery
             relay: false,
-            isDefault: false,
+            isDefault: true, // Override auto-discovery
           })
+
+          // Mark all auto-discovered connections as non-default
+          for (let i = 0; i < connections.length - 1; i++) {
+            connections[i].isDefault = false
+          }
+
+          this.log.info(
+            'Manually configured URL does not match any discovered connection - adding as override',
+          )
         }
+      } else {
+        this.log.debug(
+          'Using auto-discovered Plex connections (no manual override)',
+        )
       }
 
       // Cache the result
@@ -357,6 +395,16 @@ export class PlexServerService {
       this.log.info(
         `Found ${connections.length} Plex server connections (${connections.filter((c) => c.local).length} local, ${connections.filter((c) => c.relay).length} relay)`,
       )
+
+      // Log connection details at info level for clear auto-configuration visibility
+      if (connections.length > 0) {
+        this.log.info('Available Plex connections:')
+        for (const [index, conn] of connections.entries()) {
+          this.log.info(
+            `Connection ${index + 1}: URL=${conn.url}, Local=${conn.local}, Relay=${conn.relay}, Default=${conn.isDefault}`,
+          )
+        }
+      }
 
       return connections
     } catch (error) {
@@ -371,12 +419,32 @@ export class PlexServerService {
    * @returns Array containing a single default connection configuration
    */
   private getDefaultConnectionInfo(): PlexServerConnectionInfo[] {
-    const defaultUrl = this.config.plexServerUrl || 'http://localhost:32400'
+    // Check if there's a manually configured URL that's not the default
+    const configUrl = this.config.plexServerUrl
+    const defaultUrl = 'http://localhost:32400'
+
+    // Only use the configured URL if it's provided and not the default value
+    if (configUrl && configUrl !== defaultUrl) {
+      this.log.info(
+        `Using manually configured Plex URL as fallback: ${configUrl}`,
+      )
+      return [
+        {
+          url: configUrl,
+          local:
+            configUrl.includes('localhost') || configUrl.includes('127.0.0.1'),
+          relay: false,
+          isDefault: true,
+        },
+      ]
+    }
+
+    // Otherwise use localhost as the default fallback
+    this.log.debug('Using localhost as default fallback Plex URL')
     return [
       {
         url: defaultUrl,
-        local:
-          defaultUrl.includes('localhost') || defaultUrl.includes('127.0.0.1'),
+        local: true, // Localhost is always local
         relay: false,
         isDefault: true,
       },
@@ -390,34 +458,53 @@ export class PlexServerService {
    * @returns The best available Plex server URL
    */
   async getPlexServerUrl(preferLocal = true): Promise<string> {
+    // If we've already selected a connection, reuse it without logging
+    if (this.selectedConnectionUrl) {
+      return this.selectedConnectionUrl
+    }
+
     const connections = await this.getPlexServerConnectionInfo()
 
     if (connections.length === 0) {
-      return this.config.plexServerUrl || 'http://localhost:32400'
+      this.log.info(
+        'No Plex connections found, using localhost fallback: http://localhost:32400',
+      )
+      this.selectedConnectionUrl = 'http://localhost:32400'
+      return this.selectedConnectionUrl
     }
 
     // Prioritize default connection if available
     const defaultConn = connections.find((c) => c.isDefault)
     if (defaultConn) {
-      return defaultConn.url
+      this.log.info(`Using default Plex connection: ${defaultConn.url}`)
+      this.selectedConnectionUrl = defaultConn.url
+      return this.selectedConnectionUrl
     }
 
     // Otherwise if we prefer local and there's a local connection, use that
     if (preferLocal) {
       const localConn = connections.find((c) => c.local)
       if (localConn) {
-        return localConn.url
+        this.log.info(`Using local Plex connection: ${localConn.url}`)
+        this.selectedConnectionUrl = localConn.url
+        return this.selectedConnectionUrl
       }
     }
 
     // Then try non-relay connections
     const nonRelayConn = connections.find((c) => !c.relay)
     if (nonRelayConn) {
-      return nonRelayConn.url
+      this.log.info(`Using non-relay Plex connection: ${nonRelayConn.url}`)
+      this.selectedConnectionUrl = nonRelayConn.url
+      return this.selectedConnectionUrl
     }
 
     // Finally use the first available connection, even if it's a relay
-    return connections[0].url
+    this.log.info(
+      `Using fallback Plex connection (relay): ${connections[0].url}`,
+    )
+    this.selectedConnectionUrl = connections[0].url
+    return this.selectedConnectionUrl
   }
 
   /**
@@ -1392,12 +1479,15 @@ export class PlexServerService {
   /**
    * Resets all cached data to force fresh retrieval
    * Useful for testing or when manual refresh is required
+   *
+   * @param resetInitialized - If true, will also reset the initialized state (default: false)
    */
-  clearCaches(): void {
+  clearCaches(resetInitialized = false): void {
     this.log.info('Clearing all PlexServerService caches')
     this.serverConnections = null
     this.serverMachineId = null
     this.connectionTimestamp = 0
+    this.selectedConnectionUrl = null
     this.users = null
     this.usersTimestamp = 0
     this.userTokens = new Map()
@@ -1405,6 +1495,12 @@ export class PlexServerService {
     this.protectedItemsCache = null
     this.sharedServerInfo = null
     this.sharedServerInfoTimestamp = 0
+
+    // Only reset the initialized state if explicitly requested
+    if (resetInitialized) {
+      this.log.warn('Resetting Plex server initialization state')
+      this.initialized = false
+    }
   }
 
   /**
@@ -1415,5 +1511,8 @@ export class PlexServerService {
     this.log.info('Clearing workflow-specific caches')
     this.protectedPlaylistsMap = null
     this.protectedItemsCache = null
+
+    // Ensure we don't reset the initialized state, as that's managed separately
+    // through the initialize() method
   }
 }

@@ -91,7 +91,7 @@ export interface Config {
   maxDeletionPrevention: number
   enablePlexPlaylistProtection: boolean
   plexProtectionPlaylistName: string
-  plexServerUrl?: string // Now optional since URL can be inferred from Plex API
+  plexServerUrl?: string // Optional: Only set this if automatic discovery fails, URL is auto-detected in most cases
   // RSS Config
   selfRss?: string
   friendsRss?: string

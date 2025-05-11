@@ -213,6 +213,19 @@ export class DeleteSyncService {
         )
       }
 
+      // Additional safety check: If Plex playlist protection is enabled but Plex server isn't properly initialized
+      if (
+        this.config.enablePlexPlaylistProtection &&
+        !this.plexServer.isInitialized()
+      ) {
+        return this.createSafetyTriggeredResult(
+          'Plex playlist protection is enabled but Plex server is not properly initialized - cannot proceed with deletion to ensure content safety',
+          dryRun,
+          existingSeries.length,
+          existingMovies.length,
+        )
+      }
+
       // Step 7: If everything is safe, proceed with the actual processing
       const result = await this.processDeleteSync(
         existingSeries,
@@ -678,29 +691,57 @@ export class DeleteSyncService {
         `Plex playlist protection is enabled with playlist name "${this.getProtectionPlaylistName()}"`,
       )
 
-      // Create protection playlists for users if missing
-      const playlistMap =
-        await this.plexServer.getOrCreateProtectionPlaylists(true)
-      if (playlistMap.size > 0) {
-        // Populate protected GUIDs cache for lookup operations
-        this.protectedGuids = await this.plexServer.getProtectedItems()
-        this.log.info(
-          `Protection playlists "${this.getProtectionPlaylistName()}" for ${playlistMap.size} users contain a total of ${this.protectedGuids.size} protected GUIDs`,
-        )
+      try {
+        // Create protection playlists for users if missing
+        const playlistMap =
+          await this.plexServer.getOrCreateProtectionPlaylists(true)
 
-        // Debug sample of protected identifiers (limited to 5)
-        if (
-          this.protectedGuids.size > 0 &&
-          (this.log.level === 'debug' || this.log.level === 'trace')
-        ) {
-          const sampleGuids = Array.from(this.protectedGuids).slice(0, 5)
-          this.log.debug('Sample protected GUIDs:')
-          for (const guid of sampleGuids) {
-            this.log.debug(`  Protected GUID: "${guid}"`)
-          }
+        if (playlistMap.size === 0) {
+          const errorMsg = `Could not find or create protection playlists "${this.getProtectionPlaylistName()}" for any users - Plex server may be unreachable`
+          this.log.error(errorMsg)
+          return this.createSafetyTriggeredResult(
+            errorMsg,
+            dryRun,
+            existingSeries.length,
+            existingMovies.length,
+          )
         }
-      } else {
-        const errorMsg = `Could not find or create protection playlists "${this.getProtectionPlaylistName()}" for any users - Plex server may be unreachable`
+
+        try {
+          // Populate protected GUIDs cache for lookup operations
+          this.protectedGuids = await this.plexServer.getProtectedItems()
+
+          if (!this.protectedGuids) {
+            throw new Error('Failed to retrieve protected items')
+          }
+
+          this.log.info(
+            `Protection playlists "${this.getProtectionPlaylistName()}" for ${playlistMap.size} users contain a total of ${this.protectedGuids.size} protected GUIDs`,
+          )
+
+          // Debug sample of protected identifiers (limited to 5)
+          if (
+            this.protectedGuids.size > 0 &&
+            (this.log.level === 'debug' || this.log.level === 'trace')
+          ) {
+            const sampleGuids = Array.from(this.protectedGuids).slice(0, 5)
+            this.log.debug('Sample protected GUIDs:')
+            for (const guid of sampleGuids) {
+              this.log.debug(`  Protected GUID: "${guid}"`)
+            }
+          }
+        } catch (protectedItemsError) {
+          const errorMsg = `Error retrieving protected items from playlists: ${protectedItemsError instanceof Error ? protectedItemsError.message : String(protectedItemsError)}`
+          this.log.error(errorMsg)
+          return this.createSafetyTriggeredResult(
+            errorMsg,
+            dryRun,
+            existingSeries.length,
+            existingMovies.length,
+          )
+        }
+      } catch (playlistError) {
+        const errorMsg = `Error creating or retrieving protection playlists: ${playlistError instanceof Error ? playlistError.message : String(playlistError)}`
         this.log.error(errorMsg)
         return this.createSafetyTriggeredResult(
           errorMsg,
@@ -744,10 +785,19 @@ export class DeleteSyncService {
 
           try {
             // Check if the movie is protected based on its GUIDs
-            if (
-              this.config.enablePlexPlaylistProtection &&
-              this.protectedGuids
-            ) {
+            if (this.config.enablePlexPlaylistProtection) {
+              // Double-check if protectedGuids is correctly initialized
+              if (!this.protectedGuids) {
+                const errorMsg = `Plex playlist protection is enabled but protected GUIDs weren't properly loaded for movie "${movie.title}" - cannot proceed with deletion`
+                this.log.error(errorMsg)
+                return this.createSafetyTriggeredResult(
+                  errorMsg,
+                  dryRun,
+                  existingSeries.length,
+                  existingMovies.length,
+                )
+              }
+
               // Check for any movie GUID in the protected set
               let isProtected = false
 
@@ -898,10 +948,19 @@ export class DeleteSyncService {
 
           try {
             // Check if the show is protected based on its GUIDs
-            if (
-              this.config.enablePlexPlaylistProtection &&
-              this.protectedGuids
-            ) {
+            if (this.config.enablePlexPlaylistProtection) {
+              // Double-check if protectedGuids is correctly initialized
+              if (!this.protectedGuids) {
+                const errorMsg = `Plex playlist protection is enabled but protected GUIDs weren't properly loaded for show "${show.title}" - cannot proceed with deletion`
+                this.log.error(errorMsg)
+                return this.createSafetyTriggeredResult(
+                  errorMsg,
+                  dryRun,
+                  existingSeries.length,
+                  existingMovies.length,
+                )
+              }
+
               // Check for any show GUID in the protected set
               let isProtected = false
 
