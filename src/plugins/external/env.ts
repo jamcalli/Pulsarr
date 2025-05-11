@@ -165,6 +165,18 @@ const schema = {
       type: 'boolean',
       default: false,
     },
+    plexServerUrl: {
+      type: 'string',
+      default: 'http://localhost:32400',
+    },
+    enablePlexPlaylistProtection: {
+      type: 'boolean',
+      default: false,
+    },
+    plexProtectionPlaylistName: {
+      type: 'string',
+      default: 'Do Not Delete',
+    },
     deleteMovie: {
       type: 'boolean',
       default: false,

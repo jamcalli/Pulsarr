@@ -89,6 +89,9 @@ export interface Config {
   respectUserSyncSetting: boolean
   deleteSyncNotify: DeleteSyncNotifyOption
   maxDeletionPrevention: number
+  enablePlexPlaylistProtection: boolean
+  plexProtectionPlaylistName: string
+  plexServerUrl?: string // Optional: Only set this if automatic discovery fails, URL is auto-detected in most cases
   // RSS Config
   selfRss?: string
   friendsRss?: string

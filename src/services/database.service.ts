@@ -544,6 +544,13 @@ export class DatabaseService {
       deleteContinuingShow: Boolean(config.deleteContinuingShow),
       deleteFiles: Boolean(config.deleteFiles),
       respectUserSyncSetting: Boolean(config.respectUserSyncSetting),
+      // Plex playlist protection
+      enablePlexPlaylistProtection: Boolean(
+        config.enablePlexPlaylistProtection,
+      ),
+      plexProtectionPlaylistName:
+        config.plexProtectionPlaylistName || 'Do Not Delete',
+      plexServerUrl: config.plexServerUrl || undefined,
       // Tag configuration
       tagUsersInSonarr: Boolean(config.tagUsersInSonarr),
       tagUsersInRadarr: Boolean(config.tagUsersInRadarr),
@@ -597,6 +604,12 @@ export class DatabaseService {
         respectUserSyncSetting: config.respectUserSyncSetting,
         deleteSyncNotify: config.deleteSyncNotify,
         maxDeletionPrevention: config.maxDeletionPrevention || 10,
+        // Plex playlist protection
+        enablePlexPlaylistProtection:
+          config.enablePlexPlaylistProtection || false,
+        plexProtectionPlaylistName:
+          config.plexProtectionPlaylistName || 'Do Not Delete',
+        plexServerUrl: config.plexServerUrl,
         // RSS fields
         selfRss: config.selfRss,
         friendsRss: config.friendsRss,

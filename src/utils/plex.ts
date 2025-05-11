@@ -1061,7 +1061,7 @@ const toItemsBatch = async (
   return results
 }
 
-const toItemsSingle = async (
+export const toItemsSingle = async (
   config: Config,
   log: FastifyBaseLogger,
   item: TokenWatchlistItem,
@@ -1121,6 +1121,14 @@ const toItemsSingle = async (
     }
 
     if (!response.ok) {
+      // Check if it's a 404 error, which means the item doesn't exist in Plex
+      if (response.status === 404) {
+        log.warn(
+          `Item "${item.title}" not found in Plex database (HTTP 404) - skipping retries`,
+        )
+        return new Set()
+      }
+
       throw new Error(
         `Plex API error: HTTP ${response.status} - ${response.statusText}`,
       )
@@ -1199,6 +1207,14 @@ const toItemsSingle = async (
     }
 
     if (error.message.includes('Plex API error')) {
+      // Check specifically for 404 errors and avoid retrying
+      if (error.message.includes('HTTP 404')) {
+        log.warn(
+          `Item "${item.title}" not found in Plex's database (404) - skipping retries`,
+        )
+        return new Set()
+      }
+
       if (retryCount < maxRetries) {
         log.warn(
           `Failed to find ${item.title} in Plex's database. Error: ${error.message}. Retry ${retryCount + 1}/${maxRetries}`,

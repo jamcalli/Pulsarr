@@ -59,6 +59,11 @@ export const ConfigSchema = z.object({
   respectUserSyncSetting: z.boolean().optional(),
   deleteSyncNotify: DeleteSyncNotifyOptionEnum.optional(),
   maxDeletionPrevention: z.number().optional(),
+  // Plex Playlist Protection
+  enablePlexPlaylistProtection: z.boolean().optional(),
+  plexProtectionPlaylistName: z.string().optional(),
+  plexServerUrl: z.string().optional(),
+  // RSS and other settings
   selfRss: z.string().optional(),
   friendsRss: z.string().optional(),
   _isReady: z.boolean().optional(),
