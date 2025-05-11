@@ -161,6 +161,12 @@ export class DeleteSyncService {
         `Starting delete sync operation${dryRun ? ' (DRY RUN)' : ''}`,
       )
 
+      // Make sure the Plex server is initialized if needed
+      if (this.config.enablePlexPlaylistProtection && !this.plexServer.isInitialized()) {
+        this.log.info('Plex playlist protection enabled but not initialized - initializing now')
+        await this.initialize()
+      }
+
       // Step 1: Skip if deletion features are not enabled in configuration
       if (!this.isDeleteEnabled()) {
         return this.createEmptyResult(
