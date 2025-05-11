@@ -1,6 +1,11 @@
 import { z } from 'zod'
 
-// Helper function to parse webhook URLs from a string
+/**
+ * Parses a comma-separated string of webhook URLs into an array of trimmed, non-empty URLs.
+ *
+ * @param value - A string containing one or more webhook URLs separated by commas.
+ * @returns An array of cleaned webhook URLs, or an empty array if the input is empty or undefined.
+ */
 function parseWebhookUrls(value?: string): string[] {
   const trimmed = value?.trim() ?? ''
   if (trimmed.length === 0) return []
