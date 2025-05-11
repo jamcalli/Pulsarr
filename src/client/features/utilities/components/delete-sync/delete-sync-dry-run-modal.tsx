@@ -259,7 +259,9 @@ export function DeleteSyncDryRunModal({
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div
+          className={`grid grid-cols-1 ${deleteSyncDryRunResults.total.protected ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-4 mb-6`}
+        >
           <Card>
             <CardContent className="pt-6">
               <h3 className="text-sm font-medium text-text mb-2">Total</h3>
@@ -287,6 +289,21 @@ export function DeleteSyncDryRunModal({
               <p className="text-sm text-text">Shows would be deleted</p>
             </CardContent>
           </Card>
+          {deleteSyncDryRunResults.total.protected ? (
+            <Card>
+              <CardContent className="pt-6">
+                <h3 className="text-sm font-medium text-text mb-2">
+                  Protected
+                </h3>
+                <p className="text-2xl font-bold text-text">
+                  {deleteSyncDryRunResults.total.protected}
+                </p>
+                <p className="text-sm text-text">
+                  Items protected from deletion
+                </p>
+              </CardContent>
+            </Card>
+          ) : null}
         </div>
 
         <div className="relative mb-6">
