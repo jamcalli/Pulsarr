@@ -8,7 +8,9 @@ import {
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.get<{
-    Reply: z.infer<typeof ConfigResponseSchema>
+    Reply:
+      | z.infer<typeof ConfigResponseSchema>
+      | z.infer<typeof ConfigErrorSchema>
   }>(
     '/config',
     {
@@ -47,11 +49,14 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         return response
       } catch (err) {
         if (err instanceof Error && 'statusCode' in err) {
-          throw err
+          // Use proper error format to match the schema
+          reply.status(err.statusCode as number)
+          return { error: err.message || 'Error fetching configuration' }
         }
 
         fastify.log.error('Error fetching config:', err)
-        throw reply.internalServerError('Unable to fetch configuration')
+        reply.status(500)
+        return { error: 'Unable to fetch configuration' }
       }
     },
   )
@@ -59,7 +64,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   // Updated PUT handler for /config route to avoid race conditions
   fastify.put<{
     Body: z.infer<typeof ConfigSchema>
-    Reply: z.infer<typeof ConfigResponseSchema>
+    Reply:
+      | z.infer<typeof ConfigResponseSchema>
+      | z.infer<typeof ConfigErrorSchema>
   }>(
     '/config',
     {
@@ -80,9 +87,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         // If someone tries to update the protected fields, log a warning
         if (enableApprise !== undefined || appriseUrl !== undefined) {
-          return reply.badRequest(
-            'enableApprise and appriseUrl are read-only via API',
-          )
+          reply.status(400)
+          return {
+            error: 'enableApprise and appriseUrl are read-only via API',
+          }
         }
 
         // Store current runtime values for revert if needed
@@ -97,7 +105,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           await fastify.updateConfig(safeConfigUpdate)
         } catch (configUpdateError) {
           fastify.log.error('Error updating runtime config:', configUpdateError)
-          throw reply.badRequest('Failed to update runtime configuration')
+          reply.status(400)
+          return { error: 'Failed to update runtime configuration' }
         }
 
         // Now update the database
@@ -109,12 +118,14 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           } catch (revertError) {
             fastify.log.error('Failed to revert runtime config:', revertError)
           }
-          throw reply.badRequest('Failed to update configuration in database')
+          reply.status(400)
+          return { error: 'Failed to update configuration in database' }
         }
 
         const savedConfig = await fastify.db.getConfig(1)
         if (!savedConfig) {
-          throw reply.notFound('No configuration found after update')
+          reply.status(404)
+          return { error: 'No configuration found after update' }
         }
 
         // Merge saved DB config with runtime Apprise settings
@@ -133,10 +144,13 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         return response
       } catch (err) {
         if (err instanceof Error && 'statusCode' in err) {
-          throw err
+          // Use proper error format to match the schema
+          reply.status(err.statusCode as number)
+          return { error: err.message || 'Error updating configuration' }
         }
         fastify.log.error('Error updating config:', err)
-        throw reply.internalServerError('Unable to update configuration')
+        reply.status(500)
+        return { error: 'Unable to update configuration' }
       }
     },
   )

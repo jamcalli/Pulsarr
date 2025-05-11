@@ -14,6 +14,8 @@ export const deleteSyncSchema = z.object({
   deleteContinuingShow: z.boolean(),
   deleteFiles: z.boolean(),
   respectUserSyncSetting: z.boolean(),
+  enablePlexPlaylistProtection: z.boolean(),
+  plexProtectionPlaylistName: z.string().min(1),
   deleteSyncNotify: z.enum([
     'none',
     'message',
@@ -125,6 +127,8 @@ export function useDeleteSyncForm() {
       deleteContinuingShow: false,
       deleteFiles: false,
       respectUserSyncSetting: true,
+      enablePlexPlaylistProtection: false,
+      plexProtectionPlaylistName: 'Do Not Delete',
       deleteSyncNotify: 'none',
       maxDeletionPrevention: undefined,
       scheduleTime: undefined,
@@ -152,6 +156,10 @@ export function useDeleteSyncForm() {
           deleteContinuingShow: config.deleteContinuingShow || false,
           deleteFiles: config.deleteFiles || false,
           respectUserSyncSetting: config.respectUserSyncSetting ?? true,
+          enablePlexPlaylistProtection:
+            config.enablePlexPlaylistProtection || false,
+          plexProtectionPlaylistName:
+            config.plexProtectionPlaylistName || 'Do Not Delete',
           deleteSyncNotify: notifyValue,
           maxDeletionPrevention: config.maxDeletionPrevention,
           scheduleTime: scheduleTime || form.getValues('scheduleTime'),
@@ -186,6 +194,8 @@ export function useDeleteSyncForm() {
         deleteContinuingShow: data.deleteContinuingShow,
         deleteFiles: data.deleteFiles,
         respectUserSyncSetting: data.respectUserSyncSetting,
+        enablePlexPlaylistProtection: data.enablePlexPlaylistProtection,
+        plexProtectionPlaylistName: data.plexProtectionPlaylistName,
         deleteSyncNotify: data.deleteSyncNotify,
         maxDeletionPrevention: data.maxDeletionPrevention,
       })
@@ -249,6 +259,10 @@ export function useDeleteSyncForm() {
           deleteContinuingShow: updatedConfig.deleteContinuingShow || false,
           deleteFiles: updatedConfig.deleteFiles || false,
           respectUserSyncSetting: updatedConfig.respectUserSyncSetting ?? true,
+          enablePlexPlaylistProtection:
+            updatedConfig.enablePlexPlaylistProtection || false,
+          plexProtectionPlaylistName:
+            updatedConfig.plexProtectionPlaylistName || 'Do Not Delete',
           deleteSyncNotify: updatedConfig.deleteSyncNotify || 'none',
           maxDeletionPrevention: updatedConfig.maxDeletionPrevention,
           scheduleTime: data.scheduleTime,
@@ -291,6 +305,10 @@ export function useDeleteSyncForm() {
         deleteContinuingShow: config.deleteContinuingShow || false,
         deleteFiles: config.deleteFiles || false,
         respectUserSyncSetting: config.respectUserSyncSetting ?? true,
+        enablePlexPlaylistProtection:
+          config.enablePlexPlaylistProtection || false,
+        plexProtectionPlaylistName:
+          config.plexProtectionPlaylistName || 'Do Not Delete',
         deleteSyncNotify: config.deleteSyncNotify || 'none',
         maxDeletionPrevention: config.maxDeletionPrevention,
         scheduleTime: scheduleTime,
