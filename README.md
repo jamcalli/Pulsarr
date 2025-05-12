@@ -3,7 +3,7 @@
   <h1>Pulsarr</h1>
   <p>Real-time Plex watchlist monitoring, routing, and notification center</p>
 
-  ![Version](https://img.shields.io/github/v/release/jamcalli/pulsarr?include_prereleases&style=flat-square)
+  ![Version](https://img.shields.io/github/v/release/jamcalli/pulsarr?style=flat-square)
   ![License](https://img.shields.io/badge/license-GPL-blue?style=flat-square)
   ![Node](https://img.shields.io/badge/node-20%20LTS-green?style=flat-square)
   ![Status](https://img.shields.io/badge/status-early--release-orange?style=flat-square)
@@ -175,9 +175,14 @@ docker compose pull && docker compose up -d
 
 #### Unraid Installation
 
-Pulsarr is being added to the Unraid Community Applications (CA) store. Once approved, you'll be able to install it directly from the Apps tab in Unraid.
+Pulsarr is available in the Unraid Community Applications (CA) store. You can install it directly from the Apps tab in Unraid:
 
-In the meantime, you can install using the Docker Installation method above.
+1. Open the Unraid web UI
+2. Navigate to the "Apps" tab
+3. Search for "Pulsarr"
+4. Click "Install"
+
+Alternatively, you can use the Docker Installation method described above.
 
 #### Manual Installation
 
