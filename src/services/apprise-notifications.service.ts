@@ -59,22 +59,39 @@ export class AppriseNotificationService {
         return false
       }
 
+      // Use HTML content as the primary body when available
+      const bodyContent = notification.body_html || notification.body
+      const isHtml = !!notification.body_html
+
+      // Create a clean payload without the non-standard body_html field
+      const { body_html, format, ...cleanNotification } = notification
+
+      // Prepare the payload with correct format settings for HTML
+      const payload = {
+        urls: targetUrl,
+        ...cleanNotification,
+        body: bodyContent,
+        format: isHtml ? 'html' : format || 'text',
+        input: isHtml ? 'html' : format || 'text', // Add this for API compatibility
+      }
+
       this.log.debug(
-        { notification, targetUrl },
+        {
+          payload,
+          targetUrl,
+          isHtml,
+        },
         'Sending Apprise notification',
       )
 
       // Construct the endpoint URL
       const url = new URL('/notify', this.appriseBaseUrl)
 
-      // Send the request with both the target URL and notification in the JSON body
+      // Send the request with the correctly formatted payload
       const response = await fetch(url.toString(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          urls: targetUrl,
-          ...notification,
-        }),
+        body: JSON.stringify(payload),
       })
 
       if (!response.ok) {
@@ -125,9 +142,25 @@ export class AppriseNotificationService {
       // Prepare the notification title (similar to Discord's title structure)
       const title = `${emoji} ${notification.title}`
 
-      // Build different message content based on notification type - matching Discord structure
+      // Build different message content based on notification type with enhanced HTML templates
       let htmlBody: string
       let textBody: string
+
+      // Common HTML wrapper start with Pulsarr styling
+      const htmlWrapper = (content: string) => `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 2px solid #000000; border-radius: 5px; background-color: #48a9a6; color: #000000; box-shadow: 4px 4px 0px 0px #000000;">
+        ${content}
+        <hr style="border: none; border-top: 1px solid #000000; margin: 20px 0;">
+        <p style="color:#000000; font-size:0.9em; text-align: center; font-weight: 500;">Powered by Pulsarr</p>
+      </div>
+      `
+
+      // Poster image HTML if available - with Pulsarr styling
+      const posterHtml = notification.posterUrl
+        ? `<div style="text-align: center; margin-bottom: 20px;">
+             <img src="${notification.posterUrl}" alt="${notification.title} poster" style="max-width: 200px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
+           </div>`
+        : ''
 
       if (notification.type === 'show' && notification.episodeDetails) {
         const { episodeDetails } = notification
@@ -149,17 +182,32 @@ export class AppriseNotificationService {
             ? ` - "${episodeDetails.title}"`
             : ''
 
-          // Add HTML content
-          htmlBody = '<h2>New Episode Available</h2>'
-          htmlBody += `<p><strong>${notification.title}</strong></p>`
-          htmlBody += `<p><strong>Episode:</strong> ${episodeId}${episodeTitle}</p>`
+          // Enhanced HTML content for episode with Pulsarr dark theme styling
+          const episodeContent = `
+            ${posterHtml}
+            <div style="background-color: #212121; padding: 15px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
+              <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">${notification.title}</h3>
+              <p style="font-weight: 500; color: #ffffff;"><strong style="color: #ffffff;">Episode:</strong> ${episodeId}${episodeTitle}</p>
+              ${
+                episodeDetails.overview
+                  ? `<p style="font-weight: 500; color: #ffffff;"><strong style="color: #ffffff;">Overview:</strong> ${episodeDetails.overview}</p>`
+                  : ''
+              }
+              ${
+                episodeDetails.airDateUtc
+                  ? `<p style="font-weight: 500; color: #ffffff;"><strong style="color: #ffffff;">Air Date:</strong> ${new Date(episodeDetails.airDateUtc).toLocaleDateString()}</p>`
+                  : ''
+              }
+            </div>
+          `
 
-          // Add plain text content
+          htmlBody = htmlWrapper(episodeContent)
+
+          // Plain text content for episode
           textBody = `New Episode Available\n\n${notification.title}\nEpisode: ${episodeId}${episodeTitle}\n`
 
           // Add overview if available
           if (episodeDetails.overview) {
-            htmlBody += `<p><strong>Overview:</strong> ${episodeDetails.overview}</p>`
             textBody += `\nOverview: ${episodeDetails.overview}\n`
           }
 
@@ -168,35 +216,51 @@ export class AppriseNotificationService {
             const airDate = new Date(
               episodeDetails.airDateUtc,
             ).toLocaleDateString()
-            htmlBody += `<p><strong>Air Date:</strong> ${airDate}</p>`
             textBody += `\nAir Date: ${airDate}`
           }
         } else if (episodeDetails.seasonNumber !== undefined) {
-          // Bulk season release - structure matches Discord's bulk release notification
-          htmlBody = '<h2>New Season Available</h2>'
-          htmlBody += `<p><strong>${notification.title}</strong></p>`
-          htmlBody += `<p><strong>Season Added:</strong> Season ${episodeDetails.seasonNumber}</p>`
+          // Bulk season release with enhanced HTML and Pulsarr dark theme styling
+          const seasonContent = `
+            ${posterHtml}
+            <div style="background-color: #212121; padding: 15px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
+              <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">${notification.title}</h3>
+              <p style="font-weight: 500; color: #ffffff;"><strong style="color: #ffffff;">Season Added:</strong> Season ${episodeDetails.seasonNumber}</p>
+            </div>
+          `
+
+          htmlBody = htmlWrapper(seasonContent)
 
           textBody = `New Season Available\n\n${notification.title}\nSeason Added: Season ${episodeDetails.seasonNumber}`
         } else {
-          // Fallback - similar to Discord's fallback
-          htmlBody = '<h2>New Content Available</h2>'
-          htmlBody += `<p><strong>${notification.title}</strong></p>`
-          htmlBody += '<p>New content is now available to watch!</p>'
+          // Fallback with enhanced HTML and Pulsarr dark theme styling
+          const fallbackContent = `
+            ${posterHtml}
+            <div style="background-color: #212121; padding: 15px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
+              <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">${notification.title}</h3>
+              <p style="font-weight: 500; color: #ffffff;">New content is now available to watch!</p>
+            </div>
+          `
+
+          htmlBody = htmlWrapper(fallbackContent)
 
           textBody = `New Content Available\n\n${notification.title}\nNew content is now available to watch!`
         }
       } else {
-        // Movie notification - match Discord's movie notification style
-        htmlBody = '<h2>Movie Available</h2>'
-        htmlBody += `<p><strong>${notification.title}</strong></p>`
-        htmlBody += '<p>Your movie is now available to watch!</p>'
+        // Movie notification with enhanced HTML and Pulsarr dark theme styling
+        const movieContent = `
+          ${posterHtml}
+          <div style="background-color: #212121; padding: 15px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
+            <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">${notification.title}</h3>
+            <p style="font-weight: 500; color: #ffffff;">Your movie is now available to watch!</p>
+          </div>
+        `
+
+        htmlBody = htmlWrapper(movieContent)
 
         textBody = `Movie Available\n\n${notification.title}\nYour movie is now available to watch!`
       }
 
-      // Add footer with app name - similar to Discord signature
-      htmlBody += '<p style="color:#888; font-size:0.9em;">- Pulsarr</p>'
+      // Add signature to text content
       textBody += '\n\n- Pulsarr'
 
       const appriseNotification: AppriseNotification = {
@@ -269,24 +333,43 @@ export class AppriseNotificationService {
       // Format the notification content
       const title = notification.title
 
-      // Create HTML and text versions of the body
-      let htmlBody = '<h2>System Notification</h2>'
+      // Common HTML wrapper with Pulsarr styling
+      const htmlWrapper = (content: string) => `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 2px solid #000000; border-radius: 5px; background-color: #48a9a6; color: #000000; box-shadow: 4px 4px 0px 0px #000000;">
+        ${content}
+        <hr style="border: none; border-top: 1px solid #000000; margin: 20px 0;">
+        <p style="color:#000000; font-size:0.9em; text-align: center; font-weight: 500;">Powered by Pulsarr</p>
+      </div>
+      `
+
+      // Create text version of the body
       let textBody = 'System Notification\n\n'
 
-      // Add fields in a readable format - structured like Discord embeds
-      htmlBody += '<div style="margin: 10px 0;">'
+      // Build enhanced HTML content with Pulsarr dark theme styling
+      let fieldsContent = ''
       for (const field of notification.embedFields) {
-        htmlBody += `<div style="margin-bottom: 10px;">
-        <strong>${field.name}:</strong> 
-        <div>${field.value}</div>
-      </div>`
+        fieldsContent += `
+        <div style="margin-bottom: 15px; padding: 15px; background-color: #212121; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
+          <h3 style="margin-top: 0; color: #ffffff; font-weight: 700; font-size: 16px;">${field.name}</h3>
+          <div style="margin-left: 10px; color: #ffffff; font-weight: 500;">${field.value}</div>
+        </div>
+        `
 
         textBody += `${field.name}: ${field.value}\n\n`
       }
-      htmlBody += '</div>'
 
-      // Add footer
-      htmlBody += `<p style="color:#888; font-size:0.9em;">- Pulsarr System</p>`
+      // Create complete HTML content with Pulsarr styling
+      const systemContent = `
+        <h2 style="color: #000000; margin-top: 0; font-weight: 700;">System Notification</h2>
+        <h3 style="color: #000000; font-weight: 700;">${title}</h3>
+        <div style="margin: 15px 0;">
+          ${fieldsContent}
+        </div>
+      `
+
+      const htmlBody = htmlWrapper(systemContent)
+
+      // Add footer to text content
       textBody += '- Pulsarr System'
 
       const appriseNotification: AppriseNotification = {
@@ -347,61 +430,99 @@ export class AppriseNotificationService {
         title = '🗑️ Delete Sync Results'
       }
 
-      // Create HTML and text versions of the body - matching Discord's structure
-      let htmlBody = `<h2>${title.replace(/^(⚠️|🔍|🗑️)\s*/, '')}</h2>`
+      // Common HTML wrapper with actual Pulsarr styling
+      const htmlWrapper = (content: string) => `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 2px solid #000000; border-radius: 5px; background-color: #48a9a6; color: #000000; box-shadow: 4px 4px 0px 0px #000000;">
+        ${content}
+        <hr style="border: none; border-top: 1px solid #000000; margin: 20px 0;">
+        <p style="color:#000000; font-size:0.9em; text-align: center; font-weight: 500;">Powered by Pulsarr</p>
+      </div>
+      `
+
+      // Create text version of the body
       let textBody = ''
 
       // Create a summary
       const summaryText = dryRun
-        ? 'This was a dry run - no content was actually deleted.\n\n'
+        ? 'This was a dry run - no content was actually deleted.'
         : results.safetyTriggered
-          ? `${results.safetyMessage || 'A safety check prevented the delete sync operation from running.'}\n\n`
-          : "The following content was removed because it's no longer in any user's watchlist.\n\n"
+          ? results.safetyMessage ||
+            'A safety check prevented the delete sync operation from running.'
+          : "The following content was removed because it's no longer in any user's watchlist."
 
-      textBody += summaryText
-      htmlBody += `<p>${summaryText.replace(/\n/g, '<br>')}</p>`
+      textBody += `${summaryText}\n\n`
 
-      // Add summary section - matches Discord's summary field
-      htmlBody +=
-        '<div style="margin: 10px 0; padding: 10px; border: 1px solid #ccc; background: #f5f5f5;">'
-      htmlBody += '<h3>Summary</h3>'
-      htmlBody += `<p>Processed: <strong>${results.total.processed}</strong> items<br>`
-      htmlBody += `Deleted: <strong>${results.total.deleted}</strong> items<br>`
-      htmlBody += `Skipped: <strong>${results.total.skipped}</strong> items</p>`
-      htmlBody += '</div>'
+      // Build the title section with just the summary text
+      const titleSection = `
+      <p style="margin-bottom: 20px; color: #000000;">${summaryText}</p>
+      `
+
+      // Add summary section with correct Pulsarr dark theme styling
+      const summarySection = `
+      <div style="margin: 15px 0; padding: 15px; border-radius: 5px; background: ${results.safetyTriggered ? '#c1666b' : '#212121'}; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
+        <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">Summary</h3>
+        <div style="display: flex; flex-direction: row; justify-content: space-around; margin-top: 15px;">
+          <div style="display: flex; align-items: center; margin-right: 20px;">
+            <span style="font-size: 24px; font-weight: 700; color: #ffffff; margin-right: 10px; display: inline-block; min-width: 30px; text-align: center;">${results.total.processed}</span>
+            <span style="font-weight: 500; color: #ffffff; display: inline-block;">Processed</span>
+          </div>
+          <div style="display: flex; align-items: center; margin-right: 20px;">
+            <span style="font-size: 24px; font-weight: 700; color: #ffffff; margin-right: 10px; display: inline-block; min-width: 30px; text-align: center;">${results.total.deleted}</span>
+            <span style="font-weight: 500; color: #ffffff; display: inline-block;">Deleted</span>
+          </div>
+          <div style="display: flex; align-items: center;">
+            <span style="font-size: 24px; font-weight: 700; color: #ffffff; margin-right: 10px; display: inline-block; min-width: 30px; text-align: center;">${results.total.skipped}</span>
+            <span style="font-weight: 500; color: #ffffff; display: inline-block;">Skipped</span>
+          </div>
+        </div>
+      </div>
+      `
 
       textBody += 'Summary:\n'
       textBody += `Processed: ${results.total.processed} items\n`
       textBody += `Deleted: ${results.total.deleted} items\n`
       textBody += `Skipped: ${results.total.skipped} items\n\n`
 
-      // Add safety message if applicable - matches Discord's safety reason field
+      // Add safety message if applicable with correct Pulsarr dark theme styling
+      let safetySection = ''
       if (results.safetyTriggered && results.safetyMessage) {
-        htmlBody += `<div style="margin: 10px 0; padding: 10px; border: 1px solid #f88; background: #fee;">`
-        htmlBody += '<h3>Safety Reason</h3>'
-        htmlBody += `<p>${results.safetyMessage}</p>`
-        htmlBody += '</div>'
+        safetySection = `
+        <div style="margin: 15px 0; padding: 15px; border-radius: 5px; background: #212121; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
+          <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">Safety Reason</h3>
+          <p style="font-weight: 500; color: #ffffff;">${results.safetyMessage}</p>
+        </div>
+        `
 
         textBody += `Safety Reason: ${results.safetyMessage}\n\n`
       }
 
-      // Add movies section - matches Discord's movie listing
-      htmlBody += '<div style="margin: 10px 0;">'
-      if (results.movies.deleted > 0) {
-        htmlBody += `<h3>Movies (${results.movies.deleted} deleted)</h3>`
-        htmlBody += '<ul style="margin-top: 5px;">'
+      // Add content sections with better styling
+      let contentSections = ''
 
+      // Movies section
+      if (results.movies.deleted > 0) {
         const movieList = results.movies.items
-          .slice(0, 10) // Match Discord's 10-item limit
-          .map((item) => `<li>${item.title}</li>`)
+          .slice(0, 10)
+          .map(
+            (item) =>
+              `<li style="margin-bottom: 5px; color: #ffffff; font-weight: 500;">${item.title}</li>`,
+          )
           .join('')
 
-        htmlBody += movieList || '<li>None</li>'
-        htmlBody += '</ul>'
+        const moreMovies =
+          results.movies.items.length > 10
+            ? `<p style="font-style: italic; margin-top: 10px; color: #ffffff;">... and ${results.movies.items.length - 10} more movies</p>`
+            : ''
 
-        if (results.movies.items.length > 10) {
-          htmlBody += `<p>... and ${results.movies.items.length - 10} more movies</p>`
-        }
+        contentSections += `
+        <div style="margin: 15px 0; padding: 15px; border-radius: 5px; background: #212121; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
+          <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">Movies (${results.movies.deleted} deleted)</h3>
+          <ul style="margin-bottom: 0; padding-left: 20px; color: #ffffff;">
+            ${movieList || '<li style="font-weight: 500; color: #ffffff;">None</li>'}
+          </ul>
+          ${moreMovies}
+        </div>
+        `
 
         // Text version
         const textMovieList = results.movies.items
@@ -409,34 +530,47 @@ export class AppriseNotificationService {
           .map((item) => `• ${item.title}`)
           .join('\n')
 
-        textBody += `Movies (${results.movies.deleted} deleted):\n${textMovieList || 'None'}\n\n`
+        textBody += `Movies (${results.movies.deleted} deleted):\n${textMovieList || 'None'}\n`
 
         if (results.movies.items.length > 10) {
           textBody += `... and ${results.movies.items.length - 10} more movies\n\n`
+        } else {
+          textBody += '\n'
         }
       } else {
-        htmlBody += '<h3>Movies</h3><p>No movies deleted</p>'
+        contentSections += `
+        <div style="margin: 15px 0; padding: 15px; border-radius: 5px; background: #212121; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
+          <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">Movies</h3>
+          <p style="font-weight: 500; color: #ffffff;">No movies deleted</p>
+        </div>
+        `
         textBody += 'Movies: No movies deleted\n\n'
       }
-      htmlBody += '</div>'
 
-      // Add shows section - matches Discord's show listing
-      htmlBody += '<div style="margin: 10px 0;">'
+      // TV Shows section
       if (results.shows.deleted > 0) {
-        htmlBody += `<h3>TV Shows (${results.shows.deleted} deleted)</h3>`
-        htmlBody += '<ul style="margin-top: 5px;">'
-
         const showList = results.shows.items
-          .slice(0, 10) // Match Discord's 10-item limit
-          .map((item) => `<li>${item.title}</li>`)
+          .slice(0, 10)
+          .map(
+            (item) =>
+              `<li style="margin-bottom: 5px; color: #ffffff; font-weight: 500;">${item.title}</li>`,
+          )
           .join('')
 
-        htmlBody += showList || '<li>None</li>'
-        htmlBody += '</ul>'
+        const moreShows =
+          results.shows.items.length > 10
+            ? `<p style="font-style: italic; margin-top: 10px; color: #ffffff;">... and ${results.shows.items.length - 10} more TV shows</p>`
+            : ''
 
-        if (results.shows.items.length > 10) {
-          htmlBody += `<p>... and ${results.shows.items.length - 10} more TV shows</p>`
-        }
+        contentSections += `
+        <div style="margin: 15px 0; padding: 15px; border-radius: 5px; background: #212121; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
+          <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">TV Shows (${results.shows.deleted} deleted)</h3>
+          <ul style="margin-bottom: 0; padding-left: 20px; color: #ffffff;">
+            ${showList || '<li style="font-weight: 500; color: #ffffff;">None</li>'}
+          </ul>
+          ${moreShows}
+        </div>
+        `
 
         // Text version
         const textShowList = results.shows.items
@@ -444,21 +578,43 @@ export class AppriseNotificationService {
           .map((item) => `• ${item.title}`)
           .join('\n')
 
-        textBody += `TV Shows (${results.shows.deleted} deleted):\n${textShowList || 'None'}\n\n`
+        textBody += `TV Shows (${results.shows.deleted} deleted):\n${textShowList || 'None'}\n`
 
         if (results.shows.items.length > 10) {
           textBody += `... and ${results.shows.items.length - 10} more TV shows\n\n`
+        } else {
+          textBody += '\n'
         }
       } else {
-        htmlBody += '<h3>TV Shows</h3><p>No TV shows deleted</p>'
+        contentSections += `
+        <div style="margin: 15px 0; padding: 15px; border-radius: 5px; background: #212121; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
+          <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">TV Shows</h3>
+          <p style="font-weight: 500; color: #ffffff;">No TV shows deleted</p>
+        </div>
+        `
         textBody += 'TV Shows: No TV shows deleted\n\n'
       }
-      htmlBody += '</div>'
 
-      // Add timestamp - matches Discord's footer timestamp
+      // Add timestamp with correct Pulsarr dark theme styling
       const timestamp = new Date().toLocaleString()
-      htmlBody += `<p style="color:#888; font-size:0.9em;">Delete sync operation completed at ${timestamp}</p>`
+      const timestampSection = `
+      <div style="text-align: center; margin-top: 15px; font-style: italic; font-weight: 500; color: #ffffff; background-color: #212121; padding: 10px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
+        Delete sync operation completed at ${timestamp}
+      </div>
+      `
+
       textBody += `Delete sync operation completed at ${timestamp}`
+
+      // Combine all sections into the final HTML body
+      const completeContent = `
+        ${titleSection}
+        ${summarySection}
+        ${safetySection}
+        ${contentSections}
+        ${timestampSection}
+      `
+
+      const htmlBody = htmlWrapper(completeContent)
 
       const appriseNotification: AppriseNotification = {
         title,
@@ -549,12 +705,53 @@ export class AppriseNotificationService {
       // Prepare the notification title - match Discord's format
       const title = `${emoji} ${mediaType} Added: ${item.title}`
 
-      // Build HTML and text versions of the message
-      let htmlBody = `<h2>${mediaType} Added to Watchlist</h2>`
-      htmlBody += `<p><strong>${item.title}</strong> has been added to the watchlist.</p>`
-      htmlBody += `<p><strong>Type:</strong> ${mediaType}</p>`
-      htmlBody += `<p><strong>Added by:</strong> ${displayName}</p>`
-      htmlBody += `<p style="color:#888; font-size:0.9em;">- Pulsarr</p>`
+      // Build a more visually rich HTML version with embedded poster image and Pulsarr styling
+      const htmlBody = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 2px solid #000000; border-radius: 5px; background-color: #48a9a6; color: #000000; box-shadow: 4px 4px 0px 0px #000000;">
+        <div style="display: flex; margin-bottom: 20px; background-color: #212121; padding: 15px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
+          ${
+            item.posterUrl
+              ? `<div style="flex: 0 0 auto; margin-right: 20px;">
+               <img src="${item.posterUrl}" alt="${item.title} poster" style="width: 150px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
+             </div>`
+              : ''
+          }
+
+          <div style="flex: 1;">
+            <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">${item.title}</h3>
+            <p style="font-weight: 500; color: #ffffff;"><strong style="color: #ffffff;">Type:</strong> ${mediaType}</p>
+            <p style="font-weight: 500; color: #ffffff;"><strong style="color: #ffffff;">Added by:</strong> ${displayName}</p>
+          </div>
+        </div>
+
+        <hr style="border: none; border-top: 1px solid #000000; margin: 20px 0;">
+        <p style="color:#000000; font-size:0.9em; text-align: center; font-weight: 500;">Powered by Pulsarr</p>
+      </div>
+      `
+
+      // Alternative HTML version that works better with email clients that don't support flexbox - with Pulsarr styling
+      const fallbackHtmlBody = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 2px solid #000000; border-radius: 5px; background-color: #48a9a6; color: #000000; box-shadow: 4px 4px 0px 0px #000000;">
+        <div style="background-color: #212121; padding: 15px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
+          ${
+            item.posterUrl
+              ? `<div style="text-align: center; margin-bottom: 20px;">
+               <img src="${item.posterUrl}" alt="${item.title} poster" style="max-width: 200px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
+             </div>`
+              : ''
+          }
+
+          <div>
+            <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">${item.title}</h3>
+            <p style="font-weight: 500; color: #ffffff;"><strong style="color: #ffffff;">Type:</strong> ${mediaType}</p>
+            <p style="font-weight: 500; color: #ffffff;"><strong style="color: #ffffff;">Added by:</strong> ${displayName}</p>
+          </div>
+        </div>
+
+        <hr style="border: none; border-top: 1px solid #000000; margin: 20px 0;">
+        <p style="color:#000000; font-size:0.9em; text-align: center; font-weight: 500;">Powered by Pulsarr</p>
+      </div>
+      `
 
       // Cleaner text body
       let textBody = `${mediaType} Added to Watchlist\n\n`
@@ -570,12 +767,12 @@ export class AppriseNotificationService {
         type: 'info',
         format: 'text',
         tag: 'watchlist-add',
-        body_html: htmlBody,
+        body_html: fallbackHtmlBody, // Using the fallback version that works better with email clients
         attach_url:
-          'https://raw.githubusercontent.com/jamcalli/Pulsarr/master/src/client/assets/images/pulsarr.png',
+          'https://raw.githubusercontent.com/jamcalli/Pulsarr/master/assets/icons/pulsarr-lg.png',
       }
 
-      // Add poster URL if available - matches Discord's image embedding
+      // Add poster URL if available - this is used by some notification services directly
       if (item.posterUrl) {
         appriseNotification.image = item.posterUrl
       }
@@ -596,31 +793,120 @@ export class AppriseNotificationService {
    */
   async sendTestNotification(targetUrl: string): Promise<boolean> {
     try {
-      // Create HTML and text versions of the test message - use a single emoji in title only
-      const htmlBody = `
-        <h2>Test Notification</h2>
-        <p>This is a test notification from Pulsarr to verify your Apprise configuration is working correctly.</p>
-        <ul>
-          <li>HTML formatting should be visible here</li>
-          <li>If you see this with formatting, your notification service supports HTML</li>
-        </ul>
-        <p style="color:#888; font-size:0.9em;">- Pulsarr Test</p>
+      // Common HTML wrapper with actual Pulsarr styling
+      const htmlWrapper = (content: string) => `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 2px solid #000000; border-radius: 5px; background-color: #48a9a6; color: #000000; box-shadow: 4px 4px 0px 0px #000000;">
+        ${content}
+        <hr style="border: none; border-top: 1px solid #000000; margin: 20px 0;">
+        <p style="color:#000000; font-size:0.9em; text-align: center; font-weight: 500;">Powered by Pulsarr</p>
+      </div>
       `
 
+      // Create a rich HTML test message with various formatting examples - using Pulsarr styling
+      const testContent = `
+        <h2 style="color: #000000; margin-top: 0; font-weight: 700;">Pulsarr HTML Notification Test</h2>
+
+        <div style="background-color: #212121; padding: 15px; margin: 20px 0; border: 2px solid #000000; border-radius: 5px; box-shadow: 4px 4px 0px 0px #000000;">
+          <p style="font-weight: 500; color: #ffffff;">This is a test notification to verify your Apprise configuration is working correctly with <strong>HTML formatting</strong>.</p>
+        </div>
+
+        <h3 style="color: #000000; font-weight: 700;">HTML Formatting Examples:</h3>
+
+        <div style="margin-bottom: 20px; background-color: #212121; padding: 15px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
+          <h4 style="margin-top: 0; margin-bottom: 10px; color: #ffffff; font-weight: 700;">Text Styling</h4>
+          <p style="font-weight: 500; color: #ffffff;"><strong>Bold text</strong>, <em>italic text</em>, <u>underlined text</u>, and <span style="color: #ffffff;">colored text</span></p>
+        </div>
+
+        <div style="margin-bottom: 20px; background-color: #212121; padding: 15px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
+          <h4 style="margin-top: 0; margin-bottom: 10px; color: #ffffff; font-weight: 700;">Lists</h4>
+          <ul style="padding-left: 20px; color: #ffffff;">
+            <li style="margin-bottom: 5px; font-weight: 500;">Unordered list item 1</li>
+            <li style="margin-bottom: 5px; font-weight: 500;">Unordered list item 2</li>
+            <li style="margin-bottom: 5px; font-weight: 500;">Unordered list item 3</li>
+          </ul>
+
+          <ol style="padding-left: 20px; color: #ffffff;">
+            <li style="margin-bottom: 5px; font-weight: 500;">Ordered list item 1</li>
+            <li style="margin-bottom: 5px; font-weight: 500;">Ordered list item 2</li>
+            <li style="margin-bottom: 5px; font-weight: 500;">Ordered list item 3</li>
+          </ol>
+        </div>
+
+        <div style="margin-bottom: 20px; background-color: #212121; padding: 15px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
+          <h4 style="margin-top: 0; margin-bottom: 10px; color: #ffffff; font-weight: 700;">Tables</h4>
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px; color: #ffffff;">
+            <tr style="background-color: #343746;">
+              <th style="padding: 8px; text-align: left; border: 1px solid #ffffff; font-weight: 700;">Header 1</th>
+              <th style="padding: 8px; text-align: left; border: 1px solid #ffffff; font-weight: 700;">Header 2</th>
+            </tr>
+            <tr style="background-color: #343746;">
+              <td style="padding: 8px; border: 1px solid #ffffff; font-weight: 500;">Row 1, Cell 1</td>
+              <td style="padding: 8px; border: 1px solid #ffffff; font-weight: 500;">Row 1, Cell 2</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #ffffff; font-weight: 500;">Row 2, Cell 1</td>
+              <td style="padding: 8px; border: 1px solid #ffffff; font-weight: 500;">Row 2, Cell 2</td>
+            </tr>
+          </table>
+        </div>
+
+        <div style="margin-bottom: 20px; background-color: #212121; padding: 15px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
+          <h4 style="margin-top: 0; margin-bottom: 10px; color: #ffffff; font-weight: 700;">Styled Boxes</h4>
+
+          <div style="padding: 10px; background-color: #343746; border-radius: 5px; margin-bottom: 10px; border: 1px solid #ffffff; color: #ffffff; font-weight: 500;">
+            <p style="margin: 0;">This is an info box</p>
+          </div>
+
+          <div style="padding: 10px; background-color: #343746; border-radius: 5px; margin-bottom: 10px; border: 1px solid #ffffff; color: #ffffff; font-weight: 500;">
+            <p style="margin: 0;">This is an alert box</p>
+          </div>
+
+          <div style="padding: 10px; background-color: #343746; border-radius: 5px; border: 1px solid #ffffff; color: #ffffff; font-weight: 500;">
+            <p style="margin: 0;">This is a success box</p>
+          </div>
+        </div>
+
+        <p style="font-weight: 500; color: #000000;">If you can see the formatting above, your notification service supports <strong>HTML</strong>! If not, you're seeing the plain text version.</p>
+      `
+
+      // Create HTML wrapped content
+      const htmlBody = htmlWrapper(testContent)
+
+      // Plain text version as a fallback
       const textBody =
-        'Test Notification\n\n' +
-        'This is a test notification from Pulsarr to verify your Apprise configuration is working correctly.\n\n' +
-        '• If you see this with bullet points, your notification service supports basic formatting\n' +
-        "• Otherwise, you're seeing plain text\n\n" +
+        'Pulsarr HTML Notification Test\n\n' +
+        'This is a test notification to verify your Apprise configuration is working correctly.\n\n' +
+        'HTML Formatting Examples:\n\n' +
+        '- Text Styling: Bold text, italic text, underlined text, and colored text\n\n' +
+        '- Lists:\n' +
+        '  • Unordered list item 1\n' +
+        '  • Unordered list item 2\n' +
+        '  • Unordered list item 3\n\n' +
+        '  1. Ordered list item 1\n' +
+        '  2. Ordered list item 2\n' +
+        '  3. Ordered list item 3\n\n' +
+        '- Tables:\n' +
+        '  Header 1 | Header 2\n' +
+        '  ---------|----------\n' +
+        '  Row 1, Cell 1 | Row 1, Cell 2\n' +
+        '  Row 2, Cell 1 | Row 2, Cell 2\n\n' +
+        '- Styled Boxes:\n' +
+        '  [Info] This is an info box\n' +
+        '  [Alert] This is an alert box\n' +
+        '  [Success] This is a success box\n\n' +
+        'If you can see the formatting above, your notification service supports basic formatting. If the content appears plain, your service might only support plain text.\n\n' +
         '- Pulsarr Test'
 
+      // Create the notification
       const notification: AppriseNotification = {
-        title: '🔔 Pulsarr Test Notification',
+        title: '🔔 Pulsarr HTML Notification Test',
         body: textBody,
         type: 'info',
         format: 'text',
         tag: 'test',
         body_html: htmlBody,
+        attach_url:
+          'https://raw.githubusercontent.com/jamcalli/Pulsarr/master/assets/icons/pulsarr-lg.png',
       }
 
       return await this.sendNotification(targetUrl, notification)
