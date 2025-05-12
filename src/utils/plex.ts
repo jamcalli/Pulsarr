@@ -787,7 +787,7 @@ export const getOthersWatchlist = async (
     0,
   )
   const friendsWithItems = Array.from(userWatchlistMap.entries()).filter(
-    ([_, items]) => items.size > 0
+    ([_, items]) => items.size > 0,
   ).length
   const friendsWithEmptyWatchlists = userWatchlistMap.size - friendsWithItems
 
