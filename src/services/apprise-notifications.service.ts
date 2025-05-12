@@ -44,6 +44,43 @@ export class AppriseNotificationService {
    * @param notification - The notification content
    * @returns Promise resolving to true if sent successfully
    */
+  /**
+   * Helper function to sanitize HTML content to prevent XSS attacks
+   * @param str - The string to sanitize
+   * @returns Sanitized string with HTML entities escaped
+   */
+  private esc(str: string): string {
+    if (!str) return ''
+    const escapeMap: Record<string, string> = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      "'": '&#39;',
+      '"': '&quot;',
+      '`': '&#x60;',
+    }
+    return str.replace(/[&<>'"`]/g, (c) => escapeMap[c] || c)
+  }
+
+  /**
+   * Common HTML wrapper for notifications with Pulsarr styling
+   * @param content - The content to wrap in HTML
+   * @returns HTML string with the content wrapped in Pulsarr styling
+   */
+  private htmlWrapper(content: string): string {
+    return `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 2px solid #000000; border-radius: 5px; background-color: #48a9a6; color: #000000; box-shadow: 4px 4px 0px 0px #000000;">
+      ${content}
+      <hr style="border: none; border-top: 1px solid #000000; margin: 20px 0;">
+      <p style="color:#000000; font-size:0.9em; text-align: center; font-weight: 500;">Powered by Pulsarr</p>
+    </div>
+    `
+  }
+
+  // Path to Pulsarr icon in repository
+  private readonly ICON_URL =
+    'https://raw.githubusercontent.com/jamcalli/Pulsarr/master/assets/icons/pulsarr-lg.png'
+
   private async sendNotification(
     targetUrl: string,
     notification: AppriseNotification,
@@ -71,8 +108,8 @@ export class AppriseNotificationService {
         urls: targetUrl,
         ...cleanNotification,
         body: bodyContent,
-        format: isHtml ? 'html' : format || 'text',
-        input: isHtml ? 'html' : format || 'text', // Add this for API compatibility
+        format: isHtml ? 'html' : (format ?? 'text'),
+        input: isHtml ? 'html' : (format ?? 'text'), // Required by Apprise for proper content processing
       }
 
       this.log.debug(
@@ -146,14 +183,7 @@ export class AppriseNotificationService {
       let htmlBody: string
       let textBody: string
 
-      // Common HTML wrapper start with Pulsarr styling
-      const htmlWrapper = (content: string) => `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 2px solid #000000; border-radius: 5px; background-color: #48a9a6; color: #000000; box-shadow: 4px 4px 0px 0px #000000;">
-        ${content}
-        <hr style="border: none; border-top: 1px solid #000000; margin: 20px 0;">
-        <p style="color:#000000; font-size:0.9em; text-align: center; font-weight: 500;">Powered by Pulsarr</p>
-      </div>
-      `
+      // Using the centralized htmlWrapper method defined at the class level
 
       // Poster image HTML if available - with Pulsarr styling
       const posterHtml = notification.posterUrl
@@ -186,11 +216,11 @@ export class AppriseNotificationService {
           const episodeContent = `
             ${posterHtml}
             <div style="background-color: #212121; padding: 15px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
-              <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">${notification.title}</h3>
-              <p style="font-weight: 500; color: #ffffff;"><strong style="color: #ffffff;">Episode:</strong> ${episodeId}${episodeTitle}</p>
+              <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">${this.esc(notification.title)}</h3>
+              <p style="font-weight: 500; color: #ffffff;"><strong style="color: #ffffff;">Episode:</strong> ${this.esc(episodeId)}${this.esc(episodeTitle)}</p>
               ${
                 episodeDetails.overview
-                  ? `<p style="font-weight: 500; color: #ffffff;"><strong style="color: #ffffff;">Overview:</strong> ${episodeDetails.overview}</p>`
+                  ? `<p style="font-weight: 500; color: #ffffff;"><strong style="color: #ffffff;">Overview:</strong> ${this.esc(episodeDetails.overview)}</p>`
                   : ''
               }
               ${
@@ -201,7 +231,7 @@ export class AppriseNotificationService {
             </div>
           `
 
-          htmlBody = htmlWrapper(episodeContent)
+          htmlBody = this.htmlWrapper(episodeContent)
 
           // Plain text content for episode
           textBody = `New Episode Available\n\n${notification.title}\nEpisode: ${episodeId}${episodeTitle}\n`
@@ -223,12 +253,12 @@ export class AppriseNotificationService {
           const seasonContent = `
             ${posterHtml}
             <div style="background-color: #212121; padding: 15px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
-              <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">${notification.title}</h3>
-              <p style="font-weight: 500; color: #ffffff;"><strong style="color: #ffffff;">Season Added:</strong> Season ${episodeDetails.seasonNumber}</p>
+              <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">${this.esc(notification.title)}</h3>
+              <p style="font-weight: 500; color: #ffffff;"><strong style="color: #ffffff;">Season Added:</strong> Season ${this.esc(String(episodeDetails.seasonNumber))}</p>
             </div>
           `
 
-          htmlBody = htmlWrapper(seasonContent)
+          htmlBody = this.htmlWrapper(seasonContent)
 
           textBody = `New Season Available\n\n${notification.title}\nSeason Added: Season ${episodeDetails.seasonNumber}`
         } else {
@@ -236,12 +266,12 @@ export class AppriseNotificationService {
           const fallbackContent = `
             ${posterHtml}
             <div style="background-color: #212121; padding: 15px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
-              <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">${notification.title}</h3>
+              <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">${this.esc(notification.title)}</h3>
               <p style="font-weight: 500; color: #ffffff;">New content is now available to watch!</p>
             </div>
           `
 
-          htmlBody = htmlWrapper(fallbackContent)
+          htmlBody = this.htmlWrapper(fallbackContent)
 
           textBody = `New Content Available\n\n${notification.title}\nNew content is now available to watch!`
         }
@@ -250,12 +280,12 @@ export class AppriseNotificationService {
         const movieContent = `
           ${posterHtml}
           <div style="background-color: #212121; padding: 15px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
-            <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">${notification.title}</h3>
+            <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">${this.esc(notification.title)}</h3>
             <p style="font-weight: 500; color: #ffffff;">Your movie is now available to watch!</p>
           </div>
         `
 
-        htmlBody = htmlWrapper(movieContent)
+        htmlBody = this.htmlWrapper(movieContent)
 
         textBody = `Movie Available\n\n${notification.title}\nYour movie is now available to watch!`
       }
@@ -271,8 +301,7 @@ export class AppriseNotificationService {
         tag: notification.type,
         body_html: htmlBody,
         // Include Pulsarr icon for notification services that support icons
-        attach_url:
-          'https://raw.githubusercontent.com/jamcalli/Pulsarr/master/src/client/assets/images/pulsarr.png',
+        attach_url: this.ICON_URL,
       }
 
       // Add poster URL if available - matching Discord's image embedding
@@ -333,14 +362,7 @@ export class AppriseNotificationService {
       // Format the notification content
       const title = notification.title
 
-      // Common HTML wrapper with Pulsarr styling
-      const htmlWrapper = (content: string) => `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 2px solid #000000; border-radius: 5px; background-color: #48a9a6; color: #000000; box-shadow: 4px 4px 0px 0px #000000;">
-        ${content}
-        <hr style="border: none; border-top: 1px solid #000000; margin: 20px 0;">
-        <p style="color:#000000; font-size:0.9em; text-align: center; font-weight: 500;">Powered by Pulsarr</p>
-      </div>
-      `
+      // Using the centralized htmlWrapper method defined at the class level
 
       // Create text version of the body
       let textBody = 'System Notification\n\n'
@@ -361,13 +383,13 @@ export class AppriseNotificationService {
       // Create complete HTML content with Pulsarr styling
       const systemContent = `
         <h2 style="color: #000000; margin-top: 0; font-weight: 700;">System Notification</h2>
-        <h3 style="color: #000000; font-weight: 700;">${title}</h3>
+        <h3 style="color: #000000; font-weight: 700;">${this.esc(title)}</h3>
         <div style="margin: 15px 0;">
           ${fieldsContent}
         </div>
       `
 
-      const htmlBody = htmlWrapper(systemContent)
+      const htmlBody = this.htmlWrapper(systemContent)
 
       // Add footer to text content
       textBody += '- Pulsarr System'
@@ -380,8 +402,7 @@ export class AppriseNotificationService {
         tag: 'system',
         body_html: htmlBody,
         // Include Pulsarr icon for notification services that support icons
-        attach_url:
-          'https://raw.githubusercontent.com/jamcalli/Pulsarr/master/src/client/assets/images/pulsarr.png',
+        attach_url: this.ICON_URL,
       }
 
       // Send to the system Apprise URL
@@ -430,14 +451,7 @@ export class AppriseNotificationService {
         title = '🗑️ Delete Sync Results'
       }
 
-      // Common HTML wrapper with actual Pulsarr styling
-      const htmlWrapper = (content: string) => `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 2px solid #000000; border-radius: 5px; background-color: #48a9a6; color: #000000; box-shadow: 4px 4px 0px 0px #000000;">
-        ${content}
-        <hr style="border: none; border-top: 1px solid #000000; margin: 20px 0;">
-        <p style="color:#000000; font-size:0.9em; text-align: center; font-weight: 500;">Powered by Pulsarr</p>
-      </div>
-      `
+      // Using the centralized htmlWrapper method defined at the class level
 
       // Create text version of the body
       let textBody = ''
@@ -614,7 +628,7 @@ export class AppriseNotificationService {
         ${timestampSection}
       `
 
-      const htmlBody = htmlWrapper(completeContent)
+      const htmlBody = this.htmlWrapper(completeContent)
 
       const appriseNotification: AppriseNotification = {
         title,
@@ -623,8 +637,7 @@ export class AppriseNotificationService {
         format: 'text',
         tag: 'delete-sync',
         body_html: htmlBody,
-        attach_url:
-          'https://raw.githubusercontent.com/jamcalli/Pulsarr/master/src/client/assets/images/pulsarr.png',
+        attach_url: this.ICON_URL,
       }
 
       // Send to the system Apprise URL
@@ -705,29 +718,7 @@ export class AppriseNotificationService {
       // Prepare the notification title - match Discord's format
       const title = `${emoji} ${mediaType} Added: ${item.title}`
 
-      // Build a more visually rich HTML version with embedded poster image and Pulsarr styling
-      const htmlBody = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 2px solid #000000; border-radius: 5px; background-color: #48a9a6; color: #000000; box-shadow: 4px 4px 0px 0px #000000;">
-        <div style="display: flex; margin-bottom: 20px; background-color: #212121; padding: 15px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
-          ${
-            item.posterUrl
-              ? `<div style="flex: 0 0 auto; margin-right: 20px;">
-               <img src="${item.posterUrl}" alt="${item.title} poster" style="width: 150px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
-             </div>`
-              : ''
-          }
-
-          <div style="flex: 1;">
-            <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">${item.title}</h3>
-            <p style="font-weight: 500; color: #ffffff;"><strong style="color: #ffffff;">Type:</strong> ${mediaType}</p>
-            <p style="font-weight: 500; color: #ffffff;"><strong style="color: #ffffff;">Added by:</strong> ${displayName}</p>
-          </div>
-        </div>
-
-        <hr style="border: none; border-top: 1px solid #000000; margin: 20px 0;">
-        <p style="color:#000000; font-size:0.9em; text-align: center; font-weight: 500;">Powered by Pulsarr</p>
-      </div>
-      `
+      // Note: Using fallbackHtmlBody instead of the flex-based htmlBody for better email client compatibility
 
       // Alternative HTML version that works better with email clients that don't support flexbox - with Pulsarr styling
       const fallbackHtmlBody = `
@@ -736,15 +727,15 @@ export class AppriseNotificationService {
           ${
             item.posterUrl
               ? `<div style="text-align: center; margin-bottom: 20px;">
-               <img src="${item.posterUrl}" alt="${item.title} poster" style="max-width: 200px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
+               <img src="${item.posterUrl}" alt="${this.esc(item.title)} poster" style="max-width: 200px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
              </div>`
               : ''
           }
 
           <div>
-            <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">${item.title}</h3>
-            <p style="font-weight: 500; color: #ffffff;"><strong style="color: #ffffff;">Type:</strong> ${mediaType}</p>
-            <p style="font-weight: 500; color: #ffffff;"><strong style="color: #ffffff;">Added by:</strong> ${displayName}</p>
+            <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">${this.esc(item.title)}</h3>
+            <p style="font-weight: 500; color: #ffffff;"><strong style="color: #ffffff;">Type:</strong> ${this.esc(mediaType)}</p>
+            <p style="font-weight: 500; color: #ffffff;"><strong style="color: #ffffff;">Added by:</strong> ${this.esc(displayName)}</p>
           </div>
         </div>
 
@@ -768,8 +759,7 @@ export class AppriseNotificationService {
         format: 'text',
         tag: 'watchlist-add',
         body_html: fallbackHtmlBody, // Using the fallback version that works better with email clients
-        attach_url:
-          'https://raw.githubusercontent.com/jamcalli/Pulsarr/master/assets/icons/pulsarr-lg.png',
+        attach_url: this.ICON_URL,
       }
 
       // Add poster URL if available - this is used by some notification services directly
@@ -793,14 +783,7 @@ export class AppriseNotificationService {
    */
   async sendTestNotification(targetUrl: string): Promise<boolean> {
     try {
-      // Common HTML wrapper with actual Pulsarr styling
-      const htmlWrapper = (content: string) => `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 2px solid #000000; border-radius: 5px; background-color: #48a9a6; color: #000000; box-shadow: 4px 4px 0px 0px #000000;">
-        ${content}
-        <hr style="border: none; border-top: 1px solid #000000; margin: 20px 0;">
-        <p style="color:#000000; font-size:0.9em; text-align: center; font-weight: 500;">Powered by Pulsarr</p>
-      </div>
-      `
+      // Using the centralized htmlWrapper method defined at the class level
 
       // Create a rich HTML test message with various formatting examples - using Pulsarr styling
       const testContent = `
@@ -870,7 +853,7 @@ export class AppriseNotificationService {
       `
 
       // Create HTML wrapped content
-      const htmlBody = htmlWrapper(testContent)
+      const htmlBody = this.htmlWrapper(testContent)
 
       // Plain text version as a fallback
       const textBody =
@@ -905,8 +888,7 @@ export class AppriseNotificationService {
         format: 'text',
         tag: 'test',
         body_html: htmlBody,
-        attach_url:
-          'https://raw.githubusercontent.com/jamcalli/Pulsarr/master/assets/icons/pulsarr-lg.png',
+        attach_url: this.ICON_URL,
       }
 
       return await this.sendNotification(targetUrl, notification)
