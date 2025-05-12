@@ -763,7 +763,8 @@ export const getOthersWatchlist = async (
 
   // Add each result to the map
   for (const { user, watchlistItems, success } of results) {
-    if (success && watchlistItems.size > 0) {
+    if (success) {
+      // Always add the user to the map, even if they have no items
       userWatchlistMap.set(user, watchlistItems)
       log.debug(
         `Added ${watchlistItems.size} items for friend ${user.username}`,
@@ -775,8 +776,13 @@ export const getOthersWatchlist = async (
     (acc, items) => acc + items.size,
     0,
   )
+  const friendsWithItems = Array.from(userWatchlistMap.entries()).filter(
+    ([_, items]) => items.size > 0,
+  ).length
+  const friendsWithEmptyWatchlists = userWatchlistMap.size - friendsWithItems
+
   log.info(
-    `Others' watchlist fetched successfully with ${totalItems} total items from ${userWatchlistMap.size} friends`,
+    `Others' watchlist fetched successfully with ${totalItems} total items from ${friendsWithItems} friends (${friendsWithEmptyWatchlists} friends with empty watchlists)`,
   )
   return userWatchlistMap
 }
