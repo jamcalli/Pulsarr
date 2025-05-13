@@ -37,6 +37,8 @@ export type DeleteSyncNotifyOption =
 
 export type RemovedTagMode = 'remove' | 'keep' | 'special-tag'
 
+export type DeletionMode = 'watchlist' | 'tag-based'
+
 export interface Config {
   // System Config
   baseUrl: string
@@ -84,6 +86,7 @@ export interface Config {
   plexTokens: string[]
   skipFriendSync: boolean
   // Delete Config
+  deletionMode: DeletionMode
   deleteMovie: boolean
   deleteEndedShow: boolean
   deleteContinuingShow: boolean

@@ -558,6 +558,7 @@ export class DatabaseService {
       tagPrefix: config.tagPrefix || 'pulsarr:user',
       removedTagMode: config.removedTagMode || 'remove',
       removedTagPrefix: config.removedTagPrefix || 'pulsarr:removed',
+      deletionMode: config.deletionMode || 'watchlist',
       _isReady: Boolean(config._isReady),
     }
   }
@@ -662,7 +663,8 @@ export class DatabaseService {
           key === 'systemAppriseUrl' ||
           key === 'tagPrefix' ||
           key === 'removedTagPrefix' ||
-          key === 'removedTagMode'
+          key === 'removedTagMode' ||
+          key === 'deletionMode'
         ) {
           updateData[key] = value
         } else if (
