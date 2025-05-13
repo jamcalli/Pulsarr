@@ -665,15 +665,22 @@ export class DiscordNotificationService {
    */
   private createDeleteSyncEmbed(
     results: {
-      total: { deleted: number; skipped: number; processed: number }
+      total: {
+        deleted: number
+        skipped: number
+        processed: number
+        protected?: number
+      }
       movies: {
         deleted: number
         skipped: number
+        protected?: number
         items: Array<{ title: string; guid: string; instance: string }>
       }
       shows: {
         deleted: number
         skipped: number
+        protected?: number
         items: Array<{ title: string; guid: string; instance: string }>
       }
       safetyTriggered?: boolean
@@ -702,11 +709,16 @@ export class DiscordNotificationService {
         "The following content was removed because it's no longer in any user's watchlist."
     }
 
+    // Add protected playlist information if there are protected items
+    if (results.total.protected && results.total.protected > 0) {
+      description += `\n\n${results.total.protected} items were preserved because they are in protected playlists.`
+    }
+
     // Create fields for the embed
     const fields = [
       {
         name: 'Summary',
-        value: `Processed: ${results.total.processed} items\nDeleted: ${results.total.deleted} items\nSkipped: ${results.total.skipped} items`,
+        value: `Processed: ${results.total.processed} items\nDeleted: ${results.total.deleted} items\nSkipped: ${results.total.skipped} items${results.total.protected ? `\nProtected: ${results.total.protected} items` : ''}`,
         inline: false,
       },
     ]
@@ -727,8 +739,14 @@ export class DiscordNotificationService {
         .map((item) => `• ${item.title}`)
         .join('\n')
 
+      // Include protected count if available
+      const protectedInfo =
+        results.movies.protected && results.movies.protected > 0
+          ? ` (${results.movies.protected} protected)`
+          : ''
+
       fields.push({
-        name: `Movies (${results.movies.deleted} deleted)`,
+        name: `Movies (${results.movies.deleted} deleted${protectedInfo})`,
         value: movieList || 'None',
         inline: false,
       })
@@ -741,9 +759,15 @@ export class DiscordNotificationService {
         })
       }
     } else {
+      // Include protected count if available
+      const protectedInfo =
+        results.movies.protected && results.movies.protected > 0
+          ? ` (${results.movies.protected} protected)`
+          : ''
+
       fields.push({
         name: 'Movies',
-        value: 'No movies deleted',
+        value: `No movies deleted${protectedInfo}`,
         inline: false,
       })
     }
@@ -755,8 +779,14 @@ export class DiscordNotificationService {
         .map((item) => `• ${item.title}`)
         .join('\n')
 
+      // Include protected count if available
+      const protectedInfo =
+        results.shows.protected && results.shows.protected > 0
+          ? ` (${results.shows.protected} protected)`
+          : ''
+
       fields.push({
-        name: `TV Shows (${results.shows.deleted} deleted)`,
+        name: `TV Shows (${results.shows.deleted} deleted${protectedInfo})`,
         value: showList || 'None',
         inline: false,
       })
@@ -769,9 +799,15 @@ export class DiscordNotificationService {
         })
       }
     } else {
+      // Include protected count if available
+      const protectedInfo =
+        results.shows.protected && results.shows.protected > 0
+          ? ` (${results.shows.protected} protected)`
+          : ''
+
       fields.push({
         name: 'TV Shows',
-        value: 'No TV shows deleted',
+        value: `No TV shows deleted${protectedInfo}`,
         inline: false,
       })
     }
@@ -797,15 +833,22 @@ export class DiscordNotificationService {
    */
   async sendDeleteSyncNotification(
     results: {
-      total: { deleted: number; skipped: number; processed: number }
+      total: {
+        deleted: number
+        skipped: number
+        processed: number
+        protected?: number
+      }
       movies: {
         deleted: number
         skipped: number
+        protected?: number
         items: Array<{ title: string; guid: string; instance: string }>
       }
       shows: {
         deleted: number
         skipped: number
+        protected?: number
         items: Array<{ title: string; guid: string; instance: string }>
       }
       safetyTriggered?: boolean
