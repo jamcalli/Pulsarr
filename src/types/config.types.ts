@@ -35,6 +35,8 @@ export type DeleteSyncNotifyOption =
   | 'discord-message' // Equivalent to dm-only
   | 'discord-both' // Both Discord webhook and DMs, no Apprise
 
+export type RemovedTagMode = 'remove' | 'keep' | 'special-tag'
+
 export interface Config {
   // System Config
   baseUrl: string
@@ -99,8 +101,10 @@ export interface Config {
   tagUsersInSonarr: boolean
   tagUsersInRadarr: boolean
   cleanupOrphanedTags: boolean
-  persistHistoricalTags: boolean
   tagPrefix: string
+  // Special tag for removed content
+  removedTagMode: RemovedTagMode
+  removedTagPrefix: string
   // Ready state
   _isReady: boolean
 }

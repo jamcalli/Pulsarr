@@ -21,6 +21,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import { Separator } from '@/components/ui/separator'
 import {
@@ -100,8 +101,8 @@ export function UserTagsForm() {
   const isEnabled =
     form.watch('tagUsersInSonarr') || form.watch('tagUsersInRadarr')
 
-  // Determine if the tag prefix can be edited
-  const canEditTagPrefix =
+  // Determine if tag settings can be edited
+  const canEditTagSettings =
     (isTagDeletionComplete && tagDefinitionsDeleted) || !lastResults?.success
 
   return (
@@ -705,18 +706,12 @@ export function UserTagsForm() {
 
                         <FormField
                           control={form.control}
-                          name="persistHistoricalTags"
+                          name="removedTagMode"
                           render={({ field }) => (
-                            <FormItem className="flex items-center space-x-2">
-                              <FormControl>
-                                <Switch
-                                  checked={field.value}
-                                  onCheckedChange={field.onChange}
-                                />
-                              </FormControl>
+                            <FormItem className="space-y-1">
                               <div className="flex items-center">
-                                <FormLabel className="text-text m-0">
-                                  Persist Historical Tags
+                                <FormLabel className="text-text">
+                                  Tag Behavior on Removal
                                 </FormLabel>
                                 <TooltipProvider>
                                   <Tooltip>
@@ -724,19 +719,117 @@ export function UserTagsForm() {
                                       <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help" />
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                      <p className="max-w-xs">
-                                        Maintains user tags even after content
-                                        is removed from a user's watchlist.
-                                        Preserves historical record of who
-                                        originally requested content.
-                                      </p>
+                                      <div className="max-w-xs space-y-2">
+                                        <p>
+                                          Controls what happens to user tags
+                                          when content is removed from a user's
+                                          watchlist:
+                                        </p>
+                                        <ul className="list-disc pl-4 space-y-1">
+                                          <li>
+                                            <strong>Remove</strong>: User tag is
+                                            removed (default)
+                                          </li>
+                                          <li>
+                                            <strong>Keep</strong>: User tag is
+                                            kept forever
+                                          </li>
+                                          <li>
+                                            <strong>Special Tag</strong>: User
+                                            tag is removed and a "removed" tag
+                                            is added
+                                          </li>
+                                        </ul>
+                                      </div>
                                     </TooltipContent>
                                   </Tooltip>
                                 </TooltipProvider>
                               </div>
+                              <FormControl>
+                                <Select
+                                  value={field.value}
+                                  onValueChange={field.onChange}
+                                  options={[
+                                    { label: 'Remove', value: 'remove' },
+                                    { label: 'Keep', value: 'keep' },
+                                    {
+                                      label: 'Special Tag',
+                                      value: 'special-tag',
+                                    },
+                                  ]}
+                                />
+                              </FormControl>
                             </FormItem>
                           )}
                         />
+
+                        {form.watch('removedTagMode') === 'special-tag' && (
+                          <FormField
+                            control={form.control}
+                            name="removedTagPrefix"
+                            render={({ field }) => (
+                              <FormItem>
+                                <div className="flex items-center">
+                                  <FormLabel className="text-text">
+                                    Removed Tag Label
+                                  </FormLabel>
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help" />
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <div className="max-w-xs space-y-2">
+                                          <p>
+                                            Tag used to mark content that was
+                                            previously in a user's watchlist
+                                            when using "Special Tag" mode.
+                                          </p>
+                                          <p className="text-xs">
+                                            <span className="font-semibold">
+                                              Note:
+                                            </span>{' '}
+                                            Changing this requires removing
+                                            existing tags first, as old removed
+                                            tags won't be recognized with the
+                                            new value.
+                                          </p>
+                                        </div>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                </div>
+                                <FormControl>
+                                  <Input
+                                    {...field}
+                                    placeholder="pulsarr:removed"
+                                    disabled={!canEditTagSettings}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                                {lastResults?.success &&
+                                  form.watch('removedTagMode') ===
+                                    'special-tag' &&
+                                  (lastResults.config?.tagUsersInSonarr ||
+                                    lastResults.config?.tagUsersInRadarr) &&
+                                  !canEditTagSettings && (
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      You must remove existing tags with "Delete
+                                      Tag Definitions" enabled before changing
+                                      the removed tag label.
+                                    </p>
+                                  )}
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Tag format:{' '}
+                                  <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded">
+                                    {form.watch('removedTagPrefix') ||
+                                      'pulsarr:removed'}
+                                  </code>
+                                </p>
+                              </FormItem>
+                            )}
+                          />
+                        )}
 
                         <FormField
                           control={form.control}
@@ -792,17 +885,17 @@ export function UserTagsForm() {
                                 <Input
                                   {...field}
                                   placeholder="pulsarr:user"
-                                  disabled={!canEditTagPrefix}
+                                  disabled={!canEditTagSettings}
                                 />
                               </FormControl>
                               {lastResults?.success &&
                                 (lastResults.config?.tagUsersInSonarr ||
                                   lastResults.config?.tagUsersInRadarr) &&
-                                !canEditTagPrefix && (
+                                !canEditTagSettings && (
                                   <p className="text-xs text-gray-500 mt-1">
                                     You must remove existing tags with "Delete
                                     Tag Definitions" enabled before changing the
-                                    prefix.
+                                    tag settings.
                                   </p>
                                 )}
                               <p className="text-xs text-gray-500 mt-1">

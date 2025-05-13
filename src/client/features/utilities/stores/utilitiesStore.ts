@@ -17,6 +17,9 @@ import { z } from 'zod'
 // Single type alias needed for the function parameter
 type TaggingConfig = z.infer<typeof TaggingConfigSchema>
 
+// Use inferred type from the schema for better type safety
+type TaggingStatusResponse = z.infer<typeof TaggingStatusResponseSchema>
+
 // Use the existing schema type for the return type
 export type TagRemovalResult = z.infer<typeof RemoveTagsResponseSchema>
 
@@ -66,12 +69,10 @@ export interface UtilitiesState {
   resetErrors: () => void
 
   // User tags functions
-  fetchUserTagsConfig: () => Promise<
-    z.infer<typeof TaggingStatusResponseSchema>
-  >
+  fetchUserTagsConfig: () => Promise<TaggingStatusResponse>
   updateUserTagsConfig: (
     config: TaggingConfig,
-  ) => Promise<z.infer<typeof TaggingStatusResponseSchema>>
+  ) => Promise<TaggingStatusResponse>
   createUserTags: () => Promise<z.infer<typeof CreateTaggingResponseSchema>>
   syncUserTags: () => Promise<z.infer<typeof SyncTaggingResponseSchema>>
   cleanupUserTags: () => Promise<z.infer<typeof CleanupResponseSchema>>
@@ -422,9 +423,11 @@ export const useUtilitiesStore = create<UtilitiesState>()(
 
       // User Tags methods
       fetchUserTagsConfig: async () => {
-        return apiRequest<z.infer<typeof TaggingStatusResponseSchema>>({
+        return apiRequest<TaggingStatusResponse>({
           url: '/v1/tags/status',
-          schema: TaggingStatusResponseSchema,
+          // Use type assertion to handle the type discrepancy with default values
+          schema:
+            TaggingStatusResponseSchema as z.ZodType<TaggingStatusResponse>,
           loadingKey: 'userTags',
           errorKey: 'userTags',
           defaultErrorMessage: 'Failed to fetch user tags configuration',
@@ -432,14 +435,12 @@ export const useUtilitiesStore = create<UtilitiesState>()(
       },
 
       updateUserTagsConfig: async (config: TaggingConfig) => {
-        return apiRequest<
-          z.infer<typeof TaggingStatusResponseSchema>,
-          TaggingConfig
-        >({
+        return apiRequest<TaggingStatusResponse, TaggingConfig>({
           url: '/v1/tags/config',
           method: 'PUT',
           body: config,
-          schema: TaggingStatusResponseSchema,
+          schema:
+            TaggingStatusResponseSchema as z.ZodType<TaggingStatusResponse>,
           loadingKey: 'userTags',
           errorKey: 'userTags',
           defaultErrorMessage: 'Failed to update user tags configuration',

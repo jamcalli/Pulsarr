@@ -96,6 +96,10 @@ export function useUserTags() {
   const [tagDefinitionsDeleted, setTagDefinitionsDeleted] = useState(false)
   // Track when tag deletion is complete
   const [isTagDeletionComplete, setIsTagDeletionComplete] = useState(false)
+  // Add save status state to match DeleteSyncForm
+  const [saveStatus, setSaveStatus] = useState<
+    'idle' | 'loading' | 'success' | 'error'
+  >('idle')
 
   const hasInitializedRef = useRef(false)
   const initialLoadRef = useRef(true)
@@ -112,6 +116,7 @@ export function useUserTags() {
     showDeleteTagsConfirmation,
     setShowDeleteTagsConfirmation,
     removeUserTags,
+    setLoadingWithMinDuration, // Important - this is used in DeleteSyncForm
   } = useUtilitiesStore()
 
   // Update local remove results when store results change
@@ -128,7 +133,8 @@ export function useUserTags() {
       tagUsersInSonarr: false,
       tagUsersInRadarr: false,
       cleanupOrphanedTags: false,
-      persistHistoricalTags: false,
+      removedTagMode: 'remove',
+      removedTagPrefix: 'pulsarr:removed',
       tagPrefix: 'pulsarr:user',
     },
   })
@@ -140,7 +146,8 @@ export function useUserTags() {
         tagUsersInSonarr: data.config.tagUsersInSonarr,
         tagUsersInRadarr: data.config.tagUsersInRadarr,
         cleanupOrphanedTags: data.config.cleanupOrphanedTags,
-        persistHistoricalTags: data.config.persistHistoricalTags,
+        removedTagMode: data.config.removedTagMode || 'remove',
+        removedTagPrefix: data.config.removedTagPrefix || 'pulsarr:removed', // This is actually the full tag label
         tagPrefix: data.config.tagPrefix,
       })
     },
@@ -174,47 +181,81 @@ export function useUserTags() {
     fetchConfig()
   }, [fetchUserTagsConfig, updateFormValues])
 
-  // Handle form submission
+  // Handle form submission - mimicking DeleteSyncForm exactly
   const onSubmit = useCallback(
     async (data: UserTagsFormValues) => {
+      // Set both states to maintain consistency with DeleteSyncForm
+      setSaveStatus('loading')
+      setLoadingWithMinDuration(true)
+
       try {
-        // Make a copy of the form data
+        // Create a copy of the data
         const formDataCopy = { ...data }
 
-        // Make the API call first, without resetting the form
-        const result = await updateUserTagsConfig(formDataCopy)
+        // Create minimum loading time promise
+        const minimumLoadingTime = new Promise((resolve) =>
+          setTimeout(resolve, 500),
+        )
 
-        // Only reset the form after successful API call
-        setLastResults(result)
+        // Make the API call
+        const updateConfigPromise = updateUserTagsConfig(formDataCopy)
 
-        // If we enable tagging, we can no longer edit the tag prefix
-        if (
-          result.success &&
-          (data.tagUsersInSonarr || data.tagUsersInRadarr)
-        ) {
-          setTagDefinitionsDeleted(false)
-          setIsTagDeletionComplete(false)
-        }
+        // Wait for both processes to complete (exactly like DeleteSyncForm)
+        await Promise.all([
+          updateConfigPromise.then((result) => {
+            // Store the result for later use
+            setLastResults(result)
+
+            // If we enable tagging, we can no longer edit the tag prefix
+            if (
+              result.success &&
+              (data.tagUsersInSonarr || data.tagUsersInRadarr)
+            ) {
+              setTagDefinitionsDeleted(false)
+              setIsTagDeletionComplete(false)
+            }
+
+            return result
+          }),
+          minimumLoadingTime,
+        ])
+
+        // Set success state
+        setSaveStatus('success')
 
         toast({
-          description:
-            result.message || 'Tagging configuration updated successfully',
+          description: 'Settings saved successfully',
           variant: 'default',
         })
 
-        // Reset the form with the new values to clear dirty state after success
-        form.reset(formDataCopy)
-      } catch (err) {
-        // No need to touch the form state on error - it will remain dirty automatically
+        // Reset form with updated configuration
+        form.reset(formDataCopy, { keepDirty: false })
+
+        // Wait before setting status back to idle (exactly like DeleteSyncForm)
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+
+        // Only now reset the status to idle
+        setSaveStatus('idle')
+      } catch (error) {
+        console.error('Failed to save configuration:', error)
+        const errorMessage =
+          error instanceof Error ? error.message : 'Failed to save settings'
+
+        setSaveStatus('error')
         toast({
           title: 'Error',
-          description:
-            err instanceof Error ? err.message : 'Failed to save configuration',
+          description: errorMessage,
           variant: 'destructive',
         })
+
+        setTimeout(() => {
+          setSaveStatus('idle')
+        }, 1000)
+      } finally {
+        setLoadingWithMinDuration(false)
       }
     },
-    [form, toast, updateUserTagsConfig],
+    [form, toast, updateUserTagsConfig, setLoadingWithMinDuration],
   )
 
   // Handle form cancellation
@@ -337,7 +378,8 @@ export function useUserTags() {
 
   return {
     form,
-    isSaving: loading.userTags,
+    // Use saveStatus instead of loading.userTags to match the DeleteSyncForm pattern
+    isSaving: saveStatus === 'loading',
     isLoading,
     isCreatingTags: loading.createUserTags,
     isSyncingTags: loading.syncUserTags,
