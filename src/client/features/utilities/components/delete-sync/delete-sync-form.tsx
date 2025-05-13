@@ -333,6 +333,127 @@ export function DeleteSyncForm() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <h3 className="font-medium text-sm text-text mb-2">
+                            Deletion Mode
+                          </h3>
+                          <div className="space-y-4">
+                            <FormField
+                              control={form.control}
+                              name="deletionMode"
+                              render={({ field }) => (
+                                <FormItem className="space-y-1">
+                                  <div className="flex items-center">
+                                    <FormLabel className="text-text m-0">
+                                      Mode
+                                    </FormLabel>
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <div className="max-w-xs">
+                                            <p>
+                                              Choose how content deletion should
+                                              work:
+                                            </p>
+                                            <ul className="list-disc pl-4 text-sm mt-1">
+                                              <li>
+                                                <strong>
+                                                  Watchlist-based:
+                                                </strong>{' '}
+                                                Delete content that's no longer
+                                                on any watchlist.
+                                              </li>
+                                              <li>
+                                                <strong>Tag-based:</strong> Only
+                                                delete content that has the "
+                                                {form.watch(
+                                                  'removedTagPrefix',
+                                                ) || 'pulsarr:removed'}
+                                                " tag.
+                                              </li>
+                                            </ul>
+                                          </div>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  </div>
+                                  <FormControl>
+                                    <div className="flex flex-col space-y-1.5">
+                                      <Select
+                                        onValueChange={field.onChange}
+                                        value={field.value || 'watchlist'}
+                                        disabled={isSaving}
+                                      >
+                                        <SelectTrigger className="w-full">
+                                          <SelectValue placeholder="Select deletion mode" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="watchlist">
+                                            Watchlist-based
+                                          </SelectItem>
+                                          <SelectItem value="tag-based">
+                                            Tag-based (
+                                            {form.watch('removedTagPrefix') ||
+                                              'pulsarr:removed'}
+                                            )
+                                          </SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+
+                          <FormField
+                            control={form.control}
+                            name="removedTagPrefix"
+                            render={({ field }) => (
+                              <FormItem className="space-y-2 mt-4">
+                                <div className="flex flex-col space-y-2">
+                                  <div className="flex items-center">
+                                    <FormLabel className="text-text m-0">
+                                      Removal Tag Name
+                                    </FormLabel>
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p className="max-w-xs">
+                                            Tag used to mark content for
+                                            deletion in tag-based deletion mode.
+                                            Any content with this exact tag will
+                                            be deleted during the sync job.
+                                          </p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  </div>
+                                  <FormControl>
+                                    <Input
+                                      {...field}
+                                      value={field.value || 'pulsarr:removed'}
+                                      className="w-full"
+                                      placeholder="pulsarr:removed"
+                                      disabled={
+                                        isSaving ||
+                                        form.watch('deletionMode') !==
+                                          'tag-based'
+                                      }
+                                    />
+                                  </FormControl>
+                                </div>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <h3 className="font-medium text-sm text-text mt-4 mb-2">
                             Configuration
                           </h3>
                           <div className="space-y-4">

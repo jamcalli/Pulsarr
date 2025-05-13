@@ -237,6 +237,11 @@ const schema = {
       type: 'string',
       default: 'pulsarr:removed',
     },
+    deletionMode: {
+      type: 'string',
+      enum: ['watchlist', 'tag-based'],
+      default: 'watchlist',
+    },
   },
 }
 

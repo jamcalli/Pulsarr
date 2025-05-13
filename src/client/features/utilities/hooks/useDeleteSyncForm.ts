@@ -9,6 +9,7 @@ import type { Config } from '@root/types/config.types'
 
 // Schema definition
 export const deleteSyncSchema = z.object({
+  deletionMode: z.enum(['watchlist', 'tag-based']).default('watchlist'),
   deleteMovie: z.boolean(),
   deleteEndedShow: z.boolean(),
   deleteContinuingShow: z.boolean(),
@@ -33,6 +34,7 @@ export const deleteSyncSchema = z.object({
   maxDeletionPrevention: z.coerce.number().int().min(1).max(100).optional(),
   scheduleTime: z.date().optional(),
   dayOfWeek: z.string().default('*'),
+  removedTagPrefix: z.string().default('pulsarr:removed'),
 })
 
 export type DeleteSyncFormValues = z.infer<typeof deleteSyncSchema>
@@ -122,6 +124,7 @@ export function useDeleteSyncForm() {
   const form = useForm<DeleteSyncFormValues>({
     resolver: zodResolver(deleteSyncSchema),
     defaultValues: {
+      deletionMode: 'watchlist',
       deleteMovie: false,
       deleteEndedShow: false,
       deleteContinuingShow: false,
@@ -133,6 +136,7 @@ export function useDeleteSyncForm() {
       maxDeletionPrevention: undefined,
       scheduleTime: undefined,
       dayOfWeek: '*',
+      removedTagPrefix: 'pulsarr:removed',
     },
   })
 
@@ -151,6 +155,7 @@ export function useDeleteSyncForm() {
 
       form.reset(
         {
+          deletionMode: config.deletionMode || 'watchlist',
           deleteMovie: config.deleteMovie || false,
           deleteEndedShow: config.deleteEndedShow || false,
           deleteContinuingShow: config.deleteContinuingShow || false,
@@ -164,6 +169,7 @@ export function useDeleteSyncForm() {
           maxDeletionPrevention: config.maxDeletionPrevention,
           scheduleTime: scheduleTime || form.getValues('scheduleTime'),
           dayOfWeek: dayOfWeek,
+          removedTagPrefix: config.removedTagPrefix || 'pulsarr:removed',
         },
         { keepDirty: false },
       )
@@ -189,6 +195,7 @@ export function useDeleteSyncForm() {
       )
 
       const updateConfigPromise = updateConfig({
+        deletionMode: data.deletionMode,
         deleteMovie: data.deleteMovie,
         deleteEndedShow: data.deleteEndedShow,
         deleteContinuingShow: data.deleteContinuingShow,
@@ -198,6 +205,7 @@ export function useDeleteSyncForm() {
         plexProtectionPlaylistName: data.plexProtectionPlaylistName,
         deleteSyncNotify: data.deleteSyncNotify,
         maxDeletionPrevention: data.maxDeletionPrevention,
+        removedTagPrefix: data.removedTagPrefix,
       })
 
       let scheduleUpdate = Promise.resolve()
@@ -254,6 +262,7 @@ export function useDeleteSyncForm() {
       // Apply the form reset
       form.reset(
         {
+          deletionMode: updatedConfig.deletionMode || 'watchlist',
           deleteMovie: updatedConfig.deleteMovie || false,
           deleteEndedShow: updatedConfig.deleteEndedShow || false,
           deleteContinuingShow: updatedConfig.deleteContinuingShow || false,
@@ -267,6 +276,7 @@ export function useDeleteSyncForm() {
           maxDeletionPrevention: updatedConfig.maxDeletionPrevention,
           scheduleTime: data.scheduleTime,
           dayOfWeek: data.dayOfWeek,
+          removedTagPrefix: updatedConfig.removedTagPrefix || 'pulsarr:removed',
         },
         { keepDirty: false },
       )
@@ -300,6 +310,7 @@ export function useDeleteSyncForm() {
   const handleCancel = useCallback(() => {
     if (config) {
       form.reset({
+        deletionMode: config.deletionMode || 'watchlist',
         deleteMovie: config.deleteMovie || false,
         deleteEndedShow: config.deleteEndedShow || false,
         deleteContinuingShow: config.deleteContinuingShow || false,
@@ -313,6 +324,7 @@ export function useDeleteSyncForm() {
         maxDeletionPrevention: config.maxDeletionPrevention,
         scheduleTime: scheduleTime,
         dayOfWeek: dayOfWeek,
+        removedTagPrefix: config.removedTagPrefix || 'pulsarr:removed',
       })
     }
   }, [config, form, scheduleTime, dayOfWeek])
