@@ -421,7 +421,11 @@ export class AppriseNotificationService {
    * @returns Promise resolving to true if sent successfully
    */
   async sendDeleteSyncNotification(
-    results: DeleteSyncResult,
+    results: DeleteSyncResult & {
+      total: { protected?: number }
+      movies: { protected?: number }
+      shows: { protected?: number }
+    },
     dryRun: boolean,
   ): Promise<boolean> {
     if (!this.isEnabled()) {
@@ -457,16 +461,21 @@ export class AppriseNotificationService {
       let textBody = ''
 
       // Create a summary
-      const summaryText = dryRun
+      let summaryText = dryRun
         ? 'This was a dry run - no content was actually deleted.'
         : results.safetyTriggered
           ? results.safetyMessage ||
             'A safety check prevented the delete sync operation from running.'
           : "The following content was removed because it's no longer in any user's watchlist."
 
+      // Add protected playlist information if there are protected items
+      if (results.total.protected && results.total.protected > 0) {
+        summaryText += ` ${results.total.protected} items were preserved because they are in protected playlists.`
+      }
+
       textBody += `${summaryText}\n\n`
 
-      // Build the title section with just the summary text
+      // Build the title section with the summary text
       const titleSection = `
       <p style="margin-bottom: 20px; color: #000000;">${summaryText}</p>
       `
@@ -475,19 +484,28 @@ export class AppriseNotificationService {
       const summarySection = `
       <div style="margin: 15px 0; padding: 15px; border-radius: 5px; background: ${results.safetyTriggered ? '#c1666b' : '#212121'}; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
         <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">Summary</h3>
-        <div style="display: flex; flex-direction: row; justify-content: space-around; margin-top: 15px;">
-          <div style="display: flex; align-items: center; margin-right: 20px;">
+        <div style="display: flex; flex-direction: row; flex-wrap: wrap; justify-content: space-around; margin-top: 15px;">
+          <div style="display: flex; align-items: center; margin-right: 20px; margin-bottom: 10px;">
             <span style="font-size: 24px; font-weight: 700; color: #ffffff; margin-right: 10px; display: inline-block; min-width: 30px; text-align: center;">${results.total.processed}</span>
             <span style="font-weight: 500; color: #ffffff; display: inline-block;">Processed</span>
           </div>
-          <div style="display: flex; align-items: center; margin-right: 20px;">
+          <div style="display: flex; align-items: center; margin-right: 20px; margin-bottom: 10px;">
             <span style="font-size: 24px; font-weight: 700; color: #ffffff; margin-right: 10px; display: inline-block; min-width: 30px; text-align: center;">${results.total.deleted}</span>
             <span style="font-weight: 500; color: #ffffff; display: inline-block;">Deleted</span>
           </div>
-          <div style="display: flex; align-items: center;">
+          <div style="display: flex; align-items: center; margin-right: 20px; margin-bottom: 10px;">
             <span style="font-size: 24px; font-weight: 700; color: #ffffff; margin-right: 10px; display: inline-block; min-width: 30px; text-align: center;">${results.total.skipped}</span>
             <span style="font-weight: 500; color: #ffffff; display: inline-block;">Skipped</span>
           </div>
+          ${
+            results.total.protected
+              ? `
+          <div style="display: flex; align-items: center; margin-bottom: 10px;">
+            <span style="font-size: 24px; font-weight: 700; color: #ffffff; margin-right: 10px; display: inline-block; min-width: 30px; text-align: center;">${results.total.protected}</span>
+            <span style="font-weight: 500; color: #ffffff; display: inline-block;">Protected</span>
+          </div>`
+              : ''
+          }
         </div>
       </div>
       `
@@ -495,7 +513,11 @@ export class AppriseNotificationService {
       textBody += 'Summary:\n'
       textBody += `Processed: ${results.total.processed} items\n`
       textBody += `Deleted: ${results.total.deleted} items\n`
-      textBody += `Skipped: ${results.total.skipped} items\n\n`
+      textBody += `Skipped: ${results.total.skipped} items\n`
+      if (results.total.protected) {
+        textBody += `Protected: ${results.total.protected} items\n`
+      }
+      textBody += '\n'
 
       // Add safety message if applicable with correct Pulsarr dark theme styling
       let safetySection = ''
@@ -528,9 +550,15 @@ export class AppriseNotificationService {
             ? `<p style="font-style: italic; margin-top: 10px; color: #ffffff;">... and ${results.movies.items.length - 10} more movies</p>`
             : ''
 
+        // Include protected count if available
+        const protectedInfo =
+          results.movies.protected && results.movies.protected > 0
+            ? ` (${results.movies.protected} protected)`
+            : ''
+
         contentSections += `
         <div style="margin: 15px 0; padding: 15px; border-radius: 5px; background: #212121; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
-          <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">Movies (${results.movies.deleted} deleted)</h3>
+          <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">Movies (${results.movies.deleted} deleted${protectedInfo})</h3>
           <ul style="margin-bottom: 0; padding-left: 20px; color: #ffffff;">
             ${movieList || '<li style="font-weight: 500; color: #ffffff;">None</li>'}
           </ul>
@@ -544,7 +572,7 @@ export class AppriseNotificationService {
           .map((item) => `• ${item.title}`)
           .join('\n')
 
-        textBody += `Movies (${results.movies.deleted} deleted):\n${textMovieList || 'None'}\n`
+        textBody += `Movies (${results.movies.deleted} deleted${protectedInfo}):\n${textMovieList || 'None'}\n`
 
         if (results.movies.items.length > 10) {
           textBody += `... and ${results.movies.items.length - 10} more movies\n\n`
@@ -552,13 +580,19 @@ export class AppriseNotificationService {
           textBody += '\n'
         }
       } else {
+        // Include protected count if available
+        const protectedInfo =
+          results.movies.protected && results.movies.protected > 0
+            ? ` (${results.movies.protected} protected)`
+            : ''
+
         contentSections += `
         <div style="margin: 15px 0; padding: 15px; border-radius: 5px; background: #212121; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
           <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">Movies</h3>
-          <p style="font-weight: 500; color: #ffffff;">No movies deleted</p>
+          <p style="font-weight: 500; color: #ffffff;">No movies deleted${protectedInfo}</p>
         </div>
         `
-        textBody += 'Movies: No movies deleted\n\n'
+        textBody += `Movies: No movies deleted${protectedInfo}\n\n`
       }
 
       // TV Shows section
@@ -576,9 +610,15 @@ export class AppriseNotificationService {
             ? `<p style="font-style: italic; margin-top: 10px; color: #ffffff;">... and ${results.shows.items.length - 10} more TV shows</p>`
             : ''
 
+        // Include protected count if available
+        const protectedInfo =
+          results.shows.protected && results.shows.protected > 0
+            ? ` (${results.shows.protected} protected)`
+            : ''
+
         contentSections += `
         <div style="margin: 15px 0; padding: 15px; border-radius: 5px; background: #212121; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
-          <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">TV Shows (${results.shows.deleted} deleted)</h3>
+          <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">TV Shows (${results.shows.deleted} deleted${protectedInfo})</h3>
           <ul style="margin-bottom: 0; padding-left: 20px; color: #ffffff;">
             ${showList || '<li style="font-weight: 500; color: #ffffff;">None</li>'}
           </ul>
@@ -592,7 +632,7 @@ export class AppriseNotificationService {
           .map((item) => `• ${item.title}`)
           .join('\n')
 
-        textBody += `TV Shows (${results.shows.deleted} deleted):\n${textShowList || 'None'}\n`
+        textBody += `TV Shows (${results.shows.deleted} deleted${protectedInfo}):\n${textShowList || 'None'}\n`
 
         if (results.shows.items.length > 10) {
           textBody += `... and ${results.shows.items.length - 10} more TV shows\n\n`
@@ -600,13 +640,19 @@ export class AppriseNotificationService {
           textBody += '\n'
         }
       } else {
+        // Include protected count if available
+        const protectedInfo =
+          results.shows.protected && results.shows.protected > 0
+            ? ` (${results.shows.protected} protected)`
+            : ''
+
         contentSections += `
         <div style="margin: 15px 0; padding: 15px; border-radius: 5px; background: #212121; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
           <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">TV Shows</h3>
-          <p style="font-weight: 500; color: #ffffff;">No TV shows deleted</p>
+          <p style="font-weight: 500; color: #ffffff;">No TV shows deleted${protectedInfo}</p>
         </div>
         `
-        textBody += 'TV Shows: No TV shows deleted\n\n'
+        textBody += `TV Shows: No TV shows deleted${protectedInfo}\n\n`
       }
 
       // Add timestamp with correct Pulsarr dark theme styling
