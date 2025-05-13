@@ -9,6 +9,7 @@ import {
   Clock,
   Save,
   X,
+  HelpCircle,
 } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
 import {
@@ -36,6 +37,12 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion'
 import { Separator } from '@/components/ui/separator'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { useDeleteSync } from '@/features/utilities/hooks/useDeleteSync'
 import { DeleteSyncConfirmationModal } from '@/features/utilities/components/delete-sync/delete-sync-confirmation-modal'
 import { DeleteSyncDryRunModal } from '@/features/utilities/components/delete-sync/delete-sync-dry-run-modal'
@@ -344,9 +351,24 @@ export function DeleteSyncForm() {
                                       onCheckedChange={field.onChange}
                                     />
                                   </FormControl>
-                                  <FormLabel className="text-text m-0">
-                                    Delete Movies
-                                  </FormLabel>
+                                  <div className="flex items-center">
+                                    <FormLabel className="text-text m-0">
+                                      Delete Movies
+                                    </FormLabel>
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p className="max-w-xs">
+                                            Remove movies from Radarr when no
+                                            longer on any watchlist.
+                                          </p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  </div>
                                 </FormItem>
                               )}
                             />
@@ -362,9 +384,24 @@ export function DeleteSyncForm() {
                                       onCheckedChange={field.onChange}
                                     />
                                   </FormControl>
-                                  <FormLabel className="text-text m-0">
-                                    Delete Ended Shows
-                                  </FormLabel>
+                                  <div className="flex items-center">
+                                    <FormLabel className="text-text m-0">
+                                      Delete Ended Shows
+                                    </FormLabel>
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p className="max-w-xs">
+                                            Remove TV shows with status "Ended"
+                                            when no longer on any watchlist.
+                                          </p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  </div>
                                 </FormItem>
                               )}
                             />
@@ -380,9 +417,25 @@ export function DeleteSyncForm() {
                                       onCheckedChange={field.onChange}
                                     />
                                   </FormControl>
-                                  <FormLabel className="text-text m-0">
-                                    Delete Continuing Shows
-                                  </FormLabel>
+                                  <div className="flex items-center">
+                                    <FormLabel className="text-text m-0">
+                                      Delete Continuing Shows
+                                    </FormLabel>
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p className="max-w-xs">
+                                            Remove TV shows with status
+                                            "Continuing" when no longer on any
+                                            watchlist.
+                                          </p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  </div>
                                 </FormItem>
                               )}
                             />
@@ -398,9 +451,25 @@ export function DeleteSyncForm() {
                                       onCheckedChange={field.onChange}
                                     />
                                   </FormControl>
-                                  <FormLabel className="text-text m-0">
-                                    Delete Files
-                                  </FormLabel>
+                                  <div className="flex items-center">
+                                    <FormLabel className="text-text m-0">
+                                      Delete Files
+                                    </FormLabel>
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p className="max-w-xs">
+                                            Delete the actual media files when
+                                            removing content, not just the
+                                            tracking entry.
+                                          </p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  </div>
                                 </FormItem>
                               )}
                             />
@@ -423,9 +492,25 @@ export function DeleteSyncForm() {
                                       onCheckedChange={field.onChange}
                                     />
                                   </FormControl>
-                                  <FormLabel className="text-text m-0">
-                                    Respect User Sync Settings
-                                  </FormLabel>
+                                  <div className="flex items-center">
+                                    <FormLabel className="text-text m-0">
+                                      Respect User Sync Settings
+                                    </FormLabel>
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p className="max-w-xs">
+                                            Only delete content for users who
+                                            have syncing enabled in their
+                                            profile settings.
+                                          </p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  </div>
                                 </FormItem>
                               )}
                             />
@@ -441,9 +526,27 @@ export function DeleteSyncForm() {
                                       onCheckedChange={field.onChange}
                                     />
                                   </FormControl>
-                                  <FormLabel className="text-text m-0">
-                                    Enable Plex Playlist Protection
-                                  </FormLabel>
+                                  <div className="flex items-center">
+                                    <FormLabel className="text-text m-0">
+                                      Enable Plex Playlist Protection
+                                    </FormLabel>
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p className="max-w-xs">
+                                            Prevent deletion of any content
+                                            found in a designated Plex playlist.
+                                            When enabled, running a dry run will
+                                            create these playlists for all Plex
+                                            users in the server.
+                                          </p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  </div>
                                 </FormItem>
                               )}
                             />
@@ -453,12 +556,26 @@ export function DeleteSyncForm() {
                               name="plexProtectionPlaylistName"
                               render={({ field }) => (
                                 <FormItem className="space-y-2">
-                                  <div
-                                    className={`flex ${isMobile ? 'flex-col items-start gap-2' : 'items-center justify-between'}`}
-                                  >
-                                    <FormLabel className="text-text mb-0">
-                                      Protection Playlist Name
-                                    </FormLabel>
+                                  <div className="flex flex-col space-y-2">
+                                    <div className="flex items-center">
+                                      <FormLabel className="text-text m-0">
+                                        Protection Playlist Name
+                                      </FormLabel>
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            <p className="max-w-xs">
+                                              Name of the Plex playlist
+                                              containing content that should
+                                              never be deleted.
+                                            </p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    </div>
                                     <FormControl>
                                       <Input
                                         {...field}
@@ -468,7 +585,7 @@ export function DeleteSyncForm() {
                                               ''
                                             : field.value || ''
                                         }
-                                        className={isMobile ? 'w-full' : 'w-48'}
+                                        className="w-full"
                                         placeholder="Do Not Delete"
                                         disabled={
                                           isSaving ||
@@ -489,12 +606,50 @@ export function DeleteSyncForm() {
                               name="deleteSyncNotify"
                               render={({ field }) => (
                                 <FormItem className="space-y-2">
-                                  <div
-                                    className={`flex ${isMobile ? 'flex-col items-start gap-2' : 'items-center justify-between'}`}
-                                  >
-                                    <FormLabel className="text-text mb-0">
-                                      Notifications
-                                    </FormLabel>
+                                  <div className="flex flex-col space-y-2">
+                                    <div className="flex items-center">
+                                      <FormLabel className="text-text m-0">
+                                        Notifications
+                                      </FormLabel>
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            <div className="max-w-xs">
+                                              <p>
+                                                Controls how deletion
+                                                notifications are sent:
+                                              </p>
+                                              <ul className="list-disc pl-4 text-sm mt-1">
+                                                <li>
+                                                  All Channels: Send to all
+                                                  notification methods
+                                                </li>
+                                                <li>
+                                                  Apprise Only: Only use Apprise
+                                                </li>
+                                                <li>
+                                                  Discord (Webhook + DM): Send
+                                                  to both Discord webhook and
+                                                  DMs
+                                                </li>
+                                                <li>
+                                                  Discord (DM Only): Send only
+                                                  to Discord DMs
+                                                </li>
+                                                <li>
+                                                  Discord (Webhook Only): Send
+                                                  only to Discord webhook
+                                                </li>
+                                                <li>None: No notifications</li>
+                                              </ul>
+                                            </div>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    </div>
                                     <Select
                                       onValueChange={field.onChange}
                                       value={
@@ -505,11 +660,7 @@ export function DeleteSyncForm() {
                                       disabled={isSaving}
                                     >
                                       <FormControl>
-                                        <SelectTrigger
-                                          className={
-                                            isMobile ? 'w-full' : 'w-48'
-                                          }
-                                        >
+                                        <SelectTrigger className="w-full">
                                           <SelectValue placeholder="Select notification type" />
                                         </SelectTrigger>
                                       </FormControl>
@@ -545,10 +696,27 @@ export function DeleteSyncForm() {
                               name="maxDeletionPrevention"
                               render={({ field }) => (
                                 <FormItem className="space-y-2">
-                                  <div className="flex items-center justify-between">
-                                    <FormLabel className="text-text mb-0">
-                                      Max Deletion Prevention (%)
-                                    </FormLabel>
+                                  <div className="flex flex-col space-y-2">
+                                    <div className="flex items-center">
+                                      <FormLabel className="text-text m-0">
+                                        Max Deletion Prevention (%)
+                                      </FormLabel>
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            <p className="max-w-xs">
+                                              Safety threshold (%) to prevent
+                                              mass deletions. Operation will
+                                              abort if percentage exceeds this
+                                              value.
+                                            </p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    </div>
                                     <FormControl>
                                       <Input
                                         type="number"
