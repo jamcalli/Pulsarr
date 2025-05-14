@@ -4,7 +4,7 @@ import type { Knex } from 'knex'
  * Adds a `series_type` column to the `sonarr_instances` and `router_rules` tables.
  *
  * @remarks
- * In `sonarr_instances`, the `series_type` column is a string with a default value of `'standard'`, enabling configuration of series types such as standard, anime, or daily for Sonarr instances. In `router_rules`, the column is nullable to allow per-rule overrides.
+ * In `sonarr_instances`, the `series_type` column is a non-nullable string with a default value of `'standard'`. In `router_rules`, the column is nullable to support per-rule overrides.
  */
 export async function up(knex: Knex): Promise<void> {
   // Add series_type column to sonarr_instances table
@@ -19,7 +19,9 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Drops the `series_type` column from both the `sonarr_instances` and `router_rules` tables, reversing the schema changes made by the corresponding migration.
+ * Removes the `series_type` column from the `sonarr_instances` and `router_rules` tables.
+ *
+ * This function reverses the schema changes introduced by the corresponding migration, restoring the tables to their previous structure.
  */
 export async function down(knex: Knex): Promise<void> {
   await knex.schema.alterTable('sonarr_instances', (table) => {

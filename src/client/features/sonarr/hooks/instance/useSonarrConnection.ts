@@ -9,12 +9,12 @@ import type { UseFormReturn } from 'react-hook-form'
 import type { SonarrInstanceSchema } from '@/features/sonarr/store/schemas'
 
 /**
- * Determines whether a Sonarr instance requires additional configuration.
+ * Checks if a Sonarr instance is missing required configuration fields.
  *
- * Returns true if the instance is missing a quality profile or root folder, indicating that further setup is needed.
+ * Returns true if either the quality profile or root folder is not set, indicating that the instance needs further setup.
  *
- * @param instance - The Sonarr instance to evaluate.
- * @returns True if configuration is incomplete; otherwise, false.
+ * @param instance - The Sonarr instance to check for configuration completeness.
+ * @returns True if the instance requires additional configuration; false if it is fully configured.
  */
 function checkNeedsConfiguration(instance: SonarrInstance) {
   return (
@@ -35,7 +35,7 @@ function checkNeedsConfiguration(instance: SonarrInstance) {
  * @returns An object containing connection and configuration state, status setters, refs, and functions for testing and resetting the connection.
  *
  * @remark
- * The `needsConfiguration` state is true if the instance is missing a `qualityProfile` or `rootFolder`, indicating further setup is required after a successful connection.
+ * The `needsConfiguration` state is true if the instance is missing a quality profile or root folder, indicating further setup is required after a successful connection.
  */
 export function useSonarrConnection(
   instance: SonarrInstance,

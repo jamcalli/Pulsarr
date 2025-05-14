@@ -9,12 +9,12 @@ import type { UseFormReturn } from 'react-hook-form'
 import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
 
 /**
- * Determines whether a Radarr instance requires additional configuration.
+ * Checks if a Radarr instance is missing required configuration fields.
  *
- * Returns `true` if the instance is missing a `qualityProfile` or `rootFolder`, or if either is an empty string; otherwise, returns `false`.
+ * Returns `true` if either the `qualityProfile` or `rootFolder` property is missing or empty; otherwise, returns `false`.
  *
- * @param instance - The Radarr instance to check.
- * @returns `true` if configuration is needed; otherwise, `false`.
+ * @param instance - The Radarr instance to evaluate for configuration completeness.
+ * @returns `true` if additional configuration is required; otherwise, `false`.
  */
 function checkNeedsConfiguration(instance: RadarrInstance) {
   return (

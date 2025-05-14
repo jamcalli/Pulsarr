@@ -1,17 +1,11 @@
 import type { Knex } from 'knex'
 
 /**
- * Adds Plex playlist protection configuration options to the configs table
+ * Adds Plex playlist protection configuration columns to the configs table.
  *
- * This migration adds:
- * - enablePlexPlaylistProtection: Toggle to enable/disable the feature
- * - plexProtectionPlaylistName: Custom playlist name for protection
- * - plexServerUrl: URL to the Plex server (optional, as it can be auto-detected)
+ * Alters the configs table by adding three columns: enablePlexPlaylistProtection (boolean, default false), plexProtectionPlaylistName (string, default "Do Not Delete"), and plexServerUrl (string, default "http://localhost:32400").
  *
- * Note: The plexServerUrl is made optional since the system can now automatically
- * detect the proper server URL from the Plex API's resource endpoints. It remains
- * as a configuration option to support custom setups or environments where
- * auto-detection may not work correctly.
+ * @remark The plexServerUrl column is optional, as the system can auto-detect the Plex server URL, but this setting allows manual configuration for custom environments.
  */
 export async function up(knex: Knex): Promise<void> {
   await knex.schema.alterTable('configs', (table) => {
@@ -22,7 +16,9 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Removes the Plex playlist protection configuration options added by this migration
+ * Reverts the schema changes by removing Plex playlist protection configuration columns from the `configs` table.
+ *
+ * Drops the `enablePlexPlaylistProtection`, `plexProtectionPlaylistName`, and `plexServerUrl` columns.
  */
 export async function down(knex: Knex): Promise<void> {
   await knex.schema.alterTable('configs', (table) => {

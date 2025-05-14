@@ -170,11 +170,13 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const allValid = results.every((result) => result.valid)
 
         /**
-         * Returns a string with the count and correctly pluralized form of the given word.
+         * Formats a count and word with correct pluralization.
+         *
+         * Returns a string combining the given count and the singular or plural form of the specified word, adding "s" if the count is not 1.
          *
          * @param count - The quantity to display.
          * @param word - The word to pluralize.
-         * @returns A string combining {@link count} and the singular or plural form of {@link word}.
+         * @returns A string with the count and the appropriately pluralized word.
          *
          * @example
          * plural(1, "apple") // "1 apple"

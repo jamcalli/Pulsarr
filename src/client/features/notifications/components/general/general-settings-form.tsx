@@ -36,13 +36,12 @@ const DEFAULT_NEW_EPISODE_THRESHOLD = 172800000 // 48 hours (2 days)
 const DEFAULT_UPGRADE_BUFFER_TIME = 2000 // 2 seconds
 
 /**
- * Renders a form for configuring general notification settings, including queue wait time, new episode threshold, and upgrade buffer time.
+ * Displays a form for editing general notification settings, including queue wait time, new episode threshold, and upgrade buffer time.
  *
- * The form uses schema validation, displays contextual tooltips for each setting, and provides feedback on submission status. Values are converted between user-friendly units and internal storage formats as needed.
+ * Converts between user-facing units (minutes, hours, seconds) and internal millisecond storage. Provides validation, contextual tooltips, and feedback on submission status.
  *
- * @param isInitialized - Indicates whether the initial configuration data has been loaded and the form is ready for interaction.
- *
- * @returns The React component for the general settings form.
+ * @param isInitialized - Whether the configuration data has loaded and the form is ready for interaction.
+ * @returns The React element for the general settings form.
  */
 export function GeneralSettingsForm({
   isInitialized,
