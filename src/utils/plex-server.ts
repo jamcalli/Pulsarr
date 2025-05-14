@@ -806,14 +806,6 @@ export class PlexServerService {
    */
   async getUserToken(username: string): Promise<string | null> {
     try {
-      // Special handling for the server owner - check if username is 'owner' or 'admin'
-      if (
-        username.toLowerCase() === 'owner' ||
-        username.toLowerCase() === 'admin'
-      ) {
-        return this.config.plexTokens?.[0] || null
-      }
-
       // Check cache first
       const cachedInfo = this.userTokens.get(username.toLowerCase())
       if (
