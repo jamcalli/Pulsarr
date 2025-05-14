@@ -504,8 +504,12 @@ export class UserTagService {
                         ]),
                       ]
                     } catch (tagError) {
-                      // Fall back to standard removal if creating special tag fails
-                      newTags = [...new Set([...nonUserTagIds, ...userTagIds])]
+                      this.log.error(
+                        'Failed to create special removed tag. Cannot proceed with special-tag mode:',
+                        tagError,
+                      )
+                      // Propagate the error - don't silently fall back to different behavior
+                      throw tagError
                     }
                   } else {
                     // No tags being removed, just use current tags
@@ -737,8 +741,12 @@ export class UserTagService {
                         ]),
                       ]
                     } catch (tagError) {
-                      // Fall back to standard removal if creating special tag fails
-                      newTags = [...new Set([...nonUserTagIds, ...userTagIds])]
+                      this.log.error(
+                        'Failed to create special removed tag. Cannot proceed with special-tag mode:',
+                        tagError,
+                      )
+                      // Propagate the error - don't silently fall back to different behavior
+                      throw tagError
                     }
                   } else {
                     // No tags being removed, just use current tags
@@ -1771,10 +1779,8 @@ export class UserTagService {
       const removedTagLabel = this.removedTagPrefix
       const lowerLabel = removedTagLabel.toLowerCase()
 
-      // Check if the tag already exists
-      let removedTagId = Array.from(tagLabelMap.entries()).find(
-        ([label]) => label === lowerLabel,
-      )?.[1]
+      // Check if the tag already exists using direct map lookup
+      let removedTagId = tagLabelMap.get(lowerLabel)
 
       if (!removedTagId) {
         // Create the removed tag if it doesn't exist
