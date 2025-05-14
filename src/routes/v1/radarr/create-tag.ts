@@ -31,12 +31,12 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const instance =
           await fastify.radarrManager.getRadarrInstance(instanceId)
         if (!instance) {
-          throw reply.notFound('Radarr instance not found')
+          return reply.notFound('Radarr instance not found')
         }
 
         const service = fastify.radarrManager.getRadarrService(instanceId)
         if (!service) {
-          throw reply.notFound('Radarr service not initialized')
+          return reply.notFound('Radarr service not initialized')
         }
 
         // Create the tag using the service
@@ -50,7 +50,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
 
         fastify.log.error('Error creating Radarr tag:', err)
-        throw reply.internalServerError('Unable to create tag')
+        return reply.internalServerError('Unable to create tag')
       }
     },
   )

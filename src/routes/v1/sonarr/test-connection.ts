@@ -39,7 +39,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw err
         }
         fastify.log.error('Error testing Sonarr connection:', err)
-        throw reply.internalServerError('Unable to test Sonarr connection')
+        return reply.internalServerError('Unable to test Sonarr connection')
       }
     },
   )

@@ -17,6 +17,9 @@ import { z } from 'zod'
 // Single type alias needed for the function parameter
 type TaggingConfig = z.infer<typeof TaggingConfigSchema>
 
+// Use inferred type from the schema for better type safety
+type TaggingStatusResponse = z.infer<typeof TaggingStatusResponseSchema>
+
 // Use the existing schema type for the return type
 export type TagRemovalResult = z.infer<typeof RemoveTagsResponseSchema>
 
@@ -66,12 +69,10 @@ export interface UtilitiesState {
   resetErrors: () => void
 
   // User tags functions
-  fetchUserTagsConfig: () => Promise<
-    z.infer<typeof TaggingStatusResponseSchema>
-  >
+  fetchUserTagsConfig: () => Promise<TaggingStatusResponse>
   updateUserTagsConfig: (
     config: TaggingConfig,
-  ) => Promise<z.infer<typeof TaggingStatusResponseSchema>>
+  ) => Promise<TaggingStatusResponse>
   createUserTags: () => Promise<z.infer<typeof CreateTaggingResponseSchema>>
   syncUserTags: () => Promise<z.infer<typeof SyncTaggingResponseSchema>>
   cleanupUserTags: () => Promise<z.infer<typeof CleanupResponseSchema>>
@@ -89,7 +90,7 @@ const handleApiResponse = async <T>(
     let errorMessage = defaultErrorMessage
     try {
       const errorData = await response.json()
-      errorMessage = errorData.error || errorMessage
+      errorMessage = errorData.message || errorData.error || errorMessage
     } catch (_) {
       // If JSON parsing fails, try to get the response text
       try {
@@ -422,9 +423,14 @@ export const useUtilitiesStore = create<UtilitiesState>()(
 
       // User Tags methods
       fetchUserTagsConfig: async () => {
-        return apiRequest<z.infer<typeof TaggingStatusResponseSchema>>({
+        return apiRequest<TaggingStatusResponse>({
           url: '/v1/tags/status',
-          schema: TaggingStatusResponseSchema,
+          // Use type assertion to handle type discrepancy with default values.
+          // This is needed because Zod schemas with .default() can cause TypeScript
+          // to infer optional properties when they will actually always be present
+          // in the runtime object after validation.
+          schema:
+            TaggingStatusResponseSchema as z.ZodType<TaggingStatusResponse>,
           loadingKey: 'userTags',
           errorKey: 'userTags',
           defaultErrorMessage: 'Failed to fetch user tags configuration',
@@ -432,14 +438,12 @@ export const useUtilitiesStore = create<UtilitiesState>()(
       },
 
       updateUserTagsConfig: async (config: TaggingConfig) => {
-        return apiRequest<
-          z.infer<typeof TaggingStatusResponseSchema>,
-          TaggingConfig
-        >({
+        return apiRequest<TaggingStatusResponse, TaggingConfig>({
           url: '/v1/tags/config',
           method: 'PUT',
           body: config,
-          schema: TaggingStatusResponseSchema,
+          schema:
+            TaggingStatusResponseSchema as z.ZodType<TaggingStatusResponse>,
           loadingKey: 'userTags',
           errorKey: 'userTags',
           defaultErrorMessage: 'Failed to update user tags configuration',

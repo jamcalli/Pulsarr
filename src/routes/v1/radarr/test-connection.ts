@@ -39,7 +39,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw err
         }
         fastify.log.error('Error testing Radarr connection:', err)
-        throw reply.internalServerError('Unable to test Radarr connection')
+        return reply.internalServerError('Unable to test Radarr connection')
       }
     },
   )

@@ -150,13 +150,13 @@ export function extractTvdbId(guids: string[] | string | undefined): number {
 }
 
 /**
- * Checks if two arrays of GUID strings have any values in common.
+ * Determines whether two arrays of GUID strings share at least one common value.
  *
  * @param parsedGuids1 - The first array of GUID strings.
  * @param parsedGuids2 - The second array of GUID strings.
- * @returns `true` if at least one GUID exists in both arrays; otherwise, `false`.
+ * @returns `true` if any GUID is present in both arrays; otherwise, `false`.
  *
- * @remark Assumes both inputs are already parsed arrays of GUID strings for optimal performance.
+ * @remark Both inputs must be arrays of parsed GUID strings.
  */
 export function hasMatchingParsedGuids(
   parsedGuids1: string[],
@@ -169,4 +169,48 @@ export function hasMatchingParsedGuids(
 
   const set1 = new Set(parsedGuids1)
   return parsedGuids2.some((guid) => set1.has(guid))
+}
+
+/**
+ * Extracts the numeric Radarr ID from the first GUID prefixed with "radarr:".
+ *
+ * Accepts input as a string, array of strings, or undefined, and searches for a GUID starting with "radarr:" (case-insensitive). Returns the integer following the prefix, or 0 if not found or invalid.
+ *
+ * @returns The Radarr ID as a number, or 0 if no valid Radarr GUID is present.
+ */
+export function extractRadarrId(guids: string[] | string | undefined): number {
+  const parsed = parseGuids(guids)
+  const radarrRegex = /^radarr:(\d+)/i
+
+  for (const guid of parsed) {
+    const match = radarrRegex.exec(guid)
+    if (match) {
+      const id = Number.parseInt(match[1], 10)
+      return Number.isNaN(id) ? 0 : id
+    }
+  }
+
+  return 0
+}
+
+/**
+ * Extracts the numeric Sonarr ID from the first GUID prefixed with "sonarr:".
+ *
+ * Accepts GUIDs in various formats and returns the integer following the "sonarr:" prefix (case-insensitive). Returns 0 if no valid Sonarr GUID is found.
+ *
+ * @returns The Sonarr ID as a number, or 0 if not present or invalid.
+ */
+export function extractSonarrId(guids: string[] | string | undefined): number {
+  const parsed = parseGuids(guids)
+  const sonarrRegex = /^sonarr:(\d+)/i
+
+  for (const guid of parsed) {
+    const match = sonarrRegex.exec(guid)
+    if (match) {
+      const id = Number.parseInt(match[1], 10)
+      return Number.isNaN(id) ? 0 : id
+    }
+  }
+
+  return 0
 }

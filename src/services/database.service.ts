@@ -555,8 +555,10 @@ export class DatabaseService {
       tagUsersInSonarr: Boolean(config.tagUsersInSonarr),
       tagUsersInRadarr: Boolean(config.tagUsersInRadarr),
       cleanupOrphanedTags: Boolean(config.cleanupOrphanedTags),
-      persistHistoricalTags: Boolean(config.persistHistoricalTags),
       tagPrefix: config.tagPrefix || 'pulsarr:user',
+      removedTagMode: config.removedTagMode || 'remove',
+      removedTagPrefix: config.removedTagPrefix || 'pulsarr:removed',
+      deletionMode: config.deletionMode || 'watchlist',
       _isReady: Boolean(config._isReady),
     }
   }
@@ -622,8 +624,10 @@ export class DatabaseService {
         tagUsersInSonarr: config.tagUsersInSonarr ?? false,
         tagUsersInRadarr: config.tagUsersInRadarr ?? false,
         cleanupOrphanedTags: config.cleanupOrphanedTags ?? true,
-        persistHistoricalTags: config.persistHistoricalTags ?? false,
         tagPrefix: config.tagPrefix || 'pulsarr:user',
+        removedTagMode: config.removedTagMode || 'remove',
+        removedTagPrefix: config.removedTagPrefix || 'pulsarr:removed',
+        deletionMode: config.deletionMode || 'watchlist',
         // Ready state
         _isReady: config._isReady || false,
         // Timestamps
@@ -658,7 +662,10 @@ export class DatabaseService {
           key === 'discordGuildId' ||
           key === 'appriseUrl' ||
           key === 'systemAppriseUrl' ||
-          key === 'tagPrefix'
+          key === 'tagPrefix' ||
+          key === 'removedTagPrefix' ||
+          key === 'removedTagMode' ||
+          key === 'deletionMode'
         ) {
           updateData[key] = value
         } else if (

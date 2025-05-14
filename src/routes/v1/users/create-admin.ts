@@ -64,7 +64,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         reply.status(201)
         return { success: true, message: 'Admin user created successfully' }
       } catch (error) {
-        throw reply.internalServerError('Failed to create admin user')
+        return reply.internalServerError('Failed to create admin user')
       }
     },
   )
