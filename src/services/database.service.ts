@@ -544,12 +544,21 @@ export class DatabaseService {
       deleteContinuingShow: Boolean(config.deleteContinuingShow),
       deleteFiles: Boolean(config.deleteFiles),
       respectUserSyncSetting: Boolean(config.respectUserSyncSetting),
+      // Plex playlist protection
+      enablePlexPlaylistProtection: Boolean(
+        config.enablePlexPlaylistProtection,
+      ),
+      plexProtectionPlaylistName:
+        config.plexProtectionPlaylistName || 'Do Not Delete',
+      plexServerUrl: config.plexServerUrl || undefined,
       // Tag configuration
       tagUsersInSonarr: Boolean(config.tagUsersInSonarr),
       tagUsersInRadarr: Boolean(config.tagUsersInRadarr),
       cleanupOrphanedTags: Boolean(config.cleanupOrphanedTags),
-      persistHistoricalTags: Boolean(config.persistHistoricalTags),
       tagPrefix: config.tagPrefix || 'pulsarr:user',
+      removedTagMode: config.removedTagMode || 'remove',
+      removedTagPrefix: config.removedTagPrefix || 'pulsarr:removed',
+      deletionMode: config.deletionMode || 'watchlist',
       _isReady: Boolean(config._isReady),
     }
   }
@@ -597,6 +606,12 @@ export class DatabaseService {
         respectUserSyncSetting: config.respectUserSyncSetting,
         deleteSyncNotify: config.deleteSyncNotify,
         maxDeletionPrevention: config.maxDeletionPrevention || 10,
+        // Plex playlist protection
+        enablePlexPlaylistProtection:
+          config.enablePlexPlaylistProtection || false,
+        plexProtectionPlaylistName:
+          config.plexProtectionPlaylistName || 'Do Not Delete',
+        plexServerUrl: config.plexServerUrl,
         // RSS fields
         selfRss: config.selfRss,
         friendsRss: config.friendsRss,
@@ -609,8 +624,10 @@ export class DatabaseService {
         tagUsersInSonarr: config.tagUsersInSonarr ?? false,
         tagUsersInRadarr: config.tagUsersInRadarr ?? false,
         cleanupOrphanedTags: config.cleanupOrphanedTags ?? true,
-        persistHistoricalTags: config.persistHistoricalTags ?? false,
         tagPrefix: config.tagPrefix || 'pulsarr:user',
+        removedTagMode: config.removedTagMode || 'remove',
+        removedTagPrefix: config.removedTagPrefix || 'pulsarr:removed',
+        deletionMode: config.deletionMode || 'watchlist',
         // Ready state
         _isReady: config._isReady || false,
         // Timestamps
@@ -645,7 +662,10 @@ export class DatabaseService {
           key === 'discordGuildId' ||
           key === 'appriseUrl' ||
           key === 'systemAppriseUrl' ||
-          key === 'tagPrefix'
+          key === 'tagPrefix' ||
+          key === 'removedTagPrefix' ||
+          key === 'removedTagMode' ||
+          key === 'deletionMode'
         ) {
           updateData[key] = value
         } else if (
@@ -692,6 +712,8 @@ export class DatabaseService {
       tags: JSON.parse(instance.tags || '[]'),
       isDefault: Boolean(instance.is_default),
       syncedInstances: JSON.parse(instance.synced_instances || '[]'),
+      seriesType:
+        (instance.series_type as 'standard' | 'anime' | 'daily') || 'standard',
     }))
   }
 
@@ -725,6 +747,8 @@ export class DatabaseService {
       tags: JSON.parse(instance.tags || '[]'),
       isDefault: true,
       syncedInstances: JSON.parse(instance.synced_instances || '[]'),
+      seriesType:
+        (instance.series_type as 'standard' | 'anime' | 'daily') || 'standard',
     }
   }
 
@@ -754,6 +778,8 @@ export class DatabaseService {
       tags: JSON.parse(instance.tags || '[]'),
       isDefault: Boolean(instance.is_default),
       syncedInstances: JSON.parse(instance.synced_instances || '[]'),
+      seriesType:
+        (instance.series_type as 'standard' | 'anime' | 'daily') || 'standard',
     }
   }
 
@@ -790,6 +816,7 @@ export class DatabaseService {
         is_default: instance.isDefault ?? false,
         is_enabled: true,
         synced_instances: JSON.stringify(instance.syncedInstances || []),
+        series_type: instance.seriesType || 'standard',
         created_at: this.timestamp,
         updated_at: this.timestamp,
       })
@@ -1068,6 +1095,9 @@ export class DatabaseService {
           }),
           ...(typeof updates.searchOnAdd !== 'undefined' && {
             search_on_add: updates.searchOnAdd,
+          }),
+          ...(typeof updates.seriesType !== 'undefined' && {
+            series_type: updates.seriesType,
           }),
           ...(typeof updates.tags !== 'undefined' && {
             tags: JSON.stringify(updates.tags),

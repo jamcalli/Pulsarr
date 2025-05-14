@@ -1,9 +1,9 @@
 import type { Knex } from 'knex'
 
 /**
- * Alters the `router_rules` table by adding `search_on_add` and `season_monitoring` columns to enable per-route instance overrides.
+ * Alters the `router_rules` table by adding `search_on_add` (nullable boolean) and `season_monitoring` (nullable string) columns.
  *
- * Adds a nullable boolean column `search_on_add` to control automatic search behavior for Radarr and Sonarr routes, and a nullable string column `season_monitoring` to specify season monitoring preferences for Sonarr routes.
+ * The `search_on_add` column is intended to control automatic search behavior for Radarr and Sonarr routes, while `season_monitoring` specifies season monitoring preferences for Sonarr routes.
  */
 export async function up(knex: Knex): Promise<void> {
   await knex.schema.alterTable('router_rules', (table) => {

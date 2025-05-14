@@ -16,9 +16,9 @@ import {
 import safeRegex from 'safe-regex'
 
 /**
- * Creates a routing evaluator that applies routing decisions and condition checks based on content certification or rating metadata from Radarr and Sonarr sources.
+ * Creates a routing evaluator that determines routing decisions and evaluates conditions based on the certification or rating metadata of Radarr and Sonarr content items.
  *
- * The evaluator supports the "certification" field with operators including equals, notEquals, contains, notContains, in, notIn, and regex. It extracts certification information from content metadata and matches it against routing rules for movies and TV shows.
+ * The evaluator supports the "certification" field with operators such as equals, notEquals, contains, notContains, in, notIn, and regex. It extracts certification information from content metadata and matches it against routing rules for movies and TV shows to produce routing decisions.
  *
  * @returns A {@link RoutingEvaluator} that routes content items according to their certification metadata.
  *
@@ -267,6 +267,7 @@ export default function createCertificationEvaluator(
         priority: rule.order || 50, // Default to 50 if not specified
         searchOnAdd: rule.search_on_add,
         seasonMonitoring: rule.season_monitoring,
+        seriesType: rule.series_type,
       }))
     },
 

@@ -9,11 +9,11 @@ import SonarrPageSkeleton from '@/features/sonarr/components/instance/sonarr-car
 import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
 
 /**
- * Renders the Sonarr configuration page with tabs for managing Sonarr instances and content routing settings.
+ * Displays the Sonarr configuration page with tabs for managing Sonarr instances and content routing.
  *
- * Provides interfaces to add, view, and configure Sonarr instances, as well as manage content routing. Handles initialization and loading states, and separates instance management from content routing for ease of use.
+ * Provides interfaces to add, view, and configure Sonarr instances, as well as manage content routing settings. Handles initialization and loading states, and separates instance management from content routing for clarity.
  *
- * @returns The Sonarr configuration page component.
+ * @returns The rendered Sonarr configuration page component.
  */
 export default function SonarrConfigPage() {
   const instances = useSonarrStore((state) => state.instances)

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { SERIES_TYPES } from './constants.js'
 
 // Base schemas for conditions
 export const ComparisonOperatorSchema = z.enum([
@@ -130,6 +131,7 @@ export const BaseRouterRuleSchema = z.object({
   // For Sonarr only - sending this with Radarr rules will be rejected by the API
   // Additional validation happens in the route handlers
   season_monitoring: z.string().nullable().optional(),
+  series_type: z.enum(SERIES_TYPES).nullable().optional(),
 })
 
 // For the ConditionalRouteFormSchema (used in the frontend)
@@ -272,12 +274,12 @@ export type ContentRouterRuleUpdate = z.infer<
 >
 
 /**
- * Normalizes the input value for the `search_on_add` field.
+ * Normalizes the input for the `search_on_add` field to a boolean or `undefined`.
  *
- * Converts the input to a boolean if it is defined and not null; returns `undefined` if the input is `undefined` or `null`.
+ * Returns `undefined` if the input is `null` or `undefined`; otherwise, returns the boolean equivalent of the input.
  *
- * @param value - The value to normalize.
- * @returns The normalized boolean value, or `undefined` if the input is `undefined` or `null`.
+ * @param value - Input to normalize for the `search_on_add` field.
+ * @returns The boolean value of the input, or `undefined` if the input is `null` or `undefined`.
  */
 export function normalizeSearchOnAdd(value: unknown): boolean | undefined {
   if (value === undefined || value === null) {
@@ -287,11 +289,11 @@ export function normalizeSearchOnAdd(value: unknown): boolean | undefined {
 }
 
 /**
- * Normalizes and validates a season monitoring value.
+ * Normalizes the input to a valid season monitoring option in lowercase.
  *
- * Converts the input to a lowercase string and returns it if it matches a predefined set of valid season monitoring values. Returns 'all' if the input is invalid, or undefined if the input is null or undefined.
+ * Converts the input to a lowercase string and returns it if it matches a valid season monitoring option; returns 'all' if the input is invalid, or undefined if the input is null or undefined.
  *
- * @param value - The value to normalize and validate.
+ * @param value - The value to normalize as a season monitoring option.
  * @returns The normalized season monitoring value, or undefined if the input is null or undefined.
  */
 export function normalizeSeasonMonitoring(value: unknown): string | undefined {

@@ -54,7 +54,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
 
         fastify.log.error('Error retrieving users:', err)
-        throw reply.internalServerError('Unable to retrieve users')
+        return reply.internalServerError('Unable to retrieve users')
       }
     },
   )
@@ -106,7 +106,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
 
         fastify.log.error('Error retrieving users with counts:', err)
-        throw reply.internalServerError('Unable to retrieve users with counts')
+        return reply.internalServerError('Unable to retrieve users with counts')
       }
     },
   )

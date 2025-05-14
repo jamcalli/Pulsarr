@@ -27,9 +27,9 @@ function isCondition(value: unknown): value is Condition {
 }
 
 /**
- * Determines whether the given value is a valid condition group.
+ * Checks if a value is a valid condition group for routing evaluation.
  *
- * Returns true if the value is a non-null object containing an 'operator' property and a 'conditions' array.
+ * Returns true if the value is a non-null object with an 'operator' property and a 'conditions' array.
  */
 function isConditionGroup(value: unknown): value is ConditionGroup {
   return (
@@ -42,7 +42,7 @@ function isConditionGroup(value: unknown): value is ConditionGroup {
 }
 
 /**
- * Determines whether the given value is a valid {@link Condition} or {@link ConditionGroup}.
+ * Checks if a value is a valid condition or condition group for routing evaluation.
  *
  * @returns True if the value is a {@link Condition} or {@link ConditionGroup}; otherwise, false.
  */
@@ -51,11 +51,11 @@ function isValidCondition(value: unknown): value is Condition | ConditionGroup {
 }
 
 /**
- * Creates a routing evaluator that applies conditional rules from the database to determine routing decisions for content items.
+ * Creates a routing evaluator that determines routing decisions for content items based on conditional rules stored in the database.
  *
- * The evaluator fetches enabled conditional routing rules, validates their condition structures, and evaluates each rule against the provided content item and routing context. For each rule whose condition matches, a routing decision is generated specifying the target instance, quality profile, root folder, tags, priority, search-on-add, and season monitoring settings.
+ * The evaluator fetches enabled conditional routing rules for the relevant content type, validates their condition structures, and evaluates each rule against the provided content item and routing context. For each rule whose condition matches, a routing decision is generated, including the target instance, quality profile, root folder, tags, priority, search-on-add, season monitoring, and series type.
  *
- * @returns A {@link RoutingEvaluator} configured to process conditional routing rules with the highest priority.
+ * @returns A {@link RoutingEvaluator} that processes conditional routing rules with the highest priority.
  *
  * @remark If the database query fails, the evaluator logs an error and returns `false` from `canEvaluate` or `null` from `evaluate`.
  */
@@ -192,6 +192,7 @@ export default function createConditionalEvaluator(
         priority: rule.order || 50, // Default to 50 if not specified
         searchOnAdd: rule.search_on_add,
         seasonMonitoring: rule.season_monitoring,
+        seriesType: rule.series_type,
       }))
     },
   }

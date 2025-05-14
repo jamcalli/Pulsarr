@@ -9,7 +9,7 @@ import {
 } from '@/features/auth/schemas/login-schema'
 
 /**
- * Provides state management, validation, and submission handling for a login form.
+ * Provides state management, validation, and submission handling for a login form in a React application.
  *
  * Initializes form validation using a Zod schema, manages loading and success states, handles backend and unexpected errors, and automatically focuses the email input on mount. On successful login, displays a welcome toast and redirects the user.
  *

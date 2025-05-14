@@ -556,6 +556,7 @@ sonarrBypassIgnored=false              # Bypass ignored setting
 sonarrSeasonMonitoring=all             # Season monitoring strategy
 sonarrMonitorNewItems=all              # Monitor strategy for new items ('all' or 'none')
 sonarrTags=[]                          # Tags as JSON array
+sonarrSeriesType=standard              # Series type: 'standard', 'anime', or 'daily'
 
 # Radarr Configuration (these will seed a single instance. Needs all the values. Only use in dev.)
 radarrBaseUrl=http://x.x.x.x:7878      # Radarr instance URL
@@ -569,13 +570,19 @@ radarrTags=[]                          # Tags as JSON array
 # Plex Configuration
 plexTokens=["xxxxxxxxxxxxxxxxxxxx"]    # Plex authentication token
 skipFriendSync=false                   # Skip syncing Plex friends
+enablePlexPlaylistProtection=false     # Enable playlist protection feature
+plexProtectionPlaylistName="Do Not Delete"  # Name of protection playlist
+plexServerUrl=http://localhost:32400   # Plex server URL (optional, can be auto-detected)
 
 # User Tagging Configuration
 tagUsersInSonarr=false                 # Enable automatic user tagging in Sonarr
 tagUsersInRadarr=false                 # Enable automatic user tagging in Radarr
 tagPrefix=pulsarr:user                 # Prefix for user tags - required alphanumeric, dash, underscore, colon, period only
-persistHistoricalTags=true             # When true, keeps tags even after content is removed from watchlist
+persistHistoricalTags=true             # DEPRECATED: Use removedTagMode instead (keeps for backward compatibility)
 cleanupOrphanedTags=true               # When true, removes tags for deleted users during sync
+removedTagMode=remove                  # How to handle tags when content is removed: 'keep', 'remove', or 'prefix'
+removedTagPrefix=pulsarr:removed       # Prefix for removal tags when using 'prefix' mode
+deletionMode=watchlist                 # Deletion workflow mode: 'watchlist' or 'tag-based'
 
 # Delete Configuration
 deleteMovie=false                      # Auto-delete movies setting
@@ -608,23 +615,54 @@ Delete Sync automatically removes content from your Sonarr/Radarr instances when
 
 ### Key Features
 
-- **Selective Deletion**: Configure which content types to remove (movies, ended shows, continuing shows)
+- **Advanced Deletion Modes**:
+  - **Watchlist-based**: Removes content not present on any user's watchlist (traditional mode)
+  - **Tag-based**: Uses removal tags to mark content for deletion with flexible behavior options
+- **Plex Playlist Protection**: Protect content from deletion using special playlists
 - **File Management**: Option to delete or retain actual media files when removing content
 - **Safety Mechanisms**: Built-in protections against accidental mass deletion
 - **Scheduling**: Configurable timing for automatic cleanup operations
 - **Dry Run Mode**: Preview what would be deleted before committing changes
 
+### Deletion Modes
+
+#### Watchlist-Based Deletion (Traditional)
+Removes content when it's no longer present on any synced user's watchlist. This is the original deletion method that ensures your library only contains actively watched content.
+
+#### Tag-Based Deletion
+Works with the user tagging system to provide more granular control:
+- Automatically adds removal tags when content is removed from watchlists
+- Configurable tag behavior:
+  - **Keep tags**: Maintain existing tags for historical tracking
+  - **Remove tags**: Clean up all tags upon removal
+  - **Add prefix**: Add "removed:" prefix to existing tags
+- Allows for delayed deletion based on tag presence
+
+### Plex Playlist Protection
+
+Protect specific content from deletion by adding it to designated Plex playlists:
+
+- **Automatic Playlist Creation**: Protection playlists are automatically created for all users on your Plex server
+- **"Do Not Delete" Playlists**: Content in these playlists is automatically excluded from deletion
+- **Simple Protection**: Just add any items to the protection playlist, and they'll be excluded from the deletion process
+- **Multi-User Support**: Syncs protection playlists across all enabled users
+- **Customizable Names**: Configure your own playlist name (default: "Do Not Delete")
+- **Works with Both Modes**: Compatible with watchlist and tag-based deletion methods
+
 ### Configuration
 
 Navigate to the Utilities page in the Pulsarr web interface and configure your deletion preferences:
 
-- Content types to delete (movies, ended shows, continuing shows)
-- Whether to delete associated files from disk
-- User sync setting preferences (if someone isn't allowed to make requests, ignore their watchlist in the deletion process)
-- Notification preferences for deletion events (fully configurable)
-- Maximum deletion prevention threshold (a failsafe)
-
-Set up a schedule for automatic deletion operations
+- **Mode Selection**: Choose between watchlist-based or tag-based deletion
+- **Content Types**: Select which content to delete (movies, ended shows, continuing shows)
+- **File Management**: Choose whether to delete associated files from disk
+- **Tag Behavior**: Configure how removal tags are handled
+- **Playlist Protection**: Set up protected playlist names
+- **User Sync Settings**: Control which users' watchlists/playlists affect deletion
+- **Notifications**: Configure deletion event notifications
+- **Safety Threshold**: Set maximum deletion prevention percentage
+- **Scheduling**: Configure timing for automatic cleanup operations
+- **Dry Run Mode**: Preview deletions without committing changes
 
 ### Running Delete Sync
 
@@ -634,12 +672,13 @@ You can operate Delete Sync in several ways:
 2. **Run Now**: Manually trigger the deletion process immediately
 3. **Dry Run**: Preview what would be deleted without making any changes
 
+**Note**: When Plex Playlist Protection is enabled, running a dry run will automatically create the protection playlists for all users if they don't already exist. This is a safe operation that only creates the playlists without deleting any content.
+
 You can configure notifications to receive information regarding your workflow:
 
 <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Delete-Sync-Dry.png" width="400" alt="Delete Sync Dry">
 
 <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Delete-Sync-Error.png" width="400" alt="Delete Sync Error">
-
 
 ### Safety Features
 
@@ -649,11 +688,26 @@ Delete Sync includes several safety measures to prevent accidental data loss:
 - Selective content type targeting
 - Dry run previews
 - Detailed deletion logs
+- **Playlist-Based Content Protection**
+
+### Integration with User Tagging
+
+When using tag-based deletion mode, Delete Sync works seamlessly with the User Tagging feature:
+
+1. When content is removed from a watchlist, removal tags are automatically added
+2. Content with removal tags can be:
+   - Immediately deleted based on your schedule
+   - Retained with historical tags for record-keeping
+   - Marked with a "removed:" prefix for easy identification
+3. Protected content in playlists is excluded regardless of tag status
 
 ### Recommendations
 
-- Begin with a dry run to understand the impact on your libraries
-- Consider keeping files for ended shows that may return for future seasons
+- Begin with a dry run to understand the impact on your libraries.
+- Consider using playlist protection for seasonal content or favorites.
+- Use tag-based mode for more granular control over deletion timing.
+- Keep files for ended shows that may return for future seasons.
+- Regularly review your protected playlists to ensure they're current.
 
 ## User Tagging
 
@@ -664,8 +718,8 @@ Pulsarr's User Tagging feature organizes your media by automatically adding user
 - **Automatic User Tracking**: Tags movies and shows with the usernames of people who added them to their watchlists
 - **Multi-Instance Support**: Works across all your Sonarr and Radarr instances simultaneously
 - **Customizable Prefix**: Configure your own prefix for user tags (default: "pulsarr:user")
-- **Historical Tracking**: Option to preserve tags for historical record-keeping even after items are removed from watchlists
-- **Tag Cleanup**: Automatically removes orphaned tags for users who no longer exist
+- **Enhanced Tag Management**: Flexible tag removal options when content leaves watchlists
+- **Tag-Based Deletion**: Option to use tags for content deletion instead of watchlist status
 - **Batch Processing**: Efficiently processes large libraries with minimal performance impact
 
 ### Usage Benefits
@@ -673,6 +727,7 @@ Pulsarr's User Tagging feature organizes your media by automatically adding user
 - **Content Organization**: Easily identify who requested specific content
 - **User-Based Filtering**: Create custom filters in Sonarr/Radarr based on user tags
 - **Accountability**: Track which users are driving your media library growth
+- **Lifecycle Management**: Use tags to manage content from request to removal
 - **Management**: Quickly find all content requested by specific users
 - **Integration**: Works seamlessly with Sonarr and Radarr's existing tag system
 
@@ -688,12 +743,36 @@ Pulsarr's User Tagging feature organizes your media by automatically adding user
 4. Save your changes to apply the settings
 5. Click "Sync Tags Now" to immediately apply tags to all content
 
+### Enhanced Tag Management
+
+When content is removed from a user's watchlist, you have multiple options for handling the associated tags:
+
+- **Keep**: Preserve tags for historical tracking even after content is removed from watchlists
+- **Remove**: Delete tags when content is removed from watchlists
+- **Prefix**: Add a customizable prefix (e.g., "removed:") to existing tags when content is removed from watchlists
+
+These tag management options work seamlessly with Delete Sync's tag-based deletion mode, allowing you to:
+- Identify content for deletion based on tag status rather than watchlist presence
+- Maintain historical records of who requested content
+- Create custom workflows based on tag lifecycle
+
 ### Advanced Settings
 
 - **Tag Prefix**: Customize the prefix used for all user tags (default: "pulsarr:user")
+- **Tag Removal Options**: Configure how tags are handled when content is removed from watchlists
+- **Customizable Removal Prefix**: Define your own prefix for removed content tags
+- **Tag-Based Deletion**: Enable tags to identify content for deletion instead of watchlist status
 - **Preserve Historical Tags**: When enabled, keeps tags even after content is removed from a user's watchlist
 - **Clean Up Orphaned Tags**: Automatically removes tags for deleted users
 - **Manual Tag Removal**: Option to remove all user tags if needed
+
+### Integration with Delete Sync
+
+User Tagging works seamlessly with Delete Sync's tag-based deletion mode:
+- Configure tags to be added, modified, or removed based on watchlist changes
+- Use tag status to determine when content should be deleted
+- Protect content with specific tags from deletion
+- Create complex deletion workflows based on tag lifecycle
 
 <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/User-Tags.png" alt="User Tagging" width="80%"/>
 
@@ -751,6 +830,7 @@ Pulsarr includes built-in API documentation accessible at `/api/docs` when runni
 - API keys
 - ~~Delete Syncing~~
 - Unit tests... 🤮
+- Refactor documentation into a proper documentation site using Docusaurus
 
 ## Contributing
 

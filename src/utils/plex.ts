@@ -17,10 +17,10 @@ interface RateLimitError extends Error {
 }
 
 /**
- * Determines whether the provided error is a {@link RateLimitError}.
+ * Determines whether an error represents a Plex API rate limit exhaustion.
  *
- * @param error - The error to check.
- * @returns `true` if the error is a {@link RateLimitError}; otherwise, `false`.
+ * @param error - The value to check.
+ * @returns `true` if the error is a {@link RateLimitError} with rate limit exhaustion; otherwise, `false`.
  */
 function isRateLimitError(error: unknown): error is RateLimitError {
   return (
@@ -31,8 +31,18 @@ function isRateLimitError(error: unknown): error is RateLimitError {
 }
 
 /**
- * Helper function to handle rate limit errors and retries
- * Centralizes the logic for handling both HTTP 429 responses and caught rate limit errors
+ * Handles rate limit errors from the Plex API when processing a single watchlist item, managing retries and cooldowns.
+ *
+ * Sets a global cooldown using the rate limiter, waits if retries remain, and retries processing the item. If the maximum number of retries is reached, throws a {@link RateLimitError} for caught errors or returns an empty set for HTTP 429 responses.
+ *
+ * @param item - The watchlist item being processed.
+ * @param retryCount - The current retry attempt count.
+ * @param maxRetries - The maximum number of allowed retries.
+ * @param progressInfo - Optional progress reporting context.
+ * @param retryAfterSec - Optional cooldown duration in seconds from the Plex API.
+ * @returns A set of processed {@link Item} objects, or an empty set if retries are exhausted due to HTTP 429.
+ *
+ * @throws {RateLimitError} When the maximum number of retries is reached due to rate limiting (except for HTTP 429 responses).
  */
 async function handleRateLimitAndRetry(
   config: Config,
@@ -1057,7 +1067,7 @@ const toItemsBatch = async (
   return results
 }
 
-const toItemsSingle = async (
+export const toItemsSingle = async (
   config: Config,
   log: FastifyBaseLogger,
   item: TokenWatchlistItem,
@@ -1117,6 +1127,14 @@ const toItemsSingle = async (
     }
 
     if (!response.ok) {
+      // Check if it's a 404 error, which means the item doesn't exist in Plex
+      if (response.status === 404) {
+        log.warn(
+          `Item "${item.title}" not found in Plex database (HTTP 404) - skipping retries`,
+        )
+        return new Set()
+      }
+
       throw new Error(
         `Plex API error: HTTP ${response.status} - ${response.statusText}`,
       )
@@ -1195,6 +1213,14 @@ const toItemsSingle = async (
     }
 
     if (error.message.includes('Plex API error')) {
+      // Check specifically for 404 errors and avoid retrying
+      if (error.message.includes('HTTP 404')) {
+        log.warn(
+          `Item "${item.title}" not found in Plex's database (404) - skipping retries`,
+        )
+        return new Set()
+      }
+
       if (retryCount < maxRetries) {
         log.warn(
           `Failed to find ${item.title} in Plex's database. Error: ${error.message}. Retry ${retryCount + 1}/${maxRetries}`,

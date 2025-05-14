@@ -102,7 +102,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
       } catch (error) {
         fastify.log.error('Error in bulk user update:', error)
-        throw reply.internalServerError('Failed to update users')
+        return reply.internalServerError('Failed to update users')
       }
     },
   )

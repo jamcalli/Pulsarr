@@ -417,6 +417,7 @@ export class ContentRouterService {
             decision.tags,
             decision.searchOnAdd,
             decision.seasonMonitoring,
+            decision.seriesType,
           )
         }
         routeCount++

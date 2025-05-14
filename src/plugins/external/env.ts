@@ -165,6 +165,18 @@ const schema = {
       type: 'boolean',
       default: false,
     },
+    plexServerUrl: {
+      type: 'string',
+      default: 'http://localhost:32400',
+    },
+    enablePlexPlaylistProtection: {
+      type: 'boolean',
+      default: false,
+    },
+    plexProtectionPlaylistName: {
+      type: 'string',
+      default: 'Do Not Delete',
+    },
     deleteMovie: {
       type: 'boolean',
       default: false,
@@ -212,13 +224,23 @@ const schema = {
       type: 'boolean',
       default: true,
     },
-    persistHistoricalTags: {
-      type: 'boolean',
-      default: false,
-    },
     tagPrefix: {
       type: 'string',
       default: 'pulsarr:user',
+    },
+    removedTagMode: {
+      type: 'string',
+      enum: ['remove', 'keep', 'special-tag'],
+      default: 'remove',
+    },
+    removedTagPrefix: {
+      type: 'string',
+      default: 'pulsarr:removed',
+    },
+    deletionMode: {
+      type: 'string',
+      enum: ['watchlist', 'tag-based'],
+      default: 'watchlist',
     },
   },
 }

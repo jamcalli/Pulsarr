@@ -49,6 +49,7 @@ import {
   type TagsMultiSelectRef,
 } from '@/components/ui/tag-multi-select'
 import { TagCreationDialog } from '@/components/ui/tag-creation-dialog'
+import { SONARR_SERIES_TYPES, SERIES_TYPE_LABELS } from '../../constants'
 
 interface InstanceCardProps {
   instance: SonarrInstance
@@ -56,15 +57,15 @@ interface InstanceCardProps {
 }
 
 /**
- * Renders a configuration card for managing a Sonarr instance, providing a form interface to view, edit, test, sync, and delete instance settings.
+ * Renders an interactive card for configuring a Sonarr instance, providing a full-featured form to view, edit, test, sync, and delete instance settings.
  *
- * The card includes controls for connection details, quality profile, root folder, monitoring options, season monitoring, syncing with other instances, default instance selection, and tag management. It integrates with global state, supports asynchronous operations for testing connections, saving changes, syncing, deleting, and refreshing tags, and provides user feedback through toasts and modals.
+ * The card includes controls for connection details, quality profile, root folder, monitoring and search options, bypassing ignored content, tag management, season monitoring, series type, syncing with other instances, and default instance selection. It integrates with global state, supports asynchronous operations for testing connections, saving changes, syncing, deleting, and refreshing tags, and provides user feedback through toasts and modals.
  *
  * @param instance - The Sonarr instance to display and configure.
  * @param setShowInstanceCard - Optional callback to control the visibility of the card.
  * @returns The Sonarr instance configuration card UI.
  *
- * @remark If the instance is incomplete but has a valid connection, the form is automatically marked as dirty to preserve editing state. If updating the default instance results in a conflict, the form resets the `isDefault` field to `true` and displays the error message.
+ * @remark If the instance is incomplete but has a valid connection, the form is automatically marked as dirty to preserve editing state. If updating the default instance results in a conflict, the form resets the `isDefault` field to its original value and displays the error message.
  */
 export function InstanceCard({
   instance,
@@ -466,6 +467,46 @@ export function InstanceCard({
                   />
                   <FormField
                     control={form.control}
+                    name="bypassIgnored"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center space-x-2">
+                          <FormLabel className="text-text">
+                            Bypass Ignored
+                          </FormLabel>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  When enabled, this instance will bypass any
+                                  ignore exclusions. Use this when you want
+                                  certain instances to process all content
+                                  regardless of ignore settings.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                        <div className="flex h-10 items-center gap-2 px-3 py-2">
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              disabled={!isConnectionValid}
+                            />
+                          </FormControl>
+                          <span className="text-sm text-text text-muted-foreground">
+                            Bypass ignore exclusions
+                          </span>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
                     name="tags"
                     render={({ field }) => (
                       <FormItem>
@@ -530,9 +571,26 @@ export function InstanceCard({
                     name="seasonMonitoring"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-text">
-                          Season Monitoring
-                        </FormLabel>
+                        <div className="flex items-center space-x-2">
+                          <FormLabel className="text-text">
+                            Season Monitoring
+                          </FormLabel>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  Default season monitoring strategy for all
+                                  series added to this Sonarr instance.
+                                  Determines which seasons are monitored for new
+                                  episodes.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
                         <Select
                           onValueChange={field.onChange}
                           value={field.value}
@@ -559,12 +617,75 @@ export function InstanceCard({
                   />
                   <FormField
                     control={form.control}
+                    name="seriesType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center space-x-2">
+                          <FormLabel className="text-text">
+                            Series Type
+                          </FormLabel>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  Default series type for all series added to
+                                  this Sonarr instance. Can be overridden by
+                                  content router rules.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value || 'standard'}
+                          disabled={!isConnectionValid}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select series type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {SONARR_SERIES_TYPES.map((type) => (
+                              <SelectItem key={type} value={type}>
+                                {SERIES_TYPE_LABELS[type]}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
                     name="syncedInstances"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-text">
-                          Sync With Instances
-                        </FormLabel>
+                        <div className="flex items-center space-x-2">
+                          <FormLabel className="text-text">
+                            Sync With Instances
+                          </FormLabel>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  Select instances to sync with this Sonarr
+                                  instance. Any content that reaches the default
+                                  instance will also be sent to the selected
+                                  synced instance(s).
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
                         <div className="flex gap-2 items-center w-full">
                           <div className="flex-1 min-w-0">
                             <SyncedInstancesSelect
@@ -609,9 +730,25 @@ export function InstanceCard({
                     name="isDefault"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-text">
-                          Default Instance
-                        </FormLabel>
+                        <div className="flex items-center space-x-2">
+                          <FormLabel className="text-text">
+                            Default Instance
+                          </FormLabel>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  The default instance will receive all content
+                                  when no specific routing rules apply. Only one
+                                  instance can be set as default at a time.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
                         <div className="flex h-10 items-center gap-2 px-3 py-2">
                           <FormControl>
                             <Switch

@@ -20,6 +20,10 @@ jobs:
         uses: biomejs/setup-biome@v2
       - name: Run Biome
         run: biome ci .
+      - name: TypeScript Check - Server
+        run: tsc --noEmit
+      - name: TypeScript Check - Client
+        run: tsc --noEmit -p src/client/tsconfig.json
       - name: Build
         run: npm run build
       - name: Contribute List

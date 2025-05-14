@@ -45,15 +45,14 @@ interface MediaItem {
 }
 
 /**
- * Renders a modal dialog for analysis and a drawer/sheet for displaying results of deletion sync operations.
+ * Displays a modal dialog to analyze and preview the results of a delete sync operation on media items.
  *
- * The component displays a loading state with progress indicators in a modal dialog while assessing the impact
- * of a deletion sync on media items. Once the analysis is complete, it switches to a drawer component for most screen
- * sizes and a sheet component for extra-large screens to display the results in a tabbed interface with search
- * functionality, providing better handling for all display sizes.
+ * Shows a progress modal while analyzing which movies and shows would be deleted, then transitions to a responsive drawer or sheet with tabbed, searchable results and summary statistics. Adapts layout for mobile and desktop, and warns if a safety mechanism prevents deletion.
  *
- * @param open - Indicates whether the component is visible.
+ * @param open - Whether the modal is visible.
  * @param onOpenChange - Callback to update the open state.
+ *
+ * @remark The results container uses a drawer on mobile screens and a sheet on larger screens for optimal usability.
  */
 export function DeleteSyncDryRunModal({
   open,
@@ -259,7 +258,9 @@ export function DeleteSyncDryRunModal({
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div
+          className={`grid grid-cols-1 ${deleteSyncDryRunResults.total.protected ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-4 mb-6`}
+        >
           <Card>
             <CardContent className="pt-6">
               <h3 className="text-sm font-medium text-text mb-2">Total</h3>
@@ -287,6 +288,21 @@ export function DeleteSyncDryRunModal({
               <p className="text-sm text-text">Shows would be deleted</p>
             </CardContent>
           </Card>
+          {deleteSyncDryRunResults.total.protected ? (
+            <Card>
+              <CardContent className="pt-6">
+                <h3 className="text-sm font-medium text-text mb-2">
+                  Protected
+                </h3>
+                <p className="text-2xl font-bold text-text">
+                  {deleteSyncDryRunResults.total.protected}
+                </p>
+                <p className="text-sm text-text">
+                  Items protected from deletion
+                </p>
+              </CardContent>
+            </Card>
+          ) : null}
         </div>
 
         <div className="relative mb-6">
