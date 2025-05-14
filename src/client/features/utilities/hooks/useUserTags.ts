@@ -80,9 +80,9 @@ export function isRemoveTagsResponse(
 /**
  * React hook for managing user tagging configuration and actions for Sonarr and Radarr.
  *
- * Handles form state, validation, and provides handlers for fetching, updating, creating, syncing, cleaning up, and removing user tags. Integrates with the utilities store and displays toast notifications for operation results.
+ * Provides form state and validation for user tagging settings, and exposes handlers for fetching, updating, creating, syncing, cleaning up, and removing user tags. Integrates with external stores for state management and displays toast notifications for operation results.
  *
- * @returns An object with the form instance, loading and error states, last results, tag deletion flags, and handlers for all user tag management operations.
+ * @returns An object containing the form instance, loading and error states, last operation results, tag deletion flags, and handlers for all user tag management operations.
  */
 export function useUserTags() {
   const { toast } = useToast()

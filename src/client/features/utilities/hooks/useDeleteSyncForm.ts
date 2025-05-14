@@ -82,25 +82,11 @@ const validateDayOfWeek = (value: string | undefined): string => {
 }
 
 /**
- * Manages the deletion synchronization form state and submission logic.
+ * Provides state management and submission logic for the deletion synchronization form in the utilities feature.
  *
- * This custom React hook initializes a form with validation based on a Zod schema for deletion
- * synchronization settings. It extracts schedule information from existing cron jobs, synchronizes the
- * form state with global configuration, and provides handlers for submitting, canceling, and updating
- * scheduled deletion times.
+ * This custom React hook initializes and validates the deletion sync form using a Zod schema, synchronizes form state with global configuration and scheduling data, and exposes handlers for submitting, canceling, and updating scheduled deletion times. On submission, it updates configuration settings, optionally updates the deletion schedule, refreshes schedules, and manages submission status with toast notifications for user feedback.
  *
- * On submission, the hook updates configuration settings, optionally updates the deletion schedule by
- * constructing a corresponding cron expression, and triggers a refresh of the schedules. It also manages
- * the form submission status and displays toast notifications for success or error outcomes.
- *
- * @returns An object containing:
- * - form: The React Hook Form instance managing the deletion sync form.
- * - saveStatus: The current status of the form submission.
- * - isSaving: A boolean indicating if the form is currently being submitted.
- * - submittedValues: The most recently submitted form values or null.
- * - onSubmit: Function to handle form submission.
- * - handleCancel: Function to reset the form to the current configuration values.
- * - handleTimeChange: Function to update the form's schedule time and day of the week.
+ * @returns An object with the form instance, submission status, last submitted values, and handler functions for form submission, cancellation, and schedule time changes.
  */
 export function useDeleteSyncForm() {
   const { toast } = useToast()
