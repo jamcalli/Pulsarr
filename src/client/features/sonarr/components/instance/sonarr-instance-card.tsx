@@ -57,15 +57,15 @@ interface InstanceCardProps {
 }
 
 /**
- * Displays an interactive card for configuring a Sonarr instance, allowing users to view, edit, test, sync, and delete instance settings.
+ * Renders an interactive card for configuring a Sonarr instance, providing a full-featured form to view, edit, test, sync, and delete instance settings.
  *
- * The card provides a comprehensive form for managing connection details, quality profile, root folder, monitoring and search options, bypassing ignored content, tag management, season monitoring, series type, syncing with other instances, and default instance selection. It integrates with global state, supports asynchronous operations for testing connections, saving changes, syncing, deleting, and refreshing tags, and provides user feedback through toasts and modals.
+ * The card includes controls for connection details, quality profile, root folder, monitoring and search options, bypassing ignored content, tag management, season monitoring, series type, syncing with other instances, and default instance selection. It integrates with global state, supports asynchronous operations for testing connections, saving changes, syncing, deleting, and refreshing tags, and provides user feedback through toasts and modals.
  *
  * @param instance - The Sonarr instance to display and configure.
  * @param setShowInstanceCard - Optional callback to control the visibility of the card.
  * @returns The Sonarr instance configuration card UI.
  *
- * @remark If the instance is incomplete but has a valid connection, the form is automatically marked as dirty to preserve editing state. If updating the default instance results in a conflict, the form resets the `isDefault` field to the original value and displays the error message.
+ * @remark If the instance is incomplete but has a valid connection, the form is automatically marked as dirty to preserve editing state. If updating the default instance results in a conflict, the form resets the `isDefault` field to its original value and displays the error message.
  */
 export function InstanceCard({
   instance,

@@ -4,9 +4,9 @@
 import type { Knex } from 'knex'
 
 /**
- * Alters the "router_rules" table by adding a "tags" JSON column with a default empty array.
+ * Adds a "tags" JSON column to the "router_rules" table with a default value of an empty array.
  *
- * The "tags" column is intended to store an array of tags for each router rule.
+ * The new "tags" column allows each router rule to store an array of associated tags.
  */
 export async function up(knex: Knex): Promise<void> {
   await knex.schema.alterTable('router_rules', (table) => {
@@ -16,7 +16,7 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Removes the "tags" column from the "router_rules" table to revert the schema change.
+ * Drops the "tags" column from the "router_rules" table, reverting the schema to its previous state.
  */
 export async function down(knex: Knex): Promise<void> {
   await knex.schema.alterTable('router_rules', (table) => {

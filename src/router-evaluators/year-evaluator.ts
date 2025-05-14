@@ -36,10 +36,10 @@ interface YearRange {
 }
 
 /**
- * Determines whether the given value is a {@link YearRange} object with optional numeric `min` and/or `max` properties.
+ * Checks if the input is a {@link YearRange} object with optional numeric `min` and/or `max` properties.
  *
  * @param value - The value to check.
- * @returns `true` if the value is an object containing at least one of `min` or `max` as a number or undefined; otherwise, `false`.
+ * @returns `true` if the value is an object with at least one of `min` or `max` as a number or undefined; otherwise, `false`.
  */
 function isYearRange(value: unknown): value is YearRange {
   return (
@@ -56,9 +56,9 @@ function isYearRange(value: unknown): value is YearRange {
 }
 
 /**
- * Checks if the input is a valid year value for routing evaluation.
+ * Determines whether the input is a valid year value for routing evaluation.
  *
- * A valid year value is a number, an array of numbers, or a {@link YearRange} object with optional `min` and/or `max` properties.
+ * Accepts a single number, an array of numbers, or a {@link YearRange} object with optional `min` and/or `max` properties.
  *
  * @returns `true` if the input is a number, an array of numbers, or a {@link YearRange}; otherwise, `false`.
  */
@@ -69,11 +69,11 @@ function isValidYearValue(
 }
 
 /**
- * Creates a routing evaluator for content items based on their release year.
+ * Creates a routing evaluator that determines routing decisions and evaluates conditions for content items based on their release year.
  *
- * The evaluator enables routing and condition evaluation using a variety of operators on the "year" field, including exact match, inequality, range, and array membership. It retrieves year-based routing rules from the database, filters them by content type and enabled status, and matches them against the content item's release year to generate routing decisions. It also provides condition evaluation for year-based rules and exposes metadata describing supported fields and operators.
+ * The evaluator supports a range of operators on the "year" field, including exact match, inequality, range, and array membership. It retrieves year-based routing rules from the database, filters them by content type and enabled status, and matches them against the content item's release year to generate routing decisions. It also provides condition evaluation for year-based rules and exposes metadata describing supported fields and operators.
  *
- * @returns A {@link RoutingEvaluator} instance for evaluating routing rules and conditions based on content release year.
+ * @returns A {@link RoutingEvaluator} for evaluating routing rules and conditions based on content release year.
  *
  * @remark If the database query for routing rules fails, the evaluator logs the error and returns {@code null} from the {@code evaluate} method.
  */

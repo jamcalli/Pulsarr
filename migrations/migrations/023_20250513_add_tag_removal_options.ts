@@ -1,13 +1,9 @@
 import type { Knex } from 'knex'
 
 /**
- * Adds `removedTagMode` and `removedTagPrefix` configuration options to the `configs` table.
+ * Adds `removedTagMode` and `removedTagPrefix` columns to the `configs` table if it exists.
  *
- * If the `configs` table exists, this migration adds two new columns:
- * - `removedTagMode`: Controls how user tags are handled when content is removed from watchlists.
- * - `removedTagPrefix`: Customizes the prefix for a special "removed" tag.
- *
- * If a config row exists, sets `removedTagMode` to `'keep'` if `persistHistoricalTags` is `true`, otherwise to `'remove'`.
+ * Sets `removedTagMode` to `'keep'` for existing config rows where `persistHistoricalTags` is `true`; otherwise, sets it to `'remove'`.
  */
 export async function up(knex: Knex): Promise<void> {
   // Check if the table exists before attempting to modify
@@ -43,9 +39,9 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Removes the `removedTagMode` and `removedTagPrefix` columns from the `configs` table if they exist.
+ * Drops the `removedTagMode` and `removedTagPrefix` columns from the `configs` table if it exists.
  *
- * Reverses the changes made by the corresponding migration's `up` function.
+ * Reverts the schema changes introduced by the `up` migration.
  */
 export async function down(knex: Knex): Promise<void> {
   // Check if the table exists before attempting to modify
