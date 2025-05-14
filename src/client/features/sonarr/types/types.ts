@@ -36,6 +36,7 @@ export interface SonarrInstance {
   tags: string[]
   isDefault: boolean
   syncedInstances?: number[]
+  seriesType?: 'standard' | 'anime' | 'daily'
   data?: SonarrInstanceData
 }
 
@@ -62,6 +63,7 @@ export interface SonarrInstanceFormValues extends SonarrConnectionValues {
   tags: string[]
   isDefault: boolean
   syncedInstances?: number[]
+  seriesType?: 'standard' | 'anime' | 'daily'
   _connectionTested?: boolean
   _originalBaseUrl?: string
   _originalApiKey?: string

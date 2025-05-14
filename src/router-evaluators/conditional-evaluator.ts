@@ -53,7 +53,7 @@ function isValidCondition(value: unknown): value is Condition | ConditionGroup {
 /**
  * Creates a routing evaluator that applies conditional rules from the database to determine routing decisions for content items.
  *
- * The evaluator retrieves enabled conditional routing rules, validates their condition structures, and evaluates each rule against the provided content item and routing context. For each rule whose condition matches, a routing decision is generated specifying the target instance, quality profile, root folder, tags, priority, search-on-add, and season monitoring settings.
+ * The evaluator retrieves enabled conditional routing rules, validates their condition structures, and evaluates each rule against the provided content item and routing context. For each rule whose condition matches, a routing decision is generated specifying the target instance, quality profile, root folder, tags, priority, search-on-add, season monitoring, and series type.
  *
  * @returns A {@link RoutingEvaluator} configured to process conditional routing rules with the highest priority.
  *
@@ -192,6 +192,7 @@ export default function createConditionalEvaluator(
         priority: rule.order || 50, // Default to 50 if not specified
         searchOnAdd: rule.search_on_add,
         seasonMonitoring: rule.season_monitoring,
+        seriesType: rule.series_type,
       }))
     },
   }

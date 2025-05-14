@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/button'
 import {
   AlertCircle,
   HelpCircle,
+  Info,
   Loader2,
   Pen,
   Plus,
@@ -238,6 +239,14 @@ const AccordionRouteCard = ({
               (selectedInst && 'seasonMonitoring' in selectedInst
                 ? selectedInst.seasonMonitoring
                 : 'all')
+            : undefined,
+        // For series_type (Sonarr only), default to the instance setting or undefined if not set
+        series_type:
+          routeContentType === 'sonarr'
+            ? routeObj?.series_type ||
+              (selectedInst && 'seriesType' in selectedInst
+                ? selectedInst.seriesType
+                : undefined)
             : undefined,
       }
     },
@@ -465,6 +474,17 @@ const AccordionRouteCard = ({
                 })
               }
             }
+            // Set series_type default, but only if not already changed by user
+            if (!form.formState.dirtyFields.series_type) {
+              if (
+                'seriesType' in newSelectedInstance &&
+                newSelectedInstance.seriesType
+              ) {
+                form.setValue('series_type', newSelectedInstance.seriesType, {
+                  shouldDirty: false,
+                })
+              }
+            }
           }
         }
       }
@@ -511,6 +531,10 @@ const AccordionRouteCard = ({
             data.search_on_add === null ? undefined : data.search_on_add,
           season_monitoring:
             contentType === 'sonarr' ? data.season_monitoring : undefined,
+          series_type:
+            contentType === 'sonarr' && data.series_type
+              ? data.series_type
+              : undefined,
         }
 
         await onSave(routeData)
@@ -534,6 +558,10 @@ const AccordionRouteCard = ({
             data.search_on_add === null ? undefined : data.search_on_add,
           season_monitoring:
             contentType === 'sonarr' ? data.season_monitoring : undefined,
+          series_type:
+            contentType === 'sonarr' && data.series_type
+              ? data.series_type
+              : undefined,
         }
 
         await onSave(updatePayload)
@@ -801,7 +829,7 @@ const AccordionRouteCard = ({
                   {isNew && (
                     <Alert variant="default">
                       <div className="flex items-center">
-                        <HelpCircle className="h-4 w-4 mr-2" />
+                        <Info className="h-5 w-5 mr-2" />
                         <AlertDescription>
                           <p className="text-sm">
                             Build conditions below to determine when content
@@ -925,59 +953,8 @@ const AccordionRouteCard = ({
                     />
                   </div>
 
-                  {/* Weight/Priority Slider */}
-                  <FormField
-                    control={form.control}
-                    name="order"
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            <FormLabel className="text-text">
-                              Priority Weight
-                            </FormLabel>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <HelpCircle className="h-4 w-4 text-text cursor-help" />
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="max-w-xs">
-                                    Priority weight only affects routing when
-                                    multiple rules would send content to the
-                                    same instance. In such cases, only the rule
-                                    with the highest priority will be used for
-                                    that instance. If rules route to different
-                                    instances, content will be sent to all
-                                    matching instances regardless of priority.
-                                  </p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </div>
-                          <span className="text-sm text-text text-muted-foreground">
-                            {field.value}
-                          </span>
-                        </div>
-                        <FormControl>
-                          <Slider
-                            defaultValue={[field.value]}
-                            min={1}
-                            max={100}
-                            step={1}
-                            onValueChange={(vals) => field.onChange(vals[0])}
-                          />
-                        </FormControl>
-                        <FormDescription className="text-xs">
-                          Higher values give this route greater priority (1-100)
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Instance Selection */}
-                  <div className="grid gap-4 md:grid-cols-1">
+                  {/* Instance Selection and Priority Weight */}
+                  <div className="grid gap-4 md:grid-cols-2">
                     <FormField
                       control={form.control}
                       name="target_instance_id"
@@ -1007,6 +984,57 @@ const AccordionRouteCard = ({
                               ))}
                             </SelectContent>
                           </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="order"
+                      render={({ field }) => (
+                        <FormItem>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-2">
+                              <FormLabel className="text-text">
+                                Priority Weight
+                              </FormLabel>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="max-w-xs">
+                                      Priority weight only affects routing when
+                                      multiple rules would send content to the
+                                      same instance. In such cases, only the
+                                      rule with the highest priority will be
+                                      used for that instance. If rules route to
+                                      different instances, content will be sent
+                                      to all matching instances regardless of
+                                      priority.
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
+                            <span className="text-sm text-text text-muted-foreground">
+                              {field.value}
+                            </span>
+                          </div>
+                          <FormControl>
+                            <Slider
+                              defaultValue={[field.value]}
+                              min={1}
+                              max={100}
+                              step={1}
+                              onValueChange={(vals) => field.onChange(vals[0])}
+                            />
+                          </FormControl>
+                          <FormDescription className="text-xs">
+                            Higher values give this route greater priority
+                            (1-100)
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -1112,17 +1140,34 @@ const AccordionRouteCard = ({
                     Advanced Settings
                   </h3>
 
-                  {/* Season Monitoring - Sonarr Only */}
+                  {/* Season Monitoring and Series Type - Sonarr Only */}
                   {contentType === 'sonarr' && (
-                    <div className="mb-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                       <FormField
                         control={form.control}
                         name="season_monitoring"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-text">
-                              Season Monitoring
-                            </FormLabel>
+                            <div className="flex items-center space-x-2">
+                              <FormLabel className="text-text">
+                                Season Monitoring
+                              </FormLabel>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="max-w-xs">
+                                      Season monitoring strategy to use for this
+                                      route. Determines which seasons are
+                                      monitored for new episodes when series are
+                                      added.
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
                             <Select
                               value={field.value || 'all'}
                               onValueChange={field.onChange}
@@ -1146,6 +1191,54 @@ const AccordionRouteCard = ({
                           </FormItem>
                         )}
                       />
+                      <FormField
+                        control={form.control}
+                        name="series_type"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="flex items-center space-x-2">
+                              <FormLabel className="text-text">
+                                Series Type
+                              </FormLabel>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="max-w-xs">
+                                      Series type to use when adding content to
+                                      Sonarr. Overrides the default series type
+                                      set on the instance.
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
+                            <Select
+                              value={field.value || undefined}
+                              onValueChange={field.onChange}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Use instance default" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="none">
+                                  Use instance default
+                                </SelectItem>
+                                <SelectItem value="standard">
+                                  Standard
+                                </SelectItem>
+                                <SelectItem value="anime">Anime</SelectItem>
+                                <SelectItem value="daily">Daily</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     </div>
                   )}
 
@@ -1157,9 +1250,25 @@ const AccordionRouteCard = ({
                       name="search_on_add"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-text">
-                            Search on Add
-                          </FormLabel>
+                          <div className="flex items-center space-x-2">
+                            <FormLabel className="text-text">
+                              Search on Add
+                            </FormLabel>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="max-w-xs">
+                                    When enabled, content will be automatically
+                                    searched for when added. Overrides the
+                                    default setting configured on the instance.
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
                           <div className="flex h-10 items-center gap-2 px-3 py-2">
                             <FormControl>
                               <Switch

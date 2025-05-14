@@ -132,6 +132,7 @@ export class SonarrManagerService {
     tags?: string[],
     searchOnAdd?: boolean | null,
     seasonMonitoring?: string | null,
+    seriesType?: 'standard' | 'anime' | 'daily' | null,
   ): Promise<void> {
     // If no specific instance is provided, try to get the default instance
     let targetInstanceId = instanceId
@@ -192,6 +193,9 @@ export class SonarrManagerService {
       const targetSeasonMonitoring =
         seasonMonitoring ?? instance.seasonMonitoring ?? 'all'
 
+      // Use provided series type or instance default
+      const targetSeriesType = seriesType ?? instance.seriesType ?? 'standard'
+
       await sonarrService.addToSonarr(
         sonarrItem,
         targetRootFolder,
@@ -199,6 +203,7 @@ export class SonarrManagerService {
         targetTags,
         targetSearchOnAdd,
         targetSeasonMonitoring,
+        targetSeriesType,
       )
 
       await this.fastify.db.updateWatchlistItem(key, {
@@ -207,7 +212,7 @@ export class SonarrManagerService {
       })
 
       this.log.info(
-        `Successfully routed item to instance ${targetInstanceId} with quality profile ${targetQualityProfileId ?? 'default'}, tags ${targetTags.length ? targetTags.join(', ') : 'none'}, search on add ${targetSearchOnAdd ? 'enabled' : 'disabled'}, and season monitoring set to '${targetSeasonMonitoring}'`,
+        `Successfully routed item to instance ${targetInstanceId} with quality profile ${targetQualityProfileId ?? 'default'}, tags ${targetTags.length ? targetTags.join(', ') : 'none'}, search on add ${targetSearchOnAdd ? 'enabled' : 'disabled'}, season monitoring set to '${targetSeasonMonitoring}', and series type '${targetSeriesType}'`,
       )
     } catch (error) {
       this.log.error(
