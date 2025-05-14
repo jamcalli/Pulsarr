@@ -69,6 +69,11 @@ export class DeleteSyncService {
   private tagCache: Map<number, Map<number, string>> = new Map()
 
   /**
+   * Flag to prevent concurrent runs of the delete sync process
+   */
+  private _running = false
+
+  /**
    * Creates a new DeleteSyncService instance
    *
    * @param log - Fastify logger instance for recording operations
@@ -163,6 +168,15 @@ export class DeleteSyncService {
     safetyTriggered?: boolean
     safetyMessage?: string
   }> {
+    // Check if delete sync is already running
+    if (this._running) {
+      this.log.warn(
+        'Delete-sync already in progress – ignoring duplicate trigger',
+      )
+      return this.createEmptyResult('Duplicate delete-sync run skipped')
+    }
+
+    this._running = true
     try {
       const deletionMode = this.getDeletionMode()
       this.log.info(
@@ -298,6 +312,8 @@ export class DeleteSyncService {
     } catch (error) {
       this.logError('Error in delete sync operation:', error)
       throw error
+    } finally {
+      this._running = false
     }
   }
 
@@ -453,7 +469,15 @@ export class DeleteSyncService {
       totalMediaItems > 0 ? (totalPotentialDeletes / totalMediaItems) * 100 : 0
 
     // Prevent mass deletion if percentage is too high
-    const MAX_DELETION_PERCENTAGE = this.config.maxDeletionPrevention
+    const MAX_DELETION_PERCENTAGE = Number(
+      this.config.maxDeletionPrevention ?? 10,
+    ) // Default to 10% as configured in the database
+
+    if (Number.isNaN(MAX_DELETION_PERCENTAGE) || MAX_DELETION_PERCENTAGE <= 0) {
+      throw new Error(
+        `Invalid maxDeletionPrevention value: "${this.config.maxDeletionPrevention}". Please set a percentage > 0.`,
+      )
+    }
 
     if (potentialDeletionPercentage > MAX_DELETION_PERCENTAGE) {
       return {

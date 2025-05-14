@@ -1726,7 +1726,6 @@ export class UserTagService {
     return tagLabel.toLowerCase().startsWith(`${this.tagPrefix}:`)
   }
 
-
   /**
    * Ensures the special "removed" tag exists in the given service
    * Creates it if it doesn't exist yet
