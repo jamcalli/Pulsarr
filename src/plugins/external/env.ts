@@ -224,13 +224,23 @@ const schema = {
       type: 'boolean',
       default: true,
     },
-    persistHistoricalTags: {
-      type: 'boolean',
-      default: false,
-    },
     tagPrefix: {
       type: 'string',
       default: 'pulsarr:user',
+    },
+    removedTagMode: {
+      type: 'string',
+      enum: ['remove', 'keep', 'special-tag'],
+      default: 'remove',
+    },
+    removedTagPrefix: {
+      type: 'string',
+      default: 'pulsarr:removed',
+    },
+    deletionMode: {
+      type: 'string',
+      enum: ['watchlist', 'tag-based'],
+      default: 'watchlist',
     },
   },
 }

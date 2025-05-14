@@ -25,6 +25,11 @@ const DeleteSyncNotifyOptionEnum = z.enum([
   'discord-both', // Both Discord webhook and DMs but no Apprise
 ])
 
+const DeletionModeEnum = z.enum([
+  'watchlist', // Remove content when it's no longer on any watchlist
+  'tag-based', // Only remove content that has a specific tag
+])
+
 export const ConfigSchema = z.object({
   port: z.number().optional(),
   dbPath: z.string().optional(),
@@ -59,6 +64,11 @@ export const ConfigSchema = z.object({
   respectUserSyncSetting: z.boolean().optional(),
   deleteSyncNotify: DeleteSyncNotifyOptionEnum.optional(),
   maxDeletionPrevention: z.number().optional(),
+  // Deletion mode
+  deletionMode: DeletionModeEnum.optional(),
+  removedTagPrefix: z.string().optional(),
+  // Tag removal mode
+  removedTagMode: z.enum(['remove', 'keep', 'special-tag']).default('remove'),
   // Plex Playlist Protection
   enablePlexPlaylistProtection: z.boolean().optional(),
   plexProtectionPlaylistName: z.string().optional(),

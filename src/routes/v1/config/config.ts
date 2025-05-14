@@ -28,7 +28,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       try {
         const config = await fastify.db.getConfig(1)
         if (!config) {
-          throw reply.notFound('Config not found in database')
+          return reply.notFound('Config not found in database')
         }
 
         // Override the apprise settings with values from runtime config

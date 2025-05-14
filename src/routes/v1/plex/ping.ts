@@ -25,7 +25,7 @@ export const pingRoute: FastifyPluginAsync = async (fastify) => {
         return { success }
       } catch (error) {
         fastify.log.error(error)
-        throw reply.internalServerError('Failed to connect to Plex')
+        return reply.internalServerError('Failed to connect to Plex')
       }
     },
   )

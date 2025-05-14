@@ -5,7 +5,16 @@ export const TaggingConfigSchema = z.object({
   tagUsersInSonarr: z.boolean(),
   tagUsersInRadarr: z.boolean(),
   cleanupOrphanedTags: z.boolean(),
-  persistHistoricalTags: z.boolean(),
+  removedTagMode: z.enum(['remove', 'keep', 'special-tag']).default('remove'),
+  // Despite the name, this is the complete tag label, not just a prefix
+  removedTagPrefix: z
+    .string()
+    .min(1, { message: 'Removed tag label cannot be empty' })
+    .regex(/^[a-zA-Z0-9_\-:.]+$/, {
+      message:
+        'Removed tag label can only contain letters, numbers, underscores, hyphens, colons, and dots',
+    })
+    .default('pulsarr:removed'),
   tagPrefix: z
     .string()
     .min(1, { message: 'Tag prefix cannot be empty' })
@@ -17,8 +26,6 @@ export const TaggingConfigSchema = z.object({
 
 // Generic error schema
 export const ErrorSchema = z.object({
-  statusCode: z.number(),
-  error: z.string(),
   message: z.string(),
 })
 
@@ -30,7 +37,8 @@ export const TaggingStatusResponseSchema = z.object({
     tagUsersInSonarr: z.boolean(),
     tagUsersInRadarr: z.boolean(),
     cleanupOrphanedTags: z.boolean(),
-    persistHistoricalTags: z.boolean(),
+    removedTagMode: z.enum(['remove', 'keep', 'special-tag']).default('remove'),
+    removedTagPrefix: z.string().default('pulsarr:removed'),
     tagPrefix: z.string(),
   }),
 })

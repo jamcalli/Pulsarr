@@ -45,7 +45,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
       } catch (err) {
         fastify.log.error('Error retrieving router rules:', err)
-        throw reply.internalServerError('Unable to retrieve router rules')
+        return reply.internalServerError('Unable to retrieve router rules')
       }
     },
   )
@@ -94,7 +94,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           `Error retrieving router rules of type '${request.params.type}':`,
           err,
         )
-        throw reply.internalServerError('Unable to retrieve router rules')
+        return reply.internalServerError('Unable to retrieve router rules')
       }
     },
   )
@@ -142,7 +142,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
       } catch (err) {
         fastify.log.error('Error retrieving router rules by target:', err)
-        throw reply.internalServerError('Unable to retrieve router rules')
+        return reply.internalServerError('Unable to retrieve router rules')
       }
     },
   )
@@ -173,7 +173,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const rule = await fastify.db.getRouterRuleById(id)
 
         if (!rule) {
-          throw reply.notFound(`Router rule with ID ${id} not found`)
+          return reply.notFound(`Router rule with ID ${id} not found`)
         }
 
         // Format rule using the utility function
@@ -192,7 +192,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           `Error retrieving router rule with ID ${request.params.id}:`,
           err,
         )
-        throw reply.internalServerError('Unable to retrieve router rule')
+        return reply.internalServerError('Unable to retrieve router rule')
       }
     },
   )
@@ -240,7 +240,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           `Error retrieving router rules for target '${request.params.targetType}':`,
           err,
         )
-        throw reply.internalServerError('Unable to retrieve router rules')
+        return reply.internalServerError('Unable to retrieve router rules')
       }
     },
   )
@@ -332,7 +332,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
       } catch (err) {
         fastify.log.error('Error creating router rule:', err)
-        throw reply.internalServerError('Unable to create router rule')
+        return reply.internalServerError('Unable to create router rule')
       }
     },
   )
@@ -366,7 +366,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         // Check if rule exists
         const existingRule = await fastify.db.getRouterRuleById(id)
         if (!existingRule) {
-          throw reply.notFound(`Router rule with ID ${id} not found`)
+          return reply.notFound(`Router rule with ID ${id} not found`)
         }
 
         // Determine the target_type (either from updates or from existing rule)
@@ -431,7 +431,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         )
 
         if (!updated) {
-          throw reply.internalServerError(
+          return reply.internalServerError(
             `Failed to update router rule with ID ${id}`,
           )
         }
@@ -440,7 +440,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const updatedRule = await fastify.db.getRouterRuleById(id)
 
         if (!updatedRule) {
-          throw reply.internalServerError(
+          return reply.internalServerError(
             `Failed to retrieve updated router rule with ID ${id}`,
           )
         }
@@ -461,7 +461,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           `Error updating router rule with ID ${request.params.id}:`,
           err,
         )
-        throw reply.internalServerError('Unable to update router rule')
+        return reply.internalServerError('Unable to update router rule')
       }
     },
   )
@@ -492,14 +492,14 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         // Check if rule exists
         const existingRule = await fastify.db.getRouterRuleById(id)
         if (!existingRule) {
-          throw reply.notFound(`Router rule with ID ${id} not found`)
+          return reply.notFound(`Router rule with ID ${id} not found`)
         }
 
         // Delete the rule
         const deleted = await fastify.db.deleteRouterRule(id)
 
         if (!deleted) {
-          throw reply.internalServerError(
+          return reply.internalServerError(
             `Failed to delete router rule with ID ${id}`,
           )
         }
@@ -516,7 +516,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           `Error deleting router rule with ID ${request.params.id}:`,
           err,
         )
-        throw reply.internalServerError('Unable to delete router rule')
+        return reply.internalServerError('Unable to delete router rule')
       }
     },
   )
@@ -550,14 +550,14 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         // Check if rule exists
         const existingRule = await fastify.db.getRouterRuleById(id)
         if (!existingRule) {
-          throw reply.notFound(`Router rule with ID ${id} not found`)
+          return reply.notFound(`Router rule with ID ${id} not found`)
         }
 
         // Toggle the rule
         const updated = await fastify.db.toggleRouterRule(id, enabled)
 
         if (!updated) {
-          throw reply.internalServerError(
+          return reply.internalServerError(
             `Failed to toggle router rule with ID ${id}`,
           )
         }
@@ -574,7 +574,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           `Error toggling router rule with ID ${request.params.id}:`,
           err,
         )
-        throw reply.internalServerError('Unable to toggle router rule')
+        return reply.internalServerError('Unable to toggle router rule')
       }
     },
   )
