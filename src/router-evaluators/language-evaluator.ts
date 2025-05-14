@@ -16,9 +16,9 @@ import {
 } from '@root/types/content-lookup.types.js'
 
 /**
- * Creates a routing evaluator that determines routing decisions for content items based on their original language metadata.
+ * Creates a routing evaluator that generates routing decisions for content items based on their original language metadata.
  *
- * The evaluator supports conditional logic using the "language" field, with operators for equality, inequality, substring matching, set membership, and regular expressions. It integrates with Radarr and Sonarr metadata formats and retrieves language-based routing rules from the database to generate routing decisions.
+ * The evaluator supports conditional logic on the "language" field, allowing operators for equality, inequality, substring matching, set membership, and regular expressions. It integrates with Radarr and Sonarr metadata formats and retrieves language-based routing rules from the database to determine routing decisions.
  *
  * @returns A {@link RoutingEvaluator} that enables language-based routing and condition evaluation for content items.
  *

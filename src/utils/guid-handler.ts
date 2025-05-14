@@ -134,11 +134,11 @@ export function extractTmdbId(guids: string[] | string | undefined): number {
 }
 
 /**
- * Returns the numeric TVDB ID extracted from the provided GUIDs.
+ * Extracts the numeric TVDB ID from the first GUID prefixed with "tvdb:".
  *
- * Parses the input and returns the first integer found after the "tvdb:" prefix, or 0 if no valid TVDB GUID is present.
+ * Parses the input and returns the integer following the "tvdb:" prefix, or 0 if no valid TVDB GUID is found.
  *
- * @returns The extracted TVDB ID, or 0 if not found or invalid.
+ * @returns The extracted TVDB ID, or 0 if not present or invalid.
  */
 export function extractTvdbId(guids: string[] | string | undefined): number {
   const parsed = parseGuids(guids)
@@ -150,13 +150,13 @@ export function extractTvdbId(guids: string[] | string | undefined): number {
 }
 
 /**
- * Determines whether two arrays of GUID strings share at least one common value.
+ * Checks if two arrays of GUID strings have at least one GUID in common.
  *
  * @param parsedGuids1 - The first array of GUID strings.
  * @param parsedGuids2 - The second array of GUID strings.
- * @returns `true` if any GUID is present in both arrays; otherwise, `false`.
+ * @returns `true` if there is at least one shared GUID; otherwise, `false`.
  *
- * @remark Both inputs must be arrays of parsed GUID strings.
+ * @remark Both parameters must be arrays of already-parsed GUID strings.
  */
 export function hasMatchingParsedGuids(
   parsedGuids1: string[],
@@ -172,11 +172,11 @@ export function hasMatchingParsedGuids(
 }
 
 /**
- * Extracts the numeric Radarr ID from the first GUID prefixed with "radarr:".
+ * Returns the numeric Radarr ID from the first GUID with a "radarr:" prefix.
  *
- * Accepts input as a string, array of strings, or undefined, and searches for a GUID starting with "radarr:" (case-insensitive). Returns the integer following the prefix, or 0 if not found or invalid.
+ * Accepts a string, array of strings, or undefined, and extracts the integer following the "radarr:" prefix (case-insensitive). Returns 0 if no valid Radarr GUID is found.
  *
- * @returns The Radarr ID as a number, or 0 if no valid Radarr GUID is present.
+ * @returns The extracted Radarr ID, or 0 if not present or invalid.
  */
 export function extractRadarrId(guids: string[] | string | undefined): number {
   const parsed = parseGuids(guids)
@@ -194,11 +194,11 @@ export function extractRadarrId(guids: string[] | string | undefined): number {
 }
 
 /**
- * Extracts the numeric Sonarr ID from the first GUID prefixed with "sonarr:".
+ * Returns the numeric Sonarr ID from the first GUID starting with "sonarr:" (case-insensitive).
  *
- * Accepts GUIDs in various formats and returns the integer following the "sonarr:" prefix (case-insensitive). Returns 0 if no valid Sonarr GUID is found.
+ * Accepts GUIDs as a string, array, or undefined, and extracts the integer following the "sonarr:" prefix. Returns 0 if no valid Sonarr GUID is found.
  *
- * @returns The Sonarr ID as a number, or 0 if not present or invalid.
+ * @returns The extracted Sonarr ID, or 0 if not found or invalid.
  */
 export function extractSonarrId(guids: string[] | string | undefined): number {
   const parsed = parseGuids(guids)

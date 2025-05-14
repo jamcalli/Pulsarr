@@ -17,10 +17,10 @@ interface RateLimitError extends Error {
 }
 
 /**
- * Checks if the given error is a {@link RateLimitError} indicating rate limit exhaustion.
+ * Determines whether an error represents a Plex API rate limit exhaustion.
  *
- * @param error - The value to test.
- * @returns `true` if {@link error} is a {@link RateLimitError}; otherwise, `false`.
+ * @param error - The value to check.
+ * @returns `true` if the error is a {@link RateLimitError} with rate limit exhaustion; otherwise, `false`.
  */
 function isRateLimitError(error: unknown): error is RateLimitError {
   return (
@@ -31,9 +31,9 @@ function isRateLimitError(error: unknown): error is RateLimitError {
 }
 
 /**
- * Handles Plex API rate limit errors and manages retries for a single watchlist item.
+ * Handles rate limit errors from the Plex API when processing a single watchlist item, managing retries and cooldowns.
  *
- * Sets the global rate limiter cooldown, waits for the cooldown if retries remain, and retries processing the item. If the maximum number of retries is reached, either throws a `RateLimitError` (for caught errors) or returns an empty set (for HTTP 429 responses).
+ * Sets a global cooldown using the rate limiter, waits if retries remain, and retries processing the item. If the maximum number of retries is reached, throws a {@link RateLimitError} for caught errors or returns an empty set for HTTP 429 responses.
  *
  * @param item - The watchlist item being processed.
  * @param retryCount - The current retry attempt count.

@@ -45,15 +45,14 @@ interface MediaItem {
 }
 
 /**
- * Renders a modal dialog for analysis and a drawer/sheet for displaying results of deletion sync operations.
+ * Displays a modal dialog to analyze and preview the results of a delete sync operation on media items.
  *
- * The component displays a loading state with progress indicators in a modal dialog while assessing the impact
- * of a deletion sync on media items. Once the analysis is complete, it switches to a drawer component for most screen
- * sizes and a sheet component for extra-large screens to display the results in a tabbed interface with search
- * functionality, providing better handling for all display sizes.
+ * Shows a progress modal while analyzing which movies and shows would be deleted, then transitions to a responsive drawer or sheet with tabbed, searchable results and summary statistics. Adapts layout for mobile and desktop, and warns if a safety mechanism prevents deletion.
  *
- * @param open - Indicates whether the component is visible.
+ * @param open - Whether the modal is visible.
  * @param onOpenChange - Callback to update the open state.
+ *
+ * @remark The results container uses a drawer on mobile screens and a sheet on larger screens for optimal usability.
  */
 export function DeleteSyncDryRunModal({
   open,
