@@ -30,6 +30,13 @@ interface DiscordWebhookFormProps {
   isInitialized: boolean
 }
 
+/****
+ * Displays a form for configuring, validating, testing, saving, and clearing one or more Discord webhook URLs.
+ *
+ * Users can enter multiple comma-separated Discord webhook URLs, test their validity, save them to configuration, or clear all saved webhooks with confirmation. Validation and testing are required before saving. The form provides user feedback for all actions and disables controls during loading or testing states.
+ *
+ * @param isInitialized - Whether the configuration is ready for editing.
+ */
 export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
   const { toast } = useToast()
   const config = useConfigStore((state) => state.config)

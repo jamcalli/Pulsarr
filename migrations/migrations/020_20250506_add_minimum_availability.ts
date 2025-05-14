@@ -20,7 +20,9 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Reverts the migration by dropping the `minimum_availability` column from the `radarr_instances` table.
+ * Removes the `minimum_availability` column from the `radarr_instances` table.
+ *
+ * Reverses the migration applied in the `up` function.
  */
 export async function down(knex: Knex): Promise<void> {
   await knex.schema.alterTable('radarr_instances', (table) => {

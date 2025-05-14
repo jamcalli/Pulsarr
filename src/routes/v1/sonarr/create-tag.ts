@@ -31,12 +31,12 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const instance =
           await fastify.sonarrManager.getSonarrInstance(instanceId)
         if (!instance) {
-          throw reply.notFound('Sonarr instance not found')
+          return reply.notFound('Sonarr instance not found')
         }
 
         const service = fastify.sonarrManager.getSonarrService(instanceId)
         if (!service) {
-          throw reply.notFound('Sonarr service not initialized')
+          return reply.notFound('Sonarr service not initialized')
         }
 
         const newTag = await service.createTag(label)
@@ -49,7 +49,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
 
         fastify.log.error('Error creating Sonarr tag:', err)
-        throw reply.internalServerError('Unable to create tag')
+        return reply.internalServerError('Unable to create tag')
       }
     },
   )

@@ -18,7 +18,7 @@ import {
  *
  * @returns A {@link RoutingEvaluator} configured for user-based routing decisions.
  *
- * @remark If neither `userId` nor `userName` is present in the routing context, evaluation is skipped and no routing decisions are returned.
+ * @remark Evaluation is skipped and no routing decisions are returned if neither `userId` nor `userName` is present in the routing context.
  */
 export default function createUserEvaluator(
   fastify: FastifyInstance,
@@ -255,6 +255,7 @@ export default function createUserEvaluator(
         priority: rule.order || 50, // Default to 50 if not specified
         searchOnAdd: rule.search_on_add,
         seasonMonitoring: rule.season_monitoring,
+        seriesType: rule.series_type,
       }))
     },
 

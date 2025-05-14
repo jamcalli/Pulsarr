@@ -28,18 +28,18 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       try {
         const instanceId = Number.parseInt(request.query.instanceId, 10)
         if (Number.isNaN(instanceId)) {
-          throw reply.badRequest('Invalid instance ID')
+          return reply.badRequest('Invalid instance ID')
         }
 
         const instance =
           await fastify.sonarrManager.getSonarrInstance(instanceId)
         if (!instance) {
-          throw reply.notFound('Sonarr instance not found')
+          return reply.notFound('Sonarr instance not found')
         }
 
         const service = fastify.sonarrManager.getSonarrService(instanceId)
         if (!service) {
-          throw reply.notFound('Sonarr service not initialized')
+          return reply.notFound('Sonarr service not initialized')
         }
 
         const qualityProfiles = await service.fetchQualityProfiles()
@@ -61,7 +61,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
 
         fastify.log.error('Error fetching Sonarr quality profiles:', err)
-        throw reply.internalServerError(
+        return reply.internalServerError(
           'Unable to fetch Sonarr quality profiles',
         )
       }

@@ -53,7 +53,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           message: 'Successfully logged out.',
         }
       } catch (error) {
-        throw reply.internalServerError('Logout failed.')
+        return reply.internalServerError('Logout failed.')
       }
     },
   )

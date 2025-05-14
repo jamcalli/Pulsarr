@@ -8,30 +8,60 @@ import * as z from 'zod'
 import type { Config } from '@root/types/config.types'
 
 // Schema definition
-export const deleteSyncSchema = z.object({
-  deleteMovie: z.boolean(),
-  deleteEndedShow: z.boolean(),
-  deleteContinuingShow: z.boolean(),
-  deleteFiles: z.boolean(),
-  respectUserSyncSetting: z.boolean(),
-  deleteSyncNotify: z.enum([
-    'none',
-    'message',
-    'webhook',
-    'both',
-    'all',
-    'discord-only',
-    'apprise-only',
-    'webhook-only',
-    'dm-only',
-    'discord-webhook',
-    'discord-message',
-    'discord-both',
-  ]),
-  maxDeletionPrevention: z.coerce.number().int().min(1).max(100).optional(),
-  scheduleTime: z.date().optional(),
-  dayOfWeek: z.string().default('*'),
-})
+export const deleteSyncSchema = z
+  .object({
+    deletionMode: z.enum(['watchlist', 'tag-based']).default('watchlist'),
+    deleteMovie: z.boolean(),
+    deleteEndedShow: z.boolean(),
+    deleteContinuingShow: z.boolean(),
+    deleteFiles: z.boolean(),
+    respectUserSyncSetting: z.boolean(),
+    enablePlexPlaylistProtection: z.boolean(),
+    plexProtectionPlaylistName: z.string().min(1),
+    deleteSyncNotify: z.enum([
+      'none',
+      'message',
+      'webhook',
+      'both',
+      'all',
+      'discord-only',
+      'apprise-only',
+      'webhook-only',
+      'dm-only',
+      'discord-webhook',
+      'discord-message',
+      'discord-both',
+    ]),
+    maxDeletionPrevention: z.coerce.number().int().min(1).max(100).optional(),
+    scheduleTime: z.date().optional(),
+    dayOfWeek: z.string().default('*'),
+    // removedTagPrefix should be configured in the User Tags section when using the 'special-tag' removal mode
+    // This value is read-only in this form but is still needed for the tag-based deletion logic
+    removedTagPrefix: z
+      .string()
+      .trim()
+      .min(1, { message: 'Prefix cannot be empty' })
+      .default('pulsarr:removed'),
+    // Store the current removedTagMode from config to enable validation
+    removedTagMode: z.enum(['remove', 'keep', 'special-tag']).default('remove'),
+  })
+  .refine(
+    (data) => {
+      // If deletion mode is tag-based, removedTagMode must be 'special-tag'
+      if (
+        data.deletionMode === 'tag-based' &&
+        data.removedTagMode !== 'special-tag'
+      ) {
+        return false
+      }
+      return true
+    },
+    {
+      message:
+        'Tag-based deletion requires "Tag Behavior on Removal" to be set to "Special Tag"',
+      path: ['deletionMode'],
+    },
+  )
 
 export type DeleteSyncFormValues = z.infer<typeof deleteSyncSchema>
 export type FormSaveStatus = 'idle' | 'loading' | 'success' | 'error'
@@ -52,25 +82,11 @@ const validateDayOfWeek = (value: string | undefined): string => {
 }
 
 /**
- * Manages the deletion synchronization form state and submission logic.
+ * Manages state, validation, and submission for the deletion synchronization form in the utilities feature.
  *
- * This custom React hook initializes a form with validation based on a Zod schema for deletion
- * synchronization settings. It extracts schedule information from existing cron jobs, synchronizes the
- * form state with global configuration, and provides handlers for submitting, canceling, and updating
- * scheduled deletion times.
+ * This React hook initializes the deletion sync form with values from global configuration and schedule data, validates input using a Zod schema, and provides handlers for submitting changes, canceling edits, and updating scheduled deletion times. On submission, it updates configuration settings, optionally updates the deletion schedule, refreshes schedules, and manages submission status with user feedback via toast notifications.
  *
- * On submission, the hook updates configuration settings, optionally updates the deletion schedule by
- * constructing a corresponding cron expression, and triggers a refresh of the schedules. It also manages
- * the form submission status and displays toast notifications for success or error outcomes.
- *
- * @returns An object containing:
- * - form: The React Hook Form instance managing the deletion sync form.
- * - saveStatus: The current status of the form submission.
- * - isSaving: A boolean indicating if the form is currently being submitted.
- * - submittedValues: The most recently submitted form values or null.
- * - onSubmit: Function to handle form submission.
- * - handleCancel: Function to reset the form to the current configuration values.
- * - handleTimeChange: Function to update the form's schedule time and day of the week.
+ * @returns An object containing the form instance, current save status, a flag indicating if saving is in progress, the last submitted values, and handler functions for form submission, cancellation, and schedule time changes.
  */
 export function useDeleteSyncForm() {
   const { toast } = useToast()
@@ -80,6 +96,8 @@ export function useDeleteSyncForm() {
   const [saveStatus, setSaveStatus] = useState<FormSaveStatus>('idle')
   const [submittedValues, setSubmittedValues] =
     useState<DeleteSyncFormValues | null>(null)
+
+  // Watch for removedTagMode updates from config
 
   const [scheduleTime, dayOfWeek] = useMemo(() => {
     // Default values
@@ -120,15 +138,20 @@ export function useDeleteSyncForm() {
   const form = useForm<DeleteSyncFormValues>({
     resolver: zodResolver(deleteSyncSchema),
     defaultValues: {
+      deletionMode: 'watchlist',
       deleteMovie: false,
       deleteEndedShow: false,
       deleteContinuingShow: false,
       deleteFiles: false,
       respectUserSyncSetting: true,
+      enablePlexPlaylistProtection: false,
+      plexProtectionPlaylistName: 'Do Not Delete',
       deleteSyncNotify: 'none',
       maxDeletionPrevention: undefined,
       scheduleTime: undefined,
       dayOfWeek: '*',
+      removedTagPrefix: 'pulsarr:removed',
+      removedTagMode: 'remove',
     },
   })
 
@@ -147,15 +170,22 @@ export function useDeleteSyncForm() {
 
       form.reset(
         {
+          deletionMode: config.deletionMode || 'watchlist',
           deleteMovie: config.deleteMovie || false,
           deleteEndedShow: config.deleteEndedShow || false,
           deleteContinuingShow: config.deleteContinuingShow || false,
           deleteFiles: config.deleteFiles || false,
           respectUserSyncSetting: config.respectUserSyncSetting ?? true,
+          enablePlexPlaylistProtection:
+            config.enablePlexPlaylistProtection || false,
+          plexProtectionPlaylistName:
+            config.plexProtectionPlaylistName || 'Do Not Delete',
           deleteSyncNotify: notifyValue,
           maxDeletionPrevention: config.maxDeletionPrevention,
           scheduleTime: scheduleTime || form.getValues('scheduleTime'),
           dayOfWeek: dayOfWeek,
+          removedTagPrefix: config.removedTagPrefix || 'pulsarr:removed',
+          removedTagMode: config.removedTagMode || 'remove',
         },
         { keepDirty: false },
       )
@@ -170,6 +200,20 @@ export function useDeleteSyncForm() {
     }
   }, [config, scheduleTime, dayOfWeek, form, saveStatus])
 
+  // Update removedTagMode whenever config changes
+  useEffect(() => {
+    if (
+      config?.removedTagMode &&
+      form.getValues('removedTagMode') !== config.removedTagMode
+    ) {
+      form.setValue('removedTagMode', config.removedTagMode, {
+        shouldDirty: false,
+      })
+      // Force re-validation of the form
+      form.trigger('deletionMode')
+    }
+  }, [config?.removedTagMode, form])
+
   const onSubmit = async (data: DeleteSyncFormValues) => {
     setSubmittedValues(data)
     setSaveStatus('loading')
@@ -181,13 +225,22 @@ export function useDeleteSyncForm() {
       )
 
       const updateConfigPromise = updateConfig({
+        deletionMode: data.deletionMode,
         deleteMovie: data.deleteMovie,
         deleteEndedShow: data.deleteEndedShow,
         deleteContinuingShow: data.deleteContinuingShow,
         deleteFiles: data.deleteFiles,
         respectUserSyncSetting: data.respectUserSyncSetting,
+        enablePlexPlaylistProtection: data.enablePlexPlaylistProtection,
+        plexProtectionPlaylistName: data.plexProtectionPlaylistName,
         deleteSyncNotify: data.deleteSyncNotify,
         maxDeletionPrevention: data.maxDeletionPrevention,
+        // We still send the removedTagPrefix value from the form
+        // This value is now read-only in Delete Sync but needed for the tag-based deletion logic
+        // Always persist the prefix so it is not lost when toggling modes
+        removedTagPrefix: data.removedTagPrefix,
+        // CRITICAL: Include removedTagMode to prevent it from being reset
+        removedTagMode: data.removedTagMode,
       })
 
       let scheduleUpdate = Promise.resolve()
@@ -244,15 +297,22 @@ export function useDeleteSyncForm() {
       // Apply the form reset
       form.reset(
         {
+          deletionMode: updatedConfig.deletionMode || 'watchlist',
           deleteMovie: updatedConfig.deleteMovie || false,
           deleteEndedShow: updatedConfig.deleteEndedShow || false,
           deleteContinuingShow: updatedConfig.deleteContinuingShow || false,
           deleteFiles: updatedConfig.deleteFiles || false,
           respectUserSyncSetting: updatedConfig.respectUserSyncSetting ?? true,
+          enablePlexPlaylistProtection:
+            updatedConfig.enablePlexPlaylistProtection || false,
+          plexProtectionPlaylistName:
+            updatedConfig.plexProtectionPlaylistName || 'Do Not Delete',
           deleteSyncNotify: updatedConfig.deleteSyncNotify || 'none',
           maxDeletionPrevention: updatedConfig.maxDeletionPrevention,
           scheduleTime: data.scheduleTime,
           dayOfWeek: data.dayOfWeek,
+          removedTagPrefix: updatedConfig.removedTagPrefix || 'pulsarr:removed',
+          removedTagMode: updatedConfig.removedTagMode || 'remove',
         },
         { keepDirty: false },
       )
@@ -286,15 +346,22 @@ export function useDeleteSyncForm() {
   const handleCancel = useCallback(() => {
     if (config) {
       form.reset({
+        deletionMode: config.deletionMode || 'watchlist',
         deleteMovie: config.deleteMovie || false,
         deleteEndedShow: config.deleteEndedShow || false,
         deleteContinuingShow: config.deleteContinuingShow || false,
         deleteFiles: config.deleteFiles || false,
         respectUserSyncSetting: config.respectUserSyncSetting ?? true,
+        enablePlexPlaylistProtection:
+          config.enablePlexPlaylistProtection || false,
+        plexProtectionPlaylistName:
+          config.plexProtectionPlaylistName || 'Do Not Delete',
         deleteSyncNotify: config.deleteSyncNotify || 'none',
         maxDeletionPrevention: config.maxDeletionPrevention,
         scheduleTime: scheduleTime,
         dayOfWeek: dayOfWeek,
+        removedTagPrefix: config.removedTagPrefix || 'pulsarr:removed',
+        removedTagMode: config.removedTagMode || 'remove',
       })
     }
   }, [config, form, scheduleTime, dayOfWeek])

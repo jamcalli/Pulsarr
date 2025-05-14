@@ -2,14 +2,14 @@ import type { ContentRouterRule } from '@schemas/content-router/content-router.s
 import type { RouterRule } from '@root/types/router.types.js'
 
 /**
- * Formats a router rule object into a standardized API response.
+ * Converts a router rule into a normalized API response object.
  *
- * Extracts the `condition` from the rule's `criteria` property, supporting both stringified and object forms. Ensures all relevant fields are included in the returned object, with sensible defaults for missing or null values. If `criteria` parsing fails, the `condition` is set to `undefined` to maintain a valid response structure.
+ * Parses the `criteria` property to extract the `condition` field and returns a standardized object with normalized fields, applying defaults for missing or null values. Ensures consistent output even if `criteria` is invalid or unparsable.
  *
- * @param rule - The router rule to format.
- * @returns The formatted rule object suitable for API responses.
+ * @param rule - The router rule to convert.
+ * @returns The normalized router rule object for API responses.
  *
- * @remark If `criteria` is an invalid JSON string, the error is logged (if a logger is provided) and `condition` is set to `undefined`.
+ * @remark If `criteria` is not valid JSON, the error is logged (if a logger is provided) and `condition` is set to `undefined` in the response.
  */
 export function formatRule(
   rule: RouterRule,
@@ -41,6 +41,7 @@ export function formatRule(
           : undefined,
       season_monitoring:
         rule.season_monitoring !== null ? rule.season_monitoring : undefined,
+      series_type: rule.series_type !== null ? rule.series_type : undefined,
       created_at: rule.created_at,
       updated_at: rule.updated_at,
     }
@@ -69,6 +70,7 @@ export function formatRule(
           : undefined,
       season_monitoring:
         rule.season_monitoring !== null ? rule.season_monitoring : undefined,
+      series_type: rule.series_type !== null ? rule.series_type : undefined,
       created_at: rule.created_at,
       updated_at: rule.updated_at,
     }

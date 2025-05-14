@@ -8,6 +8,11 @@ import {
   type CreateUserFormSchema,
 } from '@/features/create-user/schemas/create-user-schema'
 
+/**
+ * React hook for managing a user creation form with validation, submission, and error handling.
+ *
+ * Returns an object containing the form instance, current submission status, backend error message, a ref for the email input, and the submit handler function.
+ */
 export function useCreateUserForm() {
   const navigate = useNavigate()
   const { toast } = useToast()

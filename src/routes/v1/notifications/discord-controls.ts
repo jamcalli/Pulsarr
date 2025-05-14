@@ -55,7 +55,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
 
         fastify.log.error('Error starting Discord bot:', err)
-        throw reply.internalServerError('Unable to start Discord bot')
+        return reply.internalServerError('Unable to start Discord bot')
       }
     },
   )
@@ -104,7 +104,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
 
         fastify.log.error('Error stopping Discord bot:', err)
-        throw reply.internalServerError('Unable to stop Discord bot')
+        return reply.internalServerError('Unable to stop Discord bot')
       }
     },
   )
@@ -169,7 +169,19 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         // Check if all webhooks are valid
         const allValid = results.every((result) => result.valid)
 
-        // Helper function for pluralization
+        /**
+         * Formats a count and word with correct pluralization.
+         *
+         * Returns a string combining the given count and the singular or plural form of the specified word, adding "s" if the count is not 1.
+         *
+         * @param count - The quantity to display.
+         * @param word - The word to pluralize.
+         * @returns A string with the count and the appropriately pluralized word.
+         *
+         * @example
+         * plural(1, "apple") // "1 apple"
+         * plural(3, "apple") // "3 apples"
+         */
         function plural(count: number, word: string): string {
           return `${count} ${word}${count === 1 ? '' : 's'}`
         }
@@ -193,7 +205,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
 
         fastify.log.error('Error validating webhooks:', err)
-        throw reply.internalServerError('Unable to validate webhooks')
+        return reply.internalServerError('Unable to validate webhooks')
       }
     },
   )

@@ -1,5 +1,9 @@
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import { hasMatchingGuids } from '@utils/guid-handler.js'
+import {
+  hasMatchingGuids,
+  extractRadarrId,
+  extractSonarrId,
+} from '@utils/guid-handler.js'
 import type { SonarrItem } from '@root/types/sonarr.types.js'
 import type { RadarrItem } from '@root/types/radarr.types.js'
 import type { ProgressEvent } from '@root/types/progress.types.js'
@@ -88,17 +92,24 @@ export class UserTagService {
   }
 
   /**
-   * Get config value for persisting historical tags
-   */
-  private get persistHistoricalTags(): boolean {
-    return this.fastify.config.persistHistoricalTags
-  }
-
-  /**
    * Get config value for tag prefix
    */
   private get tagPrefix(): string {
     return this.fastify.config.tagPrefix || 'pulsarr:user'
+  }
+
+  /**
+   * Get config value for removed tag mode
+   */
+  private get removedTagMode(): 'remove' | 'keep' | 'special-tag' {
+    return this.fastify.config.removedTagMode || 'remove'
+  }
+
+  /**
+   * Get config value for removed tag prefix
+   */
+  private get removedTagPrefix(): string {
+    return this.fastify.config.removedTagPrefix || 'pulsarr:removed'
   }
 
   /**
@@ -413,13 +424,13 @@ export class UserTagService {
                   }
                 }
 
-                // Skip processing if no users have this in watchlist and we're not in cleanup mode
-                if (showUsers.size === 0 && this.persistHistoricalTags) {
+                // Skip processing if no users have this in watchlist and we're in 'keep' mode
+                if (showUsers.size === 0 && this.removedTagMode === 'keep') {
                   return { tagged: false, skipped: true, failed: false }
                 }
 
                 // Extract Sonarr ID
-                const sonarrId = this.extractSonarrId(show.guids)
+                const sonarrId = extractSonarrId(show.guids)
                 if (sonarrId === 0) {
                   this.log.debug(
                     `Could not extract Sonarr ID from show "${show.title}", skipping tagging`,
@@ -450,14 +461,62 @@ export class UserTagService {
                 // Get existing tags and prepare new tag set
                 const existingTags = seriesDetails.tags || []
 
-                // If we want to preserve historical tags, we only add new ones
-                // but don't remove existing user tags
+                // Handle tags based on configuration mode
                 let newTags: number[]
 
-                if (this.persistHistoricalTags) {
-                  // Simply add any missing user tags
+                if (this.removedTagMode === 'keep') {
+                  // Simply add any missing user tags, don't remove any
                   newTags = [...new Set([...existingTags, ...userTagIds])]
+                } else if (this.removedTagMode === 'special-tag') {
+                  // Find non-user tags to preserve
+                  const nonUserTagIds = existingTags.filter((tagId) => {
+                    const tagLabel = tagIdMap.get(tagId)
+                    return !tagLabel || !this.isAppUserTag(tagLabel)
+                  })
+
+                  // Find user tags that are being removed
+                  const removedUserTagIds = existingTags.filter((tagId) => {
+                    const tagLabel = tagIdMap.get(tagId)
+                    return (
+                      tagLabel &&
+                      this.isAppUserTag(tagLabel) &&
+                      !userTagIds.includes(tagId)
+                    )
+                  })
+
+                  // If we have tags being removed, add special "removed" tag
+                  if (removedUserTagIds.length > 0) {
+                    try {
+                      // Get or create the "removed" tag using our helper
+                      const removedTagId = await this.ensureRemovedTag(
+                        sonarrService,
+                        tagLabelMap,
+                        tagIdMap,
+                        `show "${show.title}"`,
+                      )
+
+                      // Combine non-user tags with current user tags and removed tag
+                      newTags = [
+                        ...new Set([
+                          ...nonUserTagIds,
+                          ...userTagIds,
+                          removedTagId,
+                        ]),
+                      ]
+                    } catch (tagError) {
+                      this.log.error(
+                        'Failed to create special removed tag. Cannot proceed with special-tag mode:',
+                        tagError,
+                      )
+                      // Propagate the error - don't silently fall back to different behavior
+                      throw tagError
+                    }
+                  } else {
+                    // No tags being removed, just use current tags
+                    newTags = [...new Set([...nonUserTagIds, ...userTagIds])]
+                  }
                 } else {
+                  // Default 'remove' mode
                   // Filter out any existing user tags and add current ones
                   const nonUserTagIds = existingTags.filter((tagId) => {
                     const tagLabel = tagIdMap.get(tagId)
@@ -602,13 +661,13 @@ export class UserTagService {
                   }
                 }
 
-                // Skip processing if no users have this in watchlist and we're not in cleanup mode
-                if (movieUsers.size === 0 && this.persistHistoricalTags) {
+                // Skip processing if no users have this in watchlist and we're in 'keep' mode
+                if (movieUsers.size === 0 && this.removedTagMode === 'keep') {
                   return { tagged: false, skipped: true, failed: false }
                 }
 
                 // Extract Radarr ID
-                const radarrId = this.extractRadarrId(movie.guids)
+                const radarrId = extractRadarrId(movie.guids)
                 if (radarrId === 0) {
                   this.log.debug(
                     `Could not extract Radarr ID from movie "${movie.title}", skipping tagging`,
@@ -639,14 +698,62 @@ export class UserTagService {
                 // Get existing tags and prepare new tag set
                 const existingTags = movieDetails.tags || []
 
-                // If we want to preserve historical tags, we only add new ones
-                // but don't remove existing user tags
+                // Handle tags based on configuration mode
                 let newTags: number[]
 
-                if (this.persistHistoricalTags) {
-                  // Simply add any missing user tags
+                if (this.removedTagMode === 'keep') {
+                  // Simply add any missing user tags, don't remove any
                   newTags = [...new Set([...existingTags, ...userTagIds])]
+                } else if (this.removedTagMode === 'special-tag') {
+                  // Find non-user tags to preserve
+                  const nonUserTagIds = existingTags.filter((tagId) => {
+                    const tagLabel = tagIdMap.get(tagId)
+                    return !tagLabel || !this.isAppUserTag(tagLabel)
+                  })
+
+                  // Find user tags that are being removed
+                  const removedUserTagIds = existingTags.filter((tagId) => {
+                    const tagLabel = tagIdMap.get(tagId)
+                    return (
+                      tagLabel &&
+                      this.isAppUserTag(tagLabel) &&
+                      !userTagIds.includes(tagId)
+                    )
+                  })
+
+                  // If we have tags being removed, add special "removed" tag
+                  if (removedUserTagIds.length > 0) {
+                    try {
+                      // Get or create the "removed" tag using our helper
+                      const removedTagId = await this.ensureRemovedTag(
+                        radarrService,
+                        tagLabelMap,
+                        tagIdMap,
+                        `movie "${movie.title}"`,
+                      )
+
+                      // Combine non-user tags with current user tags and removed tag
+                      newTags = [
+                        ...new Set([
+                          ...nonUserTagIds,
+                          ...userTagIds,
+                          removedTagId,
+                        ]),
+                      ]
+                    } catch (tagError) {
+                      this.log.error(
+                        'Failed to create special removed tag. Cannot proceed with special-tag mode:',
+                        tagError,
+                      )
+                      // Propagate the error - don't silently fall back to different behavior
+                      throw tagError
+                    }
+                  } else {
+                    // No tags being removed, just use current tags
+                    newTags = [...new Set([...nonUserTagIds, ...userTagIds])]
+                  }
                 } else {
+                  // Default 'remove' mode
                   // Filter out any existing user tags and add current ones
                   const nonUserTagIds = existingTags.filter((tagId) => {
                     const tagLabel = tagIdMap.get(tagId)
@@ -1162,7 +1269,7 @@ export class UserTagService {
               results.itemsProcessed++
 
               // Extract Sonarr ID
-              const sonarrId = this.extractSonarrId(item.guids)
+              const sonarrId = extractSonarrId(item.guids)
               if (sonarrId === 0) {
                 return { updated: false, tagsRemoved: 0, failed: false }
               }
@@ -1402,7 +1509,7 @@ export class UserTagService {
               results.itemsProcessed++
 
               // Extract Radarr ID
-              const radarrId = this.extractRadarrId(item.guids)
+              const radarrId = extractRadarrId(item.guids)
               if (radarrId === 0) {
                 return { updated: false, tagsRemoved: 0, failed: false }
               }
@@ -1620,40 +1727,47 @@ export class UserTagService {
   }
 
   /**
-   * Extract Sonarr ID from GUIDs
+   * Ensures the special "removed" tag exists in the given service
+   * Creates it if it doesn't exist yet
+   *
+   * @param service - The Sonarr/Radarr service to create the tag in
+   * @param tagLabelMap - Map of tag labels to IDs
+   * @param tagIdMap - Map of tag IDs to labels
+   * @param itemName - Name of the item (for logging)
+   * @returns ID of the removed tag
    */
-  private extractSonarrId(guids: string[] | undefined): number {
-    if (!guids) return 0
+  private async ensureRemovedTag(
+    service: MediaService,
+    tagLabelMap: Map<string, number>,
+    tagIdMap: Map<number, string>,
+    itemName: string,
+  ): Promise<number> {
+    try {
+      // Get or create the "removed" tag
+      const removedTagLabel = this.removedTagPrefix
+      const lowerLabel = removedTagLabel.toLowerCase()
 
-    for (const guid of guids) {
-      if (guid.startsWith('sonarr:')) {
-        const id = Number.parseInt(guid.replace('sonarr:', ''), 10)
-        return Number.isNaN(id) ? 0 : id
+      // Check if the tag already exists using direct map lookup
+      let removedTagId = tagLabelMap.get(lowerLabel)
+
+      if (!removedTagId) {
+        // Create the removed tag if it doesn't exist
+        this.log.debug(
+          `Creating removed tag "${removedTagLabel}" for ${itemName}`,
+        )
+        const newTag = await service.createTag(removedTagLabel)
+        removedTagId = newTag.id
+        tagLabelMap.set(lowerLabel, removedTagId)
+        tagIdMap.set(removedTagId, lowerLabel)
       }
-    }
 
-    return 0
+      return removedTagId
+    } catch (error) {
+      this.log.error(`Error creating removed tag for ${itemName}:`, error)
+      throw error
+    }
   }
 
-  /**
-   * Extract Radarr ID from GUIDs
-   */
-  private extractRadarrId(guids: string[] | undefined): number {
-    if (!guids) return 0
-
-    for (const guid of guids) {
-      if (guid.startsWith('radarr:')) {
-        const id = Number.parseInt(guid.replace('radarr:', ''), 10)
-        return Number.isNaN(id) ? 0 : id
-      }
-    }
-
-    return 0
-  }
-
-  /**
-   * Check if two arrays have the same elements (ignoring order)
-   */
   private arraysEqual(a: number[], b: number[]): boolean {
     if (a.length !== b.length) return false
 
@@ -1737,7 +1851,7 @@ export class UserTagService {
           const batchPromises = batch.map(async (series) => {
             try {
               // Extract Sonarr ID
-              const sonarrId = this.extractSonarrId(series.guids)
+              const sonarrId = extractSonarrId(series.guids)
               if (sonarrId === 0) {
                 return { removed: false, skipped: true, failed: false }
               }
@@ -1876,7 +1990,7 @@ export class UserTagService {
           const batchPromises = batch.map(async (movie) => {
             try {
               // Extract Radarr ID
-              const radarrId = this.extractRadarrId(movie.guids)
+              const radarrId = extractRadarrId(movie.guids)
               if (radarrId === 0) {
                 return { removed: false, skipped: true, failed: false }
               }

@@ -96,7 +96,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw err
         }
         fastify.log.error('Error starting Watchlist workflow:', err)
-        throw reply.internalServerError('Unable to start Watchlist workflow')
+        return reply.internalServerError('Unable to start Watchlist workflow')
       }
     },
   )
@@ -141,7 +141,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw err
         }
         fastify.log.error('Error stopping Watchlist workflow:', err)
-        throw reply.internalServerError('Unable to stop Watchlist workflow')
+        return reply.internalServerError('Unable to stop Watchlist workflow')
       }
     },
   )
@@ -175,7 +175,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw err
         }
         fastify.log.error('Error getting Watchlist workflow status:', err)
-        throw reply.internalServerError(
+        return reply.internalServerError(
           'Unable to get Watchlist workflow status',
         )
       }

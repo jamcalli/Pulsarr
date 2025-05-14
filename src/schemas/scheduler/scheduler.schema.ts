@@ -100,6 +100,7 @@ export const DeleteItemSchema = z.object({
 export const DeletionContentTypeResultSchema = z.object({
   deleted: z.number(),
   skipped: z.number(),
+  protected: z.number().optional(),
   items: z.array(DeleteItemSchema),
 })
 
@@ -108,6 +109,7 @@ export const DeleteSyncResultSchema = z.object({
     deleted: z.number(),
     skipped: z.number(),
     processed: z.number(),
+    protected: z.number().optional(),
   }),
   movies: DeletionContentTypeResultSchema,
   shows: DeletionContentTypeResultSchema,

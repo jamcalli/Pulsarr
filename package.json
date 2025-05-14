@@ -1,6 +1,6 @@
 {
   "name": "pulsarr",
-  "version": "0.3.3",
+  "version": "0.3.4-beta.0",
   "description": "Plex watchlist tracker and notification center that integrates with the Arr stack",
   "main": "build/server.js",
   "type": "module",
@@ -93,6 +93,7 @@
     "date-fns": "^4.1.0",
     "discord.js": "^14.19.2",
     "embla-carousel-react": "^8.6.0",
+    "fast-xml-parser": "^5.2.2",
     "fastify": "^5.3.2",
     "fastify-sse-v2": "^4.2.1",
     "fastify-type-provider-zod": "^4.0.2",
