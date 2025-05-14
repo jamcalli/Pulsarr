@@ -571,7 +571,7 @@ radarrTags=[]                          # Tags as JSON array
 plexTokens=["xxxxxxxxxxxxxxxxxxxx"]    # Plex authentication token
 skipFriendSync=false                   # Skip syncing Plex friends
 enablePlexPlaylistProtection=false     # Enable playlist protection feature
-plexProtectionPlaylistName=Do Not Delete  # Name of protection playlist
+plexProtectionPlaylistName="Do Not Delete"  # Name of protection playlist
 plexServerUrl=http://localhost:32400   # Plex server URL (optional, can be auto-detected)
 
 # User Tagging Configuration
