@@ -1,14 +1,11 @@
 import type { Knex } from 'knex'
 
 /**
- * Adds configuration options for tag-based deletion mode.
- * 
- * 1. Introduces new configuration option:
- *   - `deletionMode`: Enum string ('watchlist', 'tag-based') to control the deletion workflow mode
- * 
- * 2. Defaults:
- *   - deletionMode defaults to 'watchlist' to maintain backward compatibility
- *   - The tag-based deletion mode will use the existing 'removedTagPrefix' for identifying content to delete
+ * Adds the `deletionMode` column to the `configs` table to support tag-based deletion workflows.
+ *
+ * Checks for the existence of the `configs` table and, if present, adds a new string column `deletionMode` with a default value of `'watchlist'`. This column determines the deletion workflow mode, supporting values such as `'watchlist'` and `'tag-based'`.
+ *
+ * @remark The default value `'watchlist'` ensures backward compatibility. The `'tag-based'` mode leverages the existing `removedTagPrefix` configuration for identifying content to delete.
  */
 export async function up(knex: Knex): Promise<void> {
   // Check if the table exists before attempting to modify
@@ -23,7 +20,10 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Reverts the migration by removing the added configuration option.
+ * Removes the `deletionMode` column from the `configs` table if it exists, reverting the migration.
+ *
+ * @remark
+ * The function checks for the existence of the `configs` table before attempting to drop the column to prevent errors if the table is missing.
  */
 export async function down(knex: Knex): Promise<void> {
   // Check if the table exists before attempting to modify
