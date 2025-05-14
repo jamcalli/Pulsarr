@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { SERIES_TYPES } from './constants.js'
 
 // Base schemas for conditions
 export const ComparisonOperatorSchema = z.enum([
@@ -130,7 +131,7 @@ export const BaseRouterRuleSchema = z.object({
   // For Sonarr only - sending this with Radarr rules will be rejected by the API
   // Additional validation happens in the route handlers
   season_monitoring: z.string().nullable().optional(),
-  series_type: z.enum(['standard', 'anime', 'daily']).nullable().optional(),
+  series_type: z.enum(SERIES_TYPES).nullable().optional(),
 })
 
 // For the ConditionalRouteFormSchema (used in the frontend)

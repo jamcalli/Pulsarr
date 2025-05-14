@@ -3,6 +3,7 @@ import {
   ComparisonOperatorSchema,
   ConditionValueSchema,
 } from '@root/schemas/content-router/content-router.schema'
+import { ROUTER_SERIES_TYPES } from '../constants'
 
 export type ConditionValue = z.infer<typeof ConditionValueSchema>
 
@@ -155,7 +156,7 @@ export const ConditionalRouteFormSchema = z.object({
   order: z.number().int().min(1).max(100).default(50),
   search_on_add: z.boolean().optional(),
   season_monitoring: z.string().optional(),
-  series_type: z.enum(['standard', 'anime', 'daily']).optional(),
+  series_type: z.enum(ROUTER_SERIES_TYPES).optional(),
 })
 
 export type ConditionalRouteFormValues = z.infer<
