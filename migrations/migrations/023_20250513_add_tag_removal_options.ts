@@ -1,14 +1,13 @@
 import type { Knex } from 'knex'
 
 /**
- * Adds configuration options for special tags when content is removed from watchlists.
- * 
- * 1. Introduces two new configuration options:
- *   - `removedTagMode`: Enum string ('remove', 'keep', 'special-tag') to control behavior of user tags when content is unwatchlisted
- *   - `removedTagPrefix`: String to customize the prefix for the special "removed" tag
- * 
- * 2. Migrates the existing persistHistoricalTags setting:
- *   - If persistHistoricalTags=true, sets removedTagMode='keep'
+ * Adds `removedTagMode` and `removedTagPrefix` configuration options to the `configs` table.
+ *
+ * If the `configs` table exists, this migration adds two new columns:
+ * - `removedTagMode`: Controls how user tags are handled when content is removed from watchlists.
+ * - `removedTagPrefix`: Customizes the prefix for a special "removed" tag.
+ *
+ * If a config row exists, sets `removedTagMode` to `'keep'` if `persistHistoricalTags` is `true`, otherwise to `'remove'`.
  */
 export async function up(knex: Knex): Promise<void> {
   // Check if the table exists before attempting to modify
@@ -44,7 +43,9 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Reverts the migration by removing the added configuration options.
+ * Removes the `removedTagMode` and `removedTagPrefix` columns from the `configs` table if they exist.
+ *
+ * Reverses the changes made by the corresponding migration's `up` function.
  */
 export async function down(knex: Knex): Promise<void> {
   // Check if the table exists before attempting to modify

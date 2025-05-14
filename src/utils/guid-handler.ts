@@ -150,13 +150,13 @@ export function extractTvdbId(guids: string[] | string | undefined): number {
 }
 
 /**
- * Checks if two arrays of GUID strings have any values in common.
+ * Determines whether two arrays of GUID strings share at least one common value.
  *
  * @param parsedGuids1 - The first array of GUID strings.
  * @param parsedGuids2 - The second array of GUID strings.
- * @returns `true` if at least one GUID exists in both arrays; otherwise, `false`.
+ * @returns `true` if any GUID is present in both arrays; otherwise, `false`.
  *
- * @remark Assumes both inputs are already parsed arrays of GUID strings for optimal performance.
+ * @remark Both inputs must be arrays of parsed GUID strings.
  */
 export function hasMatchingParsedGuids(
   parsedGuids1: string[],
@@ -172,13 +172,11 @@ export function hasMatchingParsedGuids(
 }
 
 /**
- * Returns the numeric Radarr ID extracted from the provided GUIDs.
+ * Extracts the numeric Radarr ID from the first GUID prefixed with "radarr:".
  *
- * Parses the input and returns the first integer found after the "radarr:" prefix (case-insensitive),
- * or 0 if no valid Radarr GUID is present. Handles various formats including uppercase prefixes
- * and query parameters.
+ * Accepts input as a string, array of strings, or undefined, and searches for a GUID starting with "radarr:" (case-insensitive). Returns the integer following the prefix, or 0 if not found or invalid.
  *
- * @returns The extracted Radarr ID, or 0 if not found or invalid.
+ * @returns The Radarr ID as a number, or 0 if no valid Radarr GUID is present.
  */
 export function extractRadarrId(guids: string[] | string | undefined): number {
   const parsed = parseGuids(guids)
@@ -196,13 +194,11 @@ export function extractRadarrId(guids: string[] | string | undefined): number {
 }
 
 /**
- * Returns the numeric Sonarr ID extracted from the provided GUIDs.
+ * Extracts the numeric Sonarr ID from the first GUID prefixed with "sonarr:".
  *
- * Parses the input and returns the first integer found after the "sonarr:" prefix (case-insensitive),
- * or 0 if no valid Sonarr GUID is present. Handles various formats including uppercase prefixes
- * and query parameters.
+ * Accepts GUIDs in various formats and returns the integer following the "sonarr:" prefix (case-insensitive). Returns 0 if no valid Sonarr GUID is found.
  *
- * @returns The extracted Sonarr ID, or 0 if not found or invalid.
+ * @returns The Sonarr ID as a number, or 0 if not present or invalid.
  */
 export function extractSonarrId(guids: string[] | string | undefined): number {
   const parsed = parseGuids(guids)
