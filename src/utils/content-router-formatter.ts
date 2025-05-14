@@ -2,14 +2,14 @@ import type { ContentRouterRule } from '@schemas/content-router/content-router.s
 import type { RouterRule } from '@root/types/router.types.js'
 
 /**
- * Formats a router rule into a standardized API response object.
+ * Converts a router rule into a normalized API response object.
  *
- * Parses the `criteria` property to extract the `condition` field and constructs a response object with normalized fields, applying defaults for missing or null values. Ensures consistent output even if `criteria` is invalid.
+ * Parses the `criteria` property to extract the `condition` field and returns a standardized object with normalized fields, applying defaults for missing or null values. Ensures consistent output even if `criteria` is invalid or unparsable.
  *
- * @param rule - The router rule to format.
- * @returns The formatted router rule suitable for API responses.
+ * @param rule - The router rule to convert.
+ * @returns The normalized router rule object for API responses.
  *
- * @remark If `criteria` is an invalid JSON string, the error is logged (if a logger is provided) and `condition` is set to `undefined`.
+ * @remark If `criteria` is not valid JSON, the error is logged (if a logger is provided) and `condition` is set to `undefined` in the response.
  */
 export function formatRule(
   rule: RouterRule,

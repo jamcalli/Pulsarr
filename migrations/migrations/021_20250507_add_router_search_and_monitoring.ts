@@ -1,9 +1,9 @@
 import type { Knex } from 'knex'
 
 /**
- * Adds `search_on_add` and `season_monitoring` columns to the `router_rules` table.
+ * Alters the `router_rules` table by adding `search_on_add` (nullable boolean) and `season_monitoring` (nullable string) columns.
  *
- * Introduces a nullable boolean column `search_on_add` for controlling automatic search behavior on Radarr and Sonarr routes, and a nullable string column `season_monitoring` for specifying season monitoring preferences on Sonarr routes.
+ * The `search_on_add` column is intended to control automatic search behavior for Radarr and Sonarr routes, while `season_monitoring` specifies season monitoring preferences for Sonarr routes.
  */
 export async function up(knex: Knex): Promise<void> {
   await knex.schema.alterTable('router_rules', (table) => {
@@ -16,7 +16,7 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Reverts the migration by dropping the 'search_on_add' and 'season_monitoring' columns from the 'router_rules' table.
+ * Removes the 'search_on_add' and 'season_monitoring' columns from the 'router_rules' table to revert the migration.
  */
 export async function down(knex: Knex): Promise<void> {
   await knex.schema.alterTable('router_rules', (table) => {

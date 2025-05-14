@@ -82,11 +82,11 @@ const validateDayOfWeek = (value: string | undefined): string => {
 }
 
 /**
- * Provides state management and submission logic for the deletion synchronization form in the utilities feature.
+ * Manages state, validation, and submission for the deletion synchronization form in the utilities feature.
  *
- * This custom React hook initializes and validates the deletion sync form using a Zod schema, synchronizes form state with global configuration and scheduling data, and exposes handlers for submitting, canceling, and updating scheduled deletion times. On submission, it updates configuration settings, optionally updates the deletion schedule, refreshes schedules, and manages submission status with toast notifications for user feedback.
+ * This React hook initializes the deletion sync form with values from global configuration and schedule data, validates input using a Zod schema, and provides handlers for submitting changes, canceling edits, and updating scheduled deletion times. On submission, it updates configuration settings, optionally updates the deletion schedule, refreshes schedules, and manages submission status with user feedback via toast notifications.
  *
- * @returns An object with the form instance, submission status, last submitted values, and handler functions for form submission, cancellation, and schedule time changes.
+ * @returns An object containing the form instance, current save status, a flag indicating if saving is in progress, the last submitted values, and handler functions for form submission, cancellation, and schedule time changes.
  */
 export function useDeleteSyncForm() {
   const { toast } = useToast()
