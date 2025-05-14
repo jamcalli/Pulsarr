@@ -254,7 +254,16 @@ export class SonarrManagerService {
       throw new Error(`Sonarr instance ${instanceId} not found`)
     }
 
-    const existingSeries = await sonarrService.fetchSeries()
+    // Get the instance configuration to check bypassIgnored setting
+    const instance = await this.fastify.db.getSonarrInstance(instanceId)
+    if (!instance) {
+      throw new Error(`Sonarr instance ${instanceId} not found in database`)
+    }
+
+    // Pass the bypassIgnored setting to fetchSeries to bypass exclusions if configured
+    const existingSeries = await sonarrService.fetchSeries(
+      instance.bypassIgnored,
+    )
     return [...existingSeries].some((series) =>
       series.guids.some((existingGuid: string) =>
         item.guids?.includes(existingGuid),
