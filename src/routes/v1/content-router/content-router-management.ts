@@ -297,6 +297,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           enabled: ruleData.enabled ?? true,
           search_on_add: ruleData.search_on_add,
           season_monitoring: ruleData.season_monitoring,
+          series_type: ruleData.series_type,
         })
 
         // Prepare the rule for database insertion, ensuring required fields have values
@@ -317,6 +318,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           metadata: null,
           search_on_add: ruleData.search_on_add,
           season_monitoring: ruleData.season_monitoring,
+          series_type: ruleData.series_type,
         }
 
         const createdRule = await fastify.db.createRouterRule(formattedRuleData)
@@ -408,6 +410,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           updatesAsRouterRule.search_on_add = updates.search_on_add
         if (updates.season_monitoring !== undefined)
           updatesAsRouterRule.season_monitoring = updates.season_monitoring
+        if (updates.series_type !== undefined)
+          updatesAsRouterRule.series_type = updates.series_type
 
         // Handle quality profile conversion
         if (updates.quality_profile !== undefined) {

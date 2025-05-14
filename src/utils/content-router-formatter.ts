@@ -41,6 +41,7 @@ export function formatRule(
           : undefined,
       season_monitoring:
         rule.season_monitoring !== null ? rule.season_monitoring : undefined,
+      series_type: rule.series_type !== null ? rule.series_type : undefined,
       created_at: rule.created_at,
       updated_at: rule.updated_at,
     }
@@ -69,6 +70,7 @@ export function formatRule(
           : undefined,
       season_monitoring:
         rule.season_monitoring !== null ? rule.season_monitoring : undefined,
+      series_type: rule.series_type !== null ? rule.series_type : undefined,
       created_at: rule.created_at,
       updated_at: rule.updated_at,
     }

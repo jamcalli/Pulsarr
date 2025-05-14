@@ -60,6 +60,7 @@ export function useSonarrInstance(instanceId: number) {
             tags: [],
             isDefault: true, // Always set placeholder instance as default
             syncedInstances: [],
+            seriesType: 'standard',
           }
 
           await updateInstance(instanceId, defaultInstance)

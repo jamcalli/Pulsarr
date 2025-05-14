@@ -155,6 +155,7 @@ export const ConditionalRouteFormSchema = z.object({
   order: z.number().int().min(1).max(100).default(50),
   search_on_add: z.boolean().optional(),
   season_monitoring: z.string().optional(),
+  series_type: z.enum(['standard', 'anime', 'daily', 'none']).optional(),
 })
 
 export type ConditionalRouteFormValues = z.infer<

@@ -43,6 +43,7 @@ export function useSonarrInstanceForm({
         ? instances.length === 1 && instances[0].apiKey === API_KEY_PLACEHOLDER
         : instance.isDefault,
       syncedInstances: instance.syncedInstances || [],
+      seriesType: instance.seriesType || 'standard',
       _originalBaseUrl: instance.baseUrl,
       _originalApiKey: instance.apiKey,
     },
@@ -71,6 +72,7 @@ export function useSonarrInstanceForm({
       tags: instance.tags,
       isDefault: instance.isDefault,
       syncedInstances: instance.syncedInstances || [],
+      seriesType: instance.seriesType || 'standard',
       _originalBaseUrl: instance.baseUrl,
       _originalApiKey: instance.apiKey,
     })
@@ -148,6 +150,7 @@ export function useSonarrInstanceForm({
           tags: instance.tags,
           isDefault: instance.isDefault,
           syncedInstances: instance.syncedInstances || [],
+          seriesType: instance.seriesType || 'standard',
           _originalBaseUrl: instance.baseUrl,
           _originalApiKey: instance.apiKey,
         })

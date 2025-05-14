@@ -16,6 +16,10 @@ const SonarrInstanceSchema = z.object({
   tags: z.array(z.string()).optional().default([]),
   isDefault: z.boolean().optional().default(false),
   syncedInstances: z.array(z.number()).optional(),
+  seriesType: z
+    .enum(['standard', 'anime', 'daily'])
+    .optional()
+    .default('standard'),
 })
 
 const plugin: FastifyPluginAsync = async (fastify) => {
@@ -34,10 +38,11 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     },
     async () => {
       const instances = await fastify.sonarrManager.getAllInstances()
-      // Ensure searchOnAdd is defined for all instances (default to true if missing)
+      // Ensure searchOnAdd and seriesType are defined for all instances
       return instances.map((instance) => ({
         ...instance,
         searchOnAdd: instance.searchOnAdd ?? true,
+        seriesType: instance.seriesType ?? 'standard',
         tags: (instance.tags ?? []).map((t) => t.toString()),
       }))
     },

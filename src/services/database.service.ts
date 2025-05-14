@@ -712,6 +712,8 @@ export class DatabaseService {
       tags: JSON.parse(instance.tags || '[]'),
       isDefault: Boolean(instance.is_default),
       syncedInstances: JSON.parse(instance.synced_instances || '[]'),
+      seriesType:
+        (instance.series_type as 'standard' | 'anime' | 'daily') || 'standard',
     }))
   }
 
@@ -745,6 +747,8 @@ export class DatabaseService {
       tags: JSON.parse(instance.tags || '[]'),
       isDefault: true,
       syncedInstances: JSON.parse(instance.synced_instances || '[]'),
+      seriesType:
+        (instance.series_type as 'standard' | 'anime' | 'daily') || 'standard',
     }
   }
 
@@ -774,6 +778,8 @@ export class DatabaseService {
       tags: JSON.parse(instance.tags || '[]'),
       isDefault: Boolean(instance.is_default),
       syncedInstances: JSON.parse(instance.synced_instances || '[]'),
+      seriesType:
+        (instance.series_type as 'standard' | 'anime' | 'daily') || 'standard',
     }
   }
 
@@ -810,6 +816,7 @@ export class DatabaseService {
         is_default: instance.isDefault ?? false,
         is_enabled: true,
         synced_instances: JSON.stringify(instance.syncedInstances || []),
+        series_type: instance.seriesType || 'standard',
         created_at: this.timestamp,
         updated_at: this.timestamp,
       })
@@ -1088,6 +1095,9 @@ export class DatabaseService {
           }),
           ...(typeof updates.searchOnAdd !== 'undefined' && {
             search_on_add: updates.searchOnAdd,
+          }),
+          ...(typeof updates.seriesType !== 'undefined' && {
+            series_type: updates.seriesType,
           }),
           ...(typeof updates.tags !== 'undefined' && {
             tags: JSON.stringify(updates.tags),
