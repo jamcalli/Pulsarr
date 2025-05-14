@@ -55,9 +55,9 @@ interface InstanceCardProps {
 }
 
 /**
- * Renders an interactive card for viewing and editing a Radarr instance's configuration, including connection details, profiles, tags, synchronization, and deletion.
+ * Displays an interactive card for viewing and editing a Radarr instance's configuration, including connection settings, profiles, tags, synchronization, and deletion.
  *
- * The card manages form state, connection testing, tag creation, and synchronization workflows. It provides modals for delete confirmation, syncing, and tag creation. Saving is only enabled after a successful connection test, and the UI highlights unsaved or incomplete configurations. If synced instances are changed and non-empty, a sync modal is shown after saving. Tag management is integrated, allowing creation and refresh of tags. If an error occurs when updating the default instance, the form resets the default status and displays the error message.
+ * The card manages form state, connection testing, tag creation, and synchronization workflows. It provides modals for delete confirmation, syncing, and tag creation. Saving is enabled only after a successful connection test, and the UI highlights unsaved or incomplete configurations. If synced instances are changed and non-empty, a sync modal is shown after saving. Tag management is integrated, allowing creation and refresh of tags. If an error occurs when updating the default instance, the form resets the default status and displays the error message.
  *
  * @param instance - The Radarr instance to display and edit.
  * @param setShowInstanceCard - Optional function to control the visibility of the instance card.
@@ -378,7 +378,7 @@ export function InstanceCard({
                 </div>
 
                 {/* Instance Configuration */}
-                <div className="grid lg:grid-cols-3 gap-4">
+                <div className="grid lg:grid-cols-3 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="searchOnAdd"
@@ -421,12 +421,12 @@ export function InstanceCard({
                   />
                   <FormField
                     control={form.control}
-                    name="minimumAvailability"
+                    name="bypassIgnored"
                     render={({ field }) => (
                       <FormItem>
                         <div className="flex items-center space-x-2">
                           <FormLabel className="text-text">
-                            Minimum Availability
+                            Bypass Ignored
                           </FormLabel>
                           <TooltipProvider>
                             <Tooltip>
@@ -435,37 +435,27 @@ export function InstanceCard({
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p className="max-w-xs">
-                                  Determines when movies are considered
-                                  available:
-                                  <br />• <strong>Announced</strong>: As soon as
-                                  movie is added to TMDb
-                                  <br />• <strong>In Cinemas</strong>: When
-                                  movie is in theaters
-                                  <br />• <strong>Released</strong>: When
-                                  digital/physical release is available
+                                  When enabled, this instance will bypass any
+                                  ignore exclusions. Use this when you want
+                                  certain instances to process all content
+                                  regardless of ignore settings.
                                 </p>
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
                         </div>
-                        <Select
-                          disabled={!isConnectionValid}
-                          onValueChange={field.onChange}
-                          value={field.value}
-                        >
+                        <div className="flex h-10 items-center gap-2 px-3 py-2">
                           <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select availability" />
-                            </SelectTrigger>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              disabled={!isConnectionValid}
+                            />
                           </FormControl>
-                          <SelectContent>
-                            <SelectItem value="announced">Announced</SelectItem>
-                            <SelectItem value="inCinemas">
-                              In Cinemas
-                            </SelectItem>
-                            <SelectItem value="released">Released</SelectItem>
-                          </SelectContent>
-                        </Select>
+                          <span className="text-sm text-text text-muted-foreground">
+                            Bypass ignore exclusions
+                          </span>
+                        </div>
                       </FormItem>
                     )}
                   />
@@ -532,12 +522,79 @@ export function InstanceCard({
                   />
                   <FormField
                     control={form.control}
+                    name="minimumAvailability"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center space-x-2">
+                          <FormLabel className="text-text">
+                            Minimum Availability
+                          </FormLabel>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  Determines when movies are considered
+                                  available:
+                                  <br />• <strong>Announced</strong>: As soon as
+                                  movie is added to TMDb
+                                  <br />• <strong>In Cinemas</strong>: When
+                                  movie is in theaters
+                                  <br />• <strong>Released</strong>: When
+                                  digital/physical release is available
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                        <Select
+                          disabled={!isConnectionValid}
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select availability" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="announced">Announced</SelectItem>
+                            <SelectItem value="inCinemas">
+                              In Cinemas
+                            </SelectItem>
+                            <SelectItem value="released">Released</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
                     name="syncedInstances"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-text">
-                          Sync With Instances
-                        </FormLabel>
+                        <div className="flex items-center space-x-2">
+                          <FormLabel className="text-text">
+                            Sync With Instances
+                          </FormLabel>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  Select instances to sync with this Radarr
+                                  instance. Any content that reaches the default
+                                  instance will also be sent to the selected
+                                  synced instance(s).
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
                         <div className="flex gap-2 items-center w-full">
                           <div className="flex-1 min-w-0">
                             <SyncedInstancesSelect
@@ -577,16 +634,30 @@ export function InstanceCard({
                       </FormItem>
                     )}
                   />
-                  {/* Empty cell to ensure Default Instance is in bottom-right */}
-                  <div />
                   <FormField
                     control={form.control}
                     name="isDefault"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-text">
-                          Default Instance
-                        </FormLabel>
+                        <div className="flex items-center space-x-2">
+                          <FormLabel className="text-text">
+                            Default Instance
+                          </FormLabel>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  The default instance will receive all content
+                                  when no specific routing rules apply. Only one
+                                  instance can be set as default at a time.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
                         <div className="flex h-10 items-center gap-2 px-3 py-2">
                           <FormControl>
                             <Switch
