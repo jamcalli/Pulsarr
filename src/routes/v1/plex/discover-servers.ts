@@ -58,7 +58,7 @@ export const discoverServersRoute: FastifyPluginAsync = async (fastify) => {
         const { plexToken } = request.body
 
         if (!plexToken) {
-          throw reply.badRequest('Plex token is required')
+          return reply.badRequest('Plex token is required')
         }
 
         fastify.log.info('Discovering Plex servers using provided token')
@@ -171,35 +171,35 @@ export const discoverServersRoute: FastifyPluginAsync = async (fastify) => {
           const status = err.status
 
           if (status === 400) {
-            throw reply.badRequest(err.message)
+            return reply.badRequest(err.message)
           }
 
           if (status === 401) {
-            throw reply.unauthorized(err.message)
+            return reply.unauthorized(err.message)
           }
 
           if (status === 403) {
-            throw reply.forbidden(err.message)
+            return reply.forbidden(err.message)
           }
 
           if (status === 404) {
-            throw reply.notFound(err.message)
+            return reply.notFound(err.message)
           }
 
           if (status >= 500) {
-            throw reply.internalServerError(err.message)
+            return reply.internalServerError(err.message)
           }
 
           // For any other client errors (default case)
-          throw reply.badRequest(err.message)
+          return reply.badRequest(err.message)
         }
 
         // Default error handling for unexpected errors
         if (err instanceof Error) {
-          throw reply.internalServerError(err.message)
+          return reply.internalServerError(err.message)
         }
 
-        throw reply.internalServerError('Failed to discover Plex servers')
+        return reply.internalServerError('Failed to discover Plex servers')
       }
     },
   )

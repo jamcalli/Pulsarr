@@ -103,7 +103,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         return response
       } catch (err) {
         fastify.log.error('Error fetching dashboard statistics:', err)
-        throw reply.internalServerError('Unable to fetch dashboard statistics')
+        return reply.internalServerError('Unable to fetch dashboard statistics')
       }
     },
   )
@@ -128,7 +128,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         return breakdown
       } catch (err) {
         fastify.log.error('Error fetching instance content breakdown:', err)
-        throw reply.internalServerError(
+        return reply.internalServerError(
           'Unable to fetch instance content breakdown',
         )
       }
@@ -158,7 +158,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         return topGenres
       } catch (err) {
         fastify.log.error('Error fetching genre statistics:', err)
-        throw reply.internalServerError('Unable to fetch genre statistics')
+        return reply.internalServerError('Unable to fetch genre statistics')
       }
     },
   )
@@ -186,7 +186,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         return shows
       } catch (err) {
         fastify.log.error('Error fetching show statistics:', err)
-        throw reply.internalServerError('Unable to fetch show statistics')
+        return reply.internalServerError('Unable to fetch show statistics')
       }
     },
   )
@@ -214,7 +214,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         return movies
       } catch (err) {
         fastify.log.error('Error fetching movie statistics:', err)
-        throw reply.internalServerError('Unable to fetch movie statistics')
+        return reply.internalServerError('Unable to fetch movie statistics')
       }
     },
   )
@@ -242,7 +242,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         return topUsers
       } catch (err) {
         fastify.log.error('Error fetching user statistics:', err)
-        throw reply.internalServerError('Unable to fetch user statistics')
+        return reply.internalServerError('Unable to fetch user statistics')
       }
     },
   )
@@ -270,7 +270,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         return activity
       } catch (err) {
         fastify.log.error('Error fetching activity statistics:', err)
-        throw reply.internalServerError('Unable to fetch activity statistics')
+        return reply.internalServerError('Unable to fetch activity statistics')
       }
     },
   )
@@ -295,7 +295,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         return availability
       } catch (err) {
         fastify.log.error('Error fetching availability statistics:', err)
-        throw reply.internalServerError(
+        return reply.internalServerError(
           'Unable to fetch availability statistics',
         )
       }
@@ -322,7 +322,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         return times
       } catch (err) {
         fastify.log.error('Error fetching grabbed-to-notified statistics:', err)
-        throw reply.internalServerError(
+        return reply.internalServerError(
           'Unable to fetch grabbed-to-notified statistics',
         )
       }
@@ -350,7 +350,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         return transitions
       } catch (err) {
         fastify.log.error('Error fetching status transition metrics:', err)
-        throw reply.internalServerError(
+        return reply.internalServerError(
           'Unable to fetch status transition metrics',
         )
       }
@@ -377,7 +377,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         return flowData
       } catch (err) {
         fastify.log.error('Error fetching status flow data:', err)
-        throw reply.internalServerError('Unable to fetch status flow data')
+        return reply.internalServerError('Unable to fetch status flow data')
       }
     },
   )
@@ -404,7 +404,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         return stats
       } catch (err) {
         fastify.log.error('Error fetching notification statistics:', err)
-        throw reply.internalServerError(
+        return reply.internalServerError(
           'Unable to fetch notification statistics',
         )
       }

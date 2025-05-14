@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useToast } from '@/hooks/use-toast'
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
+import { useConfigStore } from '@/stores/configStore'
 import {
   TaggingConfigSchema,
   type TaggingStatusResponseSchema,
@@ -118,6 +119,7 @@ export function useUserTags() {
     removeUserTags,
     setLoadingWithMinDuration, // Important - this is used in DeleteSyncForm
   } = useUtilitiesStore()
+  const { fetchConfig } = useConfigStore()
 
   // Update local remove results when store results change
   useEffect(() => {
@@ -147,7 +149,7 @@ export function useUserTags() {
         tagUsersInRadarr: data.config.tagUsersInRadarr,
         cleanupOrphanedTags: data.config.cleanupOrphanedTags,
         removedTagMode: data.config.removedTagMode || 'remove',
-        removedTagPrefix: data.config.removedTagPrefix || 'pulsarr:removed', // This is actually the full tag label
+        removedTagPrefix: data.config.removedTagPrefix || 'pulsarr:removed', // Note: Despite the name, this is the complete tag label, not just a prefix (kept for API consistency)
         tagPrefix: data.config.tagPrefix,
       })
     },
@@ -231,6 +233,9 @@ export function useUserTags() {
         // Reset form with updated configuration
         form.reset(formDataCopy, { keepDirty: false })
 
+        // Refresh the global config to ensure Delete Sync form gets the updated values
+        await fetchConfig()
+
         // Wait before setting status back to idle (exactly like DeleteSyncForm)
         await new Promise((resolve) => setTimeout(resolve, 1000))
 
@@ -255,7 +260,7 @@ export function useUserTags() {
         setLoadingWithMinDuration(false)
       }
     },
-    [form, toast, updateUserTagsConfig, setLoadingWithMinDuration],
+    [form, toast, updateUserTagsConfig, setLoadingWithMinDuration, fetchConfig],
   )
 
   // Handle form cancellation

@@ -31,7 +31,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         return await fastify.db.getAllSchedules()
       } catch (err) {
         fastify.log.error('Error fetching schedules:', err)
-        throw reply.internalServerError('Unable to fetch schedules')
+        return reply.internalServerError('Unable to fetch schedules')
       }
     },
   )
@@ -59,7 +59,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const schedule = await fastify.db.getScheduleByName(name)
 
         if (!schedule) {
-          throw reply.notFound(`Schedule "${name}" not found`)
+          return reply.notFound(`Schedule "${name}" not found`)
         }
 
         return schedule
@@ -69,7 +69,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
 
         fastify.log.error('Error fetching schedule:', err)
-        throw reply.internalServerError('Unable to fetch schedule')
+        return reply.internalServerError('Unable to fetch schedule')
       }
     },
   )
@@ -106,7 +106,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           )
 
           if (!success) {
-            throw reply.internalServerError(
+            return reply.internalServerError(
               `Failed to update schedule "${scheduleData.name}"`,
             )
           }
@@ -133,7 +133,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           }
         } catch (error) {
           fastify.log.error('Error creating schedule:', error)
-          throw reply.internalServerError(
+          return reply.internalServerError(
             `Failed to create schedule "${scheduleData.name}"`,
           )
         }
@@ -143,7 +143,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
 
         fastify.log.error('Error processing schedule:', err)
-        throw reply.internalServerError('Unable to process schedule request')
+        return reply.internalServerError('Unable to process schedule request')
       }
     },
   )
@@ -176,7 +176,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         const existing = await fastify.db.getScheduleByName(name)
         if (!existing) {
-          throw reply.notFound(`Schedule "${name}" not found`)
+          return reply.notFound(`Schedule "${name}" not found`)
         }
 
         const configToUpdate =
@@ -188,7 +188,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         )
 
         if (!success) {
-          throw reply.internalServerError(`Failed to update schedule "${name}"`)
+          return reply.internalServerError(
+            `Failed to update schedule "${name}"`,
+          )
         }
 
         return { success: true, message: `Schedule "${name}" updated` }
@@ -198,7 +200,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
 
         fastify.log.error('Error updating schedule:', err)
-        throw reply.internalServerError('Unable to update schedule')
+        return reply.internalServerError('Unable to update schedule')
       }
     },
   )
@@ -228,7 +230,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         const existing = await fastify.db.getScheduleByName(name)
         if (!existing) {
-          throw reply.notFound(`Schedule "${name}" not found`)
+          return reply.notFound(`Schedule "${name}" not found`)
         }
 
         // Remove from scheduler
@@ -237,7 +239,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         // Delete from database
         const deleted = await fastify.db.deleteSchedule(name)
         if (!deleted) {
-          throw reply.internalServerError(`Failed to delete schedule "${name}"`)
+          return reply.internalServerError(
+            `Failed to delete schedule "${name}"`,
+          )
         }
 
         return { success: true, message: `Schedule "${name}" deleted` }
@@ -247,7 +251,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
 
         fastify.log.error('Error deleting schedule:', err)
-        throw reply.internalServerError('Unable to delete schedule')
+        return reply.internalServerError('Unable to delete schedule')
       }
     },
   )
@@ -277,12 +281,12 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         const existing = await fastify.db.getScheduleByName(name)
         if (!existing) {
-          throw reply.notFound(`Schedule "${name}" not found`)
+          return reply.notFound(`Schedule "${name}" not found`)
         }
 
         const success = await fastify.scheduler.runJobNow(name)
         if (!success) {
-          throw reply.internalServerError(`Failed to run job "${name}"`)
+          return reply.internalServerError(`Failed to run job "${name}"`)
         }
 
         return { success: true, message: `Job "${name}" executed successfully` }
@@ -292,7 +296,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
 
         fastify.log.error('Error running job:', err)
-        throw reply.internalServerError('Unable to run job')
+        return reply.internalServerError('Unable to run job')
       }
     },
   )
@@ -325,7 +329,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         const existing = await fastify.db.getScheduleByName(name)
         if (!existing) {
-          throw reply.notFound(`Schedule "${name}" not found`)
+          return reply.notFound(`Schedule "${name}" not found`)
         }
 
         const success = await fastify.scheduler.updateJobSchedule(
@@ -335,7 +339,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         )
 
         if (!success) {
-          throw reply.internalServerError(
+          return reply.internalServerError(
             `Failed to ${enabled ? 'enable' : 'disable'} schedule "${name}"`,
           )
         }
@@ -350,7 +354,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
 
         fastify.log.error('Error toggling schedule status:', err)
-        throw reply.internalServerError('Unable to toggle schedule status')
+        return reply.internalServerError('Unable to toggle schedule status')
       }
     },
   )
@@ -378,7 +382,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const schedule = await fastify.db.getScheduleByName(jobName)
 
         if (!schedule) {
-          throw reply.notFound(`Schedule "${jobName}" not found`)
+          return reply.notFound(`Schedule "${jobName}" not found`)
         }
 
         // Run the delete sync in dry run mode
@@ -408,7 +412,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
 
         fastify.log.error('Error in delete sync dry run:', err)
-        throw reply.internalServerError('Failed to run delete sync dry run')
+        return reply.internalServerError('Failed to run delete sync dry run')
       }
     },
   )

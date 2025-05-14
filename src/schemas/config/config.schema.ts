@@ -67,6 +67,8 @@ export const ConfigSchema = z.object({
   // Deletion mode
   deletionMode: DeletionModeEnum.optional(),
   removedTagPrefix: z.string().optional(),
+  // Tag removal mode
+  removedTagMode: z.enum(['remove', 'keep', 'special-tag']).default('remove'),
   // Plex Playlist Protection
   enablePlexPlaylistProtection: z.boolean().optional(),
   plexProtectionPlaylistName: z.string().optional(),

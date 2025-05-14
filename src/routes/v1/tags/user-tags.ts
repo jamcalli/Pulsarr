@@ -30,7 +30,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       try {
         const config = await fastify.db.getConfig(1)
         if (!config) {
-          throw reply.notFound('Config not found in database')
+          return reply.notFound('Config not found in database')
         }
 
         return {
@@ -79,6 +79,25 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         // Create a copy of the config updates
         const configUpdate = { ...request.body }
 
+        // Safety check: Prevent changing removedTagMode from special-tag to something else
+        // if Delete Sync is enabled and set to tag-based mode
+        const currentConfig = await fastify.db.getConfig(1)
+        const deleteSyncSchedule =
+          await fastify.db.getScheduleByName('delete-sync')
+
+        if (
+          currentConfig &&
+          deleteSyncSchedule &&
+          currentConfig.removedTagMode === 'special-tag' &&
+          configUpdate.removedTagMode !== 'special-tag' &&
+          currentConfig.deletionMode === 'tag-based' &&
+          deleteSyncSchedule.enabled
+        ) {
+          return reply.badRequest(
+            'Cannot change Tag Behavior on Removal from "Special Tag" while Delete Sync is enabled and set to tag-based mode. Please disable Delete Sync first to prevent accidental deletions.',
+          )
+        }
+
         // Store config update object for later use
 
         // Store current runtime values for revert if needed
@@ -95,7 +114,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           await fastify.updateConfig(configUpdate)
         } catch (configUpdateError) {
           fastify.log.error('Error updating runtime config:', configUpdateError)
-          throw reply.badRequest('Failed to update runtime configuration')
+          return reply.badRequest('Failed to update runtime configuration')
         }
 
         // Update the config with the given values
@@ -110,7 +129,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           } catch (revertError) {
             fastify.log.error('Failed to revert runtime config:', revertError)
           }
-          throw reply.badRequest('Failed to update configuration in database')
+          return reply.badRequest('Failed to update configuration in database')
         }
 
         // Check if database was updated successfully
@@ -118,7 +137,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         // Get the updated config
         const savedConfig = await fastify.db.getConfig(1)
         if (!savedConfig) {
-          throw reply.notFound('No configuration found after update')
+          return reply.notFound('No configuration found after update')
         }
 
         // Use the saved config for the response
@@ -166,7 +185,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         // Check config first to avoid unnecessary API calls if tagging is disabled
         const config = await fastify.db.getConfig(1)
         if (!config) {
-          throw reply.notFound('Config not found in database')
+          return reply.notFound('Config not found in database')
         }
 
         // Prepare default results for disabled services
@@ -274,7 +293,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         // Check config first to see if tagging is enabled at all
         const config = await fastify.db.getConfig(1)
         if (!config) {
-          throw reply.notFound('Config not found in database')
+          return reply.notFound('Config not found in database')
         }
 
         // If both Sonarr and Radarr tagging are disabled, return early
@@ -371,7 +390,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         // Check if cleanup is enabled
         const config = await fastify.db.getConfig(1)
         if (!config) {
-          throw reply.notFound('Config not found in database')
+          return reply.notFound('Config not found in database')
         }
 
         // If cleanup is disabled, return early with appropriate message
@@ -440,7 +459,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         // Check if tagging is enabled
         const config = await fastify.db.getConfig(1)
         if (!config) {
-          throw reply.notFound('Config not found in database')
+          return reply.notFound('Config not found in database')
         }
 
         // If both Sonarr and Radarr tagging are disabled, return early

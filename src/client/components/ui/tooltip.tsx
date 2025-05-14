@@ -46,7 +46,7 @@ const TooltipTrigger = React.forwardRef<
 >(({ ...props }, ref) => {
   const context = React.useContext(TooltipContext)
   
-  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleClick = (e: React.MouseEvent<HTMLElement>) => {
     if (context?.isMobile) {
       e.preventDefault()
       context.setIsOpen(!context.isOpen)
@@ -54,7 +54,8 @@ const TooltipTrigger = React.forwardRef<
     
     // Call the original onClick if it exists
     if (props.onClick) {
-      props.onClick(e)
+      // Cast back to HTMLButtonElement for the original handler
+      props.onClick(e as React.MouseEvent<HTMLButtonElement>)
     }
   }
   
@@ -70,7 +71,7 @@ const TooltipContent = React.forwardRef<
   const context = React.useContext(TooltipContext)
   
   // Create a handler for outside clicks/taps
-  const handleOutsidePointer = (e: Event) => {
+  const handleOutsidePointer = React.useCallback((e: Event) => {
     if (context?.isMobile) {
       context.setIsOpen(false)
     }
@@ -79,7 +80,7 @@ const TooltipContent = React.forwardRef<
     if (props.onPointerDownOutside) {
       props.onPointerDownOutside(e as any)
     }
-  }
+  }, [context?.isMobile, context?.setIsOpen, props.onPointerDownOutside])
   
   return (
     <TooltipPrimitive.Content

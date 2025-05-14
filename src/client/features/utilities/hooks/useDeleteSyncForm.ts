@@ -8,36 +8,60 @@ import * as z from 'zod'
 import type { Config } from '@root/types/config.types'
 
 // Schema definition
-export const deleteSyncSchema = z.object({
-  deletionMode: z.enum(['watchlist', 'tag-based']).default('watchlist'),
-  deleteMovie: z.boolean(),
-  deleteEndedShow: z.boolean(),
-  deleteContinuingShow: z.boolean(),
-  deleteFiles: z.boolean(),
-  respectUserSyncSetting: z.boolean(),
-  enablePlexPlaylistProtection: z.boolean(),
-  plexProtectionPlaylistName: z.string().min(1),
-  deleteSyncNotify: z.enum([
-    'none',
-    'message',
-    'webhook',
-    'both',
-    'all',
-    'discord-only',
-    'apprise-only',
-    'webhook-only',
-    'dm-only',
-    'discord-webhook',
-    'discord-message',
-    'discord-both',
-  ]),
-  maxDeletionPrevention: z.coerce.number().int().min(1).max(100).optional(),
-  scheduleTime: z.date().optional(),
-  dayOfWeek: z.string().default('*'),
-  // removedTagPrefix should be configured in the User Tags section when using the 'special-tag' removal mode
-  // This value is read-only in this form but is still needed for the tag-based deletion logic
-  removedTagPrefix: z.string().default('pulsarr:removed'),
-})
+export const deleteSyncSchema = z
+  .object({
+    deletionMode: z.enum(['watchlist', 'tag-based']).default('watchlist'),
+    deleteMovie: z.boolean(),
+    deleteEndedShow: z.boolean(),
+    deleteContinuingShow: z.boolean(),
+    deleteFiles: z.boolean(),
+    respectUserSyncSetting: z.boolean(),
+    enablePlexPlaylistProtection: z.boolean(),
+    plexProtectionPlaylistName: z.string().min(1),
+    deleteSyncNotify: z.enum([
+      'none',
+      'message',
+      'webhook',
+      'both',
+      'all',
+      'discord-only',
+      'apprise-only',
+      'webhook-only',
+      'dm-only',
+      'discord-webhook',
+      'discord-message',
+      'discord-both',
+    ]),
+    maxDeletionPrevention: z.coerce.number().int().min(1).max(100).optional(),
+    scheduleTime: z.date().optional(),
+    dayOfWeek: z.string().default('*'),
+    // removedTagPrefix should be configured in the User Tags section when using the 'special-tag' removal mode
+    // This value is read-only in this form but is still needed for the tag-based deletion logic
+    removedTagPrefix: z
+      .string()
+      .trim()
+      .min(1, { message: 'Prefix cannot be empty' })
+      .default('pulsarr:removed'),
+    // Store the current removedTagMode from config to enable validation
+    removedTagMode: z.enum(['remove', 'keep', 'special-tag']).optional(),
+  })
+  .refine(
+    (data) => {
+      // If deletion mode is tag-based, removedTagMode must be 'special-tag'
+      if (
+        data.deletionMode === 'tag-based' &&
+        data.removedTagMode !== 'special-tag'
+      ) {
+        return false
+      }
+      return true
+    },
+    {
+      message:
+        'Tag-based deletion requires "Tag Behavior on Removal" to be set to "Special Tag"',
+      path: ['deletionMode'],
+    },
+  )
 
 export type DeleteSyncFormValues = z.infer<typeof deleteSyncSchema>
 export type FormSaveStatus = 'idle' | 'loading' | 'success' | 'error'
@@ -86,6 +110,8 @@ export function useDeleteSyncForm() {
   const [saveStatus, setSaveStatus] = useState<FormSaveStatus>('idle')
   const [submittedValues, setSubmittedValues] =
     useState<DeleteSyncFormValues | null>(null)
+
+  // Watch for removedTagMode updates from config
 
   const [scheduleTime, dayOfWeek] = useMemo(() => {
     // Default values
@@ -139,6 +165,7 @@ export function useDeleteSyncForm() {
       scheduleTime: undefined,
       dayOfWeek: '*',
       removedTagPrefix: 'pulsarr:removed',
+      removedTagMode: 'remove',
     },
   })
 
@@ -172,6 +199,7 @@ export function useDeleteSyncForm() {
           scheduleTime: scheduleTime || form.getValues('scheduleTime'),
           dayOfWeek: dayOfWeek,
           removedTagPrefix: config.removedTagPrefix || 'pulsarr:removed',
+          removedTagMode: config.removedTagMode || 'remove',
         },
         { keepDirty: false },
       )
@@ -185,6 +213,20 @@ export function useDeleteSyncForm() {
       }, 0)
     }
   }, [config, scheduleTime, dayOfWeek, form, saveStatus])
+
+  // Update removedTagMode whenever config changes
+  useEffect(() => {
+    if (
+      config?.removedTagMode &&
+      form.getValues('removedTagMode') !== config.removedTagMode
+    ) {
+      form.setValue('removedTagMode', config.removedTagMode, {
+        shouldDirty: false,
+      })
+      // Force re-validation of the form
+      form.trigger('deletionMode')
+    }
+  }, [config?.removedTagMode, form])
 
   const onSubmit = async (data: DeleteSyncFormValues) => {
     setSubmittedValues(data)
@@ -209,7 +251,11 @@ export function useDeleteSyncForm() {
         maxDeletionPrevention: data.maxDeletionPrevention,
         // We still send the removedTagPrefix value from the form
         // This value is now read-only in Delete Sync but needed for the tag-based deletion logic
-        removedTagPrefix: data.removedTagPrefix,
+        ...(data.deletionMode === 'tag-based' && {
+          removedTagPrefix: data.removedTagPrefix,
+        }),
+        // CRITICAL: Include removedTagMode to prevent it from being reset
+        removedTagMode: data.removedTagMode,
       })
 
       let scheduleUpdate = Promise.resolve()
@@ -281,6 +327,7 @@ export function useDeleteSyncForm() {
           scheduleTime: data.scheduleTime,
           dayOfWeek: data.dayOfWeek,
           removedTagPrefix: updatedConfig.removedTagPrefix || 'pulsarr:removed',
+          removedTagMode: updatedConfig.removedTagMode || 'remove',
         },
         { keepDirty: false },
       )
@@ -329,6 +376,7 @@ export function useDeleteSyncForm() {
         scheduleTime: scheduleTime,
         dayOfWeek: dayOfWeek,
         removedTagPrefix: config.removedTagPrefix || 'pulsarr:removed',
+        removedTagMode: config.removedTagMode || 'remove',
       })
     }
   }, [config, form, scheduleTime, dayOfWeek])

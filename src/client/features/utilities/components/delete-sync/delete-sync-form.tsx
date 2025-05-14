@@ -48,6 +48,7 @@ import { useDeleteSync } from '@/features/utilities/hooks/useDeleteSync'
 import { DeleteSyncConfirmationModal } from '@/features/utilities/components/delete-sync/delete-sync-confirmation-modal'
 import { DeleteSyncDryRunModal } from '@/features/utilities/components/delete-sync/delete-sync-dry-run-modal'
 import { useMediaQuery } from '@/hooks/use-media-query'
+// Removed unused import
 
 /**
  * Renders a form and controls for managing the delete synchronization job, including status display, scheduling, configuration, and action buttons.
@@ -414,6 +415,85 @@ export function DeleteSyncForm() {
                                     </div>
                                   </FormControl>
                                   <FormMessage />
+                                  {field.value === 'tag-based' &&
+                                    form.watch('removedTagMode') !==
+                                      'special-tag' && (
+                                      <div className="mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-900/20 rounded-md">
+                                        <div className="flex items-start space-x-2">
+                                          <AlertTriangle className="h-4 w-4 mt-0.5 text-yellow-600 dark:text-yellow-500 flex-shrink-0" />
+                                          <p className="text-xs text-yellow-800 dark:text-yellow-400">
+                                            <strong>
+                                              Configuration Warning:
+                                            </strong>{' '}
+                                            Tag-based deletion requires "Tag
+                                            Behavior on Removal" to be set to
+                                            "Special Tag" in the User Tags
+                                            section. Current setting is "
+                                            {form.watch('removedTagMode') ||
+                                              'remove'}
+                                            ".{' '}
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                // Find the User Tags accordion by looking for the h3 element
+                                                const userTagsHeader =
+                                                  Array.from(
+                                                    document.querySelectorAll(
+                                                      'h3',
+                                                    ),
+                                                  ).find(
+                                                    (h3) =>
+                                                      h3.textContent ===
+                                                      'User Tags',
+                                                  )
+
+                                                if (userTagsHeader) {
+                                                  // Find the parent accordion trigger button
+                                                  const trigger =
+                                                    userTagsHeader.closest(
+                                                      'button',
+                                                    )
+
+                                                  if (trigger) {
+                                                    // Check if closed using aria-expanded
+                                                    const isExpanded =
+                                                      trigger.getAttribute(
+                                                        'aria-expanded',
+                                                      ) === 'true'
+
+                                                    // Click if closed
+                                                    if (!isExpanded) {
+                                                      trigger.click()
+                                                    }
+
+                                                    // Scroll the accordion item into view
+                                                    // The trigger button itself is the accordion item
+                                                    setTimeout(() => {
+                                                      // Find the accordion item container (parent with border)
+                                                      const accordionWrapper =
+                                                        trigger.closest(
+                                                          '.border-2.border-border',
+                                                        )
+                                                      if (accordionWrapper) {
+                                                        accordionWrapper.scrollIntoView(
+                                                          {
+                                                            behavior: 'smooth',
+                                                            block: 'start',
+                                                          },
+                                                        )
+                                                      }
+                                                    }, 300)
+                                                  }
+                                                }
+                                              }}
+                                              className="underline font-medium hover:text-yellow-900 dark:hover:text-yellow-300"
+                                            >
+                                              Configure User Tags
+                                            </button>
+                                          </p>
+                                        </div>
+                                      </div>
+                                    )}
                                 </FormItem>
                               )}
                             />

@@ -57,7 +57,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           redirectTo: hasPlexTokens ? '/app/dashboard' : '/app/plex',
         }
       } catch (error) {
-        throw reply.internalServerError('Login failed.')
+        return reply.internalServerError('Login failed.')
       }
     },
   )

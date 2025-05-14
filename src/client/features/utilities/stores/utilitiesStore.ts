@@ -90,7 +90,7 @@ const handleApiResponse = async <T>(
     let errorMessage = defaultErrorMessage
     try {
       const errorData = await response.json()
-      errorMessage = errorData.error || errorMessage
+      errorMessage = errorData.message || errorData.error || errorMessage
     } catch (_) {
       // If JSON parsing fails, try to get the response text
       try {
@@ -425,7 +425,10 @@ export const useUtilitiesStore = create<UtilitiesState>()(
       fetchUserTagsConfig: async () => {
         return apiRequest<TaggingStatusResponse>({
           url: '/v1/tags/status',
-          // Use type assertion to handle the type discrepancy with default values
+          // Use type assertion to handle type discrepancy with default values.
+          // This is needed because Zod schemas with .default() can cause TypeScript
+          // to infer optional properties when they will actually always be present
+          // in the runtime object after validation.
           schema:
             TaggingStatusResponseSchema as z.ZodType<TaggingStatusResponse>,
           loadingKey: 'userTags',

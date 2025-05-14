@@ -452,7 +452,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         throw new Error('Invalid webhook payload')
       } catch (error) {
         fastify.log.error({ error }, 'Error processing webhook')
-        throw reply.internalServerError('Error processing webhook')
+        return reply.internalServerError('Error processing webhook')
       }
     },
   )
