@@ -430,7 +430,7 @@ export class UserTagService {
                 }
 
                 // Extract Sonarr ID
-                const sonarrId = this.extractSonarrId(show.guids)
+                const sonarrId = extractSonarrId(show.guids)
                 if (sonarrId === 0) {
                   this.log.debug(
                     `Could not extract Sonarr ID from show "${show.title}", skipping tagging`,
@@ -667,7 +667,7 @@ export class UserTagService {
                 }
 
                 // Extract Radarr ID
-                const radarrId = this.extractRadarrId(movie.guids)
+                const radarrId = extractRadarrId(movie.guids)
                 if (radarrId === 0) {
                   this.log.debug(
                     `Could not extract Radarr ID from movie "${movie.title}", skipping tagging`,
@@ -1269,7 +1269,7 @@ export class UserTagService {
               results.itemsProcessed++
 
               // Extract Sonarr ID
-              const sonarrId = this.extractSonarrId(item.guids)
+              const sonarrId = extractSonarrId(item.guids)
               if (sonarrId === 0) {
                 return { updated: false, tagsRemoved: 0, failed: false }
               }
@@ -1509,7 +1509,7 @@ export class UserTagService {
               results.itemsProcessed++
 
               // Extract Radarr ID
-              const radarrId = this.extractRadarrId(item.guids)
+              const radarrId = extractRadarrId(item.guids)
               if (radarrId === 0) {
                 return { updated: false, tagsRemoved: 0, failed: false }
               }
@@ -1726,37 +1726,6 @@ export class UserTagService {
     return tagLabel.toLowerCase().startsWith(`${this.tagPrefix}:`)
   }
 
-  /**
-   * Extract Sonarr ID from GUIDs
-   */
-  private extractSonarrId(guids: string[] | undefined): number {
-    if (!guids) return 0
-
-    for (const guid of guids) {
-      if (guid.startsWith('sonarr:')) {
-        const id = Number.parseInt(guid.replace('sonarr:', ''), 10)
-        return Number.isNaN(id) ? 0 : id
-      }
-    }
-
-    return 0
-  }
-
-  /**
-   * Extract Radarr ID from GUIDs
-   */
-  private extractRadarrId(guids: string[] | undefined): number {
-    if (!guids) return 0
-
-    for (const guid of guids) {
-      if (guid.startsWith('radarr:')) {
-        const id = Number.parseInt(guid.replace('radarr:', ''), 10)
-        return Number.isNaN(id) ? 0 : id
-      }
-    }
-
-    return 0
-  }
 
   /**
    * Ensures the special "removed" tag exists in the given service
@@ -1883,7 +1852,7 @@ export class UserTagService {
           const batchPromises = batch.map(async (series) => {
             try {
               // Extract Sonarr ID
-              const sonarrId = this.extractSonarrId(series.guids)
+              const sonarrId = extractSonarrId(series.guids)
               if (sonarrId === 0) {
                 return { removed: false, skipped: true, failed: false }
               }
@@ -2022,7 +1991,7 @@ export class UserTagService {
           const batchPromises = batch.map(async (movie) => {
             try {
               // Extract Radarr ID
-              const radarrId = this.extractRadarrId(movie.guids)
+              const radarrId = extractRadarrId(movie.guids)
               if (radarrId === 0) {
                 return { removed: false, skipped: true, failed: false }
               }
