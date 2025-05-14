@@ -380,7 +380,7 @@ export function InstanceCard({
                 </div>
 
                 {/* Instance Configuration */}
-                <div className="grid lg:grid-cols-3 md:grid-cols-2 gap-4">
+                <div className="grid lg:grid-cols-3 gap-4">
                   <FormField
                     control={form.control}
                     name="monitorNewItems"
@@ -459,6 +459,46 @@ export function InstanceCard({
                           </FormControl>
                           <span className="text-sm text-text text-muted-foreground">
                             Automatically search for series when added
+                          </span>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="bypassIgnored"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center space-x-2">
+                          <FormLabel className="text-text">
+                            Bypass Ignored
+                          </FormLabel>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  When enabled, this instance will bypass any
+                                  ignore exclusions. Use this when you want
+                                  certain instances to process all content
+                                  regardless of ignore settings.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                        <div className="flex h-10 items-center gap-2 px-3 py-2">
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              disabled={!isConnectionValid}
+                            />
+                          </FormControl>
+                          <span className="text-sm text-text text-muted-foreground">
+                            Bypass ignore exclusions
                           </span>
                         </div>
                       </FormItem>
@@ -687,9 +727,25 @@ export function InstanceCard({
                     name="isDefault"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-text">
-                          Default Instance
-                        </FormLabel>
+                        <div className="flex items-center space-x-2">
+                          <FormLabel className="text-text">
+                            Default Instance
+                          </FormLabel>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  The default instance will receive all content
+                                  when no specific routing rules apply. Only one
+                                  instance can be set as default at a time.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
                         <div className="flex h-10 items-center gap-2 px-3 py-2">
                           <FormControl>
                             <Switch
