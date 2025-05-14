@@ -43,7 +43,7 @@ export const deleteSyncSchema = z
       .min(1, { message: 'Prefix cannot be empty' })
       .default('pulsarr:removed'),
     // Store the current removedTagMode from config to enable validation
-    removedTagMode: z.enum(['remove', 'keep', 'special-tag']).optional(),
+    removedTagMode: z.enum(['remove', 'keep', 'special-tag']).default('remove'),
   })
   .refine(
     (data) => {
