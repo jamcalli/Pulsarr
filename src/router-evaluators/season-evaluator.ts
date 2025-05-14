@@ -303,6 +303,7 @@ export default function createSeasonEvaluator(
         priority: rule.order || 50, // Default to 50 if not specified
         searchOnAdd: rule.search_on_add,
         seasonMonitoring: rule.season_monitoring,
+        seriesType: rule.series_type,
       }))
     },
 
