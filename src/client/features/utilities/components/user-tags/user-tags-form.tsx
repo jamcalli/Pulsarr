@@ -785,14 +785,11 @@ export function UserTagsForm() {
                                             previously in a user's watchlist
                                             when using "Special Tag" mode.
                                           </p>
-                                          <p className="text-xs">
-                                            <span className="font-semibold">
-                                              Note:
-                                            </span>{' '}
-                                            Changing this requires removing
-                                            existing tags first, as old removed
-                                            tags won't be recognized with the
-                                            new value.
+                                          <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded border border-slate-200 dark:border-slate-700 text-xs text-text mt-2">
+                                            <strong>Note:</strong> Changing this
+                                            requires removing existing tags
+                                            first, as old removed tags won't be
+                                            recognized with the new value.
                                           </p>
                                         </div>
                                       </TooltipContent>
@@ -871,10 +868,11 @@ export function UserTagsForm() {
                                           </code>
                                         </p>
 
-                                        <p>
-                                          Note: Changing this requires removing
-                                          existing tags first, as old tags won't
-                                          be recognized with the new prefix.
+                                        <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded border border-slate-200 dark:border-slate-700 text-xs text-text mt-2">
+                                          <strong>Note:</strong> Changing this
+                                          requires removing existing tags first,
+                                          as old tags won't be recognized with
+                                          the new prefix.
                                         </p>
                                       </div>
                                     </TooltipContent>

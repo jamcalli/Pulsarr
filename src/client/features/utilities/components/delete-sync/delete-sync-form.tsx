@@ -10,6 +10,7 @@ import {
   Save,
   X,
   HelpCircle,
+  Tag,
 } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
 import {
@@ -351,12 +352,12 @@ export function DeleteSyncForm() {
                                           <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
                                         </TooltipTrigger>
                                         <TooltipContent>
-                                          <div className="max-w-xs">
+                                          <div className="max-w-xs space-y-2">
                                             <p>
                                               Choose how content deletion should
                                               work:
                                             </p>
-                                            <ul className="list-disc pl-4 text-sm mt-1">
+                                            <ul className="list-disc pl-4 text-sm">
                                               <li>
                                                 <strong>
                                                   Watchlist-based:
@@ -373,6 +374,16 @@ export function DeleteSyncForm() {
                                                 " tag.
                                               </li>
                                             </ul>
+                                            <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded border border-slate-200 dark:border-slate-700 text-xs text-text mt-2">
+                                              <strong>Note:</strong> Tag-based
+                                              deletion requires "Tag Behavior on
+                                              Removal" to be set to{' '}
+                                              <strong>"Special Tag"</strong> in
+                                              the User Tags section. This
+                                              ensures content is properly tagged
+                                              when removed from watchlists for
+                                              later deletion.
+                                            </p>
                                           </div>
                                         </TooltipContent>
                                       </Tooltip>
@@ -408,50 +419,48 @@ export function DeleteSyncForm() {
                             />
                           </div>
 
-                          <FormField
-                            control={form.control}
-                            name="removedTagPrefix"
-                            render={({ field }) => (
-                              <FormItem className="space-y-2 mt-4">
-                                <div className="flex flex-col space-y-2">
-                                  <div className="flex items-center">
-                                    <FormLabel className="text-text m-0">
-                                      Removal Tag Name
-                                    </FormLabel>
-                                    <TooltipProvider>
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                          <p className="max-w-xs">
-                                            Tag used to mark content for
-                                            deletion in tag-based deletion mode.
-                                            Any content with this exact tag will
-                                            be deleted during the sync job.
-                                          </p>
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    </TooltipProvider>
-                                  </div>
-                                  <FormControl>
-                                    <Input
-                                      {...field}
-                                      value={field.value || 'pulsarr:removed'}
-                                      className="w-full"
-                                      placeholder="pulsarr:removed"
-                                      disabled={
-                                        isSaving ||
-                                        form.watch('deletionMode') !==
-                                          'tag-based'
-                                      }
-                                    />
-                                  </FormControl>
-                                </div>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                          {form.watch('deletionMode') === 'tag-based' && (
+                            <div className="mt-4">
+                              <div className="flex items-center mb-2">
+                                <FormLabel className="text-text m-0">
+                                  Removal Tag Name
+                                </FormLabel>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <div className="max-w-xs space-y-2">
+                                        <p>
+                                          This tag is used to mark content for
+                                          deletion in tag-based deletion mode.
+                                          Any content with this exact tag will
+                                          be deleted during the sync job.
+                                        </p>
+                                        <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded border border-slate-200 dark:border-slate-700 text-xs text-text mt-2">
+                                          <strong>Note:</strong> This value is
+                                          configured in the User Tags section
+                                          with the{' '}
+                                          <strong>"Removed Tag Label"</strong>{' '}
+                                          field when using{' '}
+                                          <strong>"Special Tag"</strong> mode.
+                                        </p>
+                                      </div>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </div>
+
+                              <div className="flex items-center p-2 bg-slate-700 dark:bg-slate-700 rounded-md border border-slate-700 dark:border-slate-700">
+                                <Tag className="h-4 w-4 mr-2 text-white dark:text-white" />
+                                <code className="text-sm font-mono text-white dark:text-white">
+                                  {form.watch('removedTagPrefix') ||
+                                    'pulsarr:removed'}
+                                </code>
+                              </div>
+                            </div>
+                          )}
 
                           <h3 className="font-medium text-sm text-text mt-4 mb-2">
                             Configuration
