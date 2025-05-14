@@ -188,7 +188,7 @@ export class AppriseNotificationService {
       // Poster image HTML if available - with Pulsarr styling
       const posterHtml = notification.posterUrl
         ? `<div style="text-align: center; margin-bottom: 20px;">
-             <img src="${notification.posterUrl}" alt="${notification.title} poster" style="max-width: 200px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
+             <img src="${notification.posterUrl}" alt="${this.esc(notification.title)} poster" style="max-width: 200px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
            </div>`
         : ''
 
@@ -225,7 +225,7 @@ export class AppriseNotificationService {
               }
               ${
                 episodeDetails.airDateUtc
-                  ? `<p style="font-weight: 500; color: #ffffff;"><strong style="color: #ffffff;">Air Date:</strong> ${new Date(episodeDetails.airDateUtc).toLocaleDateString()}</p>`
+                  ? `<p style="font-weight: 500; color: #ffffff;"><strong style="color: #ffffff;">Air Date:</strong> ${this.esc(new Date(episodeDetails.airDateUtc).toLocaleDateString())}</p>`
                   : ''
               }
             </div>
@@ -372,8 +372,8 @@ export class AppriseNotificationService {
       for (const field of notification.embedFields) {
         fieldsContent += `
         <div style="margin-bottom: 15px; padding: 15px; background-color: #212121; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
-          <h3 style="margin-top: 0; color: #ffffff; font-weight: 700; font-size: 16px;">${field.name}</h3>
-          <div style="margin-left: 10px; color: #ffffff; font-weight: 500;">${field.value}</div>
+          <h3 style="margin-top: 0; color: #ffffff; font-weight: 700; font-size: 16px;">${this.esc(field.name)}</h3>
+          <div style="margin-left: 10px; color: #ffffff; font-weight: 500;">${this.esc(field.value)}</div>
         </div>
         `
 
@@ -477,7 +477,7 @@ export class AppriseNotificationService {
 
       // Build the title section with the summary text
       const titleSection = `
-      <p style="margin-bottom: 20px; color: #000000;">${summaryText}</p>
+      <p style="margin-bottom: 20px; color: #000000;">${this.esc(summaryText)}</p>
       `
 
       // Add summary section with correct Pulsarr dark theme styling
@@ -525,7 +525,7 @@ export class AppriseNotificationService {
         safetySection = `
         <div style="margin: 15px 0; padding: 15px; border-radius: 5px; background: #212121; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
           <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">Safety Reason</h3>
-          <p style="font-weight: 500; color: #ffffff;">${results.safetyMessage}</p>
+          <p style="font-weight: 500; color: #ffffff;">${this.esc(results.safetyMessage)}</p>
         </div>
         `
 
@@ -541,7 +541,7 @@ export class AppriseNotificationService {
           .slice(0, 10)
           .map(
             (item) =>
-              `<li style="margin-bottom: 5px; color: #ffffff; font-weight: 500;">${item.title}</li>`,
+              `<li style="margin-bottom: 5px; color: #ffffff; font-weight: 500;">${this.esc(item.title)}</li>`,
           )
           .join('')
 
@@ -601,7 +601,7 @@ export class AppriseNotificationService {
           .slice(0, 10)
           .map(
             (item) =>
-              `<li style="margin-bottom: 5px; color: #ffffff; font-weight: 500;">${item.title}</li>`,
+              `<li style="margin-bottom: 5px; color: #ffffff; font-weight: 500;">${this.esc(item.title)}</li>`,
           )
           .join('')
 
@@ -659,7 +659,7 @@ export class AppriseNotificationService {
       const timestamp = new Date().toLocaleString()
       const timestampSection = `
       <div style="text-align: center; margin-top: 15px; font-style: italic; font-weight: 500; color: #ffffff; background-color: #212121; padding: 10px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
-        Delete sync operation completed at ${timestamp}
+        Delete sync operation completed at ${this.esc(timestamp)}
       </div>
       `
 

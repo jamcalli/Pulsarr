@@ -237,9 +237,8 @@ export function useDeleteSyncForm() {
         maxDeletionPrevention: data.maxDeletionPrevention,
         // We still send the removedTagPrefix value from the form
         // This value is now read-only in Delete Sync but needed for the tag-based deletion logic
-        ...(data.deletionMode === 'tag-based' && {
-          removedTagPrefix: data.removedTagPrefix,
-        }),
+        // Always persist the prefix so it is not lost when toggling modes
+        removedTagPrefix: data.removedTagPrefix,
         // CRITICAL: Include removedTagMode to prevent it from being reset
         removedTagMode: data.removedTagMode,
       })
