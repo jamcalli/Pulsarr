@@ -34,6 +34,8 @@ export const deleteSyncSchema = z.object({
   maxDeletionPrevention: z.coerce.number().int().min(1).max(100).optional(),
   scheduleTime: z.date().optional(),
   dayOfWeek: z.string().default('*'),
+  // removedTagPrefix should be configured in the User Tags section when using the 'special-tag' removal mode
+  // This value is read-only in this form but is still needed for the tag-based deletion logic
   removedTagPrefix: z.string().default('pulsarr:removed'),
 })
 
@@ -205,6 +207,8 @@ export function useDeleteSyncForm() {
         plexProtectionPlaylistName: data.plexProtectionPlaylistName,
         deleteSyncNotify: data.deleteSyncNotify,
         maxDeletionPrevention: data.maxDeletionPrevention,
+        // We still send the removedTagPrefix value from the form
+        // This value is now read-only in Delete Sync but needed for the tag-based deletion logic
         removedTagPrefix: data.removedTagPrefix,
       })
 
