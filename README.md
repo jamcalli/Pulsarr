@@ -644,7 +644,7 @@ Protect specific content from deletion by adding it to designated Plex playlists
 
 - **Automatic Playlist Creation**: Protection playlists are automatically created for all users on your Plex server
 - **"Do Not Delete" Playlists**: Content in these playlists is automatically excluded from deletion
-- **Simple Protection**: Just add any items to the protection playlist and they'll be excluded from the deletion process
+- **Simple Protection**: Just add any items to the protection playlist, and they'll be excluded from the deletion process
 - **Multi-User Support**: Syncs protection playlists across all enabled users
 - **Customizable Names**: Configure your own playlist name (default: "Do Not Delete")
 - **Works with Both Modes**: Compatible with watchlist and tag-based deletion methods
@@ -661,6 +661,8 @@ Navigate to the Utilities page in the Pulsarr web interface and configure your d
 - **User Sync Settings**: Control which users' watchlists/playlists affect deletion
 - **Notifications**: Configure deletion event notifications
 - **Safety Threshold**: Set maximum deletion prevention percentage
+- **Scheduling**: Configure timing for automatic cleanup operations
+- **Dry Run Mode**: Preview deletions without committing changes
 
 ### Running Delete Sync
 
@@ -669,6 +671,8 @@ You can operate Delete Sync in several ways:
 1. **Enable Automatic Sync**: Toggle the feature on to run on your configured schedule
 2. **Run Now**: Manually trigger the deletion process immediately
 3. **Dry Run**: Preview what would be deleted without making any changes
+
+**Note**: When Plex Playlist Protection is enabled, running a dry run will automatically create the protection playlists for all users if they don't already exist. This is a safe operation that only creates the playlists without deleting any content.
 
 You can configure notifications to receive information regarding your workflow:
 
@@ -684,7 +688,7 @@ Delete Sync includes several safety measures to prevent accidental data loss:
 - Selective content type targeting
 - Dry run previews
 - Detailed deletion logs
-- Playlist-based content protection
+- **Playlist-Based Content Protection**
 
 ### Integration with User Tagging
 
@@ -699,11 +703,11 @@ When using tag-based deletion mode, Delete Sync works seamlessly with the User T
 
 ### Recommendations
 
-- Begin with a dry run to understand the impact on your libraries
-- Consider using playlist protection for seasonal content or favorites
-- Use tag-based mode for more granular control over deletion timing
-- Keep files for ended shows that may return for future seasons
-- Regularly review your protected playlists to ensure they're current
+- Begin with a dry run to understand the impact on your libraries.
+- Consider using playlist protection for seasonal content or favorites.
+- Use tag-based mode for more granular control over deletion timing.
+- Keep files for ended shows that may return for future seasons.
+- Regularly review your protected playlists to ensure they're current.
 
 ## User Tagging
 
