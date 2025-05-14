@@ -532,7 +532,7 @@ const AccordionRouteCard = ({
           season_monitoring:
             contentType === 'sonarr' ? data.season_monitoring : undefined,
           series_type:
-            contentType === 'sonarr' && data.series_type !== 'none'
+            contentType === 'sonarr' && data.series_type
               ? data.series_type
               : undefined,
         }
@@ -559,7 +559,7 @@ const AccordionRouteCard = ({
           season_monitoring:
             contentType === 'sonarr' ? data.season_monitoring : undefined,
           series_type:
-            contentType === 'sonarr' && data.series_type !== 'none'
+            contentType === 'sonarr' && data.series_type
               ? data.series_type
               : undefined,
         }
