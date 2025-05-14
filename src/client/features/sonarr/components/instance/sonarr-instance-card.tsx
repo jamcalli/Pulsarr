@@ -56,9 +56,9 @@ interface InstanceCardProps {
 }
 
 /**
- * Renders an interactive card for configuring a Sonarr instance, providing a form to view, edit, test, sync, and delete instance settings.
+ * Displays an interactive card for configuring a Sonarr instance, allowing users to view, edit, test, sync, and delete instance settings.
  *
- * The card includes fields for connection details, quality profile, root folder, monitoring options, season monitoring, series type, syncing with other instances, default instance selection, and tag management. It integrates with global state, supports asynchronous operations for testing connections, saving changes, syncing, deleting, and refreshing tags, and provides user feedback through toasts and modals.
+ * The card provides a comprehensive form for managing connection details, quality profile, root folder, monitoring and search options, bypassing ignored content, tag management, season monitoring, series type, syncing with other instances, and default instance selection. It integrates with global state, supports asynchronous operations for testing connections, saving changes, syncing, deleting, and refreshing tags, and provides user feedback through toasts and modals.
  *
  * @param instance - The Sonarr instance to display and configure.
  * @param setShowInstanceCard - Optional callback to control the visibility of the card.
@@ -466,6 +466,46 @@ export function InstanceCard({
                   />
                   <FormField
                     control={form.control}
+                    name="bypassIgnored"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center space-x-2">
+                          <FormLabel className="text-text">
+                            Bypass Ignored
+                          </FormLabel>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  When enabled, this instance will bypass any
+                                  ignore exclusions. Use this when you want
+                                  certain instances to process all content
+                                  regardless of ignore settings.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                        <div className="flex h-10 items-center gap-2 px-3 py-2">
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              disabled={!isConnectionValid}
+                            />
+                          </FormControl>
+                          <span className="text-sm text-text text-muted-foreground">
+                            Bypass ignore exclusions
+                          </span>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
                     name="tags"
                     render={({ field }) => (
                       <FormItem>
@@ -687,9 +727,25 @@ export function InstanceCard({
                     name="isDefault"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-text">
-                          Default Instance
-                        </FormLabel>
+                        <div className="flex items-center space-x-2">
+                          <FormLabel className="text-text">
+                            Default Instance
+                          </FormLabel>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  The default instance will receive all content
+                                  when no specific routing rules apply. Only one
+                                  instance can be set as default at a time.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
                         <div className="flex h-10 items-center gap-2 px-3 py-2">
                           <FormControl>
                             <Switch

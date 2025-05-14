@@ -254,7 +254,16 @@ export class RadarrManagerService {
       throw new Error(`Radarr instance ${instanceId} not found`)
     }
 
-    const existingMovies = await radarrService.fetchMovies()
+    // Get the instance configuration to check bypassIgnored setting
+    const instance = await this.fastify.db.getRadarrInstance(instanceId)
+    if (!instance) {
+      throw new Error(`Radarr instance ${instanceId} not found in database`)
+    }
+
+    // Pass the bypassIgnored setting to fetchMovies to bypass exclusions if configured
+    const existingMovies = await radarrService.fetchMovies(
+      instance.bypassIgnored,
+    )
     return [...existingMovies].some((movie) =>
       movie.guids.some((existingGuid: string) =>
         item.guids?.includes(existingGuid),
