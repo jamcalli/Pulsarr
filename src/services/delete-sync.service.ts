@@ -192,7 +192,10 @@ export class DeleteSyncService {
 
       this.logDeleteConfiguration(dryRun)
 
-      // Step 2: Fetch all content from media management servers
+      // Step 2: Update user tags before fetching content
+      await this.updateUserTags()
+
+      // Step 3: Fetch all content from media management servers
       const { existingSeries, existingMovies } =
         await this.fetchAllMediaContent()
 

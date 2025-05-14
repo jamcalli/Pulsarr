@@ -17,6 +17,7 @@ export interface SonarrInstance {
   tags: string[]
   isDefault: boolean
   syncedInstances?: number[]
+  seriesType?: 'standard' | 'anime' | 'daily'
   data?: SonarrInstanceData
 }
 

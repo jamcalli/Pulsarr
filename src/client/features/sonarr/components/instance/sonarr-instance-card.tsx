@@ -530,9 +530,26 @@ export function InstanceCard({
                     name="seasonMonitoring"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-text">
-                          Season Monitoring
-                        </FormLabel>
+                        <div className="flex items-center space-x-2">
+                          <FormLabel className="text-text">
+                            Season Monitoring
+                          </FormLabel>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  Default season monitoring strategy for all
+                                  series added to this Sonarr instance.
+                                  Determines which seasons are monitored for new
+                                  episodes.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
                         <Select
                           onValueChange={field.onChange}
                           value={field.value}
@@ -559,12 +576,73 @@ export function InstanceCard({
                   />
                   <FormField
                     control={form.control}
+                    name="seriesType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center space-x-2">
+                          <FormLabel className="text-text">
+                            Series Type
+                          </FormLabel>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  Default series type for all series added to
+                                  this Sonarr instance. Can be overridden by
+                                  content router rules.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value || 'standard'}
+                          disabled={!isConnectionValid}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select series type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="standard">Standard</SelectItem>
+                            <SelectItem value="anime">Anime</SelectItem>
+                            <SelectItem value="daily">Daily</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
                     name="syncedInstances"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-text">
-                          Sync With Instances
-                        </FormLabel>
+                        <div className="flex items-center space-x-2">
+                          <FormLabel className="text-text">
+                            Sync With Instances
+                          </FormLabel>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  Select instances to sync with this Sonarr
+                                  instance. Any content that reaches the default
+                                  instance will also be sent to the selected
+                                  synced instance(s).
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
                         <div className="flex gap-2 items-center w-full">
                           <div className="flex-1 min-w-0">
                             <SyncedInstancesSelect

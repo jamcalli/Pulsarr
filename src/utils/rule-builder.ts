@@ -123,6 +123,7 @@ export const RuleBuilder = {
     enabled?: boolean
     search_on_add?: boolean | null
     season_monitoring?: string | null
+    series_type?: 'standard' | 'anime' | 'daily' | null
   }): Omit<RouterRule, 'id' | 'created_at' | 'updated_at'> {
     const {
       condition,
@@ -133,6 +134,7 @@ export const RuleBuilder = {
       tags = [],
       search_on_add,
       season_monitoring,
+      series_type,
       ...rest
     } = options
 
@@ -148,6 +150,7 @@ export const RuleBuilder = {
       metadata: null,
       search_on_add,
       season_monitoring,
+      series_type,
     }
   },
 }
