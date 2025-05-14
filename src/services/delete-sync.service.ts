@@ -777,7 +777,7 @@ export class DeleteSyncService {
             }
 
             // Check for any movie GUID in the protected set
-            const movieGuidList = movie.guids
+            const movieGuidList = parseGuids(movie.guids)
             let isProtected = false
 
             for (const guid of movieGuidList) {
@@ -800,7 +800,7 @@ export class DeleteSyncService {
           }
 
           // Add to the list of movies to delete (or would delete in dry run)
-          const movieGuidList = movie.guids
+          const movieGuidList = parseGuids(movie.guids)
           moviesToDelete.push({
             title: movie.title,
             guid: movieGuidList[0] || 'unknown',
@@ -973,7 +973,7 @@ export class DeleteSyncService {
             }
 
             // Check for any show GUID in the protected set
-            const showGuidList = show.guids
+            const showGuidList = parseGuids(show.guids)
             let isProtected = false
 
             for (const guid of showGuidList) {
@@ -996,7 +996,7 @@ export class DeleteSyncService {
           }
 
           // Add to the list of shows to delete (or would delete in dry run)
-          const showGuidList = show.guids
+          const showGuidList = parseGuids(show.guids)
           showsToDelete.push({
             title: show.title,
             guid: showGuidList[0] || 'unknown',
@@ -1193,9 +1193,9 @@ export class DeleteSyncService {
 
     try {
       // Safeguard against missing configuration
-      const removalTagPrefix = (
-        this.config.removedTagPrefix ?? ''
-      ).toLowerCase()
+      const removalTagPrefix = (this.config.removedTagPrefix ?? '')
+        .trim()
+        .toLowerCase()
       if (!removalTagPrefix) {
         this.log.warn(
           'removedTagPrefix is blank – tag-based deletion will never match any items',
@@ -1255,14 +1255,15 @@ export class DeleteSyncService {
 
       // Get all tags for this instance once
       const allTags = await service.getTags()
-      const removedTagId = allTags.find(
-        (tag) =>
-          tag.label.toLowerCase() ===
-          this.config.removedTagPrefix.toLowerCase(),
-      )?.id
+      const removalTagPrefix = (
+        this.config.removedTagPrefix ?? ''
+      ).toLowerCase()
+      const removedTagIds = allTags
+        .filter((tag) => tag.label.toLowerCase().startsWith(removalTagPrefix))
+        .map((tag) => tag.id)
 
-      if (!removedTagId) {
-        // No matching tag in this instance
+      if (removedTagIds.length === 0) {
+        // No matching tags in this instance
         processed += instanceSeries.length
         continue
       }
@@ -1284,7 +1285,9 @@ export class DeleteSyncService {
                 SonarrItem & { tags: number[] }
               >(`series/${sonarrId}`)
 
-              return (seriesDetails.tags || []).includes(removedTagId)
+              return removedTagIds.some((id) =>
+                (seriesDetails.tags || []).includes(id),
+              )
             } catch (error) {
               this.log.error(
                 `Error checking tags for series "${show.title}":`,
@@ -1344,14 +1347,15 @@ export class DeleteSyncService {
 
       // Get all tags for this instance once
       const allTags = await service.getTags()
-      const removedTagId = allTags.find(
-        (tag) =>
-          tag.label.toLowerCase() ===
-          this.config.removedTagPrefix.toLowerCase(),
-      )?.id
+      const removalTagPrefix = (
+        this.config.removedTagPrefix ?? ''
+      ).toLowerCase()
+      const removedTagIds = allTags
+        .filter((tag) => tag.label.toLowerCase().startsWith(removalTagPrefix))
+        .map((tag) => tag.id)
 
-      if (!removedTagId) {
-        // No matching tag in this instance
+      if (removedTagIds.length === 0) {
+        // No matching tags in this instance
         processed += instanceMovies.length
         continue
       }
@@ -1373,7 +1377,9 @@ export class DeleteSyncService {
                 RadarrItem & { tags: number[] }
               >(`movie/${radarrId}`)
 
-              return (movieDetails.tags || []).includes(removedTagId)
+              return removedTagIds.some((id) =>
+                (movieDetails.tags || []).includes(id),
+              )
             } catch (error) {
               this.log.error(
                 `Error checking tags for movie "${movie.title}":`,
