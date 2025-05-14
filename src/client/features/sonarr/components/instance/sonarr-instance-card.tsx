@@ -49,6 +49,7 @@ import {
   type TagsMultiSelectRef,
 } from '@/components/ui/tag-multi-select'
 import { TagCreationDialog } from '@/components/ui/tag-creation-dialog'
+import { SONARR_SERIES_TYPES, SERIES_TYPE_LABELS } from '../../constants'
 
 interface InstanceCardProps {
   instance: SonarrInstance
@@ -649,9 +650,11 @@ export function InstanceCard({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="standard">Standard</SelectItem>
-                            <SelectItem value="anime">Anime</SelectItem>
-                            <SelectItem value="daily">Daily</SelectItem>
+                            {SONARR_SERIES_TYPES.map((type) => (
+                              <SelectItem key={type} value={type}>
+                                {SERIES_TYPE_LABELS[type]}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                         <FormMessage />
