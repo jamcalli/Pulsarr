@@ -63,6 +63,7 @@ export interface SonarrPost {
   monitored: boolean
   monitorNewItems: 'all' | 'none'
   tags: string[]
+  seriesType?: 'standard' | 'anime' | 'daily'
 }
 
 export interface SonarrSeries {
@@ -127,6 +128,7 @@ export interface SonarrConfiguration {
   sonarrSeasonMonitoring: string
   sonarrMonitorNewItems?: 'all' | 'none'
   searchOnAdd?: boolean
+  sonarrSeriesType?: 'standard' | 'anime' | 'daily'
 }
 
 export interface SonarrInstance {
@@ -143,6 +145,7 @@ export interface SonarrInstance {
   isDefault: boolean
   syncedInstances?: number[]
   searchOnAdd?: boolean
+  seriesType?: 'standard' | 'anime' | 'daily'
   data?: {
     qualityProfiles?: Array<{ id: number; name: string }>
     rootFolders?: Array<{ path: string }>

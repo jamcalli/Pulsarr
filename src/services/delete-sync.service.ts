@@ -196,6 +196,18 @@ export class DeleteSyncService {
       const { existingSeries, existingMovies } =
         await this.fetchAllMediaContent()
 
+      // Step 3: Update user tags before processing deletion (especially important for tag-based deletion)
+      const shouldUpdateTags = deletionMode === 'tag-based'
+      if (shouldUpdateTags) {
+        // Refresh watchlists to ensure we detect newly removed items
+        const refreshResult = await this.refreshWatchlists()
+        if (!refreshResult.success) {
+          return this.createSafetyTriggeredResult(refreshResult.message, dryRun)
+        }
+
+        await this.updateUserTags(existingSeries, existingMovies)
+      }
+
       let result: DeleteSyncResult
 
       // Branch based on deletion mode
@@ -520,6 +532,53 @@ export class DeleteSyncService {
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
     })
+  }
+
+  /**
+   * Updates user tags for all instances before deletion processing
+   * @param existingSeries - Already fetched series data to avoid duplicate API calls
+   * @param existingMovies - Already fetched movies data to avoid duplicate API calls
+   */
+  private async updateUserTags(
+    existingSeries: SonarrItem[],
+    existingMovies: RadarrItem[],
+  ): Promise<void> {
+    this.log.info('Updating user tags before delete sync')
+
+    try {
+      const userTagService = this.fastify.userTags
+      if (!userTagService) {
+        this.log.warn('UserTagService not available, skipping tag update')
+        return
+      }
+
+      // Get all watchlist items
+      const movieWatchlistItems =
+        await this.fastify.db.getAllMovieWatchlistItems()
+      const showWatchlistItems =
+        await this.fastify.db.getAllShowWatchlistItems()
+
+      // Tag content using the data - these methods create tags and apply them
+      // The service will handle all the tag creation and application internally
+      if (this.config.tagUsersInRadarr && existingMovies.length > 0) {
+        await userTagService.tagRadarrContentWithData(
+          existingMovies,
+          movieWatchlistItems,
+        )
+      }
+
+      if (this.config.tagUsersInSonarr && existingSeries.length > 0) {
+        await userTagService.tagSonarrContentWithData(
+          existingSeries,
+          showWatchlistItems,
+        )
+      }
+
+      this.log.info('User tags updated successfully')
+    } catch (error) {
+      this.log.error('Error updating user tags:', error)
+      throw new Error('Failed to update user tags before delete sync')
+    }
   }
 
   /**

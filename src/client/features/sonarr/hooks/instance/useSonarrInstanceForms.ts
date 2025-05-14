@@ -15,7 +15,7 @@ import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
 /**
  * React hook for managing the form state, validation, and behaviors of a Sonarr instance configuration.
  *
- * Initializes form values from the provided instance, applies dynamic schema validation depending on whether the instance is new or existing, and provides utilities for resetting the form, handling connection validation changes, and updating the instance name. The hook also manages scroll behavior for new instances and tracks changes to connection-related fields to update connection test status.
+ * Initializes form values from the provided instance, applies schema validation based on whether the instance is new or existing, and provides utilities for resetting the form, handling connection validation changes, and updating the instance name. Also manages scroll behavior for new instances and tracks changes to connection-related fields to update connection test status.
  *
  * @returns An object containing the form instance, a ref to the form container element, and helper functions for form management.
  */
@@ -43,6 +43,7 @@ export function useSonarrInstanceForm({
         ? instances.length === 1 && instances[0].apiKey === API_KEY_PLACEHOLDER
         : instance.isDefault,
       syncedInstances: instance.syncedInstances || [],
+      seriesType: instance.seriesType || 'standard',
       _originalBaseUrl: instance.baseUrl,
       _originalApiKey: instance.apiKey,
     },
@@ -71,6 +72,7 @@ export function useSonarrInstanceForm({
       tags: instance.tags,
       isDefault: instance.isDefault,
       syncedInstances: instance.syncedInstances || [],
+      seriesType: instance.seriesType || 'standard',
       _originalBaseUrl: instance.baseUrl,
       _originalApiKey: instance.apiKey,
     })
@@ -148,6 +150,7 @@ export function useSonarrInstanceForm({
           tags: instance.tags,
           isDefault: instance.isDefault,
           syncedInstances: instance.syncedInstances || [],
+          seriesType: instance.seriesType || 'standard',
           _originalBaseUrl: instance.baseUrl,
           _originalApiKey: instance.apiKey,
         })

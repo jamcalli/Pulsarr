@@ -243,6 +243,7 @@ export class SonarrService {
           sonarrTagIds: instance.tags,
           sonarrSeasonMonitoring: instance.seasonMonitoring,
           sonarrMonitorNewItems: instance.monitorNewItems || 'all',
+          sonarrSeriesType: instance.seriesType || 'standard',
         }
         return
       }
@@ -258,6 +259,7 @@ export class SonarrService {
         sonarrMonitorNewItems: instance.monitorNewItems || 'all',
         searchOnAdd:
           instance.searchOnAdd !== undefined ? instance.searchOnAdd : true,
+        sonarrSeriesType: instance.seriesType || 'standard',
       }
 
       this.log.info(
@@ -577,6 +579,7 @@ export class SonarrService {
     overrideTags?: string[],
     overrideSearchOnAdd?: boolean | null,
     overrideSeasonMonitoring?: string | null,
+    overrideSeriesType?: 'standard' | 'anime' | 'daily' | null,
   ): Promise<void> {
     const config = this.sonarrConfig
     try {
@@ -682,6 +685,12 @@ export class SonarrService {
       // Convert Set back to array for the API
       const tags = Array.from(tagIdsSet)
 
+      // Series type - prefer override, then config, then default to 'standard'
+      const seriesType =
+        overrideSeriesType && overrideSeriesType !== null
+          ? overrideSeriesType
+          : config.sonarrSeriesType || 'standard'
+
       const show: SonarrPost = {
         title: item.title,
         tvdbId: tvdbId ? Number.parseInt(tvdbId, 10) : 0,
@@ -692,11 +701,12 @@ export class SonarrService {
         monitored: true,
         monitorNewItems: config.sonarrMonitorNewItems || 'all',
         tags,
+        seriesType,
       }
 
       await this.postToSonarr<void>('series', show)
       this.log.info(
-        `Sent ${item.title} to Sonarr (Quality Profile: ${qualityProfileId}, Root Folder: ${rootFolderPath}, Tags: ${tags.length > 0 ? tags.join(', ') : 'none'})`,
+        `Sent ${item.title} to Sonarr (Quality Profile: ${qualityProfileId}, Root Folder: ${rootFolderPath}, Tags: ${tags.length > 0 ? tags.join(', ') : 'none'}, Series Type: ${seriesType})`,
       )
     } catch (err) {
       this.log.debug(
