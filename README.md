@@ -830,6 +830,7 @@ Pulsarr includes built-in API documentation accessible at `/api/docs` when runni
 - API keys
 - ~~Delete Syncing~~
 - Unit tests... 🤮
+- Refactor documentation into a proper documentation site using Docusaurus
 
 ## Contributing
 
