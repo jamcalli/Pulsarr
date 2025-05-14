@@ -158,7 +158,8 @@ export function UserTagsForm() {
                         !(
                           lastResults?.config?.tagUsersInSonarr ||
                           lastResults?.config?.tagUsersInRadarr
-                        )
+                        ) ||
+                        form.formState.isDirty
                       }
                       variant="noShadow"
                       className="h-8"
@@ -182,7 +183,8 @@ export function UserTagsForm() {
                         !(
                           lastResults?.config?.tagUsersInSonarr ||
                           lastResults?.config?.tagUsersInRadarr
-                        )
+                        ) ||
+                        form.formState.isDirty
                       }
                       variant="noShadow"
                       className="h-8"
@@ -203,7 +205,8 @@ export function UserTagsForm() {
                       onClick={handleCleanupTags}
                       disabled={
                         isCleaningTags ||
-                        !lastResults?.config?.cleanupOrphanedTags
+                        !lastResults?.config?.cleanupOrphanedTags ||
+                        form.formState.isDirty
                       }
                       variant="noShadow"
                       className="h-8"
@@ -227,7 +230,8 @@ export function UserTagsForm() {
                         !(
                           lastResults?.config?.tagUsersInSonarr ||
                           lastResults?.config?.tagUsersInRadarr
-                        )
+                        ) ||
+                        form.formState.isDirty
                       }
                       variant="error"
                       className="h-8"

@@ -1,5 +1,9 @@
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import { hasMatchingGuids } from '@utils/guid-handler.js'
+import {
+  hasMatchingGuids,
+  extractRadarrId,
+  extractSonarrId,
+} from '@utils/guid-handler.js'
 import type { SonarrItem } from '@root/types/sonarr.types.js'
 import type { RadarrItem } from '@root/types/radarr.types.js'
 import type { ProgressEvent } from '@root/types/progress.types.js'

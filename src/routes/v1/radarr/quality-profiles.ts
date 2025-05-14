@@ -28,18 +28,18 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       try {
         const instanceId = Number.parseInt(request.query.instanceId, 10)
         if (Number.isNaN(instanceId)) {
-          throw reply.badRequest('Invalid instance ID')
+          return reply.badRequest('Invalid instance ID')
         }
 
         const instance =
           await fastify.radarrManager.getRadarrInstance(instanceId)
         if (!instance) {
-          throw reply.notFound('Radarr instance not found')
+          return reply.notFound('Radarr instance not found')
         }
 
         const service = fastify.radarrManager.getRadarrService(instanceId)
         if (!service) {
-          throw reply.notFound('Radarr service not initialized')
+          return reply.notFound('Radarr service not initialized')
         }
 
         const qualityProfiles = await service.fetchQualityProfiles()
@@ -60,7 +60,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           throw err
         }
         fastify.log.error('Error fetching Radarr quality profiles:', err)
-        throw reply.internalServerError(
+        return reply.internalServerError(
           'Unable to fetch Radarr quality profiles',
         )
       }

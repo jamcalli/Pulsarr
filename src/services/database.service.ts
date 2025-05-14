@@ -627,6 +627,7 @@ export class DatabaseService {
         tagPrefix: config.tagPrefix || 'pulsarr:user',
         removedTagMode: config.removedTagMode || 'remove',
         removedTagPrefix: config.removedTagPrefix || 'pulsarr:removed',
+        deletionMode: config.deletionMode || 'watchlist',
         // Ready state
         _isReady: config._isReady || false,
         // Timestamps

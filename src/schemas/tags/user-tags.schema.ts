@@ -26,8 +26,6 @@ export const TaggingConfigSchema = z.object({
 
 // Generic error schema
 export const ErrorSchema = z.object({
-  statusCode: z.number(),
-  error: z.string(),
   message: z.string(),
 })
 

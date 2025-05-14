@@ -24,7 +24,11 @@ import type { Item as SonarrItem } from '@root/types/sonarr.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { DeleteSyncResult } from '@root/types/delete-sync.types.js'
 import { PlexServerService } from '@utils/plex-server.js'
-import { parseGuids } from '@utils/guid-handler.js'
+import {
+  parseGuids,
+  extractRadarrId,
+  extractSonarrId,
+} from '@utils/guid-handler.js'
 
 // Define the WatchlistItem interface for type assertions
 interface WatchlistItem {
@@ -58,6 +62,11 @@ export class DeleteSyncService {
    * Cache of protected GUIDs for efficient lookup
    */
   private protectedGuids: Set<string> | null = null
+
+  /**
+   * Cache of tags by instance for efficient lookup during tag-based deletion
+   */
+  private tagCache: Map<number, Map<number, string>> = new Map()
 
   /**
    * Creates a new DeleteSyncService instance
@@ -159,6 +168,9 @@ export class DeleteSyncService {
       this.log.info(
         `Starting delete sync operation in ${deletionMode} mode${dryRun ? ' (DRY RUN)' : ''}`,
       )
+
+      // Clear tag cache at the start of each run
+      this.clearTagCache()
 
       // Make sure the Plex server is initialized if needed
       if (
@@ -337,7 +349,7 @@ export class DeleteSyncService {
    */
   private logDeleteConfiguration(dryRun: boolean): void {
     this.log.debug('Delete configuration:', {
-      deletionMode: this.config.deletionMode || 'watchlist',
+      deletionMode: this.config.deletionMode ?? 'watchlist',
       deleteMovie: this.config.deleteMovie,
       deleteEndedShow: this.config.deleteEndedShow,
       deleteContinuingShow: this.config.deleteContinuingShow,
@@ -346,7 +358,7 @@ export class DeleteSyncService {
       deleteSyncNotify: this.config.deleteSyncNotify,
       enablePlexPlaylistProtection: this.config.enablePlexPlaylistProtection,
       plexProtectionPlaylistName: this.config.plexProtectionPlaylistName,
-      removedTagPrefix: this.config.removedTagPrefix,
+      removedTagPrefix: this.config.removedTagPrefix ?? '<not-set>',
       dryRun: dryRun,
     })
   }
@@ -533,44 +545,6 @@ export class DeleteSyncService {
   }
 
   /**
-   * Extracts Radarr ID from an array of GUIDs
-   *
-   * @param guids - Array of GUIDs to search through
-   * @returns The Radarr ID or 0 if not found
-   */
-  private extractRadarrId(guids: string[] | undefined): number {
-    if (!guids) return 0
-
-    for (const guid of guids) {
-      if (guid.startsWith('radarr:')) {
-        const id = Number.parseInt(guid.replace('radarr:', ''), 10)
-        return Number.isNaN(id) ? 0 : id
-      }
-    }
-
-    return 0
-  }
-
-  /**
-   * Extracts Sonarr ID from an array of GUIDs
-   *
-   * @param guids - Array of GUIDs to search through
-   * @returns The Sonarr ID or 0 if not found
-   */
-  private extractSonarrId(guids: string[] | undefined): number {
-    if (!guids) return 0
-
-    for (const guid of guids) {
-      if (guid.startsWith('sonarr:')) {
-        const id = Number.parseInt(guid.replace('sonarr:', ''), 10)
-        return Number.isNaN(id) ? 0 : id
-      }
-    }
-
-    return 0
-  }
-
-  /**
    * Process and execute deletions based on tag presence
    *
    * This method identifies content that has the configured removal tag
@@ -739,7 +713,7 @@ export class DeleteSyncService {
 
       for (const movie of existingMovies) {
         // Extract Radarr ID
-        const radarrId = this.extractRadarrId(movie.guids)
+        const radarrId = extractRadarrId(movie.guids)
         if (radarrId === 0) {
           this.log.warn(
             `Movie "${movie.title}" has no valid Radarr ID, skipping deletion check`,
@@ -778,6 +752,7 @@ export class DeleteSyncService {
 
           // Check if the movie has our removal tag
           const hasRemovalTag = await this.hasRemovalTag(
+            instanceId,
             service,
             movieDetails.tags || [],
           )
@@ -899,7 +874,7 @@ export class DeleteSyncService {
 
       for (const show of existingSeries) {
         // Extract Sonarr ID
-        const sonarrId = this.extractSonarrId(show.guids)
+        const sonarrId = extractSonarrId(show.guids)
         if (sonarrId === 0) {
           this.log.warn(
             `Show "${show.title}" has no valid Sonarr ID, skipping deletion check`,
@@ -973,6 +948,7 @@ export class DeleteSyncService {
 
           // Check if the series has our removal tag
           const hasRemovalTag = await this.hasRemovalTag(
+            instanceId,
             service,
             seriesDetails.tags || [],
           )
@@ -1156,13 +1132,58 @@ export class DeleteSyncService {
   }
 
   /**
+   * Get tags for an instance from cache or fetch them
+   *
+   * @param instanceId - The instance ID
+   * @param service - The media service (Sonarr or Radarr)
+   * @returns Promise resolving to a map of tag IDs to lowercase tag labels
+   */
+  private async getTagsForInstance(
+    instanceId: number,
+    service: { getTags: () => Promise<Array<{ id: number; label: string }>> },
+  ): Promise<Map<number, string>> {
+    // Check if we have cached tags for this instance
+    const cachedTags = this.tagCache.get(instanceId)
+    if (cachedTags) {
+      return cachedTags
+    }
+
+    try {
+      // Fetch tags from the service
+      const allTags = await service.getTags()
+
+      // Create a map of tag IDs to lowercase tag labels
+      const tagMap = new Map(
+        allTags.map((tag) => [tag.id, tag.label.toLowerCase()]),
+      )
+
+      // Cache the result
+      this.tagCache.set(instanceId, tagMap)
+
+      return tagMap
+    } catch (error) {
+      this.log.error(`Error fetching tags for instance ${instanceId}:`, error)
+      return new Map()
+    }
+  }
+
+  /**
+   * Clear the tag cache (should be called at the start of each sync run)
+   */
+  private clearTagCache(): void {
+    this.tagCache.clear()
+  }
+
+  /**
    * Check if an item has the configured removal tag
    *
+   * @param instanceId - The instance ID
    * @param service - The media service (Sonarr or Radarr)
    * @param itemTags - The tag IDs on the media item
    * @returns Promise resolving to true if the item has the removal tag
    */
   private async hasRemovalTag(
+    instanceId: number,
     service: { getTags: () => Promise<Array<{ id: number; label: string }>> },
     itemTags: number[],
   ): Promise<boolean> {
@@ -1171,21 +1192,24 @@ export class DeleteSyncService {
     }
 
     try {
-      // Get all tags from the service
-      const allTags = await service.getTags()
+      // Safeguard against missing configuration
+      const removalTagPrefix = (
+        this.config.removedTagPrefix ?? ''
+      ).toLowerCase()
+      if (!removalTagPrefix) {
+        this.log.warn(
+          'removedTagPrefix is blank – tag-based deletion will never match any items',
+        )
+        return false
+      }
 
-      // Create a map of tag IDs to tag labels for quick lookup
-      const tagMap = new Map(
-        allTags.map((tag) => [tag.id, tag.label.toLowerCase()]),
-      )
+      // Get tags from cache or fetch them
+      const tagMap = await this.getTagsForInstance(instanceId, service)
 
-      // Get the removal tag prefix in lowercase for case-insensitive comparison
-      const removalTagPrefix = this.config.removedTagPrefix.toLowerCase()
-
-      // Check if any of the item's tags match our removal tag
+      // Check if any of the item's tags match our removal tag (using startsWith for prefix matching)
       for (const tagId of itemTags) {
         const tagLabel = tagMap.get(tagId)
-        if (tagLabel && tagLabel === removalTagPrefix) {
+        if (tagLabel?.startsWith(removalTagPrefix)) {
           return true
         }
       }
@@ -1251,7 +1275,7 @@ export class DeleteSyncService {
         const batchResults = await Promise.all(
           batch.map(async (show) => {
             try {
-              const sonarrId = this.extractSonarrId(show.guids)
+              const sonarrId = extractSonarrId(show.guids)
               if (sonarrId === 0) {
                 return false
               }
@@ -1340,7 +1364,7 @@ export class DeleteSyncService {
         const batchResults = await Promise.all(
           batch.map(async (movie) => {
             try {
-              const radarrId = this.extractRadarrId(movie.guids)
+              const radarrId = extractRadarrId(movie.guids)
               if (radarrId === 0) {
                 return false
               }

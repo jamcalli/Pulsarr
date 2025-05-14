@@ -28,18 +28,18 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       try {
         const instanceId = Number.parseInt(request.query.instanceId, 10)
         if (Number.isNaN(instanceId)) {
-          throw reply.badRequest('Invalid instance ID')
+          return reply.badRequest('Invalid instance ID')
         }
 
         const instance =
           await fastify.radarrManager.getRadarrInstance(instanceId)
         if (!instance) {
-          throw reply.notFound('Radarr instance not found')
+          return reply.notFound('Radarr instance not found')
         }
 
         const service = fastify.radarrManager.getRadarrService(instanceId)
         if (!service) {
-          throw reply.notFound('Radarr service not initialized')
+          return reply.notFound('Radarr service not initialized')
         }
 
         const rootFolders = await service.fetchRootFolders()
@@ -61,7 +61,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
 
         fastify.log.error('Error fetching Radarr root folders:', err)
-        throw reply.internalServerError('Unable to fetch Radarr root folders')
+        return reply.internalServerError('Unable to fetch Radarr root folders')
       }
     },
   )

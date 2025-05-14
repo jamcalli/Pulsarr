@@ -170,3 +170,51 @@ export function hasMatchingParsedGuids(
   const set1 = new Set(parsedGuids1)
   return parsedGuids2.some((guid) => set1.has(guid))
 }
+
+/**
+ * Returns the numeric Radarr ID extracted from the provided GUIDs.
+ *
+ * Parses the input and returns the first integer found after the "radarr:" prefix (case-insensitive),
+ * or 0 if no valid Radarr GUID is present. Handles various formats including uppercase prefixes
+ * and query parameters.
+ *
+ * @returns The extracted Radarr ID, or 0 if not found or invalid.
+ */
+export function extractRadarrId(guids: string[] | string | undefined): number {
+  const parsed = parseGuids(guids)
+  const radarrRegex = /^radarr:(\d+)/i
+
+  for (const guid of parsed) {
+    const match = radarrRegex.exec(guid)
+    if (match) {
+      const id = Number.parseInt(match[1], 10)
+      return Number.isNaN(id) ? 0 : id
+    }
+  }
+
+  return 0
+}
+
+/**
+ * Returns the numeric Sonarr ID extracted from the provided GUIDs.
+ *
+ * Parses the input and returns the first integer found after the "sonarr:" prefix (case-insensitive),
+ * or 0 if no valid Sonarr GUID is present. Handles various formats including uppercase prefixes
+ * and query parameters.
+ *
+ * @returns The extracted Sonarr ID, or 0 if not found or invalid.
+ */
+export function extractSonarrId(guids: string[] | string | undefined): number {
+  const parsed = parseGuids(guids)
+  const sonarrRegex = /^sonarr:(\d+)/i
+
+  for (const guid of parsed) {
+    const match = sonarrRegex.exec(guid)
+    if (match) {
+      const id = Number.parseInt(match[1], 10)
+      return Number.isNaN(id) ? 0 : id
+    }
+  }
+
+  return 0
+}
