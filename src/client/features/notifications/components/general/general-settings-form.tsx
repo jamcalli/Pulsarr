@@ -1,5 +1,5 @@
 // src/client/features/notifications/components/general/general-settings-form.tsx
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2, Save, X, InfoIcon } from 'lucide-react'
@@ -64,68 +64,48 @@ export function GeneralSettingsForm({
     },
   })
 
+  // Helper functions to convert between storage and display units
+  const getDisplayValues = useCallback((config: typeof config) => {
+    if (!config) return null
+
+    return {
+      queueWaitTime: Math.round(
+        (config.queueWaitTime || DEFAULT_QUEUE_WAIT_TIME) / (60 * 1000),
+      ),
+      newEpisodeThreshold: Math.round(
+        (config.newEpisodeThreshold || DEFAULT_NEW_EPISODE_THRESHOLD) /
+          (60 * 60 * 1000),
+      ),
+      upgradeBufferTime: Math.round(
+        (config.upgradeBufferTime || DEFAULT_UPGRADE_BUFFER_TIME) / 1000,
+      ),
+      suppressRepairNotifications: config.suppressRepairNotifications ?? false,
+    }
+  }, [])
+
   // Convert milliseconds to appropriate display units
   useEffect(() => {
-    if (config) {
-      // Convert milliseconds to minutes for queueWaitTime
-      const queueWaitTimeMinutes = Math.round(
-        (config.queueWaitTime || DEFAULT_QUEUE_WAIT_TIME) / (60 * 1000),
+    const displayValues = getDisplayValues(config)
+    if (displayValues) {
+      generalForm.setValue('queueWaitTime', displayValues.queueWaitTime)
+      generalForm.setValue(
+        'newEpisodeThreshold',
+        displayValues.newEpisodeThreshold,
       )
-
-      // Convert milliseconds to hours for newEpisodeThreshold
-      const newEpisodeThresholdHours = Math.round(
-        (config.newEpisodeThreshold || DEFAULT_NEW_EPISODE_THRESHOLD) /
-          (60 * 60 * 1000),
-      )
-
-      // Convert milliseconds to seconds for upgradeBufferTime
-      const upgradeBufferTimeSeconds = Math.round(
-        (config.upgradeBufferTime || DEFAULT_UPGRADE_BUFFER_TIME) / 1000,
-      )
-
-      generalForm.setValue('queueWaitTime', queueWaitTimeMinutes)
-      generalForm.setValue('newEpisodeThreshold', newEpisodeThresholdHours)
-      generalForm.setValue('upgradeBufferTime', upgradeBufferTimeSeconds)
+      generalForm.setValue('upgradeBufferTime', displayValues.upgradeBufferTime)
       generalForm.setValue(
         'suppressRepairNotifications',
-        config.suppressRepairNotifications ?? false,
+        displayValues.suppressRepairNotifications,
       )
 
-      generalForm.reset({
-        queueWaitTime: queueWaitTimeMinutes,
-        newEpisodeThreshold: newEpisodeThresholdHours,
-        upgradeBufferTime: upgradeBufferTimeSeconds,
-        suppressRepairNotifications:
-          config.suppressRepairNotifications ?? false,
-      })
+      generalForm.reset(displayValues)
     }
-  }, [config, generalForm])
+  }, [config, generalForm, getDisplayValues])
 
   const resetForm = () => {
-    if (config) {
-      // Convert milliseconds to minutes for queueWaitTime
-      const queueWaitTimeMinutes = Math.round(
-        (config.queueWaitTime || DEFAULT_QUEUE_WAIT_TIME) / (60 * 1000),
-      )
-
-      // Convert milliseconds to hours for newEpisodeThreshold
-      const newEpisodeThresholdHours = Math.round(
-        (config.newEpisodeThreshold || DEFAULT_NEW_EPISODE_THRESHOLD) /
-          (60 * 60 * 1000),
-      )
-
-      // Convert milliseconds to seconds for upgradeBufferTime
-      const upgradeBufferTimeSeconds = Math.round(
-        (config.upgradeBufferTime || DEFAULT_UPGRADE_BUFFER_TIME) / 1000,
-      )
-
-      generalForm.reset({
-        queueWaitTime: queueWaitTimeMinutes,
-        newEpisodeThreshold: newEpisodeThresholdHours,
-        upgradeBufferTime: upgradeBufferTimeSeconds,
-        suppressRepairNotifications:
-          config.suppressRepairNotifications ?? false,
-      })
+    const displayValues = getDisplayValues(config)
+    if (displayValues) {
+      generalForm.reset(displayValues)
     }
   }
 
