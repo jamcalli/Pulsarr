@@ -144,7 +144,8 @@ export class SchedulerService {
       `${name}-task`,
       async () => {
         try {
-          this.log.info(`Running scheduled job: ${name}`)
+          // Only log the start of the job at debug level for cleaner logs
+          this.log.debug(`Running scheduled job: ${name}`)
           await handler(name)
 
           // Update last run time
@@ -189,7 +190,7 @@ export class SchedulerService {
             })
           }
 
-          this.log.info(`Job ${name} completed successfully`)
+          this.log.debug(`Job ${name} completed successfully`)
         } catch (error) {
           this.log.error(`Error in job ${name}:`, error)
 
