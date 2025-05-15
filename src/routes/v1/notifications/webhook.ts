@@ -113,21 +113,31 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           // If no matching items, queue webhook for later processing
           if (matchingItems.length === 0) {
             const expires = new Date()
-            expires.setMinutes(expires.getMinutes() + 10) // 10 minute expiration
+            // Use configured maxAge from pendingWebhooks service (default 10 minutes)
+            const maxAgeMinutes = fastify.pendingWebhooks?.config?.maxAge || 10
+            expires.setMinutes(expires.getMinutes() + maxAgeMinutes)
 
-            await fastify.db.createPendingWebhook({
-              instance_type: 'radarr',
-              instance_id: instance?.id || 0,
-              guid: tmdbGuid,
-              title: body.movie.title,
-              media_type: 'movie',
-              payload: body,
-              expires_at: expires,
-            })
+            try {
+              await fastify.db.createPendingWebhook({
+                instance_type: 'radarr',
+                instance_id: instance?.id || 0,
+                guid: tmdbGuid,
+                title: body.movie.title,
+                media_type: 'movie',
+                payload: body,
+                expires_at: expires,
+              })
 
-            fastify.log.info(
-              `No matching items found for ${tmdbGuid}, queued webhook for later processing`,
-            )
+              fastify.log.info(
+                `No matching items found for ${tmdbGuid}, queued webhook for later processing`,
+              )
+            } catch (error) {
+              fastify.log.error(
+                { error, guid: tmdbGuid, title: body.movie.title },
+                'Failed to create pending webhook, but returning success to prevent resends',
+              )
+              // Still return success to prevent webhook resends
+            }
             return { success: true }
           }
 
@@ -266,21 +276,32 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                 // If no matching items, queue webhook for later processing
                 if (matchingItems.length === 0) {
                   const expires = new Date()
-                  expires.setMinutes(expires.getMinutes() + 10) // 10 minute expiration
+                  // Use configured maxAge from pendingWebhooks service (default 10 minutes)
+                  const maxAgeMinutes =
+                    fastify.pendingWebhooks?.config?.maxAge || 10
+                  expires.setMinutes(expires.getMinutes() + maxAgeMinutes)
 
-                  await fastify.db.createPendingWebhook({
-                    instance_type: 'sonarr',
-                    instance_id: instance?.id || 0,
-                    guid: tvdbGuid,
-                    title: body.series.title,
-                    media_type: 'show',
-                    payload: body,
-                    expires_at: expires,
-                  })
+                  try {
+                    await fastify.db.createPendingWebhook({
+                      instance_type: 'sonarr',
+                      instance_id: instance?.id || 0,
+                      guid: tvdbGuid,
+                      title: body.series.title,
+                      media_type: 'show',
+                      payload: body,
+                      expires_at: expires,
+                    })
 
-                  fastify.log.info(
-                    `No matching items found for ${tvdbGuid}, queued webhook for later processing`,
-                  )
+                    fastify.log.info(
+                      `No matching items found for ${tvdbGuid}, queued webhook for later processing`,
+                    )
+                  } catch (error) {
+                    fastify.log.error(
+                      { error, guid: tvdbGuid, title: body.series.title },
+                      'Failed to create pending webhook for individual episode, but returning success to prevent resends',
+                    )
+                    // Still return success to prevent webhook resends
+                  }
                   return { success: true }
                 }
 
@@ -391,21 +412,32 @@ const plugin: FastifyPluginAsync = async (fastify) => {
               // If no matching items, queue webhook for later processing
               if (matchingItems.length === 0) {
                 const expires = new Date()
-                expires.setMinutes(expires.getMinutes() + 10) // 10 minute expiration
+                // Use configured maxAge from pendingWebhooks service (default 10 minutes)
+                const maxAgeMinutes =
+                  fastify.pendingWebhooks?.config?.maxAge || 10
+                expires.setMinutes(expires.getMinutes() + maxAgeMinutes)
 
-                await fastify.db.createPendingWebhook({
-                  instance_type: 'sonarr',
-                  instance_id: instance?.id || 0,
-                  guid: tvdbGuid,
-                  title: body.series.title,
-                  media_type: 'show',
-                  payload: body,
-                  expires_at: expires,
-                })
+                try {
+                  await fastify.db.createPendingWebhook({
+                    instance_type: 'sonarr',
+                    instance_id: instance?.id || 0,
+                    guid: tvdbGuid,
+                    title: body.series.title,
+                    media_type: 'show',
+                    payload: body,
+                    expires_at: expires,
+                  })
 
-                fastify.log.info(
-                  `No matching items found for ${tvdbGuid} (bulk), queued webhook for later processing`,
-                )
+                  fastify.log.info(
+                    `No matching items found for ${tvdbGuid} (bulk), queued webhook for later processing`,
+                  )
+                } catch (error) {
+                  fastify.log.error(
+                    { error, guid: tvdbGuid, title: body.series.title },
+                    'Failed to create pending webhook for bulk episodes, but returning success to prevent resends',
+                  )
+                  // Still return success to prevent webhook resends
+                }
                 return { success: true }
               }
 

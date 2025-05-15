@@ -66,6 +66,10 @@ export interface Config {
   queueWaitTime: number
   newEpisodeThreshold: number
   upgradeBufferTime: number
+  // Pending Webhooks Config
+  pendingWebhookRetryInterval: number
+  pendingWebhookMaxAge: number
+  pendingWebhookCleanupInterval: number
   // Sonarr Config
   sonarrBaseUrl: string
   sonarrApiKey: string

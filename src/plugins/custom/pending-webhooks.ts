@@ -11,11 +11,11 @@ declare module 'fastify' {
 
 export default fp(
   async (fastify: FastifyInstance) => {
-    // Use default configuration for now (could be made configurable later)
+    // Configuration values with defaults
     const config: Partial<PendingWebhooksConfig> = {
-      retryInterval: 20,
-      maxAge: 10,
-      cleanupInterval: 60,
+      retryInterval: fastify.config.pendingWebhookRetryInterval || 20,
+      maxAge: fastify.config.pendingWebhookMaxAge || 10,
+      cleanupInterval: fastify.config.pendingWebhookCleanupInterval || 60,
     }
 
     // Create service instance
@@ -30,7 +30,15 @@ export default fp(
 
     // Initialize handler after server is ready
     fastify.addHook('onReady', async () => {
-      await pendingWebhooksService.initialize()
+      try {
+        await pendingWebhooksService.initialize()
+        fastify.log.info('PendingWebhooksService initialized successfully')
+      } catch (error) {
+        fastify.log.error(
+          { error },
+          'Failed to initialize PendingWebhooksService',
+        )
+      }
     })
   },
   {
