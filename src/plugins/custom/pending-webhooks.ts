@@ -13,9 +13,9 @@ export default fp(
   async (fastify: FastifyInstance) => {
     // Configuration values with defaults
     const config: Partial<PendingWebhooksConfig> = {
-      retryInterval: fastify.config.pendingWebhookRetryInterval || 20,
-      maxAge: fastify.config.pendingWebhookMaxAge || 10,
-      cleanupInterval: fastify.config.pendingWebhookCleanupInterval || 60,
+      retryInterval: fastify.config.pendingWebhookRetryInterval || 20, // seconds
+      maxAge: fastify.config.pendingWebhookMaxAge || 10, // minutes
+      cleanupInterval: fastify.config.pendingWebhookCleanupInterval || 60, // seconds
     }
 
     // Create service instance

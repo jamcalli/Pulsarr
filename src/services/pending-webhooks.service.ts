@@ -121,25 +121,9 @@ export class PendingWebhooksService {
               `Found ${matchingItems.length} items for ${webhook.guid}, processing webhook`,
             )
 
-            // Route the webhook through the normal processing flow
-            // We need to simulate the webhook request structure
-            let body: WebhookPayload
-            try {
-              // Safe parse payload in case it's a string (defensive programming)
-              body =
-                typeof webhook.payload === 'string'
-                  ? JSON.parse(webhook.payload)
-                  : webhook.payload
-            } catch (parseError) {
-              this.log.error(
-                `Failed to parse payload for webhook ${webhook.id}:`,
-                parseError,
-              )
-              throw parseError
-            }
-
             // Process based on instance type
             if (webhook.media_type === 'movie') {
+              // For movies, we don't need to parse the payload
               const mediaInfo = {
                 type: 'movie' as const,
                 guid: webhook.guid,
@@ -149,23 +133,42 @@ export class PendingWebhooksService {
               const notificationResults =
                 await this.fastify.db.processNotifications(mediaInfo, false)
 
-              for (const result of notificationResults) {
-                if (result.user.notify_discord && result.user.discord_id) {
-                  await this.fastify.discord.sendDirectMessage(
-                    result.user.discord_id,
-                    result.notification,
-                  )
-                }
+              // Process notifications concurrently to reduce latency
+              await Promise.all(
+                notificationResults.map(async (result) => {
+                  if (result.user.notify_discord && result.user.discord_id) {
+                    await this.fastify.discord.sendDirectMessage(
+                      result.user.discord_id,
+                      result.notification,
+                    )
+                  }
 
-                if (result.user.notify_apprise) {
-                  await this.fastify.apprise.sendMediaNotification(
-                    result.user,
-                    result.notification,
-                  )
-                }
-              }
+                  if (result.user.notify_apprise) {
+                    await this.fastify.apprise.sendMediaNotification(
+                      result.user,
+                      result.notification,
+                    )
+                  }
+                }),
+              )
             } else if (webhook.media_type === 'show') {
-              // For shows, handle episode notifications
+              // For shows, we need to parse the payload to get episode information
+              let body: WebhookPayload
+              try {
+                // Safe parse payload in case it's a string (defensive programming)
+                body =
+                  typeof webhook.payload === 'string'
+                    ? JSON.parse(webhook.payload)
+                    : webhook.payload
+              } catch (parseError) {
+                this.log.error(
+                  `Failed to parse payload for webhook ${webhook.id}:`,
+                  parseError,
+                )
+                throw parseError
+              }
+
+              // Handle episode notifications
               if (
                 'instanceName' in body &&
                 body.instanceName === 'Sonarr' &&
@@ -185,21 +188,24 @@ export class PendingWebhooksService {
                     body.episodes.length > 1,
                   )
 
-                for (const result of notificationResults) {
-                  if (result.user.notify_discord && result.user.discord_id) {
-                    await this.fastify.discord.sendDirectMessage(
-                      result.user.discord_id,
-                      result.notification,
-                    )
-                  }
+                // Process notifications concurrently to reduce latency
+                await Promise.all(
+                  notificationResults.map(async (result) => {
+                    if (result.user.notify_discord && result.user.discord_id) {
+                      await this.fastify.discord.sendDirectMessage(
+                        result.user.discord_id,
+                        result.notification,
+                      )
+                    }
 
-                  if (result.user.notify_apprise) {
-                    await this.fastify.apprise.sendMediaNotification(
-                      result.user,
-                      result.notification,
-                    )
-                  }
-                }
+                    if (result.user.notify_apprise) {
+                      await this.fastify.apprise.sendMediaNotification(
+                        result.user,
+                        result.notification,
+                      )
+                    }
+                  }),
+                )
               }
             }
 

@@ -3,7 +3,7 @@ import type { WebhookPayload } from '@root/schemas/notifications/webhook.schema.
 export interface PendingWebhook {
   id?: number
   instance_type: 'radarr' | 'sonarr'
-  instance_id: number
+  instance_id: number | null
   guid: string
   title: string
   media_type: 'movie' | 'show'
@@ -14,7 +14,7 @@ export interface PendingWebhook {
 
 export interface PendingWebhookCreate {
   instance_type: 'radarr' | 'sonarr'
-  instance_id: number
+  instance_id: number | null
   guid: string
   title: string
   media_type: 'movie' | 'show'
