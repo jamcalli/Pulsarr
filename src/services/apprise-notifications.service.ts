@@ -310,7 +310,18 @@ export class AppriseNotificationService {
       }
 
       // Send to the user's Apprise URL
-      return await this.sendNotification(user.apprise, appriseNotification)
+      const success = await this.sendNotification(
+        user.apprise,
+        appriseNotification,
+      )
+
+      if (success) {
+        this.log.info(
+          `Apprise notification sent successfully to ${user.displayName || user.name} for "${notification.title}"`,
+        )
+      }
+
+      return success
     } catch (error) {
       this.log.error(
         `Error sending media notification to user ${user.name}:`,
