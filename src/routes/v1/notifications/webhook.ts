@@ -106,12 +106,33 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
 
         if (body.instanceName === 'Radarr' && 'movie' in body) {
+          const tmdbGuid = `tmdb:${body.movie.tmdbId}`
+          const matchingItems =
+            await fastify.db.getWatchlistItemsByGuid(tmdbGuid)
+
+          // If no matching items, queue webhook for later processing
+          if (matchingItems.length === 0) {
+            const expires = new Date()
+            expires.setMinutes(expires.getMinutes() + 10) // 10 minute expiration
+
+            await fastify.db.createPendingWebhook({
+              instance_type: 'radarr',
+              instance_id: instance?.id || 0,
+              guid: tmdbGuid,
+              title: body.movie.title,
+              media_type: 'movie',
+              payload: body,
+              expires_at: expires,
+            })
+
+            fastify.log.info(
+              `No matching items found for ${tmdbGuid}, queued webhook for later processing`,
+            )
+            return { success: true }
+          }
+
           if (instance) {
             try {
-              const tmdbGuid = `tmdb:${body.movie.tmdbId}`
-              const matchingItems =
-                await fastify.db.getWatchlistItemsByGuid(tmdbGuid)
-
               for (const item of matchingItems) {
                 const itemId =
                   typeof item.id === 'string'
@@ -155,6 +176,24 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                 { error, tmdbId: body.movie.tmdbId, instanceId: instance.id },
                 'Error checking sync status for Radarr webhook',
               )
+            }
+          }
+
+          // Check for repair scenario
+          if (
+            fastify.config.suppressRepairNotifications &&
+            matchingItems.length > 0
+          ) {
+            for (const item of matchingItems) {
+              const isLikelyRepair =
+                item.status === 'grabbed' && !item.last_notified_at
+
+              if (isLikelyRepair) {
+                fastify.log.info(
+                  `Suppressing repair notification for movie ${item.title} - already grabbed but never notified`,
+                )
+                return { success: true }
+              }
             }
           }
 
@@ -238,6 +277,46 @@ const plugin: FastifyPluginAsync = async (fastify) => {
               )
 
               if (isRecentEp) {
+                const tvdbGuid = `tvdb:${tvdbId}`
+                const matchingItems =
+                  await fastify.db.getWatchlistItemsByGuid(tvdbGuid)
+
+                // If no matching items, queue webhook for later processing
+                if (matchingItems.length === 0) {
+                  const expires = new Date()
+                  expires.setMinutes(expires.getMinutes() + 10) // 10 minute expiration
+
+                  await fastify.db.createPendingWebhook({
+                    instance_type: 'sonarr',
+                    instance_id: instance?.id || 0,
+                    guid: tvdbGuid,
+                    title: body.series.title,
+                    media_type: 'show',
+                    payload: body,
+                    expires_at: expires,
+                  })
+
+                  fastify.log.info(
+                    `No matching items found for ${tvdbGuid}, queued webhook for later processing`,
+                  )
+                  return { success: true }
+                }
+
+                // Check for repair scenario
+                if (fastify.config.suppressRepairNotifications) {
+                  for (const item of matchingItems) {
+                    const isLikelyRepair =
+                      item.status === 'grabbed' && !item.last_notified_at
+
+                    if (isLikelyRepair) {
+                      fastify.log.info(
+                        `Suppressing repair notification for show ${item.title} - already grabbed but never notified`,
+                      )
+                      return { success: true }
+                    }
+                  }
+                }
+
                 const mediaInfo = {
                   type: 'show' as const,
                   guid: `tvdb:${tvdbId}`,
@@ -337,6 +416,46 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                 { count: recentEpisodes.length, tvdbId },
                 'Processing recent episodes for immediate notification',
               )
+
+              const tvdbGuid = `tvdb:${tvdbId}`
+              const matchingItems =
+                await fastify.db.getWatchlistItemsByGuid(tvdbGuid)
+
+              // If no matching items, queue webhook for later processing
+              if (matchingItems.length === 0) {
+                const expires = new Date()
+                expires.setMinutes(expires.getMinutes() + 10) // 10 minute expiration
+
+                await fastify.db.createPendingWebhook({
+                  instance_type: 'sonarr',
+                  instance_id: instance?.id || 0,
+                  guid: tvdbGuid,
+                  title: body.series.title,
+                  media_type: 'show',
+                  payload: body,
+                  expires_at: expires,
+                })
+
+                fastify.log.info(
+                  `No matching items found for ${tvdbGuid} (bulk), queued webhook for later processing`,
+                )
+                return { success: true }
+              }
+
+              // Check for repair scenario
+              if (fastify.config.suppressRepairNotifications) {
+                for (const item of matchingItems) {
+                  const isLikelyRepair =
+                    item.status === 'grabbed' && !item.last_notified_at
+
+                  if (isLikelyRepair) {
+                    fastify.log.info(
+                      `Suppressing repair notification for show ${item.title} (bulk) - already grabbed but never notified`,
+                    )
+                    return { success: true }
+                  }
+                }
+              }
 
               const mediaInfo = {
                 type: 'show' as const,

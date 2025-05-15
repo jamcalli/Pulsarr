@@ -34,6 +34,10 @@ import knex, { type Knex } from 'knex'
 import type { Config, User } from '@root/types/config.types.js'
 import { DefaultInstanceError } from '@root/types/errors.js'
 import type {
+  PendingWebhook,
+  PendingWebhookCreate,
+} from '@root/types/pending-webhooks.types.js'
+import type {
   TokenWatchlistItem,
   Item as WatchlistItem,
 } from '@root/types/plex.types.js'
@@ -532,6 +536,10 @@ export class DatabaseService {
       queueWaitTime: config.queueWaitTime || 120000,
       newEpisodeThreshold: config.newEpisodeThreshold || 172800000,
       upgradeBufferTime: config.upgradeBufferTime || 2000,
+      suppressRepairNotifications:
+        config.suppressRepairNotifications !== undefined
+          ? Boolean(config.suppressRepairNotifications)
+          : false, // Default to false
       // Handle Apprise configuration
       enableApprise: Boolean(config.enableApprise),
       appriseUrl: config.appriseUrl || '',
@@ -591,6 +599,8 @@ export class DatabaseService {
         queueWaitTime: config.queueWaitTime || 120000,
         newEpisodeThreshold: config.newEpisodeThreshold || 172800000,
         upgradeBufferTime: config.upgradeBufferTime || 2000,
+        suppressRepairNotifications:
+          config.suppressRepairNotifications ?? false,
         // Apprise fields
         enableApprise: config.enableApprise || false,
         appriseUrl: config.appriseUrl || '',
@@ -5900,6 +5910,129 @@ export class DatabaseService {
       // In case of error, assume rules might exist to be safe
       // This is more conservative than skipping evaluation on error
       return true
+    }
+  }
+
+  // ============================================
+  // Pending Webhooks Methods
+  // ============================================
+
+  /**
+   * Creates a new pending webhook entry
+   *
+   * @param webhook - The webhook data to create
+   * @returns Promise resolving to the created webhook with its ID
+   */
+  async createPendingWebhook(
+    webhook: PendingWebhookCreate,
+  ): Promise<PendingWebhook> {
+    try {
+      const [id] = await this.knex('pending_webhooks')
+        .insert({
+          ...webhook,
+          received_at: this.timestamp,
+          expires_at: webhook.expires_at.toISOString(),
+          payload: JSON.stringify(webhook.payload),
+        })
+        .returning('id')
+
+      return {
+        id: id.id || id,
+        ...webhook,
+        received_at: new Date(),
+        expires_at: webhook.expires_at,
+      }
+    } catch (error) {
+      this.log.error('Error creating pending webhook:', error)
+      throw new Error('Failed to create pending webhook')
+    }
+  }
+
+  /**
+   * Gets all pending webhooks that haven't expired
+   *
+   * @param limit - Optional limit of results
+   * @returns Promise resolving to array of pending webhooks
+   */
+  async getPendingWebhooks(limit = 50): Promise<PendingWebhook[]> {
+    try {
+      const webhooks = await this.knex('pending_webhooks')
+        .where('expires_at', '>', new Date().toISOString())
+        .orderBy('received_at', 'asc')
+        .limit(limit)
+
+      return webhooks.map((webhook) => ({
+        ...webhook,
+        payload: JSON.parse(webhook.payload || '{}'),
+        received_at: new Date(webhook.received_at),
+        expires_at: new Date(webhook.expires_at),
+      }))
+    } catch (error) {
+      this.log.error('Error getting pending webhooks:', error)
+      return []
+    }
+  }
+
+  /**
+   * Deletes a processed webhook
+   *
+   * @param id - The webhook ID to delete
+   * @returns Promise resolving to boolean indicating success
+   */
+  async deletePendingWebhook(id: number): Promise<boolean> {
+    try {
+      const deleted = await this.knex('pending_webhooks').where({ id }).delete()
+
+      return deleted > 0
+    } catch (error) {
+      this.log.error(`Error deleting pending webhook ${id}:`, error)
+      return false
+    }
+  }
+
+  /**
+   * Cleans up expired webhooks
+   *
+   * @returns Promise resolving to number of deleted webhooks
+   */
+  async cleanupExpiredWebhooks(): Promise<number> {
+    try {
+      const deleted = await this.knex('pending_webhooks')
+        .where('expires_at', '<', new Date().toISOString())
+        .delete()
+
+      return deleted
+    } catch (error) {
+      this.log.error('Error cleaning up expired webhooks:', error)
+      return 0
+    }
+  }
+
+  /**
+   * Gets webhooks by GUID and media type
+   *
+   * @param guid - The GUID to search for
+   * @param mediaType - The media type (movie or show)
+   * @returns Promise resolving to array of pending webhooks
+   */
+  async getWebhooksByGuid(
+    guid: string,
+    mediaType: 'movie' | 'show',
+  ): Promise<PendingWebhook[]> {
+    try {
+      const webhooks = await this.knex('pending_webhooks')
+        .where({ guid, media_type: mediaType })
+        .where('expires_at', '>', new Date().toISOString())
+
+      return webhooks.map((webhook) => ({
+        ...webhook,
+        payload: JSON.parse(webhook.payload || '{}'),
+        received_at: new Date(webhook.received_at),
+        expires_at: new Date(webhook.expires_at),
+      }))
+    } catch (error) {
+      this.log.error(`Error getting webhooks for ${guid}:`, error)
+      return []
     }
   }
 }

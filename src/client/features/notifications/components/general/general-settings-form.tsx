@@ -1,5 +1,5 @@
 // src/client/features/notifications/components/general/general-settings-form.tsx
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2, Save, X, InfoIcon } from 'lucide-react'
@@ -19,6 +19,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { Input } from '@/components/ui/input'
+import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
 import { useConfigStore } from '@/stores/configStore'
 import {
@@ -36,12 +37,12 @@ const DEFAULT_NEW_EPISODE_THRESHOLD = 172800000 // 48 hours (2 days)
 const DEFAULT_UPGRADE_BUFFER_TIME = 2000 // 2 seconds
 
 /**
- * Displays a form for editing general notification settings, including queue wait time, new episode threshold, and upgrade buffer time.
+ * Renders a form for editing general notification settings, including queue wait time, new episode threshold, upgrade buffer time, and suppression of repair notifications.
  *
  * Converts between user-facing units (minutes, hours, seconds) and internal millisecond storage. Provides validation, contextual tooltips, and feedback on submission status.
  *
- * @param isInitialized - Whether the configuration data has loaded and the form is ready for interaction.
- * @returns The React element for the general settings form.
+ * @param isInitialized - Indicates whether the configuration data has loaded and the form is ready for interaction.
+ * @returns The React element representing the general settings form.
  */
 export function GeneralSettingsForm({
   isInitialized,
@@ -59,63 +60,53 @@ export function GeneralSettingsForm({
       queueWaitTime: 0,
       newEpisodeThreshold: 0,
       upgradeBufferTime: 0,
+      suppressRepairNotifications: false,
     },
   })
 
+  // Helper functions to convert between storage and display units
+  const getDisplayValues = useCallback((configData: typeof config) => {
+    if (!configData) return null
+
+    return {
+      queueWaitTime: Math.round(
+        (configData.queueWaitTime || DEFAULT_QUEUE_WAIT_TIME) / (60 * 1000),
+      ),
+      newEpisodeThreshold: Math.round(
+        (configData.newEpisodeThreshold || DEFAULT_NEW_EPISODE_THRESHOLD) /
+          (60 * 60 * 1000),
+      ),
+      upgradeBufferTime: Math.round(
+        (configData.upgradeBufferTime || DEFAULT_UPGRADE_BUFFER_TIME) / 1000,
+      ),
+      suppressRepairNotifications:
+        configData.suppressRepairNotifications ?? false,
+    }
+  }, [])
+
   // Convert milliseconds to appropriate display units
   useEffect(() => {
-    if (config) {
-      // Convert milliseconds to minutes for queueWaitTime
-      const queueWaitTimeMinutes = Math.round(
-        (config.queueWaitTime || DEFAULT_QUEUE_WAIT_TIME) / (60 * 1000),
+    const displayValues = getDisplayValues(config)
+    if (displayValues) {
+      generalForm.setValue('queueWaitTime', displayValues.queueWaitTime)
+      generalForm.setValue(
+        'newEpisodeThreshold',
+        displayValues.newEpisodeThreshold,
+      )
+      generalForm.setValue('upgradeBufferTime', displayValues.upgradeBufferTime)
+      generalForm.setValue(
+        'suppressRepairNotifications',
+        displayValues.suppressRepairNotifications,
       )
 
-      // Convert milliseconds to hours for newEpisodeThreshold
-      const newEpisodeThresholdHours = Math.round(
-        (config.newEpisodeThreshold || DEFAULT_NEW_EPISODE_THRESHOLD) /
-          (60 * 60 * 1000),
-      )
-
-      // Convert milliseconds to seconds for upgradeBufferTime
-      const upgradeBufferTimeSeconds = Math.round(
-        (config.upgradeBufferTime || DEFAULT_UPGRADE_BUFFER_TIME) / 1000,
-      )
-
-      generalForm.setValue('queueWaitTime', queueWaitTimeMinutes)
-      generalForm.setValue('newEpisodeThreshold', newEpisodeThresholdHours)
-      generalForm.setValue('upgradeBufferTime', upgradeBufferTimeSeconds)
-
-      generalForm.reset({
-        queueWaitTime: queueWaitTimeMinutes,
-        newEpisodeThreshold: newEpisodeThresholdHours,
-        upgradeBufferTime: upgradeBufferTimeSeconds,
-      })
+      generalForm.reset(displayValues)
     }
-  }, [config, generalForm])
+  }, [config, generalForm, getDisplayValues])
 
   const resetForm = () => {
-    if (config) {
-      // Convert milliseconds to minutes for queueWaitTime
-      const queueWaitTimeMinutes = Math.round(
-        (config.queueWaitTime || DEFAULT_QUEUE_WAIT_TIME) / (60 * 1000),
-      )
-
-      // Convert milliseconds to hours for newEpisodeThreshold
-      const newEpisodeThresholdHours = Math.round(
-        (config.newEpisodeThreshold || DEFAULT_NEW_EPISODE_THRESHOLD) /
-          (60 * 60 * 1000),
-      )
-
-      // Convert milliseconds to seconds for upgradeBufferTime
-      const upgradeBufferTimeSeconds = Math.round(
-        (config.upgradeBufferTime || DEFAULT_UPGRADE_BUFFER_TIME) / 1000,
-      )
-
-      generalForm.reset({
-        queueWaitTime: queueWaitTimeMinutes,
-        newEpisodeThreshold: newEpisodeThresholdHours,
-        upgradeBufferTime: upgradeBufferTimeSeconds,
-      })
+    const displayValues = getDisplayValues(config)
+    if (displayValues) {
+      generalForm.reset(displayValues)
     }
   }
 
@@ -140,6 +131,7 @@ export function GeneralSettingsForm({
           data.upgradeBufferTime !== undefined
             ? data.upgradeBufferTime * 1000
             : DEFAULT_UPGRADE_BUFFER_TIME,
+        suppressRepairNotifications: data.suppressRepairNotifications ?? false,
       }
 
       await Promise.all([updateConfig(updatedConfig), minimumLoadingTime])
@@ -283,6 +275,44 @@ export function GeneralSettingsForm({
                   />
                 </FormControl>
                 <FormMessage className="text-xs mt-1" />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={generalForm.control}
+            name="suppressRepairNotifications"
+            render={({ field }) => (
+              <FormItem>
+                <div className="flex items-center space-x-2">
+                  <FormLabel className="text-text">
+                    Suppress Repair Notifications
+                  </FormLabel>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <InfoIcon className="h-4 w-4 text-text cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        When enabled, prevents notifications for content that
+                        was already downloaded but is being re-grabbed (repair
+                        operations).
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <div className="flex h-10 items-center gap-2 px-3 py-2">
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      disabled={generalStatus === 'loading'}
+                    />
+                  </FormControl>
+                  <span className="text-sm text-text text-muted-foreground">
+                    Avoid duplicate notifications for repair operations
+                  </span>
+                </div>
               </FormItem>
             )}
           />

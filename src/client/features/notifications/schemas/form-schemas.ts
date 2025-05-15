@@ -90,6 +90,7 @@ export const generalFormSchema = z.object({
   queueWaitTime: z.coerce.number().int().min(0).optional(),
   newEpisodeThreshold: z.coerce.number().int().min(0).optional(),
   upgradeBufferTime: z.coerce.number().int().min(0).optional(),
+  suppressRepairNotifications: z.boolean().optional(),
 })
 
 export type GeneralFormSchema = z.infer<typeof generalFormSchema>
