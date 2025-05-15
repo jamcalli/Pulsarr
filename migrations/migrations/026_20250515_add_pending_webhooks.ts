@@ -4,7 +4,7 @@ export async function up(knex: Knex): Promise<void> {
   await knex.schema.createTable('pending_webhooks', (table) => {
     table.increments('id').primary()
     table.string('instance_type', 10).notNullable() // 'radarr' or 'sonarr'
-    table.integer('instance_id').unsigned().notNullable()
+    table.integer('instance_id').unsigned().nullable() // Can be null when instance is unknown
     table.string('guid', 255).notNullable()
     table.string('title', 255).notNullable()
     table.string('media_type', 10).notNullable() // 'movie' or 'show'
