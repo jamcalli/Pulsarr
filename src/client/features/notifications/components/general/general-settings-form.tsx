@@ -65,21 +65,22 @@ export function GeneralSettingsForm({
   })
 
   // Helper functions to convert between storage and display units
-  const getDisplayValues = useCallback((config: typeof config) => {
-    if (!config) return null
+  const getDisplayValues = useCallback((configData: typeof config) => {
+    if (!configData) return null
 
     return {
       queueWaitTime: Math.round(
-        (config.queueWaitTime || DEFAULT_QUEUE_WAIT_TIME) / (60 * 1000),
+        (configData.queueWaitTime || DEFAULT_QUEUE_WAIT_TIME) / (60 * 1000),
       ),
       newEpisodeThreshold: Math.round(
-        (config.newEpisodeThreshold || DEFAULT_NEW_EPISODE_THRESHOLD) /
+        (configData.newEpisodeThreshold || DEFAULT_NEW_EPISODE_THRESHOLD) /
           (60 * 60 * 1000),
       ),
       upgradeBufferTime: Math.round(
-        (config.upgradeBufferTime || DEFAULT_UPGRADE_BUFFER_TIME) / 1000,
+        (configData.upgradeBufferTime || DEFAULT_UPGRADE_BUFFER_TIME) / 1000,
       ),
-      suppressRepairNotifications: config.suppressRepairNotifications ?? false,
+      suppressRepairNotifications:
+        configData.suppressRepairNotifications ?? false,
     }
   }, [])
 
