@@ -532,6 +532,10 @@ export class DatabaseService {
       queueWaitTime: config.queueWaitTime || 120000,
       newEpisodeThreshold: config.newEpisodeThreshold || 172800000,
       upgradeBufferTime: config.upgradeBufferTime || 2000,
+      suppressRepairNotifications:
+        config.suppressRepairNotifications !== undefined
+          ? Boolean(config.suppressRepairNotifications)
+          : false, // Default to false
       // Handle Apprise configuration
       enableApprise: Boolean(config.enableApprise),
       appriseUrl: config.appriseUrl || '',
@@ -591,6 +595,8 @@ export class DatabaseService {
         queueWaitTime: config.queueWaitTime || 120000,
         newEpisodeThreshold: config.newEpisodeThreshold || 172800000,
         upgradeBufferTime: config.upgradeBufferTime || 2000,
+        suppressRepairNotifications:
+          config.suppressRepairNotifications ?? false,
         // Apprise fields
         enableApprise: config.enableApprise || false,
         appriseUrl: config.appriseUrl || '',

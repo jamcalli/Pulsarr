@@ -54,6 +54,7 @@ export const ConfigSchema = z.object({
   queueWaitTime: z.number().optional(),
   newEpisodeThreshold: z.number().optional(),
   upgradeBufferTime: z.number().optional(),
+  suppressRepairNotifications: z.boolean().optional(),
   // Other configs
   plexTokens: z.array(z.string()).optional(),
   skipFriendSync: z.boolean().optional(),

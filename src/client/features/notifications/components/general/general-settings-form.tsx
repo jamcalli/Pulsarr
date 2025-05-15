@@ -19,6 +19,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { Input } from '@/components/ui/input'
+import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
 import { useConfigStore } from '@/stores/configStore'
 import {
@@ -59,6 +60,7 @@ export function GeneralSettingsForm({
       queueWaitTime: 0,
       newEpisodeThreshold: 0,
       upgradeBufferTime: 0,
+      suppressRepairNotifications: false,
     },
   })
 
@@ -84,11 +86,17 @@ export function GeneralSettingsForm({
       generalForm.setValue('queueWaitTime', queueWaitTimeMinutes)
       generalForm.setValue('newEpisodeThreshold', newEpisodeThresholdHours)
       generalForm.setValue('upgradeBufferTime', upgradeBufferTimeSeconds)
+      generalForm.setValue(
+        'suppressRepairNotifications',
+        config.suppressRepairNotifications ?? false,
+      )
 
       generalForm.reset({
         queueWaitTime: queueWaitTimeMinutes,
         newEpisodeThreshold: newEpisodeThresholdHours,
         upgradeBufferTime: upgradeBufferTimeSeconds,
+        suppressRepairNotifications:
+          config.suppressRepairNotifications ?? false,
       })
     }
   }, [config, generalForm])
@@ -115,6 +123,8 @@ export function GeneralSettingsForm({
         queueWaitTime: queueWaitTimeMinutes,
         newEpisodeThreshold: newEpisodeThresholdHours,
         upgradeBufferTime: upgradeBufferTimeSeconds,
+        suppressRepairNotifications:
+          config.suppressRepairNotifications ?? false,
       })
     }
   }
@@ -140,6 +150,7 @@ export function GeneralSettingsForm({
           data.upgradeBufferTime !== undefined
             ? data.upgradeBufferTime * 1000
             : DEFAULT_UPGRADE_BUFFER_TIME,
+        suppressRepairNotifications: data.suppressRepairNotifications ?? false,
       }
 
       await Promise.all([updateConfig(updatedConfig), minimumLoadingTime])
@@ -283,6 +294,44 @@ export function GeneralSettingsForm({
                   />
                 </FormControl>
                 <FormMessage className="text-xs mt-1" />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={generalForm.control}
+            name="suppressRepairNotifications"
+            render={({ field }) => (
+              <FormItem>
+                <div className="flex items-center space-x-2">
+                  <FormLabel className="text-text">
+                    Suppress Repair Notifications
+                  </FormLabel>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <InfoIcon className="h-4 w-4 text-text cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        When enabled, prevents notifications for content that
+                        was already downloaded but is being re-grabbed (repair
+                        operations).
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <div className="flex h-10 items-center gap-2 px-3 py-2">
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      disabled={generalStatus === 'loading'}
+                    />
+                  </FormControl>
+                  <span className="text-sm text-text text-muted-foreground">
+                    Avoid duplicate notifications for repair operations
+                  </span>
+                </div>
               </FormItem>
             )}
           />
