@@ -110,6 +110,27 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           const matchingItems =
             await fastify.db.getWatchlistItemsByGuid(tmdbGuid)
 
+          // If no matching items, queue webhook for later processing
+          if (matchingItems.length === 0) {
+            const expires = new Date()
+            expires.setMinutes(expires.getMinutes() + 10) // 10 minute expiration
+
+            await fastify.db.createPendingWebhook({
+              instance_type: 'radarr',
+              instance_id: instance?.id || 0,
+              guid: tmdbGuid,
+              title: body.movie.title,
+              media_type: 'movie',
+              payload: body,
+              expires_at: expires,
+            })
+
+            fastify.log.info(
+              `No matching items found for ${tmdbGuid}, queued webhook for later processing`,
+            )
+            return { success: true }
+          }
+
           if (instance) {
             try {
               for (const item of matchingItems) {
@@ -256,12 +277,33 @@ const plugin: FastifyPluginAsync = async (fastify) => {
               )
 
               if (isRecentEp) {
+                const tvdbGuid = `tvdb:${tvdbId}`
+                const matchingItems =
+                  await fastify.db.getWatchlistItemsByGuid(tvdbGuid)
+
+                // If no matching items, queue webhook for later processing
+                if (matchingItems.length === 0) {
+                  const expires = new Date()
+                  expires.setMinutes(expires.getMinutes() + 10) // 10 minute expiration
+
+                  await fastify.db.createPendingWebhook({
+                    instance_type: 'sonarr',
+                    instance_id: instance?.id || 0,
+                    guid: tvdbGuid,
+                    title: body.series.title,
+                    media_type: 'show',
+                    payload: body,
+                    expires_at: expires,
+                  })
+
+                  fastify.log.info(
+                    `No matching items found for ${tvdbGuid}, queued webhook for later processing`,
+                  )
+                  return { success: true }
+                }
+
                 // Check for repair scenario
                 if (fastify.config.suppressRepairNotifications) {
-                  const tvdbGuid = `tvdb:${tvdbId}`
-                  const matchingItems =
-                    await fastify.db.getWatchlistItemsByGuid(tvdbGuid)
-
                   for (const item of matchingItems) {
                     const isLikelyRepair =
                       item.status === 'grabbed' && !item.last_notified_at
@@ -375,12 +417,33 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                 'Processing recent episodes for immediate notification',
               )
 
+              const tvdbGuid = `tvdb:${tvdbId}`
+              const matchingItems =
+                await fastify.db.getWatchlistItemsByGuid(tvdbGuid)
+
+              // If no matching items, queue webhook for later processing
+              if (matchingItems.length === 0) {
+                const expires = new Date()
+                expires.setMinutes(expires.getMinutes() + 10) // 10 minute expiration
+
+                await fastify.db.createPendingWebhook({
+                  instance_type: 'sonarr',
+                  instance_id: instance?.id || 0,
+                  guid: tvdbGuid,
+                  title: body.series.title,
+                  media_type: 'show',
+                  payload: body,
+                  expires_at: expires,
+                })
+
+                fastify.log.info(
+                  `No matching items found for ${tvdbGuid} (bulk), queued webhook for later processing`,
+                )
+                return { success: true }
+              }
+
               // Check for repair scenario
               if (fastify.config.suppressRepairNotifications) {
-                const tvdbGuid = `tvdb:${tvdbId}`
-                const matchingItems =
-                  await fastify.db.getWatchlistItemsByGuid(tvdbGuid)
-
                 for (const item of matchingItems) {
                   const isLikelyRepair =
                     item.status === 'grabbed' && !item.last_notified_at

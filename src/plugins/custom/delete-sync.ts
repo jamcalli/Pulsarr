@@ -17,7 +17,6 @@ declare module 'fastify' {
 export default fp(
   async (fastify: FastifyInstance) => {
     fastify.log.info('Initializing delete sync plugin')
-
     // Create and register the delete sync service
     const service = new DeleteSyncService(fastify.log, fastify)
     fastify.decorate('deleteSync', service)
@@ -26,15 +25,35 @@ export default fp(
     fastify.ready().then(async () => {
       // Register the handler for the job
       await fastify.scheduler.scheduleJob('delete-sync', async (jobName) => {
-        // Run the service but don't return its result to conform to the JobHandler type
-        await service.run()
-        // The JobHandler expects void return
+        // First check if the schedule itself is enabled
+        const schedule = await fastify.db.getScheduleByName('delete-sync')
+        if (!schedule || !schedule.enabled) {
+          // Schedule is disabled - don't run
+          return
+        }
+
+        // Then check if delete sync functionality is enabled
+        const config = fastify.config
+        const isDeleteFunctionEnabled =
+          config.deleteMovie ||
+          config.deleteEndedShow ||
+          config.deleteContinuingShow
+
+        if (isDeleteFunctionEnabled) {
+          const result = await service.run()
+          const totalProcessed = result.total.processed || 0
+          const totalDeleted = result.total.deleted || 0
+
+          // Only log if work was actually done
+          if (totalProcessed > 0 || totalDeleted > 0) {
+            fastify.log.info(
+              `Delete sync completed: ${totalDeleted} items deleted, ${totalProcessed} total items processed`,
+            )
+          }
+        }
       })
 
-      fastify.log.info('Delete sync job handler registered with scheduler')
     })
-
-    fastify.log.info('Delete sync plugin initialized successfully')
   },
   {
     name: 'delete-sync-service',
