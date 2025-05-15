@@ -100,10 +100,6 @@ const schema = {
       type: 'number',
       default: 2000,
     },
-    suppressRepairNotifications: {
-      type: 'boolean',
-      default: false,
-    },
     sonarrBaseUrl: {
       type: 'string',
       default: 'http://localhost:8989',
