@@ -1,5 +1,10 @@
 import type { Knex } from 'knex'
 
+/**
+ * Creates the `pending_webhooks` table to store incoming webhook data with constraints and indexes.
+ *
+ * The table includes columns for instance type, instance ID, GUID, title, media type, payload, received timestamp, and expiration timestamp. It enforces allowed values for `instance_type` and `media_type`, and adds indexes for efficient lookups.
+ */
 export async function up(knex: Knex): Promise<void> {
   await knex.schema.createTable('pending_webhooks', (table) => {
     table.increments('id').primary()
@@ -22,6 +27,11 @@ export async function up(knex: Knex): Promise<void> {
   })
 }
 
+/**
+ * Drops the 'pending_webhooks' table from the database if it exists.
+ *
+ * Use this to roll back the migration that creates the {@link pending_webhooks} table.
+ */
 export async function down(knex: Knex): Promise<void> {
   await knex.schema.dropTableIfExists('pending_webhooks')
 }
