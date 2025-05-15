@@ -317,7 +317,7 @@ export class AppriseNotificationService {
 
       if (success) {
         this.log.info(
-          `Apprise notification sent successfully to ${user.displayName || user.name} for "${notification.title}"`,
+          `Apprise notification sent successfully to ${user.alias || user.name} for "${notification.title}"`,
         )
       }
 
