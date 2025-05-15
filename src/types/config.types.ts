@@ -66,6 +66,7 @@ export interface Config {
   queueWaitTime: number
   newEpisodeThreshold: number
   upgradeBufferTime: number
+  suppressRepairNotifications: boolean
   // Sonarr Config
   sonarrBaseUrl: string
   sonarrApiKey: string

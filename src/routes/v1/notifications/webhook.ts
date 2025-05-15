@@ -106,12 +106,12 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
 
         if (body.instanceName === 'Radarr' && 'movie' in body) {
+          const tmdbGuid = `tmdb:${body.movie.tmdbId}`
+          const matchingItems =
+            await fastify.db.getWatchlistItemsByGuid(tmdbGuid)
+
           if (instance) {
             try {
-              const tmdbGuid = `tmdb:${body.movie.tmdbId}`
-              const matchingItems =
-                await fastify.db.getWatchlistItemsByGuid(tmdbGuid)
-
               for (const item of matchingItems) {
                 const itemId =
                   typeof item.id === 'string'
@@ -155,6 +155,24 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                 { error, tmdbId: body.movie.tmdbId, instanceId: instance.id },
                 'Error checking sync status for Radarr webhook',
               )
+            }
+          }
+
+          // Check for repair scenario
+          if (
+            fastify.config.suppressRepairNotifications &&
+            matchingItems.length > 0
+          ) {
+            for (const item of matchingItems) {
+              const isLikelyRepair =
+                item.status === 'grabbed' && !item.last_notified_at
+
+              if (isLikelyRepair) {
+                fastify.log.info(
+                  `Suppressing repair notification for movie ${item.title} - already grabbed but never notified`,
+                )
+                return { success: true }
+              }
             }
           }
 
@@ -238,6 +256,25 @@ const plugin: FastifyPluginAsync = async (fastify) => {
               )
 
               if (isRecentEp) {
+                // Check for repair scenario
+                if (fastify.config.suppressRepairNotifications) {
+                  const tvdbGuid = `tvdb:${tvdbId}`
+                  const matchingItems =
+                    await fastify.db.getWatchlistItemsByGuid(tvdbGuid)
+
+                  for (const item of matchingItems) {
+                    const isLikelyRepair =
+                      item.status === 'grabbed' && !item.last_notified_at
+
+                    if (isLikelyRepair) {
+                      fastify.log.info(
+                        `Suppressing repair notification for show ${item.title} - already grabbed but never notified`,
+                      )
+                      return { success: true }
+                    }
+                  }
+                }
+
                 const mediaInfo = {
                   type: 'show' as const,
                   guid: `tvdb:${tvdbId}`,
@@ -337,6 +374,25 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                 { count: recentEpisodes.length, tvdbId },
                 'Processing recent episodes for immediate notification',
               )
+
+              // Check for repair scenario
+              if (fastify.config.suppressRepairNotifications) {
+                const tvdbGuid = `tvdb:${tvdbId}`
+                const matchingItems =
+                  await fastify.db.getWatchlistItemsByGuid(tvdbGuid)
+
+                for (const item of matchingItems) {
+                  const isLikelyRepair =
+                    item.status === 'grabbed' && !item.last_notified_at
+
+                  if (isLikelyRepair) {
+                    fastify.log.info(
+                      `Suppressing repair notification for show ${item.title} (bulk) - already grabbed but never notified`,
+                    )
+                    return { success: true }
+                  }
+                }
+              }
 
               const mediaInfo = {
                 type: 'show' as const,
