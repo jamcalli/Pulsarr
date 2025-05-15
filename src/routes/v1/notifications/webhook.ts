@@ -179,24 +179,6 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             }
           }
 
-          // Check for repair scenario
-          if (
-            fastify.config.suppressRepairNotifications &&
-            matchingItems.length > 0
-          ) {
-            for (const item of matchingItems) {
-              const isLikelyRepair =
-                item.status === 'grabbed' && !item.last_notified_at
-
-              if (isLikelyRepair) {
-                fastify.log.info(
-                  `Suppressing repair notification for movie ${item.title} - already grabbed but never notified`,
-                )
-                return { success: true }
-              }
-            }
-          }
-
           const mediaInfo = {
             type: 'movie' as const,
             guid: `tmdb:${body.movie.tmdbId}`,
@@ -300,21 +282,6 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                     `No matching items found for ${tvdbGuid}, queued webhook for later processing`,
                   )
                   return { success: true }
-                }
-
-                // Check for repair scenario
-                if (fastify.config.suppressRepairNotifications) {
-                  for (const item of matchingItems) {
-                    const isLikelyRepair =
-                      item.status === 'grabbed' && !item.last_notified_at
-
-                    if (isLikelyRepair) {
-                      fastify.log.info(
-                        `Suppressing repair notification for show ${item.title} - already grabbed but never notified`,
-                      )
-                      return { success: true }
-                    }
-                  }
                 }
 
                 const mediaInfo = {
@@ -440,21 +407,6 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                   `No matching items found for ${tvdbGuid} (bulk), queued webhook for later processing`,
                 )
                 return { success: true }
-              }
-
-              // Check for repair scenario
-              if (fastify.config.suppressRepairNotifications) {
-                for (const item of matchingItems) {
-                  const isLikelyRepair =
-                    item.status === 'grabbed' && !item.last_notified_at
-
-                  if (isLikelyRepair) {
-                    fastify.log.info(
-                      `Suppressing repair notification for show ${item.title} (bulk) - already grabbed but never notified`,
-                    )
-                    return { success: true }
-                  }
-                }
               }
 
               const mediaInfo = {
