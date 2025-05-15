@@ -54,6 +54,10 @@ export const ConfigSchema = z.object({
   queueWaitTime: z.number().optional(),
   newEpisodeThreshold: z.number().optional(),
   upgradeBufferTime: z.number().optional(),
+  // Pending Webhooks Config
+  pendingWebhookRetryInterval: z.number().optional(),
+  pendingWebhookMaxAge: z.number().optional(),
+  pendingWebhookCleanupInterval: z.number().optional(),
   // Other configs
   plexTokens: z.array(z.string()).optional(),
   skipFriendSync: z.boolean().optional(),

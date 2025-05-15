@@ -1,8 +1,5 @@
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import type {
-  PendingWebhook,
-  PendingWebhooksConfig,
-} from '@root/types/pending-webhooks.types.js'
+import type { PendingWebhooksConfig } from '@root/types/pending-webhooks.types.js'
 import type { WebhookPayload } from '@root/schemas/notifications/webhook.schema.js'
 
 /**
@@ -11,20 +8,29 @@ import type { WebhookPayload } from '@root/schemas/notifications/webhook.schema.
  * arrives while the RSS item is still being processed.
  */
 export class PendingWebhooksService {
-  private readonly config: PendingWebhooksConfig
+  private readonly _config: PendingWebhooksConfig
   private isRunning = false
+  private _processingWebhooks = false
+  private _cleaningUp = false
 
   constructor(
     private readonly log: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
     config?: Partial<PendingWebhooksConfig>,
   ) {
-    this.config = {
+    this._config = {
       retryInterval: 20, // Process every 20 seconds
       maxAge: 10, // Keep webhooks for max 10 minutes
       cleanupInterval: 60, // Clean up expired webhooks every minute
       ...config,
     }
+  }
+
+  /**
+   * Get the configuration (for access by other services/routes)
+   */
+  get config(): PendingWebhooksConfig {
+    return this._config
   }
 
   /**
@@ -46,7 +52,7 @@ export class PendingWebhooksService {
     // Update the schedule to run every 20 seconds
     await this.fastify.db.updateSchedule('pending-webhooks-processor', {
       type: 'interval',
-      config: { seconds: this.config.retryInterval },
+      config: { seconds: this._config.retryInterval },
       enabled: true,
     })
 
@@ -84,6 +90,16 @@ export class PendingWebhooksService {
       return 0
     }
 
+    // Prevent overlapping executions
+    if (this._processingWebhooks) {
+      this.log.debug(
+        'Webhook processing already in progress, skipping this cycle',
+      )
+      return 0
+    }
+
+    this._processingWebhooks = true
+
     try {
       const webhooks = await this.fastify.db.getPendingWebhooks()
 
@@ -107,7 +123,20 @@ export class PendingWebhooksService {
 
             // Route the webhook through the normal processing flow
             // We need to simulate the webhook request structure
-            const body = webhook.payload as WebhookPayload
+            let body: WebhookPayload
+            try {
+              // Safe parse payload in case it's a string (defensive programming)
+              body =
+                typeof webhook.payload === 'string'
+                  ? JSON.parse(webhook.payload)
+                  : webhook.payload
+            } catch (parseError) {
+              this.log.error(
+                `Failed to parse payload for webhook ${webhook.id}:`,
+                parseError,
+              )
+              throw parseError
+            }
 
             // Process based on instance type
             if (webhook.media_type === 'movie') {
@@ -196,6 +225,8 @@ export class PendingWebhooksService {
     } catch (error) {
       this.log.error('Error processing pending webhooks:', error)
       return 0
+    } finally {
+      this._processingWebhooks = false
     }
   }
 
@@ -208,12 +239,22 @@ export class PendingWebhooksService {
       return 0
     }
 
+    // Prevent overlapping cleanup executions
+    if (this._cleaningUp) {
+      this.log.debug('Cleanup already in progress, skipping this cycle')
+      return 0
+    }
+
+    this._cleaningUp = true
+
     try {
       const deleted = await this.fastify.db.cleanupExpiredWebhooks()
       return deleted
     } catch (error) {
       this.log.error('Error cleaning up expired webhooks:', error)
       return 0
+    } finally {
+      this._cleaningUp = false
     }
   }
 }

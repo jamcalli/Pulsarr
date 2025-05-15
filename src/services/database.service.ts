@@ -536,6 +536,10 @@ export class DatabaseService {
       queueWaitTime: config.queueWaitTime || 120000,
       newEpisodeThreshold: config.newEpisodeThreshold || 172800000,
       upgradeBufferTime: config.upgradeBufferTime || 2000,
+      // Handle pending webhook configuration
+      pendingWebhookRetryInterval: config.pendingWebhookRetryInterval || 20,
+      pendingWebhookMaxAge: config.pendingWebhookMaxAge || 10,
+      pendingWebhookCleanupInterval: config.pendingWebhookCleanupInterval || 60,
       // Handle Apprise configuration
       enableApprise: Boolean(config.enableApprise),
       appriseUrl: config.appriseUrl || '',
@@ -595,6 +599,11 @@ export class DatabaseService {
         queueWaitTime: config.queueWaitTime || 120000,
         newEpisodeThreshold: config.newEpisodeThreshold || 172800000,
         upgradeBufferTime: config.upgradeBufferTime || 2000,
+        // Pending webhook configuration
+        pendingWebhookRetryInterval: config.pendingWebhookRetryInterval || 20,
+        pendingWebhookMaxAge: config.pendingWebhookMaxAge || 10,
+        pendingWebhookCleanupInterval:
+          config.pendingWebhookCleanupInterval || 60,
         // Apprise fields
         enableApprise: config.enableApprise || false,
         appriseUrl: config.appriseUrl || '',
