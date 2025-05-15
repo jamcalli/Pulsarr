@@ -100,6 +100,18 @@ const schema = {
       type: 'number',
       default: 2000,
     },
+    pendingWebhookRetryInterval: {
+      type: 'number',
+      default: 20,
+    },
+    pendingWebhookMaxAge: {
+      type: 'number',
+      default: 10,
+    },
+    pendingWebhookCleanupInterval: {
+      type: 'number',
+      default: 60,
+    },
     sonarrBaseUrl: {
       type: 'string',
       default: 'http://localhost:8989',

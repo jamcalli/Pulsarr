@@ -1388,11 +1388,19 @@ export class WatchlistWorkflowService {
       await this.fastify.scheduler.scheduleJob(
         this.MANUAL_SYNC_JOB_NAME,
         async (jobName: string) => {
+          let reconciliationPerformed = false
           try {
-            this.log.info('Starting manual watchlist reconciliation')
-            await this.fetchWatchlists()
-            await this.syncWatchlistItems()
-            this.log.info('Manual watchlist reconciliation completed')
+            // Check if reconciliation is actually needed
+            const shouldDefer = await this.shouldDeferProcessing()
+            if (shouldDefer) {
+              await this.fetchWatchlists()
+              await this.syncWatchlistItems()
+              reconciliationPerformed = true
+            }
+
+            if (reconciliationPerformed) {
+              this.log.info('Manual watchlist reconciliation completed')
+            }
           } catch (error) {
             this.log.error('Error in manual watchlist reconciliation:', {
               error,

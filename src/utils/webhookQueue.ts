@@ -1,7 +1,49 @@
 import type { FastifyInstance } from 'fastify'
 import type { WebhookQueue, RecentWebhook } from '@root/types/webhook.types.js'
+import type { WebhookPayload } from '@root/schemas/notifications/webhook.schema.js'
 
 export const webhookQueue: WebhookQueue = {}
+
+/**
+ * Helper function to queue a pending webhook when no matching items are found
+ */
+export async function queuePendingWebhook(
+  fastify: FastifyInstance,
+  data: {
+    instanceType: 'radarr' | 'sonarr'
+    instanceId: number | null
+    guid: string
+    title: string
+    mediaType: 'movie' | 'show'
+    payload: WebhookPayload
+  },
+): Promise<void> {
+  const maxAgeMinutes = fastify.pendingWebhooks?.config?.maxAge || 10
+  const expires = new Date()
+  expires.setMinutes(expires.getMinutes() + maxAgeMinutes)
+
+  try {
+    await fastify.db.createPendingWebhook({
+      instance_type: data.instanceType,
+      instance_id: data.instanceId,
+      guid: data.guid,
+      title: data.title,
+      media_type: data.mediaType,
+      payload: data.payload,
+      expires_at: expires,
+    })
+
+    fastify.log.info(
+      `No matching items found for ${data.guid}, queued webhook for later processing`,
+    )
+  } catch (error) {
+    fastify.log.error(
+      { error, guid: data.guid, title: data.title },
+      `Failed to create pending webhook for ${data.mediaType}, but returning success to prevent resends`,
+    )
+    // Still return success to prevent webhook resends
+  }
+}
 
 export function isRecentEpisode(
   airDateUtc: string,
