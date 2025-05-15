@@ -13,6 +13,7 @@ import {
   processQueuedWebhooks,
   webhookQueue,
   checkForUpgrade,
+  queuePendingWebhook,
 } from '@root/utils/webhookQueue.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
@@ -106,12 +107,25 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
 
         if (body.instanceName === 'Radarr' && 'movie' in body) {
+          const tmdbGuid = `tmdb:${body.movie.tmdbId}`
+          const matchingItems =
+            await fastify.db.getWatchlistItemsByGuid(tmdbGuid)
+
+          // If no matching items, queue webhook for later processing
+          if (matchingItems.length === 0) {
+            await queuePendingWebhook(fastify, {
+              instanceType: 'radarr',
+              instanceId: instance?.id ?? null,
+              guid: tmdbGuid,
+              title: body.movie.title,
+              mediaType: 'movie',
+              payload: body,
+            })
+            return { success: true }
+          }
+
           if (instance) {
             try {
-              const tmdbGuid = `tmdb:${body.movie.tmdbId}`
-              const matchingItems =
-                await fastify.db.getWatchlistItemsByGuid(tmdbGuid)
-
               for (const item of matchingItems) {
                 const itemId =
                   typeof item.id === 'string'
@@ -238,6 +252,23 @@ const plugin: FastifyPluginAsync = async (fastify) => {
               )
 
               if (isRecentEp) {
+                const tvdbGuid = `tvdb:${tvdbId}`
+                const matchingItems =
+                  await fastify.db.getWatchlistItemsByGuid(tvdbGuid)
+
+                // If no matching items, queue webhook for later processing
+                if (matchingItems.length === 0) {
+                  await queuePendingWebhook(fastify, {
+                    instanceType: 'sonarr',
+                    instanceId: instance?.id ?? null,
+                    guid: tvdbGuid,
+                    title: body.series.title,
+                    mediaType: 'show',
+                    payload: body,
+                  })
+                  return { success: true }
+                }
+
                 const mediaInfo = {
                   type: 'show' as const,
                   guid: `tvdb:${tvdbId}`,
@@ -337,6 +368,23 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                 { count: recentEpisodes.length, tvdbId },
                 'Processing recent episodes for immediate notification',
               )
+
+              const tvdbGuid = `tvdb:${tvdbId}`
+              const matchingItems =
+                await fastify.db.getWatchlistItemsByGuid(tvdbGuid)
+
+              // If no matching items, queue webhook for later processing
+              if (matchingItems.length === 0) {
+                await queuePendingWebhook(fastify, {
+                  instanceType: 'sonarr',
+                  instanceId: instance?.id ?? null,
+                  guid: tvdbGuid,
+                  title: body.series.title,
+                  mediaType: 'show',
+                  payload: body,
+                })
+                return { success: true }
+              }
 
               const mediaInfo = {
                 type: 'show' as const,

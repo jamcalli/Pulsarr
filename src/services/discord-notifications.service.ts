@@ -640,6 +640,10 @@ export class DiscordNotificationService {
         embeds: [embed],
       })
 
+      this.log.info(
+        `Discord notification sent successfully to ${user.username} for "${notification.title}"`,
+      )
+
       return true
     } catch (error) {
       this.log.error({ error, discordId }, 'Failed to send direct message')
