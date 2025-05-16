@@ -16,13 +16,7 @@ export default function Home(): React.ReactElement {
   const { siteConfig } = useDocusaurusContext()
   const isMobile = useMediaQuery('(max-width: 768px)')
 
-  useEffect(() => {
-    // Prevent body scroll on homepage
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.body.style.overflow = ''
-    }
-  }, [])
+  // Removed scroll prevention to allow normal scrolling
 
   return (
     <Layout
@@ -163,10 +157,10 @@ export default function Home(): React.ReactElement {
           }}
         >
           <div className="flex gap-6 justify-center mb-16">
-            <Button variant="default" size="lg" asChild>
+            <Button variant="default" size="lg" asChild className="hero-button">
               <Link to="/docs/intro">Get Started</Link>
             </Button>
-            <Button variant="neutral" size="lg" asChild>
+            <Button variant="neutral" size="lg" asChild className="hero-button">
               <a href="https://github.com/jamcalli/pulsarr">View on GitHub</a>
             </Button>
           </div>
