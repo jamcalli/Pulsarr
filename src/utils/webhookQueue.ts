@@ -5,7 +5,11 @@ import type { WebhookPayload } from '@root/schemas/notifications/webhook.schema.
 export const webhookQueue: WebhookQueue = {}
 
 /**
- * Helper function to queue a pending webhook when no matching items are found
+ * Queues a pending webhook in the database when no matching media items are found.
+ *
+ * Stores the webhook with an expiration time for later processing, ensuring that duplicate webhook resends are avoided even if database insertion fails.
+ *
+ * @param data - Metadata and payload for the webhook to be queued.
  */
 export async function queuePendingWebhook(
   fastify: FastifyInstance,
@@ -45,6 +49,14 @@ export async function queuePendingWebhook(
   }
 }
 
+/**
+ * Determines whether an episode's air date is within the configured recent threshold.
+ *
+ * Returns false if {@link airDateUtc} is missing or invalid.
+ *
+ * @param airDateUtc - The UTC air date of the episode as an ISO string.
+ * @returns True if the episode aired within the recent threshold; otherwise, false.
+ */
 export function isRecentEpisode(
   airDateUtc: string,
   fastify: FastifyInstance,
