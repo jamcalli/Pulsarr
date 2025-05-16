@@ -1,0 +1,88 @@
+/**
+ * Any CSS included here will be global. The classic template
+ * bundles Infima by default. Infima is a CSS framework designed to
+ * work well for content-centric websites.
+ */
+
+/* Tailwind CSS */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Import fonts */
+@import './fonts.css';
+
+/* Import navbar overrides */
+@import './navbar-overrides.css';
+
+/* CSS Variables from main app */
+:root {
+  /* Main app variables */
+  --main: #48a9a6;
+  --overlay: rgba(0, 0, 0, 0.8);
+  --static-text: #c1666b;
+  --error: #c1666b;
+  --fun: #d4b483;
+  --orange: #f6723a;
+  --blue: #4a94b5;
+  --static-asteroid-fill: #948d89;
+  --static-asteroid-border: #dedede;
+  
+  --bg: #dfe5f2;
+  --bw: #e4dfda;
+  --blank: #000;
+  --border: #000;
+  --text: #000;
+  --mtext: #000;
+  --ring: #000;
+  --ring-offset: #e4dfda;
+  
+  --border-radius: 5px;
+  --box-shadow-x: 4px;
+  --box-shadow-y: 4px;
+  --reverse-box-shadow-x: -4px;
+  --reverse-box-shadow-y: -4px;
+  --base-font-weight: 500;
+  --heading-font-weight: 700;
+  
+  --shadow: var(--box-shadow-x) var(--box-shadow-y) 0px 0px var(--border);
+  
+  /* Infima variables */
+  --ifm-color-primary: #7c3aed;
+  --ifm-color-primary-dark: #6d28d9;
+  --ifm-color-primary-darker: #5b21b6;
+  --ifm-color-primary-darkest: #4c1d95;
+  --ifm-color-primary-light: #8b5cf6;
+  --ifm-color-primary-lighter: #a78bfa;
+  --ifm-color-primary-lightest: #c4b5fd;
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+  
+  /* Custom font variables */
+  --ifm-font-family-base: 'Shuttleblock', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --ifm-font-family-monospace: SFMono-Regular, Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+}
+
+/* For readability concerns, you should choose a lighter palette in dark mode. */
+[data-theme='dark'] {
+  /* Main app dark mode variables */
+  --bg: #272933;
+  --bw: #212121;
+  --blank: #e4dfda;
+  --border: #d4b483;
+  --static-border: var(--static-text);
+  --text: #e4dfda;
+  --mtext: #948d89;
+  --ring: #d4b483;
+  --ring-offset: #212121;
+  
+  /* Infima dark mode variables */
+  --ifm-color-primary: #a78bfa;
+  --ifm-color-primary-dark: #8b5cf6;
+  --ifm-color-primary-darker: #7c3aed;
+  --ifm-color-primary-darkest: #6d28d9;
+  --ifm-color-primary-light: #c4b5fd;
+  --ifm-color-primary-lighter: #ddd6fe;
+  --ifm-color-primary-lightest: #ede9fe;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+}
