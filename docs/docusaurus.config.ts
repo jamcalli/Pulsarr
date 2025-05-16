@@ -1,13 +1,14 @@
-import {themes as prismThemes} from 'prism-react-renderer';
-import type {Config} from '@docusaurus/types';
-import type * as Preset from '@docusaurus/preset-classic';
-import path from 'path';
+import { themes as prismThemes } from 'prism-react-renderer'
+import type { Config } from '@docusaurus/types'
+import type * as Preset from '@docusaurus/preset-classic'
+import path from 'path'
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
 const config: Config = {
   title: 'Pulsarr',
-  tagline: 'Real-time Plex watchlist monitoring, routing, and notification center',
+  tagline:
+    'Real-time Plex watchlist monitoring, routing, and notification center',
   favicon: 'img/favicon.ico',
 
   // Set the production url of your site here
@@ -113,38 +114,42 @@ const config: Config = {
       darkTheme: prismThemes.dracula,
     },
   } satisfies Preset.ThemeConfig,
-  
-  plugins: [
-    function (context, options) {
-      return {
-        name: 'resolve-client-components',
-        configureWebpack(config, isServer, utils) {
-          return {
-            resolve: {
-              alias: {
-                '@/client/components': path.resolve(__dirname, '../src/client/components'),
-                '@/client/lib': path.resolve(__dirname, '../src/client/lib'),
-                '@/client/assets': path.resolve(__dirname, '../src/client/assets'),
-                '@/client/hooks': path.resolve(__dirname, '../src/client/hooks'),
-                '@/client': path.resolve(__dirname, '../src/client'),
-                '@/lib': path.resolve(__dirname, '../src/client/lib'),
-                '@': path.resolve(__dirname, '../src'),
-              },
-              extensions: ['.js', '.jsx', '.ts', '.tsx'],
-            },
-            module: {
-              rules: [
-                {
-                  test: /\.(png|jpe?g|gif|webp|svg)$/i,
-                  type: 'asset/resource',
-                },
-              ],
-            },
-          };
-        },
-      };
-    },
-  ],
-};
 
-export default config;
+  plugins: [
+    (context, options) => ({
+      name: 'resolve-client-components',
+      configureWebpack(config, isServer, utils) {
+        return {
+          resolve: {
+            alias: {
+              '@/client/components': path.resolve(
+                __dirname,
+                '../src/client/components',
+              ),
+              '@/client/lib': path.resolve(__dirname, '../src/client/lib'),
+              '@/client/assets': path.resolve(
+                __dirname,
+                '../src/client/assets',
+              ),
+              '@/client/hooks': path.resolve(__dirname, '../src/client/hooks'),
+              '@/client': path.resolve(__dirname, '../src/client'),
+              '@/lib': path.resolve(__dirname, '../src/client/lib'),
+              '@': path.resolve(__dirname, '../src'),
+            },
+            extensions: ['.js', '.jsx', '.ts', '.tsx'],
+          },
+          module: {
+            rules: [
+              {
+                test: /\.(png|jpe?g|gif|webp|svg)$/i,
+                type: 'asset/resource',
+              },
+            ],
+          },
+        }
+      },
+    }),
+  ],
+}
+
+export default config
