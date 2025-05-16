@@ -1,10 +1,9 @@
-/** @type {import('tailwindcss').Config} */
-module.exports = {
+import type { Config } from 'tailwindcss'
+import tailwindAnimate from 'tailwindcss-animate'
+
+const config: Config = {
   darkMode: ['class'],
-  content: [
-    './src/**/*.{js,jsx,ts,tsx}',
-    '../src/client/components/**/*.{js,jsx,ts,tsx}',
-  ],
+  content: ['./src/**/*.{ts,tsx,js,jsx}', '../src/client/**/*.{ts,tsx,js,jsx}'],
   theme: {
     extend: {
       screens: {
@@ -29,8 +28,29 @@ module.exports = {
         error: 'var(--error)',
         fun: 'var(--fun)',
         orange: 'var(--orange)',
+        blue: 'var(--blue)',
+      },
+      borderRadius: {
+        base: '5px',
+      },
+      boxShadow: {
+        shadow: 'var(--shadow)',
+      },
+      translate: {
+        boxShadowX: '4px',
+        boxShadowY: '4px',
+        reverseBoxShadowX: '-4px',
+        reverseBoxShadowY: '-4px',
+      },
+      fontWeight: {
+        base: '500',
+        heading: '700',
       },
       keyframes: {
+        starPulse: {
+          '0%, 100%': { opacity: '1', transform: 'scale(1)' },
+          '50%': { opacity: '0.3', transform: 'scale(0.95)' },
+        },
         hardFlicker: {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0.85' },
@@ -40,12 +60,19 @@ module.exports = {
           '0%, 100%': { opacity: '0.1' },
           '50%': { opacity: '0.15' },
         },
+        spin: {
+          from: { transform: 'rotate(0deg)' },
+          to: { transform: 'rotate(360deg)' },
+        },
       },
       animation: {
+        starPulse: 'starPulse 16s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         hardFlicker: 'hardFlicker 0.16s infinite',
         softFlicker: 'softFlicker 2s infinite',
       },
     },
   },
-  plugins: [require('tailwindcss-animate')],
+  plugins: [tailwindAnimate],
 }
+
+export default config

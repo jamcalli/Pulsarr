@@ -11,7 +11,7 @@
       "@/lib/*": ["../src/client/lib/*"],
       "@/*": ["../src/*"]
     },
-    "jsx": "react",
+    "jsx": "react-jsx",
     "target": "ES2015",
     "module": "ESNext",
     "moduleResolution": "node",
@@ -22,12 +22,9 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "allowJs": true
+    "allowJs": true,
+    "types": ["react", "react-dom"]
   },
-  "include": [
-    "src/**/*",
-    "../src/client/components/ui/**/*",
-    "../src/client/lib/**/*"
-  ],
+  "include": ["src/**/*"],
   "exclude": [".docusaurus", "build", "node_modules"]
 }

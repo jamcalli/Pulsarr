@@ -8,7 +8,7 @@ import { useMediaQuery } from '@/client/hooks/use-media-query'
 import planetDesktop from '@/client/assets/images/planet.webp'
 import planetMobile from '@/client/assets/images/planet-m.webp'
 
-export default function BackgroundTest(): JSX.Element {
+export default function BackgroundTest(): React.ReactElement {
   const isMobile = useMediaQuery('(max-width: 768px)')
 
   return (
