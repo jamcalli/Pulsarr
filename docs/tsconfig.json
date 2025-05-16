@@ -1,0 +1,33 @@
+{
+  // This file is not used in compilation. It is here just for a nice editor experience.
+  "extends": "@docusaurus/tsconfig",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@site/*": ["*"],
+      "@theme/*": ["node_modules/@docusaurus/theme-classic/lib/theme/*"],
+      "@docusaurus/*": ["node_modules/@docusaurus/core/lib/client/exports/*"],
+      "@/client/*": ["../src/client/*"],
+      "@/lib/*": ["../src/client/lib/*"],
+      "@/*": ["../src/*"]
+    },
+    "jsx": "react",
+    "target": "ES2015",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "strict": false,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "allowJs": true
+  },
+  "include": [
+    "src/**/*",
+    "../src/client/components/ui/**/*",
+    "../src/client/lib/**/*"
+  ],
+  "exclude": [".docusaurus", "build", "node_modules"]
+}
