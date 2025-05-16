@@ -54,6 +54,13 @@ export const ConfigSchema = z.object({
   queueWaitTime: z.number().optional(),
   newEpisodeThreshold: z.number().optional(),
   upgradeBufferTime: z.number().optional(),
+  // Pending Webhooks Config
+  // How often to retry processing pending webhooks (in seconds)
+  pendingWebhookRetryInterval: z.number().optional(),
+  // Maximum age of a pending webhook before it expires (in minutes)
+  pendingWebhookMaxAge: z.number().optional(),
+  // How often to clean up expired webhooks (in seconds)
+  pendingWebhookCleanupInterval: z.number().optional(),
   // Other configs
   plexTokens: z.array(z.string()).optional(),
   skipFriendSync: z.boolean().optional(),
