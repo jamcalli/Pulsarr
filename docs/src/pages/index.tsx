@@ -1,4 +1,5 @@
-import type React from 'react'
+import React from 'react'
+import { useEffect } from 'react'
 import Link from '@docusaurus/Link'
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext'
 import Layout from '@theme/Layout'
@@ -7,24 +8,35 @@ import CrtOverlay from '@/client/components/ui/crt-overlay'
 import Asteroids from '@/client/components/ui/asteroids'
 import { AspectRatio } from '@/client/components/ui/aspect-ratio'
 import { useMediaQuery } from '@/client/hooks/use-media-query'
-import planetDesktop from '@/client/assets/images/planet.webp'
-import planetMobile from '@/client/assets/images/planet-m.webp'
 import Pulsar from '@/client/components/ui/pulsar'
+import { Button } from '@/client/components/ui/button'
 import Heading from '@theme/Heading'
 
 export default function Home(): React.ReactElement {
   const { siteConfig } = useDocusaurusContext()
   const isMobile = useMediaQuery('(max-width: 768px)')
 
+  useEffect(() => {
+    // Prevent body scroll on homepage
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [])
+
   return (
     <Layout
       title={`${siteConfig.title} Documentation`}
       description="Documentation for Pulsarr"
+      wrapperClassName="home-page-layout"
     >
       <div
         style={{
-          position: 'relative',
-          height: 'calc(100vh - var(--ifm-navbar-height))',
+          position: 'fixed',
+          top: 'var(--ifm-navbar-height)',
+          left: 0,
+          right: 0,
+          bottom: 0,
           overflow: 'hidden',
         }}
       >
@@ -104,13 +116,15 @@ export default function Home(): React.ReactElement {
                       media={
                         isMobile ? '(max-width: 768px)' : '(min-width: 769px)'
                       }
-                      srcSet={isMobile ? planetMobile : planetDesktop}
+                      srcSet={
+                        isMobile ? '/img/planet-m.webp' : '/img/planet.webp'
+                      }
                       type="image/webp"
                       width={isMobile ? '600' : '1522'}
                       height={isMobile ? '634' : '1608'}
                     />
                     <img
-                      src={planetDesktop}
+                      src="/img/planet.webp"
                       alt="Planet"
                       fetchPriority="high"
                       width="1522"
@@ -137,59 +151,24 @@ export default function Home(): React.ReactElement {
         {/* Navigation buttons overlay - above CRT */}
         <div
           style={{
-            position: 'relative',
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
             zIndex: 100,
-            height: '100%',
             display: 'flex',
             alignItems: 'flex-end',
             justifyContent: 'center',
             padding: '2rem',
           }}
         >
-          <div
-            style={{
-              display: 'flex',
-              gap: '1.5rem',
-              justifyContent: 'center',
-              marginBottom: '4rem',
-            }}
-          >
-            <Link
-              className="button button--primary button--lg"
-              to="/docs/intro"
-              style={{
-                backgroundColor: '#48a9a6',
-                color: '#000',
-                border: '3px solid #000',
-                borderRadius: '5px',
-                fontFamily:
-                  'Shuttleblock, system-ui, -apple-system, sans-serif',
-                fontWeight: '500',
-                letterSpacing: '1px',
-                textTransform: 'uppercase',
-                boxShadow: '4px 4px 0px 0px rgba(0, 0, 0, 0.3)',
-              }}
-            >
-              Get Started
-            </Link>
-            <Link
-              className="button button--outline button--lg"
-              href="https://github.com/jamcalli/pulsarr"
-              style={{
-                backgroundColor: 'transparent',
-                color: '#48a9a6',
-                border: '3px solid #48a9a6',
-                borderRadius: '5px',
-                fontFamily:
-                  'Shuttleblock, system-ui, -apple-system, sans-serif',
-                fontWeight: '500',
-                letterSpacing: '1px',
-                textTransform: 'uppercase',
-                boxShadow: '4px 4px 0px 0px rgba(0, 0, 0, 0.3)',
-              }}
-            >
-              View on GitHub
-            </Link>
+          <div className="flex gap-6 justify-center mb-16">
+            <Button variant="default" size="lg" asChild>
+              <Link to="/docs/intro">Get Started</Link>
+            </Button>
+            <Button variant="neutral" size="lg" asChild>
+              <a href="https://github.com/jamcalli/pulsarr">View on GitHub</a>
+            </Button>
           </div>
         </div>
       </div>
