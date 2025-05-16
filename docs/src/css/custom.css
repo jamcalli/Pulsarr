@@ -21,14 +21,19 @@
 		Menlo, Courier, monospace;
 }
 
-/* Fix homepage scrolling issues */
-.home-page-layout {
-	overflow: hidden !important;
-	height: 100vh !important;
+/* Override the main app's global styles that prevent scrolling */
+body {
+	overflow: auto !important;
+	position: static !important;
+	width: auto !important;
+	height: auto !important;
 }
 
-body.home-page-body {
-	overflow: hidden !important;
+#app {
+	position: static !important;
+	overflow: auto !important;
+	width: auto !important;
+	height: auto !important;
 }
 
 /* Force button styles to override Infima */
@@ -47,4 +52,26 @@ button[class*="neutral"] {
 	background-color: var(--bw) !important;
 	color: var(--text) !important;
 	border-color: var(--border) !important;
+}
+
+/* Hero button size overrides on homepage */
+.home-page-layout button[class*="h-11"] {
+	font-size: 1.5rem !important;
+	padding: 1rem 2.5rem !important;
+	height: auto !important;
+}
+
+/* Also target the link/anchor elements inside the buttons */
+.home-page-layout button[class*="h-11"] a,
+.home-page-layout a[class*="h-11"] {
+	font-size: 1.5rem !important;
+}
+
+/* Direct hero button styling */
+.hero-button,
+.hero-button > * {
+	font-size: 1.5rem !important;
+	padding: 1rem 2.5rem !important;
+	height: auto !important;
+	min-height: 3.5rem !important;
 }
