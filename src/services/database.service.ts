@@ -5930,7 +5930,7 @@ export class DatabaseService {
     webhook: PendingWebhookCreate,
   ): Promise<PendingWebhook> {
     try {
-      const [id] = await this.knex('pending_webhooks')
+      const result = await this.knex('pending_webhooks')
         .insert({
           ...webhook,
           received_at: this.timestamp,
@@ -5939,10 +5939,15 @@ export class DatabaseService {
         })
         .returning('id')
 
+      const id =
+        typeof result[0] === 'object' && result[0] !== null
+          ? result[0].id
+          : result[0]
+
       return {
-        id: id.id || id,
+        id,
         ...webhook,
-        received_at: new Date(),
+        received_at: new Date(this.timestamp),
         expires_at: webhook.expires_at,
       }
     } catch (error) {
@@ -5966,7 +5971,17 @@ export class DatabaseService {
 
       return webhooks.map((webhook) => ({
         ...webhook,
-        payload: JSON.parse(webhook.payload || '{}'),
+        payload: (() => {
+          try {
+            return JSON.parse(webhook.payload ?? '{}')
+          } catch (e) {
+            this.log.warn(
+              { webhookId: webhook.id, error: e },
+              'Malformed webhook payload - using empty object',
+            )
+            return {}
+          }
+        })(),
         received_at: new Date(webhook.received_at),
         expires_at: new Date(webhook.expires_at),
       }))
@@ -6029,7 +6044,17 @@ export class DatabaseService {
 
       return webhooks.map((webhook) => ({
         ...webhook,
-        payload: JSON.parse(webhook.payload || '{}'),
+        payload: (() => {
+          try {
+            return JSON.parse(webhook.payload ?? '{}')
+          } catch (e) {
+            this.log.warn(
+              { webhookId: webhook.id, guid, error: e },
+              'Malformed webhook payload - using empty object',
+            )
+            return {}
+          }
+        })(),
         received_at: new Date(webhook.received_at),
         expires_at: new Date(webhook.expires_at),
       }))

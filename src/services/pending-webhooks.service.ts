@@ -68,10 +68,10 @@ export class PendingWebhooksService {
       },
     )
 
-    // Update the schedule to run every minute
+    // Update the schedule to run at configured interval
     await this.fastify.db.updateSchedule('pending-webhooks-cleanup', {
       type: 'interval',
-      config: { minutes: 1 },
+      config: { seconds: this._config.cleanupInterval },
       enabled: true,
     })
 
@@ -169,6 +169,7 @@ export class PendingWebhooksService {
               }
 
               // Handle episode notifications
+              // Note: instanceName comparison is case-sensitive to match the webhook schema
               if (
                 'instanceName' in body &&
                 body.instanceName === 'Sonarr' &&
@@ -211,8 +212,16 @@ export class PendingWebhooksService {
 
             // Delete the processed webhook
             if (webhook.id) {
-              await this.fastify.db.deletePendingWebhook(webhook.id)
-              processedCount++
+              const deleted = await this.fastify.db.deletePendingWebhook(
+                webhook.id,
+              )
+              if (deleted) {
+                processedCount++
+              } else {
+                this.log.warn(
+                  `Failed to delete processed webhook ${webhook.id}`,
+                )
+              }
             }
           } else {
             this.log.debug(
