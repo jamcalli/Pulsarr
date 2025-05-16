@@ -1,8 +1,62 @@
 import type { FastifyInstance } from 'fastify'
 import type { WebhookQueue, RecentWebhook } from '@root/types/webhook.types.js'
+import type { WebhookPayload } from '@root/schemas/notifications/webhook.schema.js'
 
 export const webhookQueue: WebhookQueue = {}
 
+/**
+ * Queues a pending webhook in the database when no matching media items are found.
+ *
+ * Stores the webhook with an expiration time for later processing, ensuring that duplicate webhook resends are avoided even if database insertion fails.
+ *
+ * @param data - Metadata and payload for the webhook to be queued.
+ */
+export async function queuePendingWebhook(
+  fastify: FastifyInstance,
+  data: {
+    instanceType: 'radarr' | 'sonarr'
+    instanceId: number | null
+    guid: string
+    title: string
+    mediaType: 'movie' | 'show'
+    payload: WebhookPayload
+  },
+): Promise<void> {
+  const maxAgeMinutes = fastify.pendingWebhooks?.config?.maxAge || 10
+  const expires = new Date()
+  expires.setMinutes(expires.getMinutes() + maxAgeMinutes)
+
+  try {
+    await fastify.db.createPendingWebhook({
+      instance_type: data.instanceType,
+      instance_id: data.instanceId,
+      guid: data.guid,
+      title: data.title,
+      media_type: data.mediaType,
+      payload: data.payload,
+      expires_at: expires,
+    })
+
+    fastify.log.info(
+      `No matching items found for ${data.guid}, queued webhook for later processing`,
+    )
+  } catch (error) {
+    fastify.log.error(
+      { error, guid: data.guid, title: data.title },
+      `Failed to create pending webhook for ${data.mediaType}, but returning success to prevent resends`,
+    )
+    // Still return success to prevent webhook resends
+  }
+}
+
+/**
+ * Determines whether an episode's air date is within the configured recent threshold.
+ *
+ * Returns false if {@link airDateUtc} is missing or invalid.
+ *
+ * @param airDateUtc - The UTC air date of the episode as an ISO string.
+ * @returns True if the episode aired within the recent threshold; otherwise, false.
+ */
 export function isRecentEpisode(
   airDateUtc: string,
   fastify: FastifyInstance,
@@ -46,6 +100,7 @@ export async function checkForUpgrade(
   seasonNumber: number,
   episodeNumber: number,
   isUpgrade: boolean,
+  instanceId: number | null,
   fastify: FastifyInstance,
 ): Promise<boolean> {
   fastify.log.debug(
@@ -83,6 +138,7 @@ export async function checkForUpgrade(
         )
       }, 0),
       upgradeTracker: new Map(),
+      instanceId: instanceId,
     }
   }
 
@@ -226,6 +282,51 @@ export async function processQueuedWebhooks(
       { tvdbId, seasonNumber, recipientCount: notificationResults.length },
       'Processed notifications from queue',
     )
+
+    // If no notifications were generated, check if we have watchlist matches
+    if (notificationResults.length === 0) {
+      const matchingItems = await fastify.db.getWatchlistItemsByGuid(
+        `tvdb:${tvdbId}`,
+      )
+
+      if (matchingItems.length === 0) {
+        // No matches found, queue to pending_webhooks
+        const sonarrPayload: WebhookPayload = {
+          eventType: 'Download',
+          instanceName: 'Sonarr',
+          series: {
+            title: queue.title,
+            tvdbId: Number(tvdbId),
+          },
+          episodes: episodes,
+          episodeFiles: episodes.map((ep, idx) => ({
+            id: idx,
+            relativePath: '',
+            quality: '',
+            qualityVersion: 1,
+            size: 0,
+          })),
+          release: {
+            releaseType: 'bulk',
+          },
+          fileCount: episodes.length,
+        }
+
+        await queuePendingWebhook(fastify, {
+          instanceType: 'sonarr',
+          instanceId: seasonQueue.instanceId ?? null,
+          guid: `tvdb:${tvdbId}`,
+          title: queue.title,
+          mediaType: 'show',
+          payload: sonarrPayload,
+        })
+
+        fastify.log.info(
+          { tvdbId, seasonNumber, episodeCount: episodes.length },
+          'No watchlist matches found, queued to pending webhooks',
+        )
+      }
+    }
 
     for (const result of notificationResults) {
       if (result.user.notify_discord && result.user.discord_id) {
