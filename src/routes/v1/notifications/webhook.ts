@@ -295,6 +295,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                     lastUpdated: new Date(),
                     notifiedSeasons: new Set(),
                     upgradeTracker: new Map(),
+                    instanceId: instance?.id ?? null,
                     timeoutId: setTimeout(() => {
                       processQueuedWebhooks(tvdbId, seasonNumber, fastify)
                     }, fastify.config.queueWaitTime),
@@ -324,6 +325,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
               seasonNumber,
               episodeNumber,
               body.isUpgrade === true,
+              instance?.id ?? null,
               fastify,
             )
             fastify.log.debug('Skipping initial download webhook')
@@ -336,6 +338,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
               seasonNumber,
               episodeNumber,
               false,
+              instance?.id ?? null,
               fastify,
             )
 
@@ -440,6 +443,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                   lastUpdated: new Date(),
                   notifiedSeasons: new Set(),
                   upgradeTracker: new Map(),
+                  instanceId: instance?.id ?? null,
                   timeoutId: setTimeout(() => {
                     fastify.log.info(
                       { tvdbId, seasonNumber },

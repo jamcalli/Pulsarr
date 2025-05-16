@@ -100,6 +100,7 @@ export async function checkForUpgrade(
   seasonNumber: number,
   episodeNumber: number,
   isUpgrade: boolean,
+  instanceId: number | null,
   fastify: FastifyInstance,
 ): Promise<boolean> {
   fastify.log.debug(
@@ -137,6 +138,7 @@ export async function checkForUpgrade(
         )
       }, 0),
       upgradeTracker: new Map(),
+      instanceId: instanceId,
     }
   }
 
@@ -280,6 +282,51 @@ export async function processQueuedWebhooks(
       { tvdbId, seasonNumber, recipientCount: notificationResults.length },
       'Processed notifications from queue',
     )
+
+    // If no notifications were generated, check if we have watchlist matches
+    if (notificationResults.length === 0) {
+      const matchingItems = await fastify.db.getWatchlistItemsByGuid(
+        `tvdb:${tvdbId}`,
+      )
+
+      if (matchingItems.length === 0) {
+        // No matches found, queue to pending_webhooks
+        const sonarrPayload: WebhookPayload = {
+          eventType: 'Download',
+          instanceName: 'Sonarr',
+          series: {
+            title: queue.title,
+            tvdbId: Number(tvdbId),
+          },
+          episodes: episodes,
+          episodeFiles: episodes.map((ep, idx) => ({
+            id: idx,
+            relativePath: '',
+            quality: '',
+            qualityVersion: 1,
+            size: 0,
+          })),
+          release: {
+            releaseType: 'bulk',
+          },
+          fileCount: episodes.length,
+        }
+
+        await queuePendingWebhook(fastify, {
+          instanceType: 'sonarr',
+          instanceId: seasonQueue.instanceId ?? null,
+          guid: `tvdb:${tvdbId}`,
+          title: queue.title,
+          mediaType: 'show',
+          payload: sonarrPayload,
+        })
+
+        fastify.log.info(
+          { tvdbId, seasonNumber, episodeCount: episodes.length },
+          'No watchlist matches found, queued to pending webhooks',
+        )
+      }
+    }
 
     for (const result of notificationResults) {
       if (result.user.notify_discord && result.user.discord_id) {

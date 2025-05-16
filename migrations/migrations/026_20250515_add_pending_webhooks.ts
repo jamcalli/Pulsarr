@@ -14,8 +14,9 @@ export async function up(knex: Knex): Promise<void> {
     table.string('title', 255).notNullable()
     table.string('media_type', 10).notNullable() // 'movie' or 'show'
     table.json('payload').notNullable() // Full webhook payload
-    table.datetime('received_at').defaultTo(knex.fn.now()).notNullable()
-    table.datetime('expires_at').notNullable()
+    // Timestamps are stored as UTC via ISO strings in the application layer
+    table.timestamp('received_at').defaultTo(knex.fn.now()).notNullable()
+    table.timestamp('expires_at').notNullable()
     
     // Simple index for quick lookups by guid
     table.index(['guid', 'media_type'], 'idx_guid_media')
