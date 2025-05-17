@@ -1,6 +1,6 @@
 import React from 'react'
 import { useEffect } from 'react'
-import Link from '@docusaurus/Link'
+import { useHistory } from '@docusaurus/router'
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext'
 import Layout from '@theme/Layout'
 import Starfield from '@/client/components/ui/starfield'
@@ -15,6 +15,7 @@ import Heading from '@theme/Heading'
 export default function Home(): React.ReactElement {
   const { siteConfig } = useDocusaurusContext()
   const isMobile = useMediaQuery('(max-width: 768px)')
+  const history = useHistory()
 
   // Removed scroll prevention to allow normal scrolling
 
@@ -157,11 +158,21 @@ export default function Home(): React.ReactElement {
           }}
         >
           <div className="flex gap-6 justify-center mb-16">
-            <Button variant="default" size="lg" asChild className="hero-button">
-              <Link to="/docs/intro">Get Started</Link>
+            <Button 
+              variant="default" 
+              size="lg" 
+              className="hero-button"
+              onClick={() => history.push('/docs/intro')}
+            >
+              Get Started
             </Button>
-            <Button variant="neutral" size="lg" asChild className="hero-button">
-              <a href="https://github.com/jamcalli/pulsarr">View on GitHub</a>
+            <Button 
+              variant="neutral" 
+              size="lg" 
+              className="hero-button"
+              onClick={() => window.open('https://github.com/jamcalli/pulsarr', '_blank')}
+            >
+              View on GitHub
             </Button>
           </div>
         </div>
