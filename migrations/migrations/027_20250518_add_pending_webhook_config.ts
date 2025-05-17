@@ -1,5 +1,13 @@
 import type { Knex } from 'knex'
 
+/**
+ * Adds pending webhook configuration columns to the `configs` table if they do not already exist.
+ *
+ * Specifically, adds `pendingWebhookRetryInterval`, `pendingWebhookMaxAge`, and `pendingWebhookCleanupInterval` as integer columns with default values of 20, 10, and 60, respectively. Existing rows with `NULL` values for these columns are updated to the default values.
+ *
+ * @remark
+ * No changes are made if the `configs` table does not exist or if the columns are already present.
+ */
 export async function up(knex: Knex): Promise<void> {
   // Check if the configs table exists
   const configsExists = await knex.schema.hasTable('configs')
@@ -29,6 +37,11 @@ export async function up(knex: Knex): Promise<void> {
   }
 }
 
+/**
+ * Removes the pending webhook configuration columns from the configs table if they exist.
+ *
+ * Drops the columns `pendingWebhookRetryInterval`, `pendingWebhookMaxAge`, and `pendingWebhookCleanupInterval` from the `configs` table, provided the table and columns exist.
+ */
 export async function down(knex: Knex): Promise<void> {
   const configsExists = await knex.schema.hasTable('configs')
   
