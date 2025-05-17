@@ -301,9 +301,9 @@ export class SonarrService {
         }
       }
 
-      // First test basic connectivity
-      const url = new URL(`${baseUrl}/ping`)
-      const response = await fetch(url.toString(), {
+      // Use system/status API endpoint for basic connectivity
+      const statusUrl = new URL(`${baseUrl}/api/v3/system/status`)
+      const response = await fetch(statusUrl.toString(), {
         method: 'GET',
         headers: {
           'X-Api-Key': apiKey,
@@ -318,11 +318,33 @@ export class SonarrService {
         }
       }
 
-      const pingResponse = (await response.json()) as PingResponse
-      if (pingResponse.status !== 'OK') {
+      // Validate we're connecting to a Servarr application
+      try {
+        const statusResponse = await response.json() as Record<string, unknown>
+        
+        // Check for valid object
+        if (!statusResponse || typeof statusResponse !== 'object') {
+          return {
+            success: false,
+            message: 'Invalid response from server',
+          }
+        }
+        
+        // Validate this is a Servarr application by checking appName
+        if (
+          !('appName' in statusResponse) || 
+          typeof statusResponse.appName !== 'string' || 
+          !statusResponse.appName.toLowerCase().includes('arr')
+        ) {
+          return {
+            success: false,
+            message: 'Connected service does not appear to be a valid Servarr application',
+          }
+        }
+      } catch (parseError) {
         return {
           success: false,
-          message: 'Invalid ping response from server',
+          message: 'Failed to parse response from server',
         }
       }
 
