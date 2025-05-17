@@ -84,7 +84,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         body: SonarrInstanceSchema.partial(),
         tags: ['Sonarr Configuration'],
         response: {
-          204: { type: 'null' },
+          204: z.void(),
           400: z.object({
             statusCode: z.number(),
             error: z.string(),
@@ -140,7 +140,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         params: z.object({ id: z.coerce.number() }),
         tags: ['Sonarr Configuration'],
         response: {
-          204: { type: 'null' },
+          204: z.void(),
           400: z.object({
             statusCode: z.number(),
             error: z.string(),
