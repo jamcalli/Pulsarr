@@ -81,7 +81,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         body: RadarrInstanceSchema.partial(),
         tags: ['Radarr Configuration'],
         response: {
-          204: { type: 'null' },
+          204: z.void(),
           400: z.object({
             statusCode: z.number(),
             error: z.string(),
@@ -137,7 +137,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         params: z.object({ id: z.coerce.number() }),
         tags: ['Radarr Configuration'],
         response: {
-          204: { type: 'null' },
+          204: z.void(),
           400: z.object({
             statusCode: z.number(),
             error: z.string(),
