@@ -14,6 +14,11 @@ import type {
   WebhookNotification,
   MinimumAvailability,
 } from '@root/types/radarr.types.js'
+import type { SystemStatus } from '@root/types/system-status.types.js'
+import {
+  isSystemStatus,
+  isRadarrStatus,
+} from '@root/types/system-status.types.js'
 
 export class RadarrService {
   private config: RadarrConfiguration | null = null
@@ -321,7 +326,9 @@ export class RadarrService {
     }
   }
 
-  private async verifyConnection(instance: RadarrInstance): Promise<unknown> {
+  private async verifyConnection(
+    instance: RadarrInstance,
+  ): Promise<SystemStatus> {
     const url = new URL(`${instance.baseUrl}/api/v3/system/status`)
     const response = await fetch(url.toString(), {
       method: 'GET',
@@ -335,7 +342,13 @@ export class RadarrService {
       throw new Error(`Connection verification failed: ${response.statusText}`)
     }
 
-    return response.json()
+    const status = await response.json()
+
+    if (!isSystemStatus(status)) {
+      throw new Error('Invalid status response from Radarr')
+    }
+
+    return status as SystemStatus
   }
 
   private toItem(movie: RadarrMovie): Item {
@@ -775,9 +788,9 @@ export class RadarrService {
         }
       }
 
-      // First test basic connectivity
-      const url = new URL(`${baseUrl}/ping`)
-      const response = await fetch(url.toString(), {
+      // Use system/status API endpoint for basic connectivity
+      const statusUrl = new URL(`${baseUrl}/api/v3/system/status`)
+      const response = await fetch(statusUrl.toString(), {
         method: 'GET',
         headers: {
           'X-Api-Key': apiKey,
@@ -792,11 +805,28 @@ export class RadarrService {
         }
       }
 
-      const pingResponse = (await response.json()) as PingResponse
-      if (pingResponse.status !== 'OK') {
+      // Validate we're connecting to Radarr
+      try {
+        const statusResponse = await response.json()
+
+        if (!isSystemStatus(statusResponse)) {
+          return {
+            success: false,
+            message: 'Invalid response from server',
+          }
+        }
+
+        if (!isRadarrStatus(statusResponse)) {
+          return {
+            success: false,
+            message:
+              'Connected service does not appear to be a valid Radarr application',
+          }
+        }
+      } catch (parseError) {
         return {
           success: false,
-          message: 'Invalid ping response from server',
+          message: 'Failed to parse response from server',
         }
       }
 

@@ -13,6 +13,11 @@ import type {
   PingResponse,
   WebhookNotification,
 } from '@root/types/sonarr.types.js'
+import type { SystemStatus } from '@root/types/system-status.types.js'
+import {
+  isSystemStatus,
+  isSonarrStatus,
+} from '@root/types/system-status.types.js'
 
 export class SonarrService {
   private config: SonarrConfiguration | null = null
@@ -301,9 +306,9 @@ export class SonarrService {
         }
       }
 
-      // First test basic connectivity
-      const url = new URL(`${baseUrl}/ping`)
-      const response = await fetch(url.toString(), {
+      // Use system/status API endpoint for basic connectivity
+      const statusUrl = new URL(`${baseUrl}/api/v3/system/status`)
+      const response = await fetch(statusUrl.toString(), {
         method: 'GET',
         headers: {
           'X-Api-Key': apiKey,
@@ -318,11 +323,28 @@ export class SonarrService {
         }
       }
 
-      const pingResponse = (await response.json()) as PingResponse
-      if (pingResponse.status !== 'OK') {
+      // Validate we're connecting to Sonarr
+      try {
+        const statusResponse = await response.json()
+
+        if (!isSystemStatus(statusResponse)) {
+          return {
+            success: false,
+            message: 'Invalid response from server',
+          }
+        }
+
+        if (!isSonarrStatus(statusResponse)) {
+          return {
+            success: false,
+            message:
+              'Connected service does not appear to be a valid Sonarr application',
+          }
+        }
+      } catch (parseError) {
         return {
           success: false,
-          message: 'Invalid ping response from server',
+          message: 'Failed to parse response from server',
         }
       }
 
@@ -381,7 +403,9 @@ export class SonarrService {
     }
   }
 
-  private async verifyConnection(instance: SonarrInstance): Promise<unknown> {
+  private async verifyConnection(
+    instance: SonarrInstance,
+  ): Promise<SystemStatus> {
     const url = new URL(`${instance.baseUrl}/api/v3/system/status`)
     const response = await fetch(url.toString(), {
       method: 'GET',
@@ -395,7 +419,13 @@ export class SonarrService {
       throw new Error(`Connection verification failed: ${response.statusText}`)
     }
 
-    return response.json()
+    const status = await response.json()
+
+    if (!isSystemStatus(status)) {
+      throw new Error('Invalid status response from Sonarr')
+    }
+
+    return status as SystemStatus
   }
 
   private toItem(series: SonarrSeries): Item {
