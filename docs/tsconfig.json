@@ -5,7 +5,7 @@
     "baseUrl": ".",
     "paths": {
       "@site/*": ["*"],
-      "@theme/*": ["node_modules/@docusaurus/theme-classic/lib/theme/*"],
+      "@theme/*": ["src/theme/*", "node_modules/@docusaurus/theme-classic/lib/theme/*"],
       "@docusaurus/*": ["node_modules/@docusaurus/core/lib/client/exports/*"],
       "@/client/*": ["../src/client/*"],
       "@/lib/*": ["../src/client/lib/*"],
@@ -14,7 +14,7 @@
     "jsx": "react-jsx",
     "target": "ES2015",
     "module": "ESNext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "strict": false,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -23,7 +23,7 @@
     "isolatedModules": true,
     "noEmit": true,
     "allowJs": true,
-    "types": ["react", "react-dom"]
+    "types": ["@docusaurus/theme-classic", "react", "react-dom"]
   },
   "include": ["src/**/*"],
   "exclude": [".docusaurus", "build", "node_modules"]
