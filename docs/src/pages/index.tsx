@@ -42,7 +42,7 @@ export default function Home(): React.ReactElement {
             <div
               style={{
                 position: 'fixed',
-                top: '150px',
+                top: '80px',
                 left: '0',
                 right: '0',
                 zIndex: 30,
