@@ -13,82 +13,90 @@ const UtilitiesPage = lazy(() => import('@/features/utilities'))
 
 const LoadingFallback = () => null
 
-export const router = createBrowserRouter([
-  {
-    path: '/app/login',
-    element: (
-      <Suspense fallback={<LoadingFallback />}>
-        <LoginPage />
-      </Suspense>
-    ),
-  },
-  {
-    path: '/app/create-user',
-    element: (
-      <Suspense fallback={<LoadingFallback />}>
-        <CreateUserPage />
-      </Suspense>
-    ),
-  },
-  {
-    path: '/app/plex',
-    element: (
-      <AuthenticatedLayout>
+// Get base path from Vite environment
+const basePath = typeof __BASE_PATH__ !== 'undefined' ? __BASE_PATH__ : ''
+
+export const router = createBrowserRouter(
+  [
+    {
+      path: '/app/login',
+      element: (
         <Suspense fallback={<LoadingFallback />}>
-          <PlexConfigPage />
+          <LoginPage />
         </Suspense>
-      </AuthenticatedLayout>
-    ),
-  },
-  {
-    path: '/app/sonarr',
-    element: (
-      <AuthenticatedLayout>
+      ),
+    },
+    {
+      path: '/app/create-user',
+      element: (
         <Suspense fallback={<LoadingFallback />}>
-          <SonarrConfigPage />
+          <CreateUserPage />
         </Suspense>
-      </AuthenticatedLayout>
-    ),
-  },
+      ),
+    },
+    {
+      path: '/app/plex',
+      element: (
+        <AuthenticatedLayout>
+          <Suspense fallback={<LoadingFallback />}>
+            <PlexConfigPage />
+          </Suspense>
+        </AuthenticatedLayout>
+      ),
+    },
+    {
+      path: '/app/sonarr',
+      element: (
+        <AuthenticatedLayout>
+          <Suspense fallback={<LoadingFallback />}>
+            <SonarrConfigPage />
+          </Suspense>
+        </AuthenticatedLayout>
+      ),
+    },
+    {
+      path: '/app/radarr',
+      element: (
+        <AuthenticatedLayout>
+          <Suspense fallback={<LoadingFallback />}>
+            <RadarrConfigPage />
+          </Suspense>
+        </AuthenticatedLayout>
+      ),
+    },
+    {
+      path: '/app/notifications',
+      element: (
+        <AuthenticatedLayout>
+          <Suspense fallback={<LoadingFallback />}>
+            <NotificationsConfigPage />
+          </Suspense>
+        </AuthenticatedLayout>
+      ),
+    },
+    {
+      path: '/app/dashboard',
+      element: (
+        <AuthenticatedLayout>
+          <Suspense fallback={<LoadingFallback />}>
+            <DashboardPage />
+          </Suspense>
+        </AuthenticatedLayout>
+      ),
+    },
+    {
+      path: '/app/utilities',
+      element: (
+        <AuthenticatedLayout>
+          <Suspense fallback={<LoadingFallback />}>
+            <UtilitiesPage />
+          </Suspense>
+        </AuthenticatedLayout>
+      ),
+    },
+    // Other routes...
+  ],
   {
-    path: '/app/radarr',
-    element: (
-      <AuthenticatedLayout>
-        <Suspense fallback={<LoadingFallback />}>
-          <RadarrConfigPage />
-        </Suspense>
-      </AuthenticatedLayout>
-    ),
+    basename: basePath,
   },
-  {
-    path: '/app/notifications',
-    element: (
-      <AuthenticatedLayout>
-        <Suspense fallback={<LoadingFallback />}>
-          <NotificationsConfigPage />
-        </Suspense>
-      </AuthenticatedLayout>
-    ),
-  },
-  {
-    path: '/app/dashboard',
-    element: (
-      <AuthenticatedLayout>
-        <Suspense fallback={<LoadingFallback />}>
-          <DashboardPage />
-        </Suspense>
-      </AuthenticatedLayout>
-    ),
-  },
-  {
-    path: '/app/utilities',
-    element: (
-      <AuthenticatedLayout>
-        <Suspense fallback={<LoadingFallback />}>
-          <UtilitiesPage />
-        </Suspense>
-      </AuthenticatedLayout>
-    ),
-  },
-  // Other routes...
-])
+)

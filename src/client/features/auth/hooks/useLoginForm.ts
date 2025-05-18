@@ -7,6 +7,7 @@ import {
   loginFormSchema,
   type LoginFormSchema,
 } from '@/features/auth/schemas/login-schema'
+import { apiPath } from '@/lib/api-path'
 
 /**
  * Provides state management, validation, and submission handling for a login form in a React application.
@@ -43,7 +44,7 @@ export function useLoginForm() {
       setStatus('loading')
       setBackendError(null)
       try {
-        const response = await fetch('/v1/users/login', {
+        const response = await fetch(apiPath('/v1/users/login'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password }),

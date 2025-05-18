@@ -1,5 +1,6 @@
 import { useState, useCallback, createContext } from 'react'
 import { useToast } from '@/hooks/use-toast'
+import { apiPath } from '@/lib/api-path'
 import type {
   ContentRouterRule,
   ContentRouterRuleUpdate,
@@ -83,7 +84,7 @@ export function useContentRouter({ targetType }: UseContentRouterParams) {
       setError(null)
 
       try {
-        const response = await fetch('/v1/content-router/rules', {
+        const response = await fetch(apiPath('/v1/content-router/rules'), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

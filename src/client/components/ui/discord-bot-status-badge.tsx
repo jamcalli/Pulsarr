@@ -5,6 +5,7 @@ import { Loader2, Square, Play } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useState } from 'react'
 import { useToast } from '@/hooks/use-toast'
+import { apiPath } from '@/lib/api-path'
 
 export function DiscordStatusBadge() {
   const status = useDiscordStatus()
@@ -40,7 +41,7 @@ export function DiscordStatusBadge() {
       const minimumLoadingTime = new Promise(resolve => setTimeout(resolve, 500))
       
       if (status === 'running') {
-        const response = await fetch('/v1/notifications/discordstop', { method: 'POST' })
+        const response = await fetch(apiPath('/v1/notifications/discordstop'), { method: 'POST' })
         await minimumLoadingTime
         
         if (!response.ok) {
@@ -53,7 +54,7 @@ export function DiscordStatusBadge() {
           variant: 'default',
         })
       } else {
-        const response = await fetch('/v1/notifications/discordstart', { method: 'POST' })
+        const response = await fetch(apiPath('/v1/notifications/discordstart'), { method: 'POST' })
         await minimumLoadingTime
         
         if (!response.ok) {

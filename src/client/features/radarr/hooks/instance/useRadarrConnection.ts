@@ -7,6 +7,7 @@ import type {
 } from '@/features/radarr/types/types'
 import type { UseFormReturn } from 'react-hook-form'
 import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
+import { apiPath } from '@/lib/api-path'
 
 /**
  * Checks if a Radarr instance is missing required configuration fields.
@@ -220,18 +221,21 @@ export function useRadarrConnection(
               ])
               if (!isValid) return
 
-              const createResponse = await fetch('/v1/radarr/instances', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  name: values.name.trim(),
-                  baseUrl: values.baseUrl,
-                  apiKey: values.apiKey,
-                  qualityProfile: values.qualityProfile,
-                  rootFolder: values.rootFolder,
-                  isDefault: false,
-                }),
-              })
+              const createResponse = await fetch(
+                apiPath('/v1/radarr/instances'),
+                {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    name: values.name.trim(),
+                    baseUrl: values.baseUrl,
+                    apiKey: values.apiKey,
+                    qualityProfile: values.qualityProfile,
+                    rootFolder: values.rootFolder,
+                    isDefault: false,
+                  }),
+                },
+              )
 
               if (!createResponse.ok) {
                 throw new Error('Failed to create instance')
