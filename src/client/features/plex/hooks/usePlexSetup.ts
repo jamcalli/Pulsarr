@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useConfigStore } from '@/stores/configStore'
+import { apiPath } from '@/lib/api-path'
 
 export function usePlexSetup() {
   const [showSetupModal, setShowSetupModal] = useState(false)
@@ -16,11 +17,11 @@ export function usePlexSetup() {
 
     // Sync watchlists
     await Promise.all([
-      fetch('/v1/plex/self-watchlist-token', {
+      fetch(apiPath('/v1/plex/self-watchlist-token'), {
         method: 'GET',
         headers: { Accept: 'application/json' },
       }),
-      fetch('/v1/plex/others-watchlist-token', {
+      fetch(apiPath('/v1/plex/others-watchlist-token'), {
         method: 'GET',
         headers: { Accept: 'application/json' },
       }),

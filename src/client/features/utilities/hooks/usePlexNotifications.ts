@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { useConfigStore } from '@/stores/configStore'
 import type { PlexNotificationResponse } from '@root/schemas/plex/configure-notifications.schema'
 import type { PlexNotificationStatusResponse } from '@root/schemas/plex/get-notification-status.schema'
+import { apiPath } from '@/lib/api-path'
 
 // Minimum loading delay
 const MIN_LOADING_DELAY = 500
@@ -91,7 +92,7 @@ export function usePlexNotifications() {
       // Add a timeout to prevent hanging
       const timeoutId = setTimeout(() => controller.abort(), 5000)
 
-      const response = await fetch('/v1/plex/notification-status', {
+      const response = await fetch(apiPath('/v1/plex/notification-status'), {
         signal,
       })
 
@@ -141,7 +142,7 @@ export function usePlexNotifications() {
         )
 
         // Execute fetch with the abort signal
-        const responsePromise = fetch('/v1/plex/notification-status', {
+        const responsePromise = fetch(apiPath('/v1/plex/notification-status'), {
           signal,
         })
 
@@ -224,14 +225,17 @@ export function usePlexNotifications() {
         )
 
         // Send the request to configure Plex notifications with abort signal
-        const responsePromise = fetch('/v1/plex/configure-notifications', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
+        const responsePromise = fetch(
+          apiPath('/v1/plex/configure-notifications'),
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+            signal: signal, // Add the abort signal to the fetch request
           },
-          body: JSON.stringify(data),
-          signal: signal, // Add the abort signal to the fetch request
-        })
+        )
 
         // Wait for both the response and the minimum loading time
         const [response] = await Promise.all([
@@ -320,7 +324,7 @@ export function usePlexNotifications() {
       )
 
       // Send the request to remove Plex notifications with abort signal
-      const responsePromise = fetch('/v1/plex/remove-notifications', {
+      const responsePromise = fetch(apiPath('/v1/plex/remove-notifications'), {
         method: 'DELETE',
         signal: signal, // Add the abort signal to the fetch request
       })

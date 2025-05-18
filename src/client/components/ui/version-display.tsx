@@ -1,7 +1,5 @@
 import React from 'react'
 
-declare const __APP_VERSION__: string
-
 interface VersionDisplayProps {
   className?: string;
   style?: React.CSSProperties;

@@ -42,6 +42,7 @@ export type DeletionMode = 'watchlist' | 'tag-based'
 export interface Config {
   // System Config
   baseUrl: string
+  basePath: string
   port: number
   dbPath: string
   cookieSecret: string

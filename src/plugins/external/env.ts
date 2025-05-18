@@ -14,6 +14,10 @@ const schema = {
       type: 'string',
       default: 'http://localhost',
     },
+    basePath: {
+      type: 'string',
+      default: '',
+    },
     port: {
       type: 'number',
       default: 3003,

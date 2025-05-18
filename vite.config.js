@@ -8,9 +8,12 @@ const packageJson = JSON.parse(
   readFileSync(new URL('./package.json', import.meta.url), 'utf8'),
 )
 
+// Read base path from environment variable
+const basePath = process.env.basePath || ''
+
 /** @type {import('vite').UserConfig} */
 export default {
-  base: '/app/',
+  base: `${basePath}/app/`,
   root: resolve(import.meta.dirname, 'src/client'),
   plugins: [viteReact(), viteFastify({ spa: true })],
   build: {
@@ -26,6 +29,7 @@ export default {
   },
   define: {
     __APP_VERSION__: JSON.stringify(packageJson.version),
+    __BASE_PATH__: JSON.stringify(basePath),
   },
   cacheDir: process.env.NODE_ENV === 'production' ? false : undefined,
 }
