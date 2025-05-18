@@ -224,17 +224,14 @@ export function usePlexNotifications() {
         )
 
         // Send the request to configure Plex notifications with abort signal
-        const responsePromise = fetch(
-          '/v1/plex/configure-notifications',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data),
-            signal: signal, // Add the abort signal to the fetch request
+        const responsePromise = fetch('/v1/plex/configure-notifications', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
           },
-        )
+          body: JSON.stringify(data),
+          signal: signal, // Add the abort signal to the fetch request
+        })
 
         // Wait for both the response and the minimum loading time
         const [response] = await Promise.all([

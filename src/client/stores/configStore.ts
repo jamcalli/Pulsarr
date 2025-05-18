@@ -135,9 +135,7 @@ export const useConfigStore = create<ConfigState>()(
 
     fetchUserData: async () => {
       try {
-        const response = await fetch(
-          '/v1/users/users/list/with-counts',
-        )
+        const response = await fetch('/v1/users/users/list/with-counts')
         const data: UserListResponse = await response.json()
 
         if (data.success && data.users) {

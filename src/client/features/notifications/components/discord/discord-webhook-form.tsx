@@ -121,16 +121,13 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
       }
 
       // Call our backend validation endpoint
-      const response = await fetch(
-        '/v1/notifications/validatewebhook',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ webhookUrls: trimmed }),
+      const response = await fetch('/v1/notifications/validatewebhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-      )
+        body: JSON.stringify({ webhookUrls: trimmed }),
+      })
 
       if (!response.ok) {
         let message = 'Error validating webhooks'

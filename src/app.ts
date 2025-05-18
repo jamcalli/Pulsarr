@@ -108,7 +108,6 @@ export default async function serviceApp(
     },
   )
 
-
   // Handle the root route
   fastify.get('/', async (request, reply) => {
     // Check for existing session
@@ -162,7 +161,6 @@ export default async function serviceApp(
     return reply.redirect(hasUsers ? '/app/login' : '/app/create-user')
   })
 
-  
   // Register SPA routes
   fastify.get(
     '/app/*',
@@ -279,6 +277,6 @@ export default async function serviceApp(
     spa: true,
     distDir: 'dist/client',
   })
-  
+
   await fastify.vite.ready()
 }
