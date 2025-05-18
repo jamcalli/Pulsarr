@@ -36,16 +36,19 @@ export default fp(
             typeof location === 'string' &&
             location.startsWith('/')
           ) {
-            // Don't add base path to absolute URLs
-            if (
-              !location.startsWith('http://') &&
-              !location.startsWith('https://')
-            ) {
-              const newLocation = basePath + location
-              reply.header('location', newLocation)
-              fastify.log.debug(
-                `Rewriting redirect from ${location} to ${newLocation}`,
-              )
+            // Check if the location already includes the base path
+            if (!location.startsWith(basePath)) {
+              // Don't add base path to absolute URLs
+              if (
+                !location.startsWith('http://') &&
+                !location.startsWith('https://')
+              ) {
+                const newLocation = basePath + location
+                reply.header('location', newLocation)
+                fastify.log.debug(
+                  `Rewriting redirect from ${location} to ${newLocation}`,
+                )
+              }
             }
           }
         }
