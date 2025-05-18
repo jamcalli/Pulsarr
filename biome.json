@@ -5,7 +5,10 @@
       "tests",
       "migrations",
       "src/client/components/ui",
-      "src/client/hooks"
+      "src/client/hooks",
+      "docs/build",
+      "docs/.docusaurus",
+      "docs/node_modules"
     ]
   },
   "javascript": {
@@ -22,5 +25,17 @@
   },
   "organizeImports": {
     "enabled": false
-  }
+  },
+  "overrides": [
+    {
+      "include": ["docs/src/**/*.tsx", "docs/src/**/*.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "useImportType": "off"
+          }
+        }
+      }
+    }
+  ]
 }

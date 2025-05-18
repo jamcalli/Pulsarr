@@ -98,30 +98,49 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         await fastify.radarrManager.updateInstance(id, updates)
         reply.status(204)
       } catch (error) {
-        fastify.log.debug('Caught error in radarr route handler:', {
-          error,
-          type: error instanceof Error ? error.constructor.name : typeof error,
-          message: error instanceof Error ? error.message : String(error),
-          isDefaultError: error instanceof DefaultInstanceError,
-        })
+        fastify.log.error('Error updating Radarr instance:', error)
 
-        // Special handling for default instance errors
-        if (
-          error instanceof DefaultInstanceError ||
-          (error instanceof Error && error.message.includes('default'))
-        ) {
-          // Handle the specific case where default status can't be removed
+        if (error instanceof Error) {
+          const statusCode = error.message.includes('Authentication')
+            ? 401
+            : error.message.includes('not found')
+              ? 404
+              : error.message.includes('default')
+                ? 400
+                : 500
+
+          // Extract clean error message for user display
+          let userMessage = error.message
+
+          // Clean up error messages
+          userMessage = userMessage
+            .replace(/Radarr API error: /, '')
+            .replace(
+              /Failed to initialize Radarr instance/,
+              'Failed to save settings',
+            )
+
           reply
-            .status(400)
+            .status(statusCode)
             .header('Content-Type', 'application/json; charset=utf-8')
             .send({
-              statusCode: 400,
-              error: 'Bad Request',
-              message: error.message,
+              statusCode,
+              error:
+                statusCode === 400
+                  ? 'Bad Request'
+                  : statusCode === 401
+                    ? 'Unauthorized'
+                    : statusCode === 404
+                      ? 'Not Found'
+                      : 'Internal Server Error',
+              message: userMessage,
             })
         } else {
-          // Rethrow for generic error handling
-          throw error
+          reply.status(500).send({
+            statusCode: 500,
+            error: 'Internal Server Error',
+            message: 'An unexpected error occurred while updating the instance',
+          })
         }
       }
     },

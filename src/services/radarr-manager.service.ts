@@ -314,8 +314,32 @@ export class RadarrManagerService {
         this.port,
         this.fastify,
       )
-      await radarrService.initialize(instance)
-      this.radarrServices.set(id, radarrService)
+      try {
+        await radarrService.initialize(instance)
+        this.radarrServices.set(id, radarrService)
+      } catch (initError) {
+        this.log.error(`Failed to initialize Radarr instance ${id}:`, initError)
+        // Initialize failed, possibly due to webhook setup
+        // Extract a meaningful error message
+        let errorMessage = 'Failed to initialize Radarr instance'
+
+        if (initError instanceof Error) {
+          if (initError.message.includes('Radarr API error')) {
+            errorMessage = initError.message
+          } else if (initError.message.includes('ECONNREFUSED')) {
+            errorMessage =
+              'Connection refused. Please check if Radarr is running.'
+          } else if (initError.message.includes('ENOTFOUND')) {
+            errorMessage = 'Server not found. Please check your base URL.'
+          } else if (initError.message.includes('401')) {
+            errorMessage = 'Authentication failed. Please check your API key.'
+          } else {
+            errorMessage = initError.message
+          }
+        }
+
+        throw new Error(errorMessage)
+      }
     }
   }
 
