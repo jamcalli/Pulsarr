@@ -1,4 +1,4 @@
-// Get base path from Vite environment
+// Base path will be replaced at runtime by docker-entrypoint.sh
 const basePath = typeof __BASE_PATH__ !== 'undefined' ? __BASE_PATH__ : ''
 
 /**
@@ -13,12 +13,8 @@ export function apiPath(path: string): string {
 }
 
 /**
- * Utility function to generate app routes with the proper base path
- * @param path The app path (e.g., '/app/dashboard')
- * @returns The full path including base path if configured
+ * Get the base path for use in routing
  */
-export function appPath(path: string): string {
-  // Ensure path starts with /
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`
-  return `${basePath}${normalizedPath}`
+export function getBasePath(): string {
+  return basePath
 }

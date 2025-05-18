@@ -16,7 +16,8 @@ COPY postcss.config.mjs ./
 # Install dependencies
 RUN npm ci
 
-# Build
+# Build with placeholder base path that can be replaced at runtime
+ENV basePath=__PULSARR_BASE_PATH__
 RUN npm run build
 
 # Ensure cache dir
