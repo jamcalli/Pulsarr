@@ -115,15 +115,80 @@ export default async function serviceApp(
     distDir: 'dist/client',
   })
 
-  fastify.get('/', async (request, reply) => {
-    const basePath = fastify.config.basePath || ''
+  const basePath = fastify.config.basePath || ''
 
+  // If basePath is configured, handle requests to it
+  if (basePath) {
+    fastify.get(basePath, async (request, reply) => {
+      // Same logic as root route but don't redirect to self
+      // Check for existing session
+      if (request.session.user) {
+        // Use the in-memory config instead of querying the database
+        const hasPlexTokens = hasValidPlexTokens(fastify.config)
+        return reply.redirect(
+          hasPlexTokens ? '/app/dashboard' : '/app/plex',
+        )
+      }
+
+      // Check authentication method setting
+      const { isAuthDisabled, isLocalBypass } = getAuthBypassStatus(
+        fastify,
+        request,
+      )
+
+      // CASE 1: Auth is completely disabled - no user account needed
+      if (isAuthDisabled) {
+        // Only create a temporary session if one doesn't already exist
+        if (!request.session.user) {
+          createTemporaryAdminSession(request)
+        }
+
+        // Check if Plex tokens are configured
+        const hasPlexTokens = hasValidPlexTokens(fastify.config)
+
+        return reply.redirect(
+          hasPlexTokens ? '/app/dashboard' : '/app/plex',
+        )
+      }
+
+      // CASE 2: Local IP bypass is active
+      if (isLocalBypass) {
+        const hasUsers = await fastify.db.hasAdminUsers()
+
+        if (hasUsers) {
+          // Only create a temporary session if one doesn't already exist
+          if (!request.session.user) {
+            createTemporaryAdminSession(request)
+          }
+
+          // Check if Plex tokens are configured
+          const hasPlexTokens = hasValidPlexTokens(fastify.config)
+
+          return reply.redirect(
+            hasPlexTokens ? '/app/dashboard' : '/app/plex',
+          )
+        }
+
+        // No users exist yet with local bypass, redirect to create user
+        return reply.redirect('/app/create-user')
+      }
+
+      // CASE 3: Normal flow
+      const hasUsers = await fastify.db.hasAdminUsers()
+      return reply.redirect(
+        hasUsers ? '/app/login' : '/app/create-user',
+      )
+    })
+  }
+
+  // Handle the root route
+  fastify.get('/', async (request, reply) => {
     // Check for existing session
     if (request.session.user) {
       // Use the in-memory config instead of querying the database
       const hasPlexTokens = hasValidPlexTokens(fastify.config)
       return reply.redirect(
-        hasPlexTokens ? `${basePath}/app/dashboard` : `${basePath}/app/plex`,
+        hasPlexTokens ? '/app/dashboard' : '/app/plex',
       )
     }
 
@@ -144,7 +209,7 @@ export default async function serviceApp(
       const hasPlexTokens = hasValidPlexTokens(fastify.config)
 
       return reply.redirect(
-        hasPlexTokens ? `${basePath}/app/dashboard` : `${basePath}/app/plex`,
+        hasPlexTokens ? '/app/dashboard' : '/app/plex',
       )
     }
 
@@ -162,18 +227,18 @@ export default async function serviceApp(
         const hasPlexTokens = hasValidPlexTokens(fastify.config)
 
         return reply.redirect(
-          hasPlexTokens ? `${basePath}/app/dashboard` : `${basePath}/app/plex`,
+          hasPlexTokens ? '/app/dashboard' : '/app/plex',
         )
       }
 
       // No users exist yet with local bypass, redirect to create user
-      return reply.redirect(`${basePath}/app/create-user`)
+      return reply.redirect('/app/create-user')
     }
 
     // CASE 3: Normal flow
     const hasUsers = await fastify.db.hasAdminUsers()
     return reply.redirect(
-      hasUsers ? `${basePath}/app/login` : `${basePath}/app/create-user`,
+      hasUsers ? '/app/login' : '/app/create-user',
     )
   })
 
@@ -187,8 +252,8 @@ export default async function serviceApp(
           request,
         )
 
-        const isCreateUserPage = request.url === '/app/create-user'
-        const isLoginPage = request.url === '/app/login'
+        const isCreateUserPage = request.url.endsWith('/app/create-user')
+        const isLoginPage = request.url.endsWith('/app/login')
 
         // Use the in-memory config to check if Plex tokens are configured
         const hasPlexTokens = hasValidPlexTokens(fastify.config)
