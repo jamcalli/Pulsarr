@@ -223,21 +223,18 @@ export function useSonarrConnection(
               ])
               if (!isValid) return
 
-              const createResponse = await fetch(
-                '/v1/sonarr/instances',
-                {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    name: values.name.trim(),
-                    baseUrl: values.baseUrl,
-                    apiKey: values.apiKey,
-                    qualityProfile: values.qualityProfile,
-                    rootFolder: values.rootFolder,
-                    isDefault: false,
-                  }),
-                },
-              )
+              const createResponse = await fetch('/v1/sonarr/instances', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  name: values.name.trim(),
+                  baseUrl: values.baseUrl,
+                  apiKey: values.apiKey,
+                  qualityProfile: values.qualityProfile,
+                  rootFolder: values.rootFolder,
+                  isDefault: false,
+                }),
+              })
 
               if (!createResponse.ok) {
                 throw new Error('Failed to create instance')
