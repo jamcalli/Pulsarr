@@ -125,9 +125,7 @@ export default async function serviceApp(
       if (request.session.user) {
         // Use the in-memory config instead of querying the database
         const hasPlexTokens = hasValidPlexTokens(fastify.config)
-        return reply.redirect(
-          hasPlexTokens ? '/app/dashboard' : '/app/plex',
-        )
+        return reply.redirect(hasPlexTokens ? '/app/dashboard' : '/app/plex')
       }
 
       // Check authentication method setting
@@ -146,9 +144,7 @@ export default async function serviceApp(
         // Check if Plex tokens are configured
         const hasPlexTokens = hasValidPlexTokens(fastify.config)
 
-        return reply.redirect(
-          hasPlexTokens ? '/app/dashboard' : '/app/plex',
-        )
+        return reply.redirect(hasPlexTokens ? '/app/dashboard' : '/app/plex')
       }
 
       // CASE 2: Local IP bypass is active
@@ -164,9 +160,7 @@ export default async function serviceApp(
           // Check if Plex tokens are configured
           const hasPlexTokens = hasValidPlexTokens(fastify.config)
 
-          return reply.redirect(
-            hasPlexTokens ? '/app/dashboard' : '/app/plex',
-          )
+          return reply.redirect(hasPlexTokens ? '/app/dashboard' : '/app/plex')
         }
 
         // No users exist yet with local bypass, redirect to create user
@@ -175,9 +169,7 @@ export default async function serviceApp(
 
       // CASE 3: Normal flow
       const hasUsers = await fastify.db.hasAdminUsers()
-      return reply.redirect(
-        hasUsers ? '/app/login' : '/app/create-user',
-      )
+      return reply.redirect(hasUsers ? '/app/login' : '/app/create-user')
     })
   }
 
@@ -187,9 +179,7 @@ export default async function serviceApp(
     if (request.session.user) {
       // Use the in-memory config instead of querying the database
       const hasPlexTokens = hasValidPlexTokens(fastify.config)
-      return reply.redirect(
-        hasPlexTokens ? '/app/dashboard' : '/app/plex',
-      )
+      return reply.redirect(hasPlexTokens ? '/app/dashboard' : '/app/plex')
     }
 
     // Check authentication method setting
@@ -208,9 +198,7 @@ export default async function serviceApp(
       // Check if Plex tokens are configured
       const hasPlexTokens = hasValidPlexTokens(fastify.config)
 
-      return reply.redirect(
-        hasPlexTokens ? '/app/dashboard' : '/app/plex',
-      )
+      return reply.redirect(hasPlexTokens ? '/app/dashboard' : '/app/plex')
     }
 
     // CASE 2: Local IP bypass is active
@@ -226,9 +214,7 @@ export default async function serviceApp(
         // Check if Plex tokens are configured
         const hasPlexTokens = hasValidPlexTokens(fastify.config)
 
-        return reply.redirect(
-          hasPlexTokens ? '/app/dashboard' : '/app/plex',
-        )
+        return reply.redirect(hasPlexTokens ? '/app/dashboard' : '/app/plex')
       }
 
       // No users exist yet with local bypass, redirect to create user
@@ -237,9 +223,7 @@ export default async function serviceApp(
 
     // CASE 3: Normal flow
     const hasUsers = await fastify.db.hasAdminUsers()
-    return reply.redirect(
-      hasUsers ? '/app/login' : '/app/create-user',
-    )
+    return reply.redirect(hasUsers ? '/app/login' : '/app/create-user')
   })
 
   fastify.get(
