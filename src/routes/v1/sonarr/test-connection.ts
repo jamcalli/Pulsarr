@@ -35,11 +35,17 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           message: result.message,
         }
       } catch (err) {
-        if (err instanceof Error && 'statusCode' in err) {
-          throw err
-        }
         fastify.log.error('Error testing Sonarr connection:', err)
-        return reply.internalServerError('Unable to test Sonarr connection')
+
+        const errorMessage =
+          err instanceof Error
+            ? err.message
+            : 'Unable to test Sonarr connection'
+
+        return reply.status(500).send({
+          success: false,
+          message: errorMessage.replace(/Sonarr API error: /, ''),
+        })
       }
     },
   )

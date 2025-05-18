@@ -70,7 +70,12 @@ export function useRadarrConnection(
         minimumLoadingTime,
       ])
       if (!response.ok) {
-        throw new Error('Failed to test connection')
+        try {
+          const error = await response.json()
+          throw new Error(error.message || 'Failed to test connection')
+        } catch (parseError) {
+          throw new Error('Failed to test connection')
+        }
       }
       return await response.json()
     },
