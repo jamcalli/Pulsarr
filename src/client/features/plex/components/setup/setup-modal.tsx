@@ -13,7 +13,6 @@ import { useToast } from '@/hooks/use-toast'
 import { useConfigStore } from '@/stores/configStore'
 import { useWatchlistProgress } from '@/hooks/useProgress'
 import { usePlexWatchlist } from '@/features/plex/hooks/usePlexWatchlist'
-import { apiPath } from '@/lib/api-path'
 
 interface SetupModalProps {
   open: boolean
@@ -100,7 +99,7 @@ export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
         setTimeout(resolve, 500),
       )
       const [plexPingResponse] = await Promise.all([
-        fetch(apiPath('/v1/plex/ping'), {
+        fetch('/v1/plex/ping', {
           method: 'GET',
         }),
         verifyMinLoadingTime,
@@ -119,7 +118,7 @@ export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
         setTimeout(resolve, 500),
       )
       const [watchlistResponse] = await Promise.all([
-        fetch(apiPath('/v1/plex/self-watchlist-token'), {
+        fetch('/v1/plex/self-watchlist-token', {
           method: 'GET',
           headers: { Accept: 'application/json' },
         }),
@@ -138,7 +137,7 @@ export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
         setTimeout(resolve, 500),
       )
       const [othersResponse] = await Promise.all([
-        fetch(apiPath('/v1/plex/others-watchlist-token'), {
+        fetch('/v1/plex/others-watchlist-token', {
           method: 'GET',
           headers: { Accept: 'application/json' },
         }),

@@ -7,7 +7,6 @@ import type {
 } from '@/features/radarr/types/types'
 import type { UseFormReturn } from 'react-hook-form'
 import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
-import { apiPath } from '@/lib/api-path'
 
 /**
  * Checks if a Radarr instance is missing required configuration fields.
@@ -222,7 +221,7 @@ export function useRadarrConnection(
               if (!isValid) return
 
               const createResponse = await fetch(
-                apiPath('/v1/radarr/instances'),
+                '/v1/radarr/instances',
                 {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },

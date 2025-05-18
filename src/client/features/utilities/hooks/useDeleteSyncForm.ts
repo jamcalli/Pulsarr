@@ -6,7 +6,6 @@ import { useConfigStore } from '@/stores/configStore'
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 import * as z from 'zod'
 import type { Config } from '@root/types/config.types'
-import { apiPath } from '@/lib/api-path'
 
 // Schema definition
 export const deleteSyncSchema = z
@@ -254,7 +253,7 @@ export function useDeleteSyncForm() {
         // Create cron expression (seconds minutes hours day month weekday)
         const cronExpression = `0 ${minutes} ${hours} * * ${dayOfWeek}`
 
-        scheduleUpdate = fetch(apiPath('/v1/scheduler/schedules/delete-sync'), {
+        scheduleUpdate = fetch('/v1/scheduler/schedules/delete-sync', {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',

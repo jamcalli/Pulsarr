@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useToast } from '@/hooks/use-toast'
 import type { PlexServer } from '@root/schemas/plex/discover-servers.schema'
-import { apiPath } from '@/lib/api-path'
 
 /**
  * A hook for discovering Plex servers using a token
@@ -42,7 +41,7 @@ export function usePlexServerDiscovery() {
       const timeoutId = setTimeout(() => controller.abort(), 5000) // 5-second timeout
 
       try {
-        const response = await fetch(apiPath('/v1/plex/discover-servers'), {
+        const response = await fetch('/v1/plex/discover-servers', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

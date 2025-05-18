@@ -1,7 +1,6 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import type { Config } from '@root/types/config.types'
-import { apiPath } from '@/lib/api-path'
 
 export interface UserWatchlistInfo {
   id: string
@@ -69,7 +68,7 @@ export const useConfigStore = create<ConfigState>()(
 
     fetchConfig: async () => {
       try {
-        const response = await fetch(apiPath('/v1/config/config'))
+        const response = await fetch('/v1/config/config')
         const data: ConfigResponse = await response.json()
         if (data.success) {
           set((state) => ({
@@ -90,7 +89,7 @@ export const useConfigStore = create<ConfigState>()(
 
     refreshRssFeeds: async () => {
       try {
-        const response = await fetch(apiPath('/v1/plex/generate-rss-feeds'))
+        const response = await fetch('/v1/plex/generate-rss-feeds')
         const result = await response.json()
 
         if (response.ok && result.self && result.friends) {
@@ -109,7 +108,7 @@ export const useConfigStore = create<ConfigState>()(
     updateConfig: async (updates: Partial<Config>) => {
       set({ loading: true })
       try {
-        const response = await fetch(apiPath('/v1/config/config'), {
+        const response = await fetch('/v1/config/config', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updates),
@@ -137,7 +136,7 @@ export const useConfigStore = create<ConfigState>()(
     fetchUserData: async () => {
       try {
         const response = await fetch(
-          apiPath('/v1/users/users/list/with-counts'),
+          '/v1/users/users/list/with-counts',
         )
         const data: UserListResponse = await response.json()
 
@@ -171,7 +170,7 @@ export const useConfigStore = create<ConfigState>()(
 
     updateUser: async (userId: string, updates: Partial<UserWatchlistInfo>) => {
       try {
-        const response = await fetch(apiPath(`/v1/users/users/${userId}`), {
+        const response = await fetch(`/v1/users/users/${userId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
