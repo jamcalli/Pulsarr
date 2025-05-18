@@ -4,6 +4,7 @@ import fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { resolve, dirname } from 'node:path'
 import pino from 'pino'
+import type { FastifyRequest } from 'fastify'
 
 export const validLogLevels: LevelWithSilent[] = [
   'fatal',
@@ -34,6 +35,34 @@ type PulsarrLoggerOptions =
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 const projectRoot = resolve(__dirname, '..', '..')
+
+/**
+ * Request serializer that redacts sensitive data
+ */
+function createRequestSerializer() {
+  return (req: FastifyRequest) => {
+    // Get the default serialization
+    const serialized = {
+      method: req.method,
+      url: req.url,
+      host: req.headers.host as string | undefined,
+      remoteAddress: req.ip,
+      remotePort: req.socket.remotePort,
+    }
+
+    // Sanitize the URL
+    if (serialized.url) {
+      serialized.url = serialized.url
+        .replace(/([?&])apiKey=([^&]+)/gi, '$1apiKey=[REDACTED]')
+        .replace(/([?&])password=([^&]+)/gi, '$1password=[REDACTED]')
+        .replace(/([?&])token=([^&]+)/gi, '$1token=[REDACTED]')
+        .replace(/([?&])plexToken=([^&]+)/gi, '$1plexToken=[REDACTED]')
+        .replace(/([?&])X-Plex-Token=([^&]+)/gi, '$1X-Plex-Token=[REDACTED]')
+    }
+
+    return serialized
+  }
+}
 
 function filename(time: number | Date, index?: number): string {
   if (!time) return 'pulsarr-current.log'
@@ -73,6 +102,9 @@ function getTerminalOptions(): LoggerOptions {
         ignore: 'pid,hostname',
       },
     },
+    serializers: {
+      req: createRequestSerializer(),
+    },
   }
 }
 
@@ -80,6 +112,9 @@ function getFileOptions(): FileLoggerOptions {
   return {
     level: 'info',
     stream: getFileStream(),
+    serializers: {
+      req: createRequestSerializer(),
+    },
   }
 }
 
@@ -138,6 +173,9 @@ export function createLoggerConfig(
       return {
         level: 'info',
         stream: multistream,
+        serializers: {
+          req: createRequestSerializer(),
+        },
       }
     }
     default:
