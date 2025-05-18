@@ -167,6 +167,7 @@ export function createLoggerConfig(
 
       const multistream = pino.multistream([
         { stream: prettyStream },
+
         { stream: fileStream },
       ])
 
