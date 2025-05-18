@@ -25,7 +25,6 @@ import {
   type WebhookFormSchema,
 } from '@/features/notifications/schemas/form-schemas'
 import { DiscordClearAlert } from '@/features/notifications/components/discord/discord-clear-alert'
-import { apiPath } from '@/lib/api-path'
 
 interface DiscordWebhookFormProps {
   isInitialized: boolean
@@ -123,7 +122,7 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
 
       // Call our backend validation endpoint
       const response = await fetch(
-        apiPath('/v1/notifications/validatewebhook'),
+        '/v1/notifications/validatewebhook',
         {
           method: 'POST',
           headers: {

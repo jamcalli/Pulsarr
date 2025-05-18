@@ -11,7 +11,6 @@ import {
   CredenzaClose,
 } from '@/components/ui/credenza';
 import { Button } from '@/components/ui/button';
-import { apiPath } from '@/lib/api-path';
 
 interface LogoutAlertProps {
   open: boolean;
@@ -32,7 +31,7 @@ export function LogoutAlert({ open, onOpenChange }: LogoutAlertProps) {
 
   const handleLogout = async () => {
     try {
-      const response = await fetch(apiPath('/v1/users/logout'), {
+      const response = await fetch('/v1/users/logout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -7,7 +7,6 @@ import type {
 } from '@/features/sonarr/types/types'
 import type { UseFormReturn } from 'react-hook-form'
 import type { SonarrInstanceSchema } from '@/features/sonarr/store/schemas'
-import { apiPath } from '@/lib/api-path'
 
 /**
  * Checks if a Sonarr instance is missing required configuration fields.
@@ -225,7 +224,7 @@ export function useSonarrConnection(
               if (!isValid) return
 
               const createResponse = await fetch(
-                apiPath('/v1/sonarr/instances'),
+                '/v1/sonarr/instances',
                 {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },

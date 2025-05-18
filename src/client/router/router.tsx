@@ -1,7 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { createBrowserRouter } from 'react-router-dom'
 import AuthenticatedLayout from '@/layouts/authenticated'
-import { getBasePath } from '@/lib/api-path'
 
 const LoginPage = lazy(() => import('@/features/auth'))
 const CreateUserPage = lazy(() => import('@/features/create-user'))
@@ -13,9 +12,6 @@ const DashboardPage = lazy(() => import('@/features/dashboard'))
 const UtilitiesPage = lazy(() => import('@/features/utilities'))
 
 const LoadingFallback = () => null
-
-// Get base path from runtime configuration
-const basePath = getBasePath()
 
 export const router = createBrowserRouter(
   [
@@ -97,7 +93,4 @@ export const router = createBrowserRouter(
     },
     // Other routes...
   ],
-  {
-    basename: basePath,
-  },
 )

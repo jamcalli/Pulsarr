@@ -7,7 +7,6 @@ import type {
   PlexUserUpdates,
 } from '@/features/plex/store/types'
 import type { BulkUpdateRequest } from '@root/schemas/users/users.schema'
-import { apiPath } from '@/lib/api-path'
 
 export type BulkUpdateStatus = 'idle' | 'loading' | 'success' | 'error'
 
@@ -39,7 +38,7 @@ export function usePlexBulkUpdate() {
       }
 
       const [response] = await Promise.all([
-        fetch(apiPath('/v1/users/bulk'), {
+        fetch('/v1/users/bulk', {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
