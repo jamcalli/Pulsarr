@@ -60,7 +60,7 @@ export function useLoginForm() {
             variant: 'default',
           })
           setTimeout(() => {
-            navigate(responseData.redirectTo || '/app/dashboard')
+            navigate(responseData.redirectTo || '/dashboard')
           }, 1000)
         } else {
           setStatus('idle')
