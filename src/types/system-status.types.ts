@@ -37,13 +37,9 @@ export interface SystemStatus {
 }
 
 /**
- * Type guard to check if response is a valid SystemStatus
+ * Determines whether an unknown object matches the SystemStatus interface.
  *
- * Validates core fields that are always present in Radarr/Sonarr API responses:
- * - appName: Identifies the application type (Radarr/Sonarr)
- * - version: System version, always returned by the API
- * - branch: Git branch, always returned by the API
- * - authentication: Authentication method, always returned by the API
+ * Returns `true` if the object contains the required core fields present in Radarr or Sonarr API v3 system status responses.
  */
 export function isSystemStatus(obj: unknown): obj is SystemStatus {
   return (
@@ -61,7 +57,10 @@ export function isSystemStatus(obj: unknown): obj is SystemStatus {
 }
 
 /**
- * Type guard to check if it's a Radarr system status
+ * Determines if a system status object represents a Radarr instance.
+ *
+ * @param status - The system status object to check.
+ * @returns True if {@link status} is from Radarr; otherwise, false.
  */
 export function isRadarrStatus(status: SystemStatus): boolean {
   // The appName is hardcoded in Radarr as 'Radarr'
@@ -69,7 +68,10 @@ export function isRadarrStatus(status: SystemStatus): boolean {
 }
 
 /**
- * Type guard to check if it's a Sonarr system status
+ * Determines if a {@link SystemStatus} object represents a Sonarr system.
+ *
+ * @param status - The system status object to check.
+ * @returns True if {@link status} is from Sonarr; otherwise, false.
  */
 export function isSonarrStatus(status: SystemStatus): boolean {
   // The appName is hardcoded in Sonarr as 'Sonarr'
