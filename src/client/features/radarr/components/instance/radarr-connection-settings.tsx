@@ -29,6 +29,20 @@ interface ConnectionSettingsProps {
   disabled?: boolean
 }
 
+/**
+ * Renders a form section for configuring and testing Radarr connection settings.
+ *
+ * Displays input fields for the Radarr URL and API key, along with a button to test the connection. Provides real-time validation feedback and indicates when a connection test is required or has failed.
+ *
+ * @param form - The form instance controlling the connection settings fields.
+ * @param testStatus - The current status of the connection test.
+ * @param onTest - Callback invoked to test the Radarr connection.
+ * @param hasValidUrlAndKey - Indicates if the URL and API key fields are valid.
+ * @param disabled - Optional flag to disable all inputs and actions.
+ *
+ * @remark
+ * The tooltip for the connection test button will display "Test connection required" if the connection has not been tested or if a test error is present, guiding users to complete the test before saving.
+ */
 export default function ConnectionSettings({
   form,
   testStatus,
@@ -51,6 +65,10 @@ export default function ConnectionSettings({
   const apiKeyFieldState = form.getFieldState('apiKey')
   const hasConnectionTestError =
     apiKeyFieldState.error?.message?.includes('test connection') || false
+
+  // Check if connection needs to be tested
+  const connectionTested = form.watch('_connectionTested')
+  const needsConnectionTest = hasValidUrlAndKey && connectionTested === false
 
   return (
     <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} gap-4`}>
@@ -99,7 +117,11 @@ export default function ConnectionSettings({
                   </FormControl>
                 </div>
                 <TooltipProvider>
-                  <Tooltip open={hasConnectionTestError || undefined}>
+                  <Tooltip
+                    {...(hasConnectionTestError || needsConnectionTest
+                      ? { open: true }
+                      : {})}
+                  >
                     <TooltipTrigger asChild>
                       <Button
                         type="button"
@@ -122,12 +144,14 @@ export default function ConnectionSettings({
                     </TooltipTrigger>
                     <TooltipContent
                       className={
-                        hasConnectionTestError ? 'bg-error text-black' : ''
+                        hasConnectionTestError || needsConnectionTest
+                          ? 'bg-error text-black'
+                          : ''
                       }
                     >
                       <p>
-                        {hasConnectionTestError
-                          ? 'Test connection'
+                        {hasConnectionTestError || needsConnectionTest
+                          ? 'Test connection required'
                           : 'Test connection'}
                       </p>
                     </TooltipContent>

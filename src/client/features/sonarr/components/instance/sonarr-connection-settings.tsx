@@ -29,6 +29,17 @@ interface ConnectionSettingsProps {
   disabled?: boolean
 }
 
+/**
+ * Renders a form section for configuring and testing Sonarr connection settings.
+ *
+ * Displays input fields for the Sonarr URL and API key, along with a button to test the connection. The component manages form validation, connection test status, and responsive layout. It provides visual feedback and tooltips when a connection test is required or has failed.
+ *
+ * @param form - Form state and methods for Sonarr instance configuration.
+ * @param testStatus - Current status of the connection test.
+ * @param onTest - Callback to initiate a connection test.
+ * @param hasValidUrlAndKey - Indicates if the URL and API key fields are valid.
+ * @param disabled - Optional flag to disable all inputs and actions.
+ */
 export default function ConnectionSettings({
   form,
   testStatus,
@@ -51,6 +62,10 @@ export default function ConnectionSettings({
   const apiKeyFieldState = form.getFieldState('apiKey')
   const hasConnectionTestError =
     apiKeyFieldState.error?.message?.includes('test connection') || false
+
+  // Check if connection needs to be tested
+  const connectionTested = form.watch('_connectionTested')
+  const needsConnectionTest = hasValidUrlAndKey && connectionTested === false
 
   return (
     <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} gap-4`}>
@@ -99,7 +114,11 @@ export default function ConnectionSettings({
                   </FormControl>
                 </div>
                 <TooltipProvider>
-                  <Tooltip open={hasConnectionTestError || undefined}>
+                  <Tooltip
+                    {...(hasConnectionTestError || needsConnectionTest
+                      ? { open: true }
+                      : {})}
+                  >
                     <TooltipTrigger asChild>
                       <Button
                         type="button"
@@ -122,12 +141,14 @@ export default function ConnectionSettings({
                     </TooltipTrigger>
                     <TooltipContent
                       className={
-                        hasConnectionTestError ? 'bg-error text-black' : ''
+                        hasConnectionTestError || needsConnectionTest
+                          ? 'bg-error text-black'
+                          : ''
                       }
                     >
                       <p>
-                        {hasConnectionTestError
-                          ? 'Test connection'
+                        {hasConnectionTestError || needsConnectionTest
+                          ? 'Test connection required'
                           : 'Test connection'}
                       </p>
                     </TooltipContent>

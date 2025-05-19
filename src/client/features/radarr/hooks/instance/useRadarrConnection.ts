@@ -28,7 +28,7 @@ function checkNeedsConfiguration(instance: RadarrInstance) {
 /**
  * React hook for managing the connection state, configuration requirements, and lifecycle of a Radarr instance.
  *
- * Handles connection testing, initialization, and validation of required configuration fields for a given Radarr instance. Tracks UI state for connection and save operations, determines if additional configuration is needed, and provides functions for testing and resetting the connection.
+ * Provides connection testing, initialization, and validation for a Radarr instance, including UI state tracking for connection and save operations. Exposes functions to test and reset the connection, and determines if additional configuration is required.
  *
  * @param instance - The Radarr instance to manage.
  * @param setShowInstanceCard - Optional callback to control the visibility of the instance card UI.
@@ -70,7 +70,12 @@ export function useRadarrConnection(
         minimumLoadingTime,
       ])
       if (!response.ok) {
-        throw new Error('Failed to test connection')
+        try {
+          const error = await response.json()
+          throw new Error(error.message || 'Failed to test connection')
+        } catch (parseError) {
+          throw new Error('Failed to test connection')
+        }
       }
       return await response.json()
     },
