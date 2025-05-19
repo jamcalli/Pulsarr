@@ -37,7 +37,11 @@ const __dirname = dirname(__filename)
 const projectRoot = resolve(__dirname, '..', '..')
 
 /**
- * Request serializer that redacts sensitive data
+ * Creates a serializer function for Fastify requests that redacts sensitive query parameters from the URL.
+ *
+ * The serializer extracts the HTTP method, URL, host, remote address, and remote port from the request. It replaces the values of sensitive query parameters (`apiKey`, `password`, `token`, `plexToken`, `X-Plex-Token`) in the URL with `[REDACTED]` to prevent logging confidential information.
+ *
+ * @returns A function that serializes a Fastify request with sensitive data redacted from the URL.
  */
 function createRequestSerializer() {
   return (req: FastifyRequest) => {
@@ -64,6 +68,13 @@ function createRequestSerializer() {
   }
 }
 
+/**
+ * Generates a log filename based on the provided date and optional index.
+ *
+ * @param time - The date or timestamp to use for the filename. If falsy, returns the default current log filename.
+ * @param index - Optional index to append for rotated log files.
+ * @returns The generated log filename in the format 'pulsarr-YYYY-MM-DD[-index].log', or 'pulsarr-current.log' if no time is provided.
+ */
 function filename(time: number | Date, index?: number): string {
   if (!time) return 'pulsarr-current.log'
   const date = typeof time === 'number' ? new Date(time) : time
@@ -92,6 +103,11 @@ function getFileStream(): rfs.RotatingFileStream | NodeJS.WriteStream {
   }
 }
 
+/**
+ * Returns logger options configured for terminal output with human-readable formatting.
+ *
+ * The configuration uses the 'info' log level, formats logs with `pino-pretty`, and applies a request serializer that redacts sensitive query parameters from logged requests.
+ */
 function getTerminalOptions(): LoggerOptions {
   return {
     level: 'info',
@@ -108,6 +124,13 @@ function getTerminalOptions(): LoggerOptions {
   }
 }
 
+/**
+ * Returns logger options configured for file output with log level 'info'.
+ *
+ * The logger writes to a rotating file stream and uses a request serializer that redacts sensitive query parameters from logged requests.
+ *
+ * @returns File logger options for use with the pino logger.
+ */
 function getFileOptions(): FileLoggerOptions {
   return {
     level: 'info',
@@ -134,10 +157,13 @@ export function parseLogDestinationFromArgs(): LogDestination {
 }
 
 /**
- * Create logger configuration with specified destination or
- * automatically detect from command line arguments
- * @param destination Optional explicit destination, overrides command line args
- * @returns Logger configuration object
+ * Generates a logger configuration object for the specified log destination.
+ *
+ * If no destination is provided, the log destination is determined from command line arguments.
+ * Supports terminal, file, or combined logging with appropriate serializers and streams.
+ *
+ * @param destination - Optional log destination; overrides command line arguments if specified.
+ * @returns A logger configuration object suitable for initializing a logger.
  */
 export function createLoggerConfig(
   destination?: LogDestination,

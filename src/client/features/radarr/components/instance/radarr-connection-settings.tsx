@@ -29,6 +29,20 @@ interface ConnectionSettingsProps {
   disabled?: boolean
 }
 
+/**
+ * Renders a form section for configuring and testing Radarr connection settings.
+ *
+ * Displays input fields for the Radarr URL and API key, along with a button to test the connection. Provides real-time validation feedback and indicates when a connection test is required or has failed.
+ *
+ * @param form - The form instance controlling the connection settings fields.
+ * @param testStatus - The current status of the connection test.
+ * @param onTest - Callback invoked to test the Radarr connection.
+ * @param hasValidUrlAndKey - Indicates if the URL and API key fields are valid.
+ * @param disabled - Optional flag to disable all inputs and actions.
+ *
+ * @remark
+ * The tooltip for the connection test button will display "Test connection required" if the connection has not been tested or if a test error is present, guiding users to complete the test before saving.
+ */
 export default function ConnectionSettings({
   form,
   testStatus,
