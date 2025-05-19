@@ -26,11 +26,14 @@ const Tooltip = ({ children, ...props }: TooltipProps) => {
   const isMobile = useMediaQuery('(max-width: 768px)')
   const [isOpen, setIsOpen] = React.useState(false)
   
+  // Use provided open prop if available, otherwise use internal state for mobile
+  const controlledOpen = props.open !== undefined ? props.open : (isMobile ? isOpen : undefined)
+  
   return (
     <TooltipContext.Provider value={{ isMobile, isOpen, setIsOpen }}>
       <TooltipPrimitive.Root
         {...props}
-        open={isMobile ? isOpen : undefined}
+        open={controlledOpen}
         delayDuration={isMobile ? 0 : props.delayDuration ?? 300}
       >
         {children}
@@ -39,27 +42,89 @@ const Tooltip = ({ children, ...props }: TooltipProps) => {
   )
 }
 
-// Enhanced trigger with mobile click/tap handling
+// Enhanced trigger with mobile long-press handling
 const TooltipTrigger = React.forwardRef<
   React.ElementRef<typeof TooltipPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Trigger>
 >(({ ...props }, ref) => {
   const context = React.useContext(TooltipContext)
+  const longPressTimer = React.useRef<NodeJS.Timeout | null>(null)
+  const [isLongPressing, setIsLongPressing] = React.useState(false)
   
-  const handleClick = (e: React.MouseEvent<HTMLElement>) => {
+  const startLongPress = () => {
     if (context?.isMobile) {
-      e.preventDefault()
-      context.setIsOpen(!context.isOpen)
-    }
-    
-    // Call the original onClick if it exists
-    if (props.onClick) {
-      // Cast back to HTMLButtonElement for the original handler
-      props.onClick(e as React.MouseEvent<HTMLButtonElement>)
+      longPressTimer.current = setTimeout(() => {
+        setIsLongPressing(true)
+        context.setIsOpen(true)
+      }, 500) // 500ms hold duration
     }
   }
   
-  return <TooltipPrimitive.Trigger ref={ref} {...props} onClick={handleClick} />
+  const cancelLongPress = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current)
+      longPressTimer.current = null
+    }
+    setIsLongPressing(false)
+  }
+  
+  const handleTouchStart = (e: React.TouchEvent<HTMLElement>) => {
+    startLongPress()
+    // Pass through the original handler with proper type casting
+    if (props.onTouchStart) {
+      props.onTouchStart(e as React.TouchEvent<HTMLButtonElement>)
+    }
+  }
+  
+  const handleTouchEnd = (e: React.TouchEvent<HTMLElement>) => {
+    cancelLongPress()
+    // Pass through the original handler with proper type casting
+    if (props.onTouchEnd) {
+      props.onTouchEnd(e as React.TouchEvent<HTMLButtonElement>)
+    }
+  }
+  
+  const handleTouchMove = (e: React.TouchEvent<HTMLElement>) => {
+    cancelLongPress()
+    // Pass through the original handler with proper type casting
+    if (props.onTouchMove) {
+      props.onTouchMove(e as React.TouchEvent<HTMLButtonElement>)
+    }
+  }
+  
+  const handleClick = (e: React.MouseEvent<HTMLElement>) => {
+    // Only process click if not long pressing
+    if (!isLongPressing && props.onClick) {
+      props.onClick(e as React.MouseEvent<HTMLButtonElement>)
+    }
+    
+    // Prevent click event if we just finished a long press
+    if (isLongPressing) {
+      e.preventDefault()
+      e.stopPropagation()
+      setIsLongPressing(false)
+    }
+  }
+  
+  // Cleanup on unmount
+  React.useEffect(() => {
+    return () => {
+      if (longPressTimer.current) {
+        clearTimeout(longPressTimer.current)
+      }
+    }
+  }, [])
+  
+  return (
+    <TooltipPrimitive.Trigger 
+      ref={ref} 
+      {...props} 
+      onClick={handleClick}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onTouchMove={handleTouchMove}
+    />
+  )
 })
 TooltipTrigger.displayName = TooltipPrimitive.Trigger.displayName
 

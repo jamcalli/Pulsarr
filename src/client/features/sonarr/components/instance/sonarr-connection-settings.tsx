@@ -52,6 +52,10 @@ export default function ConnectionSettings({
   const hasConnectionTestError =
     apiKeyFieldState.error?.message?.includes('test connection') || false
 
+  // Check if connection needs to be tested
+  const connectionTested = form.watch('_connectionTested')
+  const needsConnectionTest = hasValidUrlAndKey && connectionTested === false
+
   return (
     <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} gap-4`}>
       <div className="flex-1">
@@ -99,7 +103,13 @@ export default function ConnectionSettings({
                   </FormControl>
                 </div>
                 <TooltipProvider>
-                  <Tooltip open={hasConnectionTestError || undefined}>
+                  <Tooltip
+                    open={
+                      hasConnectionTestError || needsConnectionTest
+                        ? true
+                        : undefined
+                    }
+                  >
                     <TooltipTrigger asChild>
                       <Button
                         type="button"
@@ -122,12 +132,14 @@ export default function ConnectionSettings({
                     </TooltipTrigger>
                     <TooltipContent
                       className={
-                        hasConnectionTestError ? 'bg-error text-black' : ''
+                        hasConnectionTestError || needsConnectionTest
+                          ? 'bg-error text-black'
+                          : ''
                       }
                     >
                       <p>
-                        {hasConnectionTestError
-                          ? 'Test connection'
+                        {hasConnectionTestError || needsConnectionTest
+                          ? 'Test connection required'
                           : 'Test connection'}
                       </p>
                     </TooltipContent>
