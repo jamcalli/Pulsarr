@@ -334,7 +334,10 @@ export class SonarrService {
 
       // Validate URL format
       try {
-        new URL(baseUrl)
+        const testUrl = baseUrl.match(/^https?:\/\//)
+          ? baseUrl
+          : `http://${baseUrl}`
+        new URL(testUrl)
       } catch (urlError) {
         return {
           success: false,
@@ -947,6 +950,11 @@ export class SonarrService {
         body: JSON.stringify(payload),
       })
 
+      // Handle 204 No Content responses
+      if (response.status === 204) {
+        return undefined as unknown as T
+      }
+
       if (!response.ok) {
         let errorDetail = response.statusText
         try {
@@ -965,7 +973,13 @@ export class SonarrService {
         throw new Error(`Sonarr API error: ${errorDetail}`)
       }
 
-      return response.json() as Promise<T>
+      // Some endpoints return 201 with empty body
+      const contentType = response.headers.get('content-type')
+      if (contentType?.includes('application/json')) {
+        return response.json() as Promise<T>
+      }
+
+      return undefined as unknown as T
     } catch (error) {
       if (error instanceof TypeError && error.message.includes('Invalid URL')) {
         throw new Error(

@@ -38,13 +38,25 @@ export interface SystemStatus {
 
 /**
  * Type guard to check if response is a valid SystemStatus
+ *
+ * Validates core fields that are always present in Radarr/Sonarr API responses:
+ * - appName: Identifies the application type (Radarr/Sonarr)
+ * - version: System version, always returned by the API
+ * - branch: Git branch, always returned by the API
+ * - authentication: Authentication method, always returned by the API
  */
 export function isSystemStatus(obj: unknown): obj is SystemStatus {
   return (
     obj !== null &&
     typeof obj === 'object' &&
     'appName' in obj &&
-    typeof (obj as SystemStatus).appName === 'string'
+    typeof (obj as SystemStatus).appName === 'string' &&
+    'version' in obj &&
+    typeof (obj as SystemStatus).version === 'string' &&
+    'branch' in obj &&
+    typeof (obj as SystemStatus).branch === 'string' &&
+    'authentication' in obj &&
+    typeof (obj as SystemStatus).authentication === 'string'
   )
 }
 
