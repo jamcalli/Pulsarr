@@ -21,11 +21,11 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
           <Link
             className={cn(
               'p-4 flex items-center text-lg m-2 rounded-base',
-              location.pathname === '/app/dashboard'
+              location.pathname === '/dashboard'
                 ? 'text-text font-bold border-2 border-border bg-main'
                 : 'text-text',
             )}
-            to="/app/dashboard"
+            to="/dashboard"
             onClick={onNavItemClick}
           >
             Dashboard
@@ -33,11 +33,11 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
           <Link
             className={cn(
               'p-4 flex items-center text-lg m-2 rounded-base',
-              location.pathname === '/app/notifications'
+              location.pathname === '/notifications'
                 ? 'text-text font-bold border-2 border-border bg-main'
                 : 'text-text',
             )}
-            to="/app/notifications"
+            to="/notifications"
             onClick={onNavItemClick}
           >
             Notifications
@@ -45,11 +45,11 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
           <Link
             className={cn(
               'p-4 flex items-center text-lg m-2 rounded-base',
-              location.pathname === '/app/utilities'
+              location.pathname === '/utilities'
                 ? 'text-text font-bold border-2 border-border bg-main'
                 : 'text-text',
             )}
-            to="/app/utilities"
+            to="/utilities"
             onClick={onNavItemClick}
           >
             Utilities
@@ -57,11 +57,11 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
           <Link
             className={cn(
               'p-4 flex items-center text-lg m-2 rounded-base',
-              location.pathname === '/app/plex'
+              location.pathname === '/plex'
                 ? 'text-text font-bold border-2 border-border bg-main'
                 : 'text-text',
             )}
-            to="/app/plex"
+            to="/plex"
             onClick={onNavItemClick}
           >
             Plex
@@ -69,11 +69,11 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
           <Link
             className={cn(
               'p-4 flex items-center text-lg m-2 rounded-base',
-              location.pathname === '/app/sonarr'
+              location.pathname === '/sonarr'
                 ? 'text-text font-bold border-2 border-border bg-main'
                 : 'text-text',
             )}
-            to="/app/sonarr"
+            to="/sonarr"
             onClick={onNavItemClick}
           >
             Sonarr
@@ -81,11 +81,11 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
           <Link
             className={cn(
               'p-4 flex items-center text-lg m-2 rounded-base',
-              location.pathname === '/app/radarr'
+              location.pathname === '/radarr'
                 ? 'text-text font-bold border-2 border-border bg-main'
                 : 'text-text',
             )}
-            to="/app/radarr"
+            to="/radarr"
             onClick={onNavItemClick}
           >
             Radarr
@@ -111,31 +111,31 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
           <div className="grid h-[50px] grid-cols-3 border-b-4 border-b-border dark:border-b-darkBorder">
             <Link
               className={
-                location.pathname === '/app/dashboard'
+                location.pathname === '/dashboard'
                   ? 'bg-black text-white flex h-full items-center justify-center uppercase'
                   : 'text-text bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border dark:border-r-darkBorder'
               }
-              to="/app/dashboard"
+              to="/dashboard"
             >
               Dashboard
             </Link>
             <Link
               className={
-                location.pathname === '/app/notifications'
+                location.pathname === '/notifications'
                   ? 'bg-black text-white flex h-full items-center justify-center uppercase'
                   : 'text-text bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border dark:border-r-darkBorder'
               }
-              to="/app/notifications"
+              to="/notifications"
             >
               Notifications
             </Link>
             <Link
               className={
-                location.pathname === '/app/utilities'
+                location.pathname === '/utilities'
                   ? 'bg-black text-white flex h-full items-center justify-center uppercase'
                   : 'text-text bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border dark:border-r-darkBorder'
               }
-              to="/app/utilities"
+              to="/utilities"
             >
               Utilities
             </Link>
@@ -145,31 +145,31 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
           <div className="grid h-[50px] grid-cols-3 border-b-4 border-b-border dark:border-b-darkBorder">
             <Link
               className={
-                location.pathname === '/app/plex'
+                location.pathname === '/plex'
                   ? 'bg-black text-white flex h-full items-center justify-center uppercase'
                   : 'text-text bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border dark:border-r-darkBorder'
               }
-              to="/app/plex"
+              to="/plex"
             >
               Plex
             </Link>
             <Link
               className={
-                location.pathname === '/app/sonarr'
+                location.pathname === '/sonarr'
                   ? 'bg-black text-white flex h-full items-center justify-center uppercase'
                   : 'text-text bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border dark:border-r-darkBorder'
               }
-              to="/app/sonarr"
+              to="/sonarr"
             >
               Sonarr
             </Link>
             <Link
               className={
-                location.pathname === '/app/radarr'
+                location.pathname === '/radarr'
                   ? 'bg-black text-white flex h-full items-center justify-center uppercase'
                   : 'text-text bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border dark:border-r-darkBorder'
               }
-              to="/app/radarr"
+              to="/radarr"
             >
               Radarr
             </Link>

@@ -67,7 +67,7 @@ export function useCreateUserForm() {
           })
 
           setTimeout(() => {
-            navigate('/app/login')
+            navigate('/login')
           }, 1000)
         } else {
           setStatus('idle')

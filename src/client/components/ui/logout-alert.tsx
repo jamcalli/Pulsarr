@@ -49,7 +49,7 @@ export function LogoutAlert({ open, onOpenChange }: LogoutAlertProps) {
           description: data.message || 'Successfully logged out',
           variant: 'default',
         });
-        navigate('/app/login');
+        navigate('/login');
       } else {
         // Close the logout dialog
         onOpenChange(false);

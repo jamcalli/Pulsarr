@@ -114,7 +114,7 @@ export default async function serviceApp(
     if (request.session.user) {
       // Use the in-memory config instead of querying the database
       const hasPlexTokens = hasValidPlexTokens(fastify.config)
-      return reply.redirect(hasPlexTokens ? '/app/dashboard' : '/app/plex')
+      return reply.redirect(hasPlexTokens ? '/dashboard' : '/plex')
     }
 
     // Check authentication method setting
@@ -133,7 +133,7 @@ export default async function serviceApp(
       // Check if Plex tokens are configured
       const hasPlexTokens = hasValidPlexTokens(fastify.config)
 
-      return reply.redirect(hasPlexTokens ? '/app/dashboard' : '/app/plex')
+      return reply.redirect(hasPlexTokens ? '/dashboard' : '/plex')
     }
 
     // CASE 2: Local IP bypass is active
@@ -149,31 +149,40 @@ export default async function serviceApp(
         // Check if Plex tokens are configured
         const hasPlexTokens = hasValidPlexTokens(fastify.config)
 
-        return reply.redirect(hasPlexTokens ? '/app/dashboard' : '/app/plex')
+        return reply.redirect(hasPlexTokens ? '/dashboard' : '/plex')
       }
 
       // No users exist yet with local bypass, redirect to create user
-      return reply.redirect('/app/create-user')
+      return reply.redirect('/create-user')
     }
 
     // CASE 3: Normal flow
     const hasUsers = await fastify.db.hasAdminUsers()
-    return reply.redirect(hasUsers ? '/app/login' : '/app/create-user')
+    return reply.redirect(hasUsers ? '/login' : '/create-user')
   })
 
   // Register SPA routes
   fastify.get(
-    '/app/*',
+    '/*',
     {
       preHandler: async (request, reply) => {
+        // Skip API routes and static assets
+        if (
+          request.url.startsWith('/v1/') ||
+          request.url.includes('.') ||
+          request.url === '/favicon.ico'
+        ) {
+          return
+        }
+
         // Get auth bypass status first
         const { isAuthDisabled, isLocalBypass } = getAuthBypassStatus(
           fastify,
           request,
         )
 
-        const isCreateUserPage = request.url.endsWith('/app/create-user')
-        const isLoginPage = request.url.endsWith('/app/login')
+        const isCreateUserPage = request.url === '/create-user'
+        const isLoginPage = request.url === '/login'
 
         // Use the in-memory config to check if Plex tokens are configured
         const hasPlexTokens = hasValidPlexTokens(fastify.config)
@@ -187,9 +196,7 @@ export default async function serviceApp(
 
           // If trying to access login or create-user, redirect appropriately
           if (isLoginPage || isCreateUserPage) {
-            return reply.redirect(
-              hasPlexTokens ? '/app/dashboard' : '/app/plex',
-            )
+            return reply.redirect(hasPlexTokens ? '/dashboard' : '/plex')
           }
 
           // Allow access to all other pages with the temp session
@@ -200,9 +207,7 @@ export default async function serviceApp(
         if (request.session.user) {
           // If trying to access login or create-user, redirect appropriately
           if (isLoginPage || isCreateUserPage) {
-            return reply.redirect(
-              hasPlexTokens ? '/app/dashboard' : '/app/plex',
-            )
+            return reply.redirect(hasPlexTokens ? '/dashboard' : '/plex')
           }
 
           // Allow access to requested page
@@ -222,9 +227,7 @@ export default async function serviceApp(
 
             // If trying to access login or create-user, redirect appropriately
             if (isLoginPage || isCreateUserPage) {
-              return reply.redirect(
-                hasPlexTokens ? '/app/dashboard' : '/app/plex',
-              )
+              return reply.redirect(hasPlexTokens ? '/dashboard' : '/plex')
             }
 
             // Allow access to all other pages with the temp session
@@ -233,7 +236,7 @@ export default async function serviceApp(
 
           // No users exist yet with local bypass, force create-user page
           if (!isCreateUserPage) {
-            return reply.redirect('/app/create-user')
+            return reply.redirect('/create-user')
           }
 
           // Allow access to create-user page
@@ -244,7 +247,7 @@ export default async function serviceApp(
         if (!hasUsers) {
           // No users exist yet, force create-user page
           if (!isCreateUserPage) {
-            return reply.redirect('/app/create-user')
+            return reply.redirect('/create-user')
           }
 
           // Allow access to create-user page
@@ -254,12 +257,12 @@ export default async function serviceApp(
         // CASE 5: Users exist, normal auth flow
         // Prevent create-user access when users already exist
         if (isCreateUserPage) {
-          return reply.redirect('/app/login')
+          return reply.redirect('/login')
         }
 
         // If trying to access any page other than login, redirect to login
         if (!isLoginPage) {
-          return reply.redirect('/app/login')
+          return reply.redirect('/login')
         }
 
         // Allow access to login page
