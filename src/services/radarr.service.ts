@@ -20,6 +20,17 @@ import {
   isRadarrStatus,
 } from '@root/types/system-status.types.js'
 
+// Custom error class to include HTTP status
+class HttpError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+  ) {
+    super(message)
+    this.name = 'HttpError'
+  }
+}
+
 export class RadarrService {
   private config: RadarrConfiguration | null = null
   private webhookInitialized = false
@@ -34,6 +45,29 @@ export class RadarrService {
     private readonly port: number,
     private readonly fastify: FastifyInstance,
   ) {}
+
+  private ensureUrlHasProtocol(url: string): string {
+    return url.match(/^https?:\/\//) ? url : `http://${url}`
+  }
+
+  private mapConnectionErrorToMessage(error: Error): string {
+    if (error.name === 'AbortError') {
+      return 'Connection timeout. Please check your base URL and network connection.'
+    }
+    if (error.message.includes('ECONNREFUSED')) {
+      return 'Connection refused. Please check if Radarr is running and the URL is correct.'
+    }
+    if (error.message.includes('ENOTFOUND')) {
+      return 'Server not found. Please check your base URL.'
+    }
+    if (error.message.includes('ETIMEDOUT')) {
+      return 'Connection timeout. Please check your network and firewall settings.'
+    }
+    if (error.message.includes('ECONNRESET')) {
+      return 'Connection was reset. Please check your network stability.'
+    }
+    return 'Network error. Please check your connection and base URL.'
+  }
 
   private get radarrConfig(): RadarrConfiguration {
     if (!this.config) {
@@ -221,25 +255,25 @@ export class RadarrService {
         this.log.error('Creation error details:', createError)
 
         let errorMessage = 'Failed to create webhook'
-        if (createError instanceof Error) {
-          if (createError.message.includes('401')) {
+        if (createError instanceof HttpError) {
+          // Use the status code from our custom error
+          if (createError.status === 401) {
             errorMessage =
               'Authentication failed while creating webhook. Check API key permissions.'
-          } else if (createError.message.includes('404')) {
+          } else if (createError.status === 404) {
             errorMessage =
               'Notification API endpoint not found. Check Radarr version.'
-          } else if (
-            createError.message.includes('500') ||
-            createError.message.includes('Internal Server Error')
-          ) {
+          } else if (createError.status === 500) {
             errorMessage =
               'Radarr internal error while creating webhook. Check Radarr logs.'
           } else {
             errorMessage = `Failed to create webhook: ${createError.message}`
           }
+        } else if (createError instanceof Error) {
+          errorMessage = `Failed to create webhook: ${createError.message}`
         }
 
-        throw new Error(errorMessage)
+        throw new Error(errorMessage, { cause: createError })
       }
 
       this.webhookInitialized = true
@@ -251,7 +285,7 @@ export class RadarrService {
         errorMessage = error.message
       }
 
-      throw new Error(errorMessage)
+      throw new Error(errorMessage, { cause: error })
     }
   }
 
@@ -305,7 +339,7 @@ export class RadarrService {
           `Basic initialization only for ${instance.name} (placeholder credentials)`,
         )
         this.config = {
-          radarrBaseUrl: instance.baseUrl,
+          radarrBaseUrl: this.ensureUrlHasProtocol(instance.baseUrl),
           radarrApiKey: instance.apiKey,
           radarrQualityProfileId: instance.qualityProfile || null,
           radarrRootFolder: instance.rootFolder || null,
@@ -315,7 +349,7 @@ export class RadarrService {
       }
 
       this.config = {
-        radarrBaseUrl: instance.baseUrl,
+        radarrBaseUrl: this.ensureUrlHasProtocol(instance.baseUrl),
         radarrApiKey: instance.apiKey,
         radarrQualityProfileId: instance.qualityProfile || null,
         radarrRootFolder: instance.rootFolder || null,
@@ -374,7 +408,7 @@ export class RadarrService {
       throw new Error('Invalid status response from Radarr')
     }
 
-    return status as SystemStatus
+    return status
   }
 
   private toItem(movie: RadarrMovie): Item {
@@ -752,7 +786,21 @@ export class RadarrService {
     })
 
     if (!response.ok) {
-      throw new Error(`Radarr API error: ${response.statusText}`)
+      let errorDetail = response.statusText
+      try {
+        const errorData = (await response.json()) as { message?: string }
+        if (errorData.message) {
+          errorDetail = errorData.message
+        }
+      } catch {}
+
+      if (response.status === 401) {
+        throw new HttpError('Authentication failed. Check API key.', 401)
+      }
+      if (response.status === 404) {
+        throw new HttpError(`API endpoint not found: ${endpoint}`, 404)
+      }
+      throw new HttpError(`Radarr API error: ${errorDetail}`, response.status)
     }
 
     return response.json() as Promise<T>
@@ -790,12 +838,12 @@ export class RadarrService {
         } catch {}
 
         if (response.status === 401) {
-          throw new Error('Authentication failed. Check API key.')
+          throw new HttpError('Authentication failed. Check API key.', 401)
         }
         if (response.status === 404) {
-          throw new Error(`API endpoint not found: ${endpoint}`)
+          throw new HttpError(`API endpoint not found: ${endpoint}`, 404)
         }
-        throw new Error(`Radarr API error: ${errorDetail}`)
+        throw new HttpError(`Radarr API error: ${errorDetail}`, response.status)
       }
 
       // Some endpoints return 201 with empty body
@@ -848,12 +896,13 @@ export class RadarrService {
         }
       }
 
-      // Validate URL format
+      // Validate URL format and normalize
+      let safeBaseUrl: string
       try {
-        const testUrl = baseUrl.match(/^https?:\/\//)
+        safeBaseUrl = baseUrl.match(/^https?:\/\//)
           ? baseUrl
           : `http://${baseUrl}`
-        new URL(testUrl)
+        new URL(safeBaseUrl)
       } catch (urlError) {
         return {
           success: false,
@@ -862,7 +911,7 @@ export class RadarrService {
       }
 
       // Use system/status API endpoint for basic connectivity
-      const statusUrl = new URL(`${baseUrl}/api/v3/system/status`)
+      const statusUrl = new URL(`${safeBaseUrl}/api/v3/system/status`)
 
       let response: Response
       try {
@@ -876,25 +925,9 @@ export class RadarrService {
         })
       } catch (fetchError) {
         if (fetchError instanceof Error) {
-          if (fetchError.name === 'AbortError') {
-            return {
-              success: false,
-              message:
-                'Connection timeout. Please check your base URL and network connection.',
-            }
-          }
-          if (fetchError.message.includes('ECONNREFUSED')) {
-            return {
-              success: false,
-              message:
-                'Connection refused. Please check if Radarr is running and the URL is correct.',
-            }
-          }
-          if (fetchError.message.includes('ENOTFOUND')) {
-            return {
-              success: false,
-              message: 'Server not found. Please check your base URL.',
-            }
+          return {
+            success: false,
+            message: this.mapConnectionErrorToMessage(fetchError),
           }
         }
         return {
@@ -953,7 +986,7 @@ export class RadarrService {
       try {
         // Create a helper function to make a GET request without modifying service state
         const rawGet = async <T>(endpoint: string): Promise<T> => {
-          const url = new URL(`${baseUrl}/api/v3/${endpoint}`)
+          const url = new URL(`${safeBaseUrl}/api/v3/${endpoint}`)
           const response = await fetch(url.toString(), {
             method: 'GET',
             headers: {
@@ -998,32 +1031,16 @@ export class RadarrService {
       this.log.error('Connection test error:', error)
 
       if (error instanceof Error) {
-        // Parse common error patterns
-        if (error.message.includes('ECONNREFUSED')) {
-          return {
-            success: false,
-            message:
-              'Connection refused. Please check if Radarr is running and accessible.',
-          }
-        }
-        if (error.message.includes('ENOTFOUND')) {
-          return {
-            success: false,
-            message: 'Server not found. Please check your base URL.',
-          }
-        }
-        if (error.message.includes('ETIMEDOUT')) {
-          return {
-            success: false,
-            message:
-              'Connection timeout. Please check your network and firewall settings.',
-          }
-        }
         if (error.message.includes('Invalid URL')) {
           return {
             success: false,
             message: 'Invalid URL format. Please check your base URL.',
           }
+        }
+        // Use the shared error mapping
+        return {
+          success: false,
+          message: this.mapConnectionErrorToMessage(error),
         }
       }
 
