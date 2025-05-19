@@ -29,10 +29,13 @@ const Tooltip = ({ children, ...props }: TooltipProps) => {
   // Use provided open prop if available, otherwise use internal state for mobile
   const controlledOpen = props.open !== undefined ? props.open : (isMobile ? isOpen : undefined)
   
+  // Extract open from props to avoid confusion about precedence
+  const { open: _, ...restProps } = props
+  
   return (
     <TooltipContext.Provider value={{ isMobile, isOpen, setIsOpen }}>
       <TooltipPrimitive.Root
-        {...props}
+        {...restProps}
         open={controlledOpen}
         delayDuration={isMobile ? 0 : props.delayDuration ?? 300}
       >
@@ -48,7 +51,7 @@ const TooltipTrigger = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Trigger>
 >(({ ...props }, ref) => {
   const context = React.useContext(TooltipContext)
-  const longPressTimer = React.useRef<NodeJS.Timeout | null>(null)
+  const longPressTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null)
   const [isLongPressing, setIsLongPressing] = React.useState(false)
   
   const startLongPress = () => {
@@ -103,6 +106,7 @@ const TooltipTrigger = React.forwardRef<
       e.preventDefault()
       e.stopPropagation()
       setIsLongPressing(false)
+      context?.setIsOpen(false)
     }
   }
   

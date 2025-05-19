@@ -19,6 +19,17 @@ import {
   isSonarrStatus,
 } from '@root/types/system-status.types.js'
 
+// Custom error class to include HTTP status
+class HttpError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+  ) {
+    super(message)
+    this.name = 'HttpError'
+  }
+}
+
 export class SonarrService {
   private config: SonarrConfiguration | null = null
   private webhookInitialized = false
@@ -34,6 +45,29 @@ export class SonarrService {
     private readonly port: number,
     private readonly fastify: FastifyInstance,
   ) {}
+
+  private ensureUrlHasProtocol(url: string): string {
+    return url.match(/^https?:\/\//) ? url : `http://${url}`
+  }
+
+  private mapConnectionErrorToMessage(error: Error): string {
+    if (error.name === 'AbortError') {
+      return 'Connection timeout. Please check your base URL and network connection.'
+    }
+    if (error.message.includes('ECONNREFUSED')) {
+      return 'Connection refused. Please check if Sonarr is running and the URL is correct.'
+    }
+    if (error.message.includes('ENOTFOUND')) {
+      return 'Server not found. Please check your base URL.'
+    }
+    if (error.message.includes('ETIMEDOUT')) {
+      return 'Connection timeout. Please check your network and firewall settings.'
+    }
+    if (error.message.includes('ECONNRESET')) {
+      return 'Connection was reset. Please check your network stability.'
+    }
+    return 'Network error. Please check your connection and base URL.'
+  }
 
   private get sonarrConfig(): SonarrConfiguration {
     if (!this.config) {
@@ -180,25 +214,25 @@ export class SonarrService {
         this.log.error('Creation error details for Sonarr:', createError)
 
         let errorMessage = 'Failed to create webhook'
-        if (createError instanceof Error) {
-          if (createError.message.includes('401')) {
+        if (createError instanceof HttpError) {
+          // Use the status code from our custom error
+          if (createError.status === 401) {
             errorMessage =
               'Authentication failed while creating webhook. Check API key permissions.'
-          } else if (createError.message.includes('404')) {
+          } else if (createError.status === 404) {
             errorMessage =
               'Notification API endpoint not found. Check Sonarr version.'
-          } else if (
-            createError.message.includes('500') ||
-            createError.message.includes('Internal Server Error')
-          ) {
+          } else if (createError.status === 500) {
             errorMessage =
               'Sonarr internal error while creating webhook. Check Sonarr logs.'
           } else {
             errorMessage = `Failed to create webhook: ${createError.message}`
           }
+        } else if (createError instanceof Error) {
+          errorMessage = `Failed to create webhook: ${createError.message}`
         }
 
-        throw new Error(errorMessage)
+        throw new Error(errorMessage, { cause: createError })
       }
       this.webhookInitialized = true
     } catch (error) {
@@ -209,7 +243,7 @@ export class SonarrService {
         errorMessage = error.message
       }
 
-      throw new Error(errorMessage)
+      throw new Error(errorMessage, { cause: error })
     }
   }
 
@@ -266,7 +300,7 @@ export class SonarrService {
           `Basic initialization only for ${instance.name} (placeholder credentials)`,
         )
         this.config = {
-          sonarrBaseUrl: instance.baseUrl,
+          sonarrBaseUrl: this.ensureUrlHasProtocol(instance.baseUrl),
           sonarrApiKey: instance.apiKey,
           sonarrQualityProfileId: instance.qualityProfile || null,
           sonarrLanguageProfileId: 1,
@@ -280,7 +314,7 @@ export class SonarrService {
       }
 
       this.config = {
-        sonarrBaseUrl: instance.baseUrl,
+        sonarrBaseUrl: this.ensureUrlHasProtocol(instance.baseUrl),
         sonarrApiKey: instance.apiKey,
         sonarrQualityProfileId: instance.qualityProfile || null,
         sonarrLanguageProfileId: 1,
@@ -332,12 +366,13 @@ export class SonarrService {
         }
       }
 
-      // Validate URL format
+      // Validate URL format and normalize
+      let safeBaseUrl: string
       try {
-        const testUrl = baseUrl.match(/^https?:\/\//)
+        safeBaseUrl = baseUrl.match(/^https?:\/\//)
           ? baseUrl
           : `http://${baseUrl}`
-        new URL(testUrl)
+        new URL(safeBaseUrl)
       } catch (urlError) {
         return {
           success: false,
@@ -346,7 +381,7 @@ export class SonarrService {
       }
 
       // Use system/status API endpoint for basic connectivity
-      const statusUrl = new URL(`${baseUrl}/api/v3/system/status`)
+      const statusUrl = new URL(`${safeBaseUrl}/api/v3/system/status`)
 
       let response: Response
       try {
@@ -360,25 +395,9 @@ export class SonarrService {
         })
       } catch (fetchError) {
         if (fetchError instanceof Error) {
-          if (fetchError.name === 'AbortError') {
-            return {
-              success: false,
-              message:
-                'Connection timeout. Please check your base URL and network connection.',
-            }
-          }
-          if (fetchError.message.includes('ECONNREFUSED')) {
-            return {
-              success: false,
-              message:
-                'Connection refused. Please check if Sonarr is running and the URL is correct.',
-            }
-          }
-          if (fetchError.message.includes('ENOTFOUND')) {
-            return {
-              success: false,
-              message: 'Server not found. Please check your base URL.',
-            }
+          return {
+            success: false,
+            message: this.mapConnectionErrorToMessage(fetchError),
           }
         }
         return {
@@ -437,7 +456,7 @@ export class SonarrService {
       try {
         // Create a helper function to make a GET request without modifying service state
         const rawGet = async <T>(endpoint: string): Promise<T> => {
-          const url = new URL(`${baseUrl}/api/v3/${endpoint}`)
+          const url = new URL(`${safeBaseUrl}/api/v3/${endpoint}`)
           const response = await fetch(url.toString(), {
             method: 'GET',
             headers: {
@@ -482,32 +501,16 @@ export class SonarrService {
       this.log.error('Connection test error:', error)
 
       if (error instanceof Error) {
-        // Parse common error patterns
-        if (error.message.includes('ECONNREFUSED')) {
-          return {
-            success: false,
-            message:
-              'Connection refused. Please check if Sonarr is running and accessible.',
-          }
-        }
-        if (error.message.includes('ENOTFOUND')) {
-          return {
-            success: false,
-            message: 'Server not found. Please check your base URL.',
-          }
-        }
-        if (error.message.includes('ETIMEDOUT')) {
-          return {
-            success: false,
-            message:
-              'Connection timeout. Please check your network and firewall settings.',
-          }
-        }
         if (error.message.includes('Invalid URL')) {
           return {
             success: false,
             message: 'Invalid URL format. Please check your base URL.',
           }
+        }
+        // Use the shared error mapping
+        return {
+          success: false,
+          message: this.mapConnectionErrorToMessage(error),
         }
       }
 
@@ -927,7 +930,21 @@ export class SonarrService {
     })
 
     if (!response.ok) {
-      throw new Error(`Sonarr API error: ${response.statusText}`)
+      let errorDetail = response.statusText
+      try {
+        const errorData = (await response.json()) as { message?: string }
+        if (errorData.message) {
+          errorDetail = errorData.message
+        }
+      } catch {}
+
+      if (response.status === 401) {
+        throw new HttpError('Authentication failed. Check API key.', 401)
+      }
+      if (response.status === 404) {
+        throw new HttpError(`API endpoint not found: ${endpoint}`, 404)
+      }
+      throw new HttpError(`Sonarr API error: ${errorDetail}`, response.status)
     }
 
     return response.json() as Promise<T>
@@ -965,12 +982,12 @@ export class SonarrService {
         } catch {}
 
         if (response.status === 401) {
-          throw new Error('Authentication failed. Check API key.')
+          throw new HttpError('Authentication failed. Check API key.', 401)
         }
         if (response.status === 404) {
-          throw new Error(`API endpoint not found: ${endpoint}`)
+          throw new HttpError(`API endpoint not found: ${endpoint}`, 404)
         }
-        throw new Error(`Sonarr API error: ${errorDetail}`)
+        throw new HttpError(`Sonarr API error: ${errorDetail}`, response.status)
       }
 
       // Some endpoints return 201 with empty body

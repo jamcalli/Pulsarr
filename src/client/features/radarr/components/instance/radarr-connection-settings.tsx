@@ -104,11 +104,9 @@ export default function ConnectionSettings({
                 </div>
                 <TooltipProvider>
                   <Tooltip
-                    open={
-                      hasConnectionTestError || needsConnectionTest
-                        ? true
-                        : undefined
-                    }
+                    {...(hasConnectionTestError || needsConnectionTest
+                      ? { open: true }
+                      : {})}
                   >
                     <TooltipTrigger asChild>
                       <Button
