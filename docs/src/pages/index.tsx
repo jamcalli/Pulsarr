@@ -66,7 +66,7 @@ export default function Home(): React.ReactElement {
                     right: '-65px', // To the right of the text
                     width: '96px',
                     height: '96px',
-                    zIndex: -20, // Behind text, planet, and asteroids
+                    zIndex: -5, // Behind asteroids (z-index 20)
                   }}
                 >
                   <Pulsar className="w-24 h-24" />
