@@ -11,13 +11,59 @@ import { useMediaQuery } from '@/client/hooks/use-media-query'
 import Pulsar from '@/client/components/ui/pulsar'
 import { Button } from '@/client/components/ui/button'
 import Heading from '@theme/Heading'
+import DocFeatureExample from '../components/DocFeatureExample'
 
 export default function Home(): React.ReactElement {
   const { siteConfig } = useDocusaurusContext()
   const isMobile = useMediaQuery('(max-width: 768px)')
   const history = useHistory()
 
-  // Removed scroll prevention to allow normal scrolling
+  // Use JavaScript to calculate the exact subtitle height
+  useEffect(() => {
+    // Fix for any scrolling issues
+    document.body.style.overflowX = 'hidden'
+    
+    // Calculate mask height based on subtitle position
+    const calculateMaskHeight = () => {
+      const subtitle = document.getElementById('subtitle')
+      if (subtitle) {
+        const subtitleBottom = subtitle.getBoundingClientRect().bottom
+        const navbar = document.querySelector('.navbar')
+        const navbarHeight = navbar ? navbar.getBoundingClientRect().height : 60
+        
+        // Calculate height from navbar to bottom of subtitle plus some extra space
+        const extraSpace = 20 // Add 20px of extra space
+        const maskHeight = subtitleBottom - navbarHeight + extraSpace
+        
+        // Set the mask height and content padding
+        const scrollContent = document.getElementById('scroll-content')
+        const contentPadding = document.getElementById('content-padding')
+        
+        if (scrollContent && contentPadding) {
+          // Update the mask and content padding heights
+          // Add a slight gradient transition of 10px for smoother masking
+          const maskValue = `linear-gradient(to bottom, transparent 0 ${maskHeight-10}px, black ${maskHeight}px)`
+          scrollContent.style.webkitMaskImage = maskValue
+          scrollContent.style.maskImage = maskValue
+          
+          // Add extra margin at top of content for smoother appearance
+          contentPadding.style.paddingTop = `${maskHeight}px`
+          contentPadding.style.marginTop = '15px'
+        }
+      }
+    }
+    
+    // Initial calculation
+    calculateMaskHeight()
+    
+    // Recalculate on resize
+    window.addEventListener('resize', calculateMaskHeight)
+    
+    return () => {
+      document.body.style.overflowX = ''
+      window.removeEventListener('resize', calculateMaskHeight)
+    }
+  }, [])
 
   return (
     <Layout
@@ -42,7 +88,7 @@ export default function Home(): React.ReactElement {
             <div
               style={{
                 position: 'fixed',
-                top: '80px',
+                top: '50px', /* Moved up from 80px to 50px */
                 left: '0',
                 right: '0',
                 zIndex: 30,
@@ -55,7 +101,7 @@ export default function Home(): React.ReactElement {
                 style={{
                   position: 'relative',
                   display: 'inline-block',
-                  marginBottom: '1rem',
+                  marginBottom: '0.25rem', /* Further reduced from 0.5rem to 0.25rem */
                 }}
               >
                 {/* Animated Pulsar component - positioned relative to the text */}
@@ -87,11 +133,13 @@ export default function Home(): React.ReactElement {
                 </Heading>
               </div>
               <p
+                id="subtitle"
                 style={{
                   color: '#c1666b', // --static-text red color
                   fontSize: '1.5rem',
                   fontFamily:
                     'Shuttleblock, system-ui, -apple-system, sans-serif',
+                  marginTop: '-0.5rem', /* Increased negative margin to pull up more */
                   marginBottom: '3rem',
                   textShadow: '2px 2px 0px rgba(0, 0, 0, 0.5)',
                 }}
@@ -174,6 +222,41 @@ export default function Home(): React.ReactElement {
             >
               View on GitHub
             </Button>
+          </div>
+        </div>
+      </div>
+      
+
+      {/* Simple mask container */}
+      <div style={{
+        position: 'fixed',
+        top: 'var(--ifm-navbar-height)',
+        left: 0,
+        right: 0,
+        bottom: 0,
+        overflow: 'hidden',
+      }}>
+        {/* Scrollable content with mask - dynamic height calculated by JS */}
+        <div 
+          id="scroll-content"
+          style={{ 
+            height: '100%',
+            overflowY: 'auto',
+            WebkitMaskImage: 'linear-gradient(to bottom, transparent 0 210px, black 210px)', /* Initial value, will be updated by JS */
+            maskImage: 'linear-gradient(to bottom, transparent 0 210px, black 210px)', /* Initial value, will be updated by JS */
+            paddingRight: '20px', /* Room for scrollbar */
+          }}>
+          <div 
+            id="content-padding"
+            style={{ 
+              paddingTop: '210px', /* Initial value, will be updated by JS */
+              paddingBottom: '4rem',
+              paddingLeft: '2rem',
+              paddingRight: '2rem',
+            }}>
+            <div className="container mx-auto">
+              <DocFeatureExample />
+            </div>
           </div>
         </div>
       </div>

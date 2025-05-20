@@ -19,6 +19,9 @@
 /* Import mode toggle button styling */
 @import "./mode-toggle.css";
 
+/* Import DocFeature component styles */
+@import "./docfeature.css";
+
 /* Override Infima defaults that conflict with our styles */
 :root {
   --ifm-font-family-base: "Shuttleblock", system-ui, -apple-system,
@@ -101,3 +104,11 @@ html[data-theme='dark'] .prism-code {
   height: auto !important;
   min-height: 3.5rem !important;
 }
+
+/* Clip paths and masking for the hero content */
+.home-page-layout {
+  /* Enable clipping */
+  overflow-clip-margin: 0;
+}
+
+/* No custom CSS needed - using inline styles */
