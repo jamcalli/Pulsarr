@@ -33,6 +33,46 @@ const config: Config = {
     locales: ['en'],
   },
 
+  plugins: [
+    (context, options) => ({
+      name: 'resolve-client-components',
+      configureWebpack(config, isServer, utils) {
+        return {
+          resolve: {
+            alias: {
+              '@/components': path.resolve(
+                __dirname,
+                '../src/client/components',
+              ),
+              '@/client/components': path.resolve(
+                __dirname,
+                '../src/client/components',
+              ),
+              '@/client/lib': path.resolve(__dirname, '../src/client/lib'),
+              '@/client/assets': path.resolve(
+                __dirname,
+                '../src/client/assets',
+              ),
+              '@/client/hooks': path.resolve(__dirname, '../src/client/hooks'),
+              '@/client': path.resolve(__dirname, '../src/client'),
+              '@/lib': path.resolve(__dirname, '../src/client/lib'),
+              '@': path.resolve(__dirname, '../src'),
+            },
+            extensions: ['.js', '.jsx', '.ts', '.tsx'],
+          },
+          module: {
+            rules: [
+              {
+                test: /\.(png|jpe?g|gif|webp|svg)$/i,
+                type: 'asset/resource',
+              },
+            ],
+          },
+        }
+      },
+    }),
+  ],
+
   presets: [
     [
       'classic',
@@ -66,8 +106,8 @@ const config: Config = {
           label: 'Documentation',
         },
         {
-          href: 'https://github.com/jamcalli/pulsarr',
-          label: 'GitHub',
+          type: 'html',
+          value: '<div id="github-stats-button"></div>',
           position: 'right',
         },
       ],
@@ -115,41 +155,7 @@ const config: Config = {
     },
   } satisfies Preset.ThemeConfig,
 
-  plugins: [
-    (context, options) => ({
-      name: 'resolve-client-components',
-      configureWebpack(config, isServer, utils) {
-        return {
-          resolve: {
-            alias: {
-              '@/client/components': path.resolve(
-                __dirname,
-                '../src/client/components',
-              ),
-              '@/client/lib': path.resolve(__dirname, '../src/client/lib'),
-              '@/client/assets': path.resolve(
-                __dirname,
-                '../src/client/assets',
-              ),
-              '@/client/hooks': path.resolve(__dirname, '../src/client/hooks'),
-              '@/client': path.resolve(__dirname, '../src/client'),
-              '@/lib': path.resolve(__dirname, '../src/client/lib'),
-              '@': path.resolve(__dirname, '../src'),
-            },
-            extensions: ['.js', '.jsx', '.ts', '.tsx'],
-          },
-          module: {
-            rules: [
-              {
-                test: /\.(png|jpe?g|gif|webp|svg)$/i,
-                type: 'asset/resource',
-              },
-            ],
-          },
-        }
-      },
-    }),
-  ],
+  themes: [],
 }
 
 export default config
