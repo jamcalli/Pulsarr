@@ -10,65 +10,94 @@
 /* Import main app globals */
 @import "./globals.css";
 
+/* Import navbar customizations */
+@import "./navbar.css";
+
+/* Import GitHub stats button styling */
+@import "./github-stats.css";
+
+/* Import mode toggle button styling */
+@import "./mode-toggle.css";
+
 /* Override Infima defaults that conflict with our styles */
 :root {
-	--ifm-font-family-base: "Shuttleblock", system-ui, -apple-system,
-		BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-	--ifm-font-family-monospace: SFMono-Regular, Consolas, "Liberation Mono",
-		Menlo, Courier, monospace;
+  --ifm-font-family-base: "Shuttleblock", system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --ifm-font-family-monospace: SFMono-Regular, Consolas, "Liberation Mono",
+    Menlo, Courier, monospace;
+  
+  /* Match main app colors */
+  --ifm-color-primary: #48a9a6;
+  --ifm-color-primary-dark: #41989c;
+  --ifm-color-primary-darker: #3a8892;
+  --ifm-color-primary-darkest: #347888;
+  --ifm-color-primary-light: #4fbaaf;
+  --ifm-color-primary-lighter: #56cbba;
+  --ifm-color-primary-lightest: #5ddcc5;
+}
+
+/* Match app dark theme */
+html[data-theme='dark'] {
+  --ifm-background-color: #272933;
+  --ifm-background-surface-color: #1e202a;
+  --ifm-navbar-background-color: #272933;
+  --ifm-footer-background-color: #1e202a;
+  
+  /* Darker sidebar for contrast */
+  --ifm-menu-color-background-active: #1e202a;
+  --ifm-menu-color-background-hover: #323642;
 }
 
 /* Override the main app's global styles that prevent scrolling */
 body {
-	overflow: auto !important;
-	position: static !important;
-	width: auto !important;
-	height: auto !important;
+  overflow: auto !important;
+  position: static !important;
+  width: auto !important;
+  height: auto !important;
 }
 
 #app {
-	position: static !important;
-	overflow: auto !important;
-	width: auto !important;
-	height: auto !important;
+  position: static !important;
+  overflow: auto !important;
+  width: auto !important;
+  height: auto !important;
 }
 
 /* Force button styles to override Infima */
 button {
-	border-color: var(--border) !important;
-	color: var(--text) !important;
+  border-color: var(--border) !important;
+  color: var(--text) !important;
 }
 
 button[class*="default"] {
-	background-color: var(--main) !important;
-	color: var(--mtext) !important;
-	border-color: var(--border) !important;
+  background-color: var(--main) !important;
+  color: var(--mtext) !important;
+  border-color: var(--border) !important;
 }
 
-button[class*="neutral"] {
-	background-color: var(--bw) !important;
-	color: var(--text) !important;
-	border-color: var(--border) !important;
+/* Improve dark mode code blocks */
+html[data-theme='dark'] .prism-code {
+  background-color: #1e202a !important;
 }
 
 /* Hero button size overrides on homepage */
 .home-page-layout button[class*="h-11"] {
-	font-size: 1.5rem !important;
-	padding: 1rem 2.5rem !important;
-	height: auto !important;
+  font-size: 1.5rem !important;
+  padding: 1rem 2.5rem !important;
+  height: auto !important;
 }
 
 /* Also target the link/anchor elements inside the buttons */
 .home-page-layout button[class*="h-11"] a,
 .home-page-layout a[class*="h-11"] {
-	font-size: 1.5rem !important;
+  font-size: 1.5rem !important;
 }
 
 /* Direct hero button styling */
 .hero-button,
 .hero-button > * {
-	font-size: 1.5rem !important;
-	padding: 1rem 2.5rem !important;
-	height: auto !important;
-	min-height: 3.5rem !important;
+  font-size: 1.5rem !important;
+  padding: 1rem 2.5rem !important;
+  height: auto !important;
+  min-height: 3.5rem !important;
 }
