@@ -10,7 +10,7 @@ const packageJson = JSON.parse(
 
 /** @type {import('vite').UserConfig} */
 export default {
-  base: '/app/',
+  base: '/',
   root: resolve(import.meta.dirname, 'src/client'),
   plugins: [viteReact(), viteFastify({ spa: true })],
   build: {

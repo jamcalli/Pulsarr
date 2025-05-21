@@ -2,8 +2,6 @@ import { useEffect } from 'react'
 import { useToast } from '@/hooks/use-toast'
 import semver from 'semver'
 
-declare const __APP_VERSION__: string
-
 interface GitHubRelease {
   tag_name: string
   html_url: string

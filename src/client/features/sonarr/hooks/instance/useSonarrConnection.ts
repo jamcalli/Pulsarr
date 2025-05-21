@@ -28,7 +28,7 @@ function checkNeedsConfiguration(instance: SonarrInstance) {
 /**
  * React hook for managing the connection, validation, and configuration state of a Sonarr instance.
  *
- * Provides utilities to test the connection, track connection and save statuses, determine if the instance requires additional configuration, and reset the connection state. Handles instance creation, updating, and data fetching as part of the connection workflow.
+ * Provides state and functions to test the connection, track connection and save statuses, determine if the instance requires additional configuration, and reset the connection state. Handles instance creation, updating, and data fetching as part of the connection workflow.
  *
  * @param instance - The Sonarr instance to manage.
  * @param setShowInstanceCard - Optional callback to control the visibility of the instance card UI.
@@ -73,7 +73,12 @@ export function useSonarrConnection(
         minimumLoadingTime,
       ])
       if (!response.ok) {
-        throw new Error('Failed to test connection')
+        try {
+          const error = await response.json()
+          throw new Error(error.message || 'Failed to test connection')
+        } catch (parseError) {
+          throw new Error('Failed to test connection')
+        }
       }
       return await response.json()
     },

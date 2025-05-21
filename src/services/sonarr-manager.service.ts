@@ -314,8 +314,32 @@ export class SonarrManagerService {
         this.port,
         this.fastify,
       )
-      await sonarrService.initialize(instance)
-      this.sonarrServices.set(id, sonarrService)
+      try {
+        await sonarrService.initialize(instance)
+        this.sonarrServices.set(id, sonarrService)
+      } catch (initError) {
+        this.log.error(`Failed to initialize Sonarr instance ${id}:`, initError)
+        // Initialize failed, possibly due to webhook setup
+        // Extract a meaningful error message
+        let errorMessage = 'Failed to initialize Sonarr instance'
+
+        if (initError instanceof Error) {
+          if (initError.message.includes('Sonarr API error')) {
+            errorMessage = initError.message
+          } else if (initError.message.includes('ECONNREFUSED')) {
+            errorMessage =
+              'Connection refused. Please check if Sonarr is running.'
+          } else if (initError.message.includes('ENOTFOUND')) {
+            errorMessage = 'Server not found. Please check your base URL.'
+          } else if (initError.message.includes('401')) {
+            errorMessage = 'Authentication failed. Please check your API key.'
+          } else {
+            errorMessage = initError.message
+          }
+        }
+
+        throw new Error(errorMessage)
+      }
     }
   }
 
