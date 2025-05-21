@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { SERIES_TYPES } from './constants.js'
+import { SERIES_TYPES } from './constants'
 
 // Base schemas for conditions
 export const ComparisonOperatorSchema = z.enum([
