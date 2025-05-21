@@ -15,7 +15,7 @@ const LoadingFallback = () => null
 
 export const router = createBrowserRouter([
   {
-    path: '/app/login',
+    path: '/login',
     element: (
       <Suspense fallback={<LoadingFallback />}>
         <LoginPage />
@@ -23,7 +23,7 @@ export const router = createBrowserRouter([
     ),
   },
   {
-    path: '/app/create-user',
+    path: '/create-user',
     element: (
       <Suspense fallback={<LoadingFallback />}>
         <CreateUserPage />
@@ -31,7 +31,7 @@ export const router = createBrowserRouter([
     ),
   },
   {
-    path: '/app/plex',
+    path: '/plex',
     element: (
       <AuthenticatedLayout>
         <Suspense fallback={<LoadingFallback />}>
@@ -41,7 +41,7 @@ export const router = createBrowserRouter([
     ),
   },
   {
-    path: '/app/sonarr',
+    path: '/sonarr',
     element: (
       <AuthenticatedLayout>
         <Suspense fallback={<LoadingFallback />}>
@@ -51,7 +51,7 @@ export const router = createBrowserRouter([
     ),
   },
   {
-    path: '/app/radarr',
+    path: '/radarr',
     element: (
       <AuthenticatedLayout>
         <Suspense fallback={<LoadingFallback />}>
@@ -61,7 +61,7 @@ export const router = createBrowserRouter([
     ),
   },
   {
-    path: '/app/notifications',
+    path: '/notifications',
     element: (
       <AuthenticatedLayout>
         <Suspense fallback={<LoadingFallback />}>
@@ -71,7 +71,7 @@ export const router = createBrowserRouter([
     ),
   },
   {
-    path: '/app/dashboard',
+    path: '/dashboard',
     element: (
       <AuthenticatedLayout>
         <Suspense fallback={<LoadingFallback />}>
@@ -81,7 +81,7 @@ export const router = createBrowserRouter([
     ),
   },
   {
-    path: '/app/utilities',
+    path: '/utilities',
     element: (
       <AuthenticatedLayout>
         <Suspense fallback={<LoadingFallback />}>

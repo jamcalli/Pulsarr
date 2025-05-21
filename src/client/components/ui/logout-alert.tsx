@@ -18,11 +18,11 @@ interface LogoutAlertProps {
 }
 
 /**
- * Renders a modal dialog prompting the user to confirm logout and manages the logout process with user notifications.
+ * Displays a modal dialog prompting the user to confirm logout and handles the logout process with user feedback.
  *
- * When confirmed, attempts to log out via an API call. On success, displays a success toast and navigates to the login page; on failure, closes the dialog and shows an error toast.
+ * When confirmed, attempts to log out via an API call. On success, shows a success toast and redirects to the login page; on failure, closes the dialog and displays an error toast.
  *
- * @param open - Whether the logout confirmation dialog is visible.
+ * @param open - Controls whether the logout confirmation dialog is visible.
  * @param onOpenChange - Callback to update the dialog's open state.
  */
 export function LogoutAlert({ open, onOpenChange }: LogoutAlertProps) {
@@ -49,7 +49,7 @@ export function LogoutAlert({ open, onOpenChange }: LogoutAlertProps) {
           description: data.message || 'Successfully logged out',
           variant: 'default',
         });
-        navigate('/app/login');
+        navigate('/login');
       } else {
         // Close the logout dialog
         onOpenChange(false);

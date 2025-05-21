@@ -11,9 +11,9 @@ import {
 /**
  * Provides state management, validation, and submission handling for a login form in a React application.
  *
- * Initializes form validation using a Zod schema, manages loading and success states, handles backend and unexpected errors, and automatically focuses the email input on mount. On successful login, displays a welcome toast and redirects the user.
+ * Initializes form validation using a Zod schema, manages form status and backend error messages, and focuses the email input on mount. On successful login, shows a welcome toast and redirects the user to a dashboard or a specified route.
  *
- * @returns An object containing the form instance, current status, backend error message, email input ref, and the submit handler.
+ * @returns An object with the form instance, current status, backend error message, email input ref, and the submit handler function.
  */
 export function useLoginForm() {
   const navigate = useNavigate()
@@ -60,7 +60,7 @@ export function useLoginForm() {
             variant: 'default',
           })
           setTimeout(() => {
-            navigate(responseData.redirectTo || '/app/dashboard')
+            navigate(responseData.redirectTo || '/dashboard')
           }, 1000)
         } else {
           setStatus('idle')

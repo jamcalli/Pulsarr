@@ -4,6 +4,7 @@ import fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { resolve, dirname } from 'node:path'
 import pino from 'pino'
+import type { FastifyRequest } from 'fastify'
 
 export const validLogLevels: LevelWithSilent[] = [
   'fatal',
@@ -35,6 +36,47 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 const projectRoot = resolve(__dirname, '..', '..')
 
+/**
+ * Returns a serializer function for Fastify requests that redacts sensitive query parameters from the URL.
+ *
+ * The serializer extracts the HTTP method, URL, host, remote address, and remote port from the request, replacing the values of sensitive query parameters (`apiKey`, `password`, `token`, `plexToken`, `X-Plex-Token`) in the URL with `[REDACTED]`.
+ *
+ * @returns A function that serializes a Fastify request with sensitive query parameters redacted from the URL.
+ */
+function createRequestSerializer() {
+  return (req: FastifyRequest) => {
+    // Get the default serialization
+    const serialized = {
+      method: req.method,
+      url: req.url,
+      host: req.headers.host as string | undefined,
+      remoteAddress: req.ip,
+      remotePort: req.socket.remotePort,
+    }
+
+    // Sanitize the URL
+    if (serialized.url) {
+      serialized.url = serialized.url
+        .replace(/([?&])apiKey=([^&]+)/gi, '$1apiKey=[REDACTED]')
+        .replace(/([?&])password=([^&]+)/gi, '$1password=[REDACTED]')
+        .replace(/([?&])token=([^&]+)/gi, '$1token=[REDACTED]')
+        .replace(/([?&])plexToken=([^&]+)/gi, '$1plexToken=[REDACTED]')
+        .replace(/([?&])X-Plex-Token=([^&]+)/gi, '$1X-Plex-Token=[REDACTED]')
+    }
+
+    return serialized
+  }
+}
+
+/**
+ * Generates a log filename using the given date and optional index.
+ *
+ * If no date or timestamp is provided, returns 'pulsarr-current.log'. Otherwise, formats the filename as 'pulsarr-YYYY-MM-DD[-index].log'.
+ *
+ * @param time - The date or timestamp for the log filename. If falsy, returns the default current log filename.
+ * @param index - Optional index to append for rotated log files.
+ * @returns The generated log filename.
+ */
 function filename(time: number | Date, index?: number): string {
   if (!time) return 'pulsarr-current.log'
   const date = typeof time === 'number' ? new Date(time) : time
@@ -45,6 +87,13 @@ function filename(time: number | Date, index?: number): string {
   return `pulsarr-${year}-${month}-${day}${indexStr}.log`
 }
 
+/**
+ * Creates and returns a rotating file stream for logging, ensuring the log directory exists.
+ *
+ * If the log directory cannot be created or accessed, falls back to standard output.
+ *
+ * @returns A rotating file stream for logs, or {@link process.stdout} if setup fails.
+ */
 function getFileStream(): rfs.RotatingFileStream | NodeJS.WriteStream {
   const logDirectory = resolve(projectRoot, 'data', 'logs')
   try {
@@ -63,6 +112,11 @@ function getFileStream(): rfs.RotatingFileStream | NodeJS.WriteStream {
   }
 }
 
+/**
+ * Returns logger options for terminal output with human-readable formatting and redacted sensitive request data.
+ *
+ * The configuration uses the 'info' log level, formats logs with `pino-pretty`, and applies a request serializer that redacts sensitive query parameters from logged Fastify requests.
+ */
 function getTerminalOptions(): LoggerOptions {
   return {
     level: 'info',
@@ -73,19 +127,33 @@ function getTerminalOptions(): LoggerOptions {
         ignore: 'pid,hostname',
       },
     },
-  }
-}
-
-function getFileOptions(): FileLoggerOptions {
-  return {
-    level: 'info',
-    stream: getFileStream(),
+    serializers: {
+      req: createRequestSerializer(),
+    },
   }
 }
 
 /**
- * Parse command line arguments to determine log destination
- * @returns The log destination from command line args or default
+ * Creates logger options for writing logs to a rotating file stream with sensitive query parameters redacted from request logs.
+ *
+ * @returns Logger options suitable for file-based logging with redacted request serialization.
+ */
+function getFileOptions(): FileLoggerOptions {
+  return {
+    level: 'info',
+    stream: getFileStream(),
+    serializers: {
+      req: createRequestSerializer(),
+    },
+  }
+}
+
+/**
+ * Determines the log output destination based on command line arguments.
+ *
+ * Checks for `--log-terminal`, `--log-file`, or `--log-both` flags in the process arguments and returns the corresponding log destination. Defaults to `'terminal'` if no relevant flag is found.
+ *
+ * @returns The selected log destination: `'terminal'`, `'file'`, or `'both'`.
  */
 export function parseLogDestinationFromArgs(): LogDestination {
   const args = process.argv.slice(2)
@@ -99,10 +167,12 @@ export function parseLogDestinationFromArgs(): LogDestination {
 }
 
 /**
- * Create logger configuration with specified destination or
- * automatically detect from command line arguments
- * @param destination Optional explicit destination, overrides command line args
- * @returns Logger configuration object
+ * Creates a logger configuration for terminal, file, or both destinations, with request serialization and sensitive data redaction.
+ *
+ * Determines the logging destination from the provided argument or command line flags, and configures the logger accordingly. Supports simultaneous logging to terminal and file with appropriate serializers to redact sensitive query parameters in logged requests.
+ *
+ * @param destination - Optional log destination; if omitted, the destination is inferred from command line arguments.
+ * @returns Logger configuration options for initializing a logger with the specified output destination(s).
  */
 export function createLoggerConfig(
   destination?: LogDestination,
@@ -132,12 +202,16 @@ export function createLoggerConfig(
 
       const multistream = pino.multistream([
         { stream: prettyStream },
+
         { stream: fileStream },
       ])
 
       return {
         level: 'info',
         stream: multistream,
+        serializers: {
+          req: createRequestSerializer(),
+        },
       }
     }
     default:
