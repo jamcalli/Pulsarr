@@ -9,11 +9,11 @@ import {
 } from '@/features/create-user/schemas/create-user-schema'
 
 /**
- * React hook that manages the state, validation, and submission logic for a user creation form.
+ * React hook for managing a user creation form, including state, validation, and submission.
  *
- * Provides form instance, submission status, backend error message, a ref for the email input, and a submit handler.
+ * Initializes form validation with a Zod schema, handles backend submission, manages submission status and error messages, and provides a ref for focusing the email input on mount.
  *
- * @returns An object with the form instance, current status, backend error message, email input ref, and submit handler.
+ * @returns An object containing the form instance, current submission status, backend error message, email input ref, and the submit handler function.
  */
 export function useCreateUserForm() {
   const navigate = useNavigate()
