@@ -1,5 +1,6 @@
 import React from 'react'
 import DocFeature from './DocFeature'
+import WorkflowCard from './WorkflowCard'
 
 /**
  * Example usage of the DocFeature component
@@ -7,22 +8,36 @@ import DocFeature from './DocFeature'
 export default function DocFeatureExample() {
   return (
     <div className="flex flex-col gap-10">
-      <DocFeature title="Overview">
-        <div className="feature-content">
-          <h3 className="text-text">What is Pulsarr?</h3>
-          <p className="text-text">
-            Pulsarr is an integration tool that bridges Plex watchlists with
-            Sonarr and Radarr, enabling real-time media monitoring and automated
-            content acquisition directly from the Plex app.
-          </p>
+      {/* Overview section with workflow demo side by side */}
+      <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6 items-start md:items-stretch">
+        <DocFeature title="Overview">
+          <div className="feature-content">
+            <h3 className="text-text">What is Pulsarr?</h3>
+            <p className="text-text">
+              Pulsarr monitors user Plex watchlists in real-time*, intelligently
+              routing content to multiple Sonarr/Radarr instances through a
+              predicate-based routing system—all without requiring additional
+              user logins beyond the admin's Plex token.
+            </p>
 
-          <p className="text-text">
-            With Pulsarr, users can add content to their Plex watchlist, and the
-            system automatically routes it to the appropriate Sonarr or Radarr
-            instance based on configurable rules and conditions.
-          </p>
-        </div>
-      </DocFeature>
+            <p className="text-text">
+              Features include conditional content routing based on
+              genre/user/language/year/certification, granular user permissions
+              with tag tracking, personalized notifications via built-in Discord
+              bot or 80+ Apprise notification agents, automatic Plex library
+              updates, and smart content lifecycle management with automatic
+              deletion options when content leaves watchlists.
+            </p>
+
+            <p className="text-text text-xs opacity-70 mt-2">
+              * Non-Plex Pass users supported with 20-minute polling intervals;
+              all other features remain identical.
+            </p>
+          </div>
+        </DocFeature>
+
+        <WorkflowCard />
+      </div>
 
       <DocFeature title="Features" titleClassName="feature-heading-blue">
         <div className="feature-content">
