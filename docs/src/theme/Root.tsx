@@ -4,10 +4,37 @@ import GitHubStatsButton from '@site/src/components/GitHubStatsButton'
 import GitHubStatsButtonWrapper from '@site/src/components/GitHubStatsButtonWrapper'
 import { useLocation } from '@docusaurus/router'
 
+// Global root store to prevent multiple createRoot calls
+const rootStore = new Map()
+
+// Helper function to get or create a root for a container
+const getOrCreateRoot = (container) => {
+  if (!container) return null
+  
+  // If container is not in DOM anymore, remove from store
+  if (!document.contains(container)) {
+    rootStore.delete(container)
+  }
+  
+  let root = rootStore.get(container)
+  if (!root) {
+    try {
+      root = createRoot(container)
+      rootStore.set(container, root)
+    } catch (error) {
+      console.error('Error creating root:', error)
+      // If createRoot failed, the container might already have a root
+      // Try to find and remove any existing root for this container
+      rootStore.delete(container)
+      return null
+    }
+  }
+  return root
+}
+
 // This component wraps the entire Docusaurus app
 export default function Root({ children }): React.ReactElement {
   const location = useLocation()
-  const [root, setRoot] = useState(null)
   const renderCountRef = useRef(0)
   const timeoutIdsRef = useRef([])
 
@@ -41,51 +68,39 @@ export default function Root({ children }): React.ReactElement {
       return // Button is already rendered, no need to continue
     }
 
+    // Use the standard container ID
+    const containerId = 'github-stats-button'
+    
     // Find the button container
-    const container = document.getElementById('github-stats-button')
+    let container = document.getElementById(containerId)
 
-    // If container exists and is empty, render the button
+    // If container doesn't exist, create it
+    if (!container) {
+      // Check if we're in the navbar
+      const navbarRight = document.querySelector('.navbar__items--right')
+      
+      if (navbarRight) {
+        // Create the container if it doesn't exist
+        container = document.createElement('div')
+        container.id = containerId
+        
+        // Insert before the last child (usually the theme toggle)
+        navbarRight.insertBefore(container, navbarRight.lastChild)
+      }
+    }
+
+    // If we have a container and it's empty, render the button
     if (container && !container.hasChildNodes()) {
       try {
-        // If we already have a root, use it, otherwise create a new one
-        let reactRoot = root
-        if (!reactRoot) {
-          reactRoot = createRoot(container)
-          setRoot(reactRoot)
+        const reactRoot = getOrCreateRoot(container)
+        if (reactRoot) {
+          reactRoot.render(<GitHubStatsButton />)
         }
-
-        reactRoot.render(<GitHubStatsButton />)
       } catch (error) {
         console.error('Error rendering GitHub stats button:', error)
       }
     }
-    // Handle the case where container doesn't exist
-    else if (!container) {
-      // Check if we're in the navbar
-      const navbarRight = document.querySelector('.navbar__items--right')
-
-      if (navbarRight) {
-        // Create the container if it doesn't exist
-        const newContainer = document.createElement('div')
-        newContainer.id = 'github-stats-button'
-
-        // Insert before the last child (usually the theme toggle)
-        navbarRight.insertBefore(newContainer, navbarRight.lastChild)
-
-        // Now render to this new container
-        try {
-          const reactRoot = createRoot(newContainer)
-          setRoot(reactRoot)
-          reactRoot.render(<GitHubStatsButton />)
-        } catch (error) {
-          console.error(
-            'Error creating new container for GitHub stats button:',
-            error,
-          )
-        }
-      }
-    }
-  }, [root])
+  }, [])
 
   // Schedule multiple render attempts with increasing delays
   const scheduleRenders = useCallback(() => {
@@ -251,13 +266,15 @@ export default function Root({ children }): React.ReactElement {
       // Disconnect observers
       if (bodyObserver) bodyObserver.disconnect()
       if (navObserver) navObserver.disconnect()
+      
+      // Clean up React roots
+      rootStore.clear()
     }
   }, [renderGitHubButton, scheduleRenders, clearAllTimeouts, addTimeout])
 
-  // Use both approaches to ensure button persistence
+  // Use the enhanced Root approach only
   return (
     <>
-      <GitHubStatsButtonWrapper />
       {children}
     </>
   )
