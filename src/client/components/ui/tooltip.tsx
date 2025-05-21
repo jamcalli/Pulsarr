@@ -10,6 +10,7 @@ type TooltipContextType = {
   isMobile: boolean;
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
+  isControlled: boolean;
 }
 
 const TooltipContext = React.createContext<TooltipContextType | null>(null)
@@ -25,15 +26,16 @@ interface TooltipProps extends React.ComponentPropsWithoutRef<typeof TooltipPrim
 const Tooltip = ({ children, ...props }: TooltipProps) => {
   const isMobile = useMediaQuery('(max-width: 768px)')
   const [isOpen, setIsOpen] = React.useState(false)
+  const isControlled = props.open !== undefined
   
   // Use provided open prop if available, otherwise use internal state for mobile
-  const controlledOpen = props.open !== undefined ? props.open : (isMobile ? isOpen : undefined)
+  const controlledOpen = isControlled ? props.open : (isMobile ? isOpen : undefined)
   
   // Extract open from props to avoid confusion about precedence
   const { open: _, ...restProps } = props
   
   return (
-    <TooltipContext.Provider value={{ isMobile, isOpen, setIsOpen }}>
+    <TooltipContext.Provider value={{ isMobile, isOpen, setIsOpen, isControlled }}>
       <TooltipPrimitive.Root
         {...restProps}
         open={controlledOpen}
@@ -55,7 +57,7 @@ const TooltipTrigger = React.forwardRef<
   const [isLongPressing, setIsLongPressing] = React.useState(false)
   
   const startLongPress = () => {
-    if (context?.isMobile) {
+    if (context?.isMobile && !context?.isControlled) {
       longPressTimer.current = setTimeout(() => {
         setIsLongPressing(true)
         context.setIsOpen(true)
@@ -106,7 +108,9 @@ const TooltipTrigger = React.forwardRef<
       e.preventDefault()
       e.stopPropagation()
       setIsLongPressing(false)
-      context?.setIsOpen(false)
+      if (!context?.isControlled) {
+        context?.setIsOpen(false)
+      }
     }
   }
   
@@ -141,7 +145,7 @@ const TooltipContent = React.forwardRef<
   
   // Create a handler for outside clicks/taps
   const handleOutsidePointer = React.useCallback((e: Event) => {
-    if (context?.isMobile) {
+    if (context?.isMobile && !context?.isControlled) {
       context.setIsOpen(false)
     }
     

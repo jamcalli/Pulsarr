@@ -28,6 +28,14 @@ class HttpError extends Error {
   ) {
     super(message)
     this.name = 'HttpError'
+
+    // Fix prototype chain – important after TS → JS down-emit
+    Object.setPrototypeOf(this, new.target.prototype)
+
+    // Preserve stack trace when available
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, HttpError)
+    }
   }
 }
 
@@ -273,6 +281,9 @@ export class RadarrService {
           errorMessage = `Failed to create webhook: ${createError.message}`
         }
 
+        if (createError instanceof HttpError) {
+          throw new HttpError(errorMessage, createError.status)
+        }
         throw new Error(errorMessage, { cause: createError })
       }
 
@@ -389,7 +400,10 @@ export class RadarrService {
   private async verifyConnection(
     instance: RadarrInstance,
   ): Promise<SystemStatus> {
-    const url = new URL(`${instance.baseUrl}/api/v3/system/status`)
+    // Normalize URL with protocol
+    const safeBaseUrl = this.ensureUrlHasProtocol(instance.baseUrl)
+    const url = new URL(`${safeBaseUrl}/api/v3/system/status`)
+
     const response = await fetch(url.toString(), {
       method: 'GET',
       headers: {
@@ -406,6 +420,10 @@ export class RadarrService {
 
     if (!isSystemStatus(status)) {
       throw new Error('Invalid status response from Radarr')
+    }
+
+    if (!isRadarrStatus(status)) {
+      throw new Error('Connected service is not a valid Radarr application')
     }
 
     return status
