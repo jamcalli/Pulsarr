@@ -1,0 +1,90 @@
+/**
+ * Custom navbar styling for Docusaurus
+ */
+
+/* Set default colors for navbar links */
+.navbar__link {
+	color: var(--text) !important;
+	font-weight: 500;
+}
+
+/* Make sure links stay dark on hover, just slightly lighter */
+.navbar__link:hover,
+.navbar__link--active {
+	color: var(--text) !important;
+	opacity: 0.8;
+	text-decoration: none;
+}
+
+/* Remove blue color from active link */
+.navbar__link.navbar__link--active {
+	color: var(--text) !important;
+	opacity: 0.8;
+}
+
+/* Ensure dark text in both light and dark modes */
+html[data-theme="light"] .navbar__link,
+html[data-theme="light"] .navbar__link:hover,
+html[data-theme="light"] .navbar__link--active {
+	color: var(--text) !important;
+}
+
+html[data-theme="dark"] .navbar__link,
+html[data-theme="dark"] .navbar__link:hover,
+html[data-theme="dark"] .navbar__link--active {
+	color: var(--text) !important;
+}
+
+/* Remove background color from active/hover states */
+.navbar__link:hover,
+.navbar__link--active {
+	background-color: transparent !important;
+}
+
+/* Make logo text darker */
+.navbar__title {
+	color: var(--text) !important;
+	font-weight: 600;
+}
+
+/* Styling for GitHub stats button container */
+#github-stats-button {
+	display: flex;
+	align-items: center;
+	margin-right: 0.75rem;
+	height: 40px; /* Match the height of container to mode toggle */
+	order: 98; /* Position before theme toggle but after other elements */
+}
+
+/* Better align navbar components */
+.navbar__items--right {
+	align-items: center;
+	height: 100%;
+}
+
+/* Make sure all buttons in the navbar are consistently sized */
+.navbar__items--right button {
+	height: 2.5rem;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	margin: 0;
+}
+
+/* Mobile styles - ensure GitHub stats button stays visible */
+@media (max-width: 996px) {
+	#github-stats-button {
+		display: flex !important;
+		margin-right: 0.5rem;
+	}
+
+	/* Ensure the GitHub button doesn't wrap to a new line */
+	.navbar__items--right {
+		flex-wrap: nowrap;
+	}
+
+	/* Keep GitHub button in mobile view */
+	.navbar-sidebar .navbar__items #github-stats-button {
+		display: none !important;
+	}
+}
