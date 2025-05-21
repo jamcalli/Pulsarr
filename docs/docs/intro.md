@@ -2,46 +2,79 @@
 sidebar_position: 1
 ---
 
-# Tutorial Intro
+# Introduction to Pulsarr
 
-Let's discover **Docusaurus in less than 5 minutes**.
+<div align="center">
+  <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/icons/pulsarr.svg" alt="Pulsarr Logo" width="150"/>
+  <p>Real-time Plex watchlist monitoring, routing, and notification center</p>
+</div>
 
-## Getting Started
+Pulsarr is an integration tool that bridges Plex watchlists with Sonarr and Radarr, enabling real-time media monitoring and automated content acquisition all from within the Plex App itself.
 
-Get started by **creating a new site**.
+Enjoy all the benefits of other content discovery systems without requiring users to use additional services. All the magic happens from the primary user's Plex Token.
 
-Or **try Docusaurus immediately** with **[docusaurus.new](https://docusaurus.new)**.
+## Key Features
 
-### What you'll need
+- **Real-time & Interval-based Watchlist Monitoring**:
+  - Real-time monitoring through RSS feeds for Plex Pass users
+  - 20-minute interval polling for non-Plex Pass users
+  - All other features remain identical regardless of Plex Pass status
 
-- [Node.js](https://nodejs.org/en/download/) version 18.0 or above:
-  - When installing Node.js, you are recommended to check all checkboxes related to dependencies.
+- **Advanced Content Routing**:
+  - Intelligent routing system with support for complex conditions and multiple instances
+  - Route content based on genre, user, language, year, and certification
 
-## Generate a new site
+- **Comprehensive Notification System**:
+  - Discord integration with user-friendly notification system
+  - Apprise integration supporting 80+ notification methods
+  - Smart notification batching for season packs and individual episodes/movies
 
-Generate a new Docusaurus site using the **classic template**.
+- **User Management**:
+  - Granular user controls for watchlist syncing
+  - Tag-based tracking for user content requests
+  - Automatic multi-user watchlist monitoring
 
-The classic template will automatically be added to your project after you run the command:
+- **Intelligent Content Lifecycle**:
+  - Automatic configuration of webhook endpoints
+  - Smart deletion of content when removed from watchlists
+  - Plex playlist protection for preserving important content
 
-```bash
-npm init docusaurus@latest my-website classic
-```
+- **Modern Web Interface**:
+  - Comprehensive dashboard with detailed statistics
+  - Mobile-friendly design
+  - Built-in API documentation
 
-You can type this command into Command Prompt, Powershell, Terminal, or any other integrated terminal of your code editor.
+## How It Works
 
-The command also installs all necessary dependencies you need to run Docusaurus.
+Pulsarr uses an intelligent workflow to process and route content:
 
-## Start your site
+1. **Content Detection**:
+   - Monitor Plex watchlists in real-time (Plex Pass) or via interval polling
+   - Detect when users add new movies or TV shows to their watchlists
 
-Run the development server:
+2. **Content Analysis**:
+   - Evaluate content metadata (genres, language, year, etc.)
+   - Apply configured routing rules
+   - Determine optimal target instance(s)
 
-```bash
-cd my-website
-npm run start
-```
+3. **Automatic Acquisition**:
+   - Route content to appropriate Sonarr/Radarr instances
+   - Configure quality profiles, language, and monitoring settings
 
-The `cd` command changes the directory you're working with. In order to work with your newly created Docusaurus site, you'll need to navigate the terminal there.
+4. **Notification Delivery**:
+   - Send personalized notifications when content is available
+   - Support for Discord, Apprise, and webhook notifications
 
-The `npm run start` command builds your website locally and serves it through a development server, ready for you to view at http://localhost:3000/.
+5. **Content Lifecycle Management**:
+   - Optional automatic deletion when content leaves watchlists
+   - Plex playlist protection for preserving important content
 
-Open `docs/intro.md` (this page) and edit some lines: the site **reloads automatically** and displays your changes.
+## Screenshots
+
+<div align="center">
+  <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Dashboard1.png" alt="Dashboard Overview" width="80%"/>
+</div>
+
+## Next Steps
+
+Ready to get started? Check out the [Quick Start Guide](installation/quick-start) or explore the detailed documentation sections to learn more about Pulsarr's features and capabilities.

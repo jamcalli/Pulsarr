@@ -11,7 +11,11 @@
       ],
       "@docusaurus/*": ["node_modules/@docusaurus/core/lib/client/exports/*"],
       "@/client/*": ["../src/client/*"],
+      "@/hooks/*": ["../src/client/hooks/*"],
+      "@/components/*": ["../src/client/components/*"],
+      "@/features/*": ["../src/client/features/*"],
       "@/lib/*": ["../src/client/lib/*"],
+      "@root/*": ["../src/*"],
       "@/*": ["../src/*"]
     },
     "jsx": "react-jsx",
