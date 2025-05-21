@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import BrowserOnly from '@docusaurus/BrowserOnly'
+import useBaseUrl from '@docusaurus/useBaseUrl'
 
 const WorkflowSequence = () => {
   const [currentStep, setCurrentStep] = useState(0)
@@ -8,19 +9,19 @@ const WorkflowSequence = () => {
   const steps = [
     {
       type: 'gif',
-      src: '/gifs/Plex-Grab.gif',
+      src: useBaseUrl('/gifs/Plex-Grab.gif'),
       alt: 'Plex Grab workflow',
       caption: 'Add content to Plex watchlist',
     },
     {
       type: 'gif',
-      src: '/gifs/Import.gif',
+      src: useBaseUrl('/gifs/Import.gif'),
       alt: 'Import workflow',
       caption: 'Content is automatically imported',
     },
     {
       type: 'image',
-      src: '/img/Discord-Notification.png',
+      src: useBaseUrl('/img/Discord-Notification.png'),
       alt: 'Discord Notification',
       caption: 'Get notified when your content is ready',
     },

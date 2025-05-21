@@ -71,9 +71,9 @@ When Plex Playlist Protection is enabled, running a dry run will automatically c
 
 You can configure notifications to receive information regarding your workflow:
 
-![Delete Sync Dry](/img/Delete-Sync-Dry.png)
+![Delete Sync Dry](../../static/img/Delete-Sync-Dry.png)
 
-![Delete Sync Error](/img/Delete-Sync-Error.png)
+![Delete Sync Error](../../static/img/Delete-Sync-Error.png)
 
 ## Safety Features
 
