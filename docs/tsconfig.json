@@ -5,7 +5,10 @@
     "baseUrl": ".",
     "paths": {
       "@site/*": ["*"],
-      "@theme/*": ["src/theme/*", "node_modules/@docusaurus/theme-classic/lib/theme/*"],
+      "@theme/*": [
+        "src/theme/*",
+        "node_modules/@docusaurus/theme-classic/lib/theme/*"
+      ],
       "@docusaurus/*": ["node_modules/@docusaurus/core/lib/client/exports/*"],
       "@/client/*": ["../src/client/*"],
       "@/lib/*": ["../src/client/lib/*"],
