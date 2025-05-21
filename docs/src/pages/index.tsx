@@ -2,6 +2,7 @@ import React from 'react'
 import { useEffect } from 'react'
 import { useHistory } from '@docusaurus/router'
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext'
+import useBaseUrl from '@docusaurus/useBaseUrl'
 import Layout from '@theme/Layout'
 import BrowserOnly from '@docusaurus/BrowserOnly'
 import Heading from '@theme/Heading'
@@ -51,6 +52,9 @@ export default function Home(): React.ReactElement {
 
           const ClientHome = () => {
             const isMobile = useMediaQuery('(max-width: 768px)')
+            const planetMobileUrl = useBaseUrl('/img/planet-m.webp')
+            const planetUrl = useBaseUrl('/img/planet.webp')
+            const docsIntroUrl = useBaseUrl('/docs/intro')
 
             // Simple cleanup effect
             useEffect(() => {
@@ -148,15 +152,15 @@ export default function Home(): React.ReactElement {
                               }
                               srcSet={
                                 isMobile
-                                  ? '/img/planet-m.webp'
-                                  : '/img/planet.webp'
+                                  ? planetMobileUrl
+                                  : planetUrl
                               }
                               type="image/webp"
                               width={isMobile ? '600' : '1522'}
                               height={isMobile ? '634' : '1608'}
                             />
                             <img
-                              src="/img/planet.webp"
+                              src={planetUrl}
                               alt="Planet"
                               fetchPriority="high"
                               width="1522"
@@ -213,7 +217,7 @@ export default function Home(): React.ReactElement {
                         variant="default"
                         size={isMobile ? 'md' : 'lg'}
                         className="hero-button"
-                        onClick={() => history.push('/docs/intro')}
+                        onClick={() => history.push(docsIntroUrl)}
                       >
                         Get Started
                       </Button>

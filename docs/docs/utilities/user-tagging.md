@@ -67,4 +67,4 @@ User Tagging works seamlessly with Delete Sync's tag-based deletion mode:
 - Protect content with specific tags from deletion
 - Create complex deletion workflows based on tag lifecycle
 
-![User Tagging](/img/User-Tags.png)
+![User Tagging](../../static/img/User-Tags.png)

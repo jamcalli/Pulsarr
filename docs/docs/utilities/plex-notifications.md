@@ -24,6 +24,6 @@ Pulsarr's Plex Notifications feature automatically configures webhooks in all yo
 4. Select your server or manually enter your Plex host, port, and SSL settings
 5. Save your changes to automatically configure webhooks in all Sonarr and Radarr instances
 
-![Plex Notifications](/img/Plex-Notifications.png)
+![Plex Notifications](../../static/img/Plex-Notifications.png)
 
 Once configured, anytime content is added, modified, or removed via Sonarr or Radarr, your Plex libraries will automatically refresh to reflect these changes.
