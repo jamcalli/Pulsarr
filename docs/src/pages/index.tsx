@@ -189,6 +189,7 @@ export default function Home(): React.ReactElement {
                     paddingBottom: '4rem',
                     paddingLeft: '2rem',
                     paddingRight: '2rem',
+                    marginBottom: isMobile ? '-700px' : '-210px', // Much more negative margin on mobile
                   }}
                 >
                   <div className="container mx-auto">
@@ -205,10 +206,12 @@ export default function Home(): React.ReactElement {
                       marginTop: '2rem',
                     }}
                   >
-                    <div className="flex gap-6 justify-center">
+                    <div
+                      className={`flex ${isMobile ? 'flex-col gap-3' : 'gap-6'} justify-center`}
+                    >
                       <Button
                         variant="default"
-                        size="lg"
+                        size={isMobile ? 'md' : 'lg'}
                         className="hero-button"
                         onClick={() => history.push('/docs/intro')}
                       >
@@ -216,7 +219,7 @@ export default function Home(): React.ReactElement {
                       </Button>
                       <Button
                         variant="neutral"
-                        size="lg"
+                        size={isMobile ? 'md' : 'lg'}
                         className="hero-button"
                         onClick={() =>
                           window.open(
