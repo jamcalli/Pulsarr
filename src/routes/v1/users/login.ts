@@ -54,7 +54,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           success: true,
           message: 'Login successful',
           username: user.username,
-          redirectTo: hasPlexTokens ? '/app/dashboard' : '/app/plex',
+          redirectTo: hasPlexTokens ? '/dashboard' : '/plex',
         }
       } catch (error) {
         return reply.internalServerError('Login failed.')
