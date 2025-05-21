@@ -4,8 +4,6 @@
       "dist",
       "tests",
       "migrations",
-      "src/client/components/ui",
-      "src/client/hooks",
       "docs/build",
       "docs/.docusaurus",
       "docs/node_modules"
@@ -33,6 +31,39 @@
         "rules": {
           "style": {
             "useImportType": "off"
+          }
+        }
+      }
+    },
+    {
+      "include": ["src/client/components/ui/**/*", "src/client/hooks/**/*"],
+      "formatter": {
+        "enabled": false
+      },
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noForEach": "off",
+            "useOptionalChain": "off"
+          },
+          "correctness": {
+            "useExhaustiveDependencies": "off"
+          },
+          "security": {
+            "noDangerouslySetInnerHtml": "off"
+          },
+          "suspicious": {
+            "noExplicitAny": "off",
+            "noArrayIndexKey": "off"
+          },
+          "a11y": {
+            "noSvgWithoutTitle": "off",
+            "useKeyWithClickEvents": "off",
+            "useSemanticElements": "off"
+          },
+          "style": {
+            "noUselessElse": "off",
+            "useSingleVarDeclarator": "off"
           }
         }
       }
