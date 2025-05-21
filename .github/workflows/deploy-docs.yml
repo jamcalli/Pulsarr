@@ -1,0 +1,44 @@
+name: Deploy Documentation (Test)
+
+on:
+  workflow_dispatch: # Manual triggering only
+    inputs:
+      branch:
+        description: 'Branch to deploy from'
+        required: true
+        default: 'docs/add-propper-docs'
+        type: string
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.branch }}
+        fetch-depth: 0 # Needed for proper git history
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: docs/package-lock.json
+
+    - name: Install dependencies
+      run: |
+        cd docs
+        npm ci
+
+    - name: Build documentation
+      run: |
+        cd docs
+        npm run build
+
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./docs/build
+        destination_dir: test-docs # Deploy to a subdirectory for testing
