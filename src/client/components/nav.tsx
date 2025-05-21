@@ -9,13 +9,13 @@ interface NavProps {
 }
 
 /**
- * Renders a responsive navigation menu with layouts for mobile and desktop views.
+ * Displays a responsive navigation menu with distinct layouts for mobile and desktop views.
  *
- * Displays navigation links for Dashboard, Notifications, Utilities, Plex, Sonarr, and Radarr, highlighting the active route. In mobile view, links are arranged vertically with optional click handling. In desktop view, links are arranged in a grid with a settings button.
+ * Shows navigation links for Dashboard, Notifications, Utilities, Plex, Sonarr, and Radarr, highlighting the active route. In mobile view, links are arranged vertically and can trigger an optional callback when clicked. In desktop view, links are arranged in a grid alongside a settings button.
  *
- * @param isMobile - If true, renders the mobile navigation layout; otherwise, renders the desktop layout.
- * @param className - Optional additional CSS classes for the root navigation element.
- * @param onNavItemClick - Optional callback invoked when a navigation link is clicked in mobile view.
+ * @param isMobile - Whether to render the mobile navigation layout.
+ * @param className - Additional CSS classes for the navigation container.
+ * @param onNavItemClick - Callback invoked when a navigation link is clicked in mobile view.
  */
 export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
   const location = useLocation()
