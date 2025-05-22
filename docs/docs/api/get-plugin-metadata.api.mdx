@@ -1,0 +1,63 @@
+---
+id: get-plugin-metadata
+title: "Get plugin metadata"
+description: "Retrieve detailed metadata about content router evaluator plugins including supported fields and operators"
+sidebar_label: "Get plugin metadata"
+hide_title: true
+hide_table_of_contents: true
+api: eJzVVUtr20AQ/ivLnFpQkNPQi26haUKgpcZNezE+jKWxtelqV5kdOTFC/73sWrZl1+AcSkpPeszjm8c3My24mhhFO3tfQAZLkrFpltp+JcECBSEBwaWHbAqfnBWyoiauEWKYJVCQz1nXwRoymJCwphWpggS1oUJVvROFc9eIynsHHB0oWqFpUByrOkJ6pW1umkLbpfJNXTsWKtRCkym8QluoTaiOPSTA5GtnPXnIWvgwGoXHYTg3tMDGiJr0mpBAH0DQxbo2Oo+Jp48+GLTg85IqDG+yrgkycPNHygUSqDlgi97A+SbPyfuB4tw5Q2ihS2CX1VCOzLiGBLRQ5c8DWKxooOWFtV0G5wcZnpDXrB1rWQ+EtqnmxEG4q+ltLOk/CC+Uhh7WNb0GfGvWdaHbT41mKgINI/oh1oHnWQJYFDoI0IwHgS/QeIpRRmJANp0Nq/Jtx64TBTjt8T8pYG9367hCOa3wFws8rHAbvvqpe4igx+AJkG2qAMtYIDMk4J3dvMydlDB7VXg74p8L7sjZdpQP5vasjy6Bj2+7ciryHpenSHOU0FbxfA5dAhVJ6fq1HyBRSsggXV2mfdgXm1Wd9gs6rfZXwROvKAzLtIWGDWRQitRZmhqXoymdl+xqNLqC4yvxZStW17H06t2zllKFGXwP3SwBbRcu5qnFhETHjfHIrK7H9384ux7fq8LlTUVWYmHVwrHaWlwoVGNDL+oZJS+N9qK0FVryXvV75Fq8LpMt/0JaG/c/L+NSdV4qtPvBhTuS/mapQUWOhnfX+bc9jD09hF4krQ3qeJRig9q+wVNYXe6Z2bc4tH8DBpEXm6RmCYRWBZu2naOnH2y6Lvx+aojXYYWG1cAa56FXcaGWhAVx5MUvWocm5TnVst0hYWEdD0Jo+46Ld58foOt+A1vVCes=
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get plugin metadata"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/content-router/plugins/metadata"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieve detailed metadata about content router evaluator plugins including supported fields and operators
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"evaluators":{"type":"array","items":{"type":"object","properties":{"name":{"type":"string"},"description":{"type":"string"},"priority":{"type":"number"},"supportedFields":{"type":"array","items":{"type":"object","properties":{"name":{"type":"string"},"description":{"type":"string"},"valueTypes":{"type":"array","items":{"type":"string"}}},"required":["name","description","valueTypes"],"additionalProperties":false},"default":[]},"supportedOperators":{"type":"object","additionalProperties":{"type":"array","items":{"type":"object","properties":{"name":{"type":"string"},"description":{"type":"string"},"valueTypes":{"type":"array","items":{"type":"string"}},"valueFormat":{"type":"string"}},"required":["name","description","valueTypes"],"additionalProperties":false}},"default":{}},"contentType":{"type":"string","enum":["radarr","sonarr","both"]}},"required":["name","description","priority"],"additionalProperties":false}}},"required":["success","evaluators"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

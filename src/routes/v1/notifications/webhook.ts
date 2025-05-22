@@ -25,6 +25,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/webhook',
     {
       schema: {
+        summary: 'Process media webhook',
+        operationId: 'processMediaWebhook',
+        description:
+          'Process webhooks from Radarr (movies) or Sonarr (TV series) for media notifications',
         body: {
           ...WebhookPayloadSchema,
           examples: [
@@ -59,8 +63,6 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           ],
         },
         querystring: WebhookQuerySchema,
-        description:
-          'Process webhooks from Radarr (movies) or Sonarr (TV series)',
         response: {
           200: WebhookResponseSchema,
           400: ErrorSchema,

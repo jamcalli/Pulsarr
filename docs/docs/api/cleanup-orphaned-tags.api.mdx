@@ -1,0 +1,63 @@
+---
+id: cleanup-orphaned-tags
+title: "Cleanup orphaned tags"
+description: "Clean up orphaned user tags from instances"
+sidebar_label: "Cleanup orphaned tags"
+hide_title: true
+hide_table_of_contents: true
+api: eJzlVLFu20AM/ZUDpxZQIadBF21BuwQoECNJuxge6BNtXXK6u/AoJ4Ggfy+oWLYTIwi6dOkkWyQfyfeo10NMxCguhssaKrCeMHTpilODgepb3GQoQPRRLWD8uyygpmzZJa2CCr5rjemSibsq02Vio0VmzbE1LmTBYEmhmHKKIVOGqoevs5k+XsP9oDV2Xsz1LhMKsDEIBdFcTMk7Ow5c3mUt6CHbhlrUX/KcCCqIqzuyAgUk1vXEvbTLnbWU81HiKkYdHoYCWsoZN3QUzMIubDTGWCPzxw2Y2ril+igxdO2KWDHyvUvpndganX8ndODuNKqT0UPnWGsX++6HXnvkY5xlAVjXThlEPz+af40+k04aw3+z7RvQ6UIO57AXf8/LR4iK+e3fHvb7t/tmvynx4x3GL0KaqKaQYh57ojRQQbk9K/XbLndeocwQb4nVInro2EMFjUiqytJHi76JWarz2ewc3jrHzylsLkbezadHJ41JkeUzDEvVcR3HrZx4XWve+YzM5mJ+eQJ2Mb80dbRdS0FGGs06spkqvhg0c09P5hHFNt5lMS4IbfiQejPqazDU5nrSXNd6gf99pgeqVLQ4ihOwpcn9js1PXjzz1XD9Qem/s8udnEJPUiaPbrSqkeJ+p8cCtmeTRReTf6vAyquG+36FmX6xHwZ9/dARP0O1WBawRXa4UmIXy6GAhrAmHkW8p2dl1FpKqvwWfadjnNyoarQ/k/nVzS0Mwx8mxDO0
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Cleanup orphaned tags"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/tags/cleanup"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Clean up orphaned user tags from instances
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"radarr":{"type":"object","properties":{"removed":{"type":"number"},"skipped":{"type":"number"},"failed":{"type":"number"},"instances":{"type":"number"}},"required":["removed","skipped","failed","instances"],"additionalProperties":false},"sonarr":{"type":"object","properties":{"removed":{"type":"number"},"skipped":{"type":"number"},"failed":{"type":"number"},"instances":{"type":"number"}},"required":["removed","skipped","failed","instances"],"additionalProperties":false}},"required":["success","message","radarr","sonarr"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

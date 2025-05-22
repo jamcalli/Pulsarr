@@ -15,6 +15,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/users/list',
     {
       schema: {
+        summary: 'Get users list',
+        operationId: 'getUsersList',
+        description: 'Retrieve a list of all users',
         response: {
           200: UserListResponseSchema,
           500: UserErrorSchema,
@@ -67,6 +70,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/users/list/with-counts',
     {
       schema: {
+        summary: 'Get users with watchlist counts',
+        operationId: 'getUsersWithCounts',
+        description:
+          'Retrieve a list of all users including their watchlist item counts',
         response: {
           200: UserListWithCountsResponseSchema,
           500: UserErrorSchema,

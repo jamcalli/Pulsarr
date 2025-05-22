@@ -1,0 +1,71 @@
+---
+id: update-schedule
+title: "Update job schedule"
+description: "Update an existing job schedule configuration"
+sidebar_label: "Update job schedule"
+hide_title: true
+hide_table_of_contents: true
+api: eJy9Vktv2zgQ/ivEnFpAhZW2e9Et3e0hQIE10mYvhg9jcWwxpUiWD8eGoP++GEqOVadJXDSIL5bIb96PTx1YRx6jsuZKQgXJSYz0tW5IJk1QQMRNgGoBhyMPywIkhdorx1JQwU2WEWgE7VSIymzErV2JMEqI2pq12qTBChTg6UeiED9ZuYeqg9qaSCbyIzqnVZ1xs9vAyjtgNS3mW7P/dw3VooO4dwQV2NUt1REKcJ6jiIoC44bbe1SIXpkNFEAmtRyKMpH8FjUs+wIG5ybwR5RK3E+UZx0b8lBAq4xqWXHZF9DY5M+AtcqkSGcAA9XWyDOAPpmrtiWpMJLeT/ArazWhgb4vAKVUnFvU80lsa9SBek4PrjTJR2S5aMrz9WK4Xj6j70+rVHtrfqtCtHOeQlBD25yqbZX5QmYTG6guTuOZSD4X1Qtnadn3LObQY0uRuHcW05b/OYq+AMUD5zA2UIDBli/z39R09In6JZ8EZ00YsvO+LHMb/zS5/9Aak47iekRCcf40Pl2MkOqaQvhVmgpoKQTc/KL6pyk8aDmKPJPPnM2P5cfXDJW8t/75WAbYOf7/9bqlemH/c31jY5lNXMrmuF0rmG0vZgdO8PdPYdZxA/fAy85vDyOQvIYKmhhdNZtpW6NubIjVh7L8AKf88+VwLS5zu4g3dyo2wlkf3wIPAmfk+kg6n3fYOk0nSzUzwnTbDBu/vF/q5WRvl5PVXD7cvnkCJ7tifFdmbbNVFdk8zJMO6L24nF89COpyfiWkrVNLJua6irX14iDxTqCYa9qJO4x1o1WIIhODP0K/WsNINFJco0TPlMHpHdT/d8GD6GyILeZuGZfJyOVT/j51bcLYv039Y74j7eLMaVR5HeRad2ObLGB7wb1w/7lxfOY9UGU/l1yUEBnddSsMdON13/Pxj0R+D9ViWcAWveL8536SKoy1yI36REhvrsemfysec3g8RLPnnKJO/AYFfKf9YR/3zFwNoSSf7Q9Xfw9W3n1jBUfRB9PL7DlIcEe7+CR2ORm4+c03KGA1flm1VrKIxzvmB7wbvLQ56Dz6+awDjWaT8kKGQSX//gevS4Sf
+sidebar_class_name: "put api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Update job schedule"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"put"}
+  path={"/v1/scheduler/schedules/{name}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Update an existing job schedule configuration
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"string"},"in":"path","name":"name","required":true}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"anyOf":[{"type":"object","properties":{"type":{"type":"string","enum":["interval"]},"config":{"type":"object","properties":{"days":{"type":"integer","minimum":0},"hours":{"type":"integer","minimum":0},"minutes":{"type":"integer","minimum":0},"seconds":{"type":"integer","minimum":0},"runImmediately":{"type":"boolean"}},"additionalProperties":false},"enabled":{"type":"boolean"}},"required":["type"],"additionalProperties":false},{"type":"object","properties":{"type":{"type":"string","enum":["cron"]},"config":{"type":"object","properties":{"expression":{"type":"string","minLength":1}},"required":["expression"],"additionalProperties":false},"enabled":{"type":"boolean"}},"required":["type"],"additionalProperties":false}]}}}}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}},"404":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"}},"required":["error"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"}},"required":["error"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

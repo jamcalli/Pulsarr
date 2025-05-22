@@ -1,0 +1,63 @@
+---
+id: get-availability-stats
+title: "Get availability time stats"
+description: "Retrieve average time from adding to availability statistics"
+sidebar_label: "Get availability time stats"
+hide_title: true
+hide_table_of_contents: true
+api: eJy1VMFu2zAM/RWBpw3Q4HTFLr4F2FAU2CFot12CoGBkxlYnS65Euw0M//tAx2mddB0GDPPFtvhEPb5HqofQUES2wV8XkENJvOzQOtxaZ3l/y8gJNDCWCfI1yL9NbE2CjYaCkom2kc2Qww1xtNSRwo4ilqTY1qR2MdQKi8L6UnFQOEuu0ks2DZFSE3yiBHkPHxcLeZ0e8Jl22DpWNxMSNJjgmTwLFpvGWTNWkt0n2dBDMhXVKF+8bwhywBhxDxosU51m62F7T4ZBQxNFD7YHGlP6uwPqGZ04Wl/CoAG78q7A/TyVb+stRQnW1v8hiE9vB01oD0W93kaFxTfTDiLjQ2sjFeLWCf0Z2Rm1GZHjsRsN4pcIiW4102OHLtEgj4ZP/8mgN4yoKSUsf+fBWclH4F8VURNXYep6ORK5ghyy7iKTzkzZvFlBQ6LYUZQ56KGNDnKomJs8y1ww6KqQOL9cLC7hfDC+HsNqaQylpN49Wq5UEyK/h2GjwfpdGEuz7KS2VesSxqiWq+tXyZara1UE09bkedRS7UJUxx0fFKqVoyf1iGwqZxMr65nK+AK9DV6Q6At1gwXGCBqkrEP6HxfSZU1IXOPokMdaKF0Rn87uONxpuh5OKPYvpv/rnTB5zfTEWePQeiE3St9Pbq2huxBrJiInjm00iOoC6vstJvoe3TDI8kNLcQ/5eqOhw2hxK7KvN4OGirCgOFr8k/aitzHUSHd06NrxCjlvY3HwuZOuvnyDYfgFW//e7g==
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get availability time stats"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/stats/availability"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieve average time from adding to availability statistics
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"array","items":{"type":"object","properties":{"content_type":{"type":"string"},"avg_days":{"type":"number"},"min_days":{"type":"number"},"max_days":{"type":"number"},"count":{"type":"number"},"median_days":{"type":"number"}},"required":["content_type","avg_days","min_days","max_days","count"],"additionalProperties":false}}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

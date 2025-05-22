@@ -1,0 +1,63 @@
+---
+id: get-router-plugins
+title: "Get router plugins"
+description: "Retrieve information about available content router evaluator plugins"
+sidebar_label: "Get router plugins"
+hide_title: true
+hide_table_of_contents: true
+api: eJy9VE2Pm0AM/Ssjn1qJFUlXvXCL2moVqQeUflyiHBxwYLbDDOsx7EaI/14NISHJRsql6okQPz9/vGc6cDUxinZ2mUMCBcnKNUKcmqbQ1kMEgoWHZA1fnBWyog5x2ESQk89Y1yEZEliRsKaWlLY7x9XAqXDrGlHYoja4NaSykYQHEkUtmgbFsapP9Zh87awnD0kHn2az8Lis9JV22BhRqxEJEYy8AYt1bXQ2lI+ffUjowGclVRh+yb4mSMBtnykTiKDmsADRh3K+yTLy/gy4dc4QWugjOLY4BZEZ9xCBFqr8fXaLFZ2hvLC2RWC+GO9GvCX2t2N92NdLo5nyoNFQYRMB5rkObGjSsw52aDz11znHmacB7xL0EXz+v8JU5D0Wt7Z3Nc0ReH+GPoKKpHSj7UNJlBISiNt5PLb9cPBpPLnTEwc1IFl30LCBBEqROolj4zI0pfOSPM5mj3B9Hd+PYbUY1q0+vGopVe1YPkK/iSBczTCeFhPmSxvjkVkt0uU7skW6VLnLmoqsHO5s51gdMx4UqtTQm3pFyUqjvShthQqeoD+cDUi0uVphjsxwZjL4PR/s7rxUaCfjwhOdDndayJV3T3r/s+/BqLfQm8S1QT3c4rD6blRsDe18stqo2aWfw+YDsOu26OkXm74Pf780xHtI1psIWmQdWgpvfQQlYU48yPyH9mHnWUZ1cElocTj+azsHFU+Oevr2E/r+L74z5L8=
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get router plugins"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/content-router/plugins"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieve information about available content router evaluator plugins
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"plugins":{"type":"array","items":{"type":"object","properties":{"name":{"type":"string"},"description":{"type":"string"},"version":{"type":"string"}},"required":["name"],"additionalProperties":false}}},"required":["success","plugins"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

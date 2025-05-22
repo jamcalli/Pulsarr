@@ -59,6 +59,50 @@ docker compose pull && docker compose up -d
 
 4. Navigate to the web UI (http://your-server:3003) to complete setup.
 
+### Unraid Installation
+
+Pulsarr is available in the Unraid Community Applications (CA) store:
+
+1. Open the Unraid web UI
+2. Navigate to the "Apps" tab
+3. Search for "Pulsarr"
+4. Click "Install"
+5. Configure the container settings as needed
+6. Start the container
+
+Alternatively, you can use the Docker installation method described above.
+
+### Manual Installation
+
+If you prefer to build and run Pulsarr manually:
+
+#### Prerequisites
+- Node.js 20 LTS or higher
+- Git
+
+#### Steps
+
+```bash
+# Clone the repository
+git clone https://github.com/jamcalli/pulsarr.git
+
+cd pulsarr
+
+# Install dependencies
+npm install
+
+# Build the application
+npm run build
+
+# Run database migrations
+npm run migrate
+
+# Start the server
+npm run start:prod
+```
+
+The server will start on port 3003 by default. Navigate to `http://localhost:3003` to complete setup.
+
 For more detailed configuration options, see:
 - [Configuration Guide](configuration)
 

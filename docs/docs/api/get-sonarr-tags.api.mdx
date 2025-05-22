@@ -1,0 +1,71 @@
+---
+id: get-sonarr-tags
+title: "Get Sonarr tags"
+description: "Retrieve tags from a Sonarr instance"
+sidebar_label: "Get Sonarr tags"
+hide_title: true
+hide_table_of_contents: true
+api: eJzVVcFu2zAM/RWBpxbw4HTtLr4F6FAE2CHIul2CHBibidXJkivRaYPA/z7Qsps0zZZihwE9GZDIZz4+6nEHriaPrJ2dFJDBmvi7s+j9Pa4DJMDyyeYQD2GRQEEh97qWDMhgRuw1bUhJoFp5VylUMVhpGxhtTpBAjR4rYvICtoOQl1QhZDvgbU2QQWCv7RraBLSgPjbkt5CAxUpuB6BJAQl4emy0pwIy9g21CzkJtbOBggB+Ho3k87rKW1phY1jN+khIIHeWybLEYl0bnXc9SB+CJJyo0C0fKGeh4qVjrOPvQpPnFMJB4NI5Q2gjl74BZ2F0cRBjm2pJXgAi/xNdWmKgH96cuGsPOzQX4B5mn7RIAItCC18004M6VmgCtYPoL9DoPYoamqkK/8zF4JLeW3CMPVPnceYgxUHfeypngdoEbv7v3FQUAq5PiXvEagh8H4ebD8/hy4fXoU2gIi5db6ed+3EJGaSbqzR01phydNdAfjN4YiPPGUrmOktT43I0pQucXY9G13Dsut+GazXuZl5dPGkuVe08X4JYorYr13HSbITUtDFBLHk8nbwBG08nqnB5U5Hlrolq5bwaMj4pVFNDz+oJOS+NDqy0ZVr7fWhv92gLNcNC1kQCQivC/7yS11+7wBV20vSmfkc8ZPbdeFXWbq/we5dMLyDTM6e1Qd15cBNdMkowh82VtD0us707SCvldrfrPbJt5TiuIRGn0AGXRiahk/kvtV7M+qG5VH8q6Rdtj5faBk0jgZ14G/Ra/gbZfNEmUBIW5LsyYqZoXvNB1psHICgvM3j39R7a9jcC/b7s
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get Sonarr tags"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/sonarr/tags"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieve tags from a Sonarr instance
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"string"},"in":"query","name":"instanceId","required":true}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"instance":{"type":"object","properties":{"id":{"type":"number"},"name":{"type":"string"},"baseUrl":{"type":"string"}},"required":["id","name","baseUrl"],"additionalProperties":false},"tags":{"type":"array","items":{"type":"object","properties":{"id":{"type":"number"},"label":{"type":"string"}},"required":["id","label"],"additionalProperties":false}}},"required":["success","instance","tags"],"additionalProperties":false}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}},"404":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

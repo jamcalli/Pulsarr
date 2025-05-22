@@ -14,6 +14,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/login',
     {
       schema: {
+        summary: 'User login',
+        operationId: 'loginUser',
+        description: 'Authenticate user with email and password credentials',
         body: CredentialsSchema,
         response: {
           200: LoginResponseSchema,

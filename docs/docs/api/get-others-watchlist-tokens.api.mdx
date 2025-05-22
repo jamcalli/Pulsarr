@@ -1,0 +1,63 @@
+---
+id: get-others-watchlist-tokens
+title: "Get others watchlist tokens"
+description: "Retrieve watchlist items from other Plex users"
+sidebar_label: "Get others watchlist tokens"
+hide_title: true
+hide_table_of_contents: true
+api: eJydVMFu2zAM/RWBpw1QkXS9+VZgQ1FsQIOu2w6GD4rNxGplyaXorIHhfx9ox4mbpci6kw2RjyLfo14LoUYybIO/LSCBNfIdl0jxl+G8dDbyQ3hCH0EDm3WEJIWFwxfINBQYc7K1QCGBe2SyuEH1ewQqy1hFtaJQqSA1lSBVE5GkHGGsg48YIWnh03wun9clP+PKNI7V/S4TNOTBM3qWXFPXzuZ957PHKIAWYl5iZfqo396tIElb4G2NkEBYPmLOoKEmmZjtcDEHNq7/GdJ8Uy2RoNMw9HmIGCKzBQ39VJPzNwoL/HzWniwhf58cmaxfj014U+GJYCcUPjeWsBBVppUmuEyDKQorLBm3mNy9Mi5ipw+4/x+VLbtTHWqoHb58xe3J2HBwKlA21fJkZN3Y4l8kmVC0Rk/4LswRr8Nwu3bHFvZ1z9B7XKxfiinn78QP2zru5jltz+mGRIHOb9aQduayrOv6bivkMuyMRC40XEICs83lTHZh1vtAvNgTcMHiLqAhIm3695a20JCDBErmOpnNXMiNK0Pk5Go+v4Jj2/k2htV1nmOM6sNvy6WqA/FH6DIN1q/CZElh0bhoiNT14vavYteLW1WEvKnQc28sahVIjYgLZQYHmzicZ1zTIfV78JJpfKHuTWFIxJaxhvI/L/s3ESJXprer4WXDDfJgkHFSmkfbfdVie3DA9zvuTmbGF57VzljfOwz19jcIlcLmEoZnCxreECvTIIRLdtsuTcQf5LpOjp8bpC0kaaZhY8iapTCeZp2GEk0hfpi28CR+AKJWLRuyMa7p3+WxnYt4+226+fIAXfcHin9WUQ==
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get others watchlist tokens"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/plex/others-watchlist-token"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieve watchlist items from other Plex users
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"anyOf":[{"type":"object","properties":{"total":{"type":"number"},"users":{"type":"array","items":{"type":"object","properties":{"user":{"type":"object","properties":{"watchlistId":{"type":"string"},"username":{"type":"string"}},"required":["watchlistId","username"],"additionalProperties":false},"watchlist":{"type":"array","items":{"type":"object","properties":{"title":{"type":"string"},"plexKey":{"type":"string"},"type":{"type":"string"},"thumb":{"type":"string"},"guids":{"type":"array","items":{"type":"string"}},"genres":{"type":"array","items":{"type":"string"}}},"required":["title","type","guids","genres"],"additionalProperties":false}}},"required":["user","watchlist"],"additionalProperties":false}}},"required":["total","users"],"additionalProperties":false},{"type":"object","properties":{"error":{"type":"string"}},"required":["error"],"additionalProperties":false}]}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

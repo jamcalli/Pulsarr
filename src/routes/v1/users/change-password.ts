@@ -20,6 +20,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         },
       },
       schema: {
+        summary: 'Update user password',
+        operationId: 'updateUserPassword',
+        description:
+          'Change the current user password by providing current and new password',
         body: UpdateCredentialsSchema,
         response: {
           200: responseSchema,

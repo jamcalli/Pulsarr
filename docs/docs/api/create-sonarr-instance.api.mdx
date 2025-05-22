@@ -1,0 +1,71 @@
+---
+id: create-sonarr-instance
+title: "Create Sonarr instance"
+description: "Create a new Sonarr instance configuration"
+sidebar_label: "Create Sonarr instance"
+hide_title: true
+hide_table_of_contents: true
+api: eJytVsGO2zgM/RWDp11ARZLtzbfZ6RYItu0E03YvQQ6MxcTqypJHkpMxAv/7gpKdOJ5sOwWaS2yJpCjyvUefwNbkMChrlhJyKBxhoM/WoHNL4wOagkBAwL2HfA1pI7u3Zqf2TfKDjQBJvnCqjq853McgGWaGjlnvovpgWXHlK8DRU0M+/GllC/kJCmsCmcCPWNdaFdFu9s1z5BP4oqQK+Sm0NUEOdvuNigACasc3CYo87xqsaGTlg1NmDwIqZT6Q2YcS8kUnYIuevjp9y3JnXYUBcmicgk4A1upval8R86lBrUK7cnandEwCTfuwg3w9de3EecU01ZYcdBsBptEat+wZXEOdAGdteG+1JHfr9Bfm27ZG75d7Yx3JkcfWWk3IJZe0w0YHyHeoPbt4Qm/NR2tUsDHsjXPOToBac0GqZP6JjstAlb/lQ6apGDbsIcBYQwksk0ie0BXlg7mTP8i3v2FC49kQncMWBKjbaXSjAOtNJ0D5d8P7q4rTmoLkQIbXHDw0M17NKfJf4vr/14dDS3QSBKBRFTNOotLtdbXOVhyYaaNig9cJ7Bcwn7G6EYBSKiYQ6tWIH+lq12EGsJGvrfHpnn/MF/x3ze6+eNljbwniV5FWjduvTKA9Oa7Sc6Ebrw70URlVccU418i79DqfFkTJH9+dfSoKpWXZq62P6SCTGGaHxcxH2Zqpc9tjLw/kfCRyw6IBZQh1PptpW6AurQ/52/n8LUzl8MOwnd0VBXmf/XZUocxq68LvkfFcp8eLDP71jFWdlCPJ2AUwZ726LA26dFmZCtBlZ6wko6DXghELdEsTehq/4H2/fsXi1KFhbPRHba64N5wzpdd6vrnmzQj4ApTZ2YgSFeLdVo32PF/uVssXhb9bLTNpi6YiEyIis5112eDxJsNspek5O2IoSq18yCLm3MW0n11oZPaIEh2jkSGQwv+z4IQYOhWaUbf68TcZfNPsRqPu5wZmz49Az2FWa1SGs2jSEEsAXsNhwQ2JgVifzsXdCGAgssnp1IOp63j5qSHXskAKOKBTaaJEuSwJI2DWJ/g3Au0+5f0mdofNdRPVcMp8Hm/Jg3Ffh+/abkZsXD18/sK47D8JKivZx+GRIYxHyAEE2FjHqBtx7QQazb7BPdummPz7D6D5FJM=
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Create Sonarr instance"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/sonarr/instances"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Create a new Sonarr instance configuration
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"name":{"type":"string","minLength":1},"baseUrl":{"type":"string","format":"uri"},"apiKey":{"type":"string","minLength":1},"qualityProfile":{"anyOf":[{"type":"string"},{"type":"number"}],"nullable":true},"rootFolder":{"type":"string","nullable":true},"bypassIgnored":{"type":"boolean","default":false},"seasonMonitoring":{"type":"string","default":"all"},"monitorNewItems":{"type":"string","enum":["all","none"],"default":"all"},"searchOnAdd":{"type":"boolean","default":true},"tags":{"type":"array","items":{"type":"string"},"default":[]},"isDefault":{"type":"boolean","default":false},"syncedInstances":{"type":"array","items":{"type":"number"}},"seriesType":{"type":"string","enum":["standard","anime","daily"],"default":"standard"}},"required":["name","baseUrl","apiKey"],"additionalProperties":false}}},"required":true}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"201":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"id":{"type":"integer","exclusiveMinimum":true,"minimum":0}},"required":["id"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

@@ -15,6 +15,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/config',
     {
       schema: {
+        summary: 'Get configuration',
+        operationId: 'getConfig',
+        description: 'Retrieve the current application configuration settings',
         response: {
           200: ConfigResponseSchema,
           400: ConfigErrorSchema,
@@ -72,6 +75,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/config',
     {
       schema: {
+        summary: 'Update configuration',
+        operationId: 'updateConfig',
+        description: 'Update the application configuration settings',
         body: ConfigSchema,
         response: {
           200: ConfigResponseSchema,

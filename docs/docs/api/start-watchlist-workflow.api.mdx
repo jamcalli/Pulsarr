@@ -1,0 +1,71 @@
+---
+id: start-watchlist-workflow
+title: "Start watchlist workflow"
+description: "Start the watchlist processing workflow"
+sidebar_label: "Start watchlist workflow"
+hide_title: true
+hide_table_of_contents: true
+api: eJzVVU1v2zAM/SsCTxugwum6XXzrtkuBAQ3abjsEPjA2E6tVJFWikwaG//tA5aPuMhTdZcB8sSI9PpPviUwPPlBENt5dNVBCYoz8E7lurUn808eHhfUb0MC4TFDO4HimjoeVhoZSHU0QGijhVkgUt6Q2R3SIvqaUjFuqzTNrpMeOEn/2zRbKHmrvmBzLEkOwps6JFfdJaHtIdUsrzKdue72ActaD8wIfBt0DbwNBCX5+TzWDhhClNjaUckjHPicmP/bQufeW0MEwaMCmMfI1tNNR3AJtoqEaBoFESsG7tOP7MJnI62XlX2mBnWV1s0eCfntNr6efulr0+1PyWlzjbnyWOBq3BA3kupXYFjvndjuJfQjU5BVGHm3Ksho0rCglXNIp3U6Dx85EaoT0kNMxgep1GbOIH/+tbm8u5gB8Sw2f/vsass3ceun54FP+JnILJRTr8+LYtmeHXi3yZRGnKa4pptx7XbRQQsscyqKwvkbb+sTlxWRyAb/PhG+HY3WZL416tzHcquAjv4eh0mDcwucKDVspcdrZhDGqy+nVCdnl9Eo1vu5W5DhLqhY+qkPEmUI1tfQ0mj7GMS3jM/TWO0Gia9QNNhgjaJCydvQ/zqWpRJYVZqMcrug4155ZR4PsRX6jQfYXs3BvLdMTF8GiyZ2dJe733sxgfQ4aTt05NLMYLxoLtO/nmOh7tMMg248dxS2Us0rDGqPBuYg8k3ZvCRuK2dAH2kIJX3bJn91JQgK3nSR2coNl5u4ixNLAr2Kr0YWbXt/egYb5fuqvfCMxEfM/Am6gBNDgs5j5/ue9Hiy6ZZf7AHac8vwCUJZg1A==
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Start watchlist workflow"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/watchlist-workflow/start"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Start the watchlist processing workflow
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"anyOf":[{"not":{}},{"type":"object","properties":{"autoStart":{"type":"boolean"}},"additionalProperties":false}]}}}}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"status":{"type":"string","enum":["running","stopped","starting","stopping"]},"message":{"type":"string"}},"required":["success","status"],"additionalProperties":false}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

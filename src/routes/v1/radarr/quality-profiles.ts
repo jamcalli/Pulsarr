@@ -14,6 +14,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/quality-profiles',
     {
       schema: {
+        summary: 'Get Radarr quality profiles',
+        operationId: 'getRadarrQualityProfiles',
+        description: 'Retrieve quality profiles from a Radarr instance',
         querystring: QuerystringSchema,
         response: {
           200: QualityProfilesResponseSchema,

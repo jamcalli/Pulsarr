@@ -1,0 +1,71 @@
+---
+id: create-user
+title: "Create user"
+description: "Create a new user with the provided information"
+sidebar_label: "Create user"
+hide_title: true
+hide_table_of_contents: true
+api: eJzVVk1v2zAM/SsCTxugIf1YD/Ot+zgUKLCg63YJgoKxmFidLLmSnDQw/N8Hys7iNFnTDdthOcS2RFJP5HsSG3AVeYza2SsFGeSeMNLXQB4kRFwEyCbAnwGmEhSF3OuKrSGDD8lWoLC0EnUgL1Y6FiIWJCrvllqREtrOnS9TfJDg6aGmEN87tYasgdzZSDbyK1aV0XmyG90HDt9AyAsqkd/iuiLIwM3uKY8gofKMOmoKPGuxpIFViF7bBUgotb0mu4gFZOcSSnzcfJ1dXLSSl/Q6HPS0tTE4MwRZ9DWxrdEYfneNA3GUDrnz6k6rFy1rXdTz9d0+0plzhpBTqmiOtYmQzdGEgU+/0st8crR3YW3z560TqLarovakmBop99tcbjK1s9OpBFRKc23RjAel65bfDdnv3FOonA1dgc9OTvmxy76PHSxx01uC/Ft8CnWeUwgHktFKKCkEXBxgTSuBNXA8/E7tbV3OyLPzYRb/LZ7+cya+hHnPM41n04mi7jAezm+lfj39hJhagXwRO/f2treRAeodiDuAjpF8F92GYls+9ew5qpVWwtuTd/+BHI7u+PhWU/xYOL6YKhcSNOTDFUbL0xHnK3T/ICGQX/JbNmmg9gYyKGKsstHIuBxN4ULMzk9OzuHpJXa9mRaXCaB4lS6xyvn4GtqpBE7Xzfbe+vSIZWVoe+9sRfNTHIOhTo/bgaHsBnJ7oq6UgX1B9cNbDfXi5Es2VUBHRgbj2gT0XlyOr/b2ezm+EsrldUk2Jj6IufNi4/FGoBgbehQrjHlhdIhC20gLvzX94ixbolXiBhV6bhQ48134b6fMCi5WiXaQpL5XqLvGYgfSoA/4g5aiZ12kxziqDOrEykSApifLBJanvbzCz+dUAhedZ5tmhoG+etO2PPxQk19DNplKWKLX3Sk4mbYSCkLFB/ykge+0ZrQd7je3jIHNTc1Y9sTWyo0Hc6yKz9pOB6Qff/5yCxJmfb9UOsU+HlfcS+EKMgAJLuUx6TONNWDQLuqkSuhi8u8HV1B0BA==
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Create user"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/users/users"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Create a new user with the provided information
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"name":{"type":"string","minLength":3,"maxLength":255},"apprise":{"type":"string","nullable":true},"alias":{"type":"string","minLength":3,"maxLength":255,"nullable":true},"discord_id":{"type":"string","nullable":true},"notify_apprise":{"type":"boolean","default":false},"notify_discord":{"type":"boolean","default":false},"can_sync":{"type":"boolean","default":true}},"required":["name","apprise","alias","discord_id"],"additionalProperties":false}}},"required":true}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"201":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"user":{"type":"object","properties":{"id":{"type":"number"},"name":{"type":"string"},"apprise":{"type":"string","nullable":true},"alias":{"type":"string","nullable":true},"discord_id":{"type":"string","nullable":true},"notify_apprise":{"type":"boolean"},"notify_discord":{"type":"boolean"},"can_sync":{"type":"boolean"},"created_at":{"type":"string"},"updated_at":{"type":"string"}},"required":["id","name","apprise","alias","discord_id","notify_apprise","notify_discord","can_sync","created_at","updated_at"],"additionalProperties":false}},"required":["success","message","user"],"additionalProperties":false}}}},"409":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

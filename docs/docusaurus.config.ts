@@ -37,6 +37,23 @@ const config: Config = {
   },
 
   plugins: [
+    [
+      'docusaurus-plugin-openapi-docs',
+      {
+        id: 'api',
+        docsPluginId: 'classic',
+        config: {
+          pulsarr: {
+            specPath: 'static/openapi.json',
+            outputDir: 'docs/api',
+            sidebarOptions: {
+              groupPathsBy: 'tag',
+              categoryLinkSource: 'tag',
+            },
+          },
+        },
+      },
+    ],
     (context, options) => ({
       name: 'resolve-client-components',
       configureWebpack(config, isServer, utils) {
@@ -73,6 +90,20 @@ const config: Config = {
                 test: /\.(png|jpe?g|gif|webp|svg)$/i,
                 type: 'asset/resource',
               },
+              {
+                test: /\.s[ac]ss$/i,
+                exclude: /node_modules/,
+                use: [
+                  'style-loader',
+                  'css-loader',
+                  {
+                    loader: 'sass-loader',
+                    options: {
+                      implementation: require('sass'),
+                    },
+                  },
+                ],
+              },
             ],
           },
         }
@@ -87,6 +118,7 @@ const config: Config = {
         docs: {
           sidebarPath: './sidebars.ts',
           editUrl: 'https://github.com/jamcalli/pulsarr/edit/main/docs/',
+          docItemComponent: '@theme/ApiItem', // Derived from docusaurus-theme-openapi
         },
         blog: false,
         theme: {
@@ -151,10 +183,13 @@ const config: Config = {
               label: 'Pulsarr App',
               href: 'https://github.com/jamcalli/pulsarr',
             },
+            {
+              label: 'License (GPL)',
+              href: 'https://github.com/jamcalli/pulsarr/blob/main/LICENSE',
+            },
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} Pulsarr. Built with Docusaurus.`,
     },
     prism: {
       theme: prismThemes.github,
@@ -162,7 +197,7 @@ const config: Config = {
     },
   } satisfies Preset.ThemeConfig,
 
-  themes: [],
+  themes: ['docusaurus-theme-openapi-docs'],
 }
 
 export default config

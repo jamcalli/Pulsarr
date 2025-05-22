@@ -11,6 +11,8 @@ import useBaseUrl from '@docusaurus/useBaseUrl';
   <p>Real-time Plex watchlist monitoring, routing, and notification center</p>
 </div>
 
+<br/>
+
 Pulsarr is an integration tool that bridges Plex watchlists with Sonarr and Radarr, enabling real-time media monitoring and automated content acquisition all from within the Plex App itself.
 
 Enjoy all the benefits of other content discovery systems without requiring users to use additional services. All the magic happens from the primary user's Plex Token.

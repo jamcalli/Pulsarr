@@ -1,0 +1,71 @@
+---
+id: delete-radarr-instance
+title: "Delete Radarr instance"
+description: "Delete a Radarr instance configuration"
+sidebar_label: "Delete Radarr instance"
+hide_title: true
+hide_table_of_contents: true
+api: eJztVE1v2zAM/SsCTy2gwenaXXwr2h4C9BB0H5cgB8ZiYnWy5Ep02sDwfx/ojyZNu2GHHXeyJZJP5CMfWwg1RWQb/NxADoYcMT2gwRjnPjH6gkAD4zZBvoTBoG6C39htM8TBSoOhVERb98ccbnsQhWp0tyOQKt7EaagxYkVMUcBbSEVJFULeAu9rghx8U60pQqfBCm6NXIIGj5UYrQENkZ4aG8lAzrGhbiU3qQ4+URKcz7Mr+Zymt8HGsXoYPUFDETyTZ/HFuna26DPMHpMEHCXWdV2n4Wo2+6eoU7lh/UgFCy9RusJ2KCIxcpNugqEPqaEYQzyyJI7Wb8VSUUq4pQ9s3TFzy+MXJrxD9EoDGmMldXSLo8w26BINjHz5z8gbRvqnuAwHSfXTziXkkO0ustgLI5uEkbLWmg40JIq7SQ1NdJBDyVznWeZCga4MifPL2ewSThV3P5nVdVFQSurs2XKp6hD5HEQV1m9CX7VlJ2UvGpdEmteL+Tuw68VcmVA0FXnu+6M2Iaop4pNCtXD0op6Ri9LZxMp6pm08uH4NXjzRm3EDgAYpa4D/cSGdqEPiCvuuj3oet8bJzjjNrj3M0N/vmbHXTC+c1Q6tlwx6ftuxK0vYXcg6mdJ97QxoyK2Rlgu94ti2a0z0Pbquk+unhuIe8uVKww6jxbXwu2zB2CT/ZpyKP5Rx9jAO3rn6Xa7jJfq9UImukRNo+En7YRN2q05DSWgo9q8PBhmGmo9C3olOZuN1Um/v7u++3UHX/QK7ihtx
+sidebar_class_name: "delete api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Delete Radarr instance"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"delete"}
+  path={"/v1/radarr/instances/{id}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Delete a Radarr instance configuration
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"number"},"in":"path","name":"id","required":true}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"204":{"description":"Default Response","content":{"application/json":{"schema":{}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"error":{"type":"string"},"message":{"type":"string"}},"required":["statusCode","error","message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"error":{"type":"string"},"message":{"type":"string"}},"required":["statusCode","error","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

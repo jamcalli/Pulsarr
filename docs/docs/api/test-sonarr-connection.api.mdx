@@ -1,0 +1,71 @@
+---
+id: test-sonarr-connection
+title: "Test Sonarr connection"
+description: "Test connectivity to a Sonarr instance with provided credentials"
+sidebar_label: "Test Sonarr connection"
+hide_title: true
+hide_table_of_contents: true
+api: eJy9VMFu2zAM/RWBpxZw4WTFLr4V2zAE6yHoul2CHBiZidXJkivRaQPD/z5QdpukWYsetp2CWOQjH/keO/ANBWTj3ayEApgif/cOQ/jknSMtD5AB4yZCsYDhCZYZlBR1ME16L+CWIis9ZmwN7xR7hWoIV8ZFRqdJPRiuVBP81pRUKh2oJMcGbYQMGgxYE1OQQh1EXVGNUHTAu4aggMjBuA1ksPahRoYC2mCgz8BIA/cthR1k4LCW4BVG+hEsZBDovjWBSig4tNRnbyHXxl2T23AFxfQVYGzMN9qd4i7lS2y8ixQF+sNkIj/HU/pMa2wtq5sxEjLQ3jE5llhsGmt0WkV+FyXhD7361R1plnEFWRyboVxstaYYDwJX3ltCJwOqKUbc0Cnjvj/ksXhG2acsM8CyNNIT2vlByTXaSH0vCB//L9V3s3k/hzQjrrwYYEOpJIoIIN9O85g0nIsxLvShJyKF7ZNa22ChgIq5KfLceo228pGLy8nkEl565frpWV2lcauzwRY+8DmIkIxb+0TPsBV+89ZGsdHVfHYCdjWfqdLrtibHaZ5q7YN6yrhQqOaWHtUDsq6siayMY9qEfehoUXSlusFSzJ2B0Brgf05FQI2PXGPa0miD5Pcx9WgoR911+53/jQsxrpvpkfPGokniTpPvxoUtYDuVzQxXKoOXS1tmIIOXwK4bb0Tfy+fB5rLK0kRcWZFQ0scblM5uRrWdq9e6+0W7o2u0RdtKFMgh+geVns/TvtBS/gQjlaBYLPsMKsKSQiI7ZIkOGz7IOvGnoDxb5OuXW+j735BoKUw=
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Test Sonarr connection"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/sonarr/test-connection"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Test connectivity to a Sonarr instance with provided credentials
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"string","format":"uri"},"in":"query","name":"baseUrl","required":true},{"schema":{"type":"string","minLength":1},"in":"query","name":"apiKey","required":true}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

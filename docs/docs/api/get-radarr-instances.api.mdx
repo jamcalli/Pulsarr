@@ -1,0 +1,63 @@
+---
+id: get-radarr-instances
+title: "Get Radarr instances"
+description: "Retrieve all configured Radarr instances"
+sidebar_label: "Get Radarr instances"
+hide_title: true
+hide_table_of_contents: true
+api: eJyVlE1v2zAMhv+KwdMGaEiy3nwL2q0IVqBB93EJcmBsOlYnS65EpTUC//eBthOnaYB2uTiW+VKU3ofcg6vJI2tnFzmksCV+wBy9X9jAaDMKoIBxGyBdQf8luXa20NvYq2CtIKeQeV13ryk8EHtNO0rQmCQbYilPBrU+Sewp1M4GCpDu4et0Ko/XyW6owGg4eRgiQUHmLJNlicW6Njrr6pg8BhHsIWQlVSj/uKkJUkDvsQEFmqkKJ+tu80gZg4Layx2w7suwWNFJVGCv7RYUVNrekd1yCemsVbDBQL+9uRRZOF8hQwrRa2gVYK1/UPOBnE8RjeZm6V2hTVcE2ua+gHR1Lm3VccXGakMe2rUCG43BjSjZR2oVeOf4uzM5+Uu7vwnfNDWGsNha5yk/UWycM4QWxOnODkgLNEEkgdBn5b2d5+8Ihi0qbXUVq/kOtcGNluNeKo1srIQ4tNZFm1Eu/tlrbanCHhxDGCjv6Ru2GFfbA7PvQnC8zzHNat0q0OHm8P6ha2ikyLFn3t/4YJvslV9e9/QUdefEqqdypO4IVadeK8A819IGaJYnNPfldT8FFXHphh4X6lGwg8luNvFdZ05OOzOQ35EPHXpRMIeSuU4nE+MyNKULnF5Np1dw3vx3h8/JPMsohOTTs+YyqZ3nzx2j2hauO65mIQ+W0QQZC/Pl4k2y+XKR5C6LFVnumjwpnE8Oii8JJktDL8kzclYaHTjRlmnrx9Cfzkok2sP0AQVyrD79n5n4XrvAFdqx9eGW+NKwelXbfhxD/zPwBpOZXnhSG9RWKoj9GOkNWcFuJoAfyh3VawVysRKy3w8gtK0sP0XyjYCrYIde9z3dYVwSds2/2sNfGUEgrtRi/w5N7Pg8H6Fi0hGV22+/oG3/ASNzH4E=
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get Radarr instances"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/radarr/instances"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieve all configured Radarr instances
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"array","items":{"type":"object","properties":{"name":{"type":"string","minLength":1},"baseUrl":{"type":"string","format":"uri"},"apiKey":{"type":"string","minLength":1},"qualityProfile":{"anyOf":[{"type":"string"},{"type":"number"}],"nullable":true},"rootFolder":{"type":"string","nullable":true},"bypassIgnored":{"type":"boolean","default":false},"searchOnAdd":{"type":"boolean","default":true},"minimumAvailability":{"type":"string","enum":["announced","inCinemas","released"],"default":"released"},"tags":{"type":"array","items":{"type":"string"},"default":[]},"isDefault":{"type":"boolean","default":false},"syncedInstances":{"type":"array","items":{"type":"number"}},"id":{"type":"number"}},"required":["name","baseUrl","apiKey","id"],"additionalProperties":false}}}}}}}
+>
+  
+</StatusCodes>
+
+
+      
