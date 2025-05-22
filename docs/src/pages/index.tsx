@@ -51,10 +51,16 @@ export default function Home(): React.ReactElement {
           const { Button } = require('@/client/components/ui/button')
 
           const ClientHome = () => {
+            const [isHydrated, setIsHydrated] = React.useState(false)
             const isMobile = useMediaQuery('(max-width: 768px)')
             const planetMobileUrl = useBaseUrl('/img/planet-m.webp')
             const planetUrl = useBaseUrl('/img/planet.webp')
             const docsIntroUrl = useBaseUrl('/docs/intro')
+
+            // Ensure proper hydration
+            React.useEffect(() => {
+              setIsHydrated(true)
+            }, [])
 
             // Fix viewport height and scrolling issues
             useEffect(() => {
@@ -77,6 +83,31 @@ export default function Home(): React.ReactElement {
                 window.removeEventListener('orientationchange', setVH)
               }
             }, [])
+
+            // Show loading state until hydration is complete
+            if (!isHydrated) {
+              return (
+                <div
+                  style={{
+                    position: 'fixed',
+                    top: 'var(--ifm-navbar-height)',
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: '#000',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#c1666b',
+                    fontSize: '1.5rem',
+                    fontFamily:
+                      'Shuttleblock, system-ui, -apple-system, sans-serif',
+                  }}
+                >
+                  Loading Pulsarr...
+                </div>
+              )
+            }
 
             return (
               <div style={{ position: 'relative' }}>
@@ -172,6 +203,7 @@ export default function Home(): React.ReactElement {
                     >
                       <div
                         className={`relative w-[1000px] ${isMobile ? 'w-[600px]' : 'w-[1000px]'}`}
+                        suppressHydrationWarning
                       >
                         <AspectRatio ratio={1522 / 1608}>
                           <picture>
@@ -235,6 +267,7 @@ export default function Home(): React.ReactElement {
                     paddingRight: '2rem',
                     marginBottom: isMobile ? '-700px' : '-210px', // Much more negative margin on mobile
                   }}
+                  suppressHydrationWarning
                 >
                   <div className="container mx-auto">
                     <DocFeatureExample />
@@ -254,6 +287,7 @@ export default function Home(): React.ReactElement {
                   >
                     <div
                       className={`flex ${isMobile ? 'flex-col gap-3' : 'gap-6'} justify-center`}
+                      suppressHydrationWarning
                     >
                       <Button
                         variant="default"
