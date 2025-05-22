@@ -34,6 +34,9 @@ const OthersWatchlistResponseSchema = z.union([
 ])
 
 export const othersWatchlistSchema = {
+  summary: 'Get others watchlist tokens',
+  operationId: 'getOthersWatchlistTokens',
+  description: 'Retrieve watchlist items from other Plex users',
   tags: ['Plex'],
   response: {
     200: OthersWatchlistResponseSchema,

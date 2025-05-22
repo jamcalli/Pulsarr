@@ -14,6 +14,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/root-folders',
     {
       schema: {
+        summary: 'Get Sonarr root folders',
+        operationId: 'getSonarrRootFolders',
+        description: 'Retrieve root folders from a Sonarr instance',
         querystring: QuerystringSchema,
         response: {
           200: RootFoldersResponseSchema,

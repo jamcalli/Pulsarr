@@ -14,6 +14,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/start',
     {
       schema: {
+        summary: 'Start watchlist workflow',
+        operationId: 'startWatchlistWorkflow',
+        description: 'Start the watchlist processing workflow',
         body: z
           .object({
             autoStart: z.boolean().optional(),
@@ -108,6 +111,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/stop',
     {
       schema: {
+        summary: 'Stop watchlist workflow',
+        operationId: 'stopWatchlistWorkflow',
+        description: 'Stop the currently running watchlist processing workflow',
         response: {
           200: WatchlistWorkflowResponseSchema,
           400: ErrorSchema,
@@ -153,6 +159,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/status',
     {
       schema: {
+        summary: 'Get watchlist workflow status',
+        operationId: 'getWatchlistWorkflowStatus',
+        description:
+          'Retrieve the current status of the watchlist processing workflow',
         response: {
           200: WatchlistWorkflowResponseSchema,
           500: ErrorSchema,

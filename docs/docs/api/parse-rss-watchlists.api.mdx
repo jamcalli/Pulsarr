@@ -1,0 +1,63 @@
+---
+id: parse-rss-watchlists
+title: "Parse RSS watchlists"
+description: "Parse and process RSS feed watchlist items"
+sidebar_label: "Parse RSS watchlists"
+hide_title: true
+hide_table_of_contents: true
+api: eJztVktv2zAM/isCTxvgIul6863AhiHYgAXpHofAB8WmY3Wy5FJ02sDwfx9ox4mTZUu7XXsyIL75kfTXgK+QNBvvZhnEUGkKuAjhh+a0sCZwgAhYrwPES5hbfIIkggxDSqYSI4hhLiZKu0xV5FMMQS3u7lSOmKnHwYsyjKW4IgyVdwEDxA28m07lc+zuPea6tqwWO02IIPWO0bHo6qqyJu3yndwHMWggpAWWupO67Zcc4mUDvK0QYvCre0wZIqhI6mTTBw5oc/n+XYs9aztSc3W5QoI2gjoghZFEE+ktRNBXedGxmF/W2jdPgNkrBybj1kMSTpf4R+GR3ZB8Kxg81IYwE0jHQUYu9w6SCHSWGem3tvNRfrm2Advo4ODf28GG7fkqKotPn3B7VtY/nBMUdbk6K1nXJnsObIOFmKAjfKFNYM31GVkE6OpSul6hy+QlOYWjb8Wh8F2ZQ1FDCfu89sEu4HQap5vAMXgvtO9XY1iEi0OSk0GXPWcUXlfudeVeV+6/V+7EtvvfHdbw0oRdmh4k8nQeiHHUXu1CsKRtu1JL5MILA1ljF1BzATFMNtcTAWZCIVwdWhdBQNp0B2HZQE0WYiiYq3gysT7VtvCB45vp9AZOycrnQaxu046rvHk0XKjKE7+FNonAuNyPNgTmtQ2aSN3OZ785u53PVObTukTHHSVRuSc1WFwprYQxjVmQY1zTQfXOO9EU7rTQmSYZECmrd//9ultIH7jUHdHpT8+OcAnJehyztKPcmgNpehlB20HK+MSTymrjutNG3VHuQVnC5nq3L0LojoBJIpDmilLTrHTAb2TbVp4faqQtxMskgo0mo1fS3WXSRlCgzuQ4Lxv4KYcHBJlKQN5oW3cH4JT0CVD7gfn44Su07S/8SMCV
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Parse RSS watchlists"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/plex/rss-watchlist"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Parse and process RSS feed watchlist items
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"anyOf":[{"type":"object","properties":{"self":{"type":"object","properties":{"total":{"type":"number"},"users":{"type":"array","items":{"type":"object","properties":{"user":{"type":"object","properties":{"watchlistId":{"type":"string"},"username":{"type":"string"},"userId":{"type":"number"}},"required":["watchlistId","username","userId"],"additionalProperties":false},"watchlist":{"type":"array","items":{"type":"object","properties":{"title":{"type":"string"},"plexKey":{"type":"string"},"type":{"type":"string"},"thumb":{"type":"string"},"guids":{"type":"array","items":{"type":"string"}},"genres":{"type":"array","items":{"type":"string"}},"status":{"type":"string","enum":["pending"]}},"required":["title","plexKey","type","thumb","guids","genres","status"],"additionalProperties":false}}},"required":["user","watchlist"],"additionalProperties":false}}},"required":["total","users"],"additionalProperties":false},"friends":{"type":"object","properties":{"total":{"type":"number"},"users":{"type":"array","items":{"type":"object","properties":{"user":{"type":"object","properties":{"watchlistId":{"type":"string"},"username":{"type":"string"},"userId":{"type":"number"}},"required":["watchlistId","username","userId"],"additionalProperties":false},"watchlist":{"type":"array","items":{"type":"object","properties":{"title":{"type":"string"},"plexKey":{"type":"string"},"type":{"type":"string"},"thumb":{"type":"string"},"guids":{"type":"array","items":{"type":"string"}},"genres":{"type":"array","items":{"type":"string"}},"status":{"type":"string","enum":["pending"]}},"required":["title","plexKey","type","thumb","guids","genres","status"],"additionalProperties":false}}},"required":["user","watchlist"],"additionalProperties":false}}},"required":["total","users"],"additionalProperties":false}},"required":["self","friends"],"additionalProperties":false},{"type":"object","properties":{"error":{"type":"string"}},"required":["error"],"additionalProperties":false}]}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

@@ -1,0 +1,63 @@
+---
+id: remove-plex-notifications
+title: "Remove Plex notifications"
+description: "Remove Plex webhook notifications from Radarr and Sonarr instances"
+sidebar_label: "Remove Plex notifications"
+hide_title: true
+hide_table_of_contents: true
+api: eJzlVU1r20AQ/SvLnFpQkNO0F90CySEQinE/LsaHsTS2NlntbnZHTozQfy+zVmLZCTiUUig9adF8vZk3+7YD5ykga2dvKiggUOM2NDX09NWxXukymSJkwLiOUMxBbLDIoKJYBu3FDAXMUpwSo3qkZe3cvbLjDGoVXKNmWGEICm2lvjkrR20joy1JSgSK3tlIEYoOPk0m8jksc0UrbA2r2eAJGZTOMlkWX/TeDPXyuygBHcSypgblxFtPUIBb3lHJkIEP0jrrXbnYliXFOHJcOmcILfQZNBQjrmlkjBy0XYstUGwNx9MVQup95Ich4BYy0EzNO+J1NfKxbbOkIPUtNm8D+82OUksPrQ5UCd26gqHGPuM+fJEBVpWWiaOZjuCu0ESSXDHR/H91fZRsIP5lFqeHNo5+XX6/cyeB9Bl8/rv3iEJw4fSAd27vwf/ln8aflo5rJ9pakSEWqB65hgLyzXnuDT3lO9E9s0eKGylsKIjodtAGAwXUzL7Ic+NKNLWLXFxMJhdwrMW3z2Z1mVZHfXjUXCvvAn+EfpGBtiuXWtRspMdpa6Jo8eX05lWyy+mNqlzZNmQ5IVMrF9RzxJnCQfORy9royEpbpnXYuw46L5I/e74I0tYu/c9zuZfeRW4w8bS72AfvyfFcDgB2e+L/zCM08M70xLk3qJNwpPF3A3Fz2JwLi/IQZvAmeYsMhADx7bolRvoRTN/L74eWwhaK+SKDDQaNS2FgvugzqAkrConte9rK6MuSvGzoBk2bpPN4r4XMl/W6ur69/n4Nff8LM2a9Qg==
+sidebar_class_name: "delete api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Remove Plex notifications"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"delete"}
+  path={"/v1/plex/remove-notifications"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Remove Plex webhook notifications from Radarr and Sonarr instances
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"results":{"type":"object","properties":{"radarr":{"type":"array","items":{"type":"object","properties":{"id":{"type":"number"},"name":{"type":"string"},"success":{"type":"boolean"},"message":{"type":"string"}},"required":["id","name","success","message"],"additionalProperties":false}},"sonarr":{"type":"array","items":{"type":"object","properties":{"id":{"type":"number"},"name":{"type":"string"},"success":{"type":"boolean"},"message":{"type":"string"}},"required":["id","name","success","message"],"additionalProperties":false}}},"required":["radarr","sonarr"],"additionalProperties":false}},"required":["success","message","results"],"additionalProperties":false}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"}},"required":["error"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"}},"required":["error"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

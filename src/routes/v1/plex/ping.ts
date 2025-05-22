@@ -12,6 +12,9 @@ export const pingRoute: FastifyPluginAsync = async (fastify) => {
     '/ping',
     {
       schema: {
+        summary: 'Test Plex server connection',
+        operationId: 'pingPlex',
+        description: 'Verifies connectivity to the configured Plex server',
         response: {
           200: PingSuccessSchema,
           500: PingErrorSchema,

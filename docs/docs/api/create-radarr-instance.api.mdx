@@ -1,0 +1,71 @@
+---
+id: create-radarr-instance
+title: "Create Radarr instance"
+description: "Create a new Radarr instance configuration"
+sidebar_label: "Create Radarr instance"
+hide_title: true
+hide_table_of_contents: true
+api: eJytVU2P4zYM/SsGTy2gRZLuzbd02gWCbjHB7LaXIAfGZmJtZcmjj2SMwP+9oGTHjmfQnQLri22JpCjyvccrmIYsemn0poQcCkvo6QlLtHajnUddEAjweHKQ7yBtZA9GH+UpJD/YCyjJFVY28TeHhxgkw0zTJetdZB8sK+58BVh6DuT8r6ZsIb9CYbQn7fkTm0bJItotvjmOfAVXVFQjf/m2IcjBHL5R4UFAY/kmXpLjXY01Tayct1KfQEAt9WfSJ19BvuoEHNDRX1a9ZXk0tkYPOQQroROAjfyD2nfEfA6opG+31hylikmgbh+PkO/mrp24rehQH8hCtxegg1J4YE9vA3UCrDH+k1El2bdOf2V+aBt0bnPSxlI58TgYowi55CUdMSgP+RGVYxdHaIvqUa/L7zj0R9RSyzrU6zNKhQfJ130rNdKhZtSg1ibogkoQIPWD1FSji61XhI7KhKD+iHG1G3B3i4zWYstBPNXu9YndJMxu3wmQ7rfh/11laDnJAfbvOXhoW9clIMtY8l2C3wivG3r2ArAsJUMa1XaC2JTCfZih/eQao13K55flil/3fOsvmT31liB+FI3kFA9SezqR5ca+FCo4eaY/ExBSrjdcQL6cF0SW3787+9TkK8NC1BgX00GmFSzOq4WNQrKQt/Ywbu2ZrIvUCkxjqLxv8sVCmQJVZZzPPy6XH2EuUJ+H7WxdFORc9tNF+iprjPU/Rw5ynZ5GYfr9BesmcTkJy4jxm4KMS4NSjCtzSRh3ptyeBL2ncCzQjKV3Bb8n4sigUbj70Ps7Tgxx57DfLSN59NHE7ksfc94G5VjJ19vNq4Kut5usNEWoSfuItOxobDZ4fMgw2yp6yS7oi0pJ57OIJTuafjGaLVGX/cAAAdzaFP7vFXObIVGjnnShHzSzETPPbjJU/t9o6nHv6cUvGoVScxYhjYsEzB2cV9zFIeURnHsBDDA2uV57kHQdLz8Hsi0LlIAzWpm0O8pVRRiBsLvCPxFADynvD185ETZXIarRnNE8SJIH47nx/2m7n7Bs+/jlK+OtH761KdnH4iVe6gI5gAAT6xj1IK5dQaE+BTyxbYrJz79U/OHg
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Create Radarr instance"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/radarr/instances"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Create a new Radarr instance configuration
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"name":{"type":"string","minLength":1},"baseUrl":{"type":"string","format":"uri"},"apiKey":{"type":"string","minLength":1},"qualityProfile":{"anyOf":[{"type":"string"},{"type":"number"}],"nullable":true},"rootFolder":{"type":"string","nullable":true},"bypassIgnored":{"type":"boolean","default":false},"searchOnAdd":{"type":"boolean","default":true},"minimumAvailability":{"type":"string","enum":["announced","inCinemas","released"],"default":"released"},"tags":{"type":"array","items":{"type":"string"},"default":[]},"isDefault":{"type":"boolean","default":false},"syncedInstances":{"type":"array","items":{"type":"number"}}},"required":["name","baseUrl","apiKey"],"additionalProperties":false}}},"required":true}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"201":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"id":{"type":"integer","exclusiveMinimum":true,"minimum":0}},"required":["id"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

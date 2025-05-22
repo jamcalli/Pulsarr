@@ -15,6 +15,9 @@ const RssFeedsResponseSchema = z.union([
 ])
 
 export const rssFeedsSchema = {
+  summary: 'Generate RSS feeds',
+  operationId: 'generateRssFeeds',
+  description: 'Generate RSS feed URLs for Plex watchlists',
   tags: ['Plex'],
   response: {
     200: RssFeedsResponseSchema,

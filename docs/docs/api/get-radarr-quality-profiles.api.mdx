@@ -1,0 +1,71 @@
+---
+id: get-radarr-quality-profiles
+title: "Get Radarr quality profiles"
+description: "Retrieve quality profiles from a Radarr instance"
+sidebar_label: "Get Radarr quality profiles"
+hide_title: true
+hide_table_of_contents: true
+api: eJzVVU1v2zAM/SsCTy3gwsnaXXwrsKEIsEOWfVyCHBibidXJkiLRaYPA/32gP5Y0ydZhhwE9GbAeH/lI6mkPzlNA1s5OCshgTTzDAkP4XKPRvJsGt9KGIiTAuI6QzaE7h0UCBcU8aC/BkMGMOGjaktp0ocr3sWoVXKVQdYFK28hoc4IEPAasiCkI8R5iXlKFkO2Bd54gg8hB2zU0CWjJsKkp7CABi5WcDkSTAhIItKl1oAIyDjU1C/kTvbORohC+G43k87LiD7TC2rCa9UhIIHeWybJg0Xuj87Y16WOUgAsVuuUj5SxSgjSSdZcu1nlOMR4Bl84ZQttp6RvwKo0ujjC2rpYUhKDTf6FLS4z0LZgLZ81xh+ZC3NMcghYJYFFo0YtmelTHCk2kJoHNyUocsmAIuDtLMjThSPE5yStZGyG9+7/DqyhGXF/q8InAAfh3Gu7evIb3b34OTQIVcel6q2stiEvIIN2O09D6U9pv6I0/WF+ksB1Mqpb7BSWzz9LUuBxN6SJnt6PRLZxa4qfhWN23V0FdPWkulXeBr0E8StuVa/VpNiJwWpsoHnk/nZyR3U8nqnB5XZHltqFq5YIaIm4UqqmhZ/WEnJdGR1baMq3DAfrFWUGiLXorhgREVkf/fSwO4l3kCtsx9S77QDw496mxn5a4P0z+X16DfshMz5x6g7o1y7qzs25Mc9iOxeuH6s9GtUhA2i3I/b43tqaR393bIQMsdMSlkc1p1+IPGq5m/ZJdq9+V94N2py/RFk0twHbAWwxaskE2XzQJlIQFhbaMLlL2wvNR1NmFEZZfO/vw8Ss0zU/T07KN
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get Radarr quality profiles"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/radarr/quality-profiles"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieve quality profiles from a Radarr instance
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"string"},"in":"query","name":"instanceId","required":true}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"instance":{"type":"object","properties":{"id":{"type":"number"},"name":{"type":"string"},"baseUrl":{"type":"string"}},"required":["id","name","baseUrl"],"additionalProperties":false},"qualityProfiles":{"type":"array"}},"required":["success","instance","qualityProfiles"],"additionalProperties":false}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}},"404":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

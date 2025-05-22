@@ -1,0 +1,63 @@
+---
+id: dry-run-delete-sync
+title: "Dry-run delete sync"
+description: "Perform a dry-run of the delete sync job to preview what would be deleted"
+sidebar_label: "Dry-run delete sync"
+hide_title: true
+hide_table_of_contents: true
+api: eJztVsFu2zAM/RWBpw1wkXTtLr4V6KXAhgVNt0uQAyMzsVpZcik6mWHk3wc5ceKmCdJDV+ywUxSTIvn4KJIN+JIYxXh3l0EKGdf3lbslS0Lj2mlIQHARIJ3AWOeUVZYYpglkFDSbMt6DFEbEc8+FQpVxfcGVU36uJCeVtYZUqJ1Wj36mxKuSaWlopVY5ilr5ymZq1ilmkABTKL0LFCBt4MtwGH9eerulOVZW1P1WExLQ3gk5ibpYltboFtHgMcQLDQSdU4HxJHVJkIKfPZIWSKDkiF/Mxl2otKYQeooz7y2hg3UCBYWAC+oJg7BxiyhjCpWVcN6DeEF7Xq1Lx17RVcWMOPoKT6YsT8hK9hHAaamQPm63BfFcGY7SCez56Nz1jU8TwCwzMcdoR73I52gDxVz5ZQf4b+E8iSQBI1T0nSMz1vD6+ymOjNjjNC8qkx0VGBcEnT526yCxG+NbU72LZ1L6Fn428M5yE3K/+k/Nv0kNzknqBzaLBfGLDPb60Ebp+8ludIiq7Ti7J9nxfw7USyNdY9x3wX3PO5uedQLXw+uP7OPE7Pl8ajZqb4n/68fOoXeOvx1ekvs44EsfWn8oOaQwWF4OQjfXd6cw2NTwRZzbg+1Ij5VDvCSOy0ADFVtIIRcp08HAeo0290HSq+HwCg7Xg2+dWN20ZaQ+rYzkqvQsn2E9jU9t7nvPG0aVDcisbkZ3r4zdjO5U5nVVkJM2u2ruWXU3LhSqkaXfaoWic2uCKOOEFrxXHXsXNdFl6h4zZIYEIqyN+V+XbRPzQQpsOXNYxJBut4tNb6M5DK3Z0/+uG9G2CIR+y6C0aNou0Oa/2fI4geVl5Ge3oe3PoY1yx2b8t+VzmkDkJN5umhkG+sl2vY6fnyviGtLJNIElssFZJGUyXSeQE2bEbQE8UR3Z0JrKWFBLtFXb0A/LPvK7q77Rj/EDrNd/ACr8qS0=
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Dry-run delete sync"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/scheduler/schedules/delete-sync/dry-run"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Perform a dry-run of the delete sync job to preview what would be deleted
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"results":{"type":"object","properties":{"total":{"type":"object","properties":{"deleted":{"type":"number"},"skipped":{"type":"number"},"processed":{"type":"number"},"protected":{"type":"number"}},"required":["deleted","skipped","processed"],"additionalProperties":false},"movies":{"type":"object","properties":{"deleted":{"type":"number"},"skipped":{"type":"number"},"protected":{"type":"number"},"items":{"type":"array","items":{"type":"object","properties":{"title":{"type":"string"},"guid":{"type":"string"},"instance":{"type":"string"}},"required":["title","guid","instance"],"additionalProperties":false}}},"required":["deleted","skipped","items"],"additionalProperties":false},"shows":{"type":"object","properties":{"deleted":{"type":"number"},"skipped":{"type":"number"},"protected":{"type":"number"},"items":{"type":"array","items":{"type":"object","properties":{"title":{"type":"string"},"guid":{"type":"string"},"instance":{"type":"string"}},"required":["title","guid","instance"],"additionalProperties":false}}},"required":["deleted","skipped","items"],"additionalProperties":false},"safetyTriggered":{"type":"boolean"},"safetyMessage":{"type":"string"}},"required":["total","movies","shows"],"additionalProperties":false}},"required":["success","message","results"],"additionalProperties":false}}}},"404":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"}},"required":["error"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"}},"required":["error"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

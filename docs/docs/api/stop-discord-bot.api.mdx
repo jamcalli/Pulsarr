@@ -1,0 +1,63 @@
+---
+id: stop-discord-bot
+title: "Stop Discord bot"
+description: "Stop the Discord notification bot service"
+sidebar_label: "Stop Discord bot"
+hide_title: true
+hide_table_of_contents: true
+api: eJzVVLFu2zAQ/RXiphZgIadpF20psgQoWiNpuxgeztTZYkKTDO/kJBD078XJdiI3S7oU6CSKfDzyvcd3PaRMBcWneNVADSwpX3p2qTRfkoAFwQ1DvYBvSfzauxHJsLTQELvis/5DDTeSspGWzGGziRO8WSUxTGXnHYGFQpxTZGKoe/g4m+nntNolrbELYq4PSLDgUhSKoljMORwqV7esG3pg19IWdSRPmaCGtLolpwRyUYbi98dx5xwxT4CrlAJhhMECC0o3XWMpPm7AAsVuqyqULsb9jAqVqRlHWGQyuR928S6mhwjLwcKWmHFDrwsPg6px3/lCjZY/3u75KksL2DReqWKYT5isMTANgxb49G8VfDOZI/AtHD7/9xxGm6VNGqKceDwTpYUaqt1ZNU0DV80+I/pa1GoqOyoash66EqCGViTXVRWSw9Amlvp8NjuHPyP39bhsLsZXY949eGlNTkXew7C04OM6jRS9BOU47wJjKeZifvWq2MX8yjTJdVuKss/sOhVz3PHBoJkHejQPKK4NnsX4KLQpL9CbFBWJsTHX2GApYEFp7cv/OtN8qS5bHJ2KuKVj2zi2jNXYcE7u1b84/lct5uCq0KNUOaAf4z2K2x9sWcDuDCycGKOnT6xZWlB5Fdv3K2T6WcIw6PR9R+UJ6sXSwg6Lx5Xqu9Cot4QNldHLO3pSYZ2jrLx2GDq906t3q1Y9P53595sfMAy/AYUv9bk=
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Stop Discord bot"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/notifications/discordstop"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Stop the Discord notification bot service
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"status":{"type":"string","enum":["running","stopped","starting","stopping","unknown"]},"message":{"type":"string"}},"required":["success","status"],"additionalProperties":false}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

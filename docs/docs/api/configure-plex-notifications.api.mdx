@@ -1,0 +1,71 @@
+---
+id: configure-plex-notifications
+title: "Configure Plex notifications"
+description: "Configure Plex webhook notifications for Radarr and Sonarr instances"
+sidebar_label: "Configure Plex notifications"
+hide_title: true
+hide_table_of_contents: true
+api: eJzlVslu2zAQ/RVhTi3AwHbSXnRLF6AB0tZw0l4MHyhpbDGhSIaLFxj692IoOZKVoA6KoEBRX0STs74ZzuMetEHLvdDqqoAUcq2WYhUsTiVuv2kvliKPpw4YeL5ykM6BzmDBoECXW2HoGFL4eFBN6DzZYFZqfZ+ovpFkqW0y4wW3NuGqSG60oqVQznOVIzmx+BDQ+Q+62EG6p4A8Kk9LboxsDY3uHPncg8tLrDit/M4gpKCzO8w9MDCWMvMCHZ0aidtbfY+qJ+q8FWoFDCqhrlGtfAnppGZR9ot2/oWiU237okJ5XKEFBrjNZXBijV+FElWoIPU2YLTR/B0ThEsepIf04vzdeFwzCA5vnOzZy7SWyBX0ZJdcOqzrBithsaCidBn2Mlgw4EUhCDIupz1EWhNHNii6uOGMVq7B7Xw8ps9xpT81gSSzVhLYa5XJhTxH555Jv2ZQoXN8hU/L0gQdpHenPdjYfD05bi3fAQPhsXqBvih6MipUGVryr3j1fGB/mNGguKKA1kdnsVM/VWUGLt6z/yvrgbG28I9YnAatr/3UfddzJwOpGbz7u/cIrdX2NMCN2Evif/9Pxx+bzpeaGM7QXGRgOM1wGK0nI5qWo0fiO1MD1nNo12iJ+PYQrIQUSu9NOhpJnXNZaufTi/H4AoZ8eH04Ti5j7yRvNsKXidHWv4V6wYBAmXVs93nLKyNxwFYd9XS0dLzX8E/kj44+mtQZCLXUEUfhyTRMg3TEuJfTqycBX06vkkLnoULlY/aRrQ8aZwlviZ37vJTC+SRSne1EWzYnYp8dbhtB15j/OaHLT/BXPDZDMz2G74Yh/Ecx9t4Dr/XeaDvM49aPjOQijqhY533bJHNYT1qsmw5/tlEWDMpYnTns9xl3+MPKuqbth4B2B+l8wWDNreAZVWK+qBmUyAu0sbPucdfkRNmd3VJQJC5DnNbDq1Szgwb1lvG/lV30un/6/eYWGGTt66rSBelYvqF5xjeQAjDQpkkp0uWGPpKrVYgzGxqb9PsFbviUSg==
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Configure Plex notifications"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/plex/configure-notifications"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Configure Plex webhook notifications for Radarr and Sonarr instances
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"plexToken":{"type":"string","minLength":1},"plexHost":{"type":"string","minLength":1},"plexPort":{"type":"integer","exclusiveMinimum":true,"minimum":0,"default":32400},"useSsl":{"type":"boolean","default":false}},"required":["plexToken","plexHost"],"additionalProperties":false}}},"required":true}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"results":{"type":"object","properties":{"radarr":{"type":"array","items":{"type":"object","properties":{"id":{"type":"number"},"name":{"type":"string"},"success":{"type":"boolean"},"message":{"type":"string"}},"required":["id","name","success","message"],"additionalProperties":false}},"sonarr":{"type":"array","items":{"type":"object","properties":{"id":{"type":"number"},"name":{"type":"string"},"success":{"type":"boolean"},"message":{"type":"string"}},"required":["id","name","success","message"],"additionalProperties":false}}},"required":["radarr","sonarr"],"additionalProperties":false}},"required":["success","message","results"],"additionalProperties":false}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"}},"required":["error"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"}},"required":["error"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

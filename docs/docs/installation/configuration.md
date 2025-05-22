@@ -94,9 +94,14 @@ cookieSecured=false                    # Set to true for HTTPS only
 logLevel=info                          # Logging level (defaults to silent. Recommended: info)
 authenticationMethod=required          # Authentication method (required, requiredExceptLocal, disabled)
 closeGraceDelay=10000                  # Shutdown grace period in ms
-rateLimitMax=100                       # Max requests per time window
+rateLimitMax=500                       # Max requests per time window
 syncIntervalSeconds=10                 # Sync interval in seconds
 queueProcessDelaySeconds=60            # Queue processing delay in seconds
+
+# Notification Queue Settings
+pendingWebhookRetryInterval=20         # Retry interval for pending notifications in seconds
+pendingWebhookMaxAge=10                # Max age for pending notifications in minutes
+pendingWebhookCleanupInterval=60       # Cleanup interval for old notifications in minutes
 
 # Discord Configuration
 discordWebhookUrl=https://discord.com/api/webhooks/xxxx/xxxx  # Webhook URL(s), separate multiple with commas

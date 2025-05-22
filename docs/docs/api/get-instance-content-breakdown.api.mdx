@@ -1,0 +1,63 @@
+---
+id: get-instance-content-breakdown
+title: "Get instance content breakdown"
+description: "Retrieve content distribution across different instances"
+sidebar_label: "Get instance content breakdown"
+hide_title: true
+hide_table_of_contents: true
+api: eJy9VU1r20AQ/SvLnFpQsNPQi27pB8HQg0naXoIJo9XY2mS1q+yOnBih/15GkmNZaZuGQE8Wntk3+94bPTXgKwrIxrtFDilsiBcuMjpNn71jcvwpEN7l/sFBAoybCOk1XDGyiWx0hFUCOUUdTCUYkMIlcTC0JaX78yo3kYPJaqkr1MHHqHKzXlOQqhmmRUggUKy8ixQhbeDDfC4/x+BfaI21ZXU5dEICwxjpxaqyRndkZrdRDjQQdUElyhPvKoIUfHZLmiGBKgh1Nv24WGtNMY4aM+8toYM2gcMlD2UMAXeQgGEq48v4Jh/1uLrMKAiyw5JGBVHKbaTQ/zEtJECuLsWC6B2GIKJhLg8rOeMZ7c30QodhVTAlht1fOrLdTWTk+g1En50/cNK+7o2azG3F+vvaBMo7aj3Cvn+VAOa5EVfRLkez1mgjtf2thy24mcj2yrv/AeXVDI5w/pXHBMPkMKzHsAzH/k7dHHv3XJFXzt6/DOPNfxGiTeDj/31nS4oRN79zasJn3/gyhzaBkrjwQxbKSOQCUphtT2cib5ztJTnZs0ggUthSkGhsoA4WUiiYq3Q2s16jLXzk9Gw+P4NpVn7bl9V5J7h692C4UJUP/B7alci/9h09w1b4LWsbMQR1vlw8AztfLlTudV2S405PtfZB7U+cKFRLS4/qAVkX1kSJXqZNOLRedZGi0OXqsg+VBIRWD//ztIsQH7nEzqU+uuCCDiH+lPnZ6KNxdMvm4P1bvhSD3UyPPKssmi6lO+WbwbBr2J6KM2LZaI+fTFslIMJLY9NkGOlHsG0rf9/XFHaQXq8S2GIwmIny15KvBWFOoXP5jnYiudZUyQJs0dZd3ky3WUx8WqiLr9+hbX8BEvagLQ==
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get instance content breakdown"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/stats/instance-content"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieve content distribution across different instances
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"instances":{"type":"array","items":{"type":"object","properties":{"id":{"type":"number"},"name":{"type":"string"},"type":{"type":"string","enum":["sonarr","radarr"]},"total_items":{"type":"number"},"primary_items":{"type":"number"},"by_status":{"type":"array","items":{"type":"object","properties":{"status":{"type":"string"},"count":{"type":"number"}},"required":["status","count"],"additionalProperties":false}},"by_content_type":{"type":"array","items":{"type":"object","properties":{"content_type":{"type":"string"},"count":{"type":"number"}},"required":["content_type","count"],"additionalProperties":false}}},"required":["id","name","type","total_items","primary_items","by_status","by_content_type"],"additionalProperties":false}}},"required":["success","instances"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

@@ -16,6 +16,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/bulk',
     {
       schema: {
+        summary: 'Bulk update users',
+        operationId: 'bulkUpdateUsers',
+        description: 'Update multiple users with the same changes in bulk',
         body: BulkUpdateRequestSchema,
         response: {
           200: BulkUpdateResponseSchema,

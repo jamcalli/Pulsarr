@@ -1,0 +1,63 @@
+---
+id: create-user-tags
+title: "Create user tags"
+description: "Create user tags in Sonarr and Radarr instances"
+sidebar_label: "Create user tags"
+hide_title: true
+hide_table_of_contents: true
+api: eJzlVE1v2zAM/SsCTxugwemKXXwrtkuBAQv6sUuQAyMzsVpZUiU6XWH4vw9UPpe0KLDDLjtJNslH8pF6A4RICdkGf91ADSYRMt1nSne4yqCB5ahnUD7nGhrKJtkoAVDD1+Ku+kxJiaeyXt0Gjykp9I26wUau1mdGb0jwEuUYfKYM9QCfJxM5/sT8RkvsHaubrSdoMMEzeRZfjNFZUwquHrIEDJBNSx3KjV8iQQ1h8UCGQUNM0h7bTbrcG0M5HzkuQnCEHkYNHeWMKzoyZk7Wr4otNK8YNJDvOyFnwxrMRw25dP9+LZuQ5sjR992CkqTLjzbGN2xLtO4N04Hmc+sozD/1NknsbJ/9kGuPfIwz14BNY4VsdNOj+pfoMglmGfD/0e0J6G6ZDpuz3ZP9DuzpeQ9YoL/826fw9raftLlzfL+H8oa4DSIjMeSSE7mFGqr1RSXqUG3fiYZMaU1JhGWAPjmooWWOdVW5YNC1IXN9OZlcwqnefN+Z1VVhX314ttyqGBJ/hHEu01yG0pRlJ11Ne5dFgq6m12dgV9Nr1QTTd+S5sKiWIaldxCeFaurol3pGNq2zmZX1TKt0cD1TOtAgbW3gf17ImgoTHZbZeOzoFc08rWs4zPgv9HU7TaZfXEWHtmhboXjYjmMG64udsOu9dGkQWsU6DAvMdJ/cOMrvp57SC9SzuYY1JosL4XUmUtcSNpTKDB/pRQg1hqLMfY2ulyrONlRGtF+S6Y/bOxjH37c+QaI=
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Create user tags"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/tags/create"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Create user tags in Sonarr and Radarr instances
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"mode":{"type":"string","enum":["create"]},"sonarr":{"type":"object","properties":{"created":{"type":"number"},"skipped":{"type":"number"},"failed":{"type":"number"},"instances":{"type":"number"}},"required":["created","skipped","failed","instances"],"additionalProperties":false},"radarr":{"type":"object","properties":{"created":{"type":"number"},"skipped":{"type":"number"},"failed":{"type":"number"},"instances":{"type":"number"}},"required":["created","skipped","failed","instances"],"additionalProperties":false}},"required":["success","message","mode","sonarr","radarr"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

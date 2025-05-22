@@ -18,6 +18,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/discordstart',
     {
       schema: {
+        summary: 'Start Discord bot',
+        operationId: 'startDiscordBot',
+        description: 'Start the Discord notification bot service',
         response: {
           200: DiscordBotResponseSchema,
           400: ErrorSchema,
@@ -67,6 +70,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/discordstop',
     {
       schema: {
+        summary: 'Stop Discord bot',
+        operationId: 'stopDiscordBot',
+        description: 'Stop the Discord notification bot service',
         response: {
           200: DiscordBotResponseSchema,
           400: ErrorSchema,
@@ -117,6 +123,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/validatewebhook',
     {
       schema: {
+        summary: 'Validate Discord webhooks',
+        operationId: 'validateDiscordWebhooks',
+        description:
+          'Validate one or more Discord webhook URLs for proper functionality',
         body: WebhookValidationRequestSchema,
         response: {
           200: WebhookValidationResponseSchema,

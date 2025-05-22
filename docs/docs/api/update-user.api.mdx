@@ -1,0 +1,71 @@
+---
+id: update-user
+title: "Update user"
+description: "Update an existing user by ID"
+sidebar_label: "Update user"
+hide_title: true
+hide_table_of_contents: true
+api: eJzlVk1v2zgQ/SvEnFqAhZ2mPaxuabtAA/RgZJu9GEYwFsc2W4pUSSqxIei/L4aiK7l24hRoD8X6YEnkfM/j47TgavIYtbPXCgpoaoWRbgN5kBBxHaCYA38GWEhQFEqva5aGAm6TrEAraKtD1HYtmkBeLHfi+gNI8PStoRDfObWDooXS2Ug28ivWtdFl8jr5EthYC6HcUIX8Fnc1QQFu+YXKCBJqzzFGTYF3LVY0kgrRa7sGCZW2n8iu4waKSwkVbvdfr9++7SS79Dqc1LSNMbg0BEX0DbGs0Rh+1scJO0qH0nl1p9Wz3FoX9Wp3dxzp0jlDaIEbsMLGRChWaMJIJ3t6nk6J9i7sbPm0dAqKi6GU5kahmY360NvqWKBGjxVFhkgxP9HHnHAnQTNqaowbzj61EbTKQNGeVHa64JVQOxv6jr+eTvlxCL4PfZziJkuC/FUAC01ZUggnqtNJqCgEXJ+AUSeBwX/e/AEYbFMtybPyaVj/KuD+dmg+B4pPQ493PWEkdYfxdH0T3zyy3Y1hNO9xlWo6VHBfn4Psj3I7SmQU9UGIBwEtzhyUw+j2EBvwlNFzzgwbejN98wcch7MZPy/Vv/4fqSb7ceNUT5AlM2QiygIm9xcTxkbI/61WHUgI5O/3lNt4AwVsYqyLycS4Es3GhVhcTqeX8OOl/Wm/La5SmOLFg44bUTsfXwJTLxftZri5/95iVRsabt6BJb6zwWipJ6BhYcwzI375gU5SHY4ZJC8PpJHZSNuVS33QkSODWWMCei+uZtdH+V7NroVyZVORjQkVYuW82Gu8EihmhrbigYtudIhC20hrP4j+4yxLolXiBhV6Hoy48r35fy8YG7ULsUI7KlKejZp+kDoIaTQJnR2hMtIibeOkNqgTElO724yPOdxfZPYIo2ehFcOOG80ybbvEQLfedB0vf2vI76CYLyTco9c91c9b7ha/D6V/NPAXNxnxL8VjYeZFtDuuGJqGv0DCV9r1F3+36CRsCBVfm/M2b7zvfbz6zOqD4tG57uReg4FcxydlF6PzNbv6/P4jSFjmubRyipU8PvAogg99lC4lnbggrbVg0K6bxADQG+Xff9oK5wc=
+sidebar_class_name: "patch api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Update user"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"patch"}
+  path={"/v1/users/users/{id}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Update an existing user by ID
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"string"},"in":"path","name":"id","required":true}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"name":{"type":"string","minLength":3,"maxLength":255},"apprise":{"type":"string","nullable":true},"alias":{"type":"string","minLength":3,"maxLength":255,"nullable":true},"discord_id":{"type":"string","nullable":true},"notify_apprise":{"type":"boolean","default":false},"notify_discord":{"type":"boolean","default":false},"can_sync":{"type":"boolean","default":true}},"additionalProperties":false}}}}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"user":{"type":"object","properties":{"id":{"type":"number"},"name":{"type":"string"},"apprise":{"type":"string","nullable":true},"alias":{"type":"string","nullable":true},"discord_id":{"type":"string","nullable":true},"notify_apprise":{"type":"boolean"},"notify_discord":{"type":"boolean"},"can_sync":{"type":"boolean"},"created_at":{"type":"string"},"updated_at":{"type":"string"}},"required":["id","name","apprise","alias","discord_id","notify_apprise","notify_discord","can_sync","created_at","updated_at"],"additionalProperties":false}},"required":["success","message","user"],"additionalProperties":false}}}},"404":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}},"409":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

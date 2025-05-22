@@ -1,0 +1,71 @@
+---
+id: get-schedule-by-name
+title: "Get job schedule by name"
+description: "Retrieve a specific job schedule by its name"
+sidebar_label: "Get job schedule by name"
+hide_title: true
+hide_table_of_contents: true
+api: eJztV01v2zgQ/SvEnFpACzvb9qJbFrsoAhStkXb3YhjFWBxbzFIkS47cCIL++2Ik2VEcO0mBopfNyTQ5M3zz5kPDFnygiGy8u9KQw5b4c1GSri390XzEiiADxm2CfAn7gwirDDSlIpogipDDNXE0tCOFKgUqzMYU6savVRpV1LpRhpNyg8WAEStiimK3BZGqEPIWuAkEOSSOxm2hy8CI9YBcQga9cg6jjUjfahNJQ86xpm4lOyl4lyiJpd/nc/m5D/NP2mBtWV2PkpBB4R2TY5HFEKwpei5mN0kUptDQNZ82PdwRpF/fUMHiTRQO2QwXGz1xxNXVmqI4MoA/4eGwcXyQAbm6EtaNY4o7tLDqerQbs52InwGhsUkTKbGxpQgZVMaZSgzPuwxKX8dniFXG1UzPEExUeKefIRhrd1VVpA0y2WYiv/beEjrougxQayOxQLuY+LZBm6gTenBtSZ/SzcBi4q+xdk8TxeZMWBIj1+mxwBS+CpaYNGSwQWP7RSCnRUyCRTH6eNI4JTYV8mn43TS3lwPCA57Vo7xk4GprhZixKjJwdPtCxUBFEUku+op8Ekkd9PnjIyRG7/vRWMCH0rzLzEkaTsJwD8a9Sx/3p8t+deMponc/1HToNkRKyXh3ymxl3AdyWy4hvzimc6L5FAsvhf9S+P+vwl91naB4O3/7cweaJ4r5TOCOK7cXe8KDHv+7nz2Q/VL8MgYRl36ckfsZVloZzHYXs/2UGw+rNGslSTpJWoq7/aBbRws5lMwhn82sL9CWPnH+Zj5/A8cj9Yf9sbosCkpJvfpuuFTBR34NMu4at/FD+bLkOixqmzBGdbm4emDscnGltC/qihz3fKqNj2qv8ZtCtbB0q74jF6U1iVU/uMU70c/eiSQ6ra5RY5SRTtwazP9zIXUUfOIK+yiNo/p74gfPgLF47uFr76L+o0+JMbxMtzwLFk3/Geh5bscQLWF3IXE4vF7u1gkyyHtDK5mGE4t0264x0d/Rdp1sf6spNpAvVxnsMJqhsSxb0CaNH6Kx7Zz16NX1mHCv1TnA4ya6RnhFW8s/yOBfavYvnk7aaUmoKfb3D0eSG4EnSg9qRlLlkLrv//oCXfcfC6LWFw==
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get job schedule by name"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/scheduler/schedules/{name}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieve a specific job schedule by its name
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"string"},"in":"path","name":"name","required":true}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"anyOf":[{"type":"object","properties":{"id":{"type":"number"},"name":{"type":"string"},"type":{"type":"string","enum":["interval"]},"config":{"type":"object","properties":{"days":{"type":"integer","minimum":0},"hours":{"type":"integer","minimum":0},"minutes":{"type":"integer","minimum":0},"seconds":{"type":"integer","minimum":0},"runImmediately":{"type":"boolean"}},"additionalProperties":false},"enabled":{"type":"boolean"},"last_run":{"type":"object","properties":{"time":{"type":"string"},"status":{"type":"string","enum":["completed","failed","pending"]},"error":{"type":"string"},"estimated":{"type":"boolean"}},"required":["time","status"],"additionalProperties":false,"nullable":true},"next_run":{"type":"object","properties":{"time":{"type":"string"},"status":{"type":"string","enum":["completed","failed","pending"]},"error":{"type":"string"},"estimated":{"type":"boolean"}},"required":["time","status"],"additionalProperties":false,"nullable":true},"created_at":{"type":"string"},"updated_at":{"type":"string"}},"required":["id","name","type","config","enabled","last_run","next_run","created_at","updated_at"],"additionalProperties":false},{"type":"object","properties":{"id":{"type":"number"},"name":{"type":"string"},"type":{"type":"string","enum":["cron"]},"config":{"type":"object","properties":{"expression":{"type":"string","minLength":1}},"required":["expression"],"additionalProperties":false},"enabled":{"type":"boolean"},"last_run":{"type":"object","properties":{"time":{"type":"string"},"status":{"type":"string","enum":["completed","failed","pending"]},"error":{"type":"string"},"estimated":{"type":"boolean"}},"required":["time","status"],"additionalProperties":false,"nullable":true},"next_run":{"type":"object","properties":{"time":{"type":"string"},"status":{"type":"string","enum":["completed","failed","pending"]},"error":{"type":"string"},"estimated":{"type":"boolean"}},"required":["time","status"],"additionalProperties":false,"nullable":true},"created_at":{"type":"string"},"updated_at":{"type":"string"}},"required":["id","name","type","config","enabled","last_run","next_run","created_at","updated_at"],"additionalProperties":false}]}}}},"404":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"}},"required":["error"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"}},"required":["error"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

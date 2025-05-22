@@ -18,6 +18,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/instance/:instanceId',
     {
       schema: {
+        summary: 'Sync specific instance',
+        operationId: 'syncInstance',
+        description:
+          'Synchronize watchlist items to a specific Radarr or Sonarr instance',
         params: InstanceIdParamsSchema,
         querystring: InstanceTypeQuerySchema,
         response: {
@@ -74,6 +78,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/all',
     {
       schema: {
+        summary: 'Sync all instances',
+        operationId: 'syncAllInstances',
+        description:
+          'Synchronize watchlist items to all configured Radarr and Sonarr instances',
         response: {
           200: SyncAllInstancesResultSchema,
           500: ErrorSchema,

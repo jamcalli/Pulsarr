@@ -1,0 +1,63 @@
+---
+id: stop-watchlist-workflow
+title: "Stop watchlist workflow"
+description: "Stop the currently running watchlist processing workflow"
+sidebar_label: "Stop watchlist workflow"
+hide_title: true
+hide_table_of_contents: true
+api: eJzVVE1rGzEQ/StiTi0orNO0l70FegkUapK2ORgfxtqxV4ksKaNZJ2bZ/15m46/Ul0Ch0JOEZjSa99489ZAyMYpP8aaBGoqkfI/i2uCL3Cd+XIb0DBYEVwXqGRxi5hCcW2ioOPZZq0ANd5KykZaM65gpStga7mL0cWWeD9czJ0eljIfHZ5hKTrFQgbqHT5OJLm+Lf6UldkHM7S4TLLgUhaJoLuYcvBvhVA9FL/RQXEtr1J1sM0ENafFATsBCZgUv/vW50jnt6CRxkVIgjDBYKILSncaKsI8rsECxWyszO4hgRw4zNeMOWU4OdTsfLKypFFzReblhUA6eOs/UaNF9T4cG5hawabwCxDA96X+JodAwaIHP/5a3d4PZJ74Hw5f/HsMos7RJXZVTGd9EaaGGanNZHYxwsZ/+SidEhSbeEKvZeug4QA2tSK6rKiSHoU1F6qvJ5Ar+dN23fdhcjzNjPjx7aU1OLB9hmFvwcZlGgF6CIpx2oSCzuZ7enBW7nt6YJrluTVFGRs0ysdnfuDBopoFeTuzso9CKj6l3KWomxsbcYoPMYEFhvZb/dameUlbWOOoUcU37n+NY9ORjeNNef5T9bz6bndJCL1LlgH40+kh5v5NqBptLsHAu1s7QOgZKuWb2/QIL/eQwDHr81BFvoZ7NLWyQPS6U85mavyVsiEd9H2mrZDtHWedjg6HTjs4mWeU7DNP0+90PGIbfuKEFzg==
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Stop watchlist workflow"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/watchlist-workflow/stop"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Stop the currently running watchlist processing workflow
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"status":{"type":"string","enum":["running","stopped","starting","stopping"]},"message":{"type":"string"}},"required":["success","status"],"additionalProperties":false}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

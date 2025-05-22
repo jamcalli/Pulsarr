@@ -1,0 +1,71 @@
+---
+id: update-sonarr-instance
+title: "Update Sonarr instance"
+description: "Update an existing Sonarr instance configuration"
+sidebar_label: "Update Sonarr instance"
+hide_title: true
+hide_table_of_contents: true
+api: eJytVk2P2zYQ/SvCnBJAgb1NTrptNy1gNG2MbbYXw4exOLaYUqSWHHlXMPTfi6EkS/7Y7iKIL5bImeFw5r03OoCryCNrZxcKMqgrhUx/O4veL2xgtDlBCoy7ANkKuo3kztmt3tWdH6xTUBRyr6v4msFDDJKgTehZB9Z2l/SOug+Z5CcRUvD0WFPgX51qIDtA7iyTZXnEqjI6j3az70HiHyDkBZUoT9xUBBm4zXfKGVKovNyHNQXZtVjSxCqw13YHKZTafiG74wKymzaFDQZ68Oaa5db5ElkK4zW0KWCl/6DmDTEfazSam6V3W21iEmibr1vIVueubXpcsXW5IQ/tOgVbG4Mb8WRfU5uCd45/d0aRv3b6hfmmqTCExc46T2risXHOEErJFW2xNgzZFk0Ql0AYnP3TWc0uhr1yztEJ0BgpSNmZ/0VPC6YyXPMhW5cCHvFIwTpLHWTOIgVCnxdf7a16Jd/+hh0mj4boPTaQgr6eRjsJsFq3KejweXh/U3Eam5MaKPGWg4dmxqt5TeFbXH+5PhJaoVeQAlpdCu8UatOcVutoJYFRKS3MQLOcAL/LuRWDCj2WxORDRN4FcYYkU9DC3Aq5kB5F3oBWPTN1xFCs+1pWQuVs6Irwy/yT/J0KQF/Z5L63hPTNjO7S/jSf/9Sor+hEYOQ63DlFV0tD3rsrrBP0Uwi4u9JVucRYudX0hCHe6L1+tZHxKC6cSHRVxwtIpzKY7W9mIWrrbNDWMDto1UJE3X5ofC3yBgVzlc1mxuVoChc4+ziff4Rz+f4ybCe3eU4hJO+eNBdJ5Ty/j9ok5b0fBfu3ZyyrTuN64ByhfVTWcWlQ0HHlXCrHnanmTYKeSlss0jX16gXnQqH69RO9EWyPY64/an2iEsM550Kwmq9PGT6hqNBq6yI8NMe7LWsTZBLeLhcXhb9dLhLl8rokyxHIydb5ZPD4kGCyNPScPCHnhdGBE22Zdn407acsWpXco0IvIBMIdOH/uZGEKhe4RDvpVj+uz0b0eXaTofwjA76nB9MzzyqD2koudTd0OyyvYH8jbYmBRE+PJU4h00q6IaAUw8OhB1bbyvJjTb4RWU9hj153c3B1AKWDPI8YefFC7+57rr5PXsp1UHsrWr9HU8sbpPBvBLNW0MpUKQgjWleHfuOuO+NDhMboeKFW8hXQeQjpKv5f2/VEDpYP34QT/YdTGTUMPD4JffCpy9HFK0epi2sHMGh3dVQu6ELK7z9HP3tv
+sidebar_class_name: "put api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Update Sonarr instance"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"put"}
+  path={"/v1/sonarr/instances/{id}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Update an existing Sonarr instance configuration
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"number"},"in":"path","name":"id","required":true}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"name":{"type":"string","minLength":1},"baseUrl":{"type":"string","format":"uri"},"apiKey":{"type":"string","minLength":1},"qualityProfile":{"anyOf":[{"type":"string"},{"type":"number"}],"nullable":true},"rootFolder":{"type":"string","nullable":true},"bypassIgnored":{"type":"boolean","default":false},"seasonMonitoring":{"type":"string","default":"all"},"monitorNewItems":{"type":"string","enum":["all","none"],"default":"all"},"searchOnAdd":{"type":"boolean","default":true},"tags":{"type":"array","items":{"type":"string"},"default":[]},"isDefault":{"type":"boolean","default":false},"syncedInstances":{"type":"array","items":{"type":"number"}},"seriesType":{"type":"string","enum":["standard","anime","daily"],"default":"standard"}},"additionalProperties":false}}}}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"204":{"description":"Default Response","content":{"application/json":{"schema":{}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"error":{"type":"string"},"message":{"type":"string"}},"required":["statusCode","error","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      
