@@ -2,6 +2,8 @@
 sidebar_position: 1
 ---
 
+import useBaseUrl from '@docusaurus/useBaseUrl';
+
 # Discord Notifications
 
 Pulsarr includes a powerful Discord integration that enables personalized notifications and user-friendly configuration options.
@@ -28,7 +30,7 @@ The webhook endpoint can be used without creating a Discord bot. This is ideal f
 
 You will receive notifications like this:
 
-<img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Webhook-grab.png" width="400" alt="Webhook Grab" />
+<img src={useBaseUrl('/img/Webhook-grab.png')} width="400" alt="Webhook Grab" />
 
 ### Multiple Webhooks
 
@@ -48,7 +50,7 @@ For personalized user notifications, you'll need to set up a Discord bot.
 2. Click "New Application" and give it a name (e.g., "Pulsarr")
 3. Provide an icon - here's one you can use:
 
-<img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/icons/pulsarr-lg.png" width="150" alt="Pulsarr Logo" />
+<img src={useBaseUrl('/img/pulsarr-lg.png')} width="150" alt="Pulsarr Logo" />
 
 4. Go to the "Bot" section and click "Add Bot"
 5. Under "Privileged Gateway Intents", enable "Message Content Intent"
@@ -89,13 +91,13 @@ Once your bot is configured, users can set up their own notifications:
 1. Users type `/notifications` command in your Discord server
 2. They'll be prompted to enter their Plex username to create the association
 
-<img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Discord-Signup.png" width="400" alt="Discord Signup" />
+<img src={useBaseUrl('/img/Discord-Signup.png')} width="400" alt="Discord Signup" />
 
 3. Users can configure their notification preferences. These can be accessed anytime using the `/notifications` command.
 
-<img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Discord-Settings.png" width="400" alt="Discord Settings" />
+<img src={useBaseUrl('/img/Discord-Settings.png')} width="400" alt="Discord Settings" />
 
-<img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Discord-Edit-Modal.png" width="400" alt="Discord Edit Modal" />
+<img src={useBaseUrl('/img/Discord-Edit-Modal.png')} width="400" alt="Discord Edit Modal" />
 
 :::note
 The system uses the actual Plex username for the primary token user. When setting notification preferences, users should use their Plex username.
@@ -105,9 +107,9 @@ The system uses the actual Plex username for the primary token user. When settin
 
 When content is available, users will receive DMs like these:
 
-<img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/DM-New-Epp.png" width="400" alt="DM New Episode" />
+<img src={useBaseUrl('/img/DM-New-Epp.png')} width="400" alt="DM New Episode" />
 
-<img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/DM-Season.png" width="400" alt="DM Season" />
+<img src={useBaseUrl('/img/DM-Season.png')} width="400" alt="DM Season" />
 
 ## Troubleshooting
 

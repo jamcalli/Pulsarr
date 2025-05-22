@@ -132,7 +132,7 @@ export default function WorkflowCard() {
 
         return (
           <div
-            className="outline-border dark:outline-darkBorder bg-bg rounded-base shadow-[10px_10px_0_0_#000] outline outline-4 p-4"
+            className="outline-border dark:outline-darkBorder bg-bg rounded-base shadow-[10px_10px_0_0_#000] outline outline-4 p-4 mb-10"
             style={{
               height: '300px',
               overflow: 'hidden',

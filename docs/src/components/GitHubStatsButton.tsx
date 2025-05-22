@@ -32,8 +32,8 @@ export default function GitHubStatsButton(): React.ReactElement {
       }
       aria-label="View GitHub repository"
     >
-      <Github className="github-icon" />
       <span className="star-count">{isLoading ? '...' : stats.stars}</span>
+      <Github className="github-icon" />
     </button>
   )
 }

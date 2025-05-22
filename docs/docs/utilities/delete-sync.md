@@ -2,6 +2,8 @@
 sidebar_position: 1
 ---
 
+import useBaseUrl from '@docusaurus/useBaseUrl';
+
 # Delete Sync
 
 Delete Sync automatically removes content from your Sonarr/Radarr instances when it's no longer present on any user's watchlist. This completes the content lifecycle management, ensuring your libraries remain clean and optimized.
@@ -71,9 +73,9 @@ When Plex Playlist Protection is enabled, running a dry run will automatically c
 
 You can configure notifications to receive information regarding your workflow:
 
-![Delete Sync Dry](../../static/img/Delete-Sync-Dry.png)
+<img src={useBaseUrl('/img/Delete-Sync-Dry.png')} alt="Delete Sync Dry Run Notification" />
 
-![Delete Sync Error](../../static/img/Delete-Sync-Error.png)
+<img src={useBaseUrl('/img/Delete-Sync-Error.png')} alt="Delete Sync Error Notification" />
 
 ## Safety Features
 

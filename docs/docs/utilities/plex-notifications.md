@@ -2,6 +2,8 @@
 sidebar_position: 3
 ---
 
+import useBaseUrl from '@docusaurus/useBaseUrl';
+
 # Plex Notifications
 
 ## Automatic Library Updates
@@ -24,6 +26,6 @@ Pulsarr's Plex Notifications feature automatically configures webhooks in all yo
 4. Select your server or manually enter your Plex host, port, and SSL settings
 5. Save your changes to automatically configure webhooks in all Sonarr and Radarr instances
 
-![Plex Notifications](../../static/img/Plex-Notifications.png)
+<img src={useBaseUrl('/img/Plex-Notifications.png')} alt="Plex Notifications Setup Interface" />
 
 Once configured, anytime content is added, modified, or removed via Sonarr or Radarr, your Plex libraries will automatically refresh to reflect these changes.
