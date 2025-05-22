@@ -7,7 +7,7 @@ import WorkflowCard from './WorkflowCard'
  */
 export default function DocFeatureExample() {
   return (
-    <div className="flex flex-col gap-10">
+    <div className="flex flex-col gap-6">
       {/* Overview section with workflow demo side by side */}
       <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6 items-start md:items-stretch">
         <DocFeature title="Overview">

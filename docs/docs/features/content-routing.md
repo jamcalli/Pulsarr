@@ -2,6 +2,8 @@
 sidebar_position: 1
 ---
 
+import useBaseUrl from '@docusaurus/useBaseUrl';
+
 # Advanced Content Routing
 
 Pulsarr offers a powerful predicate-based routing system that intelligently directs content to the appropriate Sonarr/Radarr instances.
@@ -14,9 +16,13 @@ If you're upgrading from a version prior to 0.2.15, you may need to delete and r
 
 The content routing system allows you to create complex rules that determine which Sonarr/Radarr instance should receive specific content based on multiple criteria. This enables you to organize your media library according to your preferences and setup.
 
-![Content Router Interface](../../static/img/Discord-Notification.png)
+<img src={useBaseUrl('/img/Content-Route-1.png')} alt="Content Router Interface" />
 
 The content routing interface allows you to create complex rules with visual condition builders and comprehensive configuration options.
+
+<img src={useBaseUrl('/img/Content-Route-2.png')} alt="Content Router Advanced Interface" />
+
+The advanced interface provides detailed condition building and priority management for complex routing scenarios.
 
 ## Key Features
 

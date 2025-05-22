@@ -2,6 +2,8 @@
 sidebar_position: 2
 ---
 
+import useBaseUrl from '@docusaurus/useBaseUrl';
+
 # User Tagging
 
 Pulsarr's User Tagging feature organizes your media by automatically adding user tags to content in Sonarr and Radarr, making it easy to track which users requested which content.
@@ -67,4 +69,4 @@ User Tagging works seamlessly with Delete Sync's tag-based deletion mode:
 - Protect content with specific tags from deletion
 - Create complex deletion workflows based on tag lifecycle
 
-![User Tagging](../../static/img/User-Tags.png)
+<img src={useBaseUrl('/img/User-Tags.png')} alt="User Tagging Interface" />

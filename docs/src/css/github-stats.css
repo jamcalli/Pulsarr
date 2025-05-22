@@ -11,7 +11,7 @@
 	font-weight: 500;
 	border: 2px solid #000;
 	background-color: #d4b483; /* fun color from globals.css */
-	color: #000;
+	color: #000 !important;
 	cursor: pointer;
 	transition: all 0.2s ease;
 	font-family: "Shuttleblock", system-ui, -apple-system, sans-serif;
@@ -40,4 +40,21 @@
 	font-size: 0.875rem;
 	font-weight: 500;
 	display: inline-block;
+	color: #000 !important;
+}
+
+/* Ensure black text/icon in both light and dark themes */
+html[data-theme="light"] .github-stats-button,
+html[data-theme="dark"] .github-stats-button {
+	color: #000 !important;
+}
+
+html[data-theme="light"] .github-stats-button .star-count,
+html[data-theme="dark"] .github-stats-button .star-count {
+	color: #000 !important;
+}
+
+html[data-theme="light"] .github-stats-button .github-icon,
+html[data-theme="dark"] .github-stats-button .github-icon {
+	color: #000 !important;
 }

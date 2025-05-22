@@ -2,10 +2,12 @@
 sidebar_position: 1
 ---
 
+import useBaseUrl from '@docusaurus/useBaseUrl';
+
 # Introduction to Pulsarr
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/icons/pulsarr.svg" alt="Pulsarr Logo" width="150"/>
+  <img src={useBaseUrl('/img/pulsarr.svg')} alt="Pulsarr Logo" width="150"/>
   <p>Real-time Plex watchlist monitoring, routing, and notification center</p>
 </div>
 
@@ -72,7 +74,7 @@ Pulsarr uses an intelligent workflow to process and route content:
 ## Screenshots
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/jamcalli/pulsarr/master/assets/screenshots/Dashboard1.png" alt="Dashboard Overview" width="80%"/>
+  <img src={useBaseUrl('/img/Dashboard1.png')} alt="Dashboard Overview" width="80%"/>
 </div>
 
 ## Next Steps

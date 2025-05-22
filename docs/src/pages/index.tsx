@@ -56,21 +56,58 @@ export default function Home(): React.ReactElement {
             const planetUrl = useBaseUrl('/img/planet.webp')
             const docsIntroUrl = useBaseUrl('/docs/intro')
 
-            // Simple cleanup effect
+            // Fix viewport height and scrolling issues
             useEffect(() => {
               // Fix for any scrolling issues
               document.body.style.overflowX = 'hidden'
 
+              // Set CSS custom property for stable viewport height
+              const setVH = () => {
+                const vh = window.innerHeight * 0.01
+                document.documentElement.style.setProperty('--vh', `${vh}px`)
+              }
+
+              setVH()
+              window.addEventListener('resize', setVH)
+              window.addEventListener('orientationchange', setVH)
+
               return () => {
                 document.body.style.overflowX = ''
+                window.removeEventListener('resize', setVH)
+                window.removeEventListener('orientationchange', setVH)
               }
             }, [])
 
             return (
-              <div>
+              <div style={{ position: 'relative' }}>
                 {/* Background layer with text inside Starfield but before CRT overlay */}
-                <div style={{ position: 'fixed', inset: 0 }}>
+                <div
+                  style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    height: 'calc(var(--vh, 1vh) * 100)', // Use stable viewport height
+                    zIndex: 1,
+                  }}
+                >
                   <Starfield>
+                    {/* Pulsar - OUTSIDE text container to allow proper z-indexing */}
+                    <div
+                      style={{
+                        position: 'fixed',
+                        top: 'calc(50px + 2rem - 18px)', // Text top + padding - pulsar offset
+                        left: 'calc(50% + 6rem)', // Text center + approximate text width/2 + offset
+                        width: '96px',
+                        height: '96px',
+                        zIndex: -1, // Behind asteroids
+                        pointerEvents: 'none',
+                      }}
+                    >
+                      <Pulsar className="w-24 h-24" />
+                    </div>
+
                     {/* Pulsarr logo and text - with proper z-index ordering */}
                     <div
                       style={{
@@ -83,7 +120,7 @@ export default function Home(): React.ReactElement {
                         padding: '2rem',
                       }}
                     >
-                      {/* Wrapper for title and Pulsar star */}
+                      {/* Wrapper for title */}
                       <div
                         style={{
                           position: 'relative',
@@ -92,20 +129,6 @@ export default function Home(): React.ReactElement {
                             '0.25rem' /* Further reduced from 0.5rem to 0.25rem */,
                         }}
                       >
-                        {/* Animated Pulsar component - positioned relative to the text */}
-                        <div
-                          style={{
-                            position: 'absolute',
-                            top: '-18px', // Above the text
-                            right: '-65px', // To the right of the text
-                            width: '96px',
-                            height: '96px',
-                            zIndex: -5, // Behind asteroids (z-index 20)
-                          }}
-                        >
-                          <Pulsar className="w-24 h-24" />
-                        </div>
-
                         <Heading
                           as="h1"
                           style={{
@@ -137,10 +160,18 @@ export default function Home(): React.ReactElement {
                       </p>
                     </div>
 
-                    {/* Planet Image */}
-                    <div className="fixed bottom-0 right-0 z-10 translate-x-1/4 translate-y-1/4">
+                    {/* Planet Image - Fixed mobile/desktop switching */}
+                    <div
+                      style={{
+                        position: 'fixed',
+                        bottom: 0,
+                        right: 0,
+                        zIndex: 2,
+                        transform: 'translate(25%, 25%)',
+                      }}
+                    >
                       <div
-                        className={`relative ${isMobile ? 'w-[600px]' : 'w-[1000px]'}`}
+                        className={`relative w-[1000px] ${isMobile ? 'w-[600px]' : 'w-[1000px]'}`}
                       >
                         <AspectRatio ratio={1522 / 1608}>
                           <picture>
@@ -150,11 +181,7 @@ export default function Home(): React.ReactElement {
                                   ? '(max-width: 768px)'
                                   : '(min-width: 769px)'
                               }
-                              srcSet={
-                                isMobile
-                                  ? planetMobileUrl
-                                  : planetUrl
-                              }
+                              srcSet={isMobile ? planetMobileUrl : planetUrl}
                               type="image/webp"
                               width={isMobile ? '600' : '1522'}
                               height={isMobile ? '634' : '1608'}
@@ -177,18 +204,31 @@ export default function Home(): React.ReactElement {
                       <Asteroids />
                     </div>
                   </Starfield>
+                </div>
 
-                  {/* CRT overlay on top of everything */}
+                {/* CRT overlay on top of everything - separate fixed container */}
+                <div
+                  style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    height: 'calc(var(--vh, 1vh) * 100)', // Use stable viewport height
+                    zIndex: 20,
+                    pointerEvents: 'none',
+                  }}
+                >
                   <CrtOverlay className="h-full">
                     <div /> {/* Empty div as children */}
                   </CrtOverlay>
                 </div>
 
-                {/* Scrollable content - no more mask */}
+                {/* Scrollable content */}
                 <div
                   style={{
                     position: 'relative',
-                    paddingTop: '210px', // Same as the original content padding
+                    paddingTop: isMobile ? '220px' : '210px', // Slightly increased mobile padding
                     zIndex: 100,
                     paddingBottom: '4rem',
                     paddingLeft: '2rem',
@@ -206,8 +246,10 @@ export default function Home(): React.ReactElement {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      padding: '2rem',
-                      marginTop: '2rem',
+                      paddingTop: '2.5rem', // 40px - matches mb-10 from cards
+                      paddingBottom: '2rem',
+                      paddingLeft: '2rem',
+                      paddingRight: '2rem',
                     }}
                   >
                     <div
