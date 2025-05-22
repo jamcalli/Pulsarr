@@ -128,4 +128,12 @@ html[data-theme="dark"] .prism-code {
 	overflow-clip-margin: 0;
 }
 
-/* No custom CSS needed - using inline styles */
+/* Fix API endpoint font size - target the specific element */
+.openapi-left-panel__container pre h2 {
+	font-size: 16px !important;
+}
+
+/* Make the endpoint background container full width */
+.openapi-left-panel__container pre {
+	width: 100% !important;
+}
