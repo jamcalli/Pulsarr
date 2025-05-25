@@ -21,7 +21,7 @@ export default function DocFeature({
   return (
     <BrowserOnly
       fallback={
-        <div className="border border-gray-300 grid w-full max-w-6xl mb-10 grid-cols-1 rounded-lg shadow-lg">
+        <div className="border border-gray-300 grid w-full max-w-6xl grid-cols-1 rounded-lg shadow-lg">
           <header className="border-b border-gray-300 relative flex items-center justify-center bg-gray-100 dark:bg-gray-800 h-[60px] w-full">
             <h2 className="whitespace-nowrap font-bold text-2xl tracking-wider text-black dark:text-white">
               {title}
@@ -42,7 +42,7 @@ export default function DocFeature({
 
           return (
             <div
-              className={`outline-border dark:outline-darkBorder w-full max-w-6xl mb-10
+              className={`outline-border dark:outline-darkBorder w-full max-w-6xl h-full flex flex-col
                 rounded-base shadow-[10px_10px_0_0_#000] outline outline-4 ${className}`}
             >
               {/* Simple header like other cards */}
@@ -60,7 +60,7 @@ export default function DocFeature({
               </header>
 
               {/* Main content area */}
-              <main className="flex flex-col font-semibold p-6 bg-bg rounded-b-base">
+              <main className="flex flex-col font-semibold p-6 bg-bg rounded-b-base flex-1">
                 <div className="flex-1">{children}</div>
               </main>
             </div>

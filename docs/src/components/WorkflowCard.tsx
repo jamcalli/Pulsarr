@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import BrowserOnly from '@docusaurus/BrowserOnly'
 import useBaseUrl from '@docusaurus/useBaseUrl'
 
@@ -36,10 +36,10 @@ const WorkflowSequence = () => {
         setCurrentStep(1)
       }, 4000)
     } else if (currentStep === 1) {
-      // Second GIF (Import) - show for 7 seconds
+      // Second GIF (Import) - show for 5 seconds
       timer = setTimeout(() => {
         setCurrentStep(2)
-      }, 7000)
+      }, 5000)
     } else {
       // Static image (Discord Notification) - show for 5 seconds then restart
       timer = setTimeout(() => {
@@ -127,14 +127,10 @@ export default function WorkflowCard() {
   return (
     <BrowserOnly>
       {() => {
-        const { useMediaQuery } = require('@/client/hooks/use-media-query')
-        const isMobile = useMediaQuery('(max-width: 768px)')
-
         return (
           <div
-            className="outline-border dark:outline-darkBorder bg-bg rounded-base shadow-[10px_10px_0_0_#000] outline outline-4 p-4 mb-10"
+            className="outline-border dark:outline-darkBorder bg-bg rounded-base shadow-[10px_10px_0_0_#000] outline outline-4 p-4 h-[300px] lg:h-full"
             style={{
-              height: '300px',
               overflow: 'hidden',
             }}
           >
