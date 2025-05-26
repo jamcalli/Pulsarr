@@ -47,7 +47,7 @@ export default function DocFeatureExample() {
         {/* Features card on the right with 2x2 grid */}
         <DocFeature title="Features" titleClassName="feature-heading-blue">
           <div className="feature-content">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="feature-item">
                 <h3 className="text-text">Real-time Monitoring</h3>
                 <p className="text-text">
