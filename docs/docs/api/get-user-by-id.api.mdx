@@ -1,0 +1,71 @@
+---
+id: get-user-by-id
+title: "Get user by ID"
+description: "Retrieve a specific user by their ID"
+sidebar_label: "Get user by ID"
+hide_title: true
+hide_table_of_contents: true
+api: eJzVVcFuGjEQ/RVrTom0FaTJaW+pUkVIPSDa9IIQGtYD69TYjj1Lglb779UsS4AAJddeWLCfhzdvnt/W4ANFZOPdQEMOC+KnRPHbeqAhA8ZFgnwMspRgkoGmVEQTBA45jIijoRUpVClQYeamUFWiqGZrxSWZqAYPkEHAiEtiKZGPa0hFSUuEvAZeB4IcEkfjFtBkYKRqQC4hA4dL2TTCI9JLZSJpyDlW1ExkJQXvEiWp87Xfl8chuQeaY2VZjTokZFB4x+RYsBiCNUXbd+85yYETxPzsmQqWDqKoxGbzd6kqCkppDzjz3hI6aWFJKeGCTrYn2lwub/QexlXLGUU5vNHjRFUMIZp0Yi8DV1mLM0udbhmgNZg+hdQmFT7q6QGb83Dn2czX02Mue9J0mK7yaUyBbprWrjizGwmZ9BT5tL5Bn99u9m003viq1XSn4Fafg+6PejtqZI/1AcUDQpMMUGsjhkM73Bv4HG2ij+y2Ftv5qXPPpTJS6K5/9x9ch4sdX261rc+l74KrjRouIYfe6qYncqXusza6gQwSxdU2hapoIYeSOeS9nvUF2tInzm/7/Vv4mHM/ttvqviWprl4Nlyr4yNcgaWTc3LctGpY7AcPKJoxR3Q8HR8XuhwOlfVEtyXEruJr7qLYnvihUQ0tv6hW5KK1JrIxjWsQd9Kd3gkSn1Qg1xggZSFub8r9vRPbgEy+xHWOXo4/E79ncpvIBq3pnhs+mejdOpjfuBYumHXerat2NYQyrm863ae+ZGy2zFT0FU9czTPQUbdPI8ktFcQ35eJLBCqPZhMy4lhsp33U3/n/wvxp1trpW52h2i+jWoh3aSn5BBn9ovXnlNJMmg5JQS2CP625Dph9478jRtREzvFvy8fsvaJq/TtCLqw==
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get user by ID"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/users/users/{id}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieve a specific user by their ID
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"string"},"in":"path","name":"id","required":true}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"user":{"type":"object","properties":{"id":{"type":"number"},"name":{"type":"string"},"apprise":{"type":"string","nullable":true},"alias":{"type":"string","nullable":true},"discord_id":{"type":"string","nullable":true},"notify_apprise":{"type":"boolean"},"notify_discord":{"type":"boolean"},"can_sync":{"type":"boolean"},"created_at":{"type":"string"},"updated_at":{"type":"string"}},"required":["id","name","apprise","alias","discord_id","notify_apprise","notify_discord","can_sync","created_at","updated_at"],"additionalProperties":false}},"required":["success","message","user"],"additionalProperties":false}}}},"404":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

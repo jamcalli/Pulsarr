@@ -14,6 +14,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/test-connection',
     {
       schema: {
+        summary: 'Test Radarr connection',
+        operationId: 'testRadarrConnection',
+        description:
+          'Test connectivity to a Radarr instance with provided credentials',
         querystring: TestConnectionQuerySchema,
         response: {
           200: TestConnectionResponseSchema,

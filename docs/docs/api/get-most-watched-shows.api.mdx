@@ -1,0 +1,71 @@
+---
+id: get-most-watched-shows
+title: "Get most watched shows"
+description: "Retrieve the most watchlisted TV shows"
+sidebar_label: "Get most watched shows"
+hide_title: true
+hide_table_of_contents: true
+api: eJy1VE1r3EAM/SuDTi24eLehF98CLSHQwJKk6WHZg9bWriedD2ckbxIW//cifyTORyGX+mI8Iz1J7+n5CLGhhGJjOK+ggD3JRWT5jVLWVF3V8Z4hA8E9Q7GGK0GxLLZk2GRQEZfJNpoLBVySJEsHMlKT8ZHF3CuIsyxUmesbwyNYgwk9CSWFPAKXNXmE4gjy2BAUYIPQnhJkQA+la9ke6MIG61sPhaSWMvDT50Kb2GHrBIrlosvAaid3LaVHyCCgVzxnvRXIINFdaxNVUOzQMXUbPeImBibW8l8XC329nOr7AG8ux0jIoIxBKIjGYtM4W/bs5besCe/MgymhtmOFPM/O4/aWSm2sSaqB2KENseJoFsaSbNhDp4Xboex4E1q/paQ3Urd++zYng9A6h1vFU+a6bs7Ceiw1AU8wmwywqqwOhW41622gTZ8Mvv0nsv5Biidm3L9Hy6uRpsAPDeFJ6jhufb+YUkMB+WGZs6BwPm0sUzpM69omBwXUIk2R5y6W6OrIUpwsFifw2hI/p2tzWpbEbD7dW6lNE5N8Bt0/G3ZxpjmsWseYkjldnb8BO12dmyqWracgPYlmF5OZMr4YNCtHD8+mM72P0nPoVQwaiaEyl1hhUofpWAP8zVIXqYksHntpRveckczcTNWTjV90d3wW+uM/glFJoQfJG4c2aAc9v8dRizUclsq/qqHvPnGTgXKqt8fjFpl+Jdd1ejwYX1WqLOvaT17P4A89zn4FB3Stlu5FOGCyg0fWmy6DmrCi1KMMSapdM896s8iK8rRLZz+uoev+AsKO2ic=
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get most watched shows"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/stats/shows"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieve the most watchlisted TV shows
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"integer","exclusiveMinimum":true,"minimum":0,"default":10},"in":"query","name":"limit","required":false}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"array","items":{"type":"object","properties":{"title":{"type":"string"},"count":{"type":"number"},"thumb":{"type":"string","nullable":true}},"required":["title","count","thumb"],"additionalProperties":false}}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

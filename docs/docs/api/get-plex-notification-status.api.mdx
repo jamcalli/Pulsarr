@@ -1,0 +1,63 @@
+---
+id: get-plex-notification-status
+title: "Get Plex notification status"
+description: "Check if Plex notifications are configured for Radarr and Sonarr instances"
+sidebar_label: "Get Plex notification status"
+hide_title: true
+hide_table_of_contents: true
+api: eJzlVU1r3DAQ/StiTi24eNO0F99CW0KglCVpe1n2MCuP10pkyZHGmyzG/72M1pt1PmBDKYXSk4XnzecbPfXgWwrIxruLEgpYE88t3X/zbCqj0/8rRu4iZMC4jlAsQACwzKCkqINpBQMFfKpJ3yhTKTErNwkQFQZS2rvKrLtApap8UJdYYggKXamuvJOjcZHRaZJUgWLrXaQIRQ/vZzP5PE73mSrsLKvLEQkZaO+YHAsW29aO2fPrKA49RF1Tg3LibUtQgF9dk2bIoA0yBDa7dLHTmmKcAFfeW0IHQwYNxYhrmhgjB+PWYgsUO8vxeIaQep/gMATcQgaGqXmFvyknGNc1KwqS32HzcmG/2VFq6bYzgUqh3ZQw5jhEPLgvM8CyNDJxtPNJuRXaSBIrJpr/r66fBBuJf5jF8aFNvZ+nP+zc0UKGDD783XtEIfhwfMA72Gvq//hP15+Wjms/qqykQ66hgHxzkreW7vOpZr6Le9WNFDYURHh76IKFAmrmtshz6zXa2kcuTmezU3iqx1/3ZnWW1ka9uTNcq9YHfgvDMgPjKp/aM2ylv3lno+jw2fziWbCz+YUqve4acpzqSxq+93incKf6d8i6tiayMo5pHQ7QUeNF7i/3l0Da2oX/eSJ3svWRG0wc7S41nBM/f07Uw2ge1dgfeP+zb9FIP9M9561Fk/QjMdGPFC5gcyJ8yruYwUs0LjMQKgTa9yuM9CPYYZDftx2FLRSLZQYbDAZXwsViOWRQE5YUEu83tBUStKZWFmeDtksC+nS7hdaHJTv/8h2G4ReAwsFK
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get Plex notification status"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/plex/notification-status"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Check if Plex notifications are configured for Radarr and Sonarr instances
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"results":{"type":"object","properties":{"radarr":{"type":"array","items":{"type":"object","properties":{"id":{"type":"number"},"name":{"type":"string"},"success":{"type":"boolean"},"message":{"type":"string"}},"required":["id","name","success","message"],"additionalProperties":false}},"sonarr":{"type":"array","items":{"type":"object","properties":{"id":{"type":"number"},"name":{"type":"string"},"success":{"type":"boolean"},"message":{"type":"string"}},"required":["id","name","success","message"],"additionalProperties":false}}},"required":["radarr","sonarr"],"additionalProperties":false}},"required":["success","message","results"],"additionalProperties":false}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"}},"required":["error"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"}},"required":["error"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

@@ -1,0 +1,71 @@
+---
+id: get-top-genres
+title: "Get top genres"
+description: "Retrieve the most popular genres from watchlists"
+sidebar_label: "Get top genres"
+hide_title: true
+hide_table_of_contents: true
+api: eJy1U01r20AQ/SvLnFpQsd3Qi26BlhBowSRpL8aHsTSWNt2vzI7UBKP/XkaWEuejUAr1RXh39s17894cICZiFBvDZQ0lNCQ3MV1QYMpQgGCTodzAtaDYLLbKsC2gplyxTfoISrgiYUs9GWnJ+JjFpJg6h2yaEcbsOXrzC6Vqnc2isAkZPQmxgh8gVy15hPIA8pAISrBBqCGGAui+cl22PX2zwfrOQyncUQF+/rtUOnvsnEC5Wg4FWOV01xE/QAEBveI5661AAUx3nWWqodyjyzRs9SinGDJlbf9xudTPc32fj/DmaqqEAqoYhIJoLabkbDUOcHGb9cEbepAZlY4V8vnkPO5uqVJiidUGsUca49xOyrKwDQ0M2rg7tp1uQud3xDAMp9o2E8Bcvi0A69oqRXTrk07HIeivgE//SfofJHrKGZu3RL6QMhf+lQhP0sYpxmPMpIUSFv1qkQUlL5o515m4n9PXsYMSWpFULhYuVujamKU8Wy7P4GXWv87X5ryqKGfz7peV1qTI8h40Tjbs4yjKilNV685lZDbn68tXYOfrS1PHqvMUZJyi2Uc284sPBs3a0f3T5phxLfip9DoGrcRQmyuskXVhVNYR/sdKE5NiFo+jN9MyXJAYick8DuMZq8OTw/+y2ZOZQveySA5tUA7jhA+THRvoV+qAGgIFTCy2BehY9fpw2GGm7+yGQY+Pq6xG1Tbjzj1ubwE/6eFkuXt0nfYefeiRrRZDudkOBbSENfGIcnyk9qXTV6/CrCiPebr4cgPD8BuRXcvN
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get top genres"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/stats/genres"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieve the most popular genres from watchlists
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"integer","exclusiveMinimum":true,"minimum":0,"default":10},"in":"query","name":"limit","required":false}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"array","items":{"type":"object","properties":{"genre":{"type":"string"},"count":{"type":"number"}},"required":["genre","count"],"additionalProperties":false}}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

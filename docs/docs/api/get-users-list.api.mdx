@@ -1,0 +1,63 @@
+---
+id: get-users-list
+title: "Get users list"
+description: "Retrieve a list of all users"
+sidebar_label: "Get users list"
+hide_title: true
+hide_table_of_contents: true
+api: eJzVVMFuGjEQ/RVrTq3kCtKol71FahVFygGlTS8IocEeWKde27FnSdBq/72yWQIEInrthUU7b8dv3jy/DnygiGy8u9NQwYr4MVFM9yYxSGBcJaimUN7BTIKmpKIJGQ8VPBBHQ2sSKKxJLPxSoLWiLWgJkVLwLlGCqoOv43F+HDf4TktsLYuHAQkSlHdMjjMWQ7BGFXKjp5Q/6CCpmhrM/3gTCCrwiydSmWuIeRQ22+NSqxSldABceG8JHfQSGkoJV3RQTByNW+Xalvy+gjHiBiQYpiZdPtfoA4xrmwXF3NVhc/44DCGadKYmwbXW4sISVBxbylhrMP0TUpukfNTzIzYfw51ns9zMT7kcaDZghs7nMQrdPG2c+qAaCZn0HPm88EF/XO6zm55bE0lnPxoNg6Z7BXf6HE1/MtvJIAesjygeEZpJQK1NdiLaycHCl2gT9e/p7cy3d9rOVxcb9RK+/Rc35eLIl0ct/bn2Q/BkZsg1VDBaX42KXsOv3aZRorgul3PaQRstVFAzh2o0sl6hrX3i6no8vob3MXW/K4ubQlJ8ejFci+Ajf4Z+JsG4pS8jGs63AiatTRijuJncnTS7mdwJ7VXbkOMiuFj6KHZffBEoJpZexQuyqksoGse0invoT+8yEp0WD6gxRpCQx9q2/32VZQ8+cYNljdvkgFviba6KQYwjVt3eDJdCeVgj0yuPgkVT1lzU7Ab5p7C+ejPs/lnOnUnIQmZQ1y0w0WO0fZ9fP7cUN1BNZxLWGM02X6azXkJNqCmWrf2hTZZQKQp5hjXatmTse/vmpbxZ4/bHL+j7v6jaUD8=
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get users list"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/users/users/list"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieve a list of all users
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"users":{"type":"array","items":{"type":"object","properties":{"id":{"type":"number"},"name":{"type":"string"},"apprise":{"type":"string","nullable":true},"alias":{"type":"string","nullable":true},"discord_id":{"type":"string","nullable":true},"notify_apprise":{"type":"boolean"},"notify_discord":{"type":"boolean"},"can_sync":{"type":"boolean"},"created_at":{"type":"string"},"updated_at":{"type":"string"}},"required":["id","name","apprise","alias","discord_id","notify_apprise","notify_discord","can_sync","created_at","updated_at"],"additionalProperties":false}}},"required":["success","message","users"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

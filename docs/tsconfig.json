@@ -1,0 +1,37 @@
+{
+  // This file is not used in compilation. It is here just for a nice editor experience.
+  "extends": "@docusaurus/tsconfig",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@site/*": ["*"],
+      "@theme/*": [
+        "src/theme/*",
+        "node_modules/@docusaurus/theme-classic/lib/theme/*"
+      ],
+      "@docusaurus/*": ["node_modules/@docusaurus/core/lib/client/exports/*"],
+      "@/client/*": ["../src/client/*"],
+      "@/hooks/*": ["../src/client/hooks/*"],
+      "@/components/*": ["../src/client/components/*"],
+      "@/features/*": ["../src/client/features/*"],
+      "@/lib/*": ["../src/client/lib/*"],
+      "@root/*": ["../src/*"],
+      "@/*": ["../src/*"]
+    },
+    "jsx": "react-jsx",
+    "target": "ES2015",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": false,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "allowJs": true,
+    "types": ["@docusaurus/theme-classic", "react", "react-dom"]
+  },
+  "include": ["src/**/*"],
+  "exclude": [".docusaurus", "build", "node_modules"]
+}

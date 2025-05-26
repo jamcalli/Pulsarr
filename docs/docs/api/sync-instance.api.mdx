@@ -1,0 +1,71 @@
+---
+id: sync-instance
+title: "Sync specific instance"
+description: "Synchronize watchlist items to a specific Radarr or Sonarr instance"
+sidebar_label: "Sync specific instance"
+hide_title: true
+hide_table_of_contents: true
+api: eJy9VMFu2zAM/RWBpxbQ4HTFLr4V2yXAhgXttkuRgyIzsTpZUiU6bWb43wcqdu0u3dBDsVMSheQj+d5jBz5gVGS8W1ZQQjo4vXSJlNMIEkjtEpS3cHNwGtYSKkw6msDhUObXOnpnfqF4UKRraxIJQ9gkQV4okQJqszVaXKtKxSh8FDfe8TczYQQVVYOEkZE6SLrGRkHZAR0CcksUjduBBHRtw83EXAwkpFwL1r0Ew/3ctxgPIMGphhNzvoSI962JWEFJscVevgBhHOEOuSQ+atsms8cvxpmG8ThJQjP+XIxgQVE9YY3zLKtTxDW/pOBdwsSg7xcL/ni+y0+4Va0lcT1EggTtHaEjjlUhWKMzTcVd4oQXpvCbO9TEG41MKpkjXObjow+GG3oKdm2zwQi9hAZTUjs83Xjfz0e5fVZoSltLUFVluDVlVzPkrbIJ+56rfPi/E796otfPkPdEtWePBJ8yJgughGJ/UbBrilECRTeJoWeVYtyP4m6jhRJqolAWhfVa2donKi8Xi0v4012fx7/FldaYkjh7MFSL4COdA4vKuK3PMxqyPOSqtYm9dbVanhS7Wi1F5XXboKO8VLH1UYwZ74QSK4uPcxezJeIUOvhWuWowM0jgsY7lf1ywkngxjcpUDbbgCzFdgZnpn3XXTcS/0U0ZaCd8pCJYZRy3l5ffDbzdwv6CyeHDJmGWWs6svJbABHB0121Uwu/R9j0/H08NU1qZpDaW9ZTF8o/Rzq4H6Z2Lv7X4Ew/T4dor23JIJnuvomGct8ccHpU7zDHHXmbb6PnQ1qgqjLmLYwCLM9As9cS53P6TeVZfb75B3/8GaNc+HA==
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Sync specific instance"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/sync/instance/{instanceId}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Synchronize watchlist items to a specific Radarr or Sonarr instance
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"string","enum":["radarr","sonarr"]},"in":"query","name":"type","required":true},{"schema":{"type":"integer","exclusiveMinimum":true,"minimum":0},"in":"path","name":"instanceId","required":true}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"itemsCopied":{"type":"number"},"message":{"type":"string"}},"required":["itemsCopied","message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

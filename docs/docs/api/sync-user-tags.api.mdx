@@ -1,0 +1,63 @@
+---
+id: sync-user-tags
+title: "Sync user tags"
+description: "Synchronize content with user tags in Sonarr and Radarr instances"
+sidebar_label: "Sync user tags"
+hide_title: true
+hide_table_of_contents: true
+api: eJzdVU1v2zAM/SsCTxugwemKXXwrtkuBAQv6sUuQAyMzsVpZUiU5bWb4vw9U7SRNW6QDigHbyU5IPeo90nwdOE8Bk3b2vIIS4saq60jhClcRJCR+lDPIP+cSKooqaM/pUMLlxqo6OKt/kVDOJrJJ3OtUizZSEHxWaCsuncUQBNpKXGDFr9rGhFYRVwgUvbORIpQdfJ5M+PG0yjdaYmuSuBgyQcJQjHPRe6NVJlDcRD7QQVQ1NchvaeMJSnCLG1IJJPjAdJN+LBdbpSjGvcSFc4bQQi+hoRhxRXvBmIK2qxxz1QsBCWTbhuViFWHeS4iZ+/GbJFytqNrLs22zoMC14q32/pXYErV5MdSzsHetDhydjfA7sO3RuQSsKs3yoZnu3WmJJhLD5Jb9ywxc8DVaqr5yZ1t/nMpbKQdq3Po9OUvYfRlHFRmrvyDJPs5Red46ov8D20PQx0ZvNfiz0+P22K2KYTFs8bZfzzFghv7yd3ff6+vtgOaYeJxDXpqpduwj3sVcE1MNJRTrk4LtoMiLUUKksKbAztJBGwyUUKfky6IwTqGpXUzl6WRyCoeG830Mi7OsvfiQ7ca7kD5CP+dJWLpMSSfDnKatiew4Z9PzZ2Bn03NROdU2ZFPWUCxdEOOJTwLF1NCDuMekaqNjEtomWoVd6jNjAwlM6xH+5wmPOOvQYO6MxYYG09wZ5OGtul1/38Veh94mekiFN6iztWXJu6E5M1ifjE4vB+eSwCJzrOsWGOk6mL7nv+9aChsoZ3MJawwaF6zyjJ2uJqwo5I7e0oblVYo8z8AaTct3eDat3LDtwEx/XF5B3/8GLZH7pA==
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Sync user tags"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/tags/sync"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Synchronize content with user tags in Sonarr and Radarr instances
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"mode":{"type":"string","enum":["sync"]},"sonarr":{"type":"object","properties":{"tagged":{"type":"number"},"skipped":{"type":"number"},"failed":{"type":"number"}},"required":["tagged","skipped","failed"],"additionalProperties":false},"radarr":{"type":"object","properties":{"tagged":{"type":"number"},"skipped":{"type":"number"},"failed":{"type":"number"}},"required":["tagged","skipped","failed"],"additionalProperties":false},"orphanedCleanup":{"type":"object","properties":{"radarr":{"type":"object","properties":{"removed":{"type":"number"},"skipped":{"type":"number"},"failed":{"type":"number"},"instances":{"type":"number"}},"required":["removed","skipped","failed","instances"],"additionalProperties":false},"sonarr":{"type":"object","properties":{"removed":{"type":"number"},"skipped":{"type":"number"},"failed":{"type":"number"},"instances":{"type":"number"}},"required":["removed","skipped","failed","instances"],"additionalProperties":false}},"required":["radarr","sonarr"],"additionalProperties":false}},"required":["success","message","mode","sonarr","radarr"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

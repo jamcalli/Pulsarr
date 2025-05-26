@@ -14,6 +14,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/tags',
     {
       schema: {
+        summary: 'Get Radarr tags',
+        operationId: 'getRadarrTags',
+        description: 'Retrieve tags from a Radarr instance',
         querystring: QuerystringSchema,
         response: {
           200: TagsResponseSchema,

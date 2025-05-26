@@ -1,0 +1,71 @@
+---
+id: get-top-users
+title: "Get top users"
+description: "Retrieve users with the most watchlist items"
+sidebar_label: "Get top users"
+hide_title: true
+hide_table_of_contents: true
+api: eJy1U01v2zAM/SsCTxvgwcmKXXQrsKEosAFBP3YJcmBsJlYnS6pEuS0M//eBdtykHwO2w3wRLJGP75GPPfhAEdl4d1mDhj3xjQ+3iWKCAhj3CfQarhnZJDZVgk0BNaUqmiA5oOGKOBrqSGVJUg+GG8UNqdYnVg/IVWNNYmWYWoEMGLElFny97iFVDbUIugd+CgQajGPaU4QC6LGyOZmOfhhn2tyC5pipgHb+XQiVHWbLoJeLoQAjfO4zxScowGEreNa0hqGASPfZRKpB79AmGjZylYJ3iZKU/7xYyPFS29cJXl0dIqGAyjsmxxKLIVhTjb0r75IkvKMHY0ShM+k/3vvtHVVCLESZAJuJxsT6OSpxNG4Pg9TNU9XDi8vtliIMw6m09ZQ/R28KwLo2QhDt6qTO1AL5Cvjyn4T/QWBLKeH+PY2vlMyBfyWiJW78wb+jybgBDWW3LBMjpzIfDJ0odrP1crSgoWEOuiytr9A2PrE+WyzO4LXJv8/P6ryqKCX1YfR58JE/gnjJuJ0fNRm2ImqVbcIY1fnq8g3Y+epS1b7KLTkem6h2Pqo545NCtbL0eLo7shPxGHrtnUSiq9UV1hhlW0TWBP9zKX4JPnGL7ugpuCBW7IOae/GCVH+c779u9GGMTI9cBovGSfmxuf1hEGvoltJ8GQUUMBHYFCANlde+32Ki22iHQa6nDZYR1Sbh1j4vbQG/6Olkpzu0WUqPE+gwGgkGvd4MBTSENcURZUqSwYXTrDcuFpRnI118u4Fh+A3JwsZp
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get top users"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/stats/users"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieve users with the most watchlist items
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"integer","exclusiveMinimum":true,"minimum":0,"default":10},"in":"query","name":"limit","required":false}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"array","items":{"type":"object","properties":{"name":{"type":"string"},"count":{"type":"number"}},"required":["name","count"],"additionalProperties":false}}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

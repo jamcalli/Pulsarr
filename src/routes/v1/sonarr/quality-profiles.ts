@@ -14,6 +14,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/quality-profiles',
     {
       schema: {
+        summary: 'Get Sonarr quality profiles',
+        operationId: 'getSonarrQualityProfiles',
+        description: 'Retrieve quality profiles from a Sonarr instance',
         querystring: QuerystringSchema,
         response: {
           200: QualityProfilesResponseSchema,

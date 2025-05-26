@@ -1,0 +1,71 @@
+---
+id: delete-schedule
+title: "Delete job schedule"
+description: "Delete a job schedule by its name"
+sidebar_label: "Delete job schedule"
+hide_title: true
+hide_table_of_contents: true
+api: eJy9VE1v2zAM/SsCTy3gwenaXXwr0BwC9BCk2y5BDozNxOoUS6XotIHh/z5QcT7QdlsPQ09R5McnPpKPHfhAjGJ9M6mggIocCT2UNVWtI8hAcB2hmMPhimGRQUWxZBs0Cgq4SzEGzaNfmjjgzHJnrETT4EZpAjJuSIiVrANFbRCKDmQXCAqIwrZZQ5+BVcqAUkMGKbiAgYPpqbVMFRTCLfULvYnBN5GiMn0djfTndW4rbJ2Y2YCEDErfCDWiWAzB2TKpzx+jBryTml8+UimqgbVWYvfPxbYsKcYz4NJ7R9ioiA3FiGt6R2B/rmN+ZDmFLDLAqrKaE7rp2ZMrdJH6XhluRjefKZWYPf9byx72kfy/fW6r/nP+qb9S+5Nf0oBLDQXk26v8YAE+nmLe6Qz3kEEk3h5c0LKDAmqRUOS58yW62kcprkeja3htsvvDZ3ObJsZcPFupTfAsl6BesM3KJ41WnIqcti4is7mdTt6Q3U4npvJlu6FGUknNyrM5RHwxaKaOXswzSlk7G8XYRmjNJ+iDbxSJTWVmWCEzZKCy9vQ/r9QDwUfZYGrU4ONhUZyvidepdaeef2ivDB0VepE8OLTJfamu3dCSOWyvtO7H/XU6q+2KRLTIQGur6K5bYqQf7Pper59a4h0U80UGW2SLSy3uvIPKRj1Xw1z8RcbFbJixS/OnhIdLbHZaR3St/oMMftHusP76RZ9BTVgRp/f3n3QWgpwFvbGJjsZxWu/G9+PvY+j73zo8EGA=
+sidebar_class_name: "delete api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Delete job schedule"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"delete"}
+  path={"/v1/scheduler/schedules/{name}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Delete a job schedule by its name
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"string"},"in":"path","name":"name","required":true}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}},"404":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"}},"required":["error"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"}},"required":["error"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

@@ -21,6 +21,10 @@ const ErrorSchema = z.object({
 })
 
 export const plexRemoveNotificationSchema = {
+  summary: 'Remove Plex notifications',
+  operationId: 'removePlexNotifications',
+  description:
+    'Remove Plex webhook notifications from Radarr and Sonarr instances',
   tags: ['Plex'],
   response: {
     200: PlexRemoveNotificationResponseSchema,

@@ -19,6 +19,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/schedules',
     {
       schema: {
+        summary: 'Get all job schedules',
+        operationId: 'getAllSchedules',
+        description: 'Retrieve all configured job schedules and their status',
         response: {
           200: z.array(JobStatusSchema),
           500: ErrorResponseSchema,
@@ -44,6 +47,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/schedules/:name',
     {
       schema: {
+        summary: 'Get job schedule by name',
+        operationId: 'getScheduleByName',
+        description: 'Retrieve a specific job schedule by its name',
         params: z.object({ name: z.string() }),
         response: {
           200: JobStatusSchema,
@@ -84,6 +90,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/schedules',
     {
       schema: {
+        summary: 'Create job schedule',
+        operationId: 'createSchedule',
+        description: 'Create a new job schedule or update an existing one',
         body: ScheduleConfigSchema,
         response: {
           200: SuccessResponseSchema,
@@ -159,6 +168,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/schedules/:name',
     {
       schema: {
+        summary: 'Update job schedule',
+        operationId: 'updateSchedule',
+        description: 'Update an existing job schedule configuration',
         params: z.object({ name: z.string() }),
         body: ScheduleUpdateSchema,
         response: {
@@ -215,6 +227,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/schedules/:name',
     {
       schema: {
+        summary: 'Delete job schedule',
+        operationId: 'deleteSchedule',
+        description: 'Delete a job schedule by its name',
         params: z.object({ name: z.string() }),
         response: {
           200: SuccessResponseSchema,
@@ -266,6 +281,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/schedules/:name/run',
     {
       schema: {
+        summary: 'Run job immediately',
+        operationId: 'runJobNow',
+        description: 'Execute a scheduled job immediately',
         params: z.object({ name: z.string() }),
         response: {
           200: SuccessResponseSchema,
@@ -312,6 +330,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/schedules/:name/toggle',
     {
       schema: {
+        summary: 'Toggle job schedule',
+        operationId: 'toggleSchedule',
+        description: 'Enable or disable a job schedule',
         params: z.object({ name: z.string() }),
         body: z.object({ enabled: z.boolean() }),
         response: {
@@ -368,6 +389,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/schedules/delete-sync/dry-run',
     {
       schema: {
+        summary: 'Dry-run delete sync',
+        operationId: 'dryRunDeleteSync',
+        description:
+          'Perform a dry-run of the delete sync job to preview what would be deleted',
         response: {
           200: DeleteSyncDryRunResponseSchema,
           404: ErrorResponseSchema,

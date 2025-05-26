@@ -11,6 +11,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/logout',
     {
       schema: {
+        summary: 'User logout',
+        operationId: 'logoutUser',
+        description: 'End the current user session and destroy authentication',
         body: LogoutBodySchema,
         response: {
           200: LogoutResponseSchema,

@@ -19,6 +19,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/status',
     {
       schema: {
+        summary: 'Get tagging status',
+        operationId: 'getTaggingStatus',
+        description: 'Retrieve the current user tagging configuration status',
         response: {
           200: TaggingStatusResponseSchema,
           500: ErrorSchema,
@@ -65,6 +68,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/config',
     {
       schema: {
+        summary: 'Update tagging config',
+        operationId: 'updateTaggingConfig',
+        description: 'Update the user tagging configuration settings',
         body: TaggingConfigSchema,
         response: {
           200: TaggingStatusResponseSchema,
@@ -173,6 +179,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/create',
     {
       schema: {
+        summary: 'Create user tags',
+        operationId: 'createUserTags',
+        description: 'Create user tags in Sonarr and Radarr instances',
         response: {
           200: CreateTaggingResponseSchema,
           500: ErrorSchema,
@@ -281,6 +290,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/sync',
     {
       schema: {
+        summary: 'Sync user tags',
+        operationId: 'syncUserTags',
+        description:
+          'Synchronize content with user tags in Sonarr and Radarr instances',
         response: {
           200: SyncTaggingResponseSchema,
           500: ErrorSchema,
@@ -378,6 +391,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/cleanup',
     {
       schema: {
+        summary: 'Cleanup orphaned tags',
+        operationId: 'cleanupOrphanedTags',
+        description: 'Clean up orphaned user tags from instances',
         response: {
           200: CleanupResponseSchema,
           500: ErrorSchema,
@@ -446,6 +462,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/remove',
     {
       schema: {
+        summary: 'Remove all user tags',
+        operationId: 'removeAllUserTags',
+        description:
+          'Remove all user tags from media and optionally delete tag definitions',
         body: RemoveTagsRequestSchema,
         response: {
           200: RemoveTagsResponseSchema,
