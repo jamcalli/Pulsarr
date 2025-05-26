@@ -60,7 +60,7 @@ docker compose up -d
 
 4. Access the web UI at `http://your-server:3003` to complete setup.
 
-For detailed installation options including Unraid and manual installation, see the [documentation](https://jamcalli.github.io/Pulsarr/docs/installation/quick-start).
+For detailed installation options, including Unraid and manual installation, see the [documentation](https://jamcalli.github.io/Pulsarr/docs/installation/quick-start).
 
 ## ✨ Key Features
 
@@ -81,12 +81,11 @@ We welcome contributions! Please see our [Contributing Guidelines](https://jamca
 
 ## 📜 License
 
-Pulsarr is licensed under the GPL License. See the [LICENSE](LICENSE) file for details.
+Pulsarr is licensed under the GPL. See the [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgements
 
-- [Plex](https://www.plex.tv/) • [Sonarr](https://sonarr.tv/) • [Radarr](https://radarr.video/)
-- [Fastify](https://www.fastify.io/) • [Discord.js](https://discord.js.org/) • [Watchlistarr](https://github.com/nylonee/watchlistarr/)
+- [Plex](https://www.plex.tv/) • [Sonarr](https://sonarr.tv/) • [Radarr](https://radarr.video/) • [Fastify](https://www.fastify.io/) • [Discord.js](https://discord.js.org/) • [Watchlistarr](https://github.com/nylonee/watchlistarr/)
 
 ## 💬 Support
 

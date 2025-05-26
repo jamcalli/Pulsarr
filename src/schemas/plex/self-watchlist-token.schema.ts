@@ -34,8 +34,8 @@ const SelfWatchlistResponseSchema = z.union([
 ])
 
 export const selfWatchlistSchema = {
-  summary: 'Get self watchlist token',
-  operationId: 'getSelfWatchlistToken',
+  summary: 'Get self watchlist items',
+  operationId: 'getSelfWatchlistItems',
   description: 'Retrieve the current user watchlist items from Plex',
   tags: ['Plex'],
   response: {
