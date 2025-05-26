@@ -14,6 +14,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/create-admin',
     {
       schema: {
+        summary: 'Create admin user',
+        operationId: 'createAdminUser',
+        description: 'Create the first admin user account for the system',
         body: CreateAdminSchema,
         response: {
           201: CreateAdminResponseSchema,

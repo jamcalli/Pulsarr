@@ -22,6 +22,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/rules',
     {
       schema: {
+        summary: 'Get all router rules',
+        operationId: 'getAllRouterRules',
+        description:
+          'Retrieve all content router rules configured in the system',
         response: {
           200: ContentRouterRuleListResponseSchema,
           500: ContentRouterRuleErrorSchema,
@@ -59,6 +63,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/rules/type/:type',
     {
       schema: {
+        summary: 'Get router rules by type',
+        operationId: 'getRouterRulesByType',
+        description: 'Retrieve content router rules filtered by specific type',
         params: z.object({
           type: z.string(),
         }),
@@ -110,6 +117,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/rules/target',
     {
       schema: {
+        summary: 'Get router rules by target',
+        operationId: 'getRouterRulesByTarget',
+        description:
+          'Retrieve content router rules for a specific target instance',
         querystring: z.object({
           targetType: z.enum(['sonarr', 'radarr']),
           instanceId: z.coerce.number(),
@@ -155,6 +166,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/rules/:id',
     {
       schema: {
+        summary: 'Get router rule by ID',
+        operationId: 'getRouterRuleById',
+        description: 'Retrieve a specific content router rule by its ID',
         params: z.object({
           id: z.coerce.number(),
         }),
@@ -205,6 +219,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/rules/target/:targetType',
     {
       schema: {
+        summary: 'Get router rules by target type',
+        operationId: 'getRouterRulesByTargetType',
+        description:
+          'Retrieve content router rules filtered by target application type',
         params: z.object({
           targetType: z.enum(['sonarr', 'radarr']),
         }),
@@ -253,6 +271,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/rules',
     {
       schema: {
+        summary: 'Create router rule',
+        operationId: 'createRouterRule',
+        description:
+          'Create a new content router rule with specified conditions and targets',
         body: ContentRouterRuleSchema,
         response: {
           201: ContentRouterRuleResponseSchema,
@@ -264,7 +286,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const ruleData = request.body
+        const ruleData = request.body as z.infer<typeof ContentRouterRuleSchema>
 
         // Validate target_type-specific fields
         if (
@@ -348,6 +370,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/rules/:id',
     {
       schema: {
+        summary: 'Update router rule',
+        operationId: 'updateRouterRule',
+        description: 'Update an existing content router rule by its ID',
         params: z.object({
           id: z.coerce.number(),
         }),
@@ -363,7 +388,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         const { id } = request.params
-        const updates = request.body
+        const updates = request.body as Partial<
+          z.infer<typeof ContentRouterRuleSchema>
+        >
 
         // Check if rule exists
         const existingRule = await fastify.db.getRouterRuleById(id)
@@ -478,6 +505,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/rules/:id',
     {
       schema: {
+        summary: 'Delete router rule',
+        operationId: 'deleteRouterRule',
+        description: 'Delete a content router rule by its ID',
         params: z.object({
           id: z.coerce.number(),
         }),
@@ -534,6 +564,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/rules/:id/toggle',
     {
       schema: {
+        summary: 'Toggle router rule',
+        operationId: 'toggleRouterRule',
+        description: 'Enable or disable a content router rule by its ID',
         params: z.object({
           id: z.coerce.number(),
         }),

@@ -1,0 +1,71 @@
+---
+id: logout-user
+title: "User logout"
+description: "End the current user session and destroy authentication"
+sidebar_label: "User logout"
+hide_title: true
+hide_table_of_contents: true
+api: eJzlVE1v2zAM/SsCTxugwem6k2/Z1kOBAQv6sUuQA2MzsTpFckUqaWD4vw9UkjVdgWHAdpsvtsVHiuR75ACxp4TiYrhuoQYf1zHLPVMCC4JrhnoO0ywdBXFNwcHCQkvcJNeX3xquQmukI9PklCiIyUzJMDG7GAyG1rTEkuLe4MtAFhI9ZmL5GNs91AM0MQgF0U/se3/EVQ+s1wzATUcb1C/Z9wQ1xOUDNQIW+qRliCOGehgtYNs6dUU/O7Os0DON4zjqxdzHwAUP7ycTfb0s6jOtMHsxN0ck2H+UHnBuGmI+Ay5j9IQBRgsbYsY1nRlZkgtrOGT9mF2iVkk5RXl2WfxB3R/+l1JLfOmiirqPXFJD6aCGantRqUK5OogdLDClLSXV+gA5eaihE+nrqvKxQd9FlvpyMrmEX4X/5WQ205KhebNz0pk+JnkL48KC9uvmWeNXT7jpPR006sIqltqd6BHMsmdMyUxn168ums6uTRubvKEghQmzismcPN4ZNDNPT2aH0nTesRgXhNbpGXobgyJ1GG+wxaTjrSUfwn+7UD60TRss/AbcaEq6B8zPLr1I6WxY/2L+j7wLPUnVe3RFF4WB4UjXHLYXYKEQBva4n5R/bbuah2GJTPfJj6MeP2ZKe6jnCwtbTA6X2tv5YrTQEbaUCsffaQ81fDoU8O5Ok1C4z5rMK72P9uShLPfyW+ziTHezr7d3YGF53G6b2KpPwp1uPtxBDWAhloaWESlnA3gM61wGAw4x9fkBtSD77w==
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"User logout"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/users/logout"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+End the current user session and destroy authentication
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{},"additionalProperties":false}}}}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

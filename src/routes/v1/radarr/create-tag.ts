@@ -14,6 +14,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/create-tag',
     {
       schema: {
+        summary: 'Create Radarr tag',
+        operationId: 'createRadarrTag',
+        description: 'Create a new tag in a Radarr instance',
         body: CreateTagBodySchema,
         response: {
           200: CreateTagResponseSchema,

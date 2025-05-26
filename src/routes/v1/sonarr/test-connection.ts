@@ -14,6 +14,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/test-connection',
     {
       schema: {
+        summary: 'Test Sonarr connection',
+        operationId: 'testSonarrConnection',
+        description:
+          'Test connectivity to a Sonarr instance with provided credentials',
         querystring: TestConnectionQuerySchema,
         response: {
           200: TestConnectionResponseSchema,

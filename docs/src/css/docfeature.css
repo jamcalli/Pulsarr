@@ -1,0 +1,68 @@
+/* DocFeature Component Styling */
+
+/* Feature heading variants */
+.feature-heading-primary {
+	color: var(--main);
+}
+
+.feature-heading-danger {
+	color: var(--error);
+}
+
+.feature-heading-fun {
+	color: var(--fun);
+}
+
+.feature-heading-orange {
+	color: var(--orange);
+}
+
+.feature-heading-blue {
+	color: var(--blue);
+}
+
+/* Content layout helpers */
+.feature-content {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}
+
+.feature-content h3 {
+	font-size: 1.25rem;
+	font-weight: 600;
+	margin-bottom: 0.5rem;
+	color: var(--text);
+}
+
+.feature-content p {
+	margin-bottom: 0.75rem;
+	line-height: 1.6;
+}
+
+.feature-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: 1rem;
+	margin: 1rem 0;
+}
+
+.feature-item {
+	padding: 1rem;
+	background-color: var(--bg);
+	border: 2px solid var(--border);
+	border-radius: var(--border-radius);
+}
+
+/* Proper dark mode styling */
+html[data-theme="dark"] .feature-item {
+	background-color: var(--bg);
+	border-color: var(--border);
+}
+
+/* Media queries to adjust layout on small screens */
+@media (max-width: 768px) {
+	.feature-grid {
+		grid-template-columns: 1fr;
+	}
+}

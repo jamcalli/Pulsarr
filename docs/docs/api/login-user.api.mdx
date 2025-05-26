@@ -1,0 +1,71 @@
+---
+id: login-user
+title: "User login"
+description: "Authenticate user with email and password credentials"
+sidebar_label: "User login"
+hide_title: true
+hide_table_of_contents: true
+api: eJy9VMlu2zAQ/RViTi3A1HbSAIVOdZdDgAA1svRi+DCWxhZTilTIkRcY+vdiKKtRljZAUVQXSZw35OObeXMAX1NANt5dFJCB9WvjbiMF0MC4jpDNYdpwSY5NnmCw0FBQzIOp0282jJNqIgW1NVwqqtBYha5QNca49aFQeaBCkGgjaAh031DkT77YQ3aA3Dsmx/KJdW2Px43uohxygJiXVKF88b4myMAv7yhn0FAHuQMbihJNxw5gkYNxa9Cw8qFChuyI0FDh7pLcmkvITs/PWw09z5eyK+N68Ie27cibQIUI1G/4K3+hAYvCCH+0swG9FdpI7eN8Dg2lhVh7F7tLnI7H8nqs8xdaYWNZXR2RoP+VZrHJc4pxAFx6bwkdtBoqihHX9FyUVoNU22H1cjBQYQLlfONfCD+RsGcw2PJVEVsN78eT/6nT76V4cp0e+PodksBcejFf7WM6E6XLYLSZjESMOEqmBA2RwoaCePIATbCQQclcZ6OR9Tna0kfOzsbjM3hq0Ms+rKZJZfUmGbT2gd9Cu9AgOlw9uPHrDqva0sBNqSofqVt/l/tq2O3Dmhu36qptWDaAWWMjhqCms4tntKazC1X4vKnIcaqHWvmg+owThWpmaae2yHlpTWRlHNM6PECvvROkjJgrLDDI0BKBuu2/T4SQaFphqnLXqCDTTfWSPmI0mEF/PdSOfcG041Ft0SQLpWIdjoWdw2Zy7HNJ6JgsNEiBJHo4LDHSbbBtK8v3DYU9ZPOFhg0Gg0vRdb5oNZSEBYXUDT9oDxl87tif3AgHgdtGuDzr+Fb3GdIPNf8Ruxg06Ozb9Q1oWB4nduULyQm4lWmOW8gANPikZvJLWjuARbdukm+g21Oen/nAQwg=
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"User login"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/users/login"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Authenticate user with email and password credentials
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"email":{"type":"string","format":"email","maxLength":255},"password":{"type":"string","minLength":8}},"required":["email","password"],"additionalProperties":false}}},"required":true}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"username":{"type":"string"},"redirectTo":{"type":"string"}},"required":["success","username"],"additionalProperties":false}}}},"401":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

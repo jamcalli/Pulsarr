@@ -1,0 +1,71 @@
+---
+id: get-most-watched-movies
+title: "Get most watched movies"
+description: "Retrieve the most watchlisted movies"
+sidebar_label: "Get most watched movies"
+hide_title: true
+hide_table_of_contents: true
+api: eJy1VEtr3EAM/iuDTi1M8W5DL74FWkKggSXp47DsQWtr15POw5mRnQTj/17kR9Z5FHKpL8Yz0ifp+/S5g1BTRDbBX5aQw5H4KiT+jVxUVF6F1lACDYzHBPkWbhjZJDZFgp2GklIRTS3JkMM1cTTUkuKKlAuJ1b2gWJOYSuVmqBojOmKKAthBKipyCHkH/FgT5GA805EiaKCHwjbJtHRlvHGNg5xjQxrc/LmSFg7YWIZ8veo1GOnjrqH4CBo8OsGzxhkGDZHuGhOphPyANlG/k6NUB58oSfnPq5W8ns/0dYRX11MkaCiCZ/IssVjX1hQDedltkoQ35sEYUdoxTC4tzsP+lgpprI4iAZuxDTZsaRGWOBp/hF4KN2PZ6cY3bk9Rbrhq3P51jgbfWIt7wRPm+n7JwnYqNQPPMDsNWJZGhkK7WfQ20iaPhi//iax/kOIoJTy+RcuLkebAdw3hiKswLf2wmFxBDlm7zhIjp+xpZRPFdt7XJlrIoWKu8yyzoUBbhcT52Wp1Bi8d8X2+VudFQSmpD/eGK1WHyB9BFtD4Q1iIDpvGJoxRnW8uX4Gdby5VGYrGkeeBRXUIUc0ZnxSqjaWHk+fUYKR4Cr0JXiLRl+oaS4xiMRlrhP+1lk2qQ2KHgzaTfS6IF2ZeGvlZe91J6vf+CCYlmR44qy0aLw0M9HaTFlto10K/qAEapsydBuFUrrtuj4l+Rtv3cjw6X1QqTZK9n82u4Q89Lv4FLdpGag8itBjNaJLtrtdQEZYUB5QxSbSrl1mvNllQnpbp4tsP6Pu/lmzazQ==
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get most watched movies"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/stats/movies"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieve the most watchlisted movies
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"integer","exclusiveMinimum":true,"minimum":0,"default":10},"in":"query","name":"limit","required":false}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"array","items":{"type":"object","properties":{"title":{"type":"string"},"count":{"type":"number"},"thumb":{"type":"string","nullable":true}},"required":["title","count","thumb"],"additionalProperties":false}}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

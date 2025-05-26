@@ -18,6 +18,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/users',
     {
       schema: {
+        summary: 'Create user',
+        operationId: 'createUser',
+        description: 'Create a new user with the provided information',
         body: CreateUserSchema,
         response: {
           201: CreateUserResponseSchema,
@@ -61,6 +64,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/users/:id',
     {
       schema: {
+        summary: 'Update user',
+        operationId: 'updateUser',
+        description: 'Update an existing user by ID',
         params: z.object({
           id: z.string(),
         }),
@@ -127,6 +133,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/users/:id',
     {
       schema: {
+        summary: 'Get user by ID',
+        operationId: 'getUserById',
+        description: 'Retrieve a specific user by their ID',
         params: z.object({
           id: z.string(),
         }),

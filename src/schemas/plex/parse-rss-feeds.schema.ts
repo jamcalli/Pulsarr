@@ -41,6 +41,9 @@ const RssWatchlistResponseSchema = z.union([
 ])
 
 export const rssWatchlistSchema = {
+  summary: 'Parse RSS watchlists',
+  operationId: 'parseRssWatchlists',
+  description: 'Parse and process RSS feed watchlist items',
   tags: ['Plex'],
   response: {
     200: RssWatchlistResponseSchema,

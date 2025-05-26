@@ -1,0 +1,71 @@
+---
+id: discover-plex-servers
+title: "Discover Plex servers"
+description: "Discover available Plex servers using a user token"
+sidebar_label: "Discover Plex servers"
+hide_title: true
+hide_table_of_contents: true
+api: eJztVktv2kAQ/iurObXSRkDTXnxL0x4iRSoKaS+Iw2APsMl619ld85Dl/17NYjAY0rRV1RNcsHfe38x6vgpsQQ6DsuYugwQy5VO7JDfUtB6RW5LzICHg3EMyBj6FiYSMfOpUwVaQwJfGRuASlcapJsGKwm/tRemVmQsUpScngn0mAxIcvZTkw2ebbSCpILUmkAn8iEWhVRpT6j15jlCBTxeUIz+FTUGQgJ0+URpAQuG4gKDIs7TQtH6MEVpVH5wyc5CQK3NPZh4WkAzqepuCcpRxZa3hRAJmmeLwqIcH3meoPdXHhsGVFA98YY3f5vCh3+e/DkY0w1IH8dBogvxXJfsyTcn7A8WptZrQQC0hJ+9xTqdo1BKa9hzI0DncgAQVKPdvRzaYn/e8sD6cFRTWHQpMmU/JsaD0NPL6fA3apviK6Ajjk3idFsd0m+SaVPaBd1H+qPnjPfYtmG86qCV8/M8DEjCU/tZmdBZ6cs66s916fXi6MLQRdv5a699DZHBBpIPI9QWRDiIfL4gcIfLp8h05QiSGCgvLPKZovvLI2x56y0GPN3xvR2+u/J7b7NfguILSaUhgEUKR9HpxI/C2SK77/Wvosp77nVjcxCUg3q1UWAjeK++hnkhgfB9alvN1jXmhqcNSDmBSZmYjRiqwGgxL7dE5cTO8Owl+M7wTmU3LnEyI3RQz68TO4krgloGtMKQLrXwQygSau1Z1ZA1rosnEA2boGGmGYev+x2C7rX3I0bSrvmV6h/yum9wBmfs7atgMSaB16BUaVVz1sTVV09AxLAfcXaajEk6aOtlRkDFU1RQ9fXe6rvn4pSS3gWQ8kbBEpzghfmPOQpiRi1PwTBtI4HZbxNUjZ8PquowcqXuDarmz4Dkowi91JwcjOvw2egQJ04YB5/FigcMVs2NcQQIgwUZQ4/2LZxVoNPMyXifY+uTfT8iJIA8=
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Discover Plex servers"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/plex/discover-servers"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Discover available Plex servers using a user token
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"plexToken":{"type":"string","minLength":1}},"required":["plexToken"],"additionalProperties":false}}},"required":true}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"servers":{"type":"array","items":{"type":"object","properties":{"name":{"type":"string"},"host":{"type":"string"},"port":{"type":"number"},"useSsl":{"type":"boolean"},"local":{"type":"boolean"},"description":{"type":"string"}},"required":["name","host","port","useSsl","local"],"additionalProperties":false}}},"required":["success","servers"],"additionalProperties":false}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"error":{"type":"string"},"message":{"type":"string"}},"required":["statusCode","error","message"],"additionalProperties":false}}}},"401":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"error":{"type":"string"},"message":{"type":"string"}},"required":["statusCode","error","message"],"additionalProperties":false}}}},"403":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"error":{"type":"string"},"message":{"type":"string"}},"required":["statusCode","error","message"],"additionalProperties":false}}}},"404":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"error":{"type":"string"},"message":{"type":"string"}},"required":["statusCode","error","message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"statusCode":{"type":"number"},"error":{"type":"string"},"message":{"type":"string"}},"required":["statusCode","error","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

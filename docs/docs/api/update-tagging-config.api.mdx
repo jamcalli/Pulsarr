@@ -1,0 +1,71 @@
+---
+id: update-tagging-config
+title: "Update tagging config"
+description: "Update the user tagging configuration settings"
+sidebar_label: "Update tagging config"
+hide_title: true
+hide_table_of_contents: true
+api: eJztVt9v2zYQ/leIwx46VK6ddn2o3rJ2DwE61EiTPdR1i7N0lthSJEuenGSG/vfiKLuRY2Vbi2LDgOpFBHm/ePd9x9uC8xSQtbNnJeTQ+hKZLrCqtK2eO7vWFWTAWEXIF3Ah/2UGJcUiaC9akMNl0lFck2ojBcW9tiqSettbV5GYta0iZBDoU0uRf3XlDeRbKJxlsixL9N7oIilMP0SxvoVY1NSgrPjGE+TgVh+oYMjABwmeNcV0itVlpBDP7GtnMYSBxso5Q2ihywZS51jeK1XIovWvgq/RUpnuPSoYqHGbJPC7K2kgEzloK7kj2zaSu14SMvhI5CGD6KnQaCaMVZ/SNbaGId8LHhifB1rr6zHzjbYvyVZcQ36SgUdmClKUdwuc/Hk6eTObPHv/9u0kf7R8+BMM3fjWRAwh3znZ5eY7Oeq6vso6UCmXP6rNSCHGsz6MapkBlqUWdKCZD4q/RhOpO3TKoaW0Eb2zsYfI49lMfofwfdGnRJ3vJCWQ74PI2BYFxXuQ01CMWI1Apkv+hXg/ID+KxG/F8H8DykOfe0jc1v9Ltf8W3V0Gv/y7AL4fo3eutRf8J3d4+r+/Q2Iv165MEEwuUfoiTDcnU3krp8X+5YwUNhTk8dxCGwzkUDP7fDo1rkBTu8j5k9nsCdx9U1/uj9VpAox6cKW5Vt4F/hm6ZQaShvPbd/S3a2y8ofGmIK1wrA30+6PE74/uUv2W0cc8PSLjARcHzU3btUtxapaAYd7rqdP52VEaTudnqnRF25DlfoxYu6D2GhOFam7oWl0hF7XRkZW2TFW4Fe1ToNCW6gujpSC9+T9OJCDvIjeYQGWxocFEczDI3A1uMLh8/Qi0gyLTNU+9QZ06awLIdgemBWxO9qPXsEcIKOR0u11hpMtguk62P7UUbiBfLDPYYNC4ktwull0GNWFJISHwI91ADs/7sCcXEoOIm1ZiOSJZl+01BIOe/1J2OeDE/PICMljtxrtmBx28EtzgFeQAGbiUxcTQtLcFg7ZqE1OhNynfZ7V4uEU=
+sidebar_class_name: "put api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Update tagging config"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"put"}
+  path={"/v1/tags/config"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Update the user tagging configuration settings
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"tagUsersInSonarr":{"type":"boolean"},"tagUsersInRadarr":{"type":"boolean"},"cleanupOrphanedTags":{"type":"boolean"},"removedTagMode":{"type":"string","enum":["remove","keep","special-tag"],"default":"remove"},"removedTagPrefix":{"type":"string","minLength":1,"pattern":"^[a-zA-Z0-9_\\-:.]+$","default":"pulsarr:removed"},"tagPrefix":{"type":"string","minLength":1,"pattern":"^[a-zA-Z0-9_\\-:.]+$"}},"required":["tagUsersInSonarr","tagUsersInRadarr","cleanupOrphanedTags","tagPrefix"],"additionalProperties":false}}},"required":true}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"config":{"type":"object","properties":{"tagUsersInSonarr":{"type":"boolean"},"tagUsersInRadarr":{"type":"boolean"},"cleanupOrphanedTags":{"type":"boolean"},"removedTagMode":{"type":"string","enum":["remove","keep","special-tag"],"default":"remove"},"removedTagPrefix":{"type":"string","default":"pulsarr:removed"},"tagPrefix":{"type":"string"}},"required":["tagUsersInSonarr","tagUsersInRadarr","cleanupOrphanedTags","tagPrefix"],"additionalProperties":false}},"required":["success","message","config"],"additionalProperties":false}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

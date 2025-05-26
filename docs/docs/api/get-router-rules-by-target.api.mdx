@@ -1,0 +1,71 @@
+---
+id: get-router-rules-by-target
+title: "Get router rules by target"
+description: "Retrieve content router rules for a specific target instance"
+sidebar_label: "Get router rules by target"
+hide_title: true
+hide_table_of_contents: true
+api: eJztWEtv2zgQ/ivEnFpAhZMtevEt2xaFgWJruNm9BIYxlsYyuxSpkKMkhqH/vhhK8lO2ExQtsEBOeg3n8c3MJw7X4EryyNrZUQZDyIknrmLyk8pQ+HN1iz4nhgQY8wDDO/joLJNl1UjBNIGMQup1KSpgCBNir+mBVNoK+iiovOhTC+cVqlBSqhc6VRy1K20Do00JEijRY0FMXoytIaRLKhCGa+BVSTCEwF7bHBIgWxXiT3AWvYcEPGZyM60T0OLIfUV+BQlYLGRhY+pWtCTg6b7SnjIYsq+oTnoM2aqYk4cT2jqPR9mxtqm8CaWzgYIo/OPqSi77MH2iBVaG1aSVhARawEQWy9LoNGZl8CPIgh4P3fwHpZKa0ksOWTfmQpWmFMKO4Nw5Q2glloJCwJyOAa0TiBna+YLeo4SsmYpw2W6DzHGiCm2/ks15CcPrOmnzMGukXpbWdmmH/Uxnx/mK9nQhSsRa6mymG8jXgHb1bRHL6nwkC00m64Wo6RXnz3lO9xWaIKXi+HN3L7lFbdvXH7dP2javRnLNPSGTv12iPBkKob2dEz8S2VhrOT1FNB7QVNQb1sbf42LuqYmL+e7UPUO0s7MjegLjJncvcF1C7i+xut5twTtR3YpOE8CsyT+a8Y79BZpA/zcnj0B/kWOXoy207eW/Ap96U3zJ7a4hbGWMRClXnBvqaFKwohyZeqhK/iqRIDf6YJbqvqY8wLXp3Z1O7RrlZ2vhOa1/89cnSODbJPbnhnrOcuorJ71y0isnvXJSv78Ro1/g0Y4nOzR1wR0BxzvHs4UzGfXwTZ2AcIvm1az0bqFNPxUcN363vtnk5c/ZhG5NbiC4k+XO77u2LRmykujsPIzNOACB0KfLmbMzzPpXHBROXBKcnRXOanbRtx4+7lnlNYXLu2FGm6GXIkKrC5kWMtRm1VPCCfRti+V/FIk8myH3wliV2enPB+UTOWJ/K9+7O08aStmxvGfnQr0dWu0Gm+0U080sFxXVCXz4vVPY6UHrIKpO8HIMcXzjpWvH9Dgsy1QFg4frQev2u2baHkRcBtwN74H8QzdSV97AEJbM5XAwMC5Fs3SBh++vrt7D4TD/tfusbiL26s2j5qUqnee3IIOutgsXY9QsFQjjygT0Xt2MR0fKbsYjlbm0KshyBDWeBnQr3ilUY0NP6hE5XRod5FiAKfdb0e9xJlRoMzVppsIEJKxG/T/XUsalC1yg3Q6k8IUOziDmK7UBZs/D9Tb5P3uM0eac6YkHpUEdh++I/LrN2h08XG/Lrc3bpqK7dpKyEPxFfr2eY6C/valred2cSEhGMx1aaou1ciaqN5O28t6qU07+S6vD05J2VweRsn+Bsb3DlK2xqTx43XBbJPclYWT3u3W7Uqqy5J1VRy0rWjZd8+XzLdT1f4vJj/Q=
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get router rules by target"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/content-router/rules/target"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieve content router rules for a specific target instance
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"string","enum":["sonarr","radarr"]},"in":"query","name":"targetType","required":true},{"schema":{"type":"number"},"in":"query","name":"instanceId","required":true}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"rules":{"type":"array","items":{"type":"object","properties":{"name":{"type":"string","minLength":1},"target_type":{"type":"string","enum":["sonarr","radarr"]},"target_instance_id":{"type":"number","minimum":1},"condition":{"anyOf":[{"type":"object","properties":{"field":{"type":"string"},"operator":{"type":"string","enum":["equals","notEquals","contains","notContains","in","notIn","greaterThan","lessThan","between","regex"]},"value":{"anyOf":[{"type":"string"},{"type":"number"},{"type":"boolean"},{"type":"array","items":{"type":"string"}},{"type":"array","items":{"type":"number"}},{"type":"object","properties":{"id":{"anyOf":[{"type":"string"},{"type":"number"}]},"name":{"type":"string"}},"required":["id","name"],"additionalProperties":false},{"type":"object","properties":{"id":{"anyOf":[{"type":"string"},{"type":"number"}]},"name":{"type":"string"}},"required":["id","name"],"additionalProperties":false},{"type":"array","items":{"anyOf":[{"type":"string"},{"type":"number"}]}},{"type":"object","properties":{"min":{"type":"number"},"max":{"type":"number"}},"additionalProperties":false},{"enum":["null"],"nullable":true}]},"negate":{"type":"boolean","default":false},"_cid":{"type":"string"}},"required":["field","operator","value"],"additionalProperties":false},{"type":"object","properties":{"operator":{"type":"string","enum":["AND","OR"]},"conditions":{"type":"array","items":{"anyOf":[{"type":"object","properties":{"field":{"type":"string"},"operator":{"type":"string","enum":["equals","notEquals","contains","notContains","in","notIn","greaterThan","lessThan","between","regex"]},"value":{"anyOf":[{"type":"string"},{"type":"number"},{"type":"boolean"},{"type":"array","items":{"type":"string"}},{"type":"array","items":{"type":"number"}},{"type":"object","properties":{"id":{"anyOf":[{"type":"string"},{"type":"number"}]},"name":{"type":"string"}},"required":["id","name"],"additionalProperties":false},{"type":"object","properties":{"id":{"anyOf":[{"type":"string"},{"type":"number"}]},"name":{"type":"string"}},"required":["id","name"],"additionalProperties":false},{"type":"array","items":{"anyOf":[{"type":"string"},{"type":"number"}]}},{"type":"object","properties":{"min":{"type":"number"},"max":{"type":"number"}},"additionalProperties":false},{"enum":["null"],"nullable":true}]},"negate":{"type":"boolean","default":false},"_cid":{"type":"string"}},"required":["field","operator","value"],"additionalProperties":false},{}]}},"negate":{"type":"boolean","default":false},"_cid":{"type":"string"}},"required":["operator","conditions"],"additionalProperties":false}]},"root_folder":{"type":"string"},"quality_profile":{"anyOf":[{"type":"number"},{"type":"string"}]},"tags":{"type":"array","items":{"type":"string"},"default":[]},"order":{"type":"number"},"enabled":{"type":"boolean","default":true},"search_on_add":{"type":"boolean","nullable":true},"season_monitoring":{"type":"string","nullable":true},"series_type":{"type":"string","enum":["standard","anime","daily"],"nullable":true},"id":{"type":"number"},"created_at":{"type":"string"},"updated_at":{"type":"string"}},"required":["name","target_type","target_instance_id","id","created_at","updated_at"],"additionalProperties":false}}},"required":["success","message","rules"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

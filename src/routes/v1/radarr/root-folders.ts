@@ -14,6 +14,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/root-folders',
     {
       schema: {
+        summary: 'Get Radarr root folders',
+        operationId: 'getRadarrRootFolders',
+        description: 'Retrieve root folders from a Radarr instance',
         querystring: QuerystringSchema,
         response: {
           200: RootFoldersResponseSchema,

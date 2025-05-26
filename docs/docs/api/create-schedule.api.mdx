@@ -1,0 +1,71 @@
+---
+id: create-schedule
+title: "Create job schedule"
+description: "Create a new job schedule or update an existing one"
+sidebar_label: "Create job schedule"
+hide_title: true
+hide_table_of_contents: true
+api: eJy9Vktv2zAM/isCTxvgIe6KXXzrHocCBRq03S5BDozNJOpkyaXkPGD4vw+UncRLuybYsObkWB9fH8lPbsBVxBi0s9cFZJAzYaD7fElFbQgSCLjwkE1g94phmkBBPmddiRVk8CXaKFSW1urRzZTvscqxqqsiHlpFG+2DtgvlrDhmeqrJh8+u2ELWQO5sIBvkEavK6DzmNHr0EqIBcVliPLXb2zlkkwbCtiLIwM0eKQ+QQMVSS9DkBded7lE+sLYLSIBsXUpB2gbiFRqYtglYLF8El9rekF2EJWQXbSJJzvViAPxD7AK3gxxiqAVx50+XEj9tE1i6ms+AldrWgc4AesqdLc4Acm2vy5IKjYHMdoCfOWcILbRtAlgUWlqAZjyobY7GUyss4sxQ8YKtTMccaxMgC1yTuJJWaxb0pEP3hO8JnZ4I96+9ztnZ/9Fn2lRM3utuRl91ekTDwPJU8W/L9bRtOze+ctZ3ZX5M0zjVv2391y6yuuuRXYTzdvh1Vn2d5+T9S3OZQEne4+KFJh4Xv/NyMDlReaz709uWSsyOT9fSwU7nH/kJSydKXjkf46HMH4xWF6OdLPP+SdjxxCsSHZo0ULOBDJYhVNloZFyOZul8yC7T9BKOVf9md6yuItHq3VqHpaoch/fQThMQLu4OIv9tg2Vl6EidogLv9vKwOocF7KQ03atlOhDEdKB56XNZiysxWJ/+v7ZzF7PQQdKBcW08Mqur8fWzIq/G16pweV2SDbHDau5Y7Sw+KFRjQxu1xpAvjfZBRcXlA/TeWUGiLdQdFsiixUJ35/7HhYy0dKrEODc9D/2NOrxLj1Mb3Jh/eQH3XQi0CaPKoI7rFSeg6admAqsLmZD91X949jKN0n1BNc0MPX1n07by+qkm3kI2mSawQtbCvvyTG4+wII6j9pO2knlXw4eHTqlWaGrJ6dlKyRXQWciwVeFV7HSwBePb+wdIYNZ/ZZSuEBvGtXyB4BoygARc5DQuZHzXgEG7qKPMQOdTfr8AafcvEg==
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Create job schedule"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/scheduler/schedules"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Create a new job schedule or update an existing one
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"anyOf":[{"type":"object","properties":{"type":{"type":"string","enum":["interval"]},"name":{"type":"string","minLength":1},"config":{"type":"object","properties":{"days":{"type":"integer","minimum":0},"hours":{"type":"integer","minimum":0},"minutes":{"type":"integer","minimum":0},"seconds":{"type":"integer","minimum":0},"runImmediately":{"type":"boolean"}},"additionalProperties":false},"enabled":{"type":"boolean","default":true}},"required":["type","name","config"],"additionalProperties":false},{"type":"object","properties":{"type":{"type":"string","enum":["cron"]},"name":{"type":"string","minLength":1},"config":{"type":"object","properties":{"expression":{"type":"string","minLength":1}},"required":["expression"],"additionalProperties":false},"enabled":{"type":"boolean","default":true}},"required":["type","name","config"],"additionalProperties":false}]}}}}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"}},"required":["error"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

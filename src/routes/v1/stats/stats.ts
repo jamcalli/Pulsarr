@@ -30,6 +30,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/all',
     {
       schema: {
+        summary: 'Get all dashboard statistics',
+        operationId: 'getAllDashboardStats',
+        description:
+          'Retrieve comprehensive dashboard statistics including genres, content, users, and activity',
         querystring: z.object({
           ...LimitQuerySchema.shape,
           ...ActivityQuerySchema.shape,
@@ -115,6 +119,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/instance-content',
     {
       schema: {
+        summary: 'Get instance content breakdown',
+        operationId: 'getInstanceContentBreakdown',
+        description: 'Retrieve content distribution across different instances',
         response: {
           200: InstanceContentBreakdownSchema,
           500: ErrorSchema,
@@ -143,6 +150,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/genres',
     {
       schema: {
+        summary: 'Get top genres',
+        operationId: 'getTopGenres',
+        description: 'Retrieve the most popular genres from watchlists',
         querystring: LimitQuerySchema,
         response: {
           200: z.array(GenreStatSchema),
@@ -171,6 +181,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/shows',
     {
       schema: {
+        summary: 'Get most watched shows',
+        operationId: 'getMostWatchedShows',
+        description: 'Retrieve the most watchlisted TV shows',
         querystring: LimitQuerySchema,
         response: {
           200: z.array(ContentStatSchema),
@@ -199,6 +212,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/movies',
     {
       schema: {
+        summary: 'Get most watched movies',
+        operationId: 'getMostWatchedMovies',
+        description: 'Retrieve the most watchlisted movies',
         querystring: LimitQuerySchema,
         response: {
           200: z.array(ContentStatSchema),
@@ -227,6 +243,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/users',
     {
       schema: {
+        summary: 'Get top users',
+        operationId: 'getTopUsers',
+        description: 'Retrieve users with the most watchlist items',
         querystring: LimitQuerySchema,
         response: {
           200: z.array(UserStatSchema),
@@ -255,6 +274,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/activity',
     {
       schema: {
+        summary: 'Get recent activity',
+        operationId: 'getRecentActivity',
+        description:
+          'Retrieve recent activity statistics for a specified time period',
         querystring: ActivityQuerySchema,
         response: {
           200: ActivityStatsSchema,
@@ -282,6 +305,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/availability',
     {
       schema: {
+        summary: 'Get availability time stats',
+        operationId: 'getAvailabilityStats',
+        description:
+          'Retrieve average time from adding to availability statistics',
         response: {
           200: z.array(AvailabilityTimeSchema),
           500: ErrorSchema,
@@ -309,6 +336,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/grabbed-to-notified',
     {
       schema: {
+        summary: 'Get grabbed to notified time stats',
+        operationId: 'getGrabbedToNotifiedStats',
+        description:
+          'Retrieve average time from grabbed to notified statistics',
         response: {
           200: z.array(GrabbedToNotifiedTimeSchema),
           500: ErrorSchema,
@@ -336,6 +367,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/status-transitions',
     {
       schema: {
+        summary: 'Get status transition metrics',
+        operationId: 'getStatusTransitions',
+        description: 'Retrieve detailed status transition time metrics',
         response: {
           200: z.array(StatusTransitionTimeSchema),
           500: ErrorSchema,
@@ -364,6 +398,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/status-flow',
     {
       schema: {
+        summary: 'Get status flow data',
+        operationId: 'getStatusFlow',
+        description: 'Retrieve status flow data for visualization',
         response: {
           200: z.array(StatusFlowDataSchema),
           500: ErrorSchema,
@@ -389,6 +426,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/notifications',
     {
       schema: {
+        summary: 'Get notification statistics',
+        operationId: 'getNotificationStats',
+        description:
+          'Retrieve notification statistics for a specified time period',
         querystring: ActivityQuerySchema,
         response: {
           200: NotificationStatsSchema,

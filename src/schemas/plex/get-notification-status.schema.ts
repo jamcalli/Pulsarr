@@ -21,6 +21,10 @@ const ErrorSchema = z.object({
 })
 
 export const plexGetNotificationStatusSchema = {
+  summary: 'Get Plex notification status',
+  operationId: 'getPlexNotificationStatus',
+  description:
+    'Check if Plex notifications are configured for Radarr and Sonarr instances',
   tags: ['Plex'],
   response: {
     200: PlexNotificationStatusResponseSchema,

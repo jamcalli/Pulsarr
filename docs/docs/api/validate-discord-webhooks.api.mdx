@@ -1,0 +1,71 @@
+---
+id: validate-discord-webhooks
+title: "Validate Discord webhooks"
+description: "Validate one or more Discord webhook URLs for proper functionality"
+sidebar_label: "Validate Discord webhooks"
+hide_title: true
+hide_table_of_contents: true
+api: eJzVVU1v2zAM/SsCTxugIsm6XXzr2h0KFFuQttuhyIGxmVitLLmUnDQI/N8H+gN10qLpoRiwXGLLJB/JRz7twJfEGI13lxkksEZrMox0YULqOftDi9z7hwAaIq4CJHfw00ezNGnjEmCuIaOQsinlHRL43QVQ3pHyrArPpLpoatOGU7ezq6CWnlXJAq+WlUvFH62JW9DA9FhRiN99toVkB6l3kVyURyxL24GP7oMg7iCkORUoT3FbEiTgF/eURtDQho+Ggnzt0G/ZhoFxiGzcCjQUxl2RW8Uckkldt0kYpkyKHrrONWCWmTbf6QBhiTZQve8auaLmIJTehTaPL+Ox/O337YKWWNmoZp0l6I8qO1RpSmFY8sJ7S+ig1i3fr3+q9vuEzCjcmEhFOI5asX3Z5LcBidnzK04HXEjkPs4xLjRkVds5OvdV28suuquKBbHgFhQCrug4ct/JHr3r0dGBqDV8/becv7uk3vA9NXz772toyI65F6UrfWgwURYeRuvJyA2VbdQrYbf6oCEQr4lFBLvxhjzGMhmNrE/R5j7E5HQ8PoVDSbzqP6uzZn7Up42JuSo9x89QzzVIZ2bPkvfjCYvS0gvJGmyRcUvfNMZEMYRpZQMyq7Pp5Qv4s+mlynxaFeRiU1ujvL3HiUI1tfSkNhjT3JoQlXGRVvxseu2dWKLL1AwzZJYFIA6d4E8kIelmgQ2/DgsaXgQH4h8OExzo+8fcHt20RHqKo9Ki6dVMoFq672A9AQ17hPdbPaB8rkFoE/vdboGBbtnWtRw/VsRbSO7m4sQGF8LC3bzWkBNmxM2MPNAWEjhvizu5kawajKqR08PNqHXvIVNSxjdt54NBnv66vgENi+6yLHwmPowbuUhxAwmABl+2RSa79mwHFt2qavYL2pjy+wvL2dVM
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Validate Discord webhooks"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/notifications/validatewebhook"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Validate one or more Discord webhook URLs for proper functionality
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"webhookUrls":{"type":"string","minLength":1}},"required":["webhookUrls"],"additionalProperties":false}}},"required":true}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"valid":{"type":"boolean"},"urls":{"type":"array","items":{"type":"object","properties":{"url":{"type":"string"},"valid":{"type":"boolean"},"error":{"type":"string"}},"required":["url","valid"],"additionalProperties":false}},"duplicateCount":{"type":"number"},"message":{"type":"string"}},"required":["success","valid","urls"],"additionalProperties":false}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

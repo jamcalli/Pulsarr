@@ -1,0 +1,71 @@
+---
+id: get-sonarr-root-folders
+title: "Get Sonarr root folders"
+description: "Retrieve root folders from a Sonarr instance"
+sidebar_label: "Get Sonarr root folders"
+hide_title: true
+hide_table_of_contents: true
+api: eJzVVU1v2zAM/SsCTy3gwunaXXwr0K0IsEOQfVyCHBibjtXJkivRaYPA/32gPxI3ydbtMqAnAxb5yMdHPe3AVeSRtbPTDBJYE391Fr2fO8efncnIB4iAcR0gWUB3BssIMgqp15UkQgJzYq9pQ8o7xyrv8lTuXalQdUlK28BoU4IIKvRYEgt2sthBSAsqEZId8LYiSCCw13YNTQRa0J9q8luIwGIppwPQNIMIPD3V2lMGCfuamqX8CZWzgYIAfphM5PO623vKsTas5n0kRJA6y2RZYrGqjE7bkcSPQRLOdOhWj5SyUPEyQNZduVCnKYUwClw5Zwhtx6UfwJswOhvF2LpckReAjv+ZKa0w0Hdvzpw14wktBLiHOSQtI8As08IXzWzUR44mkACMVuFQAb3H7UmBYQAjtq8B3qjWCODt/xWtpBBwfW6yR+SGwL/jcPvuOXx89zo0EZTEheutrbUeLiCBeHMdh9aXYtnOq3xvdYH8ZjCmWu4UFMxVEsfGpWgKFzi5mUxu4NgCvwzH6q69AuriWXOhKuf5EsSXtM1dy02zEXKz2gTxxbvZ9ATsbjZVmUvrkiy3w1S582rIuFKoZoZe1DNyWhgdWGnLtPaH0N5z0WZqjpl4dgRCq4P/cS2uUbnAJbYS9c76QDxkjo38uL3dQfF/df5eWKYXjiuDujXGurOuTpoFbK5Fhu6l6cxjL88yAhmxRO12vYE1jfzu3ggRLdMBV0Y2pV2DP/R+Me+X6lL9rrWftD1+cTZoaglsRd2g11INksWyiaAgzMi3bXSZsgsVj7JOLoig7Hf04dM3aJpfaf2lbA==
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get Sonarr root folders"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/sonarr/root-folders"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieve root folders from a Sonarr instance
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"string"},"in":"query","name":"instanceId","required":true}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"instance":{"type":"object","properties":{"id":{"type":"number"},"name":{"type":"string"},"baseUrl":{"type":"string"}},"required":["id","name","baseUrl"],"additionalProperties":false},"rootFolders":{"type":"array"}},"required":["success","instance","rootFolders"],"additionalProperties":false}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}},"404":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

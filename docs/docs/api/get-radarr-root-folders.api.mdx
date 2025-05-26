@@ -1,0 +1,71 @@
+---
+id: get-radarr-root-folders
+title: "Get Radarr root folders"
+description: "Retrieve root folders from a Radarr instance"
+sidebar_label: "Get Radarr root folders"
+hide_title: true
+hide_table_of_contents: true
+api: eJzVVU1v2zAM/SsCTy3gwsnaXXwL0K0IsEOQfVyCHBibjtXJkivRaYPA/32gPxo3zdbtMqAnA9LjIx9JPR/AVeSRtbPzDBLYEi8xQ++XzvFnZzLyASJg3AZIVtDdwTqCjELqdSWBkMCS2GvakfLOscq7OJV7VypUXZDSNjDalCCCCj2WxMKdrA4Q0oJKhOQAvK8IEgjstd1CE4EW9oea/B4isFjK7UA0zyACTw+19pRBwr6mZi0noXI2UBDCD5OJfF5We0s51obVskdCBKmzTJYFi1VldNq2JL4PEnCmQre5p5RFipcGsu7ShTpNKYQRcOOcIbSdlr4Bb9LobISxdbkhLwSd/jNd2mCg796cuWvGHVoJcU9zDFpHgFmmRS+axaiOHE0gIRitwjEDeo/7VwmGBozUviR4I1sjhDf/d2glhYDbc509ETcA/07DzbvX8PHdz6GJoCQuXG9trfVwAQnEu2nsW1+KZTuv8merC+R3gzHV8qagYK6SODYuRVO4wMn1ZHINpxb4ZbhWs/YJqItHzYWqnOdLEF/SNnetNs1GxC1qE8QXZ4v5K7LZYq4yl9YlWW6bqXLn1RBxpVAtDD2pR+S0MDqw0pZp64/Qr84KEm3W2y9EILI6+h9TcY3KBS6xHVHvrHfEg1uPjfy0vMNx4v/q/P1gmZ44rgzq1hjrzrq60axgNxXPGKp+MZ51BNJiQR0OvYE1jRx3/wgZWqYDboxsSrsGf6j9Ytkv1aX6XWk/aX/6x9mhqQXYDnWHXks2SFbrJoKCMCPfltFFyi5UPIp69UCE5XlH7z59g6b5BaSWpL0=
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get Radarr root folders"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/radarr/root-folders"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieve root folders from a Radarr instance
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"string"},"in":"query","name":"instanceId","required":true}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"instance":{"type":"object","properties":{"id":{"type":"number"},"name":{"type":"string"},"baseUrl":{"type":"string"}},"required":["id","name","baseUrl"],"additionalProperties":false},"rootFolders":{"type":"array"}},"required":["success","instance","rootFolders"],"additionalProperties":false}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}},"404":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

@@ -1,0 +1,71 @@
+---
+id: create-admin-user
+title: "Create admin user"
+description: "Create the first admin user account for the system"
+sidebar_label: "Create admin user"
+hide_title: true
+hide_table_of_contents: true
+api: eJy9VNtu2zAM/RWBTxugLkm7Apufll0eChRY0MtegjwwNhOrkyVXonNB4H8fqDiLe8FaDMPyEls+pHgOebgDX1NANt5dFJBBHgiZxkVl3G2kABoYlxGyKYwbLsmxyRMYZhoKinkwdXrN4EuKVFySWpgQWaEkUU2koDDPfeNYLXxIgLiNTBVoCHTfUOTPvthCtoPcOybH8oh1bbu7BndRbthBzEuqUJ54WxNk4Od3lDNoqIPQYENRvlKFxvZgkYNxS9Cw8KFChqxDtBqkPIcVPYeujLskt+QSsjMNFW4Ob6fn562GGmNc+1C8EPqhbfc8TaBChNzf3bu6l2qmAYvCCGu0kx6pBdpI7cNUHBpKB7H2Lu6pnw5H8vewNV9pgY1lddUhQf8rpWOT5xRjDzj33hI60baiGHH5jLSPFTlkOYa8qEOr4f3w4/+k+mo2r+eQNOLSi/FqH9OdKDMDg9VoIPMRB3tDniQzgYZIYUVBDLmDJljIoGSus8HA+hxt6SNnZ8PhGTx25+XhsxonrdWbteFS1T7wW2hnGkSOq6Mbv22wqi313JTm9RPtz9/lvuqPcG/0j7b4LZAG4xY+KWdYksKksRFDUOPJxZNSx5MLVfi8qchxalVaG4eIE4VqYmmj1sh5aU1kZRzTMhyh194JEl2hrrDAIFtMRNun/zGSgkTuCtMAdAS6/XXcWo8L662nv1t23dgwbXhQWzTJJKmJu67vU1iNOlnFDQ96P9Mg/RPQbjfHSLfBtq0c3zcUtpBNZxpWGAzOReLprNVQEhYU0rD8pK3UvWdwciOlCNw2UtITX7T6ECHjUvMfsbPeGE++X9+Ahnm30CtfSEzAtSx7XEMGoMEnRZOr0tkOLLplk9wF+5zy+wXid014
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Create admin user"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/users/create-admin"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Create the first admin user account for the system
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"email":{"type":"string","format":"email"},"username":{"type":"string","minLength":3,"maxLength":255},"password":{"type":"string","minLength":8}},"required":["email","username","password"],"additionalProperties":false}}},"required":true}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"201":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}},"409":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

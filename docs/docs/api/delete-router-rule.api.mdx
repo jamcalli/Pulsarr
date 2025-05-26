@@ -1,0 +1,71 @@
+---
+id: delete-router-rule
+title: "Delete router rule"
+description: "Delete a content router rule by its ID"
+sidebar_label: "Delete router rule"
+hide_title: true
+hide_table_of_contents: true
+api: eJy9VE1v2zAM/SsCTy2gwunaXXwr1h4C9BBkH5cgB8ZiYnWypEp02sDwfx/ouE2QbkN3WE+WxQ/x8fGxgxApIdvgpwZKMOSIaR5apjRvHYEGxk2GcgFfgmfyrPZGWGowlKtkowRDCbdDqEJVjY5pcFSpdaRWO2U5q+ktaIiYsCGmJGk7yFVNDULZAe8iQQm+bVaUoNdgJW9ErkGDx0aM1oCGRI+tTWSg5NRSv5SbHIPPlCXPp8lEPqflrbF1rOajJ2gYCxVfjNHZauhD8ZAl4DeFhdUDVSwIknSN7f653FYV5XzkuArBEXqB0FDOuKEjY+Zk/Qb6/hjH4jXLIWSpAY2xUhO62dGTa3SZ+l4yXE+uPxLqu9H8C4bPH0vXf8Aw8Mx1OChoGHOuoYRie1mMlV/sFVGIInLRWdODhkxp+yKFNjkooWaOZVG4UKGrQ+byajK5glO53b+Y1c0wOOrsyXKtYkh8DiIJ69dhAGnZCcpZ6zKmpG5m0zfJbmZTZULVNuR56Kpah6ReIi4UqpmjZ/WEXNXOZlbWM23SwfVr8OKJ3qg5GkwJNAisffoflyKFGDI3OHA1inlcGUeL4rSy7sD6+xfMSCvTMxfRoR2EOPS2G1lZwPbyMFEjL7JYhBnQUFojtEt7xbnrVpjpe3J9L9ePLaUdlIulhi0miyvp76IDY7OczTgZf4FyNh/n7Fz9qd7xEv1OWomulT/Q8JN2+zXYL3sNNaGhNLy+N8gwRD4KeSMVmY3Xab29u7/7dgd9/wtikBci
+sidebar_class_name: "delete api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Delete router rule"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"delete"}
+  path={"/v1/content-router/rules/{id}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Delete a content router rule by its ID
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"number"},"in":"path","name":"id","required":true}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}},"404":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

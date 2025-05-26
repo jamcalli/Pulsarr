@@ -1,0 +1,63 @@
+---
+id: sync-all-instances
+title: "Sync all instances"
+description: "Synchronize watchlist items to all configured Radarr and Sonarr instances"
+sidebar_label: "Sync all instances"
+hide_title: true
+hide_table_of_contents: true
+api: eJzdVD1v2zAQ/SvETS2gQk6DLtqMdjFQoEbSdjE8nKmzxZQiGfLkRBX034uj7UROAiRD0aGTCN3ne+/uBvCBIrLxblFDBal3em7twiVGpylBAYy7BNUKrnunYV1ATUlHEyQEqvy3id6Z36TukHVjTWJlmNqk2Cu0VmnvtmbXRarVFdYYo0JXq2vv5GkmlSKl4F2iBNUAH2cz+ZxX+0Jb7Cyrq6MnFKC9Y3IsvhiCNTqDKW+SBAyQdEMtyov7QFCB39yQZiggRIHO5lAu5s4mfhgj9lBAhvJ6vKknPq5rNxRhLMBhSxND4mjcTgw57WcfDL0UOAoZt52JYl1J8mOq88B1AVjXRgCjXU762aJNJFlSZvm/g9VSSrh7qYUnJY6yPhDxGPpaEcn06d/O4JtRvR1D5oobL7sdfMo1kRuooNxflLLtJVor/FDcU5RFH6CLFipomENVltZrtI1PXF3OZpfwdP+/nsxqrjWlpN7dGW5U8JHfw7guwLitz4gMW4G07GySxZ8vF8+SzZcLVXvdteQ4U6i2PqpTxAeFamnpfnpnHNMuProej4rcl6uT8gLrkP7nhYyo0NBiFuYwxvmG5Us1PUZnnQ2PEv/Vi3eUmemey2DROGkw0z8cdVrB/kLkkeNbgGi1LkD4FtMwbDDRj2jHUX7fdhR7qFbrAvYYDW6E8NV6LKAhrClmcX9RL0xrTUGmYY+2y3fh6dyKdg+js/x2/R3G8Q990ia8
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Sync all instances"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/sync/all"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Synchronize watchlist items to all configured Radarr and Sonarr instances
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"radarr":{"type":"array","items":{"type":"object","properties":{"id":{"type":"number"},"name":{"type":"string"},"itemsCopied":{"type":"number"}},"required":["id","name","itemsCopied"],"additionalProperties":false}},"sonarr":{"type":"array","items":{"type":"object","properties":{"id":{"type":"number"},"name":{"type":"string"},"itemsCopied":{"type":"number"}},"required":["id","name","itemsCopied"],"additionalProperties":false}},"message":{"type":"string"}},"required":["radarr","sonarr","message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      
