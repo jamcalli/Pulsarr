@@ -36,7 +36,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         response: {
           200: z.array(SonarrInstanceSchema.extend({ id: z.number() })),
         },
-        tags: ['Sonarr Configuration'],
+        tags: ['Sonarr'],
       },
     },
     async () => {
@@ -66,7 +66,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         response: {
           201: z.object({ id: z.number().int().positive() }),
         },
-        tags: ['Sonarr Configuration'],
+        tags: ['Sonarr'],
       },
     },
     async (request, reply) => {
@@ -91,7 +91,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         description: 'Update an existing Sonarr instance configuration',
         params: z.object({ id: z.coerce.number() }),
         body: SonarrInstanceSchema.partial(),
-        tags: ['Sonarr Configuration'],
+        tags: ['Sonarr'],
         response: {
           204: z.void(),
           400: z.object({
@@ -169,7 +169,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         operationId: 'deleteSonarrInstance',
         description: 'Delete a Sonarr instance configuration',
         params: z.object({ id: z.coerce.number() }),
-        tags: ['Sonarr Configuration'],
+        tags: ['Sonarr'],
         response: {
           204: z.void(),
           400: z.object({

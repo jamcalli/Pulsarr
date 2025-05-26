@@ -35,6 +35,7 @@ Want to contribute? Check out our [Contributing Guidelines](#contributing).
 - [Notification Setup](#notification-setup)
 - [Configuration](#configuration)
 - [Usage](#usage)
+- [Screenshots](#screenshots)
 - [API Documentation](#api-documentation)
 - [Roadmap](#roadmap)
 - [Contributing](#contributing)

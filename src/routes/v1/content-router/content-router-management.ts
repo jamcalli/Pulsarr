@@ -286,7 +286,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const ruleData = request.body as z.infer<typeof ContentRouterRuleSchema>
+        const ruleData = request.body
 
         // Validate target_type-specific fields
         if (
@@ -388,9 +388,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         const { id } = request.params
-        const updates = request.body as Partial<
-          z.infer<typeof ContentRouterRuleSchema>
-        >
+        const updates = request.body
 
         // Check if rule exists
         const existingRule = await fastify.db.getRouterRuleById(id)

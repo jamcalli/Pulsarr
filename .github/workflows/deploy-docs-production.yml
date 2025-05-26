@@ -17,33 +17,33 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0 # Needed for proper git history
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Needed for proper git history
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-        cache: 'npm'
-        cache-dependency-path: docs/package-lock.json
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: docs/package-lock.json
 
-    - name: Install dependencies
-      run: |
-        cd docs
-        npm ci
+      - name: Install dependencies
+        run: |
+          cd docs
+          npm ci
 
-    - name: Build documentation
-      run: |
-        cd docs
-        npm run build
+      - name: Build documentation
+        run: |
+          cd docs
+          npm run build
 
-    - name: Deploy to GitHub Pages
-      run: |
-        cd docs
-        npm run deploy
-      env:
-        GIT_USER: ${{ github.actor }}
-        GIT_PASS: ${{ secrets.GITHUB_TOKEN }}
-        USE_SSH: false
+      - name: Deploy to GitHub Pages
+        run: |
+          cd docs
+          npm run deploy
+        env:
+          GIT_USER: ${{ github.actor }}
+          GIT_PASS: ${{ secrets.GITHUB_TOKEN }}
+          USE_SSH: false
