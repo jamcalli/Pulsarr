@@ -1,0 +1,71 @@
+---
+id: get-notification-stats
+title: "Get notification statistics"
+description: "Retrieve notification statistics for a specified time period"
+sidebar_label: "Get notification statistics"
+hide_title: true
+hide_table_of_contents: true
+api: eJy9Vdtq20AQ/ZVlnlrYYqehL3oLtIRAW0zS9sWYMJbG1qarXWVn5MQI/XsZS77EScml0Cej3bmcM2d8toVYU0JxMVwUkMGS5HsUt3D55uxKUBgsCC4Zsinot2NxOcPMQkGcJ1drIGRwSZIcrciEgwKGdxlmEZNBwzXlbuGoMOIqMjUlFwuwUGPCioSSNmqB85IqhKwFWdcEGbggtKQEFug+9w27FX1zwVVNBZmkhixU28+xQltg4wWy03FnwSm+24bSGiwErLRegWtllui2cYkKyBbombqZHnEdAxNr94/jsf48pPq5r24uh0iwkMcgFERjsa79QH90w5rwBJ04v6FclHdSBcT17SQK+uvDCfJBUmiqOSXoLMzX1/3Z7g5TQqXnhCp+QaOH2SzJhaVWzmPT0zjq2R3OatrfbqNnFrAonMJFPzno08+0x5uXGAL5t0N+XODVqLclXgW8YUpvR63Z1/3OvR33vshLkR/L9cRe7bfogT57zs/26Cx8+r//j4qYcfnULI8IbwOf59BZqEjKONjfxoqkhAxGq5OR2hePjufGlFZbo2qShwxKkTobjXzM0ZeRJTsdj0/h2CK/bq/NWZ4Ts3l356Q0dUzyHtR6XFjEDTcnXslNGs+YkjmbXDwqdja5MEXMm4qC9F6rBrvN+GDQTDzdmzuUvPSOxWwcNO1Dr2LQSAyFucQCk3qr0urL/zrR/awjS4UbiQbfPCf5m8MfQ2z3qv/r6zCILXQvo9qjCwpuM/p2kGsKqxOVZnixHko2s6Bj16i2nSPTz+S7To/7V0GFLBzj3O9eAgu/ab1/J1boG0WwkWmFyWksZNNZZ6EkLNQipu2Qo+rWcpD1aOW1ym7rzr/8gK77A+oTpZk=
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get notification statistics"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/stats/notifications"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieve notification statistics for a specified time period
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"integer","exclusiveMinimum":true,"minimum":0,"default":30},"in":"query","name":"days","required":false}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"total_notifications":{"type":"number"},"by_type":{"type":"array","items":{"type":"object","properties":{"type":{"type":"string"},"count":{"type":"number"}},"required":["type","count"],"additionalProperties":false}},"by_channel":{"type":"array","items":{"type":"object","properties":{"channel":{"type":"string"},"count":{"type":"number"}},"required":["channel","count"],"additionalProperties":false}},"by_user":{"type":"array","items":{"type":"object","properties":{"user_name":{"type":"string"},"count":{"type":"number"}},"required":["user_name","count"],"additionalProperties":false}}},"required":["total_notifications","by_type","by_channel","by_user"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

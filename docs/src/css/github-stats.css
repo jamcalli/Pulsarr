@@ -1,0 +1,60 @@
+/* GitHub Stats Button Styling */
+
+.github-stats-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	border-radius: 5px;
+	height: 2.5rem !important; /* 40px - Exactly like the mode toggle */
+	padding: 0 0.75rem !important;
+	font-weight: 500;
+	border: 2px solid #000;
+	background-color: #d4b483; /* fun color from globals.css */
+	color: #000 !important;
+	cursor: pointer;
+	transition: all 0.2s ease;
+	font-family: "Shuttleblock", system-ui, -apple-system, sans-serif;
+	vertical-align: middle !important;
+	line-height: 1 !important;
+	margin: 0 !important;
+	box-sizing: border-box !important;
+	/* Fine tune vertical alignment - try a slight adjustment */
+	position: relative !important;
+	top: 1px !important; /* Adjusted to move down slightly */
+}
+
+.github-stats-button:hover {
+	opacity: 0.9;
+}
+
+.github-icon {
+	width: 22px;
+	height: 22px;
+	flex-shrink: 0;
+	display: inline-block;
+}
+
+.star-count {
+	line-height: 1;
+	font-size: 0.875rem;
+	font-weight: 500;
+	display: inline-block;
+	color: #000 !important;
+}
+
+/* Ensure black text/icon in both light and dark themes */
+html[data-theme="light"] .github-stats-button,
+html[data-theme="dark"] .github-stats-button {
+	color: #000 !important;
+}
+
+html[data-theme="light"] .github-stats-button .star-count,
+html[data-theme="dark"] .github-stats-button .star-count {
+	color: #000 !important;
+}
+
+html[data-theme="light"] .github-stats-button .github-icon,
+html[data-theme="dark"] .github-stats-button .github-icon {
+	color: #000 !important;
+}

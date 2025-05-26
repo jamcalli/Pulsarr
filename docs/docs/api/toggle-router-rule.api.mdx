@@ -1,0 +1,71 @@
+---
+id: toggle-router-rule
+title: "Toggle router rule"
+description: "Enable or disable a content router rule by its ID"
+sidebar_label: "Toggle router rule"
+hide_title: true
+hide_table_of_contents: true
+api: eJy9VU1v2zAM/SsCTy2gwunaXXzr2gILsEOQdbsEOTAWk6iTJVeSkwaB//tAWVnSpus+sNUXyyKfRD7y0VtwDXmM2tmhghKiWywMjV0byY9bQyAh4iJAOYFrZyPZKHojTCUoCpXXDYOhhFuLM0PCeaF0SEsUVcb4hBG+NSRmG6FjEMMbkODpoaUQPzi1gXIL2Z2X2DRGVymw4j7wBVsI1ZJq5FXcNAQluNk9VREkNJ7TiJoCWylFog4cZ84ZQgtd19+pPZsnPzynElApzbehGR0cNkcTqHsKi76lTkKDHmuK5JmdF4KzbT0jD50EzfQ0GJcgwWLNRq3g6Mgp74TG2dCn8W4w4NdTlm9ojq2JYpw9Qf4r1kJbVRTCS6xJqCkEXNCBMUSv7eKI0d0pe8gvue0kXA4u3zLV387mT3J4/7bl+g85pDrHpVN9u1bcr6ltSyhW50UO/KwXc8FiDsVWq67opwZICORXO0G03kAJyxibsiiMq9AsXYjlxWBwAc9nx6edWVyl9hEnax2XonE+ngILg9kZ74fF7SPWjaEnYs+y1HbuEik6sgOMWhPQe3E1Gh5dezUaCuWqtiYbUxXE3HmxQ5wJFCNDj2LNXBgdotA20sLvXT87y55olRijQu9BAhPQH//1nKXTuBBrTLXN4r9LdB0OxeeRHYzCv5qruSMiPcaiMaiThlNBtrmiE1id75sx15RnElcVJJRpQuXCTiVwcRi13c4w0Bdvuo63H1ryGygnUwkr9JrDS8XPoarcXa+kdzLOvXoqfhZ43kS7YXrRtPwFEr7Rph+l3bSTsCRU5NPtvSH/sM7uGL4HHomukzsEN18TX/WdHmhkdHV3/REkzPLvq3aKQR7XTCSu+yhdSjppNu1twaBdtEm70B/Kz3c+AJ8q
+sidebar_class_name: "patch api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Toggle router rule"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"patch"}
+  path={"/v1/content-router/rules/{id}/toggle"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Enable or disable a content router rule by its ID
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"number"},"in":"path","name":"id","required":true}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"enabled":{"type":"boolean"}},"required":["enabled"],"additionalProperties":false}}},"required":true}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}},"404":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

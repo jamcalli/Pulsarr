@@ -1,0 +1,63 @@
+---
+id: start-discord-bot
+title: "Start Discord bot"
+description: "Start the Discord notification bot service"
+sidebar_label: "Start Discord bot"
+hide_title: true
+hide_table_of_contents: true
+api: eJzVVMFu2zAM/RWBpw3Q4HTdLr516KXAsAXttkuQAyMzsVpFUkU6bWH43wc6Seusl+4yYCfLEknxvafHHlKmguJTvGqgBhYscunZpdJ8SQIWBDcM9QK+JfFr78ZQhqWFhtgVn/UfarjRRCMtmUO2iZMEs0pimMrOOwILhTinyMRQ9/BxNtPPablLWmMXxFwfIsGCS1EoisZizuFQubplTeiBXUtb1JU8ZYIa0uqWnCLIRTGK31/HnXPEPAlcpRQIIwxW4Us3PWMpPm7AAsVuqzSULsb9DkvKmZpxhUUmm/tlF+9ieoiwHCxsiRk39LrwMCgb950v1Gj5Y3fPrSwtYNN4hYphPkGyxsA0DFrg079l8M1gjoFvwfD5v8cwyixtUhvlxOOdKC3UUO3OqqkbuGr2HhkfjmpNZUdFbdZDVwLU0IrkuqpCchjaxFKfz2bn8Kfpvh6PzcX4bMy7By+tyanIexiWFnxcpxGjl6Ag511gLMVczK9eFbuYX5kmuW5LUfamXadijhkfDJp5oEfzgOLa4FmMj0Kb8hJ6k6JGYmzMNTZYClhQWPvyv87UYErMFkepIm7peXAch8ZqnDknjfUvmv/dlDkIK/QoVQ7oR4eP9PYHZRawOwMLJ9ro9VN1lhaUYQ3u+xUy/SxhGHT7vqPyBPViaWGHxeNKKV6o3VvChsoo5x09KbfOUVZkOwydNvXq7apaz89n/v3mBwzDbzRo+Ck=
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Start Discord bot"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/notifications/discordstart"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Start the Discord notification bot service
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"status":{"type":"string","enum":["running","stopped","starting","stopping","unknown"]},"message":{"type":"string"}},"required":["success","status"],"additionalProperties":false}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

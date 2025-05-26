@@ -28,6 +28,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/instances',
     {
       schema: {
+        summary: 'Get Radarr instances',
+        operationId: 'getRadarrInstances',
+        description: 'Retrieve all configured Radarr instances',
         response: {
           200: z.array(RadarrInstanceSchema.extend({ id: z.number() })),
         },
@@ -54,6 +57,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/instances',
     {
       schema: {
+        summary: 'Create Radarr instance',
+        operationId: 'createRadarrInstance',
+        description: 'Create a new Radarr instance configuration',
         body: RadarrInstanceSchema,
         response: {
           201: z.object({ id: z.number().int().positive() }),
@@ -77,6 +83,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/instances/:id',
     {
       schema: {
+        summary: 'Update Radarr instance',
+        operationId: 'updateRadarrInstance',
+        description: 'Update an existing Radarr instance configuration',
         params: z.object({ id: z.coerce.number() }),
         body: RadarrInstanceSchema.partial(),
         tags: ['Radarr Configuration'],
@@ -153,6 +162,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/instances/:id',
     {
       schema: {
+        summary: 'Delete Radarr instance',
+        operationId: 'deleteRadarrInstance',
+        description: 'Delete a Radarr instance configuration',
         params: z.object({ id: z.coerce.number() }),
         tags: ['Radarr Configuration'],
         response: {

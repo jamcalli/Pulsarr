@@ -21,7 +21,10 @@
     "release:patch": "npm version patch && git push && git push --tags",
     "release:minor": "npm version minor && git push && git push --tags",
     "release:major": "npm version major && git push && git push --tags",
-    "prepare": "husky"
+    "prepare": "husky",
+    "docs:openapi:generate": "cd docs && npm run openapi:placeholder",
+    "docs:build": "cd docs && npm run build",
+    "docs:start": "cd docs && npm run start"
   },
   "repository": {
     "type": "git",

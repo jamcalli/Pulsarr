@@ -1,0 +1,71 @@
+---
+id: update-config
+title: "Update configuration"
+description: "Update the application configuration settings"
+sidebar_label: "Update configuration"
+hide_title: true
+hide_table_of_contents: true
+api: eJztmE1v2zgQhv+KMKddQEGUbffiW5KmRYCmMOJkewiMghbHEhuKVPnhDxj+74sRJUu2ZTUL7C5QwL5YIl+SwyE584gb0CUa5oRW9xxG4EvOHN5qNRcZxOBYZmH0AnXBNAaONjWipAYwgudKHrkcI1aWUqRVT1FayX3oN7LonFCZhRgM/vBo3Y3maxhtINXKoXL02Gl++d1S5xuwaY4Foye3LhFGoGffMXUQQ2nIbCfQUm2pjeuolC9maGAbA5+Nmcs7VdYZoTKqSrV+FTjB1KAbEHxhBQ639wZ5RzHTWiJTJJE6+4wLlMftY0DlC3LsnDkm6d0YbSCGJTMKYhBqroGcPfPVMhiWIsRghSR3TWl8qS1+ovIPKNm6d/qGOfwsCuEe2KpXYNcqvVcOzYLJCaZacdur++HR49joFK2thhsSc2FTbfhXnOVavz6bnvm3qhvtnvQrqiHNrRSo3D0f0nzyQvITElRsJvG6LI2w2L9ULFSeMtaurcPielhUOekrE+5J7O2Z1jMKl3elsJrjU27Q5lryXp0vM8M43vj5HM3J3kpUXKis9vMjOrNu1vIN+ge2us7e0vEt+ciXw11LXFXL2N0RzBi2pr3ssLA9HiO/voryoxGo+GSt0v6l4SjR4YNeiBNrFwR3iiOf5Ho5JLrVygnlhcp+pvwoJNp+gUFbYuqeLRqyehKi21BnJPuinZivh0KB0orOeIHWsoyelmEBIIaZdjnEwCSFinrHX2glyb311m1e60bNKy92T3WzttempB2xKanGoyhTsNUHmoLQamxwgSrE/b5TX8seNO8JmO0sl8yluRTWhexyMWMWeTWWwUIvkD+xbGxwLla9h6wV/WygoIQYXhFLip0lpoLJC8fqPDZnXjoYNcJdoBhLXI0lW5ORY6MdpgeT7qwvbfxW07Q6mTRIPkGzQHMy0qCcP9q+4xLDvDop9lT1N2EfkfF1n6UU4jgXZCST407ynDNpcbvd1vtaKxu2/R9JQn/72f5D8Fn0WCsh/rcyuPUp5ZZ+JweaOGPAGQPOGHDGgDMGnDHgjAH/DQaED3RRpbKXXVLeZeDpGyji/f8LDiFh9kaV7lSC7G32v/+l7f/zl/Y/xRp0uaarqNJXw1XkBpeLq8uwC+s/OsrVEaL7qQ14OkiQO1eOLi+lTpnMtXWjd0nyDg4vrT431dF1tcGj35bC5RHh4++wncZATnhsb6ruVqwoJbaImbRI2QacfZI8LA+xoEcduNEZj11S3AHhEd8lhzyXnOC3ZIjXkl4+a807wrKjqpbGjqp2ENaNxnvsFabbpa1WegxZbd0BWyUnWCrpZafkJ6x0VN+w0VHFEQsl++zz0lg8PWabMPU9mukWdfilW3xILN26mlFC0Skq6TbocsgON/ozfHKY0fcS93GqbpfqMEO3iXg4vQZDhxJqO8ZBHu3soSZ9tkXdrNmWtsmSxt3WX1wUzoSjEw9jLy0zJroe3x/FkevxfcR16gtULtx0z7WJmhYXEYtoktHOY5FQDjPTSidakZIpHj0yzgx9+VFEC93/dVWxgrauYFVMVmH69Z373h37oW2dq/V/fEdfR3KHK3dZSiYqwvEBVEI0foHFVUsFXTygqEr1mw0B3bOR2y0V//Bo1jB6mcawYEbQ+tPbNoYcGUdThfBXpP14G+y+eCIrSC599RVxmKO2cdOCgnjpBrXTTloZPz9VKB0Iqag3J1vSnmVLGAHEoCs3VgmuKtuAZCrzRMcjCF3S72/YvuWq
+sidebar_class_name: "put api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Update configuration"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"put"}
+  path={"/v1/config/config"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Update the application configuration settings
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"port":{"type":"number"},"dbPath":{"type":"string"},"cookieSecret":{"type":"string"},"cookieName":{"type":"string"},"cookieSecured":{"type":"boolean"},"logLevel":{"type":"string","enum":["fatal","error","warn","info","debug","trace","silent"]},"closeGraceDelay":{"type":"number"},"rateLimitMax":{"type":"number"},"syncIntervalSeconds":{"type":"number"},"queueProcessDelaySeconds":{"type":"number"},"discordWebhookUrl":{"type":"string"},"discordBotToken":{"type":"string"},"discordClientId":{"type":"string"},"discordGuildId":{"type":"string"},"enableApprise":{"type":"boolean"},"appriseUrl":{"type":"string"},"systemAppriseUrl":{"type":"string"},"queueWaitTime":{"type":"number"},"newEpisodeThreshold":{"type":"number"},"upgradeBufferTime":{"type":"number"},"pendingWebhookRetryInterval":{"type":"number"},"pendingWebhookMaxAge":{"type":"number"},"pendingWebhookCleanupInterval":{"type":"number"},"plexTokens":{"type":"array","items":{"type":"string"}},"skipFriendSync":{"type":"boolean"},"deleteMovie":{"type":"boolean"},"deleteEndedShow":{"type":"boolean"},"deleteContinuingShow":{"type":"boolean"},"deleteFiles":{"type":"boolean"},"respectUserSyncSetting":{"type":"boolean"},"deleteSyncNotify":{"type":"string","enum":["none","message","webhook","both","all","discord-only","apprise-only","webhook-only","dm-only","discord-webhook","discord-message","discord-both"]},"maxDeletionPrevention":{"type":"number"},"deletionMode":{"type":"string","enum":["watchlist","tag-based"]},"removedTagPrefix":{"type":"string"},"removedTagMode":{"type":"string","enum":["remove","keep","special-tag"],"default":"remove"},"enablePlexPlaylistProtection":{"type":"boolean"},"plexProtectionPlaylistName":{"type":"string"},"plexServerUrl":{"type":"string"},"selfRss":{"type":"string"},"friendsRss":{"type":"string"},"_isReady":{"type":"boolean"}},"additionalProperties":false}}}}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"config":{"type":"object","properties":{"port":{"type":"number"},"dbPath":{"type":"string"},"cookieSecret":{"type":"string"},"cookieName":{"type":"string"},"cookieSecured":{"type":"boolean"},"logLevel":{"type":"string","enum":["fatal","error","warn","info","debug","trace","silent"]},"closeGraceDelay":{"type":"number"},"rateLimitMax":{"type":"number"},"syncIntervalSeconds":{"type":"number"},"queueProcessDelaySeconds":{"type":"number"},"discordWebhookUrl":{"type":"string"},"discordBotToken":{"type":"string"},"discordClientId":{"type":"string"},"discordGuildId":{"type":"string"},"enableApprise":{"type":"boolean"},"appriseUrl":{"type":"string"},"systemAppriseUrl":{"type":"string"},"queueWaitTime":{"type":"number"},"newEpisodeThreshold":{"type":"number"},"upgradeBufferTime":{"type":"number"},"pendingWebhookRetryInterval":{"type":"number"},"pendingWebhookMaxAge":{"type":"number"},"pendingWebhookCleanupInterval":{"type":"number"},"plexTokens":{"type":"array","items":{"type":"string"}},"skipFriendSync":{"type":"boolean"},"deleteMovie":{"type":"boolean"},"deleteEndedShow":{"type":"boolean"},"deleteContinuingShow":{"type":"boolean"},"deleteFiles":{"type":"boolean"},"respectUserSyncSetting":{"type":"boolean"},"deleteSyncNotify":{"type":"string","enum":["none","message","webhook","both","all","discord-only","apprise-only","webhook-only","dm-only","discord-webhook","discord-message","discord-both"]},"maxDeletionPrevention":{"type":"number"},"deletionMode":{"type":"string","enum":["watchlist","tag-based"]},"removedTagPrefix":{"type":"string"},"removedTagMode":{"type":"string","enum":["remove","keep","special-tag"],"default":"remove"},"enablePlexPlaylistProtection":{"type":"boolean"},"plexProtectionPlaylistName":{"type":"string"},"plexServerUrl":{"type":"string"},"selfRss":{"type":"string"},"friendsRss":{"type":"string"},"_isReady":{"type":"boolean"}},"additionalProperties":false}},"required":["success","config"],"additionalProperties":false}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"}},"required":["error"],"additionalProperties":false}}}},"404":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"}},"required":["error"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"}},"required":["error"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

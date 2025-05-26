@@ -41,6 +41,9 @@ export const discoverServersRoute: FastifyPluginAsync = async (fastify) => {
     '/discover-servers',
     {
       schema: {
+        summary: 'Discover Plex servers',
+        operationId: 'discoverPlexServers',
+        description: 'Discover available Plex servers using a user token',
         body: PlexTokenSchema,
         response: {
           200: PlexServerResponseSchema,

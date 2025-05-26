@@ -1,0 +1,63 @@
+---
+id: get-tagging-status
+title: "Get tagging status"
+description: "Retrieve the current user tagging configuration status"
+sidebar_label: "Get tagging status"
+hide_title: true
+hide_table_of_contents: true
+api: eJy9VE1r3DAQ/StiTi24eNPQi2+BlrDQ0iUfvSx7mJVnbSWypEgjJ8H4vxf5Y3eTbAj00JON9eaN5r3n6cA68sjKmmUJBVTEN1hVylTXjBwDZMBYBSjWcJOemwxKCtIrl0qggCtir6glwTUJGb0nwyIG8oJHHiGt2akqjk1EmGk9BWdNoABFB18Xi/R4Sf2ddhg1i6sJCRlIa5gMJyw6p5UcSPO7kAo6CLKmBtMbPzuCAuz2jiRDBs6nOVmN7UKUkkI4Am6t1YQG+gwaCgErOjoM7JWp0tk4y8cNGKvbQD4szbU16P3pTgfUFZbvomR6ie63dzUaKgcbTgI9NbYdAL9seeL+GZCJTbJyREIG90QOMgiOpEL9hbEaHR6Eh2IGviBfedqpp1P0hzoXdUDvi6lqGva9yn7gf4jKU5mu90a9E1Kd1uW4zSYDLEuVAoJ6dWTPDnWg1z3nSBz837v9EVGi+vZ/A/x+Rl+NNQM/nmFIPtd22gKpJXINBeTtWZ52QL7/dQP5lnxaCh1Er6GAmtkVea6tRF3bwMX5YnEOr3fFz/lYXAxii0+PimvhrOfP0G8yUGZnh5kU6zTUaoyRuFgt35BdrJaitDI2ZHhcLTvrxVzxRaBYaXoSj8iy1iqwUIap8gfomC2BphT7TKWxRvo/Zym0zgZucLDGYJOudEm832x7QV7crDuY/O/bcXKV6Ylzp1ENP/igdTf5sob2bN7OGUyFmwySvum067YY6Nbrvk+fHyL5ZyjWmwxa9Aq3SeD1ps+gJizJD2be03NSVkpyKQAt6phu8Sapyat9WC5/3EDf/wUYuDRH
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get tagging status"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/tags/status"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieve the current user tagging configuration status
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"config":{"type":"object","properties":{"tagUsersInSonarr":{"type":"boolean"},"tagUsersInRadarr":{"type":"boolean"},"cleanupOrphanedTags":{"type":"boolean"},"removedTagMode":{"type":"string","enum":["remove","keep","special-tag"],"default":"remove"},"removedTagPrefix":{"type":"string","default":"pulsarr:removed"},"tagPrefix":{"type":"string"}},"required":["tagUsersInSonarr","tagUsersInRadarr","cleanupOrphanedTags","tagPrefix"],"additionalProperties":false}},"required":["success","message","config"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

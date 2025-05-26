@@ -29,6 +29,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/plugins',
     {
       schema: {
+        summary: 'Get router plugins',
+        operationId: 'getRouterPlugins',
+        description:
+          'Retrieve information about available content router evaluator plugins',
         response: {
           200: ContentRouterPluginsResponseSchema,
           500: ContentRouterRuleErrorSchema,
@@ -65,6 +69,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/plugins/metadata',
     {
       schema: {
+        summary: 'Get plugin metadata',
+        operationId: 'getPluginMetadata',
+        description:
+          'Retrieve detailed metadata about content router evaluator plugins including supported fields and operators',
         response: {
           200: EvaluatorMetadataResponseSchema,
           500: EvaluatorMetadataErrorSchema,

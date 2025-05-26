@@ -1,0 +1,8 @@
+{
+  "label": "Notifications",
+  "position": 4,
+  "link": {
+    "type": "generated-index",
+    "description": "Set up notification systems to keep users informed about content availability."
+  }
+}

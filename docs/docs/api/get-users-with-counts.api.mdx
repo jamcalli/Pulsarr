@@ -1,0 +1,63 @@
+---
+id: get-users-with-counts
+title: "Get users with watchlist counts"
+description: "Retrieve a list of all users including their watchlist item counts"
+sidebar_label: "Get users with watchlist counts"
+hide_title: true
+hide_table_of_contents: true
+api: eJzVVU1v2zAM/SsCTxvgIumKXXwrtqEosEPQrdshCAJGYmJ1iqRKdNrA8H8fpDiJ89Flh112sY3w6ZGPfGIacJ4Csnb2XkEJC+LHSCH+1Fx9crXlCAUwLiKUY8gRmBSgKMqgfToFJTwQB00rEiiMjizcXKAxok5ooa00tdJ2IbgiHcQLsqwyTDMthdzmCBS9s5EilA18GA7T6zDNZ5pjbVg8dEgoQDrLZDlh0XujZRYyeIrpQANRVrTE9MVrT1CCmz2RZCjAhySb9SZdrKWkGHvAmXOG0EJbwJJixAX1gpGDtosUyxJ7EQwB11BAkhYv59Wqh7H1ckYhsVpcnk+H3gcdz8QKsLUxODMEJYeaEtZojH+FVDpKF9T0oJq34daxnq+np7X0etZhOubzGIl2GtdWvhENhExqiny+8V79Kbwz2TT760yX2+S451oHUsnZWkHX932Xtz086NCJ/hOxPWUHMg6KPi1xUgAqpZN/0Yx6NpmjidQeF7y17N6fWzdeJGoL+Phf3K+Lki9LzfxcuW61pcqQKyhhsLoe5H51zzSJwYvm6mq3kSKFVb7e4wbqYKCEitmXg4FxEk3lIpc3w+ENHK/Dr9uwuM0Fi3eJV3gX+D20kwK0nbssV3O6VzCqTcQQxO3o/oTsdnQvlJP1kizn5ou5C2J74kqgGBl67W9Vy7QIe+g3ZxMSrRIPqDAEKCDJ2tD/uE4j8C7yEvNIN7sH7oi7/Z1r39PvunNQZrN3yr/5N+icwPTKA29QZ6fkITTdBMewut55fv9OXOl29SY5KSBNIx1pmhlGegymbdPPzzWFNZTjSQErDHqz5saTtoCKUFHIo/9F6zQHKckn5hWaOq/64/uQJrvz2t2X79C2vwEx/5QW
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get users with watchlist counts"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/users/users/list/with-counts"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieve a list of all users including their watchlist item counts
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"users":{"type":"array","items":{"type":"object","properties":{"id":{"type":"number"},"name":{"type":"string"},"apprise":{"type":"string","nullable":true},"alias":{"type":"string","nullable":true},"discord_id":{"type":"string","nullable":true},"notify_apprise":{"type":"boolean"},"notify_discord":{"type":"boolean"},"can_sync":{"type":"boolean"},"created_at":{"type":"string"},"updated_at":{"type":"string"},"watchlist_count":{"type":"number"}},"required":["id","name","apprise","alias","discord_id","notify_apprise","notify_discord","can_sync","created_at","updated_at","watchlist_count"],"additionalProperties":false}}},"required":["success","message","users"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

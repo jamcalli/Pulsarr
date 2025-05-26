@@ -1,0 +1,71 @@
+---
+id: create-router-rule
+title: "Create router rule"
+description: "Create a new content router rule with specified conditions and targets"
+sidebar_label: "Create router rule"
+hide_title: true
+hide_table_of_contents: true
+api: eJztWd9v2zYQ/leEe1oBFXbW7UVvadqHAMViuNleAsM4S2eZHUUqJBXHMPy/D0dRlmwrcbq1RTPIL5apO/J4Pz7eZ25Bl2TQCa2uM0ggNYSOprpyZKaVJIjBYW4huYMrrRwpF9UvYRZDRjY1omRlSODKq0YYKVpHaRA2XjgylaRoLdwqsiWlYikoY5FMsK6NUGWRQ5OTsxCDofuKrHuvsw0kWwhT8SOWpRSpt3b0xfKqW7DpigrkJ7cpCRLQiy+UOoihNLw3J8jyW4UFdaSsM0LlEEMh1CdSuVtBcrHj3bIZ81rqVJpUVbAzrFZoDBuLGT/MWlWhrEOV0lxknRlUVSzI1OuJgifh1fY+8LtTm5slJHfndrIUJLNT43ZxiKU2z1lO9xVKdrPS7mPzzD5GocLwVftLqHromr9zH2Fzu0L+Jcna8LggtyZSPnY5PXpvPKCsqHdbe3uPndMZWWgtCVV3CI3BDZvkqLA923+BaLNOR/QJH9ex+wrTecv9Kbbb1SktDGUcAJFBEJ3FgFkdf5STzvpLlJZem5EnTv8qw87vthCqJ5QxFPjYG+JzZjcFoSopeZf8jQtJkDhTUe0rytF1vdWkJWPfEivp9vPBPBV9RXnk17p2O5XaFMp/zYWXlP7lHx8ghpupr88Wfjsq52M4YNKASa/HyAGTvismeR99B4s6lnRg6ow57ByjtZsvtcyoB292MTC2CLeZl0YvheyHgtPCb/TrJi9/FjBPlty74I7VtTk0rU0ZUhzo7Hk3+iyIwRKadDXXao5Zv8ZR4ngVq9W80Eo47W3rweMeLSPInu+GHaoMDScRKlEwa8hQyE1PCh9F2pfzYdfd20ifif3htMF4Q7bUytaV+uv4gr8OKcuH2q/RNEiGU+cbsA1bpSlZ2xMbRgeyFvM+xIuBmdJAZobGYWgchsbh/9s4DGRmwKSfqdxfhZEDJg1kZiAzPxOZiaGvLebzyAN5NkfX68aqzJ5+/S8ZUlxDSmflg3XOEajDRRv60nKVwEzO8rBdDL+Nxz+Saj3Npo421Qi+ZA+/v/o9eJ7pVppv9Upt/ZrIxBBGDxejYPfb+n5uxLHlaFsyD2SsR5DKSEhg5VyZjEZSpyhX2rrk3Xj8Do7v/j41r6NLnzjRL/6yr9TGvYHdLAZ2yLS91/v4iEVZQ1Z9XLZleMBZW2rax0fHR5wz9G3tXG271nZloW3q4ERAfO+5BtS7jLwLw63aCfqO26vSIDTbQ+S4A4mMHCeotx88xrV2wQP4alGKQUgttU8d4dgQmFTSojHR5eT6JFKXk+so02lVkHI+V6OlNlGj8TbCaCLpMVqjS1dSWBcJ5Sg3rehnHxF/ZTut/y6IgXOmnv6vCzaI861A1QlvuBzuXAcfW9a56P12V8nBWY4e3aiUKPzfLz6xt6Ea7uDhoq3jUA8B7fwpzVnNYtvtAi39aeRux8P3FZkNn4OcUUbUh4I/FVeEPuZ3W/ibNrybMPdtjd1NAp7gBR/StQYXUemelZ11ynty8/mWSUK4MC90xjoG1/4vnTUk4Gthz4/82BYkqrzyqAP1nPz5B1I2IDw=
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Create router rule"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/content-router/rules"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Create a new content router rule with specified conditions and targets
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"name":{"type":"string","minLength":1},"target_type":{"type":"string","enum":["sonarr","radarr"]},"target_instance_id":{"type":"number","minimum":1},"condition":{"anyOf":[{"type":"object","properties":{"field":{"type":"string"},"operator":{"type":"string","enum":["equals","notEquals","contains","notContains","in","notIn","greaterThan","lessThan","between","regex"]},"value":{"anyOf":[{"type":"string"},{"type":"number"},{"type":"boolean"},{"type":"array","items":{"type":"string"}},{"type":"array","items":{"type":"number"}},{"type":"object","properties":{"id":{"anyOf":[{"type":"string"},{"type":"number"}]},"name":{"type":"string"}},"required":["id","name"],"additionalProperties":false},{"type":"object","properties":{"id":{"anyOf":[{"type":"string"},{"type":"number"}]},"name":{"type":"string"}},"required":["id","name"],"additionalProperties":false},{"type":"array","items":{"anyOf":[{"type":"string"},{"type":"number"}]}},{"type":"object","properties":{"min":{"type":"number"},"max":{"type":"number"}},"additionalProperties":false},{"enum":["null"],"nullable":true}]},"negate":{"type":"boolean","default":false},"_cid":{"type":"string"}},"required":["field","operator","value"],"additionalProperties":false},{"type":"object","properties":{"operator":{"type":"string","enum":["AND","OR"]},"conditions":{"type":"array","items":{"anyOf":[{"type":"object","properties":{"field":{"type":"string"},"operator":{"type":"string","enum":["equals","notEquals","contains","notContains","in","notIn","greaterThan","lessThan","between","regex"]},"value":{"anyOf":[{"type":"string"},{"type":"number"},{"type":"boolean"},{"type":"array","items":{"type":"string"}},{"type":"array","items":{"type":"number"}},{"type":"object","properties":{"id":{"anyOf":[{"type":"string"},{"type":"number"}]},"name":{"type":"string"}},"required":["id","name"],"additionalProperties":false},{"type":"object","properties":{"id":{"anyOf":[{"type":"string"},{"type":"number"}]},"name":{"type":"string"}},"required":["id","name"],"additionalProperties":false},{"type":"array","items":{"anyOf":[{"type":"string"},{"type":"number"}]}},{"type":"object","properties":{"min":{"type":"number"},"max":{"type":"number"}},"additionalProperties":false},{"enum":["null"],"nullable":true}]},"negate":{"type":"boolean","default":false},"_cid":{"type":"string"}},"required":["field","operator","value"],"additionalProperties":false},{}]}},"negate":{"type":"boolean","default":false},"_cid":{"type":"string"}},"required":["operator","conditions"],"additionalProperties":false}]},"root_folder":{"type":"string"},"quality_profile":{"anyOf":[{"type":"number"},{"type":"string"}]},"tags":{"type":"array","items":{"type":"string"},"default":[]},"order":{"type":"number"},"enabled":{"type":"boolean","default":true},"search_on_add":{"type":"boolean","nullable":true},"season_monitoring":{"type":"string","nullable":true},"series_type":{"type":"string","enum":["standard","anime","daily"],"nullable":true}},"required":["name","target_type","target_instance_id"],"additionalProperties":false}}},"required":true}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"201":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"rule":{"type":"object","properties":{"name":{"type":"string","minLength":1},"target_type":{"type":"string","enum":["sonarr","radarr"]},"target_instance_id":{"type":"number","minimum":1},"condition":{"anyOf":[{"type":"object","properties":{"field":{"type":"string"},"operator":{"type":"string","enum":["equals","notEquals","contains","notContains","in","notIn","greaterThan","lessThan","between","regex"]},"value":{"anyOf":[{"type":"string"},{"type":"number"},{"type":"boolean"},{"type":"array","items":{"type":"string"}},{"type":"array","items":{"type":"number"}},{"type":"object","properties":{"id":{"anyOf":[{"type":"string"},{"type":"number"}]},"name":{"type":"string"}},"required":["id","name"],"additionalProperties":false},{"type":"object","properties":{"id":{"anyOf":[{"type":"string"},{"type":"number"}]},"name":{"type":"string"}},"required":["id","name"],"additionalProperties":false},{"type":"array","items":{"anyOf":[{"type":"string"},{"type":"number"}]}},{"type":"object","properties":{"min":{"type":"number"},"max":{"type":"number"}},"additionalProperties":false},{"enum":["null"],"nullable":true}]},"negate":{"type":"boolean","default":false},"_cid":{"type":"string"}},"required":["field","operator","value"],"additionalProperties":false},{"type":"object","properties":{"operator":{"type":"string","enum":["AND","OR"]},"conditions":{"type":"array","items":{"anyOf":[{"type":"object","properties":{"field":{"type":"string"},"operator":{"type":"string","enum":["equals","notEquals","contains","notContains","in","notIn","greaterThan","lessThan","between","regex"]},"value":{"anyOf":[{"type":"string"},{"type":"number"},{"type":"boolean"},{"type":"array","items":{"type":"string"}},{"type":"array","items":{"type":"number"}},{"type":"object","properties":{"id":{"anyOf":[{"type":"string"},{"type":"number"}]},"name":{"type":"string"}},"required":["id","name"],"additionalProperties":false},{"type":"object","properties":{"id":{"anyOf":[{"type":"string"},{"type":"number"}]},"name":{"type":"string"}},"required":["id","name"],"additionalProperties":false},{"type":"array","items":{"anyOf":[{"type":"string"},{"type":"number"}]}},{"type":"object","properties":{"min":{"type":"number"},"max":{"type":"number"}},"additionalProperties":false},{"enum":["null"],"nullable":true}]},"negate":{"type":"boolean","default":false},"_cid":{"type":"string"}},"required":["field","operator","value"],"additionalProperties":false},{}]}},"negate":{"type":"boolean","default":false},"_cid":{"type":"string"}},"required":["operator","conditions"],"additionalProperties":false}]},"root_folder":{"type":"string"},"quality_profile":{"anyOf":[{"type":"number"},{"type":"string"}]},"tags":{"type":"array","items":{"type":"string"},"default":[]},"order":{"type":"number"},"enabled":{"type":"boolean","default":true},"search_on_add":{"type":"boolean","nullable":true},"season_monitoring":{"type":"string","nullable":true},"series_type":{"type":"string","enum":["standard","anime","daily"],"nullable":true},"id":{"type":"number"},"created_at":{"type":"string"},"updated_at":{"type":"string"}},"required":["name","target_type","target_instance_id","id","created_at","updated_at"],"additionalProperties":false}},"required":["success","message","rule"],"additionalProperties":false}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

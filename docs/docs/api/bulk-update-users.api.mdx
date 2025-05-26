@@ -1,0 +1,71 @@
+---
+id: bulk-update-users
+title: "Bulk update users"
+description: "Update multiple users with the same changes in bulk"
+sidebar_label: "Bulk update users"
+hide_title: true
+hide_table_of_contents: true
+api: eJzlVslu2zAQ/RViTi3Awk7TXHRL0gI10IORNr0YRjAWxxYTilS5JDEM/XsxlBwrdpCl6KWoL5aGszwOH99oA64hj1E7O1FQwCKZm8tGYaTLQD6AhIirAMUMuve5BEWh9LrhECigcxZ1MlE3hkRiN3GnYyViRSJgTaKs0K4oCG0F5wcJnn4lCvHMqTUUGyidjWQjP2LTGF1mQKPrwCU2EMqKauSnuG4ICnCLayojSGg8w4+aAq9y7YkKA0f0HtcgQUeqh3ab6gV5aCXU2k66xaNWQsq7CS+XsljTwCtEr+0KcrpvZFexguJYQo3327ePJyet5N15HZ6MtMkYXBiCIvpE7Gs0hrfWeCKP0qF0Xl1p9aqy1kW9XF8dIl04ZwgtMAOWmEyEYokmDGL6Sq+LKdFehbUtn/fOoLgZSmnmBJrp4By6XG3HJ+1JMVG3LNid5vyF+EcJ+jZ4Co2zoTvtj+Mx/z1m/ucOo7joPUH+LR6HVJYUwhOdYcJSCLh6gkIP9FXnLnUgDti+RG1Ive2O7Pd3i24HZa/wi+1uJXz6Jzr64s5fs9WT/2WrOX+sHM+RBmNZMTZkYYLR7dEoT4ZRPwAC+VueJ8VsA8kbKKCKsSlGI+NKNJULsTgej49hf9x82y6L0wxQvMujpnE+vod2LoHbdbGbLl/usW4MPZoOs/H8kdJ3Wr6TxAfpG5g6Ld4ZhqI6ENM97cytOZTH3rxTwK3Kabt0+Wx0ZMwwTSag9+J0OjnoxOl0IpQrU002ZqaIpfNiG/FBoJgauhd3fBBGhyi0jbTyO9fvzrInWiUuUKH3IIHPpEv/84j50rgQa7SDLp0lcyO65nWzfh/YYJr/4cdBz8xI93HUGNSZuZkkm55PM7g9YtXp6+e4uQTmBS9uNgsMdOlN27L5VyK/hmI2l3CLXnfTbjZvJVSEinwm4Q2toYDzDvqHHwyB3U3KErl/H1u5jWAaNvFZ3/ngXkxPf5x/Zcj9l0/tFAd5vOOvIryDAkCCy73M5My2DRi0q5RvLnRJ+fcbJARliQ==
+sidebar_class_name: "patch api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Bulk update users"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"patch"}
+  path={"/v1/users/bulk"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Update multiple users with the same changes in bulk
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"userIds":{"type":"array","items":{"type":"number"},"minItems":1},"updates":{"type":"object","properties":{"name":{"type":"string","minLength":3,"maxLength":255},"apprise":{"type":"string","nullable":true},"alias":{"type":"string","minLength":3,"maxLength":255,"nullable":true},"discord_id":{"type":"string","nullable":true},"notify_apprise":{"type":"boolean","default":false},"notify_discord":{"type":"boolean","default":false},"can_sync":{"type":"boolean","default":true}},"additionalProperties":false}},"required":["userIds","updates"],"additionalProperties":false}}},"required":true}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"updatedCount":{"type":"number"},"failedIds":{"type":"array","items":{"type":"number"}}},"required":["success","message","updatedCount"],"additionalProperties":false}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

@@ -12,6 +12,9 @@ export const getGenresRoute: FastifyPluginAsync = async (fastify) => {
     '/genres',
     {
       schema: {
+        summary: 'Get watchlist genres',
+        operationId: 'getWatchlistGenres',
+        description: 'Retrieve all genres from watchlist items',
         response: {
           200: WatchlistGenresResponseSchema,
           500: WatchlistGenresErrorSchema,
