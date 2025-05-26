@@ -84,6 +84,12 @@ In your Pulsarr web interface:
 4. Enter the Guild ID (your Discord server ID - enable Developer Mode in Discord settings, then right-click your server and "Copy ID")
 5. Click the 'Start' button next to the Discord Bot Settings header
 
+## Discord Commands
+
+Pulsarr's Discord bot provides the following slash commands:
+
+- `/notifications` - Configure your notification preferences and link your Plex account
+
 ## User Notification Setup
 
 Once your bot is configured, users can set up their own notifications:

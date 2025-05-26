@@ -10,5 +10,7 @@ reviews:
   auto_review:
     enabled: true
     drafts: false
+  path_filters:
+    - "!docs/**"
 chat:
   auto_reply: true
