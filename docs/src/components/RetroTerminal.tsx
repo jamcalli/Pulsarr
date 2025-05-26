@@ -1,11 +1,16 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import BrowserOnly from '@docusaurus/BrowserOnly'
+import useDocusaurusContext from '@docusaurus/useDocusaurusContext'
 
 const RetroTerminalContent = () => {
+  const { siteConfig } = useDocusaurusContext()
+  const version = siteConfig.customFields?.version as string
   const [displayText, setDisplayText] = useState('')
   const [showCursor, setShowCursor] = useState(true)
   const [bootProgress, setBootProgress] = useState(0) // 0 = red, 1 = orange, 2 = green
   const [isSmallScreen, setIsSmallScreen] = useState(false)
+  const [isInView, setIsInView] = useState(false)
+  const terminalRef = useRef(null)
 
   const getColorForProgress = (progress) => {
     switch (progress) {
@@ -38,7 +43,7 @@ SYSTEM STATUS: OPERATIONAL
 `
 
   const fullTextSmall = `
-PULSARR v4.0.1
+PULSARR v${version}
 
 INITIALIZING WATCHLIST MONITOR...
 > DETECTING PLEX CONTENT ADDITIONS
@@ -52,11 +57,41 @@ SYSTEM STATUS: OPERATIONAL
 
   const fullText = isSmallScreen ? fullTextSmall : fullTextLarge
 
+  // Set up intersection observer
   useEffect(() => {
-    setDisplayText('') // Reset text when changing size
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setIsInView(true)
+          }
+        }
+      },
+      {
+        threshold: 0.1, // Trigger when 10% of the element is visible
+      },
+    )
+
+    if (terminalRef.current) {
+      observer.observe(terminalRef.current)
+    }
+
+    return () => {
+      if (terminalRef.current) {
+        observer.unobserve(terminalRef.current)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isInView) return // Don't start animation until in view
+
+    setDisplayText('') // Reset text when changing size or coming into view
     setBootProgress(0) // Reset progress
 
     let index = 0
+    const typingSpeed = isSmallScreen ? 50 : 30 // Slower on mobile (50ms vs 30ms)
+
     const timer = setInterval(() => {
       if (index < fullText.length) {
         setDisplayText(fullText.substring(0, index + 1))
@@ -74,10 +109,10 @@ SYSTEM STATUS: OPERATIONAL
       } else {
         clearInterval(timer)
       }
-    }, 30)
+    }, typingSpeed)
 
     return () => clearInterval(timer)
-  }, [fullText]) // Re-run when text changes
+  }, [fullText, isInView, isSmallScreen]) // Re-run when text changes, view state changes, or screen size changes
 
   useEffect(() => {
     const cursorTimer = setInterval(() => {
@@ -101,6 +136,7 @@ SYSTEM STATUS: OPERATIONAL
   return (
     <>
       <div
+        ref={terminalRef}
         className="retro-terminal-screen"
         style={{
           position: 'relative',
@@ -311,7 +347,7 @@ SYSTEM STATUS: OPERATIONAL
                 transition: 'color 0.3s ease, text-shadow 0.3s ease',
               }}
             >
-              PULSARR TERMINAL v4.0.1
+              PULSARR TERMINAL v{version}
             </span>
           </div>
 

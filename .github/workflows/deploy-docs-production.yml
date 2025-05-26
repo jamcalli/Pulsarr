@@ -1,13 +1,17 @@
-name: Deploy Documentation (Test)
+name: Deploy Documentation to GitHub Pages
 
 on:
-  workflow_dispatch: # Manual triggering only
-    inputs:
-      branch:
-        description: 'Branch to deploy from'
-        required: true
-        default: 'docs/add-propper-docs'
-        type: string
+  push:
+    branches:
+      - master
+    paths:
+      - 'docs/**'
+      - '.github/workflows/deploy-docs-production.yml'
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
 
 jobs:
   deploy:
@@ -16,7 +20,6 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
       with:
-        ref: ${{ inputs.branch }}
         fetch-depth: 0 # Needed for proper git history
 
     - name: Setup Node.js
@@ -37,8 +40,10 @@ jobs:
         npm run build
 
     - name: Deploy to GitHub Pages
-      uses: peaceiris/actions-gh-pages@v3
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./docs/build
-        destination_dir: test-docs # Deploy to a subdirectory for testing
+      run: |
+        cd docs
+        npm run deploy
+      env:
+        GIT_USER: ${{ github.actor }}
+        GIT_PASS: ${{ secrets.GITHUB_TOKEN }}
+        USE_SSH: false

@@ -2,8 +2,14 @@ import { themes as prismThemes } from 'prism-react-renderer'
 import type { Config } from '@docusaurus/types'
 import type * as Preset from '@docusaurus/preset-classic'
 import path from 'node:path'
+import { readFileSync } from 'node:fs'
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
+
+// Read package.json to expose version for client
+const packageJson = JSON.parse(
+  readFileSync(path.resolve(__dirname, '../package.json'), 'utf8'),
+)
 
 const config: Config = {
   title: 'Pulsarr',
@@ -27,6 +33,10 @@ const config: Config = {
 
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'warn',
+
+  customFields: {
+    version: packageJson.version,
+  },
 
   // Even if you don't use internationalization, you can use this field to set
   // useful metadata like html lang. For example, if your site is Chinese, you
