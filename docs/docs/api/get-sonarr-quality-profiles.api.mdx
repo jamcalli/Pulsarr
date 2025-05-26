@@ -1,0 +1,71 @@
+---
+id: get-sonarr-quality-profiles
+title: "Get Sonarr quality profiles"
+description: "Retrieve quality profiles from a Sonarr instance"
+sidebar_label: "Get Sonarr quality profiles"
+hide_title: true
+hide_table_of_contents: true
+api: eJzVVU1v2zAM/SsCTy3gwunaXXwLsKEIsEOWfVyCHBibidXJkiLRaYPA/32gP5osydZhhwE9GbD4HvlI6mkPzlNA1s5OCshgTfzFWQzhc41G824a3EobipAA4zpCNofuHBYJFBTzoL2AIYMZcdC0JbXpoMr3WLUKrlKoOqDSNjLanCABjwErYgpCvIeYl1QhZHvgnSfIIHLQdg1NAloybGoKO0jAYiWnA9GkgAQCbWodqICMQ03NQv5E72ykKITvRiP5/FrxB1phbVjN+khIIHeWybLEovdG521r0scogAsVuuUj5SxSgjSSdZcu1nlOMR4FLp0zhLbT0jfgVRpdHMXYulpSEIJO/4UuLTHSt2AunDXHHZoLcU9zAC0SwKLQohfN9KiOFZpITQKbk5U4ZMEQcHeWZGjCkeJzkleyNkJ6/3+HV1GMuL7U4ROBQ+Dfabh/8xrev/k5NAlUxKXrra61IC4hg3R7m8bWn9J+Q2/8wfoihe1gUrXcLyiZfZamxuVoShc5uxuN7uDUEj8Nx2rcXgV19aS5VN4FvgbxKG1XrtWn2YjAaW2ieOR4OjkjG08nqnB5XZHltqFq5YIaEDcK1dTQs3pCzkujIyttmdbhENr7L9pCzbAQD09AZHX032/FQbyLXGE7pt5lH4gH5Kmxn5a4P0z+X16DfshMz5x6g7o1y7qzs25Mc9jeyji6F+jFTA6jWiQg7ZbI/b43tqaR393bIQMsdMSlkc1p1+IPGq5m/ZJdq9+V94N2py/RFk0tge2Atxi0ZINsvmgSKAkLCm0ZHVL2wvMR6uzCCMvLzj58/ApN8xOk8rM8
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get Sonarr quality profiles"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/sonarr/quality-profiles"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieve quality profiles from a Sonarr instance
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"string"},"in":"query","name":"instanceId","required":true}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"instance":{"type":"object","properties":{"id":{"type":"number"},"name":{"type":"string"},"baseUrl":{"type":"string"}},"required":["id","name","baseUrl"],"additionalProperties":false},"qualityProfiles":{"type":"array"}},"required":["success","instance","qualityProfiles"],"additionalProperties":false}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}},"404":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

@@ -1,0 +1,71 @@
+---
+id: create-radarr-tag
+title: "Create Radarr tag"
+description: "Create a new tag in a Radarr instance"
+sidebar_label: "Create Radarr tag"
+hide_title: true
+hide_table_of_contents: true
+api: eJzVVU1v2zAM/SsCTxugIsnaXXzrPg4FOixou12CHBibidXJkivR+YDh/z5Qjlu3xbYOGAbUF9sSSb33KD214GsKyMa7iwIyyAMh0xUWGMINbkAD4yZCtoB+DJYaCop5MLXkQAYfU4ZC5WinGDfKOIWqj1bGRUaXE2gIdNdQ5A++OEDWQu4dk2P5xLq2Jk8YJrdRirYQ85IqlC8+1AQZ+NUt5Qwa6iCI2VCU2WEBAX8faxzThgJooH1um2i29MU4UzUVZBwa0lANv9NOg8UV2VF65GCcUK+MuyS34RKyWdf1FEygQuQYLTxUWGrAojDCA+18BHONNlL3uILgSAOx9i72ZN5Np/J6rO8nWmNjWV0dI0H/M+3GmrmmWlGAX8vxTIC/IN5pOPu/3CqKETf0ZxpD4Ms4nL16Du9ffR86DRVx6cWuah/TmihnFCbb2SQk45n0PnbCycIihS0FcbEWmmAhg5K5ziYT63O0pY+cnU6np/DU2i6HaXWe5xSjerMzXKraB34L3VKDqHH14Guf91jVlp760vT+TN2T12Dc2idVDEsGzBsbxTHP5xfPcJzPL1Th86Yix6kNau2DGjJOFKq5pb3aIeelNZFVMsDwEHrtnUSiK47GDBpEkb7895kAEikrTM11WNGDsx+tvJfyEbCRi7/4GjjuAqY9T2qLxsnaqSntsY0L2M7kvhiAjlq51CDtkJi2XWGkb8F2nQzfNRQOkC2WGrYYDK5E1MWy01ASFhRS73/QQZD2mE9uBImE20YQPdvlnR4ypPs1/zZ2OdqU86/XN6BhdbzpKl9ITsBdYrWDDECDTxqmM5LGWrDoNk06K9DXlOcnbAam4Q==
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Create Radarr tag"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/radarr/create-tag"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Create a new tag in a Radarr instance
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"instanceId":{"type":"integer","exclusiveMinimum":true,"minimum":0},"label":{"type":"string","minLength":1}},"required":["instanceId","label"],"additionalProperties":false}}},"required":true}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"id":{"type":"number"},"label":{"type":"string"}},"required":["id","label"],"additionalProperties":false}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}},"404":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

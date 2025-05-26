@@ -1,0 +1,63 @@
+---
+id: get-status-transitions
+title: "Get status transition metrics"
+description: "Retrieve detailed status transition time metrics"
+sidebar_label: "Get status transition metrics"
+hide_title: true
+hide_table_of_contents: true
+api: eJy1VE1v2zAM/SsCTxvgwumKXXwrsKEosEPQdrsEQcHITKxOllyRdhsY/u8DnaR10w8MA+aLDPGJenyPVA+xoYTiYrgsoYANybWgtHyTMLDTfYYMBDcMxQI05licZVhmUBLb5BoFQQFXJMlRR6YkQeepNDxmMvKUyoirydQKtJo2ETcxMDEUPXyZzXR5mfQbrbH1Yq72SMjAxiAURLHYNN7ZkX1+x3qgB7YV1ah/sm0ICsCUcAsZOKGaJ/txdUdWIIMmqQbidjTWKda3O+YTMEtyYQNDBhI/iu7J3e4CbwCw29yWuJ2eDm29oqTB2oUPgvj4ftDGdifJUWRQke9bl6hU/6bFTUs5Ij6hOSE1oXC4cJkBluXoLfr5RMc1eqZBvwy+/idj3zGwJmbcvKX+kRgH4F8VUZNUcT8heiVKBQXk3WmuEnK+E/JEXowNU+oo6eT00CYPBVQiTZHnPlr0VWQpzmazMzgepR+HsDm3lpjNpwcnlWliks8wLDNwYR3HAp14rXDeesaUzPn88lWy8/mlKaNtawoyKmrWMZnDiRODZu7p0Tyg2Mo7FuOC0CY9Q69jUCSG0lxhiSlBBlrWLv2vU+2/JrLUOPoUsFZKFyRvPADPs/+CZP9s/r+8I3ufhR4lbzy6oJRGwfu9UwvoTtUQ9Wq/Hrm1zEAVV2jfr5DpZ/LDoNv3LaUtFItlBh0mhyuVfLEcMqgIS0qjvb9pq1pbS432R4e+HR+f40ZW95566eL7DQzDH/6D8Ug=
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get status transition metrics"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/stats/status-transitions"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieve detailed status transition time metrics
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"array","items":{"type":"object","properties":{"from_status":{"type":"string"},"to_status":{"type":"string"},"content_type":{"type":"string"},"avg_days":{"type":"number"},"min_days":{"type":"number"},"max_days":{"type":"number"},"count":{"type":"number"}},"required":["from_status","to_status","content_type","avg_days","min_days","max_days","count"],"additionalProperties":false}}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

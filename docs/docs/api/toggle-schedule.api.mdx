@@ -1,0 +1,71 @@
+---
+id: toggle-schedule
+title: "Toggle job schedule"
+description: "Enable or disable a job schedule"
+sidebar_label: "Toggle job schedule"
+hide_title: true
+hide_table_of_contents: true
+api: eJy9VU1PGzEQ/SvWnIpktKHQy95SilSkHqJAe4lymKwnianXXmxvQrTa/16Nd5ckQIEDIpc49ny+mffSgKvIY9TOXivIIbrVytBNsSZVGwIJEVcB8hkMVx7mEhSFwuuKvSCHK4sLQ8J5oXRIRxR3biHCPoqn+5pC/O7UDvIGCmcj2chHrCqji1RAdhc4XgPsWCKf4q4iyMEt7qiIIKHyXG7UFPiVUmJ1YLhwzhBaaNsup/b8PHu0nEtApTRnQzM5CLZEE6g9dou+plZChR5LiuQZhxeKC9Fru4JWgmY0KoxrkGCx5Mf09SzonG9C5WzoGvk6GvHXMaw/aIm1iWLaW4L8KNxCXRQUwku4SSgpBFzRCw0+wXSIsnd5E91WwsXo4jNbJe+df7uXzuw99X/73FF9cP1pvnHtVLeoBW9qWtgcss1ZNjDWP55C1vAKt1knDCAhkN8MXKi9gRzWMVZ5lhlXoFm7EPPz0egcnqrEr+FZjNPeiC9bHdeicj6eADOCoZnudeLqAcvK0BHPe0Zqu3QJEx3ZACa1Cei9GE+un6UdT66FckVdko1pBGLpvBg8TgWKiaEHsWUwjA5RaBtp5femN86yJVolpqjQe5DAAHTh/5wxZyoXYolpsD3vbxNcT2XwqLQDGXyPhPYLEOkhZpVBnciaBtD0I5zB5owH9KjU+zOzNO+1qJ/kXAJPg92aZoGBfnvTtnx9X5PfQT6bS9ig11xOmnZfmur36ZV2vkz73TwR/6u8v0S7YzzR1PwLJPyl3SCb7byVsCZU5FP+7umyy3J6ywH2rs9I1srBg/etiq/azg94MRnfXv4ECYv+z6p0ip08blnIcdvV6VLbiaPprgGDdlUn5YQuKH/+AaB3kBA=
+sidebar_class_name: "patch api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Toggle job schedule"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"patch"}
+  path={"/v1/scheduler/schedules/{name}/toggle"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Enable or disable a job schedule
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"string"},"in":"path","name":"name","required":true}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"enabled":{"type":"boolean"}},"required":["enabled"],"additionalProperties":false}}},"required":true}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}},"404":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"}},"required":["error"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"}},"required":["error"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

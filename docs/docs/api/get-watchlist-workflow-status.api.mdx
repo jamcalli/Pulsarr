@@ -1,0 +1,63 @@
+---
+id: get-watchlist-workflow-status
+title: "Get watchlist workflow status"
+description: "Retrieve the current status of the watchlist processing workflow"
+sidebar_label: "Get watchlist workflow status"
+hide_title: true
+hide_table_of_contents: true
+api: eJy9U8Fu2zAM/RWBpw1Q4WTFLr4V2FAU2CFIt/UQ5MDYTKxWkVSKTloY/veBTpymy2E7DDtZoJ6fyPceO4iJGMXFcFdDCRuSB5Sq8S7LQ+SntY/7e0FpM1gQ3GQoF3BCmBECSws15YpdUiooYU7CjnZkpCFTtcwUxOSBycT1UN2faBLHinJ2YWP2I6MFppxiyJSh7ODTZKKf9498oTW2Xsz8iAQLVQxCQRSLKXlXDbMVj1l/6CBXDW1RT/KaCEqIq0eqBCwkViXEHZ7LbaUdnQFXMXrCAL2Fwxhnd1nYhQ1YoNBuVSFuQzhUssSUqB5OyHJW1OOyt7ClnHFDl3R9rxo8t46pVtKxp1MDSwtY104HRD8763+NPlPfK8Hn/6vbXw8zAv88wyCRNPEYT30SpYESit20OGXoagxOkce4ZuIdsSa2g5Y9lNCIpLIofKzQNzFLeT2ZXMPv0f02XpubQXDzYe+kMSmyfIR+acGFdRwmdOJ1xFnrMzKbm9ndBdnN7M7UsWq3FGSQ1Kwjm/GPK4Nm5unlbBdcENrwG/Q+BkViqM0ca2QGCzrWgf7nVAOZYpYtDkYF3GpLtyRnnKM25qTNuya7N/f/xd4ejRd6kSJ5dMPODAZ0R+sWsJuChUvz3mVbLVBs160w0w/2fa/l55b4FcrF0sIO2eFKPVjoJjWENfHg9xO9qvhVRUkTs0Pfak8X0VY7T+m6/fod+v4XVG3KpQ==
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get watchlist workflow status"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/watchlist-workflow/status"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieve the current status of the watchlist processing workflow
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"status":{"type":"string","enum":["running","stopped","starting","stopping"]},"message":{"type":"string"}},"required":["success","status"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

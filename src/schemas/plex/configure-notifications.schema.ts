@@ -28,6 +28,10 @@ const ErrorSchema = z.object({
 })
 
 export const plexConfigNotificationSchema = {
+  summary: 'Configure Plex notifications',
+  operationId: 'configurePlexNotifications',
+  description:
+    'Configure Plex webhook notifications for Radarr and Sonarr instances',
   tags: ['Plex'],
   body: PlexNotificationConfigSchema,
   response: {

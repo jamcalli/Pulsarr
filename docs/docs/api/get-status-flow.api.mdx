@@ -1,0 +1,63 @@
+---
+id: get-status-flow
+title: "Get status flow data"
+description: "Retrieve status flow data for visualization"
+sidebar_label: "Get status flow data"
+hide_title: true
+hide_table_of_contents: true
+api: eJy1VMFunEAM/ZWRT600EZtGvXCL1DaK1MMqaXtZrSIvmGXSgSFjw2aL+PfKwCbbTVq1h3IBjZ/t5/c89BAaiigu1Nc5pLAluRWUlj/5sAMLgluGdAV66FhcxrC2kBNn0TWaBSnckERHHRkeM03hw87kKGiKEE3nuEXvfow9wEIkbkLNxJD28G6x0Nev9T5Qga0XczMjwUIWaqFaFItN4102VkvuWRN64KykCvVL9g1BChgj7sGCE6r46Dxs7ikTsNBEnVvcRKOIobqb2B+BWaKrtzBYkPCn6Ezubgq8Cmgn7nOkbqsNRY1gt73Lcc+vBAeV6qF1kXI14JjiMaGT9odmR6XXFjDPnQqGfnk0d4GeadDHwvv/ZMRvBK+IGbevqXUy9gH4V0NUJGWYt1hbopSQQtKdJyoWJ5NkZ8W02kyxo6jb3UMbPaRQijRpkviQoS8DS3qxWFzA6bp/PoTNZZYRs3mzc1KaJkR5C8PagquLME7mxOtoy9Yzxmgul9cvil0ur00esraiWkYpxztzyDgzaJaeHs0OJSu9YzGuFtrGZ+htqBWJdW5uMMcYwYKONZX/dq5b1gSWCkeDaqyU0hXJi9t6yq1/Nvsfr/hsqdCjJI1HVyuJUeJ+NmUF3blaoLbM74MxawsqrmL6foNMX6MfBj1+aCnuIV2tLXQYHW5U3dV6sFAS5hRHJ7/TXmXNMmp0Bzr07fhDOF1WNeppX64+foFh+Ams1cSw
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get status flow data"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/stats/status-flow"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieve status flow data for visualization
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"array","items":{"type":"object","properties":{"from_status":{"type":"string"},"to_status":{"type":"string"},"content_type":{"type":"string"},"count":{"type":"number"},"avg_days":{"type":"number"}},"required":["from_status","to_status","content_type","count","avg_days"],"additionalProperties":false}}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

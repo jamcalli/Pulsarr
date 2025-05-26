@@ -1,0 +1,63 @@
+---
+id: ping-plex
+title: "Test Plex server connection"
+description: "Verifies connectivity to the configured Plex server"
+sidebar_label: "Test Plex server connection"
+hide_title: true
+hide_table_of_contents: true
+api: eJzNU8Fu2zAM/RWBpw3Q4GTFLr4F2DAE2CHoul0CHxiZsdXJkirRbgLD/z7QSdq0xTBgp51sy4/Ue3yPI4RICdkGv66hhGh9s3F0AA2MTYZyC/NnpaGmbJKNAoUSflKye0tZmeA9GbaD5aPioLglOdvbpk9UK6lWmdJACTQkyjH4TBnKET4uFvJ42fcz7bF3rG7PSNBggmfyLFiM0Vkz0y3usxSMkE1LHcobHyNBCWF3T4ZBQ0wiju3putwbQzlfAXchOEIP0yTMHnqbqBbFF2SlAevaym3oNlfN9ugyTZPUffpfRGgg33dQbmdy1aSho5yxoSts5mR980e9zyV/Vz735zZIaBqaiSK3UEIxLIvo6FBIlEDDyXtJ0gh9clBCyxzLonDBoGtD5vJmsbiB1wH7dvmtVjM79e7RcqtiSPwepkqD9fswa7PsRNymdxlTUqvN+k2z1Wat6mD6jjzPg1f7kNSl4oPCU04fkU3rbGZlPVOTnqHfgxck+lrdYo1JwiyyzsuwhElDDJk7nO302AmlO8p8vQFPyxL8a4rjc0L+cbfOHjMduIgOrRdO88THszdbGJZi1Gm/Z38qDTJj+TeOO8z0I7lpkuOHntIRym2lYcBkcSdD3kquWsKa0mzoLzrKdI2hKBEY0PXC4U3Cxa+nuHz9cgfT9Bv3FI95
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Test Plex server connection"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/plex/ping"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Verifies connectivity to the configured Plex server
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"}},"required":["success"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean","enum":[false]},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

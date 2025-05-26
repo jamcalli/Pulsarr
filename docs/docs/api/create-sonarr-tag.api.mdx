@@ -1,0 +1,71 @@
+---
+id: create-sonarr-tag
+title: "Create Sonarr tag"
+description: "Create a new tag in a Sonarr instance"
+sidebar_label: "Create Sonarr tag"
+hide_title: true
+hide_table_of_contents: true
+api: eJzVVclu2zAQ/RViTi3AQHaTXnRLl0OAFDWStBfDh7E0tphSpEKOvEDQvxdDWYmToG0KFAXiiyVqhnwL+diBbyggG+8uSsihCIRM195hCDe4Bg2M6wj5HIYxWGgoKRbBNNIDOXxMHQqVo61iXCvjFKqhWhkXGV1BoCHQXUuRP/hyD3kHhXdMjuURm8aaImHIbqNM2kEsKqpRnnjfEOTgl7dUMGhogiBmQ1G+jgsI+Pta45jWFEAD7QrbRrOhL8aZuq0h59CShnp8nfQaLC7JHrVHDsYJ9dq4S3JrriCf9v1AwQQqRY6jhccZFhqwLI3wQDs7grlCG6l/PIPgSAOx8S4OZN5NJvL3WN9PtMLWsro6VIL+Z9oda+baekkBfi3HMwH+gniv4ez/cqspRlzTn2mMhS/jcPbqObx/9T70GmriyktcNT6mNVHOKGSbaRZT8GRDjp1wirBIYUNBUqyDNljIoWJu8iyzvkBb+cj56WRyCk+j7XL8rM6LgmJUb7aGK9X4wG+hX2gQNa4ecu3zDuvG0tNcmtyfqXvyGoxb+aSKYemAWWujJOb57OIZjvPZhSp90dbkONmgVj6oseNEoZpZ2qktclFZE1mlAAwPpYc0RleqKywlxjWIIsP036cCSKSsMZnrsKaHZD80D1I+AnaU4i++Bg67gGnHWWPROFk7mdIdbJzDZiqmDfeNhiMrFxrEDqnpuiVG+hZs38vwXUthD/l8oWGDweBSRJ0veg0VYUkhef+D9oJ0wHxyI0ik3LaC6Nku7/XYIe43/NvaxdGmnH29vgENy8NNV/tSegJu5RbELeQAGnzSMJ2RNNaBRbdu01mBYU75/QQ8qKeQ
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Create Sonarr tag"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/sonarr/create-tag"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Create a new tag in a Sonarr instance
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"instanceId":{"type":"integer","exclusiveMinimum":true,"minimum":0},"label":{"type":"string","minLength":1}},"required":["instanceId","label"],"additionalProperties":false}}},"required":true}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"id":{"type":"number"},"label":{"type":"string"}},"required":["id","label"],"additionalProperties":false}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}},"404":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

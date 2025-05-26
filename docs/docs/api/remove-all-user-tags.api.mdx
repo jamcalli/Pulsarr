@@ -1,0 +1,71 @@
+---
+id: remove-all-user-tags
+title: "Remove all user tags"
+description: "Remove all user tags from media and optionally delete tag definitions"
+sidebar_label: "Remove all user tags"
+hide_title: true
+hide_table_of_contents: true
+api: eJztVktv2kAQ/iurObXSVpBGvfhGmx4iVSoipBfEYfAOeNP1rrO7hiDL/72aNQ+HQHJJeyoXjOeb9zczNOAq8hi1s7cKMvBUujWNjLkP5Ke4CiAh8lc2g/RzLkFRyL2uWAcymCQNgcaIOpAXjBZL70pRktIo0CrhEhiN2QpFhiIxSihaaqtZwl48PdYU4lentpA1kDsbyUZ+xKoyOk8xDh4CO20g5AWVyE9xWxFk4BYPlEeQUHnOKGoKLO3cTXF103N21Fo4ZwgtcFJLrE2EbIkmUNtKQKV0F/a4Z3InZoCnUDkbOkefh8POX782N51RMdkhQb5XXqHOcwrnUmkllBQCrqgnDNFru0oyp84IJJCtS25yRwCYtxKCs+j927HoSGUYe8cBkerhbV0uyLPXBLmvFMYLAGZNx6TL8pvUy/PyJWpzybcNEW1O4Yy07XinPevOTjM5ift5lM9jOkTQ9zd/nUQSPKr/Ff6LFT5xvh+a44Ts5uHA9UNL3jLMpr/825G/PNUnae6Bb+eQdkUsHG/+yoXkE2MBGQzWVwOu/mC3DyQE8mvyfAgaqL2BDIoYq2wwMC5HU7gQs+vh8BpO78OPvViMUvXFh42Ohaicjx+hnUvgOkyOy//7E5aVocvLez882i5dKoaODIdxbQJ6L0bj2xdBjMa3Qrm8LsnGVH2xdF7sNT4JFGNDT2KDMS+MDlFoG2nlj9C7xI90zCYdQyRwOTrzv654DLiCJaaeWizpwm08ja136t7tlu74EekpDiqDOl2F1LRm1+AZrK/2p10elr4EbhRLm2aBge69aVt+/ViT30I2m0tYo9e44IrP+EgUhIp8YsVv2kIG37psPk05BoabmmN5wfxW7jWYF1V8FTvvEXX8824KEha7PwrdQQOPmzS9G8gAJHRVSnOT3jVg0K7qND/Q2eTPH/QxJ2Y=
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Remove all user tags"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/tags/remove"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Remove all user tags from media and optionally delete tag definitions
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"deleteTagDefinitions":{"type":"boolean","default":false}},"additionalProperties":false}}}}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"mode":{"type":"string","enum":["remove"]},"sonarr":{"type":"object","properties":{"itemsProcessed":{"type":"number"},"itemsUpdated":{"type":"number"},"tagsRemoved":{"type":"number"},"tagsDeleted":{"type":"number"},"failed":{"type":"number"},"instances":{"type":"number"}},"required":["itemsProcessed","itemsUpdated","tagsRemoved","tagsDeleted","failed","instances"],"additionalProperties":false},"radarr":{"type":"object","properties":{"itemsProcessed":{"type":"number"},"itemsUpdated":{"type":"number"},"tagsRemoved":{"type":"number"},"tagsDeleted":{"type":"number"},"failed":{"type":"number"},"instances":{"type":"number"}},"required":["itemsProcessed","itemsUpdated","tagsRemoved","tagsDeleted","failed","instances"],"additionalProperties":false}},"required":["success","message","mode","sonarr","radarr"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      
