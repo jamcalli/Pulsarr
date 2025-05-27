@@ -274,10 +274,17 @@ const AccordionRouteCard = ({
     isDirtyRef.current = form.formState.isDirty
 
     // Create a subscription to all form events
-    const subscription = form.watch(() => {
+    const subscription = form.watch((_, { name }) => {
       // When any value changes, update our refs
       latestFormValues.current = form.getValues()
       isDirtyRef.current = form.formState.isDirty
+
+      // If condition field changes, trigger validation
+      if (name && (name === 'condition' || name.startsWith('condition.'))) {
+        setTimeout(() => {
+          form.trigger()
+        }, 0)
+      }
     })
 
     // This should correctly return an object with an unsubscribe method

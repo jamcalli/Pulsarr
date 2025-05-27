@@ -450,9 +450,28 @@ const ConditionBuilder = ({
         {/* Value input */}
         <div className={cn(isMobile ? 'col-span-1' : 'col-span-4')}>
           <div className="flex flex-col space-y-1">
-            <label htmlFor={inputId} className="text-sm font-medium">
-              Value
-            </label>
+            <div className="flex items-center space-x-1">
+              <label htmlFor={inputId} className="text-sm font-medium">
+                Value
+              </label>
+              {value.field === 'certification' &&
+                (value.operator === 'in' || value.operator === 'notIn') && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="h-3 w-3 cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs">
+                          Certifications are region-agnostic. Selecting a value
+                          (e.g., "PG") will match content with that rating
+                          across all regions.
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+            </div>
             {value.operator && value.field && (
               <div className="condition-value-input">
                 <ConditionInput
