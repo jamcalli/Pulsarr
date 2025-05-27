@@ -204,6 +204,13 @@ export class WatchlistWorkflowService {
 
       this.log.debug('Starting watchlist workflow initialization')
 
+      // Log if SeerrBridge mode is enabled
+      if (this.fastify.seerrBridge?.isEnabled()) {
+        this.log.info(
+          'SeerrBridge mode is enabled - Sonarr/Radarr operations will be bypassed',
+        )
+      }
+
       // Clean up any existing manual sync jobs from previous runs
       try {
         this.log.debug('Cleaning up existing manual sync jobs')
@@ -439,15 +446,20 @@ export class WatchlistWorkflowService {
 
       this.log.info('Watchlists refreshed successfully')
 
-      // Sync statuses with Sonarr/Radarr
-      try {
-        const { shows, movies } = await this.showStatusService.syncAllStatuses()
-        this.log.info(
-          `Updated ${shows} show statuses and ${movies} movie statuses after watchlist refresh`,
-        )
-      } catch (error) {
-        this.log.warn('Error syncing statuses (non-fatal):', error)
-        // Continue despite this error
+      // Sync statuses with Sonarr/Radarr (skip in SeerrBridge mode)
+      if (!this.fastify.seerrBridge?.isEnabled()) {
+        try {
+          const { shows, movies } =
+            await this.showStatusService.syncAllStatuses()
+          this.log.info(
+            `Updated ${shows} show statuses and ${movies} movie statuses after watchlist refresh`,
+          )
+        } catch (error) {
+          this.log.warn('Error syncing statuses (non-fatal):', error)
+          // Continue despite this error
+        }
+      } else {
+        this.log.debug('Skipping status sync in SeerrBridge mode')
       }
     } catch (error) {
       this.log.error('Error refreshing watchlists:', {
@@ -1000,6 +1012,9 @@ export class WatchlistWorkflowService {
   private async syncWatchlistItems(): Promise<void> {
     this.log.info('Performing watchlist item sync')
 
+    // In SeerrBridge mode, we'll skip Sonarr/Radarr checks but still process items
+    const isSeerrBridgeMode = this.fastify.seerrBridge?.isEnabled()
+
     try {
       // Get all users to check their sync permissions
       const allUsers = await this.dbService.getAllUsers()
@@ -1022,11 +1037,16 @@ export class WatchlistWorkflowService {
       ])
       const allWatchlistItems = [...shows, ...movies]
 
-      // Get all existing series and movies from Sonarr/Radarr
-      const [existingSeries, existingMovies] = await Promise.all([
-        this.sonarrManager.fetchAllSeries(),
-        this.radarrManager.fetchAllMovies(),
-      ])
+      // Get all existing series and movies from Sonarr/Radarr (skip in SeerrBridge mode)
+      let existingSeries: Array<{ title: string; guids: string[] }> = []
+      let existingMovies: Array<{ title: string; guids: string[] }> = []
+
+      if (!isSeerrBridgeMode) {
+        ;[existingSeries, existingMovies] = await Promise.all([
+          this.sonarrManager.fetchAllSeries(),
+          this.radarrManager.fetchAllMovies(),
+        ])
+      }
 
       // Statistics tracking
       let showsAdded = 0
@@ -1118,12 +1138,14 @@ export class WatchlistWorkflowService {
             continue
           }
 
-          // Check if show exists using hasMatchingGuids
-          const exists = existingSeries.some((series) =>
-            hasMatchingGuids(series.guids, tempItem.guids),
-          )
+          // Check if show exists using hasMatchingGuids (always false in SeerrBridge mode)
+          const exists = isSeerrBridgeMode
+            ? false
+            : existingSeries.some((series) =>
+                hasMatchingGuids(series.guids, tempItem.guids),
+              )
 
-          // Add to Sonarr if not exists
+          // Add to Sonarr if not exists (or route to SeerrBridge)
           if (!exists) {
             // Get the tvdbGuid string using extractTypedGuid
             const tvdbGuid =
@@ -1162,12 +1184,14 @@ export class WatchlistWorkflowService {
             continue
           }
 
-          // Check if movie exists using hasMatchingGuids
-          const exists = existingMovies.some((movie) =>
-            hasMatchingGuids(movie.guids, tempItem.guids),
-          )
+          // Check if movie exists using hasMatchingGuids (always false in SeerrBridge mode)
+          const exists = isSeerrBridgeMode
+            ? false
+            : existingMovies.some((movie) =>
+                hasMatchingGuids(movie.guids, tempItem.guids),
+              )
 
-          // Add to Radarr if not exists
+          // Add to Radarr if not exists (or route to SeerrBridge)
           if (!exists) {
             // Get the tmdbGuid string using extractTypedGuid
             const tmdbGuid =

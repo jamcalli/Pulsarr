@@ -112,6 +112,12 @@ export interface Config {
   // Special tag for removed content
   removedTagMode: RemovedTagMode
   removedTagPrefix: string
+  // SeerrBridge Config
+  seerrBridgeEnabled: boolean
+  seerrBridgeBaseUrl: string
+  seerrBridgeWebhookUrl: string
+  seerrBridgeApiKey?: string
+  seerrBridgeTimeoutMs: number
   // Ready state
   _isReady: boolean
 }

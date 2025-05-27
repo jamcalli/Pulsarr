@@ -254,6 +254,26 @@ const schema = {
       enum: ['watchlist', 'tag-based'],
       default: 'watchlist',
     },
+    seerrBridgeEnabled: {
+      type: 'boolean',
+      default: false,
+    },
+    seerrBridgeBaseUrl: {
+      type: 'string',
+      default: '',
+    },
+    seerrBridgeWebhookUrl: {
+      type: 'string',
+      default: '',
+    },
+    seerrBridgeApiKey: {
+      type: 'string',
+      default: '',
+    },
+    seerrBridgeTimeoutMs: {
+      type: 'number',
+      default: 30000,
+    },
   },
 }
 

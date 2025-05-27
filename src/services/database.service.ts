@@ -6063,4 +6063,254 @@ export class DatabaseService {
       return []
     }
   }
+
+  // ===============================================
+  // SeerrBridge Methods
+  // ===============================================
+
+  /**
+   * Saves a SeerrBridge request to the database
+   *
+   * @param request - The SeerrBridge request to save
+   * @returns Promise resolving when saved
+   */
+  async saveSeerrBridgeRequest(request: {
+    id: string
+    request_id: string
+    user_id: number
+    user_name: string
+    tmdb_id: number
+    media_type: string
+    title: string
+    year?: number
+    requested_at: string
+    status: string
+  }): Promise<void> {
+    try {
+      await this.knex('seerr_bridge_requests').insert(request)
+      this.log.debug(`Saved SeerrBridge request ${request.id}`)
+    } catch (error) {
+      this.log.error('Error saving SeerrBridge request:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Updates a SeerrBridge request status
+   *
+   * @param requestId - The request ID
+   * @param updates - The fields to update
+   * @returns Promise resolving when updated
+   */
+  async updateSeerrBridgeRequest(
+    requestId: string,
+    updates: {
+      status?: string
+      completed_at?: string | null
+      error?: string | null
+    },
+  ): Promise<void> {
+    try {
+      await this.knex('seerr_bridge_requests')
+        .where('id', requestId)
+        .update(updates)
+      this.log.debug(`Updated SeerrBridge request ${requestId}`)
+    } catch (error) {
+      this.log.error('Error updating SeerrBridge request:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Gets a SeerrBridge request by ID
+   *
+   * @param requestId - The request ID
+   * @returns Promise resolving to the request or null
+   */
+  async getSeerrBridgeRequest(requestId: string): Promise<{
+    id: string
+    request_id: string
+    user_id: number
+    user_name: string
+    tmdb_id: number
+    media_type: string
+    title: string
+    year?: number
+    requested_at: string
+    status: string
+    completed_at?: string
+    error?: string
+  } | null> {
+    try {
+      const request = await this.knex('seerr_bridge_requests')
+        .where('id', requestId)
+        .first()
+      return request || null
+    } catch (error) {
+      this.log.error('Error getting SeerrBridge request:', error)
+      return null
+    }
+  }
+
+  /**
+   * Cleans up old SeerrBridge requests
+   *
+   * @param cutoffDate - Remove requests older than this date
+   * @returns Promise resolving to number of deleted requests
+   */
+  async cleanupOldSeerrBridgeRequests(cutoffDate: string): Promise<number> {
+    try {
+      const deleted = await this.knex('seerr_bridge_requests')
+        .where('requested_at', '<', cutoffDate)
+        .whereIn('status', ['completed', 'failed'])
+        .delete()
+
+      this.log.debug(`Cleaned up ${deleted} old SeerrBridge requests`)
+      return deleted
+    } catch (error) {
+      this.log.error('Error cleaning up SeerrBridge requests:', error)
+      return 0
+    }
+  }
+
+  /**
+   * Gets a SeerrBridge request by content details
+   *
+   * @param tmdbId - The TMDB ID
+   * @param mediaType - The media type (movie/tv)
+   * @param userId - The user ID
+   * @returns Promise resolving to the request or null
+   */
+  async getSeerrBridgeRequestByContent(
+    tmdbId: number,
+    mediaType: string,
+    userId: number,
+  ): Promise<{
+    id: string
+    status: string
+    error?: string
+  } | null> {
+    try {
+      const request = await this.knex('seerr_bridge_requests')
+        .where({
+          tmdb_id: tmdbId,
+          media_type: mediaType,
+          user_id: userId,
+        })
+        .orderBy('requested_at', 'desc')
+        .first()
+
+      if (!request) return null
+
+      return {
+        id: request.id,
+        status: request.status,
+        error: request.error,
+      }
+    } catch (error) {
+      this.log.error('Error getting SeerrBridge request by content:', error)
+      return null
+    }
+  }
+
+  /**
+   * Gets a SeerrBridge request by its ID
+   *
+   * @param requestId - The request ID
+   * @returns The request details or null if not found
+   */
+  async getSeerrBridgeRequestById(requestId: string): Promise<{
+    id: string
+    request_id: string
+    user_id: number
+    user_name: string
+    tmdb_id: number
+    media_type: string
+    title: string
+    year?: number
+    requested_at: string
+    status: string
+    completed_at?: string
+    error?: string
+  } | null> {
+    try {
+      const request = await this.knex('seerr_bridge_requests')
+        .where({ request_id: requestId })
+        .first()
+
+      return request || null
+    } catch (error) {
+      this.log.error('Error getting SeerrBridge request by ID:', error)
+      return null
+    }
+  }
+
+  /**
+   * Gets all SeerrBridge requests with a specific status
+   *
+   * @param status - The status to filter by
+   * @returns Array of requests
+   */
+  async getAllSeerrBridgeRequests(status?: string): Promise<
+    Array<{
+      id: string
+      request_id: string
+      user_id: number
+      user_name: string
+      tmdb_id: number
+      media_type: string
+      title: string
+      year?: number
+      requested_at: string
+      status: string
+      completed_at?: string
+      error?: string
+    }>
+  > {
+    try {
+      let query = this.knex('seerr_bridge_requests')
+
+      if (status) {
+        query = query.where({ status })
+      }
+
+      const requests = await query.orderBy('requested_at', 'desc')
+      return requests
+    } catch (error) {
+      this.log.error('Error getting all SeerrBridge requests:', error)
+      return []
+    }
+  }
+
+  /**
+   * Updates the status of a SeerrBridge request
+   *
+   * @param requestId - The request ID
+   * @param status - The new status
+   * @returns Whether the update was successful
+   */
+  async updateSeerrBridgeRequestStatus(
+    requestId: string,
+    status: 'pending' | 'processing' | 'completed' | 'failed',
+  ): Promise<boolean> {
+    try {
+      const updates: { status: string; completed_at?: string } = { status }
+
+      if (status === 'completed') {
+        updates.completed_at = new Date().toISOString()
+      }
+
+      await this.knex('seerr_bridge_requests')
+        .where({ request_id: requestId })
+        .update(updates)
+
+      this.log.debug(
+        `Updated SeerrBridge request ${requestId} status to ${status}`,
+      )
+      return true
+    } catch (error) {
+      this.log.error('Error updating SeerrBridge request status:', error)
+      return false
+    }
+  }
 }

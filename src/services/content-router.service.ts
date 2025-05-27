@@ -152,6 +152,51 @@ export class ContentRouterService {
     const contentType = item.type
     const routedInstances: number[] = []
 
+    // Check if SeerrBridge mode is enabled
+    if (this.fastify.seerrBridge?.isEnabled()) {
+      this.log.info(
+        `SeerrBridge mode is enabled, routing "${item.title}" to SeerrBridge`,
+      )
+
+      try {
+        // Get the watchlist item to have full metadata
+        const watchlistItems = await this.fastify.db.getWatchlistItemsByKeys([
+          key,
+        ])
+        const watchlistItem = watchlistItems[0]
+
+        if (!watchlistItem) {
+          this.log.warn(`Could not find watchlist item for key ${key}`)
+          return { routedInstances: [] }
+        }
+
+        // Get user info
+        const userId = options.userId || watchlistItem.user_id
+        const user = await this.fastify.db.getUser(userId)
+        const userName = options.userName || user?.name || 'Unknown'
+
+        // Send to SeerrBridge
+        const result = await this.fastify.seerrBridge.sendRequest(
+          watchlistItem,
+          userId,
+          userName,
+        )
+
+        if (result.success) {
+          this.log.info(`Successfully sent "${item.title}" to SeerrBridge`)
+          // Return a special instance ID to indicate SeerrBridge routing
+          return { routedInstances: [-1] } // -1 indicates SeerrBridge
+        }
+        this.log.error(
+          `Failed to send "${item.title}" to SeerrBridge: ${result.error}`,
+        )
+        return { routedInstances: [] }
+      } catch (error) {
+        this.log.error(`Error routing "${item.title}" to SeerrBridge:`, error)
+        return { routedInstances: [] }
+      }
+    }
+
     // Step 1: Handle forced routing if specified
     // Skip forced routing during sync operations with target instance to respect routing rules
     if (
@@ -268,8 +313,9 @@ export class ContentRouterService {
 
     // IMPORTANT: Enrich item with metadata before evaluation
     // Only do this if we have rules that might use the enriched data
+    // Skip enrichment in SeerrBridge mode since we don't have Sonarr/Radarr
     let enrichedItem = item
-    if (hasAnyRules) {
+    if (hasAnyRules && !this.fastify.seerrBridge?.isEnabled()) {
       try {
         enrichedItem = await this.enrichItemMetadata(item, context)
         this.log.debug(`Enriched metadata for "${item.title}"`)
