@@ -201,6 +201,8 @@ export class DatabaseService {
       discord_id: row.discord_id,
       notify_apprise: Boolean(row.notify_apprise),
       notify_discord: Boolean(row.notify_discord),
+      notify_tautulli: Boolean(row.notify_tautulli),
+      tautulli_notifier_id: row.tautulli_notifier_id,
       can_sync: Boolean(row.can_sync),
       is_primary_token: Boolean(row.is_primary_token),
       created_at: row.created_at,
@@ -311,6 +313,8 @@ export class DatabaseService {
       discord_id: row.discord_id,
       notify_apprise: Boolean(row.notify_apprise),
       notify_discord: Boolean(row.notify_discord),
+      notify_tautulli: Boolean(row.notify_tautulli),
+      tautulli_notifier_id: row.tautulli_notifier_id,
       can_sync: Boolean(row.can_sync),
       is_primary_token: Boolean(row.is_primary_token),
       created_at: row.created_at,
@@ -343,6 +347,8 @@ export class DatabaseService {
       discord_id: row.discord_id,
       notify_apprise: Boolean(row.notify_apprise),
       notify_discord: Boolean(row.notify_discord),
+      notify_tautulli: Boolean(row.notify_tautulli),
+      tautulli_notifier_id: row.tautulli_notifier_id,
       can_sync: Boolean(row.can_sync),
       is_primary_token: Boolean(row.is_primary_token),
       created_at: row.created_at,
@@ -544,6 +550,10 @@ export class DatabaseService {
       enableApprise: Boolean(config.enableApprise),
       appriseUrl: config.appriseUrl || '',
       systemAppriseUrl: config.systemAppriseUrl || undefined,
+      // Handle Tautulli configuration
+      tautulliEnabled: Boolean(config.tautulliEnabled),
+      tautulliUrl: config.tautulliUrl || '',
+      tautulliApiKey: config.tautulliApiKey || '',
       // Convert boolean fields
       cookieSecured: Boolean(config.cookieSecured),
       skipFriendSync: Boolean(config.skipFriendSync),
@@ -608,6 +618,10 @@ export class DatabaseService {
         enableApprise: config.enableApprise || false,
         appriseUrl: config.appriseUrl || '',
         systemAppriseUrl: config.systemAppriseUrl || undefined,
+        // Tautulli fields
+        tautulliEnabled: config.tautulliEnabled || false,
+        tautulliUrl: config.tautulliUrl || '',
+        tautulliApiKey: config.tautulliApiKey || '',
         // Plex fields
         plexTokens: JSON.stringify(config.plexTokens || []),
         skipFriendSync: config.skipFriendSync,
@@ -675,6 +689,8 @@ export class DatabaseService {
           key === 'discordGuildId' ||
           key === 'appriseUrl' ||
           key === 'systemAppriseUrl' ||
+          key === 'tautulliUrl' ||
+          key === 'tautulliApiKey' ||
           key === 'tagPrefix' ||
           key === 'removedTagPrefix' ||
           key === 'removedTagMode' ||
@@ -2730,8 +2746,9 @@ export class DatabaseService {
       const user = await this.getUser(item.user_id)
       if (!user) continue
 
-      // Skip if user has disabled notifications
-      if (!user.notify_discord && !user.notify_apprise) continue
+      // Skip if user has disabled all notifications
+      if (!user.notify_discord && !user.notify_apprise && !user.notify_tautulli)
+        continue
 
       // Special handling for ended shows that were already notified (unless bulk release)
       if (
@@ -2833,6 +2850,7 @@ export class DatabaseService {
           sent_to_discord: Boolean(user.notify_discord),
           sent_to_apprise: Boolean(user.notify_apprise),
           sent_to_webhook: false,
+          sent_to_tautulli: Boolean(user.notify_tautulli),
         })
       } else if (contentType === 'season') {
         notification.episodeDetails = {
@@ -2848,6 +2866,7 @@ export class DatabaseService {
           sent_to_discord: Boolean(user.notify_discord),
           sent_to_apprise: Boolean(user.notify_apprise),
           sent_to_webhook: false,
+          sent_to_tautulli: Boolean(user.notify_tautulli),
         })
       } else if (
         contentType === 'episode' &&
@@ -2875,6 +2894,7 @@ export class DatabaseService {
           sent_to_discord: Boolean(user.notify_discord),
           sent_to_apprise: Boolean(user.notify_apprise),
           sent_to_webhook: false,
+          sent_to_tautulli: Boolean(user.notify_tautulli),
         })
       }
 
@@ -2888,6 +2908,8 @@ export class DatabaseService {
           discord_id: user.discord_id,
           notify_apprise: user.notify_apprise,
           notify_discord: user.notify_discord,
+          notify_tautulli: user.notify_tautulli,
+          tautulli_notifier_id: user.tautulli_notifier_id,
           can_sync: user.can_sync,
         },
         notification,
@@ -2914,6 +2936,7 @@ export class DatabaseService {
     sent_to_discord: boolean
     sent_to_apprise: boolean
     sent_to_webhook?: boolean
+    sent_to_tautulli?: boolean
     notification_status?: string
   }): Promise<number> {
     const [id] = await this.knex('notifications')

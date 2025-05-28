@@ -174,6 +174,23 @@ export default function UserTable({
       },
     },
     {
+      accessorKey: 'notify_tautulli',
+      header: () => <div className="hidden md:block">Tautulli</div>,
+      cell: ({ row }) => (
+        <div className="flex justify-center w-16">
+          {row.getValue('notify_tautulli') ? (
+            <Check className="h-4 w-4 text-main" />
+          ) : (
+            <X className="h-4 w-4 text-error" />
+          )}
+        </div>
+      ),
+      meta: {
+        className: 'hidden md:table-cell',
+        headerClassName: 'hidden md:table-cell',
+      },
+    },
+    {
       accessorKey: 'can_sync',
       header: () => <div className="hidden xs:block">Can Sync</div>,
       cell: ({ row }) => (

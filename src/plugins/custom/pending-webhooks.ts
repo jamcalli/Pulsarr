@@ -48,6 +48,7 @@ export default fp(
       'scheduler',
       'discord-notification-service',
       'apprise-notification-service',
+      'tautulli',
     ],
   },
 )

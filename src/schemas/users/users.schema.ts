@@ -7,6 +7,8 @@ export const CreateUserSchema = z.object({
   discord_id: z.string().nullable(),
   notify_apprise: z.boolean().default(false),
   notify_discord: z.boolean().default(false),
+  notify_tautulli: z.boolean().default(false),
+  tautulli_notifier_id: z.number().nullable().default(null),
   can_sync: z.boolean().default(true),
 })
 
@@ -21,6 +23,8 @@ export const CreateUserResponseSchema = z.object({
     discord_id: z.string().nullable(),
     notify_apprise: z.boolean(),
     notify_discord: z.boolean(),
+    notify_tautulli: z.boolean(),
+    tautulli_notifier_id: z.number().nullable(),
     can_sync: z.boolean(),
     created_at: z.string(),
     updated_at: z.string(),
@@ -40,6 +44,8 @@ export const UpdateUserResponseSchema = z.object({
     discord_id: z.string().nullable(),
     notify_apprise: z.boolean(),
     notify_discord: z.boolean(),
+    notify_tautulli: z.boolean(),
+    tautulli_notifier_id: z.number().nullable(),
     can_sync: z.boolean(),
     created_at: z.string(),
     updated_at: z.string(),

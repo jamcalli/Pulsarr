@@ -202,6 +202,28 @@ const FormContent = React.memo(
 
             <FormField
               control={form.control}
+              name="notify_tautulli"
+              render={({ field }) => (
+                <FormItem>
+                  <div className="flex items-center justify-between">
+                    <FormLabel className="text-text">
+                      Tautulli Notifications
+                    </FormLabel>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        disabled={saveStatus !== 'idle'}
+                      />
+                    </FormControl>
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
               name="can_sync"
               render={({ field }) => (
                 <FormItem>
@@ -285,6 +307,7 @@ export default function UserEditModal({
       discord_id: null,
       notify_apprise: false,
       notify_discord: false,
+      notify_tautulli: false,
       can_sync: false,
     },
   })
@@ -298,6 +321,7 @@ export default function UserEditModal({
         discord_id: user.discord_id,
         notify_apprise: user.notify_apprise,
         notify_discord: user.notify_discord,
+        notify_tautulli: user.notify_tautulli,
         can_sync: user.can_sync,
       })
     }
@@ -314,6 +338,7 @@ export default function UserEditModal({
       discord_id: values.discord_id,
       notify_apprise: values.notify_apprise,
       notify_discord: values.notify_discord,
+      notify_tautulli: values.notify_tautulli,
       can_sync: values.can_sync,
     }
 
