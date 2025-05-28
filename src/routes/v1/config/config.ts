@@ -101,6 +101,18 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           }
         }
 
+        // Validate Plex Pass requirement for Tautulli
+        if (safeConfigUpdate.tautulliEnabled === true) {
+          const currentConfig = await fastify.db.getConfig(1)
+          if (!currentConfig?.selfRss || !currentConfig?.friendsRss) {
+            reply.status(400)
+            return {
+              error:
+                'Plex Pass is required for Tautulli integration. Please generate RSS feeds first to verify Plex Pass subscription.',
+            }
+          }
+        }
+
         // Store current runtime values for revert if needed
         const originalRuntimeValues = { ...safeConfigUpdate }
         for (const key of Object.keys(originalRuntimeValues)) {
