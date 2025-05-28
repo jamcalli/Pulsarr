@@ -1,6 +1,11 @@
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type { PendingWebhooksConfig } from '@root/types/pending-webhooks.types.js'
 import type { WebhookPayload } from '@root/schemas/notifications/webhook.schema.js'
+import type {
+  MediaNotification,
+  NotificationResult,
+} from '@root/types/sonarr.types.js'
+import type { TokenWatchlistItem } from '@root/types/plex.types.js'
 
 /**
  * Service to handle webhooks that arrive before RSS feed matching is complete.
@@ -8,6 +13,44 @@ import type { WebhookPayload } from '@root/schemas/notifications/webhook.schema.
  * arrives while the RSS item is still being processed.
  */
 export class PendingWebhooksService {
+  /**
+   * Send Tautulli notification for a user
+   */
+  private async sendTautulliNotification(
+    result: NotificationResult,
+    matchingItems: TokenWatchlistItem[],
+    webhook: { guid: string },
+  ): Promise<void> {
+    if (!result.user.notify_tautulli || !this.fastify.tautulli?.isEnabled()) {
+      return
+    }
+
+    const userItem = matchingItems.find(
+      (item) => item.user_id === result.user.id,
+    )
+
+    if (userItem) {
+      const itemId =
+        typeof userItem.id === 'string'
+          ? Number.parseInt(userItem.id, 10)
+          : userItem.id
+
+      try {
+        await this.fastify.tautulli.sendMediaNotification(
+          result.user,
+          result.notification,
+          itemId,
+          webhook.guid,
+          userItem.key,
+        )
+      } catch (error) {
+        this.log.error(
+          { error, userId: result.user.id, guid: webhook.guid },
+          'Failed to send Tautulli notification',
+        )
+      }
+    }
+  }
   private readonly _config: PendingWebhooksConfig
   private isRunning = false
   private _processingWebhooks = false
@@ -169,37 +212,11 @@ export class PendingWebhooksService {
                   }
 
                   // Send Tautulli notifications
-                  if (
-                    result.user.notify_tautulli &&
-                    this.fastify.tautulli?.isEnabled()
-                  ) {
-                    // Find the watchlist item for this user
-                    const userItem = matchingItems.find(
-                      (item) => item.user_id === result.user.id,
-                    )
-
-                    if (userItem) {
-                      const itemId =
-                        typeof userItem.id === 'string'
-                          ? Number.parseInt(userItem.id, 10)
-                          : userItem.id
-
-                      try {
-                        await this.fastify.tautulli.sendMediaNotification(
-                          result.user,
-                          result.notification,
-                          itemId,
-                          webhook.guid,
-                          userItem.key,
-                        )
-                      } catch (error) {
-                        this.log.error(
-                          { error, userId: result.user.id, guid: webhook.guid },
-                          'Failed to send Tautulli notification',
-                        )
-                      }
-                    }
-                  }
+                  await this.sendTautulliNotification(
+                    result,
+                    matchingItems,
+                    webhook,
+                  )
                 }),
               )
             } else if (webhook.media_type === 'show') {
@@ -276,41 +293,11 @@ export class PendingWebhooksService {
                     }
 
                     // Send Tautulli notifications
-                    if (
-                      result.user.notify_tautulli &&
-                      this.fastify.tautulli?.isEnabled()
-                    ) {
-                      // Find the watchlist item for this user
-                      const userItem = matchingItems.find(
-                        (item) => item.user_id === result.user.id,
-                      )
-
-                      if (userItem) {
-                        const itemId =
-                          typeof userItem.id === 'string'
-                            ? Number.parseInt(userItem.id, 10)
-                            : userItem.id
-
-                        try {
-                          await this.fastify.tautulli.sendMediaNotification(
-                            result.user,
-                            result.notification,
-                            itemId,
-                            webhook.guid,
-                            userItem.key,
-                          )
-                        } catch (error) {
-                          this.log.error(
-                            {
-                              error,
-                              userId: result.user.id,
-                              guid: webhook.guid,
-                            },
-                            'Failed to send Tautulli notification for TV show',
-                          )
-                        }
-                      }
-                    }
+                    await this.sendTautulliNotification(
+                      result,
+                      matchingItems,
+                      webhook,
+                    )
                   }),
                 )
               }
