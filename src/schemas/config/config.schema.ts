@@ -50,6 +50,10 @@ export const ConfigSchema = z.object({
   enableApprise: z.boolean().optional(),
   appriseUrl: z.string().optional(),
   systemAppriseUrl: z.string().optional(),
+  // Tautulli Config
+  tautulliEnabled: z.boolean().optional(),
+  tautulliUrl: z.string().optional(),
+  tautulliApiKey: z.string().optional(),
   // General Notifications
   queueWaitTime: z.number().optional(),
   newEpisodeThreshold: z.number().optional(),

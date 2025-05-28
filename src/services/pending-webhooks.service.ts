@@ -1,6 +1,11 @@
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type { PendingWebhooksConfig } from '@root/types/pending-webhooks.types.js'
 import type { WebhookPayload } from '@root/schemas/notifications/webhook.schema.js'
+import type {
+  MediaNotification,
+  NotificationResult,
+} from '@root/types/sonarr.types.js'
+import type { TokenWatchlistItem } from '@root/types/plex.types.js'
 
 /**
  * Service to handle webhooks that arrive before RSS feed matching is complete.
@@ -8,6 +13,44 @@ import type { WebhookPayload } from '@root/schemas/notifications/webhook.schema.
  * arrives while the RSS item is still being processed.
  */
 export class PendingWebhooksService {
+  /**
+   * Send Tautulli notification for a user
+   */
+  private async sendTautulliNotification(
+    result: NotificationResult,
+    matchingItems: TokenWatchlistItem[],
+    webhook: { guid: string },
+  ): Promise<void> {
+    if (!result.user.notify_tautulli || !this.fastify.tautulli?.isEnabled()) {
+      return
+    }
+
+    const userItem = matchingItems.find(
+      (item) => item.user_id === result.user.id,
+    )
+
+    if (userItem) {
+      const itemId =
+        typeof userItem.id === 'string'
+          ? Number.parseInt(userItem.id, 10)
+          : userItem.id
+
+      try {
+        await this.fastify.tautulli.sendMediaNotification(
+          result.user,
+          result.notification,
+          itemId,
+          webhook.guid,
+          userItem.key,
+        )
+      } catch (error) {
+        this.log.error(
+          { error, userId: result.user.id, guid: webhook.guid },
+          'Failed to send Tautulli notification',
+        )
+      }
+    }
+  }
   private readonly _config: PendingWebhooksConfig
   private isRunning = false
   private _processingWebhooks = false
@@ -137,18 +180,43 @@ export class PendingWebhooksService {
               await Promise.all(
                 notificationResults.map(async (result) => {
                   if (result.user.notify_discord && result.user.discord_id) {
-                    await this.fastify.discord.sendDirectMessage(
-                      result.user.discord_id,
-                      result.notification,
-                    )
+                    try {
+                      await this.fastify.discord.sendDirectMessage(
+                        result.user.discord_id,
+                        result.notification,
+                      )
+                    } catch (error) {
+                      this.log.error(
+                        {
+                          error,
+                          userId: result.user.id,
+                          discord_id: result.user.discord_id,
+                        },
+                        'Failed to send Discord notification',
+                      )
+                    }
                   }
 
                   if (result.user.notify_apprise) {
-                    await this.fastify.apprise.sendMediaNotification(
-                      result.user,
-                      result.notification,
-                    )
+                    try {
+                      await this.fastify.apprise.sendMediaNotification(
+                        result.user,
+                        result.notification,
+                      )
+                    } catch (error) {
+                      this.log.error(
+                        { error, userId: result.user.id },
+                        'Failed to send Apprise notification',
+                      )
+                    }
                   }
+
+                  // Send Tautulli notifications
+                  await this.sendTautulliNotification(
+                    result,
+                    matchingItems,
+                    webhook,
+                  )
                 }),
               )
             } else if (webhook.media_type === 'show') {
@@ -193,18 +261,43 @@ export class PendingWebhooksService {
                 await Promise.all(
                   notificationResults.map(async (result) => {
                     if (result.user.notify_discord && result.user.discord_id) {
-                      await this.fastify.discord.sendDirectMessage(
-                        result.user.discord_id,
-                        result.notification,
-                      )
+                      try {
+                        await this.fastify.discord.sendDirectMessage(
+                          result.user.discord_id,
+                          result.notification,
+                        )
+                      } catch (error) {
+                        this.log.error(
+                          {
+                            error,
+                            userId: result.user.id,
+                            discord_id: result.user.discord_id,
+                          },
+                          'Failed to send Discord notification for TV show',
+                        )
+                      }
                     }
 
                     if (result.user.notify_apprise) {
-                      await this.fastify.apprise.sendMediaNotification(
-                        result.user,
-                        result.notification,
-                      )
+                      try {
+                        await this.fastify.apprise.sendMediaNotification(
+                          result.user,
+                          result.notification,
+                        )
+                      } catch (error) {
+                        this.log.error(
+                          { error, userId: result.user.id },
+                          'Failed to send Apprise notification for TV show',
+                        )
+                      }
                     }
+
+                    // Send Tautulli notifications
+                    await this.sendTautulliNotification(
+                      result,
+                      matchingItems,
+                      webhook,
+                    )
                   }),
                 )
               }

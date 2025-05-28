@@ -283,6 +283,52 @@ const FormContent = ({
               )}
             </div>
 
+            {/* Tautulli Notifications */}
+            <div className="space-y-2">
+              <FormField
+                control={form.control}
+                name="setTautulliNotify"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        disabled={saveStatus !== 'idle'}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="text-text">
+                        Set Tautulli notifications
+                      </FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+              {form.watch('setTautulliNotify') && (
+                <FormField
+                  control={form.control}
+                  name="tautulliNotifyValue"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 ml-7">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          disabled={saveStatus !== 'idle'}
+                        />
+                      </FormControl>
+                      <div className="leading-none">
+                        <FormLabel className="text-text">
+                          Enable Tautulli notifications
+                        </FormLabel>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              )}
+            </div>
+
             {/* Can Sync */}
             <div className="space-y-2">
               <FormField
@@ -348,6 +394,7 @@ const FormContent = ({
                 !form.getValues('clearApprise') &&
                 !form.getValues('setAppriseNotify') &&
                 !form.getValues('setDiscordNotify') &&
+                !form.getValues('setTautulliNotify') &&
                 !form.getValues('setCanSync'))
             }
             className="min-w-[100px] flex items-center justify-center gap-2"
@@ -392,6 +439,8 @@ export default function BulkEditModal({
       appriseNotifyValue: false,
       setDiscordNotify: false,
       discordNotifyValue: false,
+      setTautulliNotify: false,
+      tautulliNotifyValue: false,
       setCanSync: false,
       canSyncValue: true,
     },
@@ -459,6 +508,10 @@ export default function BulkEditModal({
     } else if (values.setDiscordNotify) {
       // Only set Discord notifications if we're not clearing Discord IDs
       updates.notify_discord = values.discordNotifyValue
+    }
+
+    if (values.setTautulliNotify) {
+      updates.notify_tautulli = values.tautulliNotifyValue
     }
 
     if (values.setCanSync) {

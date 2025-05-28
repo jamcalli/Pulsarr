@@ -30,7 +30,11 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'Notifications',
-      items: ['notifications/discord', 'notifications/apprise'],
+      items: [
+        'notifications/discord',
+        'notifications/apprise',
+        'notifications/tautulli',
+      ],
     },
     {
       type: 'category',
