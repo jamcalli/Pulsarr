@@ -374,6 +374,47 @@ export async function processQueuedWebhooks(
           )
         }
       }
+
+      // Send Tautulli notifications
+      if (result.user.notify_tautulli && fastify.tautulli?.isEnabled()) {
+        try {
+          // Find the watchlist item for this user
+          const matchingItems = await fastify.db.getWatchlistItemsByGuid(
+            `tvdb:${tvdbId}`,
+          )
+          const userItem = matchingItems.find(
+            (item) => item.user_id === result.user.id,
+          )
+
+          if (userItem) {
+            const itemId =
+              typeof userItem.id === 'string'
+                ? Number.parseInt(userItem.id, 10)
+                : userItem.id
+
+            const sent = await fastify.tautulli.sendMediaNotification(
+              result.user,
+              result.notification,
+              itemId,
+              `tvdb:${tvdbId}`,
+            )
+
+            fastify.log.info(
+              {
+                userId: result.user.id,
+                username: result.user.name,
+                success: sent,
+              },
+              'Sent Tautulli notification',
+            )
+          }
+        } catch (error) {
+          fastify.log.error(
+            { error, userId: result.user.id },
+            'Failed to send Tautulli notification',
+          )
+        }
+      }
     }
   } catch (error) {
     fastify.log.error(

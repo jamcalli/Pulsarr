@@ -58,6 +58,9 @@ export function usePlexUser() {
         ...(updates.notify_discord !== undefined && {
           notify_discord: updates.notify_discord,
         }),
+        ...(updates.notify_tautulli !== undefined && {
+          notify_tautulli: updates.notify_tautulli,
+        }),
         ...(updates.can_sync !== undefined && { can_sync: updates.can_sync }),
       }
 

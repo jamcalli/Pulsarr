@@ -15,6 +15,7 @@ import {
   checkForUpgrade,
   queuePendingWebhook,
 } from '@root/utils/webhookQueue.js'
+import { extractTmdbId, extractTvdbId } from '@root/utils/guid-handler.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.post<{
@@ -199,6 +200,40 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                 result.notification,
               )
             }
+
+            // Queue Tautulli notifications
+            if (result.user.notify_tautulli && fastify.tautulli?.isEnabled()) {
+              // Find the watchlist item for this user
+              const userItem = matchingItems.find(
+                (item) => item.user_id === result.user.id,
+              )
+
+              if (userItem) {
+                const itemId =
+                  typeof userItem.id === 'string'
+                    ? Number.parseInt(userItem.id, 10)
+                    : userItem.id
+
+                const tmdbId = extractTmdbId(userItem.guids)
+                if (tmdbId > 0) {
+                  await fastify.tautulli.queueNotification(
+                    `tmdb:${tmdbId}`,
+                    'movie',
+                    [
+                      {
+                        userId: result.user.id,
+                        username: result.user.name,
+                        notifierId: result.user.tautulli_notifier_id || 0,
+                      },
+                    ],
+                    {
+                      title: body.movie.title,
+                      watchlistItemId: itemId,
+                    },
+                  )
+                }
+              }
+            }
           }
 
           return { success: true }
@@ -287,6 +322,52 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                       result.user.discord_id,
                       result.notification,
                     )
+                  }
+
+                  if (result.user.notify_apprise) {
+                    await fastify.apprise.sendMediaNotification(
+                      result.user,
+                      result.notification,
+                    )
+                  }
+
+                  // Queue Tautulli notifications
+                  if (
+                    result.user.notify_tautulli &&
+                    fastify.tautulli?.isEnabled()
+                  ) {
+                    // Find the watchlist item for this user
+                    const userItem = matchingItems.find(
+                      (item) => item.user_id === result.user.id,
+                    )
+
+                    if (userItem) {
+                      const itemId =
+                        typeof userItem.id === 'string'
+                          ? Number.parseInt(userItem.id, 10)
+                          : userItem.id
+
+                      const tvdbId = extractTvdbId(userItem.guids)
+                      if (tvdbId > 0) {
+                        await fastify.tautulli.queueNotification(
+                          `tvdb:${tvdbId}`,
+                          'episode',
+                          [
+                            {
+                              userId: result.user.id,
+                              username: result.user.name,
+                              notifierId: result.user.tautulli_notifier_id || 0,
+                            },
+                          ],
+                          {
+                            title: body.series.title,
+                            watchlistItemId: itemId,
+                            seasonNumber: body.episodes[0].seasonNumber,
+                            episodeNumber: body.episodes[0].episodeNumber,
+                          },
+                        )
+                      }
+                    }
                   }
                 }
               } else {
@@ -420,6 +501,55 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                     result.user.discord_id,
                     result.notification,
                   )
+                }
+
+                if (result.user.notify_apprise) {
+                  await fastify.apprise.sendMediaNotification(
+                    result.user,
+                    result.notification,
+                  )
+                }
+
+                // Queue Tautulli notifications
+                if (
+                  result.user.notify_tautulli &&
+                  fastify.tautulli?.isEnabled()
+                ) {
+                  // Find the watchlist item for this user
+                  const userItem = matchingItems.find(
+                    (item) => item.user_id === result.user.id,
+                  )
+
+                  if (userItem) {
+                    const itemId =
+                      typeof userItem.id === 'string'
+                        ? Number.parseInt(userItem.id, 10)
+                        : userItem.id
+
+                    const tvdbId = extractTvdbId(userItem.guids)
+                    if (tvdbId > 0) {
+                      // For multiple episodes, queue each one separately
+                      for (const episode of recentEpisodes) {
+                        await fastify.tautulli.queueNotification(
+                          `tvdb:${tvdbId}`,
+                          'episode',
+                          [
+                            {
+                              userId: result.user.id,
+                              username: result.user.name,
+                              notifierId: result.user.tautulli_notifier_id || 0,
+                            },
+                          ],
+                          {
+                            title: body.series.title,
+                            watchlistItemId: itemId,
+                            seasonNumber: episode.seasonNumber,
+                            episodeNumber: episode.episodeNumber,
+                          },
+                        )
+                      }
+                    }
+                  }
                 }
               }
             }

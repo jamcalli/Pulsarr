@@ -97,6 +97,7 @@ function createNotificationsEmbed(user: User): EmbedBuilder {
         value: [
           `**Discord**: ${user.notify_discord ? '✅ Enabled' : '❌ Disabled'}`,
           `**Apprise**: ${user.notify_apprise ? '✅ Enabled' : '❌ Disabled'}`,
+          `**Tautulli**: ${user.notify_tautulli ? '✅ Enabled' : '❌ Disabled'}`,
         ].join('\n'),
         inline: false,
       },
@@ -104,7 +105,7 @@ function createNotificationsEmbed(user: User): EmbedBuilder {
     .setFooter({ text: 'Use the buttons below to modify your settings' })
 }
 
-function createActionRow(user: User): ActionRowBuilder<ButtonBuilder> {
+function createActionRows(user: User): ActionRowBuilder<ButtonBuilder>[] {
   // Simply check if apprise exists - placeholders are already converted to null
   const hasValidApprise = !!user.apprise
   const appriseButtonDisabled = !hasValidApprise
@@ -115,7 +116,14 @@ function createActionRow(user: User): ActionRowBuilder<ButtonBuilder> {
     .setStyle(user.notify_apprise ? ButtonStyle.Success : ButtonStyle.Secondary)
     .setDisabled(appriseButtonDisabled && !user.notify_apprise)
 
-  return new ActionRowBuilder<ButtonBuilder>().addComponents(
+  const tautulliButton = new ButtonBuilder()
+    .setCustomId('toggleTautulli')
+    .setLabel(user.notify_tautulli ? 'Disable Tautulli' : 'Enable Tautulli')
+    .setStyle(
+      user.notify_tautulli ? ButtonStyle.Success : ButtonStyle.Secondary,
+    )
+
+  const firstRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
     new ButtonBuilder()
       .setCustomId('editProfile')
       .setLabel('Edit Profile')
@@ -127,11 +135,14 @@ function createActionRow(user: User): ActionRowBuilder<ButtonBuilder> {
         user.notify_discord ? ButtonStyle.Success : ButtonStyle.Secondary,
       ),
     appriseButton,
+    tautulliButton,
     new ButtonBuilder()
       .setCustomId('closeSettings')
       .setLabel('Exit')
       .setStyle(ButtonStyle.Danger),
   )
+
+  return [firstRow]
 }
 
 function createPlexLinkModal(): ModalBuilder {
@@ -229,7 +240,7 @@ async function showSettingsForm(
   const cache = SettingsCache.getInstance()
   const messagePayload = {
     embeds: [createNotificationsEmbed(user)],
-    components: [createActionRow(user)],
+    components: createActionRows(user),
   }
 
   try {
@@ -370,6 +381,27 @@ export async function handleNotificationButtons(
         context,
       )
       if (appriseUpdated) {
+        const updatedUser = await getUser(interaction.user.id, context)
+        if (updatedUser) {
+          await showSettingsForm(interaction, updatedUser, context)
+        }
+      }
+      break
+    }
+
+    case 'toggleTautulli': {
+      await interaction.deferUpdate()
+      const newTautulliState = !user.notify_tautulli
+      context.log.info(
+        { userId: user.id, enabled: newTautulliState },
+        'Updating Tautulli notification preference',
+      )
+      const tautulliUpdated = await updateUser(
+        user.id,
+        { notify_tautulli: newTautulliState },
+        context,
+      )
+      if (tautulliUpdated) {
         const updatedUser = await getUser(interaction.user.id, context)
         if (updatedUser) {
           await showSettingsForm(interaction, updatedUser, context)
@@ -564,7 +596,7 @@ export async function handlePlexUsernameModal(
 
       const messagePayload = {
         embeds: [createNotificationsEmbed(updatedUser)],
-        components: [createActionRow(updatedUser)],
+        components: createActionRows(updatedUser),
       }
       await interaction.editReply(messagePayload)
     }
@@ -627,7 +659,7 @@ export async function handleProfileEditModal(
       if (updatedUser) {
         const messagePayload = {
           embeds: [createNotificationsEmbed(updatedUser)],
-          components: [createActionRow(updatedUser)],
+          components: createActionRows(updatedUser),
         }
         await interaction.editReply(messagePayload)
         context.log.debug(
