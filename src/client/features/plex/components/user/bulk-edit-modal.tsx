@@ -439,6 +439,8 @@ export default function BulkEditModal({
       appriseNotifyValue: false,
       setDiscordNotify: false,
       discordNotifyValue: false,
+      setTautulliNotify: false,
+      tautulliNotifyValue: false,
       setCanSync: false,
       canSyncValue: true,
     },
@@ -506,6 +508,10 @@ export default function BulkEditModal({
     } else if (values.setDiscordNotify) {
       // Only set Discord notifications if we're not clearing Discord IDs
       updates.notify_discord = values.discordNotifyValue
+    }
+
+    if (values.setTautulliNotify) {
+      updates.notify_tautulli = values.tautulliNotifyValue
     }
 
     if (values.setCanSync) {
