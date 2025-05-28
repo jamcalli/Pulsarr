@@ -20,6 +20,7 @@ interface PendingNotification {
   guid: string
   mediaType: 'movie' | 'show' | 'episode'
   watchlistItemId: number
+  watchlistItemKey?: string // Plex key for matching movies
   interestedUsers: Array<{
     userId: number
     username: string
@@ -41,7 +42,8 @@ interface RecentlyAddedItem {
   title: string
   parent_title?: string
   grandparent_title?: string
-  guids: string[]
+  guid?: string // Single GUID from Tautulli
+  guids: string[] // Array of GUIDs (often empty)
   section_id: number
   library_name: string
   added_at: string
@@ -497,11 +499,68 @@ export class TautulliService {
     metadata: {
       title: string
       watchlistItemId: number
+      watchlistItemKey?: string
       seasonNumber?: number
       episodeNumber?: number
     },
   ): Promise<void> {
     if (!this.config.enabled || interestedUsers.length === 0) {
+      return
+    }
+
+    // Filter out users without valid notifier IDs and create notifiers for them
+    const validUsers: Array<{
+      userId: number
+      username: string
+      notifierId: number
+    }> = []
+
+    // Get existing notifiers once
+    const existingNotifiers = await this.getNotifiers()
+
+    for (const user of interestedUsers) {
+      if (!user.notifierId || user.notifierId === 0) {
+        this.log.info(
+          { user: user.username },
+          'User has no Tautulli notifier for queueing, creating one now',
+        )
+
+        try {
+          const notifierId = await this.ensureUserNotifier(
+            {
+              id: user.userId,
+              username: user.username,
+              tautulli_notifier_id: null,
+            },
+            existingNotifiers,
+          )
+
+          if (notifierId) {
+            validUsers.push({
+              ...user,
+              notifierId,
+            })
+          } else {
+            this.log.warn(
+              { user: user.username },
+              'Failed to create Tautulli notifier for user, skipping notification',
+            )
+          }
+        } catch (error) {
+          this.log.error(
+            { error, user: user.username },
+            'Error creating Tautulli notifier for user',
+          )
+        }
+      } else {
+        validUsers.push(user)
+      }
+    }
+
+    if (validUsers.length === 0) {
+      this.log.warn(
+        'No valid users with Tautulli notifiers after filtering, skipping notification queue',
+      )
       return
     }
 
@@ -528,7 +587,8 @@ export class TautulliService {
       guid: normalizedGuid,
       mediaType,
       watchlistItemId: metadata.watchlistItemId,
-      interestedUsers,
+      watchlistItemKey: metadata.watchlistItemKey,
+      interestedUsers: validUsers,
       title: metadata.title,
       seasonNumber: metadata.seasonNumber,
       episodeNumber: metadata.episodeNumber,
@@ -690,7 +750,7 @@ export class TautulliService {
     notification.attempts++
 
     // Find matching item in recently added
-    const matchingItem = this.findMatchingItem(notification, recentItems)
+    const matchingItem = await this.findMatchingItem(notification, recentItems)
 
     if (matchingItem) {
       this.log.info(
@@ -752,21 +812,66 @@ export class TautulliService {
   /**
    * Find a matching item in the recently added list
    */
-  private findMatchingItem(
+  private async findMatchingItem(
     notification: PendingNotification,
     recentItems: RecentlyAddedItem[],
-  ): RecentlyAddedItem | null {
+  ): Promise<RecentlyAddedItem | null> {
     for (const item of recentItems) {
       // Check if media type matches
       if (!this.isMediaTypeMatch(notification.mediaType, item.media_type)) {
         continue
       }
 
-      // Check GUID match
+      // For movies, match by Plex GUID since guids array is empty
+      if (notification.mediaType === 'movie' && item.guid) {
+        // Extract the Plex key from the item's guid (e.g., "plex://movie/5d7768b907c4a5001e67bb61")
+        const plexKey = item.guid.split('/').pop()
+
+        // Check if this matches the watchlist item key
+        if (plexKey && notification.watchlistItemKey === plexKey) {
+          return item
+        }
+      }
+
+      // For shows/episodes, try Plex key first (more reliable), then fall back to GUIDs
+      if (
+        (notification.mediaType === 'show' ||
+          notification.mediaType === 'episode') &&
+        item.guid &&
+        notification.watchlistItemKey
+      ) {
+        // Extract the Plex key from the item's guid (e.g., "plex://show/5d7768b907c4a5001e67bb61")
+        const plexKey = item.guid.split('/').pop()
+
+        // Check if this matches the watchlist item key
+        if (plexKey && notification.watchlistItemKey === plexKey) {
+          // For episodes, also check season/episode numbers if available
+          if (
+            notification.mediaType === 'episode' &&
+            item.media_type === 'episode'
+          ) {
+            if (
+              item.season === notification.seasonNumber &&
+              item.episode === notification.episodeNumber
+            ) {
+              return item
+            }
+          } else {
+            return item
+          }
+        }
+      }
+
+      // Fallback: For shows/episodes, use the guids array (which is populated)
       const itemGuids = item.guids.map((g) => this.normalizeGuid(g))
+
+      // Direct match - check if the item's GUIDs include our notification GUID
       if (itemGuids.includes(notification.guid)) {
-        // For episodes, also check season/episode numbers
-        if (notification.mediaType === 'episode') {
+        // For episodes, also check season/episode numbers if available
+        if (
+          notification.mediaType === 'episode' &&
+          item.media_type === 'episode'
+        ) {
           if (
             item.season === notification.seasonNumber &&
             item.episode === notification.episodeNumber
@@ -775,6 +880,65 @@ export class TautulliService {
           }
         } else {
           return item
+        }
+      }
+
+      // For episode notifications that find a season, check the parent show's GUIDs or Plex key
+      if (
+        notification.mediaType === 'episode' &&
+        item.media_type === 'season' &&
+        item.parent_rating_key
+      ) {
+        try {
+          // Fetch the parent show's metadata
+          const parentMetadata = await this.getMetadata(item.parent_rating_key)
+
+          // First try to match by Plex key (more reliable)
+          if (parentMetadata?.guid && notification.watchlistItemKey) {
+            const parentPlexKey = parentMetadata.guid.split('/').pop()
+            if (
+              parentPlexKey &&
+              notification.watchlistItemKey === parentPlexKey
+            ) {
+              this.log.info(
+                {
+                  title: notification.title,
+                  seasonTitle: item.title,
+                  seasonRatingKey: item.rating_key,
+                  parentPlexKey,
+                  watchlistItemKey: notification.watchlistItemKey,
+                },
+                'Found matching season by Plex key for episode notification - will send season notification',
+              )
+              return item
+            }
+          }
+
+          // Fallback to GUID matching
+          if (parentMetadata?.guids) {
+            const parentGuids = parentMetadata.guids.map((g) =>
+              this.normalizeGuid(g.id),
+            )
+            if (parentGuids.includes(notification.guid)) {
+              // We found a matching season for our show
+              // When multiple episodes are added, Tautulli groups them as a season
+              // Send the season notification - Tautulli will show all episodes in the season
+              this.log.info(
+                {
+                  title: notification.title,
+                  seasonTitle: item.title,
+                  seasonRatingKey: item.rating_key,
+                },
+                'Found matching season by GUID for episode notification - will send season notification',
+              )
+              return item
+            }
+          }
+        } catch (error) {
+          this.log.debug(
+            { error, parentRatingKey: item.parent_rating_key },
+            'Failed to fetch parent metadata for season matching',
+          )
         }
       }
     }
@@ -795,7 +959,12 @@ export class TautulliService {
       (tautulliType === 'season' || tautulliType === 'show')
     )
       return true
-    if (notificationType === 'episode' && tautulliType === 'episode')
+    if (
+      notificationType === 'episode' &&
+      (tautulliType === 'episode' ||
+        tautulliType === 'season' ||
+        tautulliType === 'show')
+    )
       return true
     return false
   }
@@ -881,6 +1050,7 @@ export class TautulliService {
     notification: MediaNotification,
     watchlistItemId?: number,
     guid?: string,
+    watchlistItemKey?: string,
   ): Promise<boolean> {
     if (!this.config.enabled || !watchlistItemId) {
       return false
@@ -892,14 +1062,6 @@ export class TautulliService {
       return false
     }
 
-    // Get user's Tautulli notifier ID
-    const tautulliUser = await this.db.getUser(user.id)
-
-    if (!tautulliUser?.tautulli_notifier_id) {
-      this.log.debug(`User ${user.name} has no Tautulli notifier configured`)
-      return false
-    }
-
     // GUID should be provided by the caller
     if (!guid) {
       this.log.error(
@@ -908,7 +1070,10 @@ export class TautulliService {
       return false
     }
 
-    // Queue the notification
+    // Get user's Tautulli notifier ID (may be null if not yet created)
+    const tautulliUser = await this.db.getUser(user.id)
+
+    // Queue the notification - queueNotification will handle creating notifiers if needed
     await this.queueNotification(
       guid,
       notification.type === 'show' && notification.episodeDetails
@@ -918,12 +1083,13 @@ export class TautulliService {
         {
           userId: user.id,
           username: user.name,
-          notifierId: tautulliUser.tautulli_notifier_id,
+          notifierId: tautulliUser?.tautulli_notifier_id || 0,
         },
       ],
       {
         title: notification.title,
         watchlistItemId,
+        watchlistItemKey, // Pass the key if provided
         seasonNumber: notification.episodeDetails?.seasonNumber,
         episodeNumber: notification.episodeDetails?.episodeNumber,
       },

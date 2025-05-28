@@ -229,6 +229,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                     {
                       title: body.movie.title,
                       watchlistItemId: itemId,
+                      watchlistItemKey: userItem.key,
                     },
                   )
                 }
@@ -362,6 +363,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                           {
                             title: body.series.title,
                             watchlistItemId: itemId,
+                            watchlistItemKey: userItem.key,
                             seasonNumber: body.episodes[0].seasonNumber,
                             episodeNumber: body.episodes[0].episodeNumber,
                           },
@@ -543,6 +545,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                           {
                             title: body.series.title,
                             watchlistItemId: itemId,
+                            watchlistItemKey: userItem.key,
                             seasonNumber: episode.seasonNumber,
                             episodeNumber: episode.episodeNumber,
                           },
