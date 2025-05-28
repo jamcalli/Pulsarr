@@ -96,6 +96,18 @@ const schema = {
       type: 'number',
       default: 172800000,
     },
+    tautulliUrl: {
+      type: 'string',
+      default: '',
+    },
+    tautulliApiKey: {
+      type: 'string',
+      default: '',
+    },
+    tautulliEnabled: {
+      type: 'boolean',
+      default: false,
+    },
     upgradeBufferTime: {
       type: 'number',
       default: 2000,

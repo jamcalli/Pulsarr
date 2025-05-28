@@ -149,6 +149,31 @@ export class PendingWebhooksService {
                       result.notification,
                     )
                   }
+
+                  // Send Tautulli notifications
+                  if (
+                    result.user.notify_tautulli &&
+                    this.fastify.tautulli?.isEnabled()
+                  ) {
+                    // Find the watchlist item for this user
+                    const userItem = matchingItems.find(
+                      (item) => item.user_id === result.user.id,
+                    )
+
+                    if (userItem) {
+                      const itemId =
+                        typeof userItem.id === 'string'
+                          ? Number.parseInt(userItem.id, 10)
+                          : userItem.id
+
+                      await this.fastify.tautulli.sendMediaNotification(
+                        result.user,
+                        result.notification,
+                        itemId,
+                        webhook.guid,
+                      )
+                    }
+                  }
                 }),
               )
             } else if (webhook.media_type === 'show') {
@@ -204,6 +229,31 @@ export class PendingWebhooksService {
                         result.user,
                         result.notification,
                       )
+                    }
+
+                    // Send Tautulli notifications
+                    if (
+                      result.user.notify_tautulli &&
+                      this.fastify.tautulli?.isEnabled()
+                    ) {
+                      // Find the watchlist item for this user
+                      const userItem = matchingItems.find(
+                        (item) => item.user_id === result.user.id,
+                      )
+
+                      if (userItem) {
+                        const itemId =
+                          typeof userItem.id === 'string'
+                            ? Number.parseInt(userItem.id, 10)
+                            : userItem.id
+
+                        await this.fastify.tautulli.sendMediaNotification(
+                          result.user,
+                          result.notification,
+                          itemId,
+                          webhook.guid,
+                        )
+                      }
                     }
                   }),
                 )

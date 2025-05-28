@@ -579,6 +579,8 @@ export class PlexWatchlistService {
               discord_id: null,
               notify_apprise: false,
               notify_discord: false,
+              notify_tautulli: false,
+              tautulli_notifier_id: null,
               can_sync: true,
               is_primary_token: false, // Initially false, will set to true next
             })
@@ -597,6 +599,8 @@ export class PlexWatchlistService {
               discord_id: null,
               notify_apprise: false,
               notify_discord: false,
+              notify_tautulli: false,
+              tautulli_notifier_id: null,
               can_sync: true,
               is_primary_token: false,
             })
@@ -634,6 +638,8 @@ export class PlexWatchlistService {
             discord_id: null,
             notify_apprise: false,
             notify_discord: false,
+            notify_tautulli: false,
+            tautulli_notifier_id: null,
             can_sync: true,
             is_primary_token: false,
           })
