@@ -31,7 +31,7 @@ import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
 import { useConfigStore } from '@/stores/configStore'
 import { z } from 'zod'
-import { DiscordClearAlert } from '@/features/notifications/components/discord/discord-clear-alert'
+import { ClearSettingsAlert } from '@/components/ui/clear-settings-alert'
 
 interface TautulliFormProps {
   isInitialized: boolean
@@ -128,7 +128,6 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
     'idle' | 'loading' | 'testing' | 'success' | 'error'
   >('idle')
   const [tautulliTestValid, setTautulliTestValid] = React.useState(false)
-  const [_tautulliTested, setTautulliTested] = React.useState(false)
   const [showClearAlert, setShowClearAlert] = React.useState(false)
 
   const tautulliForm = useForm<TautulliFormSchema>({
@@ -157,7 +156,6 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
       })
       if (hasExistingConfig) {
         setTautulliTestValid(true)
-        setTautulliTested(true)
       }
     }
   }, [config, tautulliForm])
@@ -188,7 +186,6 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
           (name === 'tautulliApiKey' && formValues.tautulliApiKey !== origKey)
         ) {
           tautulliForm.setValue('_connectionTested', false)
-          setTautulliTested(false)
           setTautulliTestValid(false)
         } else if (
           formValues.tautulliUrl === origUrl &&
@@ -197,7 +194,6 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
           origKey
         ) {
           tautulliForm.setValue('_connectionTested', true)
-          setTautulliTested(true)
           setTautulliTestValid(true)
         }
       }
@@ -217,7 +213,6 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
         _originalTautulliUrl: config.tautulliUrl || '',
         _originalTautulliApiKey: config.tautulliApiKey || '',
       })
-      setTautulliTested(hasExistingConfig)
       setTautulliTestValid(hasExistingConfig)
     }
   }
@@ -247,8 +242,6 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
         testTautulliConnection(url, apiKey),
         minimumLoadingTime,
       ])
-
-      setTautulliTested(true)
 
       if (result.success) {
         setTautulliTestValid(true)
@@ -359,7 +352,6 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
         _originalTautulliUrl: '',
         _originalTautulliApiKey: '',
       })
-      setTautulliTested(false)
       setTautulliTestValid(false)
 
       toast({
@@ -414,7 +406,7 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
           existing notification agents. This provides a seamless notification
           experience within the Plex ecosystem.{' '}
           <a
-            href="https://github.com/jamcalli/Pulsarr#tautulli-notifications"
+            href="https://jamcalli.github.io/Pulsarr/docs/notifications/tautulli"
             target="_blank"
             rel="noopener noreferrer"
             className="text-blue-400 hover:text-blue-500 inline-flex items-center gap-1"
@@ -658,7 +650,7 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
         </form>
       </Form>
 
-      <DiscordClearAlert
+      <ClearSettingsAlert
         open={showClearAlert}
         onOpenChange={setShowClearAlert}
         onConfirm={handleClearSettings}

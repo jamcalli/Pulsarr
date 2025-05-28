@@ -55,6 +55,9 @@ export class TautulliService {
   private config: TautulliConfig
   private db: DatabaseService
 
+  // Constants
+  private readonly PLEXMOBILEAPP_AGENT_ID = 26 // Plex mobile app agent ID
+
   // Polling system properties
   private pendingNotifications = new Map<string, PendingNotification>()
   private pollInterval: NodeJS.Timeout | null = null
@@ -321,10 +324,26 @@ export class TautulliService {
       )
     }
 
-    // First, create a basic notifier to get an ID
+    // Create the notifier and get ID
+    const notifierId = await this.createBasicNotifier(user.username)
+
+    // Configure the notifier with user settings
+    await this.configureNotifier(notifierId, user.username, plexUserId)
+
+    this.fastify.log.info(
+      { user: user.username, notifierId },
+      'Created Tautulli notifier for user',
+    )
+    return notifierId
+  }
+
+  /**
+   * Create a basic notifier in Tautulli
+   */
+  private async createBasicNotifier(username: string): Promise<number> {
     const createParams = {
-      agent_id: 26, // plexmobileapp agent ID
-      friendly_name: `Pulsarr - ${user.username}`,
+      agent_id: this.PLEXMOBILEAPP_AGENT_ID,
+      friendly_name: `Pulsarr - ${username}`,
     }
 
     const createResponse = await this.apiCall(
@@ -342,43 +361,60 @@ export class TautulliService {
       throw new Error(`Failed to create notifier: ${errorMsg}`)
     }
 
-    // Check if the response contains the notifier ID directly
-    let notifierId: number
+    // Extract notifier ID from response
+    return await this.extractNotifierId(createResponse, username)
+  }
 
+  /**
+   * Extract notifier ID from creation response or fetch it
+   */
+  private async extractNotifierId(
+    createResponse: TautulliApiResponse<unknown>,
+    username: string,
+  ): Promise<number> {
+    // Check if the response contains the notifier ID directly
     if (
       createResponse?.response?.data &&
       typeof createResponse.response.data === 'object' &&
       'notifier_id' in createResponse.response.data
     ) {
-      notifierId = (createResponse.response.data as { notifier_id: number })
+      return (createResponse.response.data as { notifier_id: number })
         .notifier_id
-    } else {
-      // Wait for the notifier to be created
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-
-      // Get the newly created notifier ID
-      const notifiers = await this.getNotifiers()
-
-      const newNotifier = notifiers.find(
-        (n) => n.friendly_name === `Pulsarr - ${user.username}`,
-      )
-
-      if (!newNotifier) {
-        this.fastify.log.error(
-          `Created notifier not found for ${user.username}. Available notifiers:`,
-          notifiers.map((n) => ({ id: n.id, name: n.friendly_name })),
-        )
-        throw new Error('Created notifier not found')
-      }
-
-      notifierId = newNotifier.id
     }
 
-    // Now configure the notifier with user-specific settings
+    // Wait for the notifier to be created
+    await new Promise((resolve) => setTimeout(resolve, 2000))
+
+    // Get the newly created notifier ID
+    const notifiers = await this.getNotifiers()
+
+    const newNotifier = notifiers.find(
+      (n) => n.friendly_name === `Pulsarr - ${username}`,
+    )
+
+    if (!newNotifier) {
+      this.fastify.log.error(
+        `Created notifier not found for ${username}. Available notifiers:`,
+        notifiers.map((n) => ({ id: n.id, name: n.friendly_name })),
+      )
+      throw new Error('Created notifier not found')
+    }
+
+    return newNotifier.id
+  }
+
+  /**
+   * Configure a notifier with user-specific settings
+   */
+  private async configureNotifier(
+    notifierId: number,
+    username: string,
+    plexUserId: string,
+  ): Promise<void> {
     const configParams = {
       notifier_id: notifierId,
-      agent_id: 26,
-      friendly_name: `Pulsarr - ${user.username}`,
+      agent_id: this.PLEXMOBILEAPP_AGENT_ID,
+      friendly_name: `Pulsarr - ${username}`,
       plexmobileapp_user_ids: plexUserId, // Single user ID as string
       plexmobileapp_tap_action: 'preplay',
       on_play: 0,
@@ -412,12 +448,6 @@ export class TautulliService {
       )
       throw new Error(`Failed to configure notifier: ${errorMsg}`)
     }
-
-    this.fastify.log.info(
-      { user: user.username, notifierId },
-      'Created Tautulli notifier for user',
-    )
-    return notifierId
   }
 
   /**
@@ -1110,7 +1140,7 @@ export class TautulliService {
       title?: string
       type?: 'movie' | 'show' | 'episode'
     },
-    watchlistItemId: number,
+    _watchlistItemId: number,
   ): Promise<{ success: number; failed: number }> {
     if (!this.config.enabled) {
       return { success: 0, failed: users.length }
@@ -1141,10 +1171,10 @@ export class TautulliService {
             existingNotifiers,
           )
           if (notifierId) {
-            user.tautulli_notifier_id = notifierId
-            eligibleUsers.push(
-              user as TautulliEnabledUser & { tautulli_notifier_id: number },
-            )
+            eligibleUsers.push({
+              ...user,
+              tautulli_notifier_id: notifierId,
+            })
           } else {
             failed++
             this.fastify.log.warn(
@@ -1160,9 +1190,10 @@ export class TautulliService {
           )
         }
       } else {
-        eligibleUsers.push(
-          user as TautulliEnabledUser & { tautulli_notifier_id: number },
-        )
+        eligibleUsers.push({
+          ...user,
+          tautulli_notifier_id: user.tautulli_notifier_id,
+        })
       }
     }
 

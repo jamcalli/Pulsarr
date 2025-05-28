@@ -203,36 +203,43 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
             // Queue Tautulli notifications
             if (result.user.notify_tautulli && fastify.tautulli?.isEnabled()) {
-              // Find the watchlist item for this user
-              const userItem = matchingItems.find(
-                (item) => item.user_id === result.user.id,
-              )
+              try {
+                // Find the watchlist item for this user
+                const userItem = matchingItems.find(
+                  (item) => item.user_id === result.user.id,
+                )
 
-              if (userItem) {
-                const itemId =
-                  typeof userItem.id === 'string'
-                    ? Number.parseInt(userItem.id, 10)
-                    : userItem.id
+                if (userItem) {
+                  const itemId =
+                    typeof userItem.id === 'string'
+                      ? Number.parseInt(userItem.id, 10)
+                      : userItem.id
 
-                const tmdbId = extractTmdbId(userItem.guids)
-                if (tmdbId > 0) {
-                  await fastify.tautulli.queueNotification(
-                    `tmdb:${tmdbId}`,
-                    'movie',
-                    [
+                  const tmdbId = extractTmdbId(userItem.guids)
+                  if (tmdbId > 0) {
+                    await fastify.tautulli.queueNotification(
+                      `tmdb:${tmdbId}`,
+                      'movie',
+                      [
+                        {
+                          userId: result.user.id,
+                          username: result.user.name,
+                          notifierId: result.user.tautulli_notifier_id || 0,
+                        },
+                      ],
                       {
-                        userId: result.user.id,
-                        username: result.user.name,
-                        notifierId: result.user.tautulli_notifier_id || 0,
+                        title: body.movie.title,
+                        watchlistItemId: itemId,
+                        watchlistItemKey: userItem.key,
                       },
-                    ],
-                    {
-                      title: body.movie.title,
-                      watchlistItemId: itemId,
-                      watchlistItemKey: userItem.key,
-                    },
-                  )
+                    )
+                  }
                 }
+              } catch (error) {
+                fastify.log.error(
+                  { error, userId: result.user.id, title: body.movie.title },
+                  'Failed to queue Tautulli notification for movie',
+                )
               }
             }
           }
@@ -337,38 +344,52 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                     result.user.notify_tautulli &&
                     fastify.tautulli?.isEnabled()
                   ) {
-                    // Find the watchlist item for this user
-                    const userItem = matchingItems.find(
-                      (item) => item.user_id === result.user.id,
-                    )
+                    try {
+                      // Find the watchlist item for this user
+                      const userItem = matchingItems.find(
+                        (item) => item.user_id === result.user.id,
+                      )
 
-                    if (userItem) {
-                      const itemId =
-                        typeof userItem.id === 'string'
-                          ? Number.parseInt(userItem.id, 10)
-                          : userItem.id
+                      if (userItem) {
+                        const itemId =
+                          typeof userItem.id === 'string'
+                            ? Number.parseInt(userItem.id, 10)
+                            : userItem.id
 
-                      const tvdbId = extractTvdbId(userItem.guids)
-                      if (tvdbId > 0) {
-                        await fastify.tautulli.queueNotification(
-                          `tvdb:${tvdbId}`,
-                          'episode',
-                          [
+                        const tvdbId = extractTvdbId(userItem.guids)
+                        if (tvdbId > 0) {
+                          await fastify.tautulli.queueNotification(
+                            `tvdb:${tvdbId}`,
+                            'episode',
+                            [
+                              {
+                                userId: result.user.id,
+                                username: result.user.name,
+                                notifierId:
+                                  result.user.tautulli_notifier_id || 0,
+                              },
+                            ],
                             {
-                              userId: result.user.id,
-                              username: result.user.name,
-                              notifierId: result.user.tautulli_notifier_id || 0,
+                              title: body.series.title,
+                              watchlistItemId: itemId,
+                              watchlistItemKey: userItem.key,
+                              seasonNumber: body.episodes[0].seasonNumber,
+                              episodeNumber: body.episodes[0].episodeNumber,
                             },
-                          ],
-                          {
-                            title: body.series.title,
-                            watchlistItemId: itemId,
-                            watchlistItemKey: userItem.key,
-                            seasonNumber: body.episodes[0].seasonNumber,
-                            episodeNumber: body.episodes[0].episodeNumber,
-                          },
-                        )
+                          )
+                        }
                       }
+                    } catch (error) {
+                      fastify.log.error(
+                        {
+                          error,
+                          userId: result.user.id,
+                          title: body.series.title,
+                          season: body.episodes[0].seasonNumber,
+                          episode: body.episodes[0].episodeNumber,
+                        },
+                        'Failed to queue Tautulli notification for episode',
+                      )
                     }
                   }
                 }
@@ -532,24 +553,38 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                     if (tvdbId > 0) {
                       // For multiple episodes, queue each one separately
                       for (const episode of recentEpisodes) {
-                        await fastify.tautulli.queueNotification(
-                          `tvdb:${tvdbId}`,
-                          'episode',
-                          [
+                        try {
+                          await fastify.tautulli.queueNotification(
+                            `tvdb:${tvdbId}`,
+                            'episode',
+                            [
+                              {
+                                userId: result.user.id,
+                                username: result.user.name,
+                                notifierId:
+                                  result.user.tautulli_notifier_id || 0,
+                              },
+                            ],
                             {
-                              userId: result.user.id,
-                              username: result.user.name,
-                              notifierId: result.user.tautulli_notifier_id || 0,
+                              title: body.series.title,
+                              watchlistItemId: itemId,
+                              watchlistItemKey: userItem.key,
+                              seasonNumber: episode.seasonNumber,
+                              episodeNumber: episode.episodeNumber,
                             },
-                          ],
-                          {
-                            title: body.series.title,
-                            watchlistItemId: itemId,
-                            watchlistItemKey: userItem.key,
-                            seasonNumber: episode.seasonNumber,
-                            episodeNumber: episode.episodeNumber,
-                          },
-                        )
+                          )
+                        } catch (error) {
+                          fastify.log.error(
+                            {
+                              error,
+                              userId: result.user.id,
+                              tvdbId,
+                              season: episode.seasonNumber,
+                              episode: episode.episodeNumber,
+                            },
+                            'Failed to queue Tautulli notification for episode',
+                          )
+                        }
                       }
                     }
                   }
