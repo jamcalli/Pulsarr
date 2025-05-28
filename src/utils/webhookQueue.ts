@@ -397,6 +397,7 @@ export async function processQueuedWebhooks(
               result.notification,
               itemId,
               `tvdb:${tvdbId}`,
+              userItem.key,
             )
 
             fastify.log.info(

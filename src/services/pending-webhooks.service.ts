@@ -171,6 +171,7 @@ export class PendingWebhooksService {
                         result.notification,
                         itemId,
                         webhook.guid,
+                        userItem.key,
                       )
                     }
                   }
@@ -252,6 +253,7 @@ export class PendingWebhooksService {
                           result.notification,
                           itemId,
                           webhook.guid,
+                          userItem.key,
                         )
                       }
                     }
