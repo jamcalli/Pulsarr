@@ -105,7 +105,10 @@ async function testTautulliConnection(url: string, apiKey: string) {
   })
 
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`)
+    const errorData = await response
+      .json()
+      .catch(() => ({ message: `HTTP ${response.status}` }))
+    throw new Error(errorData.message || `HTTP ${response.status}`)
   }
 
   return response.json()
