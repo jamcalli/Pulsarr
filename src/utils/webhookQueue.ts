@@ -198,6 +198,14 @@ export async function checkForUpgrade(
   return hasUpgrade
 }
 
+/**
+ * Processes and dispatches queued webhook notifications for a specific TV show season.
+ *
+ * For the given TVDB ID and season, this function validates and processes any queued webhook episodes. It determines if notifications should be sent based on episode recency and prior notification status, then generates and sends notifications via Discord, Apprise, and Tautulli as configured for each user. If no notifications are generated and no watchlist matches are found, the webhook is queued as pending for later processing. Cleans up the queue after processing.
+ *
+ * @param tvdbId - The TVDB ID of the show.
+ * @param seasonNumber - The season number to process.
+ */
 export async function processQueuedWebhooks(
   tvdbId: string,
   seasonNumber: number,
