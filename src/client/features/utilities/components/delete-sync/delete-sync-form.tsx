@@ -903,6 +903,47 @@ export function DeleteSyncForm() {
 
                             <FormField
                               control={form.control}
+                              name="deleteSyncNotifyOnlyOnDeletion"
+                              render={({ field }) => (
+                                <FormItem className="flex items-center space-x-2">
+                                  <FormControl>
+                                    <Switch
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                      disabled={
+                                        isSaving ||
+                                        form.watch('deleteSyncNotify') ===
+                                          'none'
+                                      }
+                                    />
+                                  </FormControl>
+                                  <div className="flex items-center">
+                                    <FormLabel className="text-text m-0">
+                                      Only Notify When Items Deleted
+                                    </FormLabel>
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p className="max-w-xs">
+                                            When enabled, notifications will
+                                            only be sent when items are actually
+                                            deleted. No notification will be
+                                            sent for "0 items deleted"
+                                            scenarios.
+                                          </p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  </div>
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
                               name="maxDeletionPrevention"
                               render={({ field }) => (
                                 <FormItem className="space-y-2">

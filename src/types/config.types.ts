@@ -104,6 +104,7 @@ export interface Config {
   deleteFiles: boolean
   respectUserSyncSetting: boolean
   deleteSyncNotify: DeleteSyncNotifyOption
+  deleteSyncNotifyOnlyOnDeletion: boolean
   maxDeletionPrevention: number
   enablePlexPlaylistProtection: boolean
   plexProtectionPlaylistName: string

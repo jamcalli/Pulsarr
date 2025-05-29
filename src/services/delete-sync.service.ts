@@ -506,6 +506,17 @@ export class DeleteSyncService {
       return
     }
 
+    // Check if we should only notify when items were actually deleted
+    if (
+      this.config.deleteSyncNotifyOnlyOnDeletion &&
+      result.total.deleted === 0
+    ) {
+      this.log.info(
+        'Delete sync completed with no deletions, skipping notification as per configuration',
+      )
+      return
+    }
+
     const sendDiscord = [
       'all',
       'discord-only',
