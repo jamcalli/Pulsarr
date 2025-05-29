@@ -18,6 +18,14 @@ interface ClearSettingsAlertProps {
   description: string
 }
 
+/**
+ * Displays a modal dialog prompting the user to confirm clearing settings.
+ *
+ * Renders a dialog with a customizable title and description, offering "Cancel" and "Clear" actions. Invokes {@link onConfirm} when "Clear" is clicked and then closes the dialog.
+ *
+ * @param title - The title text displayed in the alert header.
+ * @param description - The description text displayed below the title.
+ */
 export function ClearSettingsAlert({
   open,
   onOpenChange,
