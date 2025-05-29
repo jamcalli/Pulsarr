@@ -12,74 +12,47 @@ const CertificationMultiSelect = ({
 }: CertificationMultiSelectProps) => {
 
   const groupedOptions = useMemo(() => {
-    return Object.entries(ContentCertifications).map(([region, data]) => ({
+    return Object.entries(ContentCertifications).map(([, data]) => ({
       label: data.label,
       options: [
         ...(data.movie || []).map(cert => ({
           label: cert.label,
-          // Make the value unique by prefixing with region code to prevent duplicate keys
-          value: `${region}-${cert.value}`,
+          value: cert.value,
         })),
         ...(data.tv || []).map(cert => ({
           label: cert.label,
-          // Make the value unique by prefixing with region code to prevent duplicate keys
-          value: `${region}-${cert.value}`,
+          value: cert.value,
         })),
         ...(data.all || []).map(cert => ({
           label: cert.label,
-          // Make the value unique by prefixing with region code to prevent duplicate keys
-          value: `${region}-${cert.value}`,
+          value: cert.value,
         }))
       ]
     }));
   }, []);
 
-  // Transform the field value to handle region-prefixed values
-  const transformedValue = useMemo(() => {
-    const rawValue = field.value;
-    if (!rawValue) return [];
-    
-    // If already prefixed, return as is
-    if (Array.isArray(rawValue) && rawValue.every(v => typeof v === 'string' && v.includes('-'))) {
-      return rawValue;
-    }
-    
-    // Transform raw values to prefixed format
-    const values = Array.isArray(rawValue) ? rawValue : [rawValue];
-    const result: string[] = [];
-    
-    values.forEach(val => {
-      Object.entries(ContentCertifications).forEach(([region, data]) => {
-        [...(data.movie || []), ...(data.tv || []), ...(data.all || [])].forEach(cert => {
-          if (cert.value === val) {
-            result.push(`${region}-${cert.value}`);
-          }
-        });
-      });
-    });
-    
-    return result;
+  // Ensure value is always an array
+  const currentValue = useMemo(() => {
+    if (!field.value) return [];
+    if (Array.isArray(field.value)) return field.value as string[];
+    return [field.value as string];
   }, [field.value]);
 
-  // Transform selected values back to raw format
+  // Handle value change with proper array handling
   const handleValueChange = (values: string[]) => {
-    // Extract certification value without region prefix
-    const rawValues = values.map(value => {
-      const idx = value.indexOf('-');
-      return idx >= 0 ? value.substring(idx + 1) : value;
-    });
+    // The MultiSelect already handles deduplication when same value appears in multiple groups
+    // Just pass the unique values to the form
+    const uniqueValues = Array.from(new Set(values));
     
-    // Remove duplicates
-    const uniqueValues = Array.from(new Set(rawValues));
-    
-    field.onChange(uniqueValues.length === 1 ? uniqueValues[0] : uniqueValues);
+    // Call onChange with the new value
+    field.onChange(uniqueValues);
   };
 
   return (
     <MultiSelect
       options={groupedOptions}
       onValueChange={handleValueChange}
-      defaultValue={transformedValue}
+      value={currentValue}
       placeholder="Select certification(s)"
       modalPopover={true}
       maxCount={2}

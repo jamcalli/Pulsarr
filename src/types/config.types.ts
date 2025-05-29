@@ -6,6 +6,8 @@ export interface User {
   discord_id: string | null
   notify_apprise: boolean
   notify_discord: boolean
+  notify_tautulli: boolean
+  tautulli_notifier_id: number | null
   can_sync: boolean
   is_primary_token?: boolean
   created_at?: string
@@ -40,6 +42,7 @@ export type RemovedTagMode = 'remove' | 'keep' | 'special-tag'
 export type DeletionMode = 'watchlist' | 'tag-based'
 
 export interface Config {
+  id: number
   // System Config
   baseUrl: string
   port: number
@@ -62,6 +65,10 @@ export interface Config {
   enableApprise: boolean
   appriseUrl: string
   systemAppriseUrl: string
+  // Tautulli Config
+  tautulliEnabled: boolean
+  tautulliUrl: string
+  tautulliApiKey: string
   // General Notifications
   queueWaitTime: number
   newEpisodeThreshold: number
@@ -97,6 +104,7 @@ export interface Config {
   deleteFiles: boolean
   respectUserSyncSetting: boolean
   deleteSyncNotify: DeleteSyncNotifyOption
+  deleteSyncNotifyOnlyOnDeletion: boolean
   maxDeletionPrevention: number
   enablePlexPlaylistProtection: boolean
   plexProtectionPlaylistName: string

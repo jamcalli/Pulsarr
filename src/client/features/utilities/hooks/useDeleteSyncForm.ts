@@ -32,6 +32,7 @@ export const deleteSyncSchema = z
       'discord-message',
       'discord-both',
     ]),
+    deleteSyncNotifyOnlyOnDeletion: z.boolean().default(false),
     maxDeletionPrevention: z.coerce.number().int().min(1).max(100).optional(),
     scheduleTime: z.date().optional(),
     dayOfWeek: z.string().default('*'),
@@ -82,9 +83,9 @@ const validateDayOfWeek = (value: string | undefined): string => {
 }
 
 /**
- * Manages state, validation, and submission for the deletion synchronization form in the utilities feature.
+ * Provides a React hook for managing the deletion synchronization form, including state, validation, and submission logic.
  *
- * This React hook initializes the deletion sync form with values from global configuration and schedule data, validates input using a Zod schema, and provides handlers for submitting changes, canceling edits, and updating scheduled deletion times. On submission, it updates configuration settings, optionally updates the deletion schedule, refreshes schedules, and manages submission status with user feedback via toast notifications.
+ * Initializes the form with values from global configuration and schedule data, validates input using a Zod schema, and supplies handlers for submitting changes, canceling edits, and updating scheduled deletion times. On submission, updates configuration settings, optionally updates the deletion schedule, refreshes schedules, and manages submission status with user feedback.
  *
  * @returns An object containing the form instance, current save status, a flag indicating if saving is in progress, the last submitted values, and handler functions for form submission, cancellation, and schedule time changes.
  */
@@ -147,6 +148,7 @@ export function useDeleteSyncForm() {
       enablePlexPlaylistProtection: false,
       plexProtectionPlaylistName: 'Do Not Delete',
       deleteSyncNotify: 'none',
+      deleteSyncNotifyOnlyOnDeletion: false,
       maxDeletionPrevention: undefined,
       scheduleTime: undefined,
       dayOfWeek: '*',
@@ -181,6 +183,8 @@ export function useDeleteSyncForm() {
           plexProtectionPlaylistName:
             config.plexProtectionPlaylistName || 'Do Not Delete',
           deleteSyncNotify: notifyValue,
+          deleteSyncNotifyOnlyOnDeletion:
+            config.deleteSyncNotifyOnlyOnDeletion || false,
           maxDeletionPrevention: config.maxDeletionPrevention,
           scheduleTime: scheduleTime || form.getValues('scheduleTime'),
           dayOfWeek: dayOfWeek,
@@ -234,6 +238,7 @@ export function useDeleteSyncForm() {
         enablePlexPlaylistProtection: data.enablePlexPlaylistProtection,
         plexProtectionPlaylistName: data.plexProtectionPlaylistName,
         deleteSyncNotify: data.deleteSyncNotify,
+        deleteSyncNotifyOnlyOnDeletion: data.deleteSyncNotifyOnlyOnDeletion,
         maxDeletionPrevention: data.maxDeletionPrevention,
         // We still send the removedTagPrefix value from the form
         // This value is now read-only in Delete Sync but needed for the tag-based deletion logic
@@ -308,6 +313,8 @@ export function useDeleteSyncForm() {
           plexProtectionPlaylistName:
             updatedConfig.plexProtectionPlaylistName || 'Do Not Delete',
           deleteSyncNotify: updatedConfig.deleteSyncNotify || 'none',
+          deleteSyncNotifyOnlyOnDeletion:
+            updatedConfig.deleteSyncNotifyOnlyOnDeletion || false,
           maxDeletionPrevention: updatedConfig.maxDeletionPrevention,
           scheduleTime: data.scheduleTime,
           dayOfWeek: data.dayOfWeek,
@@ -357,6 +364,8 @@ export function useDeleteSyncForm() {
         plexProtectionPlaylistName:
           config.plexProtectionPlaylistName || 'Do Not Delete',
         deleteSyncNotify: config.deleteSyncNotify || 'none',
+        deleteSyncNotifyOnlyOnDeletion:
+          config.deleteSyncNotifyOnlyOnDeletion || false,
         maxDeletionPrevention: config.maxDeletionPrevention,
         scheduleTime: scheduleTime,
         dayOfWeek: dayOfWeek,

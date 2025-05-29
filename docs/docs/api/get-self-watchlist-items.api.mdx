@@ -1,0 +1,63 @@
+---
+id: get-self-watchlist-items
+title: "Get self watchlist items"
+description: "Retrieve the current user watchlist items from Plex"
+sidebar_label: "Get self watchlist items"
+hide_title: true
+hide_table_of_contents: true
+api: eJydVU1v2zAM/SsCTxugwul6861AhyLYgAXtPg5GDopNx2plyaXotIHh/z5IzoeXecjSUwKRfCIfn547cA2SYu3svIAU1siPaMpfivPKaM9zxtqDBFZrD2kGC4NvsJRQoM9JN6EOUnhAJo0bFFyhyFsitCxajyRe90BCByRRkqtFBJFA6BtnPXpIO/g0m4WfP3HvsFStYfGwywQJubOMlkOuahqj89h78uRDQQc+r7BWMWq330pIsw542yCk4FZPmDNIaCjMzHq4mB0rE/8MabatV0jQSwgD+FFEEaktSIiTjM7/ARzKz2cdCAr0H5I9k7brfRNW1TgR7AOFL60mLMJqxkijuqUEVRQ6sKTMYnR3qYzHXh7r3j8qazZTHUpoDL59we1kbDiYClRtvZqMrFtd/M9KRhSt0RJeVHPC6zDcrt19CwfcM/SegkVRjDm/sH5Q616b53Z7bm9I5Oi8soa0M5ct+z52WyNXbmcl4ULFFaSQbK6ToIXEoymvDuNfsXtGCxI80ia+tqyDlgykUDE3aZIYlytTOc/pzWx2A6fOsyBdK9qKx1gPYeRLyu80Yc67anGb5+i9+PCquRKNI/54MeDXfXgSbClB29KNngwsWuMVkbhdzP8Cu13MReHytkbL0eZE6UjsK66Eik469ljLuKZj6qOzIVPZQjyoQlGQXqB5gP95HV+o81yraJ6Dz8A9sghrOjXv0/66oxm/8wuwkx3jGyeNUdpGx6Nox4NwMthcw2AjUSUT4llKCISH3K5bKY8/yPR9OH5pkbaQZksJG0VarQLj2bKXUKEqgjtnHTwHd4KwrSbodaNMG13i9OMSlnfQ9v3n79D3vwH4PoYo
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get self watchlist items"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/plex/self-watchlist-token"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieve the current user watchlist items from Plex
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"anyOf":[{"type":"object","properties":{"total":{"type":"number"},"users":{"type":"array","items":{"type":"object","properties":{"user":{"type":"object","properties":{"watchlistId":{"type":"string"},"username":{"type":"string"}},"required":["watchlistId","username"],"additionalProperties":false},"watchlist":{"type":"array","items":{"type":"object","properties":{"title":{"type":"string"},"plexKey":{"type":"string"},"type":{"type":"string"},"thumb":{"type":"string"},"guids":{"type":"array","items":{"type":"string"}},"genres":{"type":"array","items":{"type":"string"}}},"required":["title","type","guids","genres"],"additionalProperties":false}}},"required":["user","watchlist"],"additionalProperties":false}}},"required":["total","users"],"additionalProperties":false},{"type":"object","properties":{"error":{"type":"string"}},"required":["error"],"additionalProperties":false}]}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

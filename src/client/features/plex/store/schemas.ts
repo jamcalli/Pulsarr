@@ -14,6 +14,7 @@ export const plexUserSchema = z
     discord_id: z.string().nullable(),
     notify_apprise: z.boolean(),
     notify_discord: z.boolean(),
+    notify_tautulli: z.boolean(),
     can_sync: z.boolean(),
   })
   .refine(
@@ -46,6 +47,8 @@ export const bulkUpdateSchema = z.object({
   appriseNotifyValue: z.boolean().default(false),
   setDiscordNotify: z.boolean().default(false),
   discordNotifyValue: z.boolean().default(false),
+  setTautulliNotify: z.boolean().default(false),
+  tautulliNotifyValue: z.boolean().default(false),
   setCanSync: z.boolean().default(false),
   canSyncValue: z.boolean().default(true),
 })
