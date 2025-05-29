@@ -47,16 +47,74 @@ interface RecentlyAddedItem {
   section_id: number
   library_name: string
   added_at: string
-  season?: number
-  episode?: number
+  media_index?: string // Episode number as string
+  parent_media_index?: string // Season number as string
+  season?: number // Deprecated, use parent_media_index
+  episode?: number // Deprecated, use media_index
 }
 
 export class TautulliService {
-  private config: TautulliConfig
   private db: DatabaseService
+  private isInitialized = false
 
   // Constants
   private readonly PLEXMOBILEAPP_AGENT_ID = 26 // Plex mobile app agent ID
+
+  /**
+   * Safely parse season and episode numbers from Tautulli API response
+   *
+   * @param item - The Tautulli recently added item
+   * @returns Object with parsed season and episode numbers, or null values if parsing fails
+   */
+  private parseSeasonEpisode(item: RecentlyAddedItem): {
+    season: number | null
+    episode: number | null
+  } {
+    let season: number | null = null
+    let episode: number | null = null
+
+    // Try parsing from string fields first (newer API format)
+    if (item.parent_media_index) {
+      const parsedSeason = Number.parseInt(item.parent_media_index, 10)
+      if (!Number.isNaN(parsedSeason)) {
+        season = parsedSeason
+      }
+    }
+
+    if (item.media_index) {
+      const parsedEpisode = Number.parseInt(item.media_index, 10)
+      if (!Number.isNaN(parsedEpisode)) {
+        episode = parsedEpisode
+      }
+    }
+
+    // Fallback to legacy number fields if string parsing failed
+    if (season === null && typeof item.season === 'number') {
+      season = item.season
+    }
+
+    if (episode === null && typeof item.episode === 'number') {
+      episode = item.episode
+    }
+
+    // Log warning if we have string fields but they couldn't be parsed
+    if (
+      (item.parent_media_index && season === null) ||
+      (item.media_index && episode === null)
+    ) {
+      this.log.warn(
+        {
+          parent_media_index: item.parent_media_index,
+          media_index: item.media_index,
+          title: item.title,
+          rating_key: item.rating_key,
+        },
+        'Invalid media index values from Tautulli API',
+      )
+    }
+
+    return { season, episode }
+  }
 
   // Polling system properties
   private pendingNotifications = new Map<string, PendingNotification>()
@@ -71,10 +129,13 @@ export class TautulliService {
     private readonly fastify: FastifyInstance,
   ) {
     this.db = fastify.db
-    this.config = {
-      url: fastify.config.tautulliUrl || '',
-      apiKey: fastify.config.tautulliApiKey || '',
-      enabled: fastify.config.tautulliEnabled || false,
+  }
+
+  private get config(): TautulliConfig {
+    return {
+      url: this.fastify.config.tautulliUrl || '',
+      apiKey: this.fastify.config.tautulliApiKey || '',
+      enabled: this.fastify.config.tautulliEnabled || false,
     }
   }
 
@@ -105,11 +166,7 @@ export class TautulliService {
         await this.saveConfig()
 
         this.fastify.log.info('Tautulli integration enabled successfully')
-
-        // Set up graceful shutdown on successful initialization
-        this.fastify.addHook('onClose', async () => {
-          await this.shutdown()
-        })
+        this.isInitialized = true
 
         return
       } catch (error) {
@@ -135,6 +192,7 @@ export class TautulliService {
    */
   async shutdown(): Promise<void> {
     this.stopPolling()
+    this.isInitialized = false
   }
 
   /**
@@ -917,9 +975,12 @@ export class TautulliService {
             notification.mediaType === 'episode' &&
             item.media_type === 'episode'
           ) {
+            const { season: itemSeason, episode: itemEpisode } =
+              this.parseSeasonEpisode(item)
+
             if (
-              item.season === notification.seasonNumber &&
-              item.episode === notification.episodeNumber
+              itemSeason === notification.seasonNumber &&
+              itemEpisode === notification.episodeNumber
             ) {
               return item
             }
@@ -939,9 +1000,12 @@ export class TautulliService {
           notification.mediaType === 'episode' &&
           item.media_type === 'episode'
         ) {
+          const { season: itemSeason, episode: itemEpisode } =
+            this.parseSeasonEpisode(item)
+
           if (
-            item.season === notification.seasonNumber &&
-            item.episode === notification.episodeNumber
+            itemSeason === notification.seasonNumber &&
+            itemEpisode === notification.episodeNumber
           ) {
             return item
           }
@@ -1005,6 +1069,86 @@ export class TautulliService {
           this.log.debug(
             { error, parentRatingKey: item.parent_rating_key },
             'Failed to fetch parent metadata for season matching',
+          )
+        }
+      }
+
+      // For episode notifications with individual episodes, check the grandparent show's GUIDs
+      if (
+        notification.mediaType === 'episode' &&
+        item.media_type === 'episode' &&
+        item.grandparent_rating_key
+      ) {
+        try {
+          // Fetch the grandparent show's metadata
+          const grandparentMetadata = await this.getMetadata(
+            item.grandparent_rating_key,
+          )
+
+          // First try to match by Plex key (more reliable)
+          if (grandparentMetadata?.guid && notification.watchlistItemKey) {
+            const grandparentPlexKey = grandparentMetadata.guid.split('/').pop()
+            if (
+              grandparentPlexKey &&
+              notification.watchlistItemKey === grandparentPlexKey
+            ) {
+              // Check if this is the correct episode
+              const { season: itemSeason, episode: itemEpisode } =
+                this.parseSeasonEpisode(item)
+
+              if (
+                itemSeason === notification.seasonNumber &&
+                itemEpisode === notification.episodeNumber
+              ) {
+                this.log.info(
+                  {
+                    title: notification.title,
+                    episodeTitle: item.title,
+                    episodeRatingKey: item.rating_key,
+                    grandparentPlexKey,
+                    watchlistItemKey: notification.watchlistItemKey,
+                    season: item.season,
+                    episode: item.episode,
+                  },
+                  'Found matching episode by grandparent Plex key',
+                )
+                return item
+              }
+            }
+          }
+
+          // Fallback to GUID matching
+          if (grandparentMetadata?.guids) {
+            const grandparentGuids = grandparentMetadata.guids.map((g) =>
+              this.normalizeGuid(g.id),
+            )
+            if (grandparentGuids.includes(notification.guid)) {
+              // Check if this is the correct episode
+              const { season: itemSeason, episode: itemEpisode } =
+                this.parseSeasonEpisode(item)
+
+              if (
+                itemSeason === notification.seasonNumber &&
+                itemEpisode === notification.episodeNumber
+              ) {
+                this.log.info(
+                  {
+                    title: notification.title,
+                    episodeTitle: item.title,
+                    episodeRatingKey: item.rating_key,
+                    season: item.season,
+                    episode: item.episode,
+                  },
+                  'Found matching episode by grandparent GUID',
+                )
+                return item
+              }
+            }
+          }
+        } catch (error) {
+          this.log.debug(
+            { error, grandparentRatingKey: item.grandparent_rating_key },
+            'Failed to fetch grandparent metadata for episode matching',
           )
         }
       }
@@ -1366,47 +1510,14 @@ export class TautulliService {
   }
 
   /**
-   * Update Tautulli configuration
+   * Get current service status
    */
-  async updateConfig(config: Partial<TautulliConfig>): Promise<void> {
-    // Validate configuration
-    if (config.url && !this.isValidUrl(config.url)) {
-      throw new Error('Invalid Tautulli URL provided')
+  getStatus(): 'running' | 'disabled' {
+    // Tautulli is running if it's initialized and enabled
+    if (this.isInitialized && this.config.enabled) {
+      return 'running'
     }
-
-    if (config.apiKey && config.apiKey.length < 10) {
-      throw new Error('Invalid Tautulli API key provided')
-    }
-
-    this.config = { ...this.config, ...config }
-
-    if (config.enabled !== undefined || config.url || config.apiKey) {
-      // Test connection before saving if enabling or changing credentials
-      if (config.enabled && (config.url || config.apiKey)) {
-        const isConnected = await this.testConnection()
-        if (!isConnected) {
-          throw new Error(
-            'Cannot connect to Tautulli with provided configuration',
-          )
-        }
-      }
-
-      await this.saveConfig()
-
-      // Reinitialize if enabling
-      if (config.enabled && this.config.url && this.config.apiKey) {
-        await this.initialize()
-      }
-    }
-  }
-
-  private isValidUrl(url: string): boolean {
-    try {
-      new URL(url)
-      return true
-    } catch {
-      return false
-    }
+    return 'disabled'
   }
 
   /**

@@ -24,7 +24,6 @@
     "prepare": "husky",
     "openapi:generate": "tsx scripts/generate-openapi.ts",
     "docs:build": "./scripts/build-docs.sh",
-    "docs:build:simple": "npm --prefix docs run build",
     "docs:start": "npm --prefix docs run start"
   },
   "repository": {
