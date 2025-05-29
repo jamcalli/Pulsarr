@@ -173,13 +173,8 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
       if (name === 'tautulliEnabled' && formValues.tautulliEnabled) {
         tautulliForm.trigger(['tautulliUrl', 'tautulliApiKey'])
       }
-    })
 
-    return () => subscription.unsubscribe()
-  }, [tautulliForm])
-
-  React.useEffect(() => {
-    const subscription = tautulliForm.watch((formValues, { name }) => {
+      // Reset connection test status when credentials change
       if (name === 'tautulliUrl' || name === 'tautulliApiKey') {
         const origUrl = tautulliForm.getValues('_originalTautulliUrl')
         const origKey = tautulliForm.getValues('_originalTautulliApiKey')
