@@ -226,6 +226,10 @@ const schema = {
       enum: ['none', 'message', 'webhook', 'both'],
       default: 'none',
     },
+    deleteSyncNotifyOnlyOnDeletion: {
+      type: 'boolean',
+      default: false,
+    },
     maxDeletionPrevention: {
       type: 'number',
       default: 10,
