@@ -76,6 +76,28 @@ Users can be configured in two ways:
 
 ## User Experience
 
+### Mobile Push Notifications
+
+Tautulli notifications are delivered directly to users' **Plex mobile apps** (iOS and Android) as native push notifications. This provides the most seamless notification experience within the Plex ecosystem.
+
+:::info Push Notification Setup Required
+Users must have push notifications enabled in their Plex mobile app to receive Tautulli notifications. This is a one-time setup per device.
+:::
+
+**For iOS Users:**
+1. Open the **Plex mobile app**
+2. Go to **Settings** → **Notifications**
+3. Enable **Push Notifications**
+4. Allow notifications when prompted by iOS
+
+**For Android Users:**
+1. Open the **Plex mobile app**
+2. Go to **Settings** → **Notifications**
+3. Enable **Push Notifications**
+4. Ensure Plex app notifications are allowed in Android system settings
+
+### Notification Examples
+
 When enabled, users will receive notifications like:
 
 - **Movies**: "Your watchlist item 'Movie Title' has been added to the library"
@@ -95,7 +117,11 @@ Notifications appear as native Plex push notifications on mobile devices with:
 2. **Check RSS Feeds**: Generate RSS feeds in Plex settings if not already done
 3. **Test Connection**: Re-test Tautulli connection in settings
 4. **User Settings**: Confirm the user has Tautulli notifications enabled
-5. **Mobile App**: Ensure users have the Plex mobile app installed and notifications enabled
+5. **Mobile App Setup**: Ensure users have:
+   - Plex mobile app installed (iOS/Android)
+   - Push notifications enabled in the Plex app settings
+   - System-level notifications allowed for the Plex app
+   - Signed in to the same Plex account
 
 ### Delayed Notifications
 
