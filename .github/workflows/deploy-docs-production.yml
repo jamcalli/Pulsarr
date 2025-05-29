@@ -6,6 +6,10 @@ on:
       - master
     paths:
       - 'docs/**'
+      - 'src/**'  # OpenAPI generation depends on source files
+      - 'scripts/**'  # Build scripts
+      - 'package.json'
+      - 'package-lock.json'
       - '.github/workflows/deploy-docs-production.yml'
 
 permissions:
@@ -27,17 +31,20 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
-          cache-dependency-path: docs/package-lock.json
 
-      - name: Install dependencies
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install docs dependencies
         run: |
           cd docs
           npm ci
 
-      - name: Build documentation
-        run: |
-          cd docs
-          npm run build
+      - name: Build server (for OpenAPI generation)
+        run: npm run build:server
+
+      - name: Build documentation with OpenAPI generation
+        run: npm run docs:build
 
       - name: Deploy to GitHub Pages
         run: |

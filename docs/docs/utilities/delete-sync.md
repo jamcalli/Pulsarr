@@ -55,6 +55,7 @@ Navigate to the Utilities page in the Pulsarr web interface and configure your d
 - **Playlist Protection**: Set up protected playlist names
 - **User Sync Settings**: Control which users' watchlists/playlists affect deletion
 - **Notifications**: Configure deletion event notifications
+  - **Notify Only on Deletion**: Only send notifications when items are actually deleted (skip when nothing is removed)
 - **Safety Threshold**: Set maximum deletion prevention percentage
 - **Scheduling**: Configure timing for automatic cleanup operations
 - **Dry Run Mode**: Preview deletions without committing changes
@@ -72,6 +73,14 @@ When Plex Playlist Protection is enabled, running a dry run will automatically c
 :::
 
 You can configure notifications to receive information regarding your workflow:
+
+### Notification Options
+
+- **Notification Channels**: Choose from Discord (webhook/DM), Apprise, or both
+- **Notify Only on Deletion**: When enabled, notifications are only sent when items are actually deleted
+  - Useful for reducing notification noise when Delete Sync runs but finds nothing to remove
+  - Still sends notifications for dry runs that would delete items (helps with testing)
+  - Always notifies on errors regardless of this setting
 
 <img src={useBaseUrl('/img/Delete-Sync-Dry.png')} alt="Delete Sync Dry Run Notification" />
 
