@@ -99,7 +99,9 @@ async function generateOpenAPISpec() {
             )
         })
         migrateProcess.on('error', (error) => {
-          reject(new Error(`Failed to start migration process: ${error.message}`))
+          reject(
+            new Error(`Failed to start migration process: ${error.message}`),
+          )
         })
       })
 
