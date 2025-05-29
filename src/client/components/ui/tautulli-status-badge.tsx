@@ -2,6 +2,11 @@ import { useTautulliStatus } from '@/hooks/notifications/useTautulliStatus'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
+/**
+ * Displays a status badge indicating the current Tautulli service state.
+ *
+ * The badge color reflects the status: green for "running", red for "disabled", and gray for any other value. The status text is capitalized for display.
+ */
 export function TautulliStatusBadge() {
   const status = useTautulliStatus()
   

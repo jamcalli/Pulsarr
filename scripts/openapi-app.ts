@@ -4,10 +4,12 @@ import FastifyFormBody from '@fastify/formbody'
 import type { FastifyInstance, FastifyPluginOptions } from 'fastify'
 
 /**
- * Minimal Fastify app configuration for OpenAPI generation only.
+ * Configures a minimal Fastify application for OpenAPI (Swagger) generation.
  *
- * Loads only the essential plugins (swagger, routes) without database,
- * services, or other runtime dependencies that require actual connections.
+ * Registers only essential plugins and routes required for OpenAPI documentation, excluding database connections and runtime services. Sets up basic form body parsing, loads only relevant plugins and routes, and defines simple error and 404 handlers suitable for OpenAPI schema generation.
+ *
+ * @remark
+ * This setup is intended for OpenAPI generation and should not be used as a full application runtime, as it omits authentication, database, and service dependencies.
  */
 export default async function openapiApp(
   fastify: FastifyInstance,
