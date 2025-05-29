@@ -562,6 +562,9 @@ export class DatabaseService {
       deleteContinuingShow: Boolean(config.deleteContinuingShow),
       deleteFiles: Boolean(config.deleteFiles),
       respectUserSyncSetting: Boolean(config.respectUserSyncSetting),
+      deleteSyncNotifyOnlyOnDeletion: Boolean(
+        config.deleteSyncNotifyOnlyOnDeletion,
+      ),
       // Plex playlist protection
       enablePlexPlaylistProtection: Boolean(
         config.enablePlexPlaylistProtection,
@@ -632,6 +635,7 @@ export class DatabaseService {
         deleteFiles: config.deleteFiles,
         respectUserSyncSetting: config.respectUserSyncSetting,
         deleteSyncNotify: config.deleteSyncNotify,
+        deleteSyncNotifyOnlyOnDeletion: config.deleteSyncNotifyOnlyOnDeletion,
         maxDeletionPrevention: config.maxDeletionPrevention || 10,
         // Plex playlist protection
         enablePlexPlaylistProtection:
