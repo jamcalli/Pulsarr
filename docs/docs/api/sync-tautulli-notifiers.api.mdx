@@ -1,0 +1,63 @@
+---
+id: sync-tautulli-notifiers
+title: "Sync user notifiers"
+description: "Sync Pulsarr users with Tautulli notification agents. Requires Plex Pass."
+sidebar_label: "Sync user notifiers"
+hide_title: true
+hide_table_of_contents: true
+api: eJzlVMFu2zAM/RWBpw1wm3TdLr4V6KXAsBlNu0uQAyMzsTpFckU6bWD43wcqSeuuA7YCuww7xQjJR/Lp8fUQW0ooLoarGkrgXbA32EnnvfsSxa0cJYYCBNcM5RyOMVgUUBPb5FqthRJmu2BN1XnGlEzHlNg8OGnMscKEDGdzL4NrCsKn5pruO5eITeXp0VTIfAoFJOI2BiaGsocP06n+vOx2SSvsvJjrQyYUYGMQCqK52Lb+0Glyx1rQA9uGNqhfsmsJSojLO7ICBbRJORC3b8edtcQ8SlzG6AkDDAVsiBnXNAqyJBfWGlPqqL7VzUfx0G2WlGAYdKu8a608Hrs8Q74EWBSAde10A/TVaMAVeqZhULyP/wQxv138T1b99L+smvGliXqLbeQ8GkoDJUy2ZxM53NJEpXISRvfJlLZZePMeuuShhEakLScTHy36JrKU59PpOfx8tVVyG0w7M8v1MBRvK790iawcqs1F3te8y3ffxiTv3wz4+Rj+JdiiABdWMVPvxCv3R8e5qK5egV1UV6aOtttQkL3trGJ68qgTg3vXeUCxjXcsxgWhdXpOncWgmRhqc401pgQFKM17+G9nKgd9pQ1meQXc0NEJ1QHN+IVejNY/K/WvGudBkEKPMmk9uizYzH9/0NEctmfZzw8+vredkZYWBSj/mtn3S2S6TX4Y9O/7jtIOyvmigC0mh0t9gPliKKAhrCll8X2nnTJvLbUq3i36Tid6dY36lk9Kr77ObmAYfgBBbUug
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Sync user notifiers"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/tautulli/sync-notifiers"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Sync Pulsarr users with Tautulli notification agents. Requires Plex Pass.
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"syncedUsers":{"type":"number"}},"required":["success","message","syncedUsers"],"additionalProperties":false}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

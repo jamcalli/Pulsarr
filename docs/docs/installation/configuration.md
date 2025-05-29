@@ -119,6 +119,11 @@ queueWaitTime=120000                   # Queue wait time in ms
 newEpisodeThreshold=172800000          # New episode threshold in ms (48h)
 upgradeBufferTime=2000                 # Buffer time between upgrades in ms
 
+# Tautulli Configuration
+tautulliEnabled=false                  # Enable Tautulli integration (requires Plex Pass)
+tautulliUrl=http://x.x.x.x:8181        # Tautulli server URL
+tautulliApiKey=xxxxxxxxxxxxxxxxxxxxxxxx # Tautulli API key
+
 # Sonarr Configuration (these will seed a single instance. Needs all the values. Only use in dev.)
 sonarrBaseUrl=http://x.x.x.x:8989      # Sonarr instance URL
 sonarrApiKey=xxxxxxxxxxxxxxxxxxxxxxxx  # Sonarr API key
@@ -162,6 +167,8 @@ deleteMovie=false                      # Auto-delete movies setting
 deleteEndedShow=false                  # Auto-delete ended shows setting
 deleteContinuingShow=false             # Auto-delete continuing shows setting
 deleteFiles=true                       # Delete files from disk setting
-deleteSyncNotify=none                  # Notify of delete sync status: 'none' | 'message' | 'webhook' | 'both'
+respectUserSyncSetting=true            # Only delete content from users with sync enabled
+deleteSyncNotify=none                  # Notify of delete sync status: 'none' | 'message' | 'webhook' | 'both' | 'all' | 'discord-only' | 'apprise-only'
+deleteSyncNotifyOnlyOnDeletion=false   # Only send notifications when items are actually deleted
 maxDeletionPrevention=10               # Safeguard to prevent mass deletion. % of total library to allow during delete sync
 ```
