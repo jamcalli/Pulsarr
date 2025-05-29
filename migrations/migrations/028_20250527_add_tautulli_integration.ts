@@ -1,5 +1,10 @@
 import type { Knex } from 'knex'
 
+/**
+ * Applies schema changes to add Tautulli integration fields to the users, notifications, and configs tables.
+ *
+ * Adds columns for Tautulli notifier settings and notification tracking to support integration with Tautulli.
+ */
 export async function up(knex: Knex): Promise<void> {
   // Add Tautulli fields to users table
   await knex.schema.alterTable('users', (table) => {
@@ -20,6 +25,11 @@ export async function up(knex: Knex): Promise<void> {
   })
 }
 
+/**
+ * Reverts the database schema changes related to Tautulli integration.
+ *
+ * Drops the columns added by the corresponding migration from the `configs`, `notifications`, and `users` tables.
+ */
 export async function down(knex: Knex): Promise<void> {
   await knex.schema.alterTable('configs', (table) => {
     table.dropColumn('tautulliEnabled')

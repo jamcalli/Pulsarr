@@ -91,7 +91,17 @@ const tautulliFormSchema = z
 
 type TautulliFormSchema = z.infer<typeof tautulliFormSchema>
 
-// API function to test Tautulli connection
+/**
+ * Tests the connection to a Tautulli server using the provided URL and API key.
+ *
+ * Sends a POST request to the `/v1/tautulli/test-connection` endpoint and returns the parsed response if successful.
+ *
+ * @param url - The Tautulli server URL to test.
+ * @param apiKey - The API key for authenticating with the Tautulli server.
+ * @returns The parsed JSON response from the server if the connection is successful.
+ *
+ * @throws {Error} If the server responds with an error or a non-OK status, containing the error message from the response or the HTTP status code.
+ */
 async function testTautulliConnection(url: string, apiKey: string) {
   const response = await fetch('/v1/tautulli/test-connection', {
     method: 'POST',
@@ -115,13 +125,11 @@ async function testTautulliConnection(url: string, apiKey: string) {
 }
 
 /****
- * Displays a form for configuring Tautulli notification integration.
+ * Renders a form for configuring Tautulli notification integration, allowing users to enable or disable the integration, enter the Tautulli URL and API key, test the connection, save changes, or clear all settings.
  *
- * Users can enable/disable Tautulli integration, configure URL and API key,
- * test the connection, and save settings. The form follows the same design
- * pattern as other notification services with consistent layout and actions.
+ * The form enforces validation and requires a successful connection test before saving changes when credentials are updated or newly entered. User feedback is provided for connection tests, save operations, and clearing settings.
  *
- * @param isInitialized - Whether the configuration is ready for editing.
+ * @param isInitialized - Indicates whether the configuration is ready for editing.
  */
 export function TautulliForm({ isInitialized }: TautulliFormProps) {
   const { toast } = useToast()

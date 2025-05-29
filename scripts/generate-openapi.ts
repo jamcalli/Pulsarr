@@ -3,7 +3,14 @@ import { spawn } from 'node:child_process'
 import { writeFileSync, mkdirSync } from 'node:fs'
 import { resolve, dirname } from 'node:path'
 
-// Helper to wait for a condition
+/**
+ * Repeatedly checks an asynchronous condition until it returns true or a timeout is reached.
+ *
+ * @param condition - An asynchronous function that resolves to true when the desired condition is met.
+ * @param timeout - Maximum time to wait in milliseconds before throwing an error. Defaults to 30000 (30 seconds).
+ *
+ * @throws {Error} If the condition is not met within the specified timeout.
+ */
 async function waitFor(
   condition: () => Promise<boolean>,
   timeout = 30000,
@@ -16,7 +23,12 @@ async function waitFor(
   throw new Error('Timeout waiting for condition')
 }
 
-// Check if server is running
+/**
+ * Determines whether a server is running at the specified URL by sending a fetch request.
+ *
+ * @param url - The URL to check for server availability.
+ * @returns True if the server responds with an HTTP OK status; otherwise, false.
+ */
 async function isServerRunning(url: string): Promise<boolean> {
   try {
     const response = await fetch(url)
@@ -26,7 +38,13 @@ async function isServerRunning(url: string): Promise<boolean> {
   }
 }
 
-// Generate OpenAPI spec
+/**
+ * Generates an OpenAPI specification file by ensuring the server is running, fetching the spec, and writing it to disk.
+ *
+ * If the server is not already running, builds and starts it with authentication disabled and restricted to localhost. Waits for the server to become available before fetching the OpenAPI JSON. Writes the formatted specification to `docs/static/openapi.json`, creating directories as needed. Ensures any server process started by this function is terminated after completion or on error.
+ *
+ * @remark Exits the process with code 0 on success or 1 on failure.
+ */
 async function generateOpenAPISpec() {
   const port = process.env.PORT || 3003
   const baseUrl = process.env.baseUrl || `http://localhost:${port}`

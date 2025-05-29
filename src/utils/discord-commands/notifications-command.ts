@@ -74,7 +74,12 @@ class SettingsCache {
   }
 }
 
-// UI Functions
+/**
+ * Creates an embed displaying a user's profile and notification settings for Discord, Apprise, and Tautulli.
+ *
+ * @param user - The user whose notification settings and profile information will be shown.
+ * @returns An {@link EmbedBuilder} containing the user's profile details and current notification preferences.
+ */
 function createNotificationsEmbed(user: User): EmbedBuilder {
   return new EmbedBuilder()
     .setTitle('Notification Settings')
@@ -105,6 +110,14 @@ function createNotificationsEmbed(user: User): EmbedBuilder {
     .setFooter({ text: 'Use the buttons below to modify your settings' })
 }
 
+/**
+ * Creates an array of action rows containing buttons for managing user notification settings and profile actions.
+ *
+ * The buttons allow toggling Discord, Apprise, and Tautulli notifications, editing the user profile, and exiting the settings interface. The Apprise toggle button is disabled if the user does not have a valid Apprise URL and Apprise notifications are not currently enabled.
+ *
+ * @param user - The user whose notification and profile settings are being managed.
+ * @returns An array of action rows with interactive buttons for the notification settings UI.
+ */
 function createActionRows(user: User): ActionRowBuilder<ButtonBuilder>[] {
   // Simply check if apprise exists - placeholders are already converted to null
   const hasValidApprise = !!user.apprise
@@ -145,6 +158,11 @@ function createActionRows(user: User): ActionRowBuilder<ButtonBuilder>[] {
   return [firstRow]
 }
 
+/**
+ * Creates a modal dialog prompting the user to enter their Plex username for account linking.
+ *
+ * @returns A {@link ModalBuilder} configured for Plex username input.
+ */
 function createPlexLinkModal(): ModalBuilder {
   const modal = new ModalBuilder()
     .setCustomId('plexUsernameModal')
@@ -228,7 +246,11 @@ async function updateUser(
   }
 }
 
-// Interaction Handlers
+/**
+ * Displays or updates the user's notification settings form as an ephemeral Discord message.
+ *
+ * Shows the current notification preferences and action buttons for the user. If the interaction has not yet been replied to or deferred, sends a new ephemeral message and tracks the session in the cache; otherwise, updates the existing message. On error, logs the issue and sends an ephemeral error message to the user.
+ */
 async function showSettingsForm(
   interaction:
     | ChatInputCommandInteraction
@@ -315,7 +337,13 @@ export const notificationsCommand = {
   },
 }
 
-// Button Handler
+/**
+ * Handles button interactions for the notifications settings UI, allowing users to toggle notification preferences, edit their profile, or close the settings session.
+ *
+ * Responds to button presses for toggling Discord, Apprise, and Tautulli notifications, editing the user profile, and closing the settings form. Ensures session validity and user existence before processing actions.
+ *
+ * @remark If the user's session has expired or the user is not found, prompts the user to restart the process or link their Plex account.
+ */
 export async function handleNotificationButtons(
   interaction: ButtonInteraction,
   context: CommandContext,
@@ -431,7 +459,14 @@ export async function handleNotificationButtons(
   }
 }
 
-// Modal Handlers
+/**
+ * Handles the submission of the Plex username modal to link a Discord user with a Plex account.
+ *
+ * If the provided Plex username does not exist or is already linked to another Discord user, displays an error embed with a retry option. On successful linking, updates the database and shows the user's notification settings.
+ *
+ * @param interaction - The modal submit interaction containing the Plex username.
+ * @param context - The command context for logging and database access.
+ */
 export async function handlePlexUsernameModal(
   interaction: ModalSubmitInteraction,
   context: CommandContext,
@@ -611,6 +646,11 @@ export async function handlePlexUsernameModal(
   }
 }
 
+/**
+ * Handles submission of the profile edit modal, updating the user's alias and Apprise URL.
+ *
+ * Retrieves the submitted alias and Apprise URL, updates the user's profile in the database, and refreshes the notification settings form with the updated information. If the user is not found or an error occurs, sends an ephemeral error message.
+ */
 export async function handleProfileEditModal(
   interaction: ModalSubmitInteraction,
   context: CommandContext,
