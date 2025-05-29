@@ -22,7 +22,7 @@ export function TautulliStatusBadge() {
         variant="neutral" 
         className={cn('px-2 py-0.5 h-7 text-sm', getBadgeVariant())}
       >
-        {status.charAt(0).toUpperCase() + status.slice(1)}
+        {status.charAt(0).toUpperCase() + status.slice(1).toLowerCase()}
       </Badge>
     </div>
   )

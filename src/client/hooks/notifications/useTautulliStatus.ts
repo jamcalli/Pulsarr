@@ -11,7 +11,13 @@ export function useTautulliStatus(): TautulliStatus {
   const handleEvent = useCallback((event: ProgressEvent) => {
     if (event.type === 'system' && event.message?.startsWith('Tautulli status:')) {
       const tautulliStatus = event.message.replace('Tautulli status:', '').trim()
-      setStatus(tautulliStatus as TautulliStatus)
+      // Validate the status before setting
+      if (['running', 'disabled', 'unknown'].includes(tautulliStatus)) {
+        setStatus(tautulliStatus as TautulliStatus)
+      } else {
+        console.warn(`Received invalid Tautulli status: ${tautulliStatus}`)
+        setStatus('unknown')
+      }
     }
   }, [])
 

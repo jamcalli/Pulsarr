@@ -38,14 +38,21 @@ export default async function openapiApp(
     },
   })
 
-  // Simple error handler
-  fastify.setErrorHandler((err, request, reply) => {
-    reply.code(err.statusCode ?? 500)
-    return { message: err.message || 'Internal Server Error' }
+  // Simple error handler for OpenAPI generation
+  fastify.setErrorHandler((err, _request, reply) => {
+    const statusCode = err.statusCode ?? 500
+    reply.code(statusCode)
+
+    // For OpenAPI generation, we want to see errors to fix schema issues
+    // but still protect against exposing sensitive server errors
+    const message =
+      statusCode >= 500 ? 'Internal Server Error' : err.message || 'Bad Request'
+
+    return { message }
   })
 
   // Simple 404 handler
-  fastify.setNotFoundHandler((request, reply) => {
+  fastify.setNotFoundHandler((_request, reply) => {
     reply.code(404)
     return { message: 'Not Found' }
   })
