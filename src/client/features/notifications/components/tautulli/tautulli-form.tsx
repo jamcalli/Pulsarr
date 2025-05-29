@@ -126,11 +126,11 @@ async function testTautulliConnection(url: string, apiKey: string) {
 }
 
 /****
- * Renders a form for configuring Tautulli notification integration, allowing users to enable or disable the integration, enter the Tautulli URL and API key, test the connection, save changes, or clear all settings.
+ * Displays a form for configuring Tautulli notification integration, enabling users to manage connection settings, test connectivity, save changes, or clear all Tautulli-related configuration.
  *
- * The form enforces validation and requires a successful connection test before saving changes when credentials are updated or newly entered. User feedback is provided for connection tests, save operations, and clearing settings.
+ * The form enforces validation and requires a successful connection test before saving new or updated credentials. User feedback is provided for connection tests, saving, and clearing settings. Inputs and actions are dynamically enabled or disabled based on form state and loading status.
  *
- * @param isInitialized - Indicates whether the configuration is ready for editing.
+ * @param isInitialized - Whether the configuration is ready for editing.
  */
 export function TautulliForm({ isInitialized }: TautulliFormProps) {
   const { toast } = useToast()
