@@ -60,6 +60,62 @@ export class TautulliService {
   // Constants
   private readonly PLEXMOBILEAPP_AGENT_ID = 26 // Plex mobile app agent ID
 
+  /**
+   * Safely parse season and episode numbers from Tautulli API response
+   *
+   * @param item - The Tautulli recently added item
+   * @returns Object with parsed season and episode numbers, or null values if parsing fails
+   */
+  private parseSeasonEpisode(item: RecentlyAddedItem): {
+    season: number | null
+    episode: number | null
+  } {
+    let season: number | null = null
+    let episode: number | null = null
+
+    // Try parsing from string fields first (newer API format)
+    if (item.parent_media_index) {
+      const parsedSeason = Number.parseInt(item.parent_media_index, 10)
+      if (!Number.isNaN(parsedSeason)) {
+        season = parsedSeason
+      }
+    }
+
+    if (item.media_index) {
+      const parsedEpisode = Number.parseInt(item.media_index, 10)
+      if (!Number.isNaN(parsedEpisode)) {
+        episode = parsedEpisode
+      }
+    }
+
+    // Fallback to legacy number fields if string parsing failed
+    if (season === null && typeof item.season === 'number') {
+      season = item.season
+    }
+
+    if (episode === null && typeof item.episode === 'number') {
+      episode = item.episode
+    }
+
+    // Log warning if we have string fields but they couldn't be parsed
+    if (
+      (item.parent_media_index && season === null) ||
+      (item.media_index && episode === null)
+    ) {
+      this.log.warn(
+        {
+          parent_media_index: item.parent_media_index,
+          media_index: item.media_index,
+          title: item.title,
+          rating_key: item.rating_key,
+        },
+        'Invalid media index values from Tautulli API',
+      )
+    }
+
+    return { season, episode }
+  }
+
   // Polling system properties
   private pendingNotifications = new Map<string, PendingNotification>()
   private pollInterval: NodeJS.Timeout | null = null
@@ -919,12 +975,8 @@ export class TautulliService {
             notification.mediaType === 'episode' &&
             item.media_type === 'episode'
           ) {
-            const itemSeason = item.parent_media_index
-              ? Number.parseInt(item.parent_media_index)
-              : item.season
-            const itemEpisode = item.media_index
-              ? Number.parseInt(item.media_index)
-              : item.episode
+            const { season: itemSeason, episode: itemEpisode } =
+              this.parseSeasonEpisode(item)
 
             if (
               itemSeason === notification.seasonNumber &&
@@ -948,12 +1000,8 @@ export class TautulliService {
           notification.mediaType === 'episode' &&
           item.media_type === 'episode'
         ) {
-          const itemSeason = item.parent_media_index
-            ? Number.parseInt(item.parent_media_index)
-            : item.season
-          const itemEpisode = item.media_index
-            ? Number.parseInt(item.media_index)
-            : item.episode
+          const { season: itemSeason, episode: itemEpisode } =
+            this.parseSeasonEpisode(item)
 
           if (
             itemSeason === notification.seasonNumber &&
@@ -1045,12 +1093,8 @@ export class TautulliService {
               notification.watchlistItemKey === grandparentPlexKey
             ) {
               // Check if this is the correct episode
-              const itemSeason = item.parent_media_index
-                ? Number.parseInt(item.parent_media_index)
-                : item.season
-              const itemEpisode = item.media_index
-                ? Number.parseInt(item.media_index)
-                : item.episode
+              const { season: itemSeason, episode: itemEpisode } =
+                this.parseSeasonEpisode(item)
 
               if (
                 itemSeason === notification.seasonNumber &&
@@ -1080,12 +1124,8 @@ export class TautulliService {
             )
             if (grandparentGuids.includes(notification.guid)) {
               // Check if this is the correct episode
-              const itemSeason = item.parent_media_index
-                ? Number.parseInt(item.parent_media_index)
-                : item.season
-              const itemEpisode = item.media_index
-                ? Number.parseInt(item.media_index)
-                : item.episode
+              const { season: itemSeason, episode: itemEpisode } =
+                this.parseSeasonEpisode(item)
 
               if (
                 itemSeason === notification.seasonNumber &&

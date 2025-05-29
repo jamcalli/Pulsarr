@@ -45,7 +45,6 @@ await app.close()
 console.log('🎨 Running formatter on generated OpenAPI spec...')
 const formatProcess = spawn('npm', ['run', 'fix'], {
   stdio: 'inherit',
-  shell: true,
 })
 
 await new Promise((resolve) => {
