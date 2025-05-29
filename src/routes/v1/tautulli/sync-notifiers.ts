@@ -52,7 +52,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         return reply.status(500).send({
           success: false,
           message: 'Failed to sync notifiers',
-          syncedUsers: 0,
+          eligibleUsers: 0,
         })
       }
     },
