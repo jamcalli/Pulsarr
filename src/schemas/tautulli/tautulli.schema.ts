@@ -15,7 +15,7 @@ export const TestConnectionResponseSchema = z.object({
 export const SyncNotifiersResponseSchema = z.object({
   success: z.boolean(),
   message: z.string(),
-  syncedUsers: z.number(),
+  eligibleUsers: z.number(),
 })
 
 // Error schema
