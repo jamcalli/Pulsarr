@@ -1087,13 +1087,19 @@ export class TautulliService {
   private cleanupExpiredNotifications(): void {
     const now = Date.now()
     let removed = 0
+    const totalPending = this.pendingNotifications.size
 
     for (const [key, notification] of this.pendingNotifications) {
       if (now - notification.addedAt > this.MAX_AGE_MS) {
         this.pendingNotifications.delete(key)
         removed++
         this.log.warn(
-          { title: notification.title, guid: notification.guid },
+          {
+            title: notification.title,
+            guid: notification.guid,
+            ageMs: now - notification.addedAt,
+            attempts: notification.attempts,
+          },
           'Removed expired Tautulli notification from queue',
         )
       }
@@ -1101,8 +1107,20 @@ export class TautulliService {
 
     if (removed > 0) {
       this.log.info(
-        { count: removed },
+        {
+          count: removed,
+          totalPending,
+          remaining: this.pendingNotifications.size,
+        },
         'Cleaned up expired Tautulli notifications',
+      )
+    }
+
+    // Alert if queue is growing too large
+    if (this.pendingNotifications.size > 100) {
+      this.log.warn(
+        { queueSize: this.pendingNotifications.size },
+        'Tautulli notification queue is growing large - check for processing issues',
       )
     }
   }

@@ -15,8 +15,8 @@ export async function up(knex: Knex): Promise<void> {
   // Add Tautulli settings to configs table
   await knex.schema.alterTable('configs', (table) => {
     table.boolean('tautulliEnabled').defaultTo(false)
-    table.string('tautulliUrl').defaultTo('')
-    table.string('tautulliApiKey').defaultTo('')
+    table.string('tautulliUrl').nullable()
+    table.string('tautulliApiKey').nullable()
   })
 }
 

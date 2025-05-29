@@ -45,7 +45,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         return {
           success: true,
           message: 'User notifiers synced successfully',
-          syncedUsers: tautulliUsers.length,
+          eligibleUsers: tautulliUsers.length,
         }
       } catch (error) {
         fastify.log.error(error, 'Failed to sync user notifiers')
