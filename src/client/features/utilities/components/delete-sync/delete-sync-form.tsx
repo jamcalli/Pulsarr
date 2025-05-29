@@ -51,9 +51,9 @@ import { useMediaQuery } from '@/hooks/use-media-query'
 // Removed unused import
 
 /**
- * Renders the user interface for configuring and managing the delete synchronization job.
+ * Displays a comprehensive form and controls for configuring and managing the delete synchronization job.
  *
- * Provides controls for enabling or disabling the job, running it immediately, performing dry runs, and adjusting deletion criteria, scheduling, safety settings, and notification preferences. Includes contextual tooltips, confirmation modals for sensitive actions, and displays validation or operation errors.
+ * Allows users to enable or disable the job, run it immediately, perform dry runs, and adjust deletion criteria, scheduling, safety settings, and notification preferences. Includes contextual tooltips, confirmation modals for sensitive actions, and displays validation or operation errors. The form adapts responsively for mobile screens and provides accessibility features.
  *
  * @returns The React element representing the delete sync management form and controls.
  */

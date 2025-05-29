@@ -9,6 +9,13 @@ interface NotificationsSectionProps {
   isInitialized: boolean
 }
 
+/**
+ * Renders a sectioned interface for configuring various notification integrations and settings.
+ *
+ * Displays forms for Discord, Apprise, Tautulli, and general notification settings, each within its own section and separated by visual dividers. The `isInitialized` prop is passed to all child form components to control their initialization state.
+ *
+ * @param isInitialized - Indicates whether the notification forms should be initialized.
+ */
 export function NotificationsSection({
   isInitialized,
 }: NotificationsSectionProps) {
