@@ -32,6 +32,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useConfigStore } from '@/stores/configStore'
 import { z } from 'zod'
 import { ClearSettingsAlert } from '@/components/ui/clear-settings-alert'
+import { TautulliStatusBadge } from '@/components/ui/tautulli-status-badge'
 
 interface TautulliFormProps {
   isInitialized: boolean
@@ -400,10 +401,11 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
 
   return (
     <div className="grid gap-4">
-      <div className="flex items-center">
+      <div className="flex items-center justify-between">
         <h3 className="text-xl font-semibold text-text">
           Tautulli Notification Service
         </h3>
+        <TautulliStatusBadge />
       </div>
 
       <div className="text-sm text-text p-3 bg-bw rounded-base border-2 border-border">

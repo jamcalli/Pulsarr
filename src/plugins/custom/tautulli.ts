@@ -15,13 +15,28 @@ export default fp(
     // Decorate fastify instance
     fastify.decorate('tautulli', tautulliService)
 
+    // Emit initial status
+    emitTautulliStatus(fastify)
+
+    // Set up status monitoring interval
+    const statusInterval = setInterval(() => {
+      if (fastify.progress.hasActiveConnections()) {
+        emitTautulliStatus(fastify)
+      }
+    }, 1000) // 1 second
+
+    fastify.addHook('onClose', () => {
+      clearInterval(statusInterval)
+    })
+
     // Initialize on ready (after all dependencies are loaded)
     fastify.addHook('onReady', async () => {
       try {
         await tautulliService.initialize()
-        // Service initialized successfully
+        emitTautulliStatus(fastify)
       } catch (error) {
         fastify.log.error({ error }, 'Failed to initialize Tautulli service')
+        emitTautulliStatus(fastify)
       }
     })
 
@@ -34,6 +49,23 @@ export default fp(
   },
   {
     name: 'tautulli',
-    dependencies: ['database', 'config'],
+    dependencies: ['database', 'config', 'progress'],
   },
 )
+
+function emitTautulliStatus(fastify: FastifyInstance) {
+  if (!fastify.progress.hasActiveConnections()) {
+    return
+  }
+
+  const status = fastify.tautulli.getStatus()
+  const operationId = `tautulli-status-${Date.now()}`
+
+  fastify.progress.emit({
+    operationId,
+    type: 'system',
+    phase: 'info',
+    progress: 100,
+    message: `Tautulli status: ${status}`,
+  })
+}
