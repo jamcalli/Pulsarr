@@ -92,29 +92,42 @@ export class TautulliService {
       return
     }
 
-    try {
-      // Test connection
-      const isConnected = await this.testConnection()
-      if (!isConnected) {
-        throw new Error('Failed to connect to Tautulli')
+    const maxRetries = 3
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        // Test connection
+        const isConnected = await this.testConnection()
+        if (!isConnected) {
+          throw new Error('Failed to connect to Tautulli')
+        }
+
+        // Save config to database
+        await this.saveConfig()
+
+        this.fastify.log.info('Tautulli integration enabled successfully')
+
+        // Set up graceful shutdown on successful initialization
+        this.fastify.addHook('onClose', async () => {
+          await this.shutdown()
+        })
+
+        return
+      } catch (error) {
+        if (attempt === maxRetries) {
+          this.fastify.log.error(
+            { error },
+            'Failed to initialize Tautulli integration after all retries',
+          )
+          this.config.enabled = false
+        } else {
+          this.fastify.log.warn(
+            { error, attempt, maxRetries },
+            'Tautulli initialization failed, retrying...',
+          )
+          await new Promise((resolve) => setTimeout(resolve, 5000 * attempt))
+        }
       }
-
-      // Save config to database
-      await this.saveConfig()
-
-      this.fastify.log.info('Tautulli integration enabled successfully')
-    } catch (error) {
-      this.fastify.log.error(
-        { error },
-        'Failed to initialize Tautulli integration',
-      )
-      this.config.enabled = false
     }
-
-    // Set up graceful shutdown
-    this.fastify.addHook('onClose', async () => {
-      await this.shutdown()
-    })
   }
 
   /**
@@ -161,20 +174,31 @@ export class TautulliService {
 
     url.search = searchParams.toString()
 
-    const response = await fetch(url.toString(), {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-      },
-    })
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 30000)
 
-    if (!response.ok) {
-      throw new Error(
-        `Tautulli API error: ${response.status} ${response.statusText}`,
-      )
+    try {
+      const response = await fetch(url.toString(), {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+        },
+        signal: controller.signal,
+      })
+
+      clearTimeout(timeout)
+
+      if (!response.ok) {
+        throw new Error(
+          `Tautulli API error: ${response.status} ${response.statusText}`,
+        )
+      }
+
+      return response.json() as Promise<TautulliApiResponse<T>>
+    } catch (error) {
+      clearTimeout(timeout)
+      throw error
     }
-
-    return response.json() as Promise<TautulliApiResponse<T>>
   }
 
   /**
@@ -713,15 +737,21 @@ export class TautulliService {
    * Process all pending notifications
    */
   private async processPendingNotifications(): Promise<void> {
-    if (this.isPolling || this.pendingNotifications.size === 0) {
+    if (this.isPolling) {
+      this.log.debug('Polling already in progress, skipping')
+      return
+    }
+
+    if (this.pendingNotifications.size === 0) {
       // Stop polling if no pending notifications
-      if (this.pendingNotifications.size === 0 && this.pollInterval) {
+      if (this.pollInterval) {
         this.stopPolling()
       }
       return
     }
 
     this.isPolling = true
+    const startTime = Date.now()
 
     try {
       // Get recently added items from Tautulli
@@ -729,7 +759,6 @@ export class TautulliService {
 
       if (!recentItems || recentItems.length === 0) {
         this.log.debug('No recently added items found in Tautulli')
-        this.isPolling = false
         return
       }
 
@@ -743,6 +772,14 @@ export class TautulliService {
     } catch (error) {
       this.log.error({ error }, 'Error processing pending notifications')
     } finally {
+      const duration = Date.now() - startTime
+      this.log.debug(
+        {
+          duration,
+          pendingCount: this.pendingNotifications.size,
+        },
+        'Completed polling cycle',
+      )
       this.isPolling = false
     }
   }
@@ -1314,15 +1351,43 @@ export class TautulliService {
    * Update Tautulli configuration
    */
   async updateConfig(config: Partial<TautulliConfig>): Promise<void> {
+    // Validate configuration
+    if (config.url && !this.isValidUrl(config.url)) {
+      throw new Error('Invalid Tautulli URL provided')
+    }
+
+    if (config.apiKey && config.apiKey.length < 10) {
+      throw new Error('Invalid Tautulli API key provided')
+    }
+
     this.config = { ...this.config, ...config }
 
     if (config.enabled !== undefined || config.url || config.apiKey) {
+      // Test connection before saving if enabling or changing credentials
+      if (config.enabled && (config.url || config.apiKey)) {
+        const isConnected = await this.testConnection()
+        if (!isConnected) {
+          throw new Error(
+            'Cannot connect to Tautulli with provided configuration',
+          )
+        }
+      }
+
       await this.saveConfig()
 
       // Reinitialize if enabling
       if (config.enabled && this.config.url && this.config.apiKey) {
         await this.initialize()
       }
+    }
+  }
+
+  private isValidUrl(url: string): boolean {
+    try {
+      new URL(url)
+      return true
+    } catch {
+      return false
     }
   }
 
