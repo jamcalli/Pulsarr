@@ -148,6 +148,25 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           return { error: 'No configuration found after update' }
         }
 
+        // Handle Tautulli config changes
+        if (
+          'tautulliEnabled' in safeConfigUpdate ||
+          'tautulliUrl' in safeConfigUpdate ||
+          'tautulliApiKey' in safeConfigUpdate
+        ) {
+          // Initialize if just enabled
+          if (safeConfigUpdate.tautulliEnabled === true) {
+            try {
+              await fastify.tautulli.initialize()
+            } catch (error) {
+              fastify.log.error(
+                'Failed to initialize Tautulli after enabling:',
+                error,
+              )
+            }
+          }
+        }
+
         // Merge saved DB config with runtime Apprise settings
         const mergedConfig = {
           ...savedConfig,
