@@ -81,6 +81,28 @@ async function generateOpenAPISpec() {
         })
       })
 
+      // Run migrations to create the database
+      console.log('Running database migrations...')
+      const migrateProcess = spawn('npm', ['run', 'migrate'], {
+        stdio: 'inherit',
+        shell: true,
+      })
+
+      await new Promise((resolve, reject) => {
+        migrateProcess.on('exit', (code) => {
+          if (code === 0) resolve(undefined)
+          else
+            reject(
+              new Error(
+                `Database migration failed with exit code ${code}. Check migration logs above.`,
+              ),
+            )
+        })
+        migrateProcess.on('error', (error) => {
+          reject(new Error(`Failed to start migration process: ${error.message}`))
+        })
+      })
+
       // Start the server with authentication disabled for OpenAPI generation
       serverProcess = spawn('node', ['dist/server.js'], {
         stdio: 'pipe',
