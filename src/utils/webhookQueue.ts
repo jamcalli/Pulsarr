@@ -198,6 +198,14 @@ export async function checkForUpgrade(
   return hasUpgrade
 }
 
+/**
+ * Processes and dispatches queued webhook notifications for a specific TV show season.
+ *
+ * For the given TVDB ID and season, this function validates and processes any queued webhook episodes. It determines if notifications should be sent based on episode recency and prior notification status, then generates and sends notifications via Discord, Apprise, and Tautulli as configured for each user. If no notifications are generated and no watchlist matches are found, the webhook is queued as pending for later processing. Cleans up the queue after processing.
+ *
+ * @param tvdbId - The TVDB ID of the show.
+ * @param seasonNumber - The season number to process.
+ */
 export async function processQueuedWebhooks(
   tvdbId: string,
   seasonNumber: number,
@@ -371,6 +379,48 @@ export async function processQueuedWebhooks(
           fastify.log.error(
             { error, userId: result.user.id },
             'Failed to send Apprise notification',
+          )
+        }
+      }
+
+      // Send Tautulli notifications
+      if (result.user.notify_tautulli && fastify.tautulli?.isEnabled()) {
+        try {
+          // Find the watchlist item for this user
+          const matchingItems = await fastify.db.getWatchlistItemsByGuid(
+            `tvdb:${tvdbId}`,
+          )
+          const userItem = matchingItems.find(
+            (item) => item.user_id === result.user.id,
+          )
+
+          if (userItem) {
+            const itemId =
+              typeof userItem.id === 'string'
+                ? Number.parseInt(userItem.id, 10)
+                : userItem.id
+
+            const sent = await fastify.tautulli.sendMediaNotification(
+              result.user,
+              result.notification,
+              itemId,
+              `tvdb:${tvdbId}`,
+              userItem.key,
+            )
+
+            fastify.log.info(
+              {
+                userId: result.user.id,
+                username: result.user.name,
+                success: sent,
+              },
+              'Sent Tautulli notification',
+            )
+          }
+        } catch (error) {
+          fastify.log.error(
+            { error, userId: result.user.id },
+            'Failed to send Tautulli notification',
           )
         }
       }

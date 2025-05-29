@@ -202,6 +202,28 @@ const FormContent = React.memo(
 
             <FormField
               control={form.control}
+              name="notify_tautulli"
+              render={({ field }) => (
+                <FormItem>
+                  <div className="flex items-center justify-between">
+                    <FormLabel className="text-text">
+                      Tautulli Notifications
+                    </FormLabel>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        disabled={saveStatus !== 'idle'}
+                      />
+                    </FormControl>
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
               name="can_sync"
               render={({ field }) => (
                 <FormItem>
@@ -267,6 +289,20 @@ interface UserEditModalProps {
   saveStatus: UserStatus
 }
 
+/**
+ * Displays a modal for editing Plex user information and notification preferences.
+ *
+ * Renders a responsive modal form that allows updating user details such as Apprise endpoint, alias, notification settings (Apprise, Discord, Tautulli), and watchlist sync. The modal adapts to mobile or desktop layouts and prevents closing while a save operation is in progress.
+ *
+ * @param open - Whether the modal is open.
+ * @param onOpenChange - Callback to handle modal open state changes.
+ * @param user - The Plex user to edit, or `undefined` for no user.
+ * @param onSave - Callback invoked with user ID and updated values when the form is submitted.
+ * @param saveStatus - Current save operation status (`idle`, `loading`, or `success`).
+ *
+ * @remark
+ * The modal disables closing actions and form inputs while saving. Notification toggles are conditionally enabled based on their prerequisites.
+ */
 export default function UserEditModal({
   open,
   onOpenChange,
@@ -285,6 +321,7 @@ export default function UserEditModal({
       discord_id: null,
       notify_apprise: false,
       notify_discord: false,
+      notify_tautulli: false,
       can_sync: false,
     },
   })
@@ -298,6 +335,7 @@ export default function UserEditModal({
         discord_id: user.discord_id,
         notify_apprise: user.notify_apprise,
         notify_discord: user.notify_discord,
+        notify_tautulli: user.notify_tautulli,
         can_sync: user.can_sync,
       })
     }
@@ -314,6 +352,7 @@ export default function UserEditModal({
       discord_id: values.discord_id,
       notify_apprise: values.notify_apprise,
       notify_discord: values.notify_discord,
+      notify_tautulli: values.notify_tautulli,
       can_sync: values.can_sync,
     }
 

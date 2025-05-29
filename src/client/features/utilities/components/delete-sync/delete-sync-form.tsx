@@ -51,9 +51,9 @@ import { useMediaQuery } from '@/hooks/use-media-query'
 // Removed unused import
 
 /**
- * Renders the user interface for configuring and managing the delete synchronization job.
+ * Displays a comprehensive form and controls for configuring and managing the delete synchronization job.
  *
- * Provides controls for enabling or disabling the job, running it immediately, performing dry runs, and adjusting deletion criteria, scheduling, safety settings, and notification preferences. Includes contextual tooltips, confirmation modals for sensitive actions, and displays validation or operation errors.
+ * Allows users to enable or disable the job, run it immediately, perform dry runs, and adjust deletion criteria, scheduling, safety settings, and notification preferences. Includes contextual tooltips, confirmation modals for sensitive actions, and displays validation or operation errors. The form adapts responsively for mobile screens and provides accessibility features.
  *
  * @returns The React element representing the delete sync management form and controls.
  */
@@ -897,6 +897,47 @@ export function DeleteSyncForm() {
                                     </Select>
                                   </div>
                                   <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="deleteSyncNotifyOnlyOnDeletion"
+                              render={({ field }) => (
+                                <FormItem className="flex items-center space-x-2">
+                                  <FormControl>
+                                    <Switch
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                      disabled={
+                                        isSaving ||
+                                        form.watch('deleteSyncNotify') ===
+                                          'none'
+                                      }
+                                    />
+                                  </FormControl>
+                                  <div className="flex items-center">
+                                    <FormLabel className="text-text m-0">
+                                      Only Notify When Items Deleted
+                                    </FormLabel>
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p className="max-w-xs">
+                                            When enabled, notifications will
+                                            only be sent when items are actually
+                                            deleted. No notification will be
+                                            sent for "0 items deleted"
+                                            scenarios.
+                                          </p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  </div>
                                 </FormItem>
                               )}
                             />

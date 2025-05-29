@@ -7,6 +7,13 @@ import type { UpdateUser } from '@root/schemas/users/users.schema'
 
 export type UserStatus = 'idle' | 'loading' | 'success' | 'error'
 
+/**
+ * React hook for managing Plex user data, editing state, and update operations.
+ *
+ * Provides access to the list of users, selected user state, modal visibility, save status, loading state, and handlers for editing and updating user information. Ensures a minimum loading delay for smoother UI transitions and displays toast notifications on update success or failure.
+ *
+ * @returns An object containing user data, editing state, and handler functions for user management in Plex-related components.
+ */
 export function usePlexUser() {
   const { toast } = useToast()
   const users = useConfigStore((state) => state.users)
@@ -57,6 +64,9 @@ export function usePlexUser() {
         }),
         ...(updates.notify_discord !== undefined && {
           notify_discord: updates.notify_discord,
+        }),
+        ...(updates.notify_tautulli !== undefined && {
+          notify_tautulli: updates.notify_tautulli,
         }),
         ...(updates.can_sync !== undefined && { can_sync: updates.can_sync }),
       }

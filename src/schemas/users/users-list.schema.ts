@@ -8,6 +8,7 @@ const UserBaseSchema = z.object({
   discord_id: z.string().nullable(),
   notify_apprise: z.boolean(),
   notify_discord: z.boolean(),
+  notify_tautulli: z.boolean(),
   can_sync: z.boolean(),
   created_at: z.string(),
   updated_at: z.string(),
