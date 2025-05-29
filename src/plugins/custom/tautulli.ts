@@ -53,6 +53,11 @@ export default fp(
   },
 )
 
+/**
+ * Emits the current Tautulli service status as a progress event if there are active connections.
+ *
+ * @param fastify - The Fastify instance containing the Tautulli and progress services.
+ */
 function emitTautulliStatus(fastify: FastifyInstance) {
   if (!fastify.progress.hasActiveConnections()) {
     return
