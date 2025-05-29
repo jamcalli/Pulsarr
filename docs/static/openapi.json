@@ -11562,11 +11562,11 @@
                     "message": {
                       "type": "string"
                     },
-                    "syncedUsers": {
+                    "eligibleUsers": {
                       "type": "number"
                     }
                   },
-                  "required": ["success", "message", "syncedUsers"],
+                  "required": ["success", "message", "eligibleUsers"],
                   "additionalProperties": false
                 }
               }
