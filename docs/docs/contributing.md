@@ -35,6 +35,15 @@ We welcome contributions to Pulsarr! This section outlines the process for contr
 
 7. **Submit a Pull Request**: Create a pull request from your branch to the develop branch of the main Pulsarr repository.
 
+## API Development
+
+When adding or modifying API endpoints:
+
+1. **Update Schemas**: Ensure all request/response schemas are properly defined using Zod
+2. **Add OpenAPI Tags**: Include appropriate tags and descriptions in your route definitions
+
+The OpenAPI documentation will be automatically generated during the CI build process, so no manual generation is required.
+
 ## Pull Request Guidelines
 
 When submitting a pull request, please:
