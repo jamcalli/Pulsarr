@@ -4,6 +4,15 @@ import type { ProgressEvent } from '@root/types/progress.types'
 
 type TautulliStatus = 'running' | 'disabled' | 'unknown'
 
+/**
+ * React hook that tracks and returns the current Tautulli status.
+ *
+ * Subscribes to system progress events and updates the status based on messages indicating Tautulli's state.
+ *
+ * @returns The current Tautulli status: 'running', 'disabled', or 'unknown'.
+ *
+ * @remark If an invalid status is received from an event, the status is set to 'unknown'.
+ */
 export function useTautulliStatus(): TautulliStatus {
   const [status, setStatus] = useState<TautulliStatus>('unknown')
   const subscribeToType = useProgressStore(state => state.subscribeToType)
