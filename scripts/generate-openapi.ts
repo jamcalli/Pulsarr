@@ -51,7 +51,15 @@ async function generateOpenAPISpec() {
       await new Promise((resolve, reject) => {
         buildProcess.on('exit', (code) => {
           if (code === 0) resolve(undefined)
-          else reject(new Error(`Build failed with code ${code}`))
+          else
+            reject(
+              new Error(
+                `Server build failed with exit code ${code}. Check build logs above.`,
+              ),
+            )
+        })
+        buildProcess.on('error', (error) => {
+          reject(new Error(`Failed to start build process: ${error.message}`))
         })
       })
 
@@ -65,6 +73,7 @@ async function generateOpenAPISpec() {
           NODE_ENV: 'production',
           authenticationMethod: 'disabled',
           baseUrl: baseUrl,
+          HOST: '127.0.0.1', // Restrict to localhost for security
         },
       })
 
@@ -111,9 +120,20 @@ async function generateOpenAPISpec() {
     // Kill the server if we started it
     if (serverProcess) {
       console.log('\nStopping server...')
-      serverProcess.kill('SIGTERM')
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-      serverProcess.kill('SIGKILL')
+      try {
+        serverProcess.kill('SIGTERM')
+        await new Promise((resolve) => setTimeout(resolve, 2000))
+
+        // Check if process is still running before SIGKILL
+        if (!serverProcess.killed) {
+          console.log(
+            'Server did not terminate gracefully, forcing shutdown...',
+          )
+          serverProcess.kill('SIGKILL')
+        }
+      } catch (error) {
+        console.warn('Error during server cleanup:', error)
+      }
     }
   }
 
