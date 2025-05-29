@@ -11562,11 +11562,11 @@
                     "message": {
                       "type": "string"
                     },
-                    "syncedUsers": {
+                    "eligibleUsers": {
                       "type": "number"
                     }
                   },
-                  "required": ["success", "message", "syncedUsers"],
+                  "required": ["success", "message", "eligibleUsers"],
                   "additionalProperties": false
                 }
               }
@@ -13106,11 +13106,11 @@
   },
   "servers": [
     {
-      "url": "http://localhost:3003",
+      "url": "http://10.27.27.250",
       "description": "Primary Server"
     },
     {
-      "url": "http://localhost:3003",
+      "url": "http://10.27.27.250:3003",
       "description": "Direct Server Access (with port)"
     },
     {

@@ -52,13 +52,15 @@ This feature requires an active Plex Pass subscription to access RSS feeds and s
 4. Click the **Test Connection** button
 5. Save your settings
 
-### 3. Sync User Notifiers
+### 3. Automatic Notifier Creation
 
-After configuring Tautulli:
+After configuring Tautulli, the system will automatically:
 
-1. Click **Sync Notifiers** to create notification agents for all eligible users
-2. The system will create a "Pulsarr - Username" agent for each user
-3. Users with existing agents will be automatically linked
+1. Create notification agents for all eligible users
+2. Generate "Pulsarr - Username" agents for each user  
+3. Link users with existing agents automatically
+
+No manual intervention is required - notifiers are created and managed automatically when Tautulli notifications are enabled.
 
 ### 4. Enable for Users
 
@@ -82,6 +84,12 @@ Tautulli notifications are delivered directly to users' **Plex mobile apps** (iO
 
 :::info Push Notification Setup Required
 Users must have push notifications enabled in their Plex mobile app to receive Tautulli notifications. This is a one-time setup per device.
+:::
+
+:::warning Avoid Duplicate Notifications
+To prevent duplicate notifications, users must **uncheck all servers, libraries, and users** in their Plex mobile app's "New Content Added to Library" notification settings. Otherwise, they will receive both Pulsarr notifications (for their watchlist items) and generic Plex notifications (for all new content).
+
+See the [official Tautulli documentation](https://github.com/Tautulli/Tautulli/wiki/Notification-Agents-Guide#plex-android--ios-app) for detailed setup instructions.
 :::
 
 **For iOS Users:**
