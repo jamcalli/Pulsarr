@@ -249,7 +249,6 @@ export class PlexSessionMonitorService {
 
   /**
    * Determine if we should trigger a search based on episode position using Sonarr data
-   * Matches the Rust implementation logic exactly
    */
   private async shouldTriggerSearch(
     session: PlexSession,
@@ -274,7 +273,7 @@ export class PlexSessionMonitorService {
       }
     }
 
-    // Check for end of season using Sonarr data (matching Rust logic)
+    // Check for end of season using Sonarr data
     const currentSeason = sonarrData.series.seasons?.find(
       (s) => s.seasonNumber === session.parentIndex,
     )
@@ -293,7 +292,7 @@ export class PlexSessionMonitorService {
       return false
     }
 
-    // Rust logic: is_end_of_season = current_episode > (total_episodes - remaining_threshold)
+    // Check if current episode is near the end of season: current_episode > (total_episodes - remaining_threshold)
     const isEndOfSeason = session.index > totalEpisodes - threshold
 
     this.log.debug(

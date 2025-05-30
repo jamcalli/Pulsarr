@@ -18,7 +18,12 @@ export default fp(
     const service = new PlexServerService(fastify.log, fastify.config)
 
     // Initialize the service
-    await service.initialize()
+    const initialized = await service.initialize()
+    if (!initialized) {
+      fastify.log.warn(
+        'PlexServerService failed to initialize - some features may not work properly',
+      )
+    }
 
     fastify.decorate('plexServerService', service)
 
