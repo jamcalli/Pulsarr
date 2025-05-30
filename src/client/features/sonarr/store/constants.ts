@@ -10,6 +10,8 @@ export const SONARR_MONITORING_OPTIONS: Record<SonarrMonitoringType, string> = {
   lastSeason: 'Last Season',
   latestSeason: 'Latest Season',
   pilot: 'Pilot Only',
+  pilot_rolling: 'Pilot Rolling (Auto-expand)',
+  first_season_rolling: 'First Season Rolling (Auto-expand)',
   recent: 'Recent Episodes',
   monitorSpecials: 'Monitor Specials',
   unmonitorSpecials: 'Unmonitor Specials',

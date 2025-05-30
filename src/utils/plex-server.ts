@@ -10,6 +10,11 @@ import { parseGuids } from '@utils/guid-handler.js'
 import { toItemsSingle } from '@utils/plex.js'
 import type { Item } from '@root/types/plex.types.js'
 import { XMLParser } from 'fast-xml-parser'
+import type {
+  PlexSession,
+  PlexSessionResponse,
+  PlexShowMetadata,
+} from '@root/types/plex-session.types.js'
 
 /**
  * Specialized Plex playlist response structure
@@ -94,23 +99,6 @@ interface PlexSharedServerInfo {
   userID: string
   accessToken: string
   // Other fields available but not needed for our primary use case
-}
-
-/**
- * Plex users API response structure
- */
-interface PlexUsersResponse {
-  MediaContainer: {
-    size?: number
-    User: Array<{
-      id: string
-      title: string
-      username?: string
-      email?: string
-      thumb?: string
-      // And other fields that might be present
-    }>
-  }
 }
 
 /**
@@ -1512,5 +1500,98 @@ export class PlexServerService {
 
     // Ensure we don't reset the initialized state, as that's managed separately
     // through the initialize() method
+  }
+
+  /**
+   * Retrieves active Plex sessions from the server
+   *
+   * @returns Promise resolving to array of active sessions
+   */
+  async getActiveSessions(): Promise<PlexSession[]> {
+    try {
+      const serverUrl = await this.getPlexServerUrl()
+      const adminToken = this.config.plexTokens?.[0] || ''
+
+      if (!adminToken) {
+        this.log.warn('No Plex admin token available for session monitoring')
+        return []
+      }
+
+      const url = new URL('/status/sessions', serverUrl)
+      const response = await fetch(url.toString(), {
+        headers: {
+          Accept: 'application/json',
+          'X-Plex-Token': adminToken,
+          'X-Plex-Client-Identifier': 'Pulsarr',
+        },
+        signal: AbortSignal.timeout(8000),
+      })
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch sessions: ${response.status} ${response.statusText}`,
+        )
+      }
+
+      const data = (await response.json()) as PlexSessionResponse
+      const sessions = data.MediaContainer.Metadata || []
+
+      this.log.debug(`Found ${sessions.length} active Plex sessions`)
+      return sessions
+    } catch (error) {
+      this.log.error('Error fetching Plex sessions:', error)
+      return []
+    }
+  }
+
+  /**
+   * Retrieves detailed show metadata including season and episode information
+   *
+   * @param ratingKey - The show's rating key
+   * @param includeChildren - Whether to include season/episode details
+   * @returns Promise resolving to show metadata or null
+   */
+  async getShowMetadata(
+    ratingKey: string,
+    includeChildren = true,
+  ): Promise<PlexShowMetadata | null> {
+    try {
+      const serverUrl = await this.getPlexServerUrl()
+      const adminToken = this.config.plexTokens?.[0] || ''
+
+      if (!adminToken) {
+        this.log.warn('No Plex admin token available for metadata retrieval')
+        return null
+      }
+
+      const url = new URL(`/library/metadata/${ratingKey}`, serverUrl)
+      if (includeChildren) {
+        url.searchParams.append('includeChildren', '1')
+      }
+
+      const response = await fetch(url.toString(), {
+        headers: {
+          Accept: 'application/json',
+          'X-Plex-Token': adminToken,
+          'X-Plex-Client-Identifier': 'Pulsarr',
+        },
+        signal: AbortSignal.timeout(8000),
+      })
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch show metadata: ${response.status} ${response.statusText}`,
+        )
+      }
+
+      const data = (await response.json()) as PlexShowMetadata
+      return data
+    } catch (error) {
+      this.log.error(
+        `Error fetching show metadata for key ${ratingKey}:`,
+        error,
+      )
+      return null
+    }
   }
 }

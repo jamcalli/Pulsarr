@@ -5,6 +5,7 @@ import type { ControllerRenderProps } from 'react-hook-form'
 
 interface UserMultiSelectProps {
   field: ControllerRenderProps<any, any>
+  disabled?: boolean
 }
 
 /**
@@ -16,8 +17,9 @@ interface UserMultiSelectProps {
  * field handler, using a single value for one selection and an array for multiple selections.
  *
  * @param field - A controlled form field from react-hook-form used to manage the input's value.
+ * @param disabled - Optional disabled state for the multi-select component.
  */
-export function UserMultiSelect({ field }: UserMultiSelectProps) {
+export function UserMultiSelect({ field, disabled }: UserMultiSelectProps) {
   const users = useConfigStore((state) => state.users)
   const fetchUserData = useConfigStore((state) => state.fetchUserData)
   const isInitialized = useConfigStore((state) => state.isInitialized)
@@ -51,6 +53,7 @@ export function UserMultiSelect({ field }: UserMultiSelectProps) {
       placeholder="Select user(s)"
       modalPopover={true}
       maxCount={2}
+      disabled={disabled}
     />
   )
 }

@@ -277,21 +277,7 @@ export class SonarrService {
   }
 
   private async deleteNotification(notificationId: number): Promise<void> {
-    const config = this.sonarrConfig
-    const url = new URL(
-      `${config.sonarrBaseUrl}/api/v3/notification/${notificationId}`,
-    )
-
-    const response = await fetch(url.toString(), {
-      method: 'DELETE',
-      headers: {
-        'X-Api-Key': config.sonarrApiKey,
-      },
-    })
-
-    if (!response.ok) {
-      throw new Error(`Sonarr API error: ${response.statusText}`)
-    }
+    await this.sonarrDelete(`notification/${notificationId}`)
   }
 
   async initialize(instance: SonarrInstance): Promise<void> {
@@ -1029,21 +1015,8 @@ export class SonarrService {
     id: number,
     deleteFiles: boolean,
   ): Promise<void> {
-    const config = this.sonarrConfig
-    const url = new URL(`${config.sonarrBaseUrl}/api/v3/series/${id}`)
-    url.searchParams.append('deleteFiles', deleteFiles.toString())
-    url.searchParams.append('addImportListExclusion', 'false')
-
-    const response = await fetch(url.toString(), {
-      method: 'DELETE',
-      headers: {
-        'X-Api-Key': config.sonarrApiKey,
-      },
-    })
-
-    if (!response.ok) {
-      throw new Error(`Sonarr API error: ${response.statusText}`)
-    }
+    const endpoint = `series/${id}?deleteFiles=${deleteFiles}&addImportListExclusion=false`
+    await this.sonarrDelete(endpoint)
   }
 
   async configurePlexNotification(
@@ -1336,15 +1309,14 @@ export class SonarrService {
   }
 
   /**
-   * Delete a tag from Sonarr
+   * Generic DELETE request to Sonarr API
    *
-   * @param tagId The ID of the tag to delete
+   * @param endpoint API endpoint
    * @returns Promise resolving when the delete operation is complete
    */
-  async deleteTag(tagId: number): Promise<void> {
+  private async sonarrDelete(endpoint: string): Promise<void> {
     const config = this.sonarrConfig
-    const url = new URL(`${config.sonarrBaseUrl}/api/v3/tag/${tagId}`)
-
+    const url = new URL(`${config.sonarrBaseUrl}/api/v3/${endpoint}`)
     const response = await fetch(url.toString(), {
       method: 'DELETE',
       headers: {
@@ -1353,10 +1325,183 @@ export class SonarrService {
     })
 
     if (!response.ok) {
-      throw new Error(`Sonarr API error: ${response.statusText}`)
+      let errorDetail = response.statusText
+      try {
+        const errorData = (await response.json()) as { message?: string }
+        if (errorData.message) {
+          errorDetail = errorData.message
+        }
+      } catch {}
+
+      if (response.status === 401) {
+        throw new HttpError('Authentication failed. Check API key.', 401)
+      }
+      if (response.status === 404) {
+        throw new HttpError(`Resource not found: ${endpoint}`, 404)
+      }
+      throw new HttpError(`Sonarr API error: ${errorDetail}`, response.status)
     }
+  }
+
+  /**
+   * Delete a tag from Sonarr
+   *
+   * @param tagId The ID of the tag to delete
+   * @returns Promise resolving when the delete operation is complete
+   */
+  async deleteTag(tagId: number): Promise<void> {
+    await this.sonarrDelete(`tag/${tagId}`)
 
     // Invalidate the tags cache since we've deleted a tag
     this.invalidateTagsCache()
+  }
+
+  /**
+   * Get all series from Sonarr (raw data)
+   * @returns Promise resolving to array of series
+   */
+  async getAllSeries(): Promise<SonarrSeries[]> {
+    try {
+      return await this.getFromSonarr<SonarrSeries[]>('series')
+    } catch (error) {
+      this.log.error('Error fetching all series:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Search for episodes in a specific season
+   * Matches Rust implementation: enables monitoring first, then searches
+   * @param seriesId The Sonarr series ID
+   * @param seasonNumber The season number to search
+   */
+  async searchSeason(seriesId: number, seasonNumber: number): Promise<void> {
+    try {
+      // STEP 1: Get current series data
+      const series = await this.getFromSonarr<SonarrSeries>(
+        `series/${seriesId}`,
+      )
+
+      // STEP 2: Check if season exists
+      const season = series.seasons?.find(
+        (s) => s.seasonNumber === seasonNumber,
+      )
+      if (!season) {
+        throw new Error(
+          `Season ${seasonNumber} not found in series ${seriesId}`,
+        )
+      }
+
+      // STEP 3: Enable monitoring if needed (matching Rust logic)
+      let needsUpdate = false
+      if (!season.monitored) {
+        season.monitored = true
+        needsUpdate = true
+        this.log.info(
+          `Enabling monitoring for series ${seriesId} season ${seasonNumber}`,
+        )
+      }
+      if (!series.monitored) {
+        series.monitored = true
+        needsUpdate = true
+        this.log.info(`Enabling monitoring for series ${seriesId}`)
+      }
+
+      // STEP 4: Update series if monitoring changed
+      if (needsUpdate) {
+        await this.putToSonarr(`series/${seriesId}`, series)
+        this.log.info(
+          `Updated monitoring for series ${seriesId} season ${seasonNumber}`,
+        )
+      }
+
+      // STEP 5: Now trigger the search
+      await this.postToSonarr('command', {
+        name: 'SeasonSearch',
+        seriesId,
+        seasonNumber,
+      })
+
+      this.log.info(
+        `Triggered search for series ${seriesId} season ${seasonNumber}`,
+      )
+    } catch (error) {
+      this.log.error(`Error searching season: ${error}`)
+      throw error
+    }
+  }
+
+  /**
+   * Update monitoring for a specific season
+   * @param seriesId The Sonarr series ID
+   * @param seasonNumber The season number
+   * @param monitored Whether to monitor the season
+   */
+  async updateSeasonMonitoring(
+    seriesId: number,
+    seasonNumber: number,
+    monitored: boolean,
+  ): Promise<void> {
+    try {
+      // First get the series to find the season
+      const series = await this.getFromSonarr<SonarrSeries>(
+        `series/${seriesId}`,
+      )
+
+      if (!series.seasons) {
+        throw new Error('Series has no seasons')
+      }
+
+      // Find and update the season
+      const seasonIndex = series.seasons.findIndex(
+        (s) => s.seasonNumber === seasonNumber,
+      )
+      if (seasonIndex === -1) {
+        throw new Error(`Season ${seasonNumber} not found`)
+      }
+
+      series.seasons[seasonIndex].monitored = monitored
+
+      // Update the series
+      await this.putToSonarr(`series/${seriesId}`, series)
+
+      this.log.info(
+        `Updated monitoring for series ${seriesId} season ${seasonNumber} to ${monitored}`,
+      )
+    } catch (error) {
+      this.log.error('Error updating season monitoring:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Update series monitoring settings
+   * @param seriesId The Sonarr series ID
+   * @param updates Object containing monitoring updates
+   */
+  async updateSeriesMonitoring(
+    seriesId: number,
+    updates: { monitored?: boolean; monitorNewItems?: 'all' | 'none' },
+  ): Promise<void> {
+    try {
+      // Get current series data
+      const series = await this.getFromSonarr<SonarrSeries>(
+        `series/${seriesId}`,
+      )
+
+      // Apply updates
+      const updatedSeries = {
+        ...series,
+        ...updates,
+      }
+
+      // Send update
+      await this.putToSonarr(`series/${seriesId}`, updatedSeries)
+
+      this.log.info(`Updated series ${seriesId} monitoring settings`)
+    } catch (error) {
+      this.log.error('Error updating series monitoring:', error)
+      throw error
+    }
   }
 }

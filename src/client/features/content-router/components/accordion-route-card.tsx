@@ -44,6 +44,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { useConfigStore } from '@/stores/configStore'
 import {
   Select,
   SelectContent,
@@ -128,6 +129,10 @@ const AccordionRouteCard = ({
   const [showTagCreationDialog, setShowTagCreationDialog] = useState(false)
   const tagsMultiSelectRef =
     useRef<import('@/components/ui/tag-multi-select').TagsMultiSelectRef>(null)
+
+  const { config } = useConfigStore()
+  const isSessionMonitoringEnabled =
+    config?.plexSessionMonitoring?.enabled || false
 
   // Refs to track component state
   const isSavingRef = useRef(false)
@@ -1171,6 +1176,14 @@ const AccordionRouteCard = ({
                                       monitored for new episodes when series are
                                       added.
                                     </p>
+                                    {!isSessionMonitoringEnabled && (
+                                      <p className="max-w-xs mt-2 text-sm text-muted-foreground">
+                                        Note: Rolling monitoring options (Pilot
+                                        Rolling and First Season Rolling)
+                                        require Plex Session Monitoring to be
+                                        enabled in Utilities.
+                                      </p>
+                                    )}
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>
@@ -1186,11 +1199,29 @@ const AccordionRouteCard = ({
                               </FormControl>
                               <SelectContent>
                                 {Object.entries(SONARR_MONITORING_OPTIONS).map(
-                                  ([value, label]) => (
-                                    <SelectItem key={value} value={value}>
-                                      {label}
-                                    </SelectItem>
-                                  ),
+                                  ([value, label]) => {
+                                    const isRollingOption =
+                                      value === 'pilot_rolling' ||
+                                      value === 'first_season_rolling'
+                                    const isDisabled =
+                                      isRollingOption &&
+                                      !isSessionMonitoringEnabled
+
+                                    return (
+                                      <SelectItem
+                                        key={value}
+                                        value={value}
+                                        disabled={isDisabled}
+                                        className={
+                                          isDisabled
+                                            ? 'cursor-not-allowed opacity-50'
+                                            : ''
+                                        }
+                                      >
+                                        {label}
+                                      </SelectItem>
+                                    )
+                                  },
                                 )}
                               </SelectContent>
                             </Select>
