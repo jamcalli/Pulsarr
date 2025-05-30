@@ -41,8 +41,9 @@ const sidebars: SidebarsConfig = {
       label: 'Utilities',
       items: [
         'utilities/delete-sync',
-        'utilities/plex-notifications',
         'utilities/user-tagging',
+        'utilities/session-monitoring',
+        'utilities/plex-notifications',
       ],
     },
     'architecture',
