@@ -7,6 +7,7 @@ import type {
   SonarrItem,
   ConnectionTestResult,
 } from '@root/types/sonarr.types.js'
+import { isRollingMonitoringOption } from '@root/types/sonarr.types.js'
 import type { TemptRssWatchlistItem } from '@root/types/plex.types.js'
 
 export class SonarrManagerService {
@@ -194,9 +195,9 @@ export class SonarrManagerService {
         seasonMonitoring ?? instance.seasonMonitoring ?? 'all'
 
       // Check if this is a rolling monitoring option
-      const isRollingMonitoring =
-        targetSeasonMonitoring === 'pilot_rolling' ||
-        targetSeasonMonitoring === 'first_season_rolling'
+      const isRollingMonitoring = isRollingMonitoringOption(
+        targetSeasonMonitoring,
+      )
 
       // Use provided series type or instance default
       const targetSeriesType = seriesType ?? instance.seriesType ?? 'standard'

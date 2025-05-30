@@ -15,6 +15,17 @@ export enum SonarrMonitoringOption {
   FIRST_SEASON_ROLLING = 'first_season_rolling', // Monitor S1 only, expand as watched
 }
 
+// Centralized set of rolling monitoring options for consistent checking
+export const ROLLING_MONITORING_OPTIONS = new Set<string>([
+  SonarrMonitoringOption.PILOT_ROLLING,
+  SonarrMonitoringOption.FIRST_SEASON_ROLLING,
+])
+
+// Type guard to check if a monitoring option is a rolling option
+export function isRollingMonitoringOption(option: string): boolean {
+  return ROLLING_MONITORING_OPTIONS.has(option)
+}
+
 export interface SonarrAddOptions {
   monitor: string | null
   searchForCutoffUnmetEpisodes: boolean | null

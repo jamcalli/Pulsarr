@@ -36,6 +36,7 @@ import {
   Power,
 } from 'lucide-react'
 import { SONARR_MONITORING_OPTIONS } from '@/features/sonarr/store/constants'
+import { isRollingMonitoringOption } from '@/features/sonarr/types/types'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import ConditionGroupComponent from '@/features/content-router/components/condition-group'
 import {
@@ -1201,8 +1202,7 @@ const AccordionRouteCard = ({
                                 {Object.entries(SONARR_MONITORING_OPTIONS).map(
                                   ([value, label]) => {
                                     const isRollingOption =
-                                      value === 'pilot_rolling' ||
-                                      value === 'first_season_rolling'
+                                      isRollingMonitoringOption(value)
                                     const isDisabled =
                                       isRollingOption &&
                                       !isSessionMonitoringEnabled
