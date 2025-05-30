@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, Monitor, Save, X, HelpCircle, Power } from 'lucide-react'
-import { Switch } from '@/components/ui/switch'
+import { Loader2, Save, X, HelpCircle, Power } from 'lucide-react'
 import {
   Form,
   FormControl,
@@ -106,7 +105,10 @@ export function SessionMonitoringForm() {
         }
 
         // Check if polling interval changed and schedule is enabled
-        const currentInterval = sessionMonitorSchedule.config?.minutes || 15
+        const currentInterval =
+          sessionMonitorSchedule.type === 'interval'
+            ? sessionMonitorSchedule.config?.minutes || 15
+            : 15
         if (data.enabled && currentInterval !== data.pollingIntervalMinutes) {
           // Update the schedule with new interval
           const response = await fetch(
