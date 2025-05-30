@@ -50,6 +50,8 @@ import {
 import type { UserWatchlistInfo } from '@/stores/configStore'
 import UserTableSkeletonRows from '@/features/plex/components/user/user-table-skeleton'
 import type { PlexUserTableRow } from '@/features/plex/store/types'
+import { UserWatchlistSheet } from '@/features/plex/components/user/user-watchlist-sheet'
+import { useUserWatchlist } from '@/features/plex/hooks/useUserWatchlist'
 
 interface ColumnMetaType {
   className?: string
@@ -87,6 +89,16 @@ export default function UserTable({
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = React.useState({})
+  const [selectedUserName, setSelectedUserName] = React.useState<string>('')
+
+  const {
+    watchlistData,
+    isLoading: isWatchlistLoading,
+    error: watchlistError,
+    isOpen,
+    handleOpen,
+    handleClose,
+  } = useUserWatchlist()
 
   const columns: ColumnDef<UserWatchlistInfo>[] = [
     {
@@ -251,6 +263,19 @@ export default function UserTable({
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                 <DropdownMenuItem onClick={() => onEditUser(user)}>
                   Edit user
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setSelectedUserName(user.name)
+                    const userId = Number.parseInt(user.id)
+                    if (!Number.isNaN(userId)) {
+                      handleOpen(userId)
+                    }
+                  }}
+                >
+                  View Watchlist
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -466,6 +491,16 @@ export default function UserTable({
           </Button>
         </div>
       </div>
+      {isOpen && (
+        <UserWatchlistSheet
+          isOpen={isOpen}
+          onClose={handleClose}
+          userName={selectedUserName}
+          watchlistItems={watchlistData?.watchlistItems}
+          isLoading={isWatchlistLoading}
+          error={watchlistError}
+        />
+      )}
     </div>
   )
 }
