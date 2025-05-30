@@ -223,13 +223,39 @@ export class SonarrManagerService {
       // If rolling monitoring was used, create tracking entry
       if (isRollingMonitoring) {
         try {
-          // Get the series ID from Sonarr
-          const allSeries = await sonarrService.getAllSeries()
-          const addedSeries = allSeries.find(
-            (s) =>
-              sonarrItem.guids.some((g) => g.includes(`tvdb:${s.tvdbId}`)) ||
-              s.title.toLowerCase() === sonarrItem.title.toLowerCase(),
-          )
+          // Get the series ID from Sonarr with retry logic to handle indexing delays
+          let addedSeries = null
+          let retries = 3
+          const retryDelay = 1000 // 1 second
+
+          while (!addedSeries && retries > 0) {
+            const allSeries = await sonarrService.getAllSeries()
+
+            // First try exact TVDB ID match
+            const tvdbGuid = sonarrItem.guids.find((g) => g.startsWith('tvdb:'))
+            const tvdbId = tvdbGuid ? tvdbGuid.replace('tvdb:', '') : undefined
+
+            if (tvdbId) {
+              addedSeries = allSeries.find(
+                (s) => s.tvdbId === Number.parseInt(tvdbId, 10),
+              )
+            }
+
+            // Fallback to title match only if TVDB match fails
+            if (!addedSeries) {
+              addedSeries = allSeries.find(
+                (s) => s.title.toLowerCase() === sonarrItem.title.toLowerCase(),
+              )
+            }
+
+            if (!addedSeries && retries > 1) {
+              this.log.debug(
+                `Series ${sonarrItem.title} not found yet, retrying in ${retryDelay}ms...`,
+              )
+              await new Promise((resolve) => setTimeout(resolve, retryDelay))
+            }
+            retries--
+          }
 
           if (addedSeries) {
             // Extract TVDB ID
@@ -253,6 +279,10 @@ export class SonarrManagerService {
                 `Created rolling monitoring entry for ${sonarrItem.title} with ${targetSeasonMonitoring}`,
               )
             }
+          } else {
+            this.log.warn(
+              `Could not find series ${sonarrItem.title} in Sonarr after ${3} retries - rolling monitoring entry not created`,
+            )
           }
         } catch (error) {
           this.log.error('Failed to create rolling monitoring entry:', error)
