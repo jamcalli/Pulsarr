@@ -228,10 +228,10 @@ export class PlexSessionMonitorService {
     }
 
     // Check deduplication
-    const seenKey = `${seriesIds.tvdbId || session.grandparentTitle}_${session.parentIndex + 1}`
+    const seenKey = `${seriesIds.tvdbId || session.grandparentTitle}_${session.parentIndex}`
     if (this.hasSeenRecently(seenKey)) {
       this.log.debug(
-        `Already processed ${session.grandparentTitle} season ${session.parentIndex + 1} recently`,
+        `Already processed ${session.grandparentTitle} season ${session.parentIndex} recently`,
       )
       return
     }
@@ -244,7 +244,7 @@ export class PlexSessionMonitorService {
     }
 
     // Mark as seen
-    this.markAsSeen(seenKey, session.parentIndex + 1)
+    this.markAsSeen(seenKey, session.parentIndex)
   }
 
   /**

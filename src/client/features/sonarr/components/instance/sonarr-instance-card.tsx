@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { SONARR_MONITORING_OPTIONS } from '@/features/sonarr/store/constants'
+import { isRollingMonitoringOption } from '@/features/sonarr/types/types'
 import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
 import { useSonarrConnection } from '@/features/sonarr/hooks/instance/useSonarrConnection'
 import { useSonarrInstanceForm } from '@/features/sonarr/hooks/instance/useSonarrInstanceForms'
@@ -617,8 +618,7 @@ export function InstanceCard({
                             {Object.entries(SONARR_MONITORING_OPTIONS).map(
                               ([value, label]) => {
                                 const isRollingOption =
-                                  value === 'pilot_rolling' ||
-                                  value === 'first_season_rolling'
+                                  isRollingMonitoringOption(value)
                                 const isDisabled =
                                   isRollingOption && !isSessionMonitoringEnabled
 
