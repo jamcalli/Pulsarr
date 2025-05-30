@@ -740,7 +740,7 @@ export class PlexSessionMonitorService {
     monitoringType: 'pilot_rolling' | 'first_season_rolling',
   ): Promise<void> {
     try {
-      const initialSeason = monitoringType === 'pilot_rolling' ? 1 : 1
+      const initialSeason = 1 // Both pilot_rolling and first_season_rolling start with season 1
 
       await this.db.createRollingMonitoredShow({
         sonarr_series_id: sonarrSeriesId,
