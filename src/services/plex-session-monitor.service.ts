@@ -342,9 +342,15 @@ export class PlexSessionMonitorService {
       // Extract all available GUIDs using robust parsing
       const allGuids: string[] = []
 
-      // Add main GUID if available
+      // Add main GUID if available (check both cases for compatibility)
       if (metadata.MediaContainer.guid) {
         allGuids.push(metadata.MediaContainer.guid)
+      }
+      if (
+        metadata.MediaContainer.Guid &&
+        typeof metadata.MediaContainer.Guid === 'string'
+      ) {
+        allGuids.push(metadata.MediaContainer.Guid)
       }
 
       // Add additional GUIDs from Guid array

@@ -52,14 +52,14 @@ export interface PlexShowMetadata {
     title2: string // Show name
     key: string
     ratingKey: string
-    guid: string
+    guid?: string // Main GUID (lowercase)
+    Guid?: string | Array<{ id: string }> // Can be string or array (uppercase)
     type: string
     title: string
     summary?: string
     childCount: number // Number of seasons
     leafCount: number // Total episode count
     viewedLeafCount?: number
-    Guid?: Array<{ id: string }>
     Children?: {
       size: number
       Metadata?: PlexSeasonMetadata[]

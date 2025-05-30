@@ -49,8 +49,12 @@ type SessionMonitoringFormData = z.infer<typeof sessionMonitoringSchema>
 export function SessionMonitoringForm() {
   const isMobile = useMediaQuery('(max-width: 768px)')
   const { config, updateConfig } = useConfigStore()
-  const { schedules, toggleScheduleStatus, setLoadingWithMinDuration } =
-    useUtilitiesStore()
+  const {
+    schedules,
+    toggleScheduleStatus,
+    setLoadingWithMinDuration,
+    fetchSchedules,
+  } = useUtilitiesStore()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const submittingStartTime = useRef<number | null>(null)
 
@@ -130,7 +134,7 @@ export function SessionMonitoringForm() {
           }
 
           // Refresh schedules to get updated data
-          await schedules?.find((s) => s.name === 'plex-session-monitor')
+          await fetchSchedules()
         }
       }
 
