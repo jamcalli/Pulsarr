@@ -74,6 +74,7 @@ import type {
   RadarrMovieLookupResponse,
   SonarrSeriesLookupResponse,
 } from '@root/types/content-lookup.types.js'
+import type { RollingMonitoredShow } from '@root/types/plex-session.types.js'
 import { parseGuids } from '@utils/guid-handler.js'
 
 export class DatabaseService {
@@ -525,6 +526,9 @@ export class DatabaseService {
       ...config,
       // Parse JSON fields
       plexTokens: JSON.parse(config.plexTokens || '[]'),
+      plexSessionMonitoring: config.plexSessionMonitoring
+        ? JSON.parse(config.plexSessionMonitoring)
+        : undefined,
       // Handle optional RSS fields
       selfRss: config.selfRss || undefined,
       friendsRss: config.friendsRss || undefined,
@@ -6088,6 +6092,196 @@ export class DatabaseService {
     } catch (error) {
       this.log.error(`Error getting webhooks for ${guid}:`, error)
       return []
+    }
+  }
+
+  // ============================================
+  // Rolling Monitored Shows Methods
+  // ============================================
+
+  /**
+   * Creates a new rolling monitored show entry
+   *
+   * @param data - The rolling monitored show data
+   * @returns Promise resolving to the created entry ID
+   */
+  async createRollingMonitoredShow(data: {
+    sonarr_series_id: number
+    sonarr_instance_id: number
+    tvdb_id?: string
+    imdb_id?: string
+    show_title: string
+    monitoring_type: 'pilot_rolling' | 'first_season_rolling'
+    current_monitored_season: number
+    plex_user_id?: string
+    plex_username?: string
+  }): Promise<number> {
+    try {
+      const result = await this.knex('rolling_monitored_shows')
+        .insert({
+          ...data,
+          last_watched_season: 0,
+          last_watched_episode: 0,
+          last_session_date: this.timestamp,
+          created_at: this.timestamp,
+          updated_at: this.timestamp,
+        })
+        .returning('id')
+
+      const id =
+        typeof result[0] === 'object' && result[0] !== null
+          ? result[0].id
+          : result[0]
+
+      this.log.info(
+        `Created rolling monitored show: ${data.show_title} (ID: ${id})`,
+      )
+      return id
+    } catch (error) {
+      this.log.error('Error creating rolling monitored show:', error)
+      throw new Error('Failed to create rolling monitored show')
+    }
+  }
+
+  /**
+   * Gets all rolling monitored shows
+   *
+   * @returns Promise resolving to array of rolling monitored shows
+   */
+  async getRollingMonitoredShows(): Promise<RollingMonitoredShow[]> {
+    try {
+      return await this.knex('rolling_monitored_shows').orderBy(
+        'show_title',
+        'asc',
+      )
+    } catch (error) {
+      this.log.error('Error getting rolling monitored shows:', error)
+      return []
+    }
+  }
+
+  /**
+   * Gets a rolling monitored show by ID
+   *
+   * @param id - The rolling monitored show ID
+   * @returns Promise resolving to the rolling monitored show or null
+   */
+  async getRollingMonitoredShowById(
+    id: number,
+  ): Promise<RollingMonitoredShow | null> {
+    try {
+      const result = await this.knex('rolling_monitored_shows')
+        .where('id', id)
+        .first()
+
+      return result || null
+    } catch (error) {
+      this.log.error('Error getting rolling monitored show by ID:', error)
+      return null
+    }
+  }
+
+  /**
+   * Gets a rolling monitored show by TVDB ID or title
+   *
+   * @param tvdbId - The TVDB ID
+   * @param title - The show title
+   * @returns Promise resolving to the rolling monitored show or null
+   */
+  async getRollingMonitoredShow(
+    tvdbId?: string,
+    title?: string,
+  ): Promise<RollingMonitoredShow | null> {
+    try {
+      const query = this.knex('rolling_monitored_shows')
+
+      if (tvdbId) {
+        query.where('tvdb_id', tvdbId)
+      } else if (title) {
+        query.where('show_title', title)
+      } else {
+        return null
+      }
+
+      return await query.first()
+    } catch (error) {
+      this.log.error('Error getting rolling monitored show:', error)
+      return null
+    }
+  }
+
+  /**
+   * Updates rolling show progress
+   *
+   * @param id - The rolling monitored show ID
+   * @param season - The last watched season
+   * @param episode - The last watched episode
+   * @returns Promise resolving to boolean indicating success
+   */
+  async updateRollingShowProgress(
+    id: number,
+    season: number,
+    episode: number,
+  ): Promise<boolean> {
+    try {
+      const updated = await this.knex('rolling_monitored_shows')
+        .where({ id })
+        .update({
+          last_watched_season: season,
+          last_watched_episode: episode,
+          last_session_date: this.timestamp,
+          updated_at: this.timestamp,
+        })
+
+      return updated > 0
+    } catch (error) {
+      this.log.error('Error updating rolling show progress:', error)
+      return false
+    }
+  }
+
+  /**
+   * Updates the current monitored season for a rolling show
+   *
+   * @param id - The rolling monitored show ID
+   * @param season - The new current monitored season
+   * @returns Promise resolving to boolean indicating success
+   */
+  async updateRollingShowMonitoredSeason(
+    id: number,
+    season: number,
+  ): Promise<boolean> {
+    try {
+      const updated = await this.knex('rolling_monitored_shows')
+        .where({ id })
+        .update({
+          current_monitored_season: season,
+          updated_at: this.timestamp,
+        })
+
+      return updated > 0
+    } catch (error) {
+      this.log.error('Error updating rolling show monitored season:', error)
+      return false
+    }
+  }
+
+  /**
+   * Deletes a rolling monitored show
+   *
+   * @param id - The rolling monitored show ID
+   * @returns Promise resolving to boolean indicating success
+   */
+  async deleteRollingMonitoredShow(id: number): Promise<boolean> {
+    try {
+      const deleted = await this.knex('rolling_monitored_shows')
+        .where({ id })
+        .delete()
+
+      return deleted > 0
+    } catch (error) {
+      this.log.error('Error deleting rolling monitored show:', error)
+      return false
     }
   }
 }
