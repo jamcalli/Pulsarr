@@ -118,7 +118,7 @@ export function SessionMonitoringForm() {
           const response = await fetch(
             `/v1/scheduler/schedules/${sessionMonitorSchedule.name}`,
             {
-              method: 'PATCH',
+              method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 type: 'interval',
