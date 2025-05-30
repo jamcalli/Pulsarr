@@ -1371,7 +1371,7 @@ export class SonarrService {
 
   /**
    * Search for episodes in a specific season
-   * Matches Rust implementation: enables monitoring first, then searches
+   * Enables monitoring first if needed, then searches
    * @param seriesId The Sonarr series ID
    * @param seasonNumber The season number to search
    */
@@ -1392,7 +1392,7 @@ export class SonarrService {
         )
       }
 
-      // STEP 3: Enable monitoring if needed (matching Rust logic)
+      // STEP 3: Enable monitoring if needed
       let needsUpdate = false
       if (!season.monitored) {
         season.monitored = true
