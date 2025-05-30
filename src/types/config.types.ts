@@ -120,6 +120,13 @@ export interface Config {
   // Special tag for removed content
   removedTagMode: RemovedTagMode
   removedTagPrefix: string
+  // Plex Session Monitoring
+  plexSessionMonitoring?: {
+    enabled: boolean
+    pollingIntervalMinutes: number
+    remainingEpisodes: number
+    filterUsers?: string[]
+  }
   // Ready state
   _isReady: boolean
 }

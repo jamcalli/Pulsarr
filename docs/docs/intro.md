@@ -43,6 +43,12 @@ Enjoy all the benefits of other content discovery systems without requiring user
   - Smart deletion of content when removed from watchlists
   - Plex playlist protection for preserving important content
 
+- **Plex Session Monitoring**:
+  - Real-time monitoring of active Plex viewing sessions
+  - Automatic Sonarr searches triggered when users near end of seasons
+  - Progressive "rolling monitoring" for gradual content acquisition
+  - Smart deduplication and user filtering capabilities
+
 - **Modern Web Interface**:
   - Comprehensive dashboard with detailed statistics
   - Mobile-friendly design

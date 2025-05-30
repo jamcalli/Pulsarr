@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { SONARR_MONITORING_OPTIONS } from '@/features/sonarr/store/constants'
+import { isRollingMonitoringOption } from '@/features/sonarr/types/types'
 import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
 import { useSonarrConnection } from '@/features/sonarr/hooks/instance/useSonarrConnection'
 import { useSonarrInstanceForm } from '@/features/sonarr/hooks/instance/useSonarrInstanceForms'
@@ -48,6 +49,7 @@ import {
   TagsMultiSelect,
   type TagsMultiSelectRef,
 } from '@/components/ui/tag-multi-select'
+import { useConfigStore } from '@/stores/configStore'
 import { TagCreationDialog } from '@/components/ui/tag-creation-dialog'
 import { SONARR_SERIES_TYPES, SERIES_TYPE_LABELS } from '../../constants'
 
@@ -83,6 +85,9 @@ export function InstanceCard({
   const setLoadingWithMinDuration = useSonarrStore(
     (state) => state.setLoadingWithMinDuration,
   )
+  const { config } = useConfigStore()
+  const isSessionMonitoringEnabled =
+    config?.plexSessionMonitoring?.enabled || false
 
   const {
     instances: allInstances,
@@ -587,6 +592,14 @@ export function InstanceCard({
                                   Determines which seasons are monitored for new
                                   episodes.
                                 </p>
+                                {!isSessionMonitoringEnabled && (
+                                  <p className="max-w-xs mt-2 text-sm text-muted-foreground">
+                                    Note: Rolling monitoring options (Pilot
+                                    Rolling and First Season Rolling) require
+                                    Plex Session Monitoring to be enabled in
+                                    Utilities.
+                                  </p>
+                                )}
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
@@ -603,11 +616,27 @@ export function InstanceCard({
                           </FormControl>
                           <SelectContent>
                             {Object.entries(SONARR_MONITORING_OPTIONS).map(
-                              ([value, label]) => (
-                                <SelectItem key={value} value={value}>
-                                  {label}
-                                </SelectItem>
-                              ),
+                              ([value, label]) => {
+                                const isRollingOption =
+                                  isRollingMonitoringOption(value)
+                                const isDisabled =
+                                  isRollingOption && !isSessionMonitoringEnabled
+
+                                return (
+                                  <SelectItem
+                                    key={value}
+                                    value={value}
+                                    disabled={isDisabled}
+                                    className={
+                                      isDisabled
+                                        ? 'cursor-not-allowed opacity-50'
+                                        : ''
+                                    }
+                                  >
+                                    {label}
+                                  </SelectItem>
+                                )
+                              },
                             )}
                           </SelectContent>
                         </Select>

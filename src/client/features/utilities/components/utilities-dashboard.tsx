@@ -5,6 +5,8 @@ import { PlexNotificationsForm } from '@/features/utilities/components/plex-noti
 import { PlexNotificationsSkeleton } from '@/features/utilities/components/plex-notifications/plex-notifications-skeleton'
 import { UserTagsForm } from '@/features/utilities/components/user-tags/user-tags-form'
 import { UserTagsSkeleton } from '@/features/utilities/components/user-tags/user-tags-skeleton'
+import { SessionMonitoringForm } from '@/features/utilities/components/session-monitoring/session-monitoring-form'
+import { SessionMonitoringSkeleton } from '@/features/utilities/components/session-monitoring/session-monitoring-skeleton'
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 
 /**
@@ -52,6 +54,12 @@ export function UtilitiesDashboard() {
           <UserTagsSkeleton />
         ) : (
           <UserTagsForm />
+        )}
+
+        {isLoading || loading.schedules ? (
+          <SessionMonitoringSkeleton />
+        ) : (
+          <SessionMonitoringForm />
         )}
       </div>
     </div>

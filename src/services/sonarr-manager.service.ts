@@ -7,6 +7,7 @@ import type {
   SonarrItem,
   ConnectionTestResult,
 } from '@root/types/sonarr.types.js'
+import { isRollingMonitoringOption } from '@root/types/sonarr.types.js'
 import type { TemptRssWatchlistItem } from '@root/types/plex.types.js'
 
 export class SonarrManagerService {
@@ -193,18 +194,101 @@ export class SonarrManagerService {
       const targetSeasonMonitoring =
         seasonMonitoring ?? instance.seasonMonitoring ?? 'all'
 
+      // Check if this is a rolling monitoring option
+      const isRollingMonitoring = isRollingMonitoringOption(
+        targetSeasonMonitoring,
+      )
+
       // Use provided series type or instance default
       const targetSeriesType = seriesType ?? instance.seriesType ?? 'standard'
 
+      // If rolling monitoring, convert to appropriate Sonarr monitoring option
+      let sonarrMonitoringOption = targetSeasonMonitoring
+      if (isRollingMonitoring) {
+        // For rolling options, start with pilot or firstSeason
+        sonarrMonitoringOption =
+          targetSeasonMonitoring === 'pilot_rolling' ? 'pilot' : 'firstSeason'
+      }
+
+      // Add to Sonarr
       await sonarrService.addToSonarr(
         sonarrItem,
         targetRootFolder,
         targetQualityProfileId,
         targetTags,
         targetSearchOnAdd,
-        targetSeasonMonitoring,
+        sonarrMonitoringOption,
         targetSeriesType,
       )
+
+      // If rolling monitoring was used, create tracking entry
+      if (isRollingMonitoring) {
+        try {
+          // Get the series ID from Sonarr with retry logic to handle indexing delays
+          let addedSeries = null
+          let retries = 3
+          const retryDelay = 1000 // 1 second
+
+          while (!addedSeries && retries > 0) {
+            const allSeries = await sonarrService.getAllSeries()
+
+            // First try exact TVDB ID match
+            const tvdbGuid = sonarrItem.guids.find((g) => g.startsWith('tvdb:'))
+            const tvdbId = tvdbGuid ? tvdbGuid.replace('tvdb:', '') : undefined
+
+            if (tvdbId) {
+              addedSeries = allSeries.find(
+                (s) => s.tvdbId === Number.parseInt(tvdbId, 10),
+              )
+            }
+
+            // Fallback to title match only if TVDB match fails
+            if (!addedSeries) {
+              addedSeries = allSeries.find(
+                (s) => s.title.toLowerCase() === sonarrItem.title.toLowerCase(),
+              )
+            }
+
+            if (!addedSeries && retries > 1) {
+              this.log.debug(
+                `Series ${sonarrItem.title} not found yet, retrying in ${retryDelay}ms...`,
+              )
+              await new Promise((resolve) => setTimeout(resolve, retryDelay))
+            }
+            retries--
+          }
+
+          if (addedSeries) {
+            // Extract TVDB ID
+            const tvdbGuid = sonarrItem.guids.find((g) => g.startsWith('tvdb:'))
+            const tvdbId = tvdbGuid ? tvdbGuid.replace('tvdb:', '') : undefined
+
+            // Create rolling monitoring entry
+            const plexSessionMonitor = this.fastify.plexSessionMonitor
+            if (plexSessionMonitor) {
+              await plexSessionMonitor.createRollingMonitoredShow(
+                addedSeries.id,
+                targetInstanceId,
+                tvdbId || '',
+                sonarrItem.title,
+                targetSeasonMonitoring as
+                  | 'pilot_rolling'
+                  | 'first_season_rolling',
+              )
+
+              this.log.info(
+                `Created rolling monitoring entry for ${sonarrItem.title} with ${targetSeasonMonitoring}`,
+              )
+            }
+          } else {
+            this.log.warn(
+              `Could not find series ${sonarrItem.title} in Sonarr after ${3} retries - rolling monitoring entry not created`,
+            )
+          }
+        } catch (error) {
+          this.log.error('Failed to create rolling monitoring entry:', error)
+        }
+      }
 
       await this.fastify.db.updateWatchlistItem(key, {
         sonarr_instance_id: targetInstanceId,
@@ -243,6 +327,15 @@ export class SonarrManagerService {
   async getAllInstances(): Promise<SonarrInstance[]> {
     const instances = await this.fastify.db.getAllSonarrInstances()
     return instances
+  }
+
+  /**
+   * Get a specific Sonarr service instance by ID
+   * @param instanceId The ID of the Sonarr instance
+   * @returns The SonarrService instance or undefined if not found
+   */
+  getInstance(instanceId: number): SonarrService | undefined {
+    return this.sonarrServices.get(instanceId)
   }
 
   async verifyItemExists(

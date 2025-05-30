@@ -89,6 +89,15 @@ export const ConfigSchema = z.object({
   selfRss: z.string().optional(),
   friendsRss: z.string().optional(),
   _isReady: z.boolean().optional(),
+  // Plex Session Monitoring
+  plexSessionMonitoring: z
+    .object({
+      enabled: z.boolean().default(false),
+      pollingIntervalMinutes: z.number().min(1).default(15),
+      remainingEpisodes: z.number().min(1).default(2),
+      filterUsers: z.array(z.string()).optional(),
+    })
+    .optional(),
 })
 
 export const ConfigResponseSchema = z.object({
