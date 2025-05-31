@@ -270,8 +270,10 @@ export default function UserTable({
                     e.stopPropagation()
                     setSelectedUserName(user.name)
                     const userId = Number.parseInt(user.id)
-                    if (!Number.isNaN(userId)) {
+                    if (!Number.isNaN(userId) && userId > 0) {
                       handleOpen(userId)
+                    } else {
+                      console.error('Invalid user ID:', user.id)
                     }
                   }}
                 >

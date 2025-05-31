@@ -529,9 +529,7 @@ export class DatabaseService {
       plexSessionMonitoring: config.plexSessionMonitoring
         ? JSON.parse(config.plexSessionMonitoring)
         : undefined,
-      newUserDefaults: config.newUserDefaults
-        ? JSON.parse(config.newUserDefaults)
-        : undefined,
+      newUserDefaultCanSync: Boolean(config.newUserDefaultCanSync ?? true),
       // Handle optional RSS fields
       selfRss: config.selfRss || undefined,
       friendsRss: config.friendsRss || undefined,
@@ -666,6 +664,12 @@ export class DatabaseService {
         removedTagMode: config.removedTagMode || 'remove',
         removedTagPrefix: config.removedTagPrefix || 'pulsarr:removed',
         deletionMode: config.deletionMode || 'watchlist',
+        // Plex Session Monitoring
+        plexSessionMonitoring: config.plexSessionMonitoring
+          ? JSON.stringify(config.plexSessionMonitoring)
+          : null,
+        // New User Defaults
+        newUserDefaultCanSync: config.newUserDefaultCanSync ?? true,
         // Ready state
         _isReady: config._isReady || false,
         // Timestamps
@@ -705,7 +709,8 @@ export class DatabaseService {
           key === 'tagPrefix' ||
           key === 'removedTagPrefix' ||
           key === 'removedTagMode' ||
-          key === 'deletionMode'
+          key === 'deletionMode' ||
+          key === 'newUserDefaultCanSync'
         ) {
           updateData[key] = value
         } else if (
