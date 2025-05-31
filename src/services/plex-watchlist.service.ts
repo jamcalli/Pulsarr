@@ -581,7 +581,7 @@ export class PlexWatchlistService {
               notify_discord: false,
               notify_tautulli: false,
               tautulli_notifier_id: null,
-              can_sync: this.config.newUserDefaults?.canSync ?? true,
+              can_sync: this.config.newUserDefaultCanSync ?? true,
               is_primary_token: false, // Initially false, will set to true next
             })
 
@@ -601,7 +601,7 @@ export class PlexWatchlistService {
               notify_discord: false,
               notify_tautulli: false,
               tautulli_notifier_id: null,
-              can_sync: this.config.newUserDefaults?.canSync ?? true,
+              can_sync: this.config.newUserDefaultCanSync ?? true,
               is_primary_token: false,
             })
           }
@@ -640,7 +640,7 @@ export class PlexWatchlistService {
             notify_discord: false,
             notify_tautulli: false,
             tautulli_notifier_id: null,
-            can_sync: this.config.newUserDefaults?.canSync ?? true,
+            can_sync: this.config.newUserDefaultCanSync ?? true,
             is_primary_token: false,
           })
         }

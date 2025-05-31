@@ -99,11 +99,7 @@ export const ConfigSchema = z.object({
     })
     .optional(),
   // New User Defaults
-  newUserDefaults: z
-    .object({
-      canSync: z.boolean().default(true),
-    })
-    .optional(),
+  newUserDefaultCanSync: z.boolean().optional(),
 })
 
 export const ConfigResponseSchema = z.object({

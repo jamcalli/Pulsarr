@@ -37,7 +37,7 @@ export function NewUserDefaultsForm() {
   const form = useForm<NewUserDefaultsFormData>({
     resolver: zodResolver(newUserDefaultsSchema),
     defaultValues: {
-      canSync: config?.newUserDefaults?.canSync ?? true,
+      canSync: config?.newUserDefaultCanSync ?? true,
     },
   })
 
@@ -46,9 +46,9 @@ export function NewUserDefaultsForm() {
 
   // Reset form when config changes
   useEffect(() => {
-    if (config?.newUserDefaults) {
+    if (config) {
       const formValues = {
-        canSync: config.newUserDefaults.canSync,
+        canSync: config.newUserDefaultCanSync ?? true,
       }
       form.reset(formValues)
     }
@@ -60,9 +60,7 @@ export function NewUserDefaultsForm() {
 
     try {
       await updateConfig({
-        newUserDefaults: {
-          canSync: data.canSync,
-        },
+        newUserDefaultCanSync: data.canSync,
       })
 
       // Ensure minimum loading time for better UX

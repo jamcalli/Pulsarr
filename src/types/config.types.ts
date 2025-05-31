@@ -128,13 +128,15 @@ export interface Config {
     filterUsers?: string[]
   }
   // New User Defaults
-  newUserDefaults?: {
-    canSync: boolean
-  }
+  newUserDefaultCanSync?: boolean
   // Ready state
   _isReady: boolean
 }
 
 export type RawConfig = {
-  [K in keyof Config]: Config[K] extends string[] ? string : Config[K]
+  [K in keyof Config]: Config[K] extends string[]
+    ? string
+    : K extends 'plexSessionMonitoring'
+      ? string
+      : Config[K]
 }

@@ -63,6 +63,9 @@ import {
 import { useMediaQuery } from '@/hooks/use-media-query'
 import type { WatchlistItem } from '@root/schemas/users/watchlist.schema'
 
+// Constant keys for skeleton rows to avoid array index warnings
+const SKELETON_KEYS = Array.from({ length: 10 }, (_, i) => `skeleton-row-${i}`)
+
 interface ColumnMetaType {
   className?: string
   headerClassName?: string
@@ -86,7 +89,7 @@ export function UserWatchlistSheet({
   error,
 }: UserWatchlistSheetProps) {
   const isMobile = useMediaQuery('(max-width: 768px)')
-  const useSheet = !isMobile
+  const isDesktop = !isMobile
 
   // Table state
   const [sorting, setSorting] = React.useState<SortingState>([])
@@ -325,8 +328,8 @@ export function UserWatchlistSheet({
             <TableBody>
               {isLoading ? (
                 <>
-                  {[...Array(10)].map((_, i) => (
-                    <TableRow key={`skeleton-row-${i}-${Date.now()}`}>
+                  {SKELETON_KEYS.map((key) => (
+                    <TableRow key={key}>
                       <TableCell className="px-2 py-2">
                         <Skeleton className="h-4 w-full max-w-[300px]" />
                       </TableCell>
@@ -435,7 +438,7 @@ export function UserWatchlistSheet({
   }
 
   // For desktop - use Sheet
-  if (useSheet) {
+  if (isDesktop) {
     return (
       <Sheet open={isOpen} onOpenChange={onClose}>
         <SheetContent

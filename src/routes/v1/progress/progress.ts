@@ -25,19 +25,28 @@ const progressRoute: FastifyPluginAsync = async (fastify) => {
       progressService.addConnection(connectionId)
 
       request.socket.on('close', () => {
-        progressService.removeConnection(connectionId)
+        try {
+          progressService.removeConnection(connectionId)
+        } catch (error) {
+          fastify.log.error('Error removing progress connection:', error)
+        }
       })
 
       return reply.sse(
         (async function* source() {
-          for await (const [event] of on(
-            progressService.getEventEmitter(),
-            'progress',
-          )) {
-            yield {
-              id: event.operationId,
-              data: JSON.stringify(event),
+          try {
+            for await (const [event] of on(
+              progressService.getEventEmitter(),
+              'progress',
+            )) {
+              yield {
+                id: event.operationId,
+                data: JSON.stringify(event),
+              }
             }
+          } catch (error) {
+            fastify.log.error('SSE stream error:', error)
+            // The generator will terminate, closing the SSE connection
           }
         })(),
       )

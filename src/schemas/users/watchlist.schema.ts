@@ -9,7 +9,7 @@ const WatchlistItemSchema = z.object({
   guids: z.array(z.string()),
   genres: z.array(z.string()),
   status: z.enum(['pending', 'requested', 'grabbed', 'notified']),
-  added: z.string().nullable().optional(),
+  added: z.string().nullable(),
 })
 
 // User info schema
