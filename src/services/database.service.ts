@@ -529,6 +529,9 @@ export class DatabaseService {
       plexSessionMonitoring: config.plexSessionMonitoring
         ? JSON.parse(config.plexSessionMonitoring)
         : undefined,
+      newUserDefaults: config.newUserDefaults
+        ? JSON.parse(config.newUserDefaults)
+        : undefined,
       // Handle optional RSS fields
       selfRss: config.selfRss || undefined,
       friendsRss: config.friendsRss || undefined,
