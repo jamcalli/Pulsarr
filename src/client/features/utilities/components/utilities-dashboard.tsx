@@ -7,6 +7,8 @@ import { UserTagsForm } from '@/features/utilities/components/user-tags/user-tag
 import { UserTagsSkeleton } from '@/features/utilities/components/user-tags/user-tags-skeleton'
 import { SessionMonitoringForm } from '@/features/utilities/components/session-monitoring/session-monitoring-form'
 import { SessionMonitoringSkeleton } from '@/features/utilities/components/session-monitoring/session-monitoring-skeleton'
+import { NewUserDefaultsForm } from '@/features/utilities/components/new-user-defaults/new-user-defaults-form'
+import { NewUserDefaultsSkeleton } from '@/features/utilities/components/new-user-defaults/new-user-defaults-skeleton'
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 
 /**
@@ -60,6 +62,12 @@ export function UtilitiesDashboard() {
           <SessionMonitoringSkeleton />
         ) : (
           <SessionMonitoringForm />
+        )}
+
+        {isLoading || loading.schedules ? (
+          <NewUserDefaultsSkeleton />
+        ) : (
+          <NewUserDefaultsForm />
         )}
       </div>
     </div>

@@ -79,7 +79,7 @@ export function usePlexNotifications() {
   useEffect(() => {
     const token = config?.plexTokens?.[0] || ''
     form.setValue('plexToken', token)
-  }, [config, form])
+  }, [config?.plexTokens, form])
 
   // Function to fetch current notification status
   const fetchCurrentStatus = useCallback(async () => {
@@ -122,9 +122,10 @@ export function usePlexNotifications() {
       // Just log the error, don't show to user since this is a background refresh
       console.error('Error fetching notification status after deletion:', error)
     }
-  }, [form, config])
+  }, [form, config?.plexTokens])
 
   // Fetch current notification status on mount
+  // biome-ignore lint/correctness/useExhaustiveDependencies: We only want to fetch on mount
   useEffect(() => {
     // Create an AbortController to handle cleanup
     const abortController = new AbortController()
@@ -202,7 +203,7 @@ export function usePlexNotifications() {
     return () => {
       abortController.abort()
     }
-  }, [form, config])
+  }, [])
 
   // Handle form submission
   const onSubmit = useCallback(

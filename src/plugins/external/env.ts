@@ -270,6 +270,19 @@ const schema = {
       enum: ['watchlist', 'tag-based'],
       default: 'watchlist',
     },
+    plexSessionMonitoring: {
+      type: 'string',
+      default: JSON.stringify({
+        enabled: false,
+        pollingIntervalMinutes: 15,
+        remainingEpisodes: 2,
+        filterUsers: [],
+      }),
+    },
+    newUserDefaultCanSync: {
+      type: 'boolean',
+      default: true,
+    },
   },
 }
 
@@ -304,6 +317,9 @@ export default fp(
       sonarrTags: JSON.parse(rawConfig.sonarrTags || '[]'),
       radarrTags: JSON.parse(rawConfig.radarrTags || '[]'),
       plexTokens: JSON.parse(rawConfig.plexTokens || '[]'),
+      plexSessionMonitoring: rawConfig.plexSessionMonitoring
+        ? JSON.parse(rawConfig.plexSessionMonitoring as string)
+        : undefined,
       _isReady: false,
     }
 

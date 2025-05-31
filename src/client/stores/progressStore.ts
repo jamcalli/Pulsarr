@@ -40,7 +40,7 @@ export const useProgressStore = create<ProgressState>()(
       set({ isConnecting: true })
       console.log('Initializing persistent EventSource connection')
 
-      const eventSource = new EventSource('/api/progress')
+      const eventSource = new EventSource('/v1/progress')
 
       eventSource.onopen = () => {
         console.log('EventSource connection established')
