@@ -127,6 +127,10 @@ export interface Config {
     remainingEpisodes: number
     filterUsers?: string[]
   }
+  // New User Defaults
+  newUserDefaults?: {
+    canSync: boolean
+  }
   // Ready state
   _isReady: boolean
 }

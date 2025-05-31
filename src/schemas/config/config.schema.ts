@@ -98,6 +98,12 @@ export const ConfigSchema = z.object({
       filterUsers: z.array(z.string()).optional(),
     })
     .optional(),
+  // New User Defaults
+  newUserDefaults: z
+    .object({
+      canSync: z.boolean().default(true),
+    })
+    .optional(),
 })
 
 export const ConfigResponseSchema = z.object({
