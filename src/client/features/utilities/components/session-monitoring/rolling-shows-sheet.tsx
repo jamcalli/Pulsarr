@@ -63,6 +63,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { formatDistanceToNow } from 'date-fns'
 import type { RollingMonitoredShow } from '@/features/utilities/hooks/useRollingMonitoring'
@@ -254,50 +260,66 @@ export function RollingShowsSheet({
 
         return (
           <div className="flex items-center gap-2 justify-center">
-            {onResetShow && (
-              <Button
-                type="button"
-                size="icon"
-                variant="noShadow"
-                onClick={() => {
-                  setConfirmDialog({
-                    open: true,
-                    action: 'reset',
-                    show: row.original,
-                  })
-                }}
-                disabled={isAnyLoading}
-                className="h-8 w-8"
-              >
-                {isActiveReset ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <RotateCcw className="h-4 w-4" />
-                )}
-              </Button>
-            )}
-            {onDeleteShow && (
-              <Button
-                variant="error"
-                size="icon"
-                onClick={() => {
-                  setConfirmDialog({
-                    open: true,
-                    action: 'delete',
-                    show: row.original,
-                  })
-                }}
-                disabled={isAnyLoading}
-                className="transition-opacity h-8 w-8"
-                type="button"
-              >
-                {isActiveDelete ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Trash2 className="h-4 w-4" />
-                )}
-              </Button>
-            )}
+            <TooltipProvider>
+              {onResetShow && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="noShadow"
+                      onClick={() => {
+                        setConfirmDialog({
+                          open: true,
+                          action: 'reset',
+                          show: row.original,
+                        })
+                      }}
+                      disabled={isAnyLoading}
+                      className="h-8 w-8"
+                    >
+                      {isActiveReset ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <RotateCcw className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Reset to original monitoring state</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              {onDeleteShow && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="error"
+                      size="icon"
+                      onClick={() => {
+                        setConfirmDialog({
+                          open: true,
+                          action: 'delete',
+                          show: row.original,
+                        })
+                      }}
+                      disabled={isAnyLoading}
+                      className="transition-opacity h-8 w-8"
+                      type="button"
+                    >
+                      {isActiveDelete ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Remove from rolling monitoring</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            </TooltipProvider>
           </div>
         )
       },
@@ -528,10 +550,10 @@ export function RollingShowsSheet({
     )
   }
 
-  // For desktop - use Sheet
-  if (isDesktop) {
-    return (
-      <>
+  return (
+    <>
+      {/* Conditional rendering for desktop/mobile */}
+      {isDesktop ? (
         <Sheet open={isOpen} onOpenChange={onClose}>
           <SheetContent
             side="right"
@@ -556,67 +578,27 @@ export function RollingShowsSheet({
             <div className="h-2 flex-shrink-0" />
           </SheetContent>
         </Sheet>
+      ) : (
+        <Drawer open={isOpen} onOpenChange={onClose}>
+          <DrawerContent className="h-[90vh]">
+            <DrawerHeader className="mb-6">
+              <DrawerTitle className="text-text text-xl">{title}</DrawerTitle>
+              <DrawerDescription>
+                {isLoading
+                  ? 'Loading rolling monitored shows...'
+                  : error
+                    ? 'Failed to load rolling monitored shows'
+                    : `${table.getFilteredRowModel().rows.length} of ${shows.length} shows`}
+              </DrawerDescription>
+            </DrawerHeader>
+            <div className="px-4 pb-6 overflow-y-auto h-[calc(90vh-120px)]">
+              {renderContent()}
+            </div>
+          </DrawerContent>
+        </Drawer>
+      )}
 
-        {/* Confirmation dialog */}
-        {confirmDialog.show && (
-          <RollingShowActionAlert
-            open={confirmDialog.open}
-            onOpenChange={(open) => {
-              if (!open) {
-                setConfirmDialog({ open: false, action: 'reset', show: null })
-              }
-            }}
-            onConfirm={() => {
-              if (
-                confirmDialog.show &&
-                confirmDialog.action === 'reset' &&
-                onResetShow
-              ) {
-                onResetShow(confirmDialog.show.id)
-              } else if (
-                confirmDialog.show &&
-                confirmDialog.action === 'delete' &&
-                onDeleteShow
-              ) {
-                onDeleteShow(confirmDialog.show.id)
-              }
-              setConfirmDialog({ open: false, action: 'reset', show: null })
-            }}
-            showTitle={confirmDialog.show.show_title}
-            action={confirmDialog.action}
-            isLoading={
-              confirmDialog.action === 'reset'
-                ? actionLoading.resetting
-                : actionLoading.deleting
-            }
-          />
-        )}
-      </>
-    )
-  }
-
-  // For mobile - use Drawer
-  return (
-    <>
-      <Drawer open={isOpen} onOpenChange={onClose}>
-        <DrawerContent className="h-[90vh]">
-          <DrawerHeader className="mb-6">
-            <DrawerTitle className="text-text text-xl">{title}</DrawerTitle>
-            <DrawerDescription>
-              {isLoading
-                ? 'Loading rolling monitored shows...'
-                : error
-                  ? 'Failed to load rolling monitored shows'
-                  : `${table.getFilteredRowModel().rows.length} of ${shows.length} shows`}
-            </DrawerDescription>
-          </DrawerHeader>
-          <div className="px-4 pb-6 overflow-y-auto h-[calc(90vh-120px)]">
-            {renderContent()}
-          </div>
-        </DrawerContent>
-      </Drawer>
-
-      {/* Confirmation dialog */}
+      {/* Confirmation dialog - rendered once */}
       {confirmDialog.show && (
         <RollingShowActionAlert
           open={confirmDialog.open}

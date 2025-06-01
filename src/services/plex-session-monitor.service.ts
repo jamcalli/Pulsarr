@@ -154,6 +154,16 @@ export class PlexSessionMonitorService {
       currentEpisode,
     )
 
+    // Special case for pilot rolling: if watching the pilot episode, expand immediately
+    if (
+      rollingShow.monitoring_type === 'pilot_rolling' &&
+      currentSeason === 1 &&
+      currentEpisode === 1
+    ) {
+      await this.expandPilotToFullSeason(rollingShow, session, result)
+      return
+    }
+
     // Check if we need to expand monitoring using Sonarr data
     const currentSeasonData = await this.getSonarrSeriesData(session)
     if (!currentSeasonData) return
@@ -686,6 +696,42 @@ export class PlexSessionMonitorService {
     } catch (error) {
       this.log.error(
         `Failed to expand monitoring for ${session.grandparentTitle}:`,
+        error,
+      )
+    }
+  }
+
+  /**
+   * Expand pilot rolling to monitor full first season
+   */
+  private async expandPilotToFullSeason(
+    rollingShow: RollingMonitoredShow,
+    session: PlexSession,
+    result: SessionMonitoringResult,
+  ): Promise<void> {
+    try {
+      const sonarr = this.sonarrManager.getInstance(
+        rollingShow.sonarr_instance_id,
+      )
+      if (!sonarr) return
+
+      // Search for the full first season (pilot is already monitored)
+      await sonarr.searchSeason(rollingShow.sonarr_series_id, 1)
+
+      result.rollingUpdates.push({
+        showTitle: session.grandparentTitle,
+        action: 'expanded_to_season',
+        details: 'Pilot viewed - now searching for full Season 1',
+      })
+
+      result.triggeredSearches++
+
+      this.log.info(
+        `Expanded pilot monitoring for ${session.grandparentTitle} to search full Season 1`,
+      )
+    } catch (error) {
+      this.log.error(
+        `Failed to expand pilot monitoring for ${session.grandparentTitle}:`,
         error,
       )
     }

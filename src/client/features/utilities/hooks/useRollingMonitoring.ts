@@ -1,6 +1,9 @@
 import { useState, useCallback, useRef } from 'react'
 import { toast } from '@/hooks/use-toast'
 
+// Minimum loading time for better UX across all actions
+const MIN_LOADING_TIME = 500
+
 export interface RollingMonitoredShow {
   id: number
   sonarr_series_id: number
@@ -71,6 +74,7 @@ export function useRollingMonitoring(): UseRollingMonitoringReturn {
   const actionStartTime = useRef<number | null>(null)
 
   const fetchRollingShows = useCallback(async () => {
+    const startTime = Date.now()
     setLoading((prev) => ({ ...prev, fetchingShows: true }))
     try {
       const response = await fetch('/v1/session-monitoring/rolling-monitored')
@@ -78,6 +82,12 @@ export function useRollingMonitoring(): UseRollingMonitoringReturn {
         throw new Error('Failed to fetch rolling monitored shows')
       }
       const data = await response.json()
+
+      // Ensure minimum loading time for better UX
+      const elapsed = Date.now() - startTime
+      const remaining = Math.max(0, MIN_LOADING_TIME - elapsed)
+      await new Promise((resolve) => setTimeout(resolve, remaining))
+
       setRollingShows(data.shows || [])
     } catch (error) {
       console.error('Error fetching rolling monitored shows:', error)
@@ -92,6 +102,7 @@ export function useRollingMonitoring(): UseRollingMonitoringReturn {
   }, [])
 
   const fetchInactiveShows = useCallback(async (inactivityDays = 7) => {
+    const startTime = Date.now()
     setLoading((prev) => ({ ...prev, fetchingInactive: true }))
     try {
       const response = await fetch(
@@ -101,6 +112,12 @@ export function useRollingMonitoring(): UseRollingMonitoringReturn {
         throw new Error('Failed to fetch inactive shows')
       }
       const data = await response.json()
+
+      // Ensure minimum loading time for better UX
+      const elapsed = Date.now() - startTime
+      const remaining = Math.max(0, MIN_LOADING_TIME - elapsed)
+      await new Promise((resolve) => setTimeout(resolve, remaining))
+
       setInactiveShows(data.shows || [])
     } catch (error) {
       console.error('Error fetching inactive shows:', error)
@@ -132,7 +149,7 @@ export function useRollingMonitoring(): UseRollingMonitoringReturn {
 
         // Ensure minimum loading time for better UX
         const elapsed = Date.now() - (actionStartTime.current || 0)
-        const remaining = Math.max(0, 500 - elapsed)
+        const remaining = Math.max(0, MIN_LOADING_TIME - elapsed)
         await new Promise((resolve) => setTimeout(resolve, remaining))
 
         toast({
@@ -176,7 +193,7 @@ export function useRollingMonitoring(): UseRollingMonitoringReturn {
 
         // Ensure minimum loading time for better UX
         const elapsed = Date.now() - (actionStartTime.current || 0)
-        const remaining = Math.max(0, 500 - elapsed)
+        const remaining = Math.max(0, MIN_LOADING_TIME - elapsed)
         await new Promise((resolve) => setTimeout(resolve, remaining))
 
         toast({
@@ -223,7 +240,7 @@ export function useRollingMonitoring(): UseRollingMonitoringReturn {
 
         // Ensure minimum loading time for better UX
         const elapsed = Date.now() - (actionStartTime.current || 0)
-        const remaining = Math.max(0, 500 - elapsed)
+        const remaining = Math.max(0, MIN_LOADING_TIME - elapsed)
         await new Promise((resolve) => setTimeout(resolve, remaining))
 
         toast({
@@ -253,6 +270,7 @@ export function useRollingMonitoring(): UseRollingMonitoringReturn {
 
   const runSessionMonitor =
     useCallback(async (): Promise<SessionMonitoringResult | null> => {
+      actionStartTime.current = Date.now()
       setLoading((prev) => ({ ...prev, runningMonitor: true }))
       try {
         const response = await fetch('/v1/session-monitoring/run', {
@@ -262,6 +280,11 @@ export function useRollingMonitoring(): UseRollingMonitoringReturn {
           throw new Error('Failed to run session monitor')
         }
         const data = await response.json()
+
+        // Ensure minimum loading time for better UX
+        const elapsed = Date.now() - (actionStartTime.current || 0)
+        const remaining = Math.max(0, MIN_LOADING_TIME - elapsed)
+        await new Promise((resolve) => setTimeout(resolve, remaining))
 
         toast({
           title: 'Success',
@@ -282,6 +305,7 @@ export function useRollingMonitoring(): UseRollingMonitoringReturn {
         return null
       } finally {
         setLoading((prev) => ({ ...prev, runningMonitor: false }))
+        actionStartTime.current = null
       }
     }, [fetchRollingShows])
 
