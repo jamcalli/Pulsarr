@@ -60,6 +60,13 @@ export interface UseRollingMonitoringReturn {
   runSessionMonitor: () => Promise<SessionMonitoringResult | null>
 }
 
+/**
+ * React hook for managing rolling monitored TV shows and their session monitoring lifecycle.
+ *
+ * Provides state and actions for fetching, resetting, deleting, and running monitoring on rolling monitored shows, as well as handling inactive shows. Exposes loading states and tracks the currently active action for UI feedback.
+ *
+ * @returns An object containing the current rolling monitored shows, inactive shows, loading states, active action ID, and all action functions for managing rolling monitoring.
+ */
 export function useRollingMonitoring(): UseRollingMonitoringReturn {
   const [rollingShows, setRollingShows] = useState<RollingMonitoredShow[]>([])
   const [inactiveShows, setInactiveShows] = useState<RollingMonitoredShow[]>([])

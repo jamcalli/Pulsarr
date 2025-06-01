@@ -34,24 +34,11 @@ export type PlexNotificationsFormValues = z.infer<
 >
 
 /**
- * Custom React hook for managing the form and state related to Plex notifications configuration.
+ * Provides state and handlers for managing Plex notifications configuration in a React form.
  *
- * This hook handles initialization, validation, submission, cancellation, and deletion of the Plex
- * notifications configuration. It fetches the current notification status on mount and updates the
- * form with any existing settings. Additionally, it communicates with server endpoints to configure
- * or remove Plex notifications while managing related loading and error states.
+ * This hook initializes the form with current Plex notification settings, validates user input, and handles submission, cancellation, and deletion of the configuration. It communicates with server endpoints to fetch, update, or remove Plex notification settings, and manages related loading and error states.
  *
- * @returns An object containing:
- * - form: The React Hook Form instance managing the form state.
- * - error: A string describing any error encountered during an operation.
- * - isSubmitting: Boolean indicating whether the form is currently being submitted.
- * - isDeleting: Boolean indicating whether a deletion operation is in progress.
- * - isLoading: Boolean indicating whether the configuration status is being loaded.
- * - onSubmit: Function to handle the form submission.
- * - handleCancel: Function to reset the form to its default values.
- * - handleDelete: Function to delete the Plex notifications configuration.
- * - initiateDelete: Function to trigger the delete confirmation flow.
- * - lastResults: The response data from the last successful operation.
+ * @returns An object containing the form instance, error message, loading and submission states, handlers for submitting, canceling, and deleting the configuration, a placeholder for initiating deletion, and the latest server response data.
  */
 export function usePlexNotifications() {
   const { toast } = useToast()
