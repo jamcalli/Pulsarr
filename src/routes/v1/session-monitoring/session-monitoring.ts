@@ -7,6 +7,29 @@ import {
   resetInactiveShowsSchema,
   getInactiveRollingMonitoredSchema,
 } from '@schemas/session-monitoring/session-monitoring.schema.js'
+import type { RollingMonitoredShow } from '@root/types/plex-session.types.js'
+import type { PlexSessionMonitorService } from '@services/plex-session-monitor.service.js'
+import { serializeRollingShowDates } from '@utils/date-serializer.js'
+
+// Helper function to handle rolling show reset logic
+async function resetShowMonitoring(
+  show: RollingMonitoredShow,
+  plexSessionMonitor: PlexSessionMonitorService,
+): Promise<void> {
+  if (show.monitoring_type === 'pilot_rolling') {
+    await plexSessionMonitor.resetToPilotOnly(
+      show.sonarr_series_id,
+      show.sonarr_instance_id,
+      show.show_title,
+    )
+  } else if (show.monitoring_type === 'first_season_rolling') {
+    await plexSessionMonitor.resetToFirstSeasonOnly(
+      show.sonarr_series_id,
+      show.sonarr_instance_id,
+      show.show_title,
+    )
+  }
+}
 
 export default async function sessionMonitoringRoutes(
   fastify: FastifyInstance,
@@ -23,29 +46,7 @@ export default async function sessionMonitoringRoutes(
 
         return reply.send({
           success: true,
-          shows: shows.map((show) => ({
-            ...show,
-            last_session_date: show.last_session_date
-              ? typeof show.last_session_date === 'string'
-                ? show.last_session_date
-                : show.last_session_date.toISOString()
-              : null,
-            created_at:
-              typeof show.created_at === 'string'
-                ? show.created_at
-                : show.created_at.toISOString(),
-            updated_at:
-              typeof show.updated_at === 'string'
-                ? show.updated_at
-                : show.updated_at.toISOString(),
-            last_updated_at: show.last_updated_at
-              ? typeof show.last_updated_at === 'string'
-                ? show.last_updated_at
-                : show.last_updated_at.toISOString()
-              : typeof show.updated_at === 'string'
-                ? show.updated_at
-                : show.updated_at.toISOString(),
-          })),
+          shows: shows.map(serializeRollingShowDates),
         })
       } catch (error) {
         request.log.error('Error fetching rolling monitored shows:', error)
@@ -119,19 +120,7 @@ export default async function sessionMonitoringRoutes(
         }
 
         // First reset the show to its original monitoring state and delete excess files
-        if (existingShow.monitoring_type === 'pilot_rolling') {
-          await fastify.plexSessionMonitor.resetToPilotOnly(
-            existingShow.sonarr_series_id,
-            existingShow.sonarr_instance_id,
-            existingShow.show_title,
-          )
-        } else if (existingShow.monitoring_type === 'first_season_rolling') {
-          await fastify.plexSessionMonitor.resetToFirstSeasonOnly(
-            existingShow.sonarr_series_id,
-            existingShow.sonarr_instance_id,
-            existingShow.show_title,
-          )
-        }
+        await resetShowMonitoring(existingShow, fastify.plexSessionMonitor)
 
         // Then delete the tracking record
         await fastify.db.deleteRollingMonitoredShow(showId)
@@ -186,19 +175,7 @@ export default async function sessionMonitoringRoutes(
         }
 
         // Reset the show based on its monitoring type
-        if (existingShow.monitoring_type === 'pilot_rolling') {
-          await fastify.plexSessionMonitor.resetToPilotOnly(
-            existingShow.sonarr_series_id,
-            existingShow.sonarr_instance_id,
-            existingShow.show_title,
-          )
-        } else if (existingShow.monitoring_type === 'first_season_rolling') {
-          await fastify.plexSessionMonitor.resetToFirstSeasonOnly(
-            existingShow.sonarr_series_id,
-            existingShow.sonarr_instance_id,
-            existingShow.show_title,
-          )
-        }
+        await resetShowMonitoring(existingShow, fastify.plexSessionMonitor)
 
         // Update the database to reset the current monitored season
         await fastify.db.updateRollingShowMonitoredSeason(showId, 1)
@@ -248,29 +225,7 @@ export default async function sessionMonitoringRoutes(
 
         return reply.send({
           success: true,
-          shows: shows.map((show) => ({
-            ...show,
-            last_session_date: show.last_session_date
-              ? typeof show.last_session_date === 'string'
-                ? show.last_session_date
-                : show.last_session_date.toISOString()
-              : null,
-            created_at:
-              typeof show.created_at === 'string'
-                ? show.created_at
-                : show.created_at.toISOString(),
-            updated_at:
-              typeof show.updated_at === 'string'
-                ? show.updated_at
-                : show.updated_at.toISOString(),
-            last_updated_at: show.last_updated_at
-              ? typeof show.last_updated_at === 'string'
-                ? show.last_updated_at
-                : show.last_updated_at.toISOString()
-              : typeof show.updated_at === 'string'
-                ? show.updated_at
-                : show.updated_at.toISOString(),
-          })),
+          shows: shows.map(serializeRollingShowDates),
           inactivityDays,
         })
       } catch (error) {

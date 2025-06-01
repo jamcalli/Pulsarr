@@ -76,7 +76,9 @@ export function SessionMonitoringForm() {
   const submittingStartTime = useRef<number | null>(null)
   const [showActiveShows, setShowActiveShows] = useState(false)
   const [showInactiveShows, setShowInactiveShows] = useState(false)
-  const [inactivityDays, setInactivityDays] = useState(7)
+  const [inactivityDays, setInactivityDays] = useState(
+    config?.plexSessionMonitoring?.inactivityResetDays || 7,
+  )
 
   const {
     rollingShows,
@@ -107,9 +109,12 @@ export function SessionMonitoringForm() {
     },
   })
 
-  // Find the session monitoring schedule
+  // Find the session monitoring schedules
   const sessionMonitorSchedule = schedules?.find(
     (s) => s.name === 'plex-session-monitor',
+  )
+  const autoResetSchedule = schedules?.find(
+    (s) => s.name === 'plex-rolling-auto-reset',
   )
 
   // Determine the enabled status
@@ -131,6 +136,7 @@ export function SessionMonitoringForm() {
           config.plexSessionMonitoring.autoResetIntervalHours || 24,
       }
       form.reset(formValues)
+      setInactivityDays(config.plexSessionMonitoring.inactivityResetDays || 7)
     }
   }, [config, form])
 
@@ -196,6 +202,52 @@ export function SessionMonitoringForm() {
 
           if (!response.ok) {
             throw new Error('Failed to update polling interval')
+          }
+
+          // Refresh schedules to get updated data
+          await fetchSchedules()
+        }
+      }
+
+      // Update the auto-reset schedule if it exists
+      if (autoResetSchedule) {
+        // Auto-reset should be enabled when session monitoring is enabled AND enableAutoReset is true
+        const shouldEnableAutoReset = data.enabled && data.enableAutoReset
+
+        // Check if enabled state changed
+        if (autoResetSchedule.enabled !== shouldEnableAutoReset) {
+          await toggleScheduleStatus(
+            autoResetSchedule.name,
+            shouldEnableAutoReset,
+          )
+        }
+
+        // Check if auto-reset interval changed and schedule should be enabled
+        const currentAutoResetInterval =
+          autoResetSchedule.type === 'interval'
+            ? autoResetSchedule.config?.hours || 24
+            : 24
+        if (
+          shouldEnableAutoReset &&
+          currentAutoResetInterval !== data.autoResetIntervalHours
+        ) {
+          // Update the schedule with new interval
+          const response = await fetch(
+            `/v1/scheduler/schedules/${autoResetSchedule.name}`,
+            {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                type: 'interval',
+                config: {
+                  hours: data.autoResetIntervalHours,
+                },
+              }),
+            },
+          )
+
+          if (!response.ok) {
+            throw new Error('Failed to update auto-reset interval')
           }
 
           // Refresh schedules to get updated data
@@ -660,6 +712,7 @@ export function SessionMonitoringForm() {
                               min={1}
                               max={365}
                               className="h-7 w-12 text-xs px-2"
+                              aria-label="Inactivity days threshold"
                             />
                             <span className="text-xs text-text mr-1">d</span>
                             {inactiveShows.length > 0 && (
