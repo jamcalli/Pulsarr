@@ -126,11 +126,21 @@ export interface Config {
     pollingIntervalMinutes: number
     remainingEpisodes: number
     filterUsers?: string[]
+    // Rolling monitoring reset settings
+    enableAutoReset?: boolean
+    inactivityResetDays?: number
+    autoResetIntervalHours?: number
   }
+  // New User Defaults
+  newUserDefaultCanSync?: boolean
   // Ready state
   _isReady: boolean
 }
 
 export type RawConfig = {
-  [K in keyof Config]: Config[K] extends string[] ? string : Config[K]
+  [K in keyof Config]: Config[K] extends string[]
+    ? string
+    : K extends 'plexSessionMonitoring'
+      ? string
+      : Config[K]
 }

@@ -154,6 +154,16 @@ export class PlexSessionMonitorService {
       currentEpisode,
     )
 
+    // Special case for pilot rolling: if watching the pilot episode, expand immediately
+    if (
+      rollingShow.monitoring_type === 'pilot_rolling' &&
+      currentSeason === 1 &&
+      currentEpisode === 1
+    ) {
+      await this.expandPilotToFullSeason(rollingShow, session, result)
+      return
+    }
+
     // Check if we need to expand monitoring using Sonarr data
     const currentSeasonData = await this.getSonarrSeriesData(session)
     if (!currentSeasonData) return
@@ -331,33 +341,43 @@ export class PlexSessionMonitorService {
       }
 
       // Use the existing method to get show metadata
+      // When includeChildren is false, we get the detailed metadata response
       const metadata = await this.plexServer.getShowMetadata(ratingKey, false)
-      if (!metadata?.MediaContainer?.Guid) {
+
+      if (!metadata?.MediaContainer?.Metadata?.[0]?.Guid) {
         this.log.debug(
           `No Guid array found for ${session.grandparentTitle}, will fallback to title matching`,
         )
-        return {} // Return empty object to allow title fallback
+        return {}
       }
 
       // Extract all available GUIDs using robust parsing
       const allGuids: string[] = []
 
-      // Add main GUID if available (check both cases for compatibility)
-      if (metadata.MediaContainer.guid) {
-        allGuids.push(metadata.MediaContainer.guid)
+      // Get the first metadata item
+      const metadataItem = metadata.MediaContainer.Metadata[0]
+      if (!metadataItem) {
+        this.log.debug(`No metadata item found for ${session.grandparentTitle}`)
+        return {}
       }
-      if (
-        metadata.MediaContainer.Guid &&
-        typeof metadata.MediaContainer.Guid === 'string'
-      ) {
-        allGuids.push(metadata.MediaContainer.Guid)
+
+      // Add main GUID if available (check both cases for compatibility)
+      if (metadataItem.guid) {
+        // Don't normalize plex:// GUIDs as they're internal
+        if (!metadataItem.guid.startsWith('plex://')) {
+          // Normalize provider://id to provider:id
+          const normalizedGuid = metadataItem.guid.replace('://', ':')
+          allGuids.push(normalizedGuid)
+        }
       }
 
       // Add additional GUIDs from Guid array
-      if (Array.isArray(metadata.MediaContainer.Guid)) {
-        for (const guidObj of metadata.MediaContainer.Guid) {
-          if (guidObj.id) {
-            allGuids.push(guidObj.id)
+      if (Array.isArray(metadataItem.Guid)) {
+        for (const guidObj of metadataItem.Guid) {
+          if (guidObj.id && !guidObj.id.startsWith('plex://')) {
+            // Normalize provider://id to provider:id
+            const normalizedGuid = guidObj.id.replace('://', ':')
+            allGuids.push(normalizedGuid)
           }
         }
       }
@@ -370,12 +390,12 @@ export class PlexSessionMonitorService {
         result.tvdbId = tvdbId.toString()
       }
 
-      // For IMDB, look for imdb:// or tt prefixed IDs in the GUID list
+      // For IMDB, look for imdb: prefixed IDs in the normalized GUID list
       const parsedGuids = parseGuids(allGuids)
       for (const guid of parsedGuids) {
-        if (guid.startsWith('imdb://') || guid.startsWith('tt')) {
-          const imdbId = guid.replace('imdb://', '').replace(/^tt/, 'tt')
-          if (imdbId.startsWith('tt') && imdbId.length > 2) {
+        if (guid.startsWith('imdb:')) {
+          const imdbId = guid.substring(5) // Remove 'imdb:' prefix
+          if (imdbId.length > 2) {
             result.imdbId = imdbId
             break
           }
@@ -405,6 +425,14 @@ export class PlexSessionMonitorService {
   ): Promise<{ series: SonarrSeries; instanceId: number } | null> {
     const instances = await this.sonarrManager.getAllInstances()
 
+    this.log.debug(
+      `Searching for series in ${instances.length} Sonarr instances`,
+      {
+        identifiers,
+        title,
+      },
+    )
+
     for (const instance of instances) {
       try {
         const sonarr = this.sonarrManager.getInstance(instance.id)
@@ -412,30 +440,52 @@ export class PlexSessionMonitorService {
 
         const allSeries = await sonarr.getAllSeries()
 
-        // Try to match by TVDB ID first
+        // Try to match by TVDB ID first (primary identifier)
         if (identifiers.tvdbId) {
           const tvdbId = identifiers.tvdbId
-          const series = allSeries.find(
-            (s) => s.tvdbId === Number.parseInt(tvdbId, 10),
-          )
+          const tvdbIdNum = Number.parseInt(tvdbId, 10)
+
+          const series = allSeries.find((s) => s.tvdbId === tvdbIdNum)
           if (series) {
+            this.log.debug(
+              `Found match by TVDB ID: ${series.title} (${series.tvdbId})`,
+            )
             return { series, instanceId: instance.id }
           }
         }
 
-        // Try IMDB ID
+        // Try IMDB ID as secondary identifier
         if (identifiers.imdbId) {
           const series = allSeries.find((s) => s.imdbId === identifiers.imdbId)
           if (series) {
+            this.log.debug(
+              `Found match by IMDB ID: ${series.title} (${identifiers.imdbId})`,
+            )
             return { series, instanceId: instance.id }
           }
         }
 
-        // Fallback to title match
-        const series = allSeries.find(
-          (s) => s.title.toLowerCase() === title.toLowerCase(),
-        )
+        // Enhanced title matching as fallback
+        const series = allSeries.find((s) => {
+          const sonarrTitle = s.title.toLowerCase()
+          const searchTitle = title.toLowerCase()
+
+          // Exact match
+          if (sonarrTitle === searchTitle) return true
+
+          // Match without year suffix (e.g., "Versailles" matches "Versailles (2015)")
+          const titleWithoutYear = sonarrTitle.replace(/\s*\(\d{4}\)\s*$/, '')
+          if (titleWithoutYear === searchTitle) return true
+
+          // Match with "The" prefix variations
+          if (sonarrTitle === `the ${searchTitle}`) return true
+          if (`the ${sonarrTitle}` === searchTitle) return true
+
+          return false
+        })
+
         if (series) {
+          this.log.debug(`Found match by title: ${series.title}`)
           return { series, instanceId: instance.id }
         }
       } catch (error) {
@@ -652,6 +702,42 @@ export class PlexSessionMonitorService {
   }
 
   /**
+   * Expand pilot rolling to monitor full first season
+   */
+  private async expandPilotToFullSeason(
+    rollingShow: RollingMonitoredShow,
+    session: PlexSession,
+    result: SessionMonitoringResult,
+  ): Promise<void> {
+    try {
+      const sonarr = this.sonarrManager.getInstance(
+        rollingShow.sonarr_instance_id,
+      )
+      if (!sonarr) return
+
+      // Search for the full first season (pilot is already monitored)
+      await sonarr.searchSeason(rollingShow.sonarr_series_id, 1)
+
+      result.rollingUpdates.push({
+        showTitle: session.grandparentTitle,
+        action: 'expanded_to_season',
+        details: 'Pilot viewed - now searching for full Season 1',
+      })
+
+      result.triggeredSearches++
+
+      this.log.info(
+        `Expanded pilot monitoring for ${session.grandparentTitle} to search full Season 1`,
+      )
+    } catch (error) {
+      this.log.error(
+        `Failed to expand pilot monitoring for ${session.grandparentTitle}:`,
+        error,
+      )
+    }
+  }
+
+  /**
    * Switch to monitoring all seasons
    */
   private async switchToMonitorAll(
@@ -753,12 +839,225 @@ export class PlexSessionMonitorService {
         plex_user_id: undefined,
         plex_username: undefined,
       })
-
-      this.log.info(
-        `Created rolling monitoring entry for ${showTitle} with ${monitoringType}`,
-      )
     } catch (error) {
       this.log.error('Error creating rolling monitored show:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Reset a rolling monitored show to pilot-only monitoring
+   * Deletes all episode files except S01E01 and unmonitors them
+   */
+  async resetToPilotOnly(
+    sonarrSeriesId: number,
+    sonarrInstanceId: number,
+    showTitle: string,
+  ): Promise<void> {
+    try {
+      const sonarr = this.sonarrManager.getInstance(sonarrInstanceId)
+      if (!sonarr) {
+        throw new Error(`Sonarr instance ${sonarrInstanceId} not found`)
+      }
+
+      // Get all episodes for the series
+      const allEpisodes = await sonarr.getEpisodes(sonarrSeriesId)
+
+      // Find the pilot episode (S01E01)
+      const pilotEpisode = allEpisodes.find(
+        (ep) => ep.seasonNumber === 1 && ep.episodeNumber === 1,
+      )
+
+      if (!pilotEpisode) {
+        throw new Error(`Pilot episode not found for series ${sonarrSeriesId}`)
+      }
+
+      // Find all other episodes that have files and need to be deleted
+      const episodesToDelete = allEpisodes.filter(
+        (ep) =>
+          ep.id !== pilotEpisode.id &&
+          ep.hasFile === true &&
+          ep.episodeFileId > 0,
+      )
+
+      // Find all other episodes that need to be unmonitored
+      const episodesToUnmonitor = allEpisodes
+        .filter((ep) => ep.id !== pilotEpisode.id && ep.monitored === true)
+        .map((ep) => ({ id: ep.id, monitored: false }))
+
+      let deletedCount = 0
+      if (episodesToDelete.length > 0) {
+        // Delete episode files first
+        const episodeFileIds = episodesToDelete.map((ep) => ep.episodeFileId)
+        await sonarr.deleteEpisodeFiles(episodeFileIds)
+        deletedCount = episodeFileIds.length
+      }
+
+      if (episodesToUnmonitor.length > 0) {
+        // Then unmonitor all episodes except the pilot
+        await sonarr.updateEpisodesMonitoring(episodesToUnmonitor)
+      }
+
+      // Unmonitor all seasons except season 1 (which should only have pilot monitored)
+      const allEpisodesGroupedBySeason = new Map<number, typeof allEpisodes>()
+      for (const ep of allEpisodes) {
+        if (!allEpisodesGroupedBySeason.has(ep.seasonNumber)) {
+          allEpisodesGroupedBySeason.set(ep.seasonNumber, [])
+        }
+        allEpisodesGroupedBySeason.get(ep.seasonNumber)?.push(ep)
+      }
+
+      // Unmonitor all seasons except season 1
+      for (const seasonNumber of allEpisodesGroupedBySeason.keys()) {
+        if (seasonNumber > 1) {
+          await sonarr.updateSeasonMonitoring(
+            sonarrSeriesId,
+            seasonNumber,
+            false,
+          )
+        }
+      }
+
+      const unmonitoredSeasons = Array.from(
+        allEpisodesGroupedBySeason.keys(),
+      ).filter((s) => s > 1)
+      this.log.info(
+        `Reset ${showTitle} to pilot-only: deleted ${deletedCount} episode files, unmonitored ${episodesToUnmonitor.length} episodes and ${unmonitoredSeasons.length} seasons`,
+      )
+    } catch (error) {
+      this.log.error(`Error resetting ${showTitle} to pilot-only:`, error)
+      throw error
+    }
+  }
+
+  /**
+   * Reset a rolling monitored show to first-season-only monitoring
+   * Deletes all episode files after Season 1 and unmonitors them
+   */
+  async resetToFirstSeasonOnly(
+    sonarrSeriesId: number,
+    sonarrInstanceId: number,
+    showTitle: string,
+  ): Promise<void> {
+    try {
+      const sonarr = this.sonarrManager.getInstance(sonarrInstanceId)
+      if (!sonarr) {
+        throw new Error(`Sonarr instance ${sonarrInstanceId} not found`)
+      }
+
+      // Get all episodes for the series
+      const allEpisodes = await sonarr.getEpisodes(sonarrSeriesId)
+
+      // Find episodes after season 1 that have files and need to be deleted
+      const episodesToDelete = allEpisodes.filter(
+        (ep) =>
+          ep.seasonNumber > 1 && ep.hasFile === true && ep.episodeFileId > 0,
+      )
+
+      // Find episodes after season 1 that need to be unmonitored
+      const episodesToUnmonitor = allEpisodes
+        .filter((ep) => ep.seasonNumber > 1 && ep.monitored === true)
+        .map((ep) => ({ id: ep.id, monitored: false }))
+
+      let deletedCount = 0
+      if (episodesToDelete.length > 0) {
+        // Delete episode files first
+        const episodeFileIds = episodesToDelete.map((ep) => ep.episodeFileId)
+        await sonarr.deleteEpisodeFiles(episodeFileIds)
+        deletedCount = episodeFileIds.length
+      }
+
+      if (episodesToUnmonitor.length > 0) {
+        // Then unmonitor all episodes after season 1
+        await sonarr.updateEpisodesMonitoring(episodesToUnmonitor)
+      }
+
+      // Unmonitor all seasons after season 1
+      const allEpisodesGroupedBySeason = new Map<number, typeof allEpisodes>()
+      for (const ep of allEpisodes) {
+        if (!allEpisodesGroupedBySeason.has(ep.seasonNumber)) {
+          allEpisodesGroupedBySeason.set(ep.seasonNumber, [])
+        }
+        allEpisodesGroupedBySeason.get(ep.seasonNumber)?.push(ep)
+      }
+
+      // Unmonitor all seasons after season 1
+      for (const seasonNumber of allEpisodesGroupedBySeason.keys()) {
+        if (seasonNumber > 1) {
+          await sonarr.updateSeasonMonitoring(
+            sonarrSeriesId,
+            seasonNumber,
+            false,
+          )
+        }
+      }
+
+      const unmonitoredSeasons = Array.from(
+        allEpisodesGroupedBySeason.keys(),
+      ).filter((s) => s > 1)
+      this.log.info(
+        `Reset ${showTitle} to first-season-only: deleted ${deletedCount} episode files, unmonitored ${episodesToUnmonitor.length} episodes and ${unmonitoredSeasons.length} seasons (2+)`,
+      )
+    } catch (error) {
+      this.log.error(
+        `Error resetting ${showTitle} to first-season-only:`,
+        error,
+      )
+      throw error
+    }
+  }
+
+  /**
+   * Reset inactive rolling monitored shows to their original monitoring state
+   * Should be called periodically to clean up shows that haven't been watched recently
+   */
+  async resetInactiveRollingShows(inactivityDays = 7): Promise<void> {
+    try {
+      // Get all rolling monitored shows that haven't been updated recently
+      const inactiveShows =
+        await this.db.getInactiveRollingMonitoredShows(inactivityDays)
+
+      if (inactiveShows.length === 0) {
+        this.log.debug('No inactive rolling monitored shows found')
+        return
+      }
+
+      this.log.info(
+        `Found ${inactiveShows.length} inactive rolling monitored shows to reset`,
+      )
+
+      for (const show of inactiveShows) {
+        try {
+          if (show.monitoring_type === 'pilot_rolling') {
+            await this.resetToPilotOnly(
+              show.sonarr_series_id,
+              show.sonarr_instance_id,
+              show.show_title,
+            )
+          } else if (show.monitoring_type === 'first_season_rolling') {
+            await this.resetToFirstSeasonOnly(
+              show.sonarr_series_id,
+              show.sonarr_instance_id,
+              show.show_title,
+            )
+          }
+
+          // Update the database to reset the current monitored season
+          const initialSeason = 1
+          await this.db.updateRollingShowMonitoredSeason(show.id, initialSeason)
+
+          this.log.info(
+            `Successfully reset inactive rolling show: ${show.show_title}`,
+          )
+        } catch (error) {
+          this.log.error(
+            `Failed to reset inactive rolling show ${show.show_title}:`,
+            error,
+          )
+        }
+      }
+    } catch (error) {
+      this.log.error('Error resetting inactive rolling shows:', error)
       throw error
     }
   }

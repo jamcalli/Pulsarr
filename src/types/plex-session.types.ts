@@ -45,6 +45,7 @@ export interface PlexSeriesMetadata {
 
 /**
  * Show metadata for determining episode counts
+ * This is the simpler response when includeChildren=true
  */
 export interface PlexShowMetadata {
   MediaContainer: {
@@ -64,6 +65,93 @@ export interface PlexShowMetadata {
       size: number
       Metadata?: PlexSeasonMetadata[]
     }
+  }
+}
+
+/**
+ * Full show metadata response from /library/metadata/{id}
+ * This is the detailed response that includes all metadata fields
+ */
+export interface PlexShowMetadataResponse {
+  MediaContainer: {
+    size: number
+    allowSync: boolean
+    identifier: string
+    librarySectionID: number
+    librarySectionTitle: string
+    librarySectionUUID: string
+    mediaTagPrefix: string
+    mediaTagVersion: number
+    Metadata: Array<{
+      ratingKey: string
+      key: string
+      guid: string
+      slug?: string
+      studio?: string
+      type: string
+      title: string
+      librarySectionTitle?: string
+      librarySectionID?: number
+      librarySectionKey?: string
+      contentRating?: string
+      summary?: string
+      index?: number
+      audienceRating?: number
+      viewCount?: number
+      lastViewedAt?: number
+      year?: number
+      thumb?: string
+      art?: string
+      theme?: string
+      duration?: number
+      originallyAvailableAt?: string
+      leafCount?: number
+      viewedLeafCount?: number
+      childCount?: number
+      addedAt?: number
+      updatedAt?: number
+      audienceRatingImage?: string
+      Guid?: Array<{
+        id: string
+      }>
+      Genre?: Array<{
+        id: number
+        filter: string
+        tag: string
+      }>
+      Role?: Array<{
+        id: number
+        filter: string
+        tag: string
+        tagKey: string
+        role: string
+        thumb?: string
+      }>
+      Location?: Array<{
+        path: string
+      }>
+      Image?: Array<{
+        alt: string
+        type: string
+        url: string
+      }>
+      UltraBlurColors?: {
+        topLeft: string
+        topRight: string
+        bottomRight: string
+        bottomLeft: string
+      }
+      Country?: Array<{
+        id: number
+        filter: string
+        tag: string
+      }>
+      Rating?: Array<{
+        image: string
+        value: number
+        type: string
+      }>
+    }>
   }
 }
 
@@ -132,6 +220,7 @@ export interface RollingMonitoredShow {
   plex_username?: string
   created_at: Date
   updated_at: Date
+  last_updated_at: Date // For tracking inactivity and cleanup
 }
 
 /**

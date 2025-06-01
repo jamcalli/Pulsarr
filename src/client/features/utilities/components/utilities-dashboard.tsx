@@ -7,14 +7,16 @@ import { UserTagsForm } from '@/features/utilities/components/user-tags/user-tag
 import { UserTagsSkeleton } from '@/features/utilities/components/user-tags/user-tags-skeleton'
 import { SessionMonitoringForm } from '@/features/utilities/components/session-monitoring/session-monitoring-form'
 import { SessionMonitoringSkeleton } from '@/features/utilities/components/session-monitoring/session-monitoring-skeleton'
+import { NewUserDefaultsForm } from '@/features/utilities/components/new-user-defaults/new-user-defaults-form'
+import { NewUserDefaultsSkeleton } from '@/features/utilities/components/new-user-defaults/new-user-defaults-skeleton'
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 
 /**
- * Renders the utilities dashboard with sections for DeleteSync, PlexNotifications, and UserTags.
+ * Displays the utilities dashboard with sections for DeleteSync, NewUserDefaults, PlexNotifications, SessionMonitoring, and UserTags.
  *
- * Displays skeleton placeholders while loading and transitions to the utility forms once data is available to ensure a smooth user experience.
+ * Shows skeleton placeholders while loading and transitions to the corresponding utility forms once data is ready.
  *
- * @returns The utilities dashboard UI.
+ * @returns The rendered utilities dashboard UI.
  */
 export function UtilitiesDashboard() {
   const [isLoading, setIsLoading] = useState(true)
@@ -45,21 +47,27 @@ export function UtilitiesDashboard() {
         )}
 
         {isLoading || loading.schedules ? (
+          <NewUserDefaultsSkeleton />
+        ) : (
+          <NewUserDefaultsForm />
+        )}
+
+        {isLoading || loading.schedules ? (
           <PlexNotificationsSkeleton />
         ) : (
           <PlexNotificationsForm />
         )}
 
         {isLoading || loading.schedules ? (
-          <UserTagsSkeleton />
-        ) : (
-          <UserTagsForm />
-        )}
-
-        {isLoading || loading.schedules ? (
           <SessionMonitoringSkeleton />
         ) : (
           <SessionMonitoringForm />
+        )}
+
+        {isLoading || loading.schedules ? (
+          <UserTagsSkeleton />
+        ) : (
+          <UserTagsForm />
         )}
       </div>
     </div>

@@ -212,7 +212,7 @@ export const MultiSelect = React.forwardRef<
             onClick={handleTogglePopover}
             className={cn(
               'flex w-full p-1 rounded-md h-10 items-center justify-between [&_svg]:pointer-events-auto overflow-hidden',
-              props.disabled && 'cursor-not-allowed opacity-50',
+              props.disabled && '!cursor-not-allowed pointer-events-none opacity-50',
               className,
             )}
           >

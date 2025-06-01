@@ -62,6 +62,12 @@ Rolling monitoring provides two progressive strategies for new content:
 
 Navigate to **Utilities > Plex Session Monitoring** to configure:
 
+#### Enable/Disable Control
+- **Session Monitoring Status**: Enable or disable the entire feature
+  - Default: Disabled
+  - When enabled, activates all monitoring features
+  - When disabled, no sessions are processed
+
 #### Monitoring Configuration
 - **Polling Interval**: How often to check for active sessions (1-1440 minutes)
   - Default: 15 minutes
@@ -79,6 +85,61 @@ Navigate to **Utilities > Plex Session Monitoring** to configure:
   - Leave empty to monitor all users
   - Add specific users to focus monitoring efforts
   - Useful for households with different viewing preferences
+
+### Rolling Monitoring Reset Settings
+
+#### Automatic Reset
+- **Enable Automatic Reset**: Automatically reset inactive rolling monitored shows
+  - Default: Enabled
+  - Reverts shows to original monitoring state (pilot-only or first-season-only)
+  - Deletes excess episode files to save storage space
+  - Helps manage storage for shows that users have abandoned
+
+#### Reset Configuration
+- **Inactivity Reset Days**: Days without watching before resetting (1-365 days)
+  - Default: 7 days
+  - Shows not watched within this period are considered inactive
+  - Shorter periods = more aggressive storage management
+  - Longer periods = more lenient for sporadic viewing
+
+- **Auto Reset Check Interval**: How often to check for inactive shows (1-168 hours)
+  - Default: 24 hours
+  - Controls how frequently the system checks for inactive shows
+  - Lower values = more frequent cleanup checks
+  - Higher values = less server load
+
+### Rolling Monitoring Management
+
+The interface provides real-time status and management tools:
+
+#### Status Overview
+- **Active Shows**: Shows currently being tracked with rolling monitoring
+  - Displays count of actively monitored shows
+  - Quick view button to see all active shows
+  - Shows expand their monitoring based on viewing patterns
+
+- **Inactive Shows**: Shows that haven't been watched recently
+  - Displays count with customizable inactivity threshold
+  - Yellow warning badge for reset candidates
+  - Reset all button for bulk cleanup
+  - Adjustable day threshold for viewing inactive shows
+
+#### Management Actions
+- **Check Sessions**: Manually trigger a session monitoring check
+  - Runs the monitoring process immediately
+  - Useful for testing or forcing immediate updates
+  - Shows processing status while running
+
+- **View Shows**: Detailed tables showing all tracked shows
+  - Show title and monitoring type (Pilot/First Season)
+  - Current monitored season
+  - Last activity timestamp
+  - Individual reset/remove actions per show
+
+- **Reset Actions**: 
+  - **Reset Show**: Reverts to original monitoring state and deletes excess files
+  - **Remove from Monitoring**: Stops tracking without affecting Sonarr settings
+  - Confirmation dialogs prevent accidental actions
 
 ### Sonarr Integration
 
@@ -159,14 +220,51 @@ Check your Pulsarr logs for session monitoring activity. Look for log entries su
 - `"Expanded monitoring for ShowName to include season 3"` - Rolling monitoring progression
 - `"Session monitoring complete. Processed: X, Triggered: Y"` - Summary of monitoring cycles
 
+## Environment Variable Configuration
+
+Session monitoring can also be configured via the `plexSessionMonitoring` environment variable in your `.env` file. This is useful for Docker deployments or when you want to set defaults before accessing the web UI.
+
+```env
+# Plex Session Monitoring Configuration (JSON format)
+plexSessionMonitoring='{"enabled":false,"pollingIntervalMinutes":15,"remainingEpisodes":2,"filterUsers":[],"enableAutoReset":true,"inactivityResetDays":7,"autoResetIntervalHours":24}'
+```
+
+The JSON object supports the following properties:
+- `enabled`: Enable/disable session monitoring (default: `false`)
+- `pollingIntervalMinutes`: How often to check sessions (default: `15`, range: 1-1440)
+- `remainingEpisodes`: Threshold for triggering searches (default: `2`, range: 1-10)
+- `filterUsers`: Array of usernames to monitor, empty for all (default: `[]`)
+- `enableAutoReset`: Enable automatic reset feature (default: `true`)
+- `inactivityResetDays`: Days before considering show inactive (default: `7`, range: 1-365)
+- `autoResetIntervalHours`: How often to check for inactive shows (default: `24`, range: 1-168)
+
+Example with custom settings:
+```env
+# Enable monitoring with custom thresholds
+plexSessionMonitoring='{"enabled":true,"pollingIntervalMinutes":30,"remainingEpisodes":3,"filterUsers":["Alice","Bob"],"enableAutoReset":true,"inactivityResetDays":14,"autoResetIntervalHours":12}'
+```
+
+:::tip
+Environment variable settings override database settings. If you set values in the `.env` file, they will take precedence over settings configured in the web UI.
+:::
+
 ## User Interface
 
 The Session Monitoring configuration is located in the **Utilities** section of the Pulsarr web interface. The accordion-style interface provides clear sections for:
 
-- **Monitoring Configuration**: Core settings like polling interval (default: 15 minutes) and episode thresholds (default: 2 episodes)
-- **Filtering Options**: User selection and filtering controls  
-- **Status Display**: Real-time status showing whether monitoring is enabled
-- **Action Controls**: Enable/disable toggle and save/cancel options
+- **Enable/Disable Control**: Quick toggle to activate or deactivate the entire feature
+- **Monitoring Configuration**: Core settings like polling interval and episode thresholds
+- **Filtering Options**: User selection and filtering controls
+- **Rolling Monitoring Reset Settings**: Automatic cleanup configuration for inactive shows
+- **Rolling Monitoring Status**: Real-time view of active and inactive shows with management actions
+- **Action Controls**: Save/cancel options with visual feedback
+
+The interface features:
+- **Compact Layout**: Settings organized in a 2-column grid to minimize vertical space
+- **Visual Status Indicators**: Blue-themed cards showing active/inactive show counts
+- **Inline Management**: Quick access to view, reset, and manage tracked shows
+- **Confirmation Dialogs**: Prevent accidental actions with clear explanations
+- **Responsive Design**: Optimized for both desktop and mobile viewing
 
 <img src={useBaseUrl('/img/Plex-Session-Monitoring.png')} alt="Plex Session Monitoring Configuration Interface" />
 
