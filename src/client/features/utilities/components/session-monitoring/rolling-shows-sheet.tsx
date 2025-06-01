@@ -99,6 +99,23 @@ interface RollingShowsSheetProps {
   activeActionId?: number | null
 }
 
+/**
+ * Displays a responsive, interactive table of rolling monitored shows with sorting, filtering, pagination, and optional reset/delete actions.
+ *
+ * Renders as a sliding sheet on desktop or a drawer on mobile, showing a list of rolling monitored shows with controls for filtering by title, toggling column visibility, and paginating results. Optionally provides action buttons for resetting or deleting shows, each with confirmation dialogs and loading indicators. Handles loading and error states with appropriate UI feedback.
+ *
+ * @param isOpen - Whether the sheet or drawer is open.
+ * @param onClose - Callback to close the sheet or drawer.
+ * @param title - Title displayed in the header.
+ * @param shows - List of rolling monitored shows to display.
+ * @param isLoading - Whether the data is currently loading.
+ * @param error - Error object if loading failed.
+ * @param onResetShow - Optional callback to reset a show to its original monitoring state.
+ * @param onDeleteShow - Optional callback to remove a show from rolling monitoring.
+ * @param showActions - Whether to display action buttons for each show.
+ * @param actionLoading - Loading states for reset and delete actions.
+ * @param activeActionId - ID of the show currently being acted upon.
+ */
 export function RollingShowsSheet({
   isOpen,
   onClose,

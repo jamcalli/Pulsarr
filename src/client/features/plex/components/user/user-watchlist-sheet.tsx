@@ -80,6 +80,20 @@ interface UserWatchlistSheetProps {
   error?: Error | null
 }
 
+/**
+ * Displays a responsive, interactive sheet or drawer showing a user's watchlist with sorting, filtering, pagination, and column visibility controls.
+ *
+ * Renders a table of watchlist items with columns for title, type, status, and added date. Supports filtering by title, sorting by any column, toggling column visibility, and paginating results. Adapts layout between a sliding sheet on desktop and a drawer on mobile. Handles loading and error states with appropriate UI feedback.
+ *
+ * @param isOpen - Whether the sheet or drawer is open.
+ * @param onClose - Callback to close the sheet or drawer.
+ * @param userName - The name of the user whose watchlist is displayed.
+ * @param watchlistItems - The list of watchlist items to display.
+ * @param isLoading - Whether the watchlist data is currently loading.
+ * @param error - Optional error object if loading failed.
+ *
+ * @returns The rendered watchlist sheet or drawer component.
+ */
 export function UserWatchlistSheet({
   isOpen,
   onClose,
