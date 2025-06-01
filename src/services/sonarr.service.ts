@@ -3,6 +3,7 @@ import type {
   SonarrAddOptions,
   SonarrPost,
   SonarrSeries,
+  SonarrEpisode,
   SonarrItem as Item,
   SonarrConfiguration,
   PagedResult,
@@ -1501,6 +1502,133 @@ export class SonarrService {
       this.log.info(`Updated series ${seriesId} monitoring settings`)
     } catch (error) {
       this.log.error('Error updating series monitoring:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Get all episodes for a series
+   * @param seriesId The Sonarr series ID
+   * @returns Array of episodes
+   */
+  async getEpisodes(seriesId: number): Promise<SonarrEpisode[]> {
+    try {
+      const episodes = await this.getFromSonarr<SonarrEpisode[]>(
+        `episode?seriesId=${seriesId}`,
+      )
+      return episodes || []
+    } catch (error) {
+      this.log.error(`Error fetching episodes for series ${seriesId}:`, error)
+      throw error
+    }
+  }
+
+  /**
+   * Get episodes for a specific season
+   * @param seriesId The Sonarr series ID
+   * @param seasonNumber The season number
+   * @returns Array of episodes in the season
+   */
+  async getSeasonEpisodes(
+    seriesId: number,
+    seasonNumber: number,
+  ): Promise<SonarrEpisode[]> {
+    try {
+      const allEpisodes = await this.getEpisodes(seriesId)
+      return allEpisodes.filter((ep) => ep.seasonNumber === seasonNumber)
+    } catch (error) {
+      this.log.error(
+        `Error fetching episodes for series ${seriesId} season ${seasonNumber}:`,
+        error,
+      )
+      throw error
+    }
+  }
+
+  /**
+   * Update monitoring for specific episodes
+   * @param episodes Array of episode updates with id and monitored status
+   */
+  async updateEpisodesMonitoring(
+    episodes: Array<{ id: number; monitored: boolean }>,
+  ): Promise<void> {
+    try {
+      // Sonarr API requires updating episodes one by one or in bulk
+      // We'll use the bulk endpoint
+      const episodeIds = episodes.map((ep) => ep.id)
+      const monitored = episodes[0]?.monitored || false
+
+      await this.putToSonarr('episode/monitor', {
+        episodeIds,
+        monitored,
+      })
+
+      this.log.info(
+        `Updated monitoring for ${episodes.length} episodes to ${monitored}`,
+      )
+    } catch (error) {
+      this.log.error('Error updating episode monitoring:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Update monitoring for a single episode
+   * @param episodeId The episode ID
+   * @param monitored Whether to monitor the episode
+   */
+  async updateEpisodeMonitoring(
+    episodeId: number,
+    monitored: boolean,
+  ): Promise<void> {
+    try {
+      // First get the episode
+      const episode = await this.getFromSonarr<SonarrEpisode>(
+        `episode/${episodeId}`,
+      )
+
+      // Update monitoring status
+      episode.monitored = monitored
+
+      // Send update
+      await this.putToSonarr(`episode/${episodeId}`, episode)
+
+      this.log.info(`Updated episode ${episodeId} monitoring to ${monitored}`)
+    } catch (error) {
+      this.log.error(`Error updating episode ${episodeId} monitoring:`, error)
+      throw error
+    }
+  }
+
+  /**
+   * Delete episode file from Sonarr and filesystem
+   * @param episodeFileId The episode file ID
+   */
+  async deleteEpisodeFile(episodeFileId: number): Promise<void> {
+    try {
+      await this.sonarrDelete(`episodefile/${episodeFileId}`)
+
+      this.log.info(`Deleted episode file ${episodeFileId}`)
+    } catch (error) {
+      this.log.error(`Error deleting episode file ${episodeFileId}:`, error)
+      throw error
+    }
+  }
+
+  /**
+   * Delete multiple episode files from Sonarr and filesystem
+   * @param episodeFileIds Array of episode file IDs to delete
+   */
+  async deleteEpisodeFiles(episodeFileIds: number[]): Promise<void> {
+    try {
+      const deletePromises = episodeFileIds.map((id) =>
+        this.deleteEpisodeFile(id),
+      )
+      await Promise.all(deletePromises)
+
+      this.log.info(`Deleted ${episodeFileIds.length} episode files`)
+    } catch (error) {
+      this.log.error('Error deleting episode files:', error)
       throw error
     }
   }

@@ -171,4 +171,18 @@ respectUserSyncSetting=true            # Only delete content from users with syn
 deleteSyncNotify=none                  # Notify of delete sync status: 'none' | 'message' | 'webhook' | 'both' | 'all' | 'discord-only' | 'apprise-only'
 deleteSyncNotifyOnlyOnDeletion=false   # Only send notifications when items are actually deleted
 maxDeletionPrevention=10               # Safeguard to prevent mass deletion. % of total library to allow during delete sync
+
+# Plex Session Monitoring
+plexSessionMonitoring='{"enabled":false,"pollingIntervalMinutes":15,"remainingEpisodes":2,"filterUsers":[],"enableAutoReset":true,"inactivityResetDays":7,"autoResetIntervalHours":24}'  # JSON config for session monitoring
+# Session monitoring configuration (JSON format):
+# - enabled: Enable/disable session monitoring (default: false)
+# - pollingIntervalMinutes: How often to check sessions in minutes (default: 15, range: 1-1440)
+# - remainingEpisodes: Episodes remaining before triggering search (default: 2, range: 1-10)
+# - filterUsers: Array of usernames to monitor, empty for all users (default: [])
+# - enableAutoReset: Enable automatic reset of inactive shows (default: true)
+# - inactivityResetDays: Days without activity before reset (default: 7, range: 1-365)
+# - autoResetIntervalHours: How often to check for inactive shows in hours (default: 24, range: 1-168)
+
+# New User Defaults
+newUserDefaultCanSync=true             # Default sync permission for new users
 ```

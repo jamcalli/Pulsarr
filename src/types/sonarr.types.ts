@@ -94,6 +94,22 @@ export interface SonarrPost {
   seriesType?: 'standard' | 'anime' | 'daily'
 }
 
+export interface SonarrEpisode {
+  id: number
+  seriesId: number
+  episodeFileId: number
+  seasonNumber: number
+  episodeNumber: number
+  title: string
+  airDate?: string
+  airDateUtc?: string
+  overview?: string
+  hasFile: boolean
+  monitored: boolean
+  unverifiedSceneNumbering: boolean
+  grabbed: boolean
+}
+
 export interface SonarrSeries {
   title: string
   imdbId?: string

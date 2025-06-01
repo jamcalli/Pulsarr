@@ -47,15 +47,15 @@ export function UtilitiesDashboard() {
         )}
 
         {isLoading || loading.schedules ? (
-          <PlexNotificationsSkeleton />
+          <NewUserDefaultsSkeleton />
         ) : (
-          <PlexNotificationsForm />
+          <NewUserDefaultsForm />
         )}
 
         {isLoading || loading.schedules ? (
-          <UserTagsSkeleton />
+          <PlexNotificationsSkeleton />
         ) : (
-          <UserTagsForm />
+          <PlexNotificationsForm />
         )}
 
         {isLoading || loading.schedules ? (
@@ -65,9 +65,9 @@ export function UtilitiesDashboard() {
         )}
 
         {isLoading || loading.schedules ? (
-          <NewUserDefaultsSkeleton />
+          <UserTagsSkeleton />
         ) : (
-          <NewUserDefaultsForm />
+          <UserTagsForm />
         )}
       </div>
     </div>

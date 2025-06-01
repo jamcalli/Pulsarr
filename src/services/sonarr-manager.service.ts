@@ -270,14 +270,14 @@ export class SonarrManagerService {
                 addedSeries.id,
                 targetInstanceId,
                 tvdbId || '',
-                sonarrItem.title,
+                addedSeries.title,
                 targetSeasonMonitoring as
                   | 'pilot_rolling'
                   | 'first_season_rolling',
               )
 
               this.log.info(
-                `Created rolling monitoring entry for ${sonarrItem.title} with ${targetSeasonMonitoring}`,
+                `Created rolling monitoring entry for ${addedSeries.title} with ${targetSeasonMonitoring}`,
               )
             }
           } else {

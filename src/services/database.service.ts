@@ -6133,6 +6133,7 @@ export class DatabaseService {
           last_session_date: this.timestamp,
           created_at: this.timestamp,
           updated_at: this.timestamp,
+          last_updated_at: this.timestamp,
         })
         .returning('id')
 
@@ -6239,6 +6240,7 @@ export class DatabaseService {
           last_watched_episode: episode,
           last_session_date: this.timestamp,
           updated_at: this.timestamp,
+          last_updated_at: this.timestamp,
         })
 
       return updated > 0
@@ -6265,6 +6267,7 @@ export class DatabaseService {
         .update({
           current_monitored_season: season,
           updated_at: this.timestamp,
+          last_updated_at: this.timestamp,
         })
 
       return updated > 0
@@ -6290,6 +6293,28 @@ export class DatabaseService {
     } catch (error) {
       this.log.error('Error deleting rolling monitored show:', error)
       return false
+    }
+  }
+
+  /**
+   * Gets rolling monitored shows that haven't been updated recently
+   *
+   * @param inactivityDays - Number of days since last update to consider inactive
+   * @returns Promise resolving to array of inactive rolling monitored shows
+   */
+  async getInactiveRollingMonitoredShows(
+    inactivityDays: number,
+  ): Promise<RollingMonitoredShow[]> {
+    try {
+      const cutoffDate = new Date()
+      cutoffDate.setDate(cutoffDate.getDate() - inactivityDays)
+
+      return await this.knex('rolling_monitored_shows')
+        .where('last_updated_at', '<', cutoffDate.toISOString())
+        .orderBy('last_updated_at', 'asc')
+    } catch (error) {
+      this.log.error('Error getting inactive rolling monitored shows:', error)
+      throw new Error('Failed to get inactive rolling monitored shows')
     }
   }
 }
