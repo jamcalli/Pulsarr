@@ -11,7 +11,11 @@ import type { RollingMonitoredShow } from '@root/types/plex-session.types.js'
 import type { PlexSessionMonitorService } from '@services/plex-session-monitor.service.js'
 import { serializeRollingShowDates } from '@utils/date-serializer.js'
 
-// Helper function to handle rolling show reset logic
+/**
+ * Resets a rolling monitored show's monitoring state to its original configuration based on its monitoring type.
+ *
+ * If the show's monitoring type is 'pilot_rolling', resets monitoring to the pilot episode only. If 'first_season_rolling', resets monitoring to the first season only.
+ */
 async function resetShowMonitoring(
   show: RollingMonitoredShow,
   plexSessionMonitor: PlexSessionMonitorService,
@@ -31,6 +35,17 @@ async function resetShowMonitoring(
   }
 }
 
+/**
+ * Registers HTTP routes for managing rolling monitored shows and session monitoring in a Plex environment.
+ *
+ * This Fastify plugin provides endpoints to:
+ * - Retrieve all rolling monitored shows.
+ * - Manually trigger the session monitor.
+ * - Delete or reset individual rolling monitored shows to their original monitoring state.
+ * - Retrieve and reset shows that have been inactive for a specified number of days.
+ *
+ * All routes include request validation, structured error handling, and appropriate response formatting.
+ */
 export default async function sessionMonitoringRoutes(
   fastify: FastifyInstance,
 ) {

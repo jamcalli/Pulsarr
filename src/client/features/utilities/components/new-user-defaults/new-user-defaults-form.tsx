@@ -25,7 +25,9 @@ const newUserDefaultsSchema = z.object({
 type NewUserDefaultsFormData = z.infer<typeof newUserDefaultsSchema>
 
 /**
- * Form component for configuring new user default settings within an accordion layout
+ * Renders a form within an accordion interface for configuring whether new Plex users have sync enabled by default.
+ *
+ * The form initializes from the current configuration and allows toggling the default sync setting. Changes are saved automatically and feedback is provided via toast notifications. The UI adapts to mobile screens and displays contextual information about the effect of the current setting.
  */
 export function NewUserDefaultsForm() {
   const isMobile = useMediaQuery('(max-width: 768px)')
