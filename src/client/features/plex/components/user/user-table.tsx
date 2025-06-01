@@ -50,6 +50,8 @@ import {
 import type { UserWatchlistInfo } from '@/stores/configStore'
 import UserTableSkeletonRows from '@/features/plex/components/user/user-table-skeleton'
 import type { PlexUserTableRow } from '@/features/plex/store/types'
+import { UserWatchlistSheet } from '@/features/plex/components/user/user-watchlist-sheet'
+import { useUserWatchlist } from '@/features/plex/hooks/useUserWatchlist'
 
 interface ColumnMetaType {
   className?: string
@@ -64,14 +66,16 @@ interface UserTableProps {
 }
 
 /**
- * Displays an interactive table for managing user watchlist data with features including sorting, filtering by username, pagination, column visibility toggling, row selection, and both individual and bulk editing.
+ * Renders an interactive table for managing user watchlist data, supporting sorting, username filtering, pagination, column visibility toggling, row selection, and both individual and bulk editing.
  *
- * The table adapts its controls and display based on loading state, supports responsive column visibility, and provides visual indicators for notification and sync statuses.
+ * The table adapts to loading state, provides responsive column visibility, and displays visual indicators for notification and sync statuses. Users can view and edit individual user details, perform bulk edits on selected rows, and open a modal to view a user's watchlist.
  *
- * @param users - Array of user watchlist data to display in the table.
+ * @param users - The user watchlist data to display.
  * @param onEditUser - Callback invoked when editing a single user.
  * @param isLoading - Optional flag to indicate loading state; disables controls and shows skeleton rows when true.
  * @param onBulkEdit - Optional callback invoked with selected rows for bulk editing.
+ *
+ * @remark If a user's ID is invalid when attempting to view their watchlist, an error is logged and the modal will not open.
  */
 export default function UserTable({
   users,
@@ -87,6 +91,16 @@ export default function UserTable({
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = React.useState({})
+  const [selectedUserName, setSelectedUserName] = React.useState<string>('')
+
+  const {
+    watchlistData,
+    isLoading: isWatchlistLoading,
+    error: watchlistError,
+    isOpen,
+    handleOpen,
+    handleClose,
+  } = useUserWatchlist()
 
   const columns: ColumnDef<UserWatchlistInfo>[] = [
     {
@@ -251,6 +265,21 @@ export default function UserTable({
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                 <DropdownMenuItem onClick={() => onEditUser(user)}>
                   Edit user
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setSelectedUserName(user.name)
+                    const userId = Number.parseInt(user.id)
+                    if (!Number.isNaN(userId) && userId > 0) {
+                      handleOpen(userId)
+                    } else {
+                      console.error('Invalid user ID:', user.id)
+                    }
+                  }}
+                >
+                  View Watchlist
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -466,6 +495,16 @@ export default function UserTable({
           </Button>
         </div>
       </div>
+      {isOpen && (
+        <UserWatchlistSheet
+          isOpen={isOpen}
+          onClose={handleClose}
+          userName={selectedUserName}
+          watchlistItems={watchlistData?.watchlistItems}
+          isLoading={isWatchlistLoading}
+          error={watchlistError}
+        />
+      )}
     </div>
   )
 }
