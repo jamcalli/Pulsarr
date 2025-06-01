@@ -12,11 +12,11 @@ import { NewUserDefaultsSkeleton } from '@/features/utilities/components/new-use
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 
 /**
- * Renders the utilities dashboard with sections for DeleteSync, PlexNotifications, and UserTags.
+ * Displays the utilities dashboard with sections for DeleteSync, NewUserDefaults, PlexNotifications, SessionMonitoring, and UserTags.
  *
- * Displays skeleton placeholders while loading and transitions to the utility forms once data is available to ensure a smooth user experience.
+ * Shows skeleton placeholders while loading and transitions to the corresponding utility forms once data is ready.
  *
- * @returns The utilities dashboard UI.
+ * @returns The rendered utilities dashboard UI.
  */
 export function UtilitiesDashboard() {
   const [isLoading, setIsLoading] = useState(true)
