@@ -14,6 +14,7 @@ import type {
   PlexSession,
   PlexSessionResponse,
   PlexShowMetadata,
+  PlexShowMetadataResponse,
 } from '@root/types/plex-session.types.js'
 
 /**
@@ -1553,8 +1554,16 @@ export class PlexServerService {
    */
   async getShowMetadata(
     ratingKey: string,
+    includeChildren: true,
+  ): Promise<PlexShowMetadata | null>
+  async getShowMetadata(
+    ratingKey: string,
+    includeChildren: false,
+  ): Promise<PlexShowMetadataResponse | null>
+  async getShowMetadata(
+    ratingKey: string,
     includeChildren = true,
-  ): Promise<PlexShowMetadata | null> {
+  ): Promise<PlexShowMetadata | PlexShowMetadataResponse | null> {
     try {
       const serverUrl = await this.getPlexServerUrl()
       const adminToken = this.config.plexTokens?.[0] || ''

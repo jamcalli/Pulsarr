@@ -126,6 +126,10 @@ export interface Config {
     pollingIntervalMinutes: number
     remainingEpisodes: number
     filterUsers?: string[]
+    // Rolling monitoring reset settings
+    enableAutoReset?: boolean
+    inactivityResetDays?: number
+    autoResetIntervalHours?: number
   }
   // New User Defaults
   newUserDefaultCanSync?: boolean

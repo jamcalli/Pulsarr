@@ -277,6 +277,9 @@ const schema = {
         pollingIntervalMinutes: 15,
         remainingEpisodes: 2,
         filterUsers: [],
+        enableAutoReset: true,
+        inactivityResetDays: 7,
+        autoResetIntervalHours: 24,
       }),
     },
     newUserDefaultCanSync: {
