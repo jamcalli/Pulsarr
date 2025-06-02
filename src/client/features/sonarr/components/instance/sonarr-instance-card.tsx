@@ -27,7 +27,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { SONARR_MONITORING_OPTIONS } from '@/features/sonarr/store/constants'
-import { isRollingMonitoringOption } from '@/features/sonarr/types/types'
+import { isRollingMonitoringOption } from '@root/types/sonarr/rolling.js'
 import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
 import { useSonarrConnection } from '@/features/sonarr/hooks/instance/useSonarrConnection'
 import { useSonarrInstanceForm } from '@/features/sonarr/hooks/instance/useSonarrInstanceForms'

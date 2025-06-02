@@ -1,37 +1,34 @@
 import { useState, useCallback, useRef } from 'react'
 import { toast } from '@/hooks/use-toast'
+import type {
+  RollingMonitoredShow as BaseRollingMonitoredShow,
+  SessionMonitoringResult,
+} from '@root/types/plex-session.types.js'
 
 // Minimum loading time for better UX across all actions
 const MIN_LOADING_TIME = 500
 
-export interface RollingMonitoredShow {
-  id: number
-  sonarr_series_id: number
+// API response type with date strings
+export interface RollingMonitoredShow
+  extends Omit<
+    BaseRollingMonitoredShow,
+    | 'last_session_date'
+    | 'created_at'
+    | 'updated_at'
+    | 'last_updated_at'
+    | 'tvdb_id'
+    | 'imdb_id'
+    | 'plex_user_id'
+    | 'plex_username'
+  > {
   tvdb_id: string | null
   imdb_id: string | null
-  show_title: string
-  monitoring_type: 'pilot_rolling' | 'first_season_rolling'
-  current_monitored_season: number
-  last_watched_season: number
-  last_watched_episode: number
   last_session_date: string | null
-  sonarr_instance_id: number
   plex_user_id: string | null
   plex_username: string | null
   created_at: string
   updated_at: string
   last_updated_at: string
-}
-
-export interface SessionMonitoringResult {
-  processedSessions: number
-  triggeredSearches: number
-  errors: string[]
-  rollingUpdates: Array<{
-    showTitle: string
-    action: 'expanded_to_season' | 'expanded_to_next_season' | 'switched_to_all'
-    details: string
-  }>
 }
 
 export interface UseRollingMonitoringReturn {

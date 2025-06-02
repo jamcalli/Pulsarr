@@ -11,19 +11,8 @@ export enum SonarrMonitoringOption {
   LATEST_SEASON = 'latestSeason',
   PILOT = 'pilot',
   // Custom rolling options for progressive monitoring
-  PILOT_ROLLING = 'pilot_rolling', // Monitor pilot only, expand as watched
-  FIRST_SEASON_ROLLING = 'first_season_rolling', // Monitor S1 only, expand as watched
-}
-
-// Centralized set of rolling monitoring options for consistent checking
-export const ROLLING_MONITORING_OPTIONS = new Set<string>([
-  SonarrMonitoringOption.PILOT_ROLLING,
-  SonarrMonitoringOption.FIRST_SEASON_ROLLING,
-])
-
-// Type guard to check if a monitoring option is a rolling option
-export function isRollingMonitoringOption(option: string): boolean {
-  return ROLLING_MONITORING_OPTIONS.has(option)
+  PILOT_ROLLING = 'pilotRolling', // Monitor pilot only, expand as watched
+  FIRST_SEASON_ROLLING = 'firstSeasonRolling', // Monitor S1 only, expand as watched
 }
 
 export interface SonarrAddOptions {

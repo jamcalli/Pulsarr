@@ -1620,15 +1620,60 @@ export class SonarrService {
    * @param episodeFileIds Array of episode file IDs to delete
    */
   async deleteEpisodeFiles(episodeFileIds: number[]): Promise<void> {
+    if (episodeFileIds.length === 0) {
+      this.log.debug('No episode files to delete')
+      return
+    }
+
     try {
       const deletePromises = episodeFileIds.map((id) =>
         this.deleteEpisodeFile(id),
       )
-      await Promise.all(deletePromises)
+      const results = await Promise.allSettled(deletePromises)
 
-      this.log.info(`Deleted ${episodeFileIds.length} episode files`)
+      const failures = results.filter((r) => r.status === 'rejected')
+      const successCount = results.length - failures.length
+
+      if (failures.length > 0) {
+        this.log.error(
+          `Failed to delete ${failures.length} of ${episodeFileIds.length} episode files`,
+        )
+
+        // Log details about which files failed
+        const failedIds = episodeFileIds.filter(
+          (_, index) => results[index].status === 'rejected',
+        )
+        this.log.error(`Failed episode file IDs: ${failedIds.join(', ')}`)
+
+        // Log the actual errors for debugging
+        const rejectedResults = results.filter(
+          (r): r is PromiseRejectedResult => r.status === 'rejected',
+        )
+        rejectedResults.forEach((failure, index) => {
+          const failedId = failedIds[index]
+          this.log.error(
+            `Episode file ${failedId} deletion error:`,
+            failure.reason,
+          )
+        })
+
+        throw new Error(
+          `Failed to delete ${failures.length} of ${episodeFileIds.length} episode files. Failed IDs: ${failedIds.join(', ')}`,
+        )
+      }
+
+      this.log.info(`Successfully deleted ${successCount} episode files`)
     } catch (error) {
-      this.log.error('Error deleting episode files:', error)
+      // Re-throw errors from Promise.allSettled analysis above
+      if (
+        error instanceof Error &&
+        error.message.includes('Failed to delete')
+      ) {
+        throw error
+      }
+
+      // Handle unexpected errors
+      this.log.error('Unexpected error deleting episode files:', error)
       throw error
     }
   }

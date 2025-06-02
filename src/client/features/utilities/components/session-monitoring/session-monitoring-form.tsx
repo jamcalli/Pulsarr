@@ -1,29 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import {
-  Loader2,
-  Save,
-  X,
-  HelpCircle,
-  Power,
-  Activity,
-  Clock,
-  AlertTriangle,
-  Eye,
-  RotateCcw,
-} from 'lucide-react'
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
-import { Switch } from '@/components/ui/switch'
-import { UserMultiSelect } from '@/components/ui/user-multi-select'
+import { Loader2, Save, X } from 'lucide-react'
+import { Form } from '@/components/ui/form'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -36,17 +15,15 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion'
 import { Separator } from '@/components/ui/separator'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import { useConfigStore } from '@/stores/configStore'
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
-import { useMediaQuery } from '@/hooks/use-media-query'
 import { useRollingMonitoring } from '@/features/utilities/hooks/useRollingMonitoring'
-import { RollingShowsSheet } from './rolling-shows-sheet'
+import type { JobStatus } from '@root/schemas/scheduler/scheduler.schema'
+import { SessionMonitoringActions } from './session-monitoring-actions'
+import { SessionMonitoringConfig } from './session-monitoring-config'
+import { SessionMonitoringFiltering } from './session-monitoring-filtering'
+import { SessionMonitoringResetSettings } from './session-monitoring-reset-settings'
+import { SessionMonitoringStatus } from './session-monitoring-status'
 
 const sessionMonitoringSchema = z.object({
   enabled: z.boolean(),
@@ -66,7 +43,6 @@ type SessionMonitoringFormData = z.infer<typeof sessionMonitoringSchema>
  * Allows users to enable or disable Plex session monitoring, set polling intervals, define episode thresholds, filter by users, and configure automatic reset options for rolling monitored shows. Integrates with schedule management and displays real-time status and management tools for active and inactive rolling shows.
  */
 export function SessionMonitoringForm() {
-  const isMobile = useMediaQuery('(max-width: 768px)')
   const { config, updateConfig } = useConfigStore()
   const {
     schedules,
@@ -76,8 +52,6 @@ export function SessionMonitoringForm() {
   } = useUtilitiesStore()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const submittingStartTime = useRef<number | null>(null)
-  const [showActiveShows, setShowActiveShows] = useState(false)
-  const [showInactiveShows, setShowInactiveShows] = useState(false)
   const [inactivityDays, setInactivityDays] = useState(
     config?.plexSessionMonitoring?.inactivityResetDays || 7,
   )
@@ -142,7 +116,7 @@ export function SessionMonitoringForm() {
     }
   }, [config, form])
 
-  // Load rolling shows on mount when session monitoring is enabled
+  // Initial data fetch when session monitoring is enabled
   useEffect(() => {
     if (isEnabled) {
       fetchRollingShows()
@@ -150,19 +124,117 @@ export function SessionMonitoringForm() {
     }
   }, [isEnabled, fetchRollingShows, fetchInactiveShows, inactivityDays])
 
-  // Load rolling shows when active shows sheet is opened
-  useEffect(() => {
-    if (isEnabled && showActiveShows) {
-      fetchRollingShows()
+  // Helper function to update session monitor schedule
+  const updateSessionMonitorSchedule = async (
+    schedule: JobStatus,
+    data: SessionMonitoringFormData,
+  ) => {
+    // Check if enabled state changed
+    if (schedule.enabled !== data.enabled) {
+      await toggleScheduleStatus(schedule.name, data.enabled)
     }
-  }, [isEnabled, showActiveShows, fetchRollingShows])
 
-  // Load inactive shows when inactive shows sheet is opened or inactivity days changes
-  useEffect(() => {
-    if (showInactiveShows) {
-      fetchInactiveShows(inactivityDays)
+    // Check if polling interval changed and schedule is enabled
+    const currentInterval =
+      schedule.type === 'interval' ? schedule.config?.minutes || 15 : 15
+    if (data.enabled && currentInterval !== data.pollingIntervalMinutes) {
+      // Update the schedule with new interval
+      const response = await fetch(`/v1/scheduler/schedules/${schedule.name}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'interval',
+          config: {
+            minutes: data.pollingIntervalMinutes,
+          },
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to update polling interval')
+      }
+
+      // Refresh schedules to get updated data
+      await fetchSchedules()
     }
-  }, [inactivityDays, showInactiveShows, fetchInactiveShows])
+  }
+
+  // Helper function to update auto-reset schedule
+  const updateAutoResetSchedule = async (
+    schedule: JobStatus,
+    data: SessionMonitoringFormData,
+  ) => {
+    // Auto-reset should be enabled when session monitoring is enabled AND enableAutoReset is true
+    const shouldEnableAutoReset = data.enabled && data.enableAutoReset
+
+    // Check if enabled state changed
+    if (schedule.enabled !== shouldEnableAutoReset) {
+      await toggleScheduleStatus(schedule.name, shouldEnableAutoReset)
+    }
+
+    // Check if auto-reset interval changed and schedule should be enabled
+    const currentAutoResetInterval =
+      schedule.type === 'interval' ? schedule.config?.hours || 24 : 24
+    if (
+      shouldEnableAutoReset &&
+      currentAutoResetInterval !== data.autoResetIntervalHours
+    ) {
+      // Update the schedule with new interval
+      const response = await fetch(`/v1/scheduler/schedules/${schedule.name}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'interval',
+          config: {
+            hours: data.autoResetIntervalHours,
+          },
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(
+          errorData.error || 'Failed to update auto-reset interval',
+        )
+      }
+
+      // Refresh schedules to get updated data
+      await fetchSchedules()
+    }
+  }
+
+  // Helper function to ensure minimum loading time for better UX
+  const ensureMinimumLoadingTime = async () => {
+    const elapsed = Date.now() - (submittingStartTime.current || 0)
+    const remaining = Math.max(0, 500 - elapsed)
+    await new Promise((resolve) => setTimeout(resolve, remaining))
+  }
+
+  // Helper function to show success toast
+  const showSuccessToast = () => {
+    toast({
+      title: 'Success',
+      description: 'Session monitoring settings updated successfully',
+    })
+  }
+
+  // Helper function to handle submit errors
+  const handleSubmitError = (error: unknown) => {
+    console.error('Failed to update session monitoring settings:', error)
+    toast({
+      title: 'Error',
+      description: 'Failed to update session monitoring settings',
+      variant: 'destructive',
+    })
+  }
+
+  // Helper function to cleanup submit state
+  const cleanupSubmitState = () => {
+    setIsSubmitting(false)
+    setLoadingWithMinDuration(false)
+    submittingStartTime.current = null
+  }
 
   const onSubmit = async (data: SessionMonitoringFormData) => {
     submittingStartTime.current = Date.now()
@@ -174,110 +246,20 @@ export function SessionMonitoringForm() {
         plexSessionMonitoring: data,
       })
 
-      // Update the schedule if it exists
       if (sessionMonitorSchedule) {
-        // Check if enabled state changed
-        if (sessionMonitorSchedule.enabled !== data.enabled) {
-          await toggleScheduleStatus(sessionMonitorSchedule.name, data.enabled)
-        }
-
-        // Check if polling interval changed and schedule is enabled
-        const currentInterval =
-          sessionMonitorSchedule.type === 'interval'
-            ? sessionMonitorSchedule.config?.minutes || 15
-            : 15
-        if (data.enabled && currentInterval !== data.pollingIntervalMinutes) {
-          // Update the schedule with new interval
-          const response = await fetch(
-            `/v1/scheduler/schedules/${sessionMonitorSchedule.name}`,
-            {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                type: 'interval',
-                config: {
-                  minutes: data.pollingIntervalMinutes,
-                },
-              }),
-            },
-          )
-
-          if (!response.ok) {
-            throw new Error('Failed to update polling interval')
-          }
-
-          // Refresh schedules to get updated data
-          await fetchSchedules()
-        }
+        await updateSessionMonitorSchedule(sessionMonitorSchedule, data)
       }
 
-      // Update the auto-reset schedule if it exists
       if (autoResetSchedule) {
-        // Auto-reset should be enabled when session monitoring is enabled AND enableAutoReset is true
-        const shouldEnableAutoReset = data.enabled && data.enableAutoReset
-
-        // Check if enabled state changed
-        if (autoResetSchedule.enabled !== shouldEnableAutoReset) {
-          await toggleScheduleStatus(
-            autoResetSchedule.name,
-            shouldEnableAutoReset,
-          )
-        }
-
-        // Check if auto-reset interval changed and schedule should be enabled
-        const currentAutoResetInterval =
-          autoResetSchedule.type === 'interval'
-            ? autoResetSchedule.config?.hours || 24
-            : 24
-        if (
-          shouldEnableAutoReset &&
-          currentAutoResetInterval !== data.autoResetIntervalHours
-        ) {
-          // Update the schedule with new interval
-          const response = await fetch(
-            `/v1/scheduler/schedules/${autoResetSchedule.name}`,
-            {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                type: 'interval',
-                config: {
-                  hours: data.autoResetIntervalHours,
-                },
-              }),
-            },
-          )
-
-          if (!response.ok) {
-            throw new Error('Failed to update auto-reset interval')
-          }
-
-          // Refresh schedules to get updated data
-          await fetchSchedules()
-        }
+        await updateAutoResetSchedule(autoResetSchedule, data)
       }
 
-      // Ensure minimum loading time for better UX
-      const elapsed = Date.now() - (submittingStartTime.current || 0)
-      const remaining = Math.max(0, 500 - elapsed)
-
-      await new Promise((resolve) => setTimeout(resolve, remaining))
-
-      toast({
-        title: 'Success',
-        description: 'Session monitoring settings updated successfully',
-      })
+      await ensureMinimumLoadingTime()
+      showSuccessToast()
     } catch (error) {
-      console.error('Failed to update session monitoring settings:', error)
-      toast({
-        title: 'Error',
-        description: 'Failed to update session monitoring settings',
-        variant: 'destructive',
-      })
+      handleSubmitError(error)
     } finally {
-      setIsSubmitting(false)
-      setLoadingWithMinDuration(false)
-      submittingStartTime.current = null
+      cleanupSubmitState()
     }
   }
 
@@ -319,36 +301,12 @@ export function SessionMonitoringForm() {
           <div className="p-6 border-t border-border">
             <div className="space-y-6">
               <Form {...form}>
-                {/* Actions section */}
-                <div>
-                  <h3 className="font-medium text-text mb-2">Actions</h3>
-                  <div className="flex flex-wrap items-center gap-4">
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={async () => {
-                        const newEnabledState = !isEnabled
-                        form.setValue('enabled', newEnabledState, {
-                          shouldDirty: true,
-                        })
-                        // Auto-save when toggling enable/disable
-                        await onSubmit(form.getValues())
-                      }}
-                      disabled={isSubmitting}
-                      variant={isEnabled ? 'error' : 'noShadow'}
-                      className="h-8"
-                    >
-                      {isSubmitting ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Power className="h-4 w-4" />
-                      )}
-                      <span className={isMobile ? 'hidden' : 'ml-2'}>
-                        {isEnabled ? 'Disable' : 'Enable'}
-                      </span>
-                    </Button>
-                  </div>
-                </div>
+                <SessionMonitoringActions
+                  form={form}
+                  isEnabled={isEnabled}
+                  isSubmitting={isSubmitting}
+                  onSubmit={onSubmit}
+                />
 
                 <Separator />
 
@@ -356,429 +314,39 @@ export function SessionMonitoringForm() {
                   onSubmit={form.handleSubmit(onSubmit)}
                   className="space-y-4"
                 >
-                  <div>
-                    <h3 className="font-medium text-sm text-text mb-2">
-                      Monitoring Configuration
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="pollingIntervalMinutes"
-                        render={({ field }) => (
-                          <FormItem className="space-y-1">
-                            <div className="flex items-center">
-                              <FormLabel className="text-text m-0">
-                                Polling Interval (minutes)
-                              </FormLabel>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p className="max-w-xs">
-                                      How often to check for active Plex
-                                      sessions (1-1440 minutes). Lower values
-                                      provide more responsive monitoring but
-                                      increase server load.
-                                    </p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </div>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                {...field}
-                                onChange={(e) =>
-                                  field.onChange(Number(e.target.value))
-                                }
-                                min={1}
-                                max={1440}
-                                disabled={!isEnabled}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="remainingEpisodes"
-                        render={({ field }) => (
-                          <FormItem className="space-y-1">
-                            <div className="flex items-center">
-                              <FormLabel className="text-text m-0">
-                                Remaining Episodes Threshold
-                              </FormLabel>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p className="max-w-xs">
-                                      Trigger searches when this many episodes
-                                      remain in a season. For example, with
-                                      threshold 2, searches trigger when
-                                      watching episode 8 of a 10-episode season.
-                                    </p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </div>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                {...field}
-                                onChange={(e) =>
-                                  field.onChange(Number(e.target.value))
-                                }
-                                min={1}
-                                max={10}
-                                disabled={!isEnabled}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
+                  <SessionMonitoringConfig form={form} isEnabled={isEnabled} />
 
                   <Separator />
 
-                  <div>
-                    <h3 className="font-medium text-sm text-text mb-2">
-                      Filtering Options
-                    </h3>
-                    <div className="space-y-4">
-                      <FormField
-                        control={form.control}
-                        name="filterUsers"
-                        render={({ field }) => (
-                          <FormItem>
-                            <div className="flex items-center">
-                              <FormLabel className="text-text">
-                                Filter Users (Optional)
-                              </FormLabel>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help" />
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p className="max-w-xs">
-                                      Only monitor sessions from specific users.
-                                      Leave empty to monitor all users. This
-                                      helps focus monitoring on users whose
-                                      viewing patterns should trigger searches.
-                                    </p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </div>
-                            <FormControl>
-                              <UserMultiSelect
-                                field={field}
-                                disabled={!isEnabled}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
+                  <SessionMonitoringFiltering
+                    form={form}
+                    isEnabled={isEnabled}
+                  />
 
                   <Separator />
 
-                  <div>
-                    <h3 className="font-medium text-sm text-text mb-2">
-                      Rolling Monitoring Reset Settings
-                    </h3>
-                    <div className="space-y-4">
-                      <FormField
-                        control={form.control}
-                        name="enableAutoReset"
-                        render={({ field }) => (
-                          <FormItem className="flex items-center space-x-2">
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                                disabled={!isEnabled}
-                              />
-                            </FormControl>
-                            <div className="flex items-center">
-                              <FormLabel className="text-text m-0">
-                                Enable Automatic Reset
-                              </FormLabel>
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p className="max-w-xs">
-                                      Automatically reset rolling monitored
-                                      shows to their original monitoring state
-                                      (pilot-only or first-season-only) when
-                                      they haven't been watched for the
-                                      specified period.
-                                    </p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="inactivityResetDays"
-                          render={({ field }) => (
-                            <FormItem className="space-y-1">
-                              <div className="flex items-center">
-                                <FormLabel className="text-text m-0">
-                                  Inactivity Reset Days
-                                </FormLabel>
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p className="max-w-xs">
-                                        Number of days without watching activity
-                                        before a rolling monitored show is reset
-                                        to its original monitoring state and
-                                        excess files are deleted.
-                                      </p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              </div>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  {...field}
-                                  onChange={(e) =>
-                                    field.onChange(Number(e.target.value))
-                                  }
-                                  min={1}
-                                  max={365}
-                                  disabled={
-                                    !isEnabled || !form.watch('enableAutoReset')
-                                  }
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={form.control}
-                          name="autoResetIntervalHours"
-                          render={({ field }) => (
-                            <FormItem className="space-y-1">
-                              <div className="flex items-center">
-                                <FormLabel className="text-text m-0">
-                                  Auto Reset Check Interval (hours)
-                                </FormLabel>
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p className="max-w-xs">
-                                        How often to check for inactive rolling
-                                        monitored shows and perform automatic
-                                        resets. Lower values provide more
-                                        responsive cleanup but increase server
-                                        load.
-                                      </p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              </div>
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  {...field}
-                                  onChange={(e) =>
-                                    field.onChange(Number(e.target.value))
-                                  }
-                                  min={1}
-                                  max={168}
-                                  disabled={
-                                    !isEnabled || !form.watch('enableAutoReset')
-                                  }
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    </div>
-                  </div>
+                  <SessionMonitoringResetSettings
+                    form={form}
+                    isEnabled={isEnabled}
+                  />
 
                   <Separator />
 
-                  {/* Rolling Monitoring Management */}
-                  {isEnabled && (
-                    <div>
-                      <div className="flex items-center justify-between mb-3">
-                        <h3 className="font-medium text-sm text-text">
-                          Rolling Monitoring Status
-                        </h3>
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="noShadow"
-                          onClick={async () => {
-                            await runSessionMonitor()
-                          }}
-                          disabled={rollingLoading.runningMonitor}
-                          className="h-7"
-                        >
-                          {rollingLoading.runningMonitor ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Activity className="h-4 w-4" />
-                          )}
-                          <span className={isMobile ? 'hidden' : 'ml-2'}>
-                            Check Sessions
-                          </span>
-                        </Button>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {/* Active Rolling Shows */}
-                        <div className="flex items-center justify-between p-3 border-2 border-border rounded-base bg-blue/10">
-                          <div className="flex items-center gap-2">
-                            <Activity className="h-4 w-4 text-text" />
-                            <span className="text-sm font-medium text-text">
-                              Active Shows
-                            </span>
-                            <Badge variant="neutral" className="text-xs">
-                              {rollingShows.length}
-                            </Badge>
-                          </div>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="noShadow"
-                            onClick={() => setShowActiveShows(true)}
-                            className="h-7"
-                          >
-                            <Eye className="h-4 w-4" />
-                            <span className={isMobile ? 'hidden' : 'ml-1'}>
-                              View
-                            </span>
-                          </Button>
-                        </div>
-
-                        {/* Inactive Shows */}
-                        <div className="flex items-center justify-between p-3 border-2 border-border rounded-base bg-blue/10">
-                          <div className="flex items-center gap-2">
-                            <Clock className="h-4 w-4 text-text" />
-                            <span className="text-sm font-medium text-text">
-                              Inactive
-                            </span>
-                            <Badge variant="neutral" className="text-xs">
-                              {inactiveShows.length}
-                            </Badge>
-                            {inactiveShows.length > 0 && (
-                              <Badge
-                                variant="neutral"
-                                className="bg-yellow-100 text-yellow-800 text-xs hidden sm:inline-flex"
-                              >
-                                <AlertTriangle className="h-3 w-3" />
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Input
-                              type="number"
-                              value={inactivityDays}
-                              onChange={(e) =>
-                                setInactivityDays(Number(e.target.value))
-                              }
-                              min={1}
-                              max={365}
-                              className="h-7 w-12 text-xs px-2"
-                              aria-label="Inactivity days threshold"
-                            />
-                            <span className="text-xs text-text mr-1">d</span>
-                            {inactiveShows.length > 0 && (
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="error"
-                                onClick={() =>
-                                  resetInactiveShows(inactivityDays)
-                                }
-                                disabled={rollingLoading.resetting}
-                                className="h-7 px-2"
-                                title="Reset all inactive shows"
-                              >
-                                {rollingLoading.resetting ? (
-                                  <Loader2 className="h-3 w-3 animate-spin" />
-                                ) : (
-                                  <RotateCcw className="h-3 w-3" />
-                                )}
-                              </Button>
-                            )}
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="noShadow"
-                              onClick={() => setShowInactiveShows(true)}
-                              className="h-7"
-                            >
-                              <Eye className="h-4 w-4" />
-                              <span className={isMobile ? 'hidden' : 'ml-1'}>
-                                View
-                              </span>
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Rolling Shows Sheets */}
-                      <RollingShowsSheet
-                        isOpen={showActiveShows}
-                        onClose={() => setShowActiveShows(false)}
-                        title="Active Rolling Shows"
-                        shows={rollingShows}
-                        isLoading={rollingLoading.fetchingShows}
-                        onResetShow={resetShow}
-                        onDeleteShow={deleteShow}
-                        showActions={true}
-                        actionLoading={{
-                          resetting: rollingLoading.resetting,
-                          deleting: rollingLoading.deleting,
-                        }}
-                        activeActionId={activeActionId}
-                      />
-
-                      <RollingShowsSheet
-                        isOpen={showInactiveShows}
-                        onClose={() => setShowInactiveShows(false)}
-                        title={`Inactive Shows (${inactivityDays}+ days)`}
-                        shows={inactiveShows}
-                        isLoading={rollingLoading.fetchingInactive}
-                        showActions={false}
-                      />
-                    </div>
-                  )}
+                  <SessionMonitoringStatus
+                    isEnabled={isEnabled}
+                    rollingShows={rollingShows}
+                    inactiveShows={inactiveShows}
+                    rollingLoading={rollingLoading}
+                    activeActionId={activeActionId}
+                    inactivityDays={inactivityDays}
+                    setInactivityDays={setInactivityDays}
+                    runSessionMonitor={runSessionMonitor}
+                    resetShow={resetShow}
+                    deleteShow={deleteShow}
+                    resetInactiveShows={resetInactiveShows}
+                    fetchRollingShows={fetchRollingShows}
+                    fetchInactiveShows={fetchInactiveShows}
+                  />
 
                   <Separator />
 

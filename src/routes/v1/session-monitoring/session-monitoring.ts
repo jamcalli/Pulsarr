@@ -20,13 +20,13 @@ async function resetShowMonitoring(
   show: RollingMonitoredShow,
   plexSessionMonitor: PlexSessionMonitorService,
 ): Promise<void> {
-  if (show.monitoring_type === 'pilot_rolling') {
+  if (show.monitoring_type === 'pilotRolling') {
     await plexSessionMonitor.resetToPilotOnly(
       show.sonarr_series_id,
       show.sonarr_instance_id,
       show.show_title,
     )
-  } else if (show.monitoring_type === 'first_season_rolling') {
+  } else if (show.monitoring_type === 'firstSeasonRolling') {
     await plexSessionMonitor.resetToFirstSeasonOnly(
       show.sonarr_series_id,
       show.sonarr_instance_id,
@@ -220,20 +220,12 @@ export default async function sessionMonitoringRoutes(
     },
     async (
       request: FastifyRequest<{
-        Querystring: { inactivityDays?: string }
+        Querystring: { inactivityDays?: number }
       }>,
       reply: FastifyReply,
     ) => {
       try {
-        const inactivityDays = request.query.inactivityDays
-          ? Number.parseInt(request.query.inactivityDays, 10)
-          : 7
-
-        if (Number.isNaN(inactivityDays) || inactivityDays < 1) {
-          return reply.code(400).send({
-            error: 'Invalid inactivity days parameter',
-          })
-        }
+        const inactivityDays = request.query.inactivityDays || 7
 
         const shows =
           await fastify.db.getInactiveRollingMonitoredShows(inactivityDays)

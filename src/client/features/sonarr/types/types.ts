@@ -10,24 +10,13 @@ export type SonarrMonitoringType =
   | 'lastSeason'
   | 'latestSeason'
   | 'pilot'
-  | 'pilot_rolling'
-  | 'first_season_rolling'
+  | 'pilotRolling'
+  | 'firstSeasonRolling'
   | 'recent'
   | 'monitorSpecials'
   | 'unmonitorSpecials'
   | 'none'
   | 'skip'
-
-// Centralized set of rolling monitoring options
-export const ROLLING_MONITORING_OPTIONS = new Set<string>([
-  'pilot_rolling',
-  'first_season_rolling',
-])
-
-// Type guard to check if a monitoring option is a rolling option
-export function isRollingMonitoringOption(option: string): boolean {
-  return ROLLING_MONITORING_OPTIONS.has(option)
-}
 
 export interface SonarrInstanceData {
   rootFolders?: RootFolder[]
