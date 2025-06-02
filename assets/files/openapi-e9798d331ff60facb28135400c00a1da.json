@@ -6574,7 +6574,7 @@
       "get": {
         "operationId": "streamProgress",
         "summary": "Stream progress events",
-        "tags": ["progress"],
+        "tags": ["Progress"],
         "description": "Server-Sent Events stream for real-time progress updates. This endpoint establishes an SSE connection to receive progress updates for various operations like watchlist syncing, delete sync analysis, etc.",
         "responses": {
           "200": {
@@ -8629,6 +8629,578 @@
             }
           },
           "500": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["error"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/session-monitoring/rolling-monitored": {
+      "get": {
+        "operationId": "getRollingMonitoredShows",
+        "summary": "Get rolling monitored shows",
+        "tags": ["Session Monitoring"],
+        "description": "Retrieve all shows currently being monitored by the rolling monitoring system",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "shows": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "number"
+                          },
+                          "sonarr_series_id": {
+                            "type": "number"
+                          },
+                          "tvdb_id": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "imdb_id": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "show_title": {
+                            "type": "string"
+                          },
+                          "monitoring_type": {
+                            "type": "string",
+                            "enum": ["pilotRolling", "firstSeasonRolling"]
+                          },
+                          "current_monitored_season": {
+                            "type": "number"
+                          },
+                          "last_watched_season": {
+                            "type": "number"
+                          },
+                          "last_watched_episode": {
+                            "type": "number"
+                          },
+                          "last_session_date": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "sonarr_instance_id": {
+                            "type": "number"
+                          },
+                          "plex_user_id": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "plex_username": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "created_at": {
+                            "type": "string"
+                          },
+                          "updated_at": {
+                            "type": "string"
+                          },
+                          "last_updated_at": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "sonarr_series_id",
+                          "tvdb_id",
+                          "imdb_id",
+                          "show_title",
+                          "monitoring_type",
+                          "current_monitored_season",
+                          "last_watched_season",
+                          "last_watched_episode",
+                          "last_session_date",
+                          "sonarr_instance_id",
+                          "plex_user_id",
+                          "plex_username",
+                          "created_at",
+                          "updated_at",
+                          "last_updated_at"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": ["success", "shows"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["error"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/session-monitoring/run": {
+      "post": {
+        "operationId": "runSessionMonitor",
+        "summary": "Run session monitor manually",
+        "tags": ["Session Monitoring"],
+        "description": "Manually trigger the Plex session monitoring process to check for viewing activity and update rolling monitored shows",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "processedSessions": {
+                          "type": "number"
+                        },
+                        "triggeredSearches": {
+                          "type": "number"
+                        },
+                        "errors": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "rollingUpdates": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "showTitle": {
+                                "type": "string"
+                              },
+                              "action": {
+                                "type": "string",
+                                "enum": [
+                                  "expanded_to_season",
+                                  "expanded_to_next_season",
+                                  "switched_to_all"
+                                ]
+                              },
+                              "details": {
+                                "type": "string"
+                              }
+                            },
+                            "required": ["showTitle", "action", "details"],
+                            "additionalProperties": false
+                          }
+                        }
+                      },
+                      "required": [
+                        "processedSessions",
+                        "triggeredSearches",
+                        "errors",
+                        "rollingUpdates"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": ["success", "result"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["error"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/session-monitoring/rolling-monitored/{id}": {
+      "delete": {
+        "operationId": "deleteRollingMonitoredShow",
+        "summary": "Delete rolling monitored show",
+        "tags": ["Session Monitoring"],
+        "description": "Remove a show from rolling monitoring and stop tracking its viewing activity",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["success", "message"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["error"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["error"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/session-monitoring/rolling-monitored/{id}/reset": {
+      "post": {
+        "operationId": "resetRollingMonitoredShow",
+        "summary": "Reset rolling monitored show",
+        "tags": ["Session Monitoring"],
+        "description": "Reset a rolling monitored show back to its original monitoring state (pilot only or first season only)",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["success", "message"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["error"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["error"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/session-monitoring/rolling-monitored/inactive": {
+      "get": {
+        "operationId": "getInactiveRollingMonitoredShows",
+        "summary": "Get inactive rolling monitored shows",
+        "tags": ["Session Monitoring"],
+        "description": "Retrieve rolling monitored shows that have been inactive for a specified number of days",
+        "parameters": [
+          {
+            "schema": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 365
+            },
+            "in": "query",
+            "name": "inactivityDays",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "shows": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "number"
+                          },
+                          "sonarr_series_id": {
+                            "type": "number"
+                          },
+                          "tvdb_id": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "imdb_id": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "show_title": {
+                            "type": "string"
+                          },
+                          "monitoring_type": {
+                            "type": "string",
+                            "enum": ["pilotRolling", "firstSeasonRolling"]
+                          },
+                          "current_monitored_season": {
+                            "type": "number"
+                          },
+                          "last_watched_season": {
+                            "type": "number"
+                          },
+                          "last_watched_episode": {
+                            "type": "number"
+                          },
+                          "last_session_date": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "sonarr_instance_id": {
+                            "type": "number"
+                          },
+                          "plex_user_id": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "plex_username": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "created_at": {
+                            "type": "string"
+                          },
+                          "updated_at": {
+                            "type": "string"
+                          },
+                          "last_updated_at": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "sonarr_series_id",
+                          "tvdb_id",
+                          "imdb_id",
+                          "show_title",
+                          "monitoring_type",
+                          "current_monitored_season",
+                          "last_watched_season",
+                          "last_watched_episode",
+                          "last_session_date",
+                          "sonarr_instance_id",
+                          "plex_user_id",
+                          "plex_username",
+                          "created_at",
+                          "updated_at",
+                          "last_updated_at"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "inactivityDays": {
+                      "type": "number"
+                    }
+                  },
+                  "required": ["success", "shows", "inactivityDays"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["error"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/session-monitoring/rolling-monitored/reset-inactive": {
+      "post": {
+        "operationId": "resetInactiveRollingMonitoredShows",
+        "summary": "Reset inactive rolling monitored shows",
+        "tags": ["Session Monitoring"],
+        "description": "Reset all rolling monitored shows that have been inactive for a specified number of days",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "inactivityDays": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 365
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "resetCount": {
+                      "type": "number"
+                    }
+                  },
+                  "required": ["success", "message", "resetCount"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
             "description": "Default Response",
             "content": {
               "application/json": {
@@ -13061,7 +13633,7 @@
       "get": {
         "operationId": "getUserWatchlist",
         "summary": "Get user watchlist items",
-        "tags": ["users"],
+        "tags": ["Users"],
         "description": "Fetch all watchlist items for a specific user by their ID",
         "parameters": [
           {
