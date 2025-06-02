@@ -1,4 +1,4 @@
-import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
+import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify'
 import {
   getRollingMonitoredSchema,
   runSessionMonitorSchema,
@@ -42,9 +42,7 @@ async function resetShowMonitoring(
  *
  * Provides endpoints to retrieve, delete, and reset rolling monitored shows, manually trigger the session monitor, and manage shows inactive for a specified number of days. All routes include request validation, error handling, and structured JSON responses.
  */
-export default async function sessionMonitoringRoutes(
-  fastify: FastifyInstance,
-) {
+const sessionMonitoringRoutes: FastifyPluginAsync = async (fastify) => {
   // Get all rolling monitored shows
   fastify.get(
     '/rolling-monitored',
@@ -302,3 +300,5 @@ export default async function sessionMonitoringRoutes(
     },
   )
 }
+
+export default sessionMonitoringRoutes
