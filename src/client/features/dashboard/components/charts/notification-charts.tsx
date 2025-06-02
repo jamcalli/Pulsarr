@@ -65,7 +65,7 @@ export function NotificationCharts() {
     const byType =
       notificationStats.by_type?.map((item) => ({
         name: item.type
-          .replace('_', ' ')
+          .replaceAll('_', ' ')
           .replace(/\b\w/g, (l) => l.toUpperCase()),
         value: item.count,
       })) || []
@@ -98,7 +98,7 @@ export function NotificationCharts() {
         const key = item.type
         config[key] = {
           label: item.type
-            .replace('_', ' ')
+            .replaceAll('_', ' ')
             .replace(/\b\w/g, (l) => l.toUpperCase()),
           color: `hsl(var(--chart-${(index % 5) + 1}))`,
         }

@@ -418,7 +418,7 @@ export function RollingShowsSheet({
                           column.toggleVisibility(!!value)
                         }
                       >
-                        {column.id.replace('_', ' ')}
+                        {column.id.replaceAll('_', ' ')}
                       </DropdownMenuCheckboxItem>
                     )
                   })}
