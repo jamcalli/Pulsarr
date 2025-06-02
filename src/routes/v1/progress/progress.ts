@@ -15,7 +15,7 @@ const progressRoute: FastifyPluginAsync = async (fastify) => {
         response: {
           200: ProgressStreamResponseSchema,
         },
-        tags: ['progress'],
+        tags: ['Progress'],
       },
     },
     async (request, reply) => {
