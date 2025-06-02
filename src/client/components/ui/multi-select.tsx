@@ -161,7 +161,9 @@ export const MultiSelect = React.forwardRef<
     }
 
     const handleTogglePopover = () => {
-      setIsPopoverOpen((prev) => !prev)
+      if (!props.disabled) {
+        setIsPopoverOpen((prev) => !prev)
+      }
     }
 
     const clearExtraOptions = () => {
@@ -210,6 +212,7 @@ export const MultiSelect = React.forwardRef<
             onClick={handleTogglePopover}
             className={cn(
               'flex w-full p-1 rounded-md h-10 items-center justify-between [&_svg]:pointer-events-auto overflow-hidden',
+              props.disabled && '!cursor-not-allowed pointer-events-none opacity-50',
               className,
             )}
           >
@@ -234,10 +237,15 @@ export const MultiSelect = React.forwardRef<
                         )}
                         {option?.label}
                         <XCircle
-                          className="ml-2 h-4 w-4 cursor-pointer"
+                          className={cn(
+                            "ml-2 h-4 w-4",
+                            props.disabled ? "cursor-not-allowed" : "cursor-pointer"
+                          )}
                           onClick={(event) => {
                             event.stopPropagation()
-                            toggleOption(value)
+                            if (!props.disabled) {
+                              toggleOption(value)
+                            }
                           }}
                         />
                       </Badge>
@@ -254,10 +262,15 @@ export const MultiSelect = React.forwardRef<
                     >
                       {`+ ${selectedValues.length - maxCount} more`}
                       <XCircle
-                        className="ml-2 h-4 w-4 cursor-pointer"
+                        className={cn(
+                          "ml-2 h-4 w-4",
+                          props.disabled ? "cursor-not-allowed" : "cursor-pointer"
+                        )}
                         onClick={(event) => {
                           event.stopPropagation()
-                          clearExtraOptions()
+                          if (!props.disabled) {
+                            clearExtraOptions()
+                          }
                         }}
                       />
                     </Badge>
@@ -265,17 +278,25 @@ export const MultiSelect = React.forwardRef<
                 </div>
                 <div className="flex items-center justify-between">
                   <X
-                    className="h-4 mx-2 cursor-pointer text-muted-foreground"
+                    className={cn(
+                      "h-4 mx-2 text-muted-foreground",
+                      props.disabled ? "cursor-not-allowed" : "cursor-pointer"
+                    )}
                     onClick={(event) => {
                       event.stopPropagation()
-                      handleClear()
+                      if (!props.disabled) {
+                        handleClear()
+                      }
                     }}
                   />
                   <Separator
                     orientation="vertical"
                     className="flex min-h-6 h-full"
                   />
-                  <ChevronDown className="h-4 mx-2 cursor-pointer text-muted-foreground" />
+                  <ChevronDown className={cn(
+                    "h-4 mx-2 text-muted-foreground",
+                    props.disabled ? "cursor-not-allowed" : "cursor-pointer"
+                  )} />
                 </div>
               </div>
             ) : (
@@ -283,7 +304,10 @@ export const MultiSelect = React.forwardRef<
                 <span className="text-sm text-muted-foreground mx-3">
                   {placeholder}
                 </span>
-                <ChevronDown className="h-4 cursor-pointer text-muted-foreground mx-2" />
+                <ChevronDown className={cn(
+                  "h-4 text-muted-foreground mx-2",
+                  props.disabled ? "cursor-not-allowed" : "cursor-pointer"
+                )} />
               </div>
             )}
           </Button>

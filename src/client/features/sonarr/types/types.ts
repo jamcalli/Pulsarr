@@ -10,6 +10,8 @@ export type SonarrMonitoringType =
   | 'lastSeason'
   | 'latestSeason'
   | 'pilot'
+  | 'pilotRolling'
+  | 'firstSeasonRolling'
   | 'recent'
   | 'monitorSpecials'
   | 'unmonitorSpecials'

@@ -6,6 +6,16 @@ import crypto from 'node:crypto'
 
 const generateSecret = () => crypto.randomBytes(32).toString('hex')
 
+const DEFAULT_PLEX_SESSION_MONITORING = {
+  enabled: false,
+  pollingIntervalMinutes: 15,
+  remainingEpisodes: 2,
+  filterUsers: [],
+  enableAutoReset: true,
+  inactivityResetDays: 7,
+  autoResetIntervalHours: 24,
+}
+
 const schema = {
   type: 'object',
   required: ['port'],
@@ -270,6 +280,14 @@ const schema = {
       enum: ['watchlist', 'tag-based'],
       default: 'watchlist',
     },
+    plexSessionMonitoring: {
+      type: 'string',
+      default: JSON.stringify(DEFAULT_PLEX_SESSION_MONITORING),
+    },
+    newUserDefaultCanSync: {
+      type: 'boolean',
+      default: true,
+    },
   },
 }
 
@@ -299,14 +317,49 @@ export default fp(
     })
 
     const rawConfig = fastify.config as unknown as RawConfig
+
+    // Helper function to safely parse JSON with error handling
+    const safeJsonParse = <T>(
+      value: string | undefined,
+      defaultValue: T,
+      fieldName: string,
+    ): T => {
+      if (!value) return defaultValue
+      try {
+        return JSON.parse(value)
+      } catch (error) {
+        fastify.log.warn(
+          `Failed to parse ${fieldName} config, using default:`,
+          error,
+        )
+        return defaultValue
+      }
+    }
+
     const parsedConfig = {
       ...rawConfig,
-      sonarrTags: JSON.parse(rawConfig.sonarrTags || '[]'),
-      radarrTags: JSON.parse(rawConfig.radarrTags || '[]'),
-      plexTokens: JSON.parse(rawConfig.plexTokens || '[]'),
+      sonarrTags: safeJsonParse(rawConfig.sonarrTags, [], 'sonarrTags'),
+      radarrTags: safeJsonParse(rawConfig.radarrTags, [], 'radarrTags'),
+      plexTokens: safeJsonParse(rawConfig.plexTokens, [], 'plexTokens'),
+      plexSessionMonitoring: rawConfig.plexSessionMonitoring
+        ? safeJsonParse(
+            rawConfig.plexSessionMonitoring as string,
+            {
+              enabled: false,
+              pollingIntervalMinutes: 15,
+              remainingEpisodes: 2,
+              filterUsers: [],
+              enableAutoReset: true,
+              inactivityResetDays: 7,
+              autoResetIntervalHours: 24,
+            },
+            'plexSessionMonitoring',
+          )
+        : undefined,
       _isReady: false,
     }
 
+    // Ensure arrays are arrays (in case parsed value is not an array)
     parsedConfig.radarrTags = Array.isArray(parsedConfig.radarrTags)
       ? parsedConfig.radarrTags
       : []

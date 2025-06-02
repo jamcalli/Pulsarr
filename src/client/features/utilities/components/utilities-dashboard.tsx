@@ -5,12 +5,16 @@ import { PlexNotificationsForm } from '@/features/utilities/components/plex-noti
 import { PlexNotificationsSkeleton } from '@/features/utilities/components/plex-notifications/plex-notifications-skeleton'
 import { UserTagsForm } from '@/features/utilities/components/user-tags/user-tags-form'
 import { UserTagsSkeleton } from '@/features/utilities/components/user-tags/user-tags-skeleton'
+import { SessionMonitoringForm } from '@/features/utilities/components/session-monitoring/session-monitoring-form'
+import { SessionMonitoringSkeleton } from '@/features/utilities/components/session-monitoring/session-monitoring-skeleton'
+import { NewUserDefaultsForm } from '@/features/utilities/components/new-user-defaults/new-user-defaults-form'
+import { NewUserDefaultsSkeleton } from '@/features/utilities/components/new-user-defaults/new-user-defaults-skeleton'
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 
 /**
- * Renders the utilities dashboard with sections for DeleteSync, PlexNotifications, and UserTags.
+ * Renders the utilities dashboard with sections for DeleteSync, NewUserDefaults, PlexNotifications, SessionMonitoring, and UserTags.
  *
- * Displays skeleton placeholders while loading and transitions to the utility forms once data is available to ensure a smooth user experience.
+ * Displays skeleton placeholders while utility data is loading, then transitions to the corresponding utility forms once loading completes.
  *
  * @returns The utilities dashboard UI.
  */
@@ -43,9 +47,21 @@ export function UtilitiesDashboard() {
         )}
 
         {isLoading || loading.schedules ? (
+          <NewUserDefaultsSkeleton />
+        ) : (
+          <NewUserDefaultsForm />
+        )}
+
+        {isLoading || loading.schedules ? (
           <PlexNotificationsSkeleton />
         ) : (
           <PlexNotificationsForm />
+        )}
+
+        {isLoading || loading.schedules ? (
+          <SessionMonitoringSkeleton />
+        ) : (
+          <SessionMonitoringForm />
         )}
 
         {isLoading || loading.schedules ? (

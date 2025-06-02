@@ -22,36 +22,43 @@ export default fp(
     fastify.decorate('deleteSync', service)
 
     // Register the job handler with the scheduler
-    fastify.ready().then(async () => {
-      // Register the handler for the job
-      await fastify.scheduler.scheduleJob('delete-sync', async (jobName) => {
-        // First check if the schedule itself is enabled
-        const schedule = await fastify.db.getScheduleByName('delete-sync')
-        if (!schedule || !schedule.enabled) {
-          // Schedule is disabled - don't run
-          return
-        }
-
-        // Then check if delete sync functionality is enabled
-        const config = fastify.config
-        const isDeleteFunctionEnabled =
-          config.deleteMovie ||
-          config.deleteEndedShow ||
-          config.deleteContinuingShow
-
-        if (isDeleteFunctionEnabled) {
-          const result = await service.run()
-          const totalProcessed = result.total.processed || 0
-          const totalDeleted = result.total.deleted || 0
-
-          // Only log if work was actually done
-          if (totalProcessed > 0 || totalDeleted > 0) {
-            fastify.log.info(
-              `Delete sync completed: ${totalDeleted} items deleted, ${totalProcessed} total items processed`,
-            )
+    fastify.addHook('onReady', async () => {
+      try {
+        // Register the handler for the job
+        await fastify.scheduler.scheduleJob('delete-sync', async (jobName) => {
+          // First check if the schedule itself is enabled
+          const schedule = await fastify.db.getScheduleByName('delete-sync')
+          if (!schedule || !schedule.enabled) {
+            // Schedule is disabled - don't run
+            return
           }
-        }
-      })
+
+          // Then check if delete sync functionality is enabled
+          const config = fastify.config
+          const isDeleteFunctionEnabled =
+            config.deleteMovie ||
+            config.deleteEndedShow ||
+            config.deleteContinuingShow
+
+          if (isDeleteFunctionEnabled) {
+            const result = await service.run()
+            const totalProcessed = result.total.processed || 0
+            const totalDeleted = result.total.deleted || 0
+
+            // Only log if work was actually done
+            if (totalProcessed > 0 || totalDeleted > 0) {
+              fastify.log.info(
+                `Delete sync completed: ${totalDeleted} items deleted, ${totalProcessed} total items processed`,
+              )
+            }
+          }
+        })
+      } catch (error) {
+        fastify.log.error(
+          'Failed to initialize delete-sync scheduled job:',
+          error,
+        )
+      }
     })
   },
   {
