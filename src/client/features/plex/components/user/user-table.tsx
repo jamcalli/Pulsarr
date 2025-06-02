@@ -48,8 +48,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import type { UserWatchlistInfo } from '@/stores/configStore'
-import UserTableSkeletonRows from '@/features/plex/components/user/user-table-skeleton'
 import type { PlexUserTableRow } from '@/features/plex/store/types'
+import { UserWatchlistSheet } from '@/features/plex/components/user/user-watchlist-sheet'
+import { useUserWatchlist } from '@/features/plex/hooks/useUserWatchlist'
+import { toast } from '@/hooks/use-toast'
+import { TableSkeleton } from '@/components/ui/table-skeleton'
 
 interface ColumnMetaType {
   className?: string
@@ -64,14 +67,16 @@ interface UserTableProps {
 }
 
 /**
- * Displays an interactive table for managing user watchlist data with features including sorting, filtering by username, pagination, column visibility toggling, row selection, and both individual and bulk editing.
+ * Displays an interactive table for managing user watchlist data, with features including sorting, username filtering, pagination, column visibility toggling, row selection, and both individual and bulk editing.
  *
- * The table adapts its controls and display based on loading state, supports responsive column visibility, and provides visual indicators for notification and sync statuses.
+ * Users can view and edit individual user details, perform bulk edits on selected rows, and open a modal to view a user's watchlist. The table adapts to loading state, provides responsive column visibility, and displays visual indicators for notification and sync statuses.
  *
- * @param users - Array of user watchlist data to display in the table.
+ * @param users - The array of user watchlist data to display in the table.
  * @param onEditUser - Callback invoked when editing a single user.
- * @param isLoading - Optional flag to indicate loading state; disables controls and shows skeleton rows when true.
+ * @param isLoading - Optional flag indicating loading state; disables controls and shows skeleton rows when true.
  * @param onBulkEdit - Optional callback invoked with selected rows for bulk editing.
+ *
+ * @remark If a user's ID is invalid when attempting to view their watchlist, an error is logged and a destructive toast notification is shown; the modal will not open.
  */
 export default function UserTable({
   users,
@@ -87,6 +92,16 @@ export default function UserTable({
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = React.useState({})
+  const [selectedUserName, setSelectedUserName] = React.useState<string>('')
+
+  const {
+    watchlistData,
+    isLoading: isWatchlistLoading,
+    error: watchlistError,
+    isOpen,
+    handleOpen,
+    handleClose,
+  } = useUserWatchlist()
 
   const columns: ColumnDef<UserWatchlistInfo>[] = [
     {
@@ -252,6 +267,26 @@ export default function UserTable({
                 <DropdownMenuItem onClick={() => onEditUser(user)}>
                   Edit user
                 </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setSelectedUserName(user.name)
+                    const userId = Number.parseInt(user.id)
+                    if (!Number.isNaN(userId) && userId > 0) {
+                      handleOpen(userId)
+                    } else {
+                      console.error('Invalid user ID:', user.id)
+                      toast({
+                        title: 'Error',
+                        description: 'Unable to open watchlist for this user',
+                        variant: 'destructive',
+                      })
+                    }
+                  }}
+                >
+                  View Watchlist
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -354,66 +389,81 @@ export default function UserTable({
         )}
       </div>
       <div className="rounded-md">
-        <Table>
-          <TableHeader className="font-heading">
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  const headerClassName = `px-2 py-2 ${
-                    (header.column.columnDef.meta as ColumnMetaType)
-                      ?.headerClassName || ''
-                  }`
-                  return (
-                    <TableHead key={header.id} className={headerClassName}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext(),
-                          )}
-                    </TableHead>
-                  )
-                })}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <UserTableSkeletonRows colSpan={columns.length} />
-            ) : table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && 'selected'}
-                >
-                  {row.getVisibleCells().map((cell) => {
-                    const cellClassName = `px-2 py-2 ${
-                      (cell.column.columnDef.meta as ColumnMetaType)
-                        ?.className || ''
+        {isLoading ? (
+          <TableSkeleton
+            rows={table.getState().pagination.pageSize}
+            columns={[
+              { type: 'checkbox', hideOnMobile: false },
+              { type: 'text', width: 'w-32' },
+              { type: 'text', width: 'w-48', hideOnMobile: true },
+              { type: 'icon', hideOnMobile: true },
+              { type: 'icon', hideOnMobile: true },
+              { type: 'badge', hideOnMobile: true },
+              { type: 'text', width: 'w-16' },
+              { type: 'button', width: 'w-8', className: 'text-right' },
+            ]}
+            showHeader={true}
+          />
+        ) : (
+          <Table>
+            <TableHeader className="font-heading">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => {
+                    const headerClassName = `px-2 py-2 ${
+                      (header.column.columnDef.meta as ColumnMetaType)
+                        ?.headerClassName || ''
                     }`
                     return (
-                      <TableCell key={cell.id} className={cellClassName}>
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext(),
-                        )}
-                      </TableCell>
+                      <TableHead key={header.id} className={headerClassName}>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext(),
+                            )}
+                      </TableHead>
                     )
                   })}
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  No results.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && 'selected'}
+                  >
+                    {row.getVisibleCells().map((cell) => {
+                      const cellClassName = `px-2 py-2 ${
+                        (cell.column.columnDef.meta as ColumnMetaType)
+                          ?.className || ''
+                      }`
+                      return (
+                        <TableCell key={cell.id} className={cellClassName}>
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext(),
+                          )}
+                        </TableCell>
+                      )
+                    })}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-24 text-center"
+                  >
+                    No results.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        )}
       </div>
       <div className="flex items-center justify-between px-2 py-4">
         <div className="flex items-center space-x-2">
@@ -466,6 +516,16 @@ export default function UserTable({
           </Button>
         </div>
       </div>
+      {isOpen && (
+        <UserWatchlistSheet
+          isOpen={isOpen}
+          onClose={handleClose}
+          userName={selectedUserName}
+          watchlistItems={watchlistData?.watchlistItems}
+          isLoading={isWatchlistLoading}
+          error={watchlistError}
+        />
+      )}
     </div>
   )
 }

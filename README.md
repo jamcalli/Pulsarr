@@ -12,6 +12,20 @@
   ![GitHub Stars](https://img.shields.io/github/stars/jamcalli/pulsarr?style=flat-square)
 </div>
 
+---
+
+<h2 align="center">⭐ Love Pulsarr? Give Us a Star! ⭐</h2>
+
+#### Support Open-Source Media Automation
+
+If Pulsarr has simplified your media management, please star this repository! It takes just a second, helps others find us, and motivates continued development. Thank you for being part of our community!
+
+<p align="center">
+  <a href="https://github.com/jamcalli/pulsarr/stargazers">
+    <img src="https://reporoster.com/stars/dark/jamcalli/pulsarr?max=6" alt="Stargazers repo roster for @jamcalli/pulsarr" style="border: 1px solid #30363d; border-radius: 6px;" />
+  </a>
+</p>
+
 Pulsarr is an integration tool that bridges Plex watchlists with Sonarr and Radarr, enabling real-time media monitoring and automated content acquisition all from within the Plex App itself.
 
 Enjoy all the benefits of other content discovery systems without requiring users to use additional services. All the magic happens from the primary user's Plex Token.
@@ -72,12 +86,15 @@ For detailed installation options, including Unraid and manual installation, see
 ## ✨ Key Features
 
 - **Real-time Monitoring**: Instant watchlist updates for Plex Pass users (20-minute polling for non-Pass users)
-- **Smart Content Routing**: Route content based on genre, user, language, year, and more
+- **Smart Content Routing**: Route content based on genre, user, language, year, certification, and more
 - **Multi-User Support**: Monitor watchlists for friends and family with granular permissions
-- **Flexible Notifications**: Discord bot, webhooks, and 80+ services via Apprise
-- **Lifecycle Management**: Automatic content deletion when removed from watchlists
+- **Flexible Notifications**: Discord bot, Tautulli, webhooks, and 80+ services via Apprise
+- **Advanced Lifecycle Management**: Watchlist-based or tag-based deletion with playlist protection
+- **Plex Session Monitoring**: Auto-search for next seasons when users near season finales
 - **User Tagging**: Track who requested what content in Sonarr/Radarr
-- **Web Interface**: Modern, mobile-friendly dashboard with detailed analytics
+- **Comprehensive Analytics**: Detailed dashboards with usage stats, genre analysis, and content distribution
+- **Automatic Plex Updates**: Configures webhooks for instant library refreshes
+- **Developer-Friendly API**: Full REST API with interactive documentation
 
 ## 🤝 Contributing
 
@@ -86,6 +103,15 @@ We welcome contributions! Please see our [Contributing Guidelines](https://jamca
 - Development workflow
 - Pull request guidelines
 
+## 💬 Support
+
+- Need help? [Open an issue](https://github.com/jamcalli/pulsarr/issues) on GitHub
+- 🐛 Report bugs or request features
+- 📖 Contribute to documentation
+- 💬 Share with the community
+
+Your support helps keep this project active and growing!
+
 ## 📜 License
 
 Pulsarr is licensed under the GPL. See the [LICENSE](LICENSE) file for details.
@@ -93,10 +119,6 @@ Pulsarr is licensed under the GPL. See the [LICENSE](LICENSE) file for details.
 ## 🙏 Acknowledgements
 
 - [Plex](https://www.plex.tv/) • [Sonarr](https://sonarr.tv/) • [Radarr](https://radarr.video/) • [Fastify](https://www.fastify.io/) • [Discord.js](https://discord.js.org/) • [Watchlistarr](https://github.com/nylonee/watchlistarr/)
-
-## 💬 Support
-
-Need help? [Open an issue](https://github.com/jamcalli/pulsarr/issues) on GitHub.
 
 ---
 

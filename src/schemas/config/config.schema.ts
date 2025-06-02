@@ -89,6 +89,21 @@ export const ConfigSchema = z.object({
   selfRss: z.string().optional(),
   friendsRss: z.string().optional(),
   _isReady: z.boolean().optional(),
+  // Plex Session Monitoring
+  plexSessionMonitoring: z
+    .object({
+      enabled: z.boolean().default(false),
+      pollingIntervalMinutes: z.number().min(1).default(15),
+      remainingEpisodes: z.number().min(1).default(2),
+      filterUsers: z.array(z.string()).optional(),
+      // Rolling monitoring reset settings (optional for backward compatibility)
+      enableAutoReset: z.boolean().default(true).optional(),
+      inactivityResetDays: z.number().min(1).max(365).default(7).optional(),
+      autoResetIntervalHours: z.number().min(1).max(168).default(24).optional(),
+    })
+    .optional(),
+  // New User Defaults
+  newUserDefaultCanSync: z.boolean().optional(),
 })
 
 export const ConfigResponseSchema = z.object({

@@ -13,7 +13,13 @@ export default fp(
     fastify.log.info('Initializing content router plugin')
 
     const routerService = new ContentRouterService(fastify.log, fastify)
-    await routerService.initialize()
+
+    try {
+      await routerService.initialize()
+    } catch (error) {
+      fastify.log.error({ error }, 'Failed to initialize content router')
+      throw error // Re-throw to prevent server start with broken state
+    }
 
     fastify.decorate('contentRouter', routerService)
 

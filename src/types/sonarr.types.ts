@@ -1,3 +1,20 @@
+/**
+ * Sonarr monitoring options enum
+ * Includes standard Sonarr options plus custom rolling options
+ */
+export enum SonarrMonitoringOption {
+  ALL = 'all',
+  FUTURE = 'future',
+  MISSING = 'missing',
+  EXISTING = 'existing',
+  FIRST_SEASON = 'firstSeason',
+  LATEST_SEASON = 'latestSeason',
+  PILOT = 'pilot',
+  // Custom rolling options for progressive monitoring
+  PILOT_ROLLING = 'pilotRolling', // Monitor pilot only, expand as watched
+  FIRST_SEASON_ROLLING = 'firstSeasonRolling', // Monitor S1 only, expand as watched
+}
+
 export interface SonarrAddOptions {
   monitor: string | null
   searchForCutoffUnmetEpisodes: boolean | null
@@ -66,6 +83,22 @@ export interface SonarrPost {
   seriesType?: 'standard' | 'anime' | 'daily'
 }
 
+export interface SonarrEpisode {
+  id: number
+  seriesId: number
+  episodeFileId: number
+  seasonNumber: number
+  episodeNumber: number
+  title: string
+  airDate?: string
+  airDateUtc?: string
+  overview?: string
+  hasFile: boolean
+  monitored: boolean
+  unverifiedSceneNumbering: boolean
+  grabbed: boolean
+}
+
 export interface SonarrSeries {
   title: string
   imdbId?: string
@@ -73,6 +106,8 @@ export interface SonarrSeries {
   id: number
   ended?: boolean
   added?: string
+  monitored?: boolean
+  monitorNewItems?: 'all' | 'none'
   seasons?: Array<{
     seasonNumber: number
     monitored: boolean
