@@ -178,9 +178,26 @@ export function SessionMonitoringStatus({
               type="number"
               value={localInactivityDays}
               onChange={(e) => {
-                const value = e.target.value === '' ? 1 : Number(e.target.value)
-                if (!Number.isNaN(value)) {
+                const inputValue = e.target.value
+                // Allow empty state while typing
+                if (inputValue === '') {
+                  return
+                }
+                const value = Number(inputValue)
+                if (!Number.isNaN(value) && value >= 1 && value <= 365) {
                   setLocalInactivityDays(value)
+                }
+              }}
+              onBlur={(e) => {
+                // Reset to previous valid value if empty or invalid
+                const value = Number(e.target.value)
+                if (
+                  e.target.value === '' ||
+                  Number.isNaN(value) ||
+                  value < 1 ||
+                  value > 365
+                ) {
+                  setLocalInactivityDays(inactivityDays)
                 }
               }}
               min={1}
