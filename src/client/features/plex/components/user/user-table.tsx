@@ -48,11 +48,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import type { UserWatchlistInfo } from '@/stores/configStore'
-import UserTableSkeletonRows from '@/features/plex/components/user/user-table-skeleton'
 import type { PlexUserTableRow } from '@/features/plex/store/types'
 import { UserWatchlistSheet } from '@/features/plex/components/user/user-watchlist-sheet'
 import { useUserWatchlist } from '@/features/plex/hooks/useUserWatchlist'
 import { toast } from '@/hooks/use-toast'
+import { TableSkeleton } from '@/components/ui/table-skeleton'
 
 interface ColumnMetaType {
   className?: string
@@ -389,66 +389,81 @@ export default function UserTable({
         )}
       </div>
       <div className="rounded-md">
-        <Table>
-          <TableHeader className="font-heading">
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  const headerClassName = `px-2 py-2 ${
-                    (header.column.columnDef.meta as ColumnMetaType)
-                      ?.headerClassName || ''
-                  }`
-                  return (
-                    <TableHead key={header.id} className={headerClassName}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext(),
-                          )}
-                    </TableHead>
-                  )
-                })}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <UserTableSkeletonRows colSpan={columns.length} />
-            ) : table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && 'selected'}
-                >
-                  {row.getVisibleCells().map((cell) => {
-                    const cellClassName = `px-2 py-2 ${
-                      (cell.column.columnDef.meta as ColumnMetaType)
-                        ?.className || ''
+        {isLoading ? (
+          <TableSkeleton
+            rows={table.getState().pagination.pageSize}
+            columns={[
+              { type: 'checkbox', hideOnMobile: false },
+              { type: 'text', width: 'w-32' },
+              { type: 'text', width: 'w-48', hideOnMobile: true },
+              { type: 'icon', hideOnMobile: true },
+              { type: 'icon', hideOnMobile: true },
+              { type: 'badge', hideOnMobile: true },
+              { type: 'text', width: 'w-16' },
+              { type: 'button', width: 'w-8', className: 'text-right' },
+            ]}
+            showHeader={true}
+          />
+        ) : (
+          <Table>
+            <TableHeader className="font-heading">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => {
+                    const headerClassName = `px-2 py-2 ${
+                      (header.column.columnDef.meta as ColumnMetaType)
+                        ?.headerClassName || ''
                     }`
                     return (
-                      <TableCell key={cell.id} className={cellClassName}>
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext(),
-                        )}
-                      </TableCell>
+                      <TableHead key={header.id} className={headerClassName}>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext(),
+                            )}
+                      </TableHead>
                     )
                   })}
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  No results.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && 'selected'}
+                  >
+                    {row.getVisibleCells().map((cell) => {
+                      const cellClassName = `px-2 py-2 ${
+                        (cell.column.columnDef.meta as ColumnMetaType)
+                          ?.className || ''
+                      }`
+                      return (
+                        <TableCell key={cell.id} className={cellClassName}>
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext(),
+                          )}
+                        </TableCell>
+                      )
+                    })}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-24 text-center"
+                  >
+                    No results.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        )}
       </div>
       <div className="flex items-center justify-between px-2 py-4">
         <div className="flex items-center space-x-2">

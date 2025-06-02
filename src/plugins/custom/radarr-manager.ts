@@ -11,11 +11,15 @@ declare module 'fastify' {
 export default fp(
   async (fastify: FastifyInstance) => {
     const manager = new RadarrManagerService(fastify.log, fastify)
-    await manager.initialize()
+
+    try {
+      await manager.initialize()
+    } catch (error) {
+      fastify.log.error({ error }, 'Failed to initialize Radarr manager')
+      throw error // Re-throw to prevent server start with broken state
+    }
+
     fastify.decorate('radarrManager', manager)
-    fastify.addHook('onClose', async () => {
-      // Any cleanup needed for the manager
-    })
   },
   {
     name: 'radarr-manager',

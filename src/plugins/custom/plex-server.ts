@@ -17,15 +17,27 @@ export default fp(
   async function plexServer(fastify: FastifyInstance) {
     const service = new PlexServerService(fastify.log, fastify.config)
 
-    // Initialize the service
-    const initialized = await service.initialize()
-    if (!initialized) {
-      fastify.log.warn(
-        'PlexServerService failed to initialize - some features may not work properly',
-      )
-    }
-
     fastify.decorate('plexServerService', service)
+
+    // Move initialization to onReady hook
+    fastify.addHook('onReady', async () => {
+      try {
+        const initialized = await service.initialize()
+        if (!initialized) {
+          fastify.log.warn(
+            'PlexServerService failed to initialize - some features may not work properly',
+          )
+        } else {
+          fastify.log.info('PlexServerService initialized successfully')
+        }
+      } catch (error) {
+        fastify.log.error(
+          { error },
+          'Error during PlexServerService initialization',
+        )
+        // Don't throw - let server continue without full Plex functionality
+      }
+    })
 
     // Clear workflow caches on close
     fastify.addHook('onClose', async () => {

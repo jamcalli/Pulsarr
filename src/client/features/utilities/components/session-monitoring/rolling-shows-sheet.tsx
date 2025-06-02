@@ -47,7 +47,6 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer'
-import { Skeleton } from '@/components/ui/skeleton'
 import {
   Select,
   SelectContent,
@@ -73,9 +72,6 @@ import { useMediaQuery } from '@/hooks/use-media-query'
 import { formatDistanceToNow } from 'date-fns'
 import type { RollingMonitoredShow } from '@/features/utilities/hooks/useRollingMonitoring'
 import { RollingShowActionAlert } from './rolling-show-action-alert'
-
-// Constant keys for skeleton rows to avoid array index warnings
-const SKELETON_KEYS = Array.from({ length: 10 }, (_, i) => `skeleton-row-${i}`)
 
 interface ColumnMetaType {
   className?: string
@@ -432,10 +428,10 @@ export function RollingShowsSheet({
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => {
-                    const headerClassName = `px-2 py-2 ${
-                      (header.column.columnDef.meta as ColumnMetaType)
-                        ?.headerClassName || ''
-                    }`
+                    const meta = header.column.columnDef.meta as
+                      | ColumnMetaType
+                      | undefined
+                    const headerClassName = `px-2 py-2 ${meta?.headerClassName || ''}`
                     return (
                       <TableHead key={header.id} className={headerClassName}>
                         {header.isPlaceholder
@@ -452,29 +448,14 @@ export function RollingShowsSheet({
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <>
-                  {SKELETON_KEYS.map((key) => (
-                    <TableRow key={key}>
-                      <TableCell className="px-2 py-2">
-                        <Skeleton className="h-4 w-full max-w-[300px]" />
-                      </TableCell>
-                      <TableCell className="px-2 py-2 w-[120px]">
-                        <Skeleton className="h-4 w-16" />
-                      </TableCell>
-                      <TableCell className="px-2 py-2 w-[80px]">
-                        <Skeleton className="h-4 w-8" />
-                      </TableCell>
-                      <TableCell className="px-2 py-2 hidden sm:table-cell">
-                        <Skeleton className="h-4 w-20" />
-                      </TableCell>
-                      {showActions && (
-                        <TableCell className="px-2 py-2 w-[100px]">
-                          <Skeleton className="h-4 w-16" />
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  ))}
-                </>
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-24 text-center"
+                  >
+                    Loading...
+                  </TableCell>
+                </TableRow>
               ) : table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
                   <TableRow
@@ -482,10 +463,10 @@ export function RollingShowsSheet({
                     data-state={row.getIsSelected() && 'selected'}
                   >
                     {row.getVisibleCells().map((cell) => {
-                      const cellClassName = `px-2 py-2 ${
-                        (cell.column.columnDef.meta as ColumnMetaType)
-                          ?.className || ''
-                      }`
+                      const meta = cell.column.columnDef.meta as
+                        | ColumnMetaType
+                        | undefined
+                      const cellClassName = `px-2 py-2 ${meta?.className || ''}`
                       return (
                         <TableCell key={cell.id} className={cellClassName}>
                           {flexRender(

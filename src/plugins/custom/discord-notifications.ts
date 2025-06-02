@@ -50,21 +50,31 @@ export default fp(
       clearInterval(statusInterval)
     })
 
-    if (hasBotConfig) {
-      fastify.log.info('Discord bot configuration found, attempting auto-start')
-      const started = await discord.startBot()
-      if (started) {
-        fastify.log.info('Discord bot started automatically')
-      } else {
-        fastify.log.warn('Failed to auto-start Discord bot')
-      }
-    } else {
-      fastify.log.info(
-        'Discord bot configuration incomplete, bot features will require manual initialization',
-      )
-    }
-
     fastify.decorate('discord', discord)
+
+    // Move bot auto-start to onReady hook
+    fastify.addHook('onReady', async () => {
+      if (hasBotConfig) {
+        fastify.log.info(
+          'Discord bot configuration found, attempting auto-start',
+        )
+        try {
+          const started = await discord.startBot()
+          if (started) {
+            fastify.log.info('Discord bot started automatically')
+          } else {
+            fastify.log.warn('Failed to auto-start Discord bot')
+          }
+        } catch (error) {
+          fastify.log.error({ error }, 'Error during Discord bot auto-start')
+          // Don't throw - let server continue without Discord bot
+        }
+      } else {
+        fastify.log.info(
+          'Discord bot configuration incomplete, bot features will require manual initialization',
+        )
+      }
+    })
 
     fastify.addHook('onClose', async () => {
       if (discord.getBotStatus() === 'running') {
