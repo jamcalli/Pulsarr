@@ -96,9 +96,9 @@ interface RollingShowsSheetProps {
 }
 
 /**
- * Displays a responsive, interactive table of rolling monitored shows with sorting, filtering, pagination, and optional reset/delete actions.
+ * Renders a responsive, interactive table of rolling monitored shows with sorting, filtering, pagination, and optional reset or delete actions.
  *
- * Renders as a sliding sheet on desktop or a drawer on mobile, showing a list of rolling monitored shows with controls for filtering by title, toggling column visibility, and paginating results. Optionally provides action buttons for resetting or deleting shows, each with confirmation dialogs and loading indicators. Handles loading and error states with appropriate UI feedback.
+ * Adapts layout for desktop (sliding sheet) and mobile (drawer), displaying a list of rolling monitored shows with controls for filtering by title, toggling column visibility, and paginating results. Optionally provides action buttons for resetting or deleting shows, each with confirmation dialogs and loading indicators. Handles loading and error states with appropriate UI feedback.
  *
  * @param isOpen - Whether the sheet or drawer is open.
  * @param onClose - Callback to close the sheet or drawer.

@@ -32,7 +32,9 @@ interface SessionMonitoringResetSettingsProps {
 }
 
 /**
- * Rolling monitoring reset settings section for session monitoring form
+ * Renders a form section for configuring rolling monitoring reset settings in a session monitoring form.
+ *
+ * Displays controls to enable automatic reset of rolling monitored shows, set the inactivity period before reset, and specify the interval for automatic reset checks. Controls are disabled based on the provided {@link isEnabled} flag and the state of automatic reset.
  */
 export function SessionMonitoringResetSettings({
   form,

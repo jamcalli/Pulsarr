@@ -38,8 +38,14 @@ interface TableSkeletonProps {
 }
 
 /**
- * Unified table skeleton component that prevents layout shift
- * by matching the expected content size and structure.
+ * Renders a table skeleton that mimics the structure and size of the final table to prevent layout shifts during data loading.
+ *
+ * The skeleton displays a configurable number of rows and columns, with each cell styled according to its intended content type (e.g., text, badge, icon, button, checkbox). Optionally includes a header row with skeleton placeholders.
+ *
+ * @param rows - Number of skeleton rows to render. Defaults to 10.
+ * @param columns - Array describing each column's configuration, including type, width, visibility, and custom class names.
+ * @param showHeader - Whether to display the table header skeleton. Defaults to true.
+ * @param className - Optional CSS class for the table.
  */
 export function TableSkeleton({
   rows = 10,
@@ -125,8 +131,12 @@ export function TableSkeleton({
 }
 
 /**
- * Alternative minimal skeleton that shows a single loading block
- * instead of individual rows. Use when exact row count is unknown.
+ * Renders a minimal table skeleton as a single full-width loading block.
+ *
+ * Use this component when the number of table rows is unknown or a simple placeholder is preferred.
+ *
+ * @param height - The height of the skeleton block (default: '400px').
+ * @param className - Optional CSS class for custom styling.
  */
 export function TableSkeletonMinimal({
   height = '400px',
@@ -143,8 +153,10 @@ export function TableSkeletonMinimal({
 }
 
 /**
- * Simple loading state for tables with typically sparse data (1-3 rows).
- * Shows a centered loading spinner with optional message.
+ * Displays a centered loading spinner and message for tables with sparse data.
+ *
+ * @param message - Optional loading message to display below the spinner.
+ * @param className - Optional CSS class for additional container styling.
  */
 export function TableLoadingState({
   message = 'Loading...',

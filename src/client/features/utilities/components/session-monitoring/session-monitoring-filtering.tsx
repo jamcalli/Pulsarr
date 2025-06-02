@@ -31,7 +31,11 @@ interface SessionMonitoringFilteringProps {
 }
 
 /**
- * Filtering options section for session monitoring form
+ * Renders the filtering options section within a session monitoring form.
+ *
+ * Displays a user multi-select field for optionally filtering which users are monitored. The field is disabled if monitoring is not enabled. A tooltip provides guidance on the purpose and usage of the filter.
+ *
+ * @param isEnabled - Whether session monitoring is currently enabled, controlling the availability of the filter.
  */
 export function SessionMonitoringFiltering({
   form,

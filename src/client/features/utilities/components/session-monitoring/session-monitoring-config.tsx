@@ -31,7 +31,9 @@ interface SessionMonitoringConfigProps {
 }
 
 /**
- * Monitoring configuration section for session monitoring form
+ * Renders a configuration section for session monitoring settings within a form.
+ *
+ * Displays input fields for polling interval and remaining episodes threshold, each with explanatory tooltips and validation. Inputs are disabled when monitoring is not enabled.
  */
 export function SessionMonitoringConfig({
   form,
