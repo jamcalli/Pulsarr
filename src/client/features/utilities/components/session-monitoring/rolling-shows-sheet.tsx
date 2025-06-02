@@ -178,9 +178,9 @@ export function RollingShowsSheet({
       header: () => <div>Type</div>,
       cell: ({ row }) => {
         const type = row.getValue('monitoring_type') as string
-        const displayType = type === 'pilot_rolling' ? 'Pilot' : 'First Season'
+        const displayType = type === 'pilotRolling' ? 'Pilot' : 'First Season'
         const icon =
-          type === 'pilot_rolling' ? (
+          type === 'pilotRolling' ? (
             <Activity className="h-4 w-4" />
           ) : (
             <Clock className="h-4 w-4" />
