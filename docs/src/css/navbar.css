@@ -47,6 +47,23 @@ html[data-theme="dark"] .navbar__link--active {
 	font-weight: 600;
 }
 
+/* Star reminder text styling */
+.navbar__star-reminder {
+	display: inline-block !important;
+	color: #000000 !important; /* Always black text */
+	font-size: 0.875rem !important; /* text-sm */
+	margin-right: 0.25rem !important; /* Reduced from 0.75rem to 0.25rem */
+	white-space: nowrap;
+	opacity: 0.8;
+	transition: opacity 0.2s ease;
+	line-height: 1.5;
+	padding: 0.5rem 0;
+}
+
+.navbar__star-reminder:hover {
+	opacity: 1;
+}
+
 /* Styling for GitHub stats button container */
 #github-stats-button {
 	display: flex;

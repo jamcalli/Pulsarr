@@ -156,7 +156,7 @@ export class PlexSessionMonitorService {
 
     // Special case for pilot rolling: if watching the pilot episode, expand immediately
     if (
-      rollingShow.monitoring_type === 'pilot_rolling' &&
+      rollingShow.monitoring_type === 'pilotRolling' &&
       currentSeason === 1 &&
       currentEpisode === 1
     ) {
@@ -823,10 +823,10 @@ export class PlexSessionMonitorService {
     sonarrInstanceId: number,
     tvdbId: string,
     showTitle: string,
-    monitoringType: 'pilot_rolling' | 'first_season_rolling',
+    monitoringType: 'pilotRolling' | 'firstSeasonRolling',
   ): Promise<void> {
     try {
-      const initialSeason = 1 // Both pilot_rolling and first_season_rolling start with season 1
+      const initialSeason = 1 // Both pilotRolling and firstSeasonRolling start with season 1
 
       await this.db.createRollingMonitoredShow({
         sonarr_series_id: sonarrSeriesId,
@@ -1028,13 +1028,13 @@ export class PlexSessionMonitorService {
 
       for (const show of inactiveShows) {
         try {
-          if (show.monitoring_type === 'pilot_rolling') {
+          if (show.monitoring_type === 'pilotRolling') {
             await this.resetToPilotOnly(
               show.sonarr_series_id,
               show.sonarr_instance_id,
               show.show_title,
             )
-          } else if (show.monitoring_type === 'first_season_rolling') {
+          } else if (show.monitoring_type === 'firstSeasonRolling') {
             await this.resetToFirstSeasonOnly(
               show.sonarr_series_id,
               show.sonarr_instance_id,

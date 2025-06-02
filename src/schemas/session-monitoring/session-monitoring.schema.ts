@@ -7,7 +7,7 @@ const RollingMonitoredShowSchema = z.object({
   tvdb_id: z.string().nullable(),
   imdb_id: z.string().nullable(),
   show_title: z.string(),
-  monitoring_type: z.enum(['pilot_rolling', 'first_season_rolling']),
+  monitoring_type: z.enum(['pilotRolling', 'firstSeasonRolling']),
   current_monitored_season: z.number(),
   last_watched_season: z.number(),
   last_watched_episode: z.number(),
@@ -122,7 +122,7 @@ export const resetInactiveShowsSchema = {
 // Schema for getting inactive rolling monitored shows
 export const getInactiveRollingMonitoredSchema = {
   querystring: z.object({
-    inactivityDays: z.string().optional(),
+    inactivityDays: z.coerce.number().min(1).max(365).optional(),
   }),
   response: {
     200: z.object({

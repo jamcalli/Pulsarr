@@ -522,12 +522,43 @@ export class DatabaseService {
   async getConfig(id: number): Promise<Config | undefined> {
     const config = await this.knex('configs').where({ id }).first()
     if (!config) return undefined
+
+    // Helper function to safely parse JSON with error handling
+    const safeJsonParse = <T>(
+      value: string | undefined,
+      defaultValue: T,
+      fieldName: string,
+    ): T => {
+      if (!value) return defaultValue
+      try {
+        return JSON.parse(value)
+      } catch (error) {
+        this.log.warn(
+          `Failed to parse ${fieldName} from database, using default:`,
+          error,
+        )
+        return defaultValue
+      }
+    }
+
     return {
       ...config,
-      // Parse JSON fields
-      plexTokens: JSON.parse(config.plexTokens || '[]'),
+      // Parse JSON fields with error handling
+      plexTokens: safeJsonParse(config.plexTokens, [], 'plexTokens'),
       plexSessionMonitoring: config.plexSessionMonitoring
-        ? JSON.parse(config.plexSessionMonitoring)
+        ? safeJsonParse(
+            config.plexSessionMonitoring,
+            {
+              enabled: false,
+              pollingIntervalMinutes: 15,
+              remainingEpisodes: 2,
+              filterUsers: [],
+              enableAutoReset: true,
+              inactivityResetDays: 7,
+              autoResetIntervalHours: 24,
+            },
+            'plexSessionMonitoring',
+          )
         : undefined,
       newUserDefaultCanSync: Boolean(config.newUserDefaultCanSync ?? true),
       // Handle optional RSS fields
@@ -6119,7 +6150,7 @@ export class DatabaseService {
     tvdb_id?: string
     imdb_id?: string
     show_title: string
-    monitoring_type: 'pilot_rolling' | 'first_season_rolling'
+    monitoring_type: 'pilotRolling' | 'firstSeasonRolling'
     current_monitored_season: number
     plex_user_id?: string
     plex_username?: string
@@ -6314,7 +6345,7 @@ export class DatabaseService {
         .orderBy('last_updated_at', 'asc')
     } catch (error) {
       this.log.error('Error getting inactive rolling monitored shows:', error)
-      throw new Error('Failed to get inactive rolling monitored shows')
+      return []
     }
   }
 }

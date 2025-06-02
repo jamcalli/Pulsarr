@@ -54,6 +54,10 @@ export interface PlexShowMetadata {
     key: string
     ratingKey: string
     guid?: string // Main GUID (lowercase)
+    // Plex API inconsistency: Guid can be either format depending on API endpoint
+    // - String format: when querying certain metadata endpoints
+    // - Array format: when using detailed metadata endpoints (/library/metadata/{id})
+    // Always use Array.isArray(metadata.Guid) to check type before accessing
     Guid?: string | Array<{ id: string }> // Can be string or array (uppercase)
     type: string
     title: string
@@ -210,7 +214,7 @@ export interface RollingMonitoredShow {
   tvdb_id?: string
   imdb_id?: string
   show_title: string
-  monitoring_type: 'pilot_rolling' | 'first_season_rolling'
+  monitoring_type: 'pilotRolling' | 'firstSeasonRolling'
   current_monitored_season: number
   last_watched_season: number
   last_watched_episode: number

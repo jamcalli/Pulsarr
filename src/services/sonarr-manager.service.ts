@@ -7,7 +7,7 @@ import type {
   SonarrItem,
   ConnectionTestResult,
 } from '@root/types/sonarr.types.js'
-import { isRollingMonitoringOption } from '@root/types/sonarr.types.js'
+import { isRollingMonitoringOption } from '@root/types/sonarr/rolling.js'
 import type { TemptRssWatchlistItem } from '@root/types/plex.types.js'
 
 export class SonarrManagerService {
@@ -207,7 +207,7 @@ export class SonarrManagerService {
       if (isRollingMonitoring) {
         // For rolling options, start with pilot or firstSeason
         sonarrMonitoringOption =
-          targetSeasonMonitoring === 'pilot_rolling' ? 'pilot' : 'firstSeason'
+          targetSeasonMonitoring === 'pilotRolling' ? 'pilot' : 'firstSeason'
       }
 
       // Add to Sonarr
@@ -271,9 +271,7 @@ export class SonarrManagerService {
                 targetInstanceId,
                 tvdbId || '',
                 addedSeries.title,
-                targetSeasonMonitoring as
-                  | 'pilot_rolling'
-                  | 'first_season_rolling',
+                targetSeasonMonitoring as 'pilotRolling' | 'firstSeasonRolling',
               )
 
               this.log.info(

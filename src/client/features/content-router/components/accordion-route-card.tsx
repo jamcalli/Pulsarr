@@ -36,7 +36,7 @@ import {
   Power,
 } from 'lucide-react'
 import { SONARR_MONITORING_OPTIONS } from '@/features/sonarr/store/constants'
-import { isRollingMonitoringOption } from '@/features/sonarr/types/types'
+import { isRollingMonitoringOption } from '@root/types/sonarr/rolling.js'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import ConditionGroupComponent from '@/features/content-router/components/condition-group'
 import {

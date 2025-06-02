@@ -16,7 +16,7 @@ export async function up(knex: Knex): Promise<void> {
     table.string('show_title').notNullable()
     
     // Monitoring configuration
-    table.enum('monitoring_type', ['pilot_rolling', 'first_season_rolling']).notNullable()
+    table.enum('monitoring_type', ['pilotRolling', 'firstSeasonRolling']).notNullable()
     table.integer('current_monitored_season').notNullable().defaultTo(1)
     
     // Progress tracking
@@ -44,7 +44,7 @@ export async function up(knex: Knex): Promise<void> {
     table.json('plexSessionMonitoring').nullable()
   })
 
-  // Note: Rolling monitoring options (pilot_rolling, first_season_rolling) 
+  // Note: Rolling monitoring options (pilotRolling, firstSeasonRolling) 
   // are now available for sonarr_instances.season_monitoring field
 }
 
