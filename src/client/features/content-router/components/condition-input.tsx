@@ -201,7 +201,13 @@ function ConditionInput({
           ? { ...(valueRef.current as { min?: number; max?: number }) }
           : { min: undefined, max: undefined }
 
-      const min = e.target.value === '' ? undefined : Number(e.target.value)
+      const minValue = Number(e.target.value)
+      const min =
+        e.target.value === ''
+          ? undefined
+          : Number.isNaN(minValue)
+            ? undefined
+            : minValue
       onChangeRef.current({ ...currentValue, min })
     },
 
@@ -213,7 +219,13 @@ function ConditionInput({
           ? { ...(valueRef.current as RangeValue) }
           : { min: undefined, max: undefined }
 
-      const max = e.target.value === '' ? undefined : Number(e.target.value)
+      const maxValue = Number(e.target.value)
+      const max =
+        e.target.value === ''
+          ? undefined
+          : Number.isNaN(maxValue)
+            ? undefined
+            : maxValue
       onChangeRef.current({ ...currentValue, max })
     },
   })
@@ -226,7 +238,13 @@ function ConditionInput({
       },
 
       handleNumberChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value === '' ? null : Number(e.target.value)
+        const numValue = Number(e.target.value)
+        const value =
+          e.target.value === ''
+            ? null
+            : Number.isNaN(numValue)
+              ? null
+              : numValue
         onChangeRef.current(value as ConditionValue)
       },
 
@@ -255,7 +273,13 @@ function ConditionInput({
             ? { ...(valueRef.current as { min?: number; max?: number }) }
             : { min: undefined, max: undefined }
 
-        const min = e.target.value === '' ? undefined : Number(e.target.value)
+        const minValue = Number(e.target.value)
+        const min =
+          e.target.value === ''
+            ? undefined
+            : Number.isNaN(minValue)
+              ? undefined
+              : minValue
         onChangeRef.current({ ...currentValue, min })
       },
 
@@ -267,7 +291,13 @@ function ConditionInput({
             ? { ...(valueRef.current as RangeValue) }
             : { min: undefined, max: undefined }
 
-        const max = e.target.value === '' ? undefined : Number(e.target.value)
+        const maxValue = Number(e.target.value)
+        const max =
+          e.target.value === ''
+            ? undefined
+            : Number.isNaN(maxValue)
+              ? undefined
+              : maxValue
         onChangeRef.current({ ...currentValue, max })
       },
     }
