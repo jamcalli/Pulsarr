@@ -3,11 +3,11 @@ import { useToast } from '@/hooks/use-toast'
 import type { GetUserWatchlistResponse } from '@root/schemas/users/watchlist.schema'
 
 /**
- * React hook for managing the state and fetching logic of a user's watchlist.
+ * React hook that manages state and data fetching for a user's watchlist UI.
  *
- * Provides state and handler functions for opening, closing, and refreshing a user's watchlist, including loading and error management.
+ * Exposes watchlist data, loading and error states, open/closed state, and handler functions for opening, closing, and refreshing the watchlist.
  *
- * @returns An object containing the watchlist data, loading and error states, open state, and handler functions for UI interaction and data fetching.
+ * @returns An object with the current watchlist data, loading and error states, open state, and handler functions for UI interaction and data management.
  */
 export function useUserWatchlist() {
   const { toast } = useToast()

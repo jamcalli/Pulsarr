@@ -1,9 +1,9 @@
 import type { Knex } from 'knex'
 
 /**
- * Adds the `newUserDefaultCanSync` boolean column to the `configs` table with a default value of `true`.
+ * Adds a `newUserDefaultCanSync` boolean column to the `configs` table with a default value of `true`.
  *
- * @param knex - The Knex instance used to perform the schema alteration.
+ * @param knex - The Knex instance for schema modification.
  */
 export async function up(knex: Knex): Promise<void> {
   await knex.schema.alterTable('configs', (table) => {
@@ -12,9 +12,7 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Removes the `newUserDefaultCanSync` column from the `configs` table.
- *
- * Reverts the schema change introduced by the corresponding migration's `up` function.
+ * Drops the `newUserDefaultCanSync` column from the `configs` table, reverting the schema change introduced by the migration.
  */
 export async function down(knex: Knex): Promise<void> {
   await knex.schema.alterTable('configs', (table) => {

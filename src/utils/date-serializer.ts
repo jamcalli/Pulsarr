@@ -5,10 +5,12 @@
  */
 
 /**
- * Converts a date value to an ISO 8601 string for consistent API responses.
+ * Serializes a date value to an ISO 8601 string or returns the original string.
  *
- * @param date - The date to serialize. Accepts a Date object, string, null, or undefined.
- * @returns The ISO string representation of the date, the original string if input is a string, or null if input is null or undefined.
+ * If the input is a Date object, returns its ISO string representation. If the input is a string, returns it unchanged. Returns null if the input is null or undefined.
+ *
+ * @param date - The date value to serialize.
+ * @returns The ISO 8601 string, the original string, or null.
  */
 export function serializeDate(
   date: Date | string | null | undefined,
@@ -18,12 +20,12 @@ export function serializeDate(
 }
 
 /**
- * Returns a copy of the show object with date fields serialized as ISO strings for API responses.
+ * Serializes the date fields of a show object to ISO 8601 strings for consistent API responses.
  *
- * The fields `last_session_date`, `created_at`, `updated_at`, and `last_updated_at` are converted to ISO string format or set to `null`/empty string as appropriate.
+ * Converts `last_session_date` to an ISO string or `null`, and ensures `created_at`, `updated_at`, and `last_updated_at` are ISO strings or empty strings if missing. If `last_updated_at` is absent, it falls back to the serialized `updated_at` or an empty string.
  *
- * @param show - The show object containing optional date fields to serialize.
- * @returns A new show object with `last_session_date` as an ISO string or `null`, and `created_at`, `updated_at`, and `last_updated_at` as ISO strings or empty strings.
+ * @param show - An object with optional date fields to be serialized.
+ * @returns A new object with the same properties as {@link show}, but with date fields standardized as ISO strings or appropriate fallbacks.
  */
 export function serializeRollingShowDates<
   T extends {

@@ -110,11 +110,11 @@ const StableNumberInput = ({
 }
 
 /**
- * Renders an input control for conditional filtering, dynamically selecting the appropriate input type and value handling based on the specified field, operator, and allowed value types.
+ * Renders a dynamic input control for conditional filtering, selecting the appropriate input type and value handling based on the provided field, operator, and allowed value types.
  *
- * Supports text, number, range, single-select, and multi-select inputs for fields such as genre, user, year, certification, and language. Handles value parsing and formatting for both single and multi-value scenarios, and integrates with a global config store to fetch user data when necessary.
+ * Supports text, number, range, single-select, and multi-select inputs for fields such as genre, user, year, certification, and language. Integrates with a global config store to fetch user data as needed and handles value parsing for both single and multi-value scenarios.
  *
- * @returns The appropriate input element for the given field and operator, or null if required information is missing.
+ * @returns The rendered input element for the specified field and operator, or null if required information is missing.
  */
 function ConditionInput({
   field,
