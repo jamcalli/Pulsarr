@@ -16,8 +16,6 @@
 
 <h2 align="center">⭐ Love Pulsarr? Give Us a Star! ⭐</h2>
 
-#### Support Open-Source Media Automation
-
 If Pulsarr has simplified your media management, please star this repository! It takes just a second, helps others find us, and motivates continued development. Thank you for being part of our community!
 
 <p align="center">
