@@ -180,16 +180,14 @@ export function useRollingMonitoring(): UseRollingMonitoringReturn {
   )
 
   const deleteShow = useCallback(
-    async (id: number) => {
+    async (id: number, shouldReset = false) => {
       actionStartTime.current = Date.now()
       setActiveActionId(id)
       setLoading((prev) => ({ ...prev, deleting: true }))
 
       try {
-        const response = await fetch(
-          `/v1/session-monitoring/rolling-monitored/${id}`,
-          { method: 'DELETE' },
-        )
+        const url = `/v1/session-monitoring/rolling-monitored/${id}${shouldReset ? '?reset=true' : '?reset=false'}`
+        const response = await fetch(url, { method: 'DELETE' })
         if (!response.ok) {
           throw new Error('Failed to delete show')
         }
@@ -211,7 +209,9 @@ export function useRollingMonitoring(): UseRollingMonitoringReturn {
         console.error('Error deleting show:', error)
         toast({
           title: 'Error',
-          description: 'Failed to remove show from rolling monitoring',
+          description: shouldReset
+            ? 'Failed to reset and remove show from rolling monitoring'
+            : 'Failed to remove show from rolling monitoring',
           variant: 'destructive',
         })
       } finally {

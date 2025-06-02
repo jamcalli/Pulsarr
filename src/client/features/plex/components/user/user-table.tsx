@@ -52,6 +52,7 @@ import UserTableSkeletonRows from '@/features/plex/components/user/user-table-sk
 import type { PlexUserTableRow } from '@/features/plex/store/types'
 import { UserWatchlistSheet } from '@/features/plex/components/user/user-watchlist-sheet'
 import { useUserWatchlist } from '@/features/plex/hooks/useUserWatchlist'
+import { toast } from '@/hooks/use-toast'
 
 interface ColumnMetaType {
   className?: string
@@ -276,6 +277,11 @@ export default function UserTable({
                       handleOpen(userId)
                     } else {
                       console.error('Invalid user ID:', user.id)
+                      toast({
+                        title: 'Error',
+                        description: 'Unable to open watchlist for this user',
+                        variant: 'destructive',
+                      })
                     }
                   }}
                 >

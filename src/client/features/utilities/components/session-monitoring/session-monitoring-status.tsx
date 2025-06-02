@@ -11,6 +11,7 @@ import {
   RotateCcw,
 } from 'lucide-react'
 import { useMediaQuery } from '@/hooks/use-media-query'
+import { toast } from '@/hooks/use-toast'
 import { RollingShowsSheet } from './rolling-shows-sheet'
 import type { RollingMonitoredShow } from '@/features/utilities/hooks/useRollingMonitoring'
 import type { SessionMonitoringResult } from '@root/types/plex-session.types'
@@ -33,7 +34,7 @@ interface SessionMonitoringStatusProps {
   setInactivityDays: (days: number) => void
   runSessionMonitor: () => Promise<SessionMonitoringResult | null>
   resetShow: (id: number) => Promise<void>
-  deleteShow: (id: number) => Promise<void>
+  deleteShow: (id: number, shouldReset?: boolean) => Promise<void>
   resetInactiveShows: (days: number) => Promise<void>
   fetchRollingShows: () => Promise<void>
   fetchInactiveShows: (days: number) => Promise<void>
@@ -105,7 +106,16 @@ export function SessionMonitoringStatus({
           size="sm"
           variant="noShadow"
           onClick={async () => {
-            await runSessionMonitor()
+            try {
+              await runSessionMonitor()
+            } catch (error) {
+              console.error('Failed to run session monitor:', error)
+              toast({
+                title: 'Error',
+                description: 'Failed to run session monitor. Please try again.',
+                variant: 'destructive',
+              })
+            }
           }}
           disabled={rollingLoading.runningMonitor}
           className="h-7"
@@ -162,7 +172,12 @@ export function SessionMonitoringStatus({
             <Input
               type="number"
               value={localInactivityDays}
-              onChange={(e) => setLocalInactivityDays(Number(e.target.value))}
+              onChange={(e) => {
+                const value = e.target.value === '' ? 1 : Number(e.target.value)
+                if (!Number.isNaN(value)) {
+                  setLocalInactivityDays(value)
+                }
+              }}
               min={1}
               max={365}
               className="h-7 w-12 text-xs px-2"
@@ -174,7 +189,19 @@ export function SessionMonitoringStatus({
                 type="button"
                 size="sm"
                 variant="error"
-                onClick={() => resetInactiveShows(localInactivityDays)}
+                onClick={async () => {
+                  try {
+                    await resetInactiveShows(localInactivityDays)
+                  } catch (error) {
+                    console.error('Failed to reset inactive shows:', error)
+                    toast({
+                      title: 'Error',
+                      description:
+                        'Failed to reset inactive shows. Please try again.',
+                      variant: 'destructive',
+                    })
+                  }
+                }}
                 disabled={rollingLoading.resetting}
                 className="h-7 px-2"
                 title="Reset all inactive shows"

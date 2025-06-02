@@ -90,7 +90,7 @@ interface RollingShowsSheetProps {
   isLoading: boolean
   error?: Error | null
   onResetShow?: (id: number) => void
-  onDeleteShow?: (id: number) => void
+  onDeleteShow?: (id: number, shouldReset?: boolean) => void
   showActions?: boolean
   actionLoading?: {
     resetting: boolean
@@ -111,7 +111,7 @@ interface RollingShowsSheetProps {
  * @param isLoading - Whether the data is currently loading.
  * @param error - Error object if loading failed.
  * @param onResetShow - Optional callback to reset a show to its original monitoring state.
- * @param onDeleteShow - Optional callback to remove a show from rolling monitoring.
+ * @param onDeleteShow - Optional callback to remove a show from rolling monitoring (without resetting Sonarr).
  * @param showActions - Whether to display action buttons for each show.
  * @param actionLoading - Loading states for reset and delete actions.
  * @param activeActionId - ID of the show currently being acted upon.
@@ -636,7 +636,7 @@ export function RollingShowsSheet({
               confirmDialog.action === 'delete' &&
               onDeleteShow
             ) {
-              onDeleteShow(confirmDialog.show.id)
+              onDeleteShow(confirmDialog.show.id, false) // Remove only, don't reset
             }
             setConfirmDialog({ open: false, action: 'reset', show: null })
           }}
