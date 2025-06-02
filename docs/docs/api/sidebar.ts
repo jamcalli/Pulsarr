@@ -22,6 +22,12 @@ const sidebar: SidebarsConfig = {
         },
         {
           type: 'doc',
+          id: 'api/get-self-watchlist-items',
+          label: 'Get self watchlist items',
+          className: 'api-method get',
+        },
+        {
+          type: 'doc',
           id: 'api/get-others-watchlist-tokens',
           label: 'Get others watchlist tokens',
           className: 'api-method get',
@@ -256,11 +262,21 @@ const sidebar: SidebarsConfig = {
           label: 'Get user by ID',
           className: 'api-method get',
         },
+        {
+          type: 'doc',
+          id: 'api/get-user-watchlist',
+          label: 'Get user watchlist',
+          className: 'api-method get',
+        },
       ],
     },
     {
       type: 'category',
       label: 'Content Router',
+      link: {
+        type: 'doc',
+        id: 'api/content-router',
+      },
       items: [
         {
           type: 'doc',
@@ -333,6 +349,10 @@ const sidebar: SidebarsConfig = {
     {
       type: 'category',
       label: 'Notifications',
+      link: {
+        type: 'doc',
+        id: 'api/notifications',
+      },
       items: [
         {
           type: 'doc',
@@ -363,6 +383,10 @@ const sidebar: SidebarsConfig = {
     {
       type: 'category',
       label: 'Radarr Configuration',
+      link: {
+        type: 'doc',
+        id: 'api/radarr-configuration',
+      },
       items: [
         {
           type: 'doc',
@@ -393,6 +417,10 @@ const sidebar: SidebarsConfig = {
     {
       type: 'category',
       label: 'Scheduler',
+      link: {
+        type: 'doc',
+        id: 'api/scheduler',
+      },
       items: [
         {
           type: 'doc',
@@ -446,7 +474,57 @@ const sidebar: SidebarsConfig = {
     },
     {
       type: 'category',
+      label: 'Session Monitoring',
+      link: {
+        type: 'doc',
+        id: 'api/session-monitoring',
+      },
+      items: [
+        {
+          type: 'doc',
+          id: 'api/get-rolling-monitored-shows',
+          label: 'Get rolling monitored shows',
+          className: 'api-method get',
+        },
+        {
+          type: 'doc',
+          id: 'api/get-inactive-rolling-monitored-shows',
+          label: 'Get inactive rolling monitored shows',
+          className: 'api-method get',
+        },
+        {
+          type: 'doc',
+          id: 'api/reset-rolling-monitored-show',
+          label: 'Reset rolling monitored show',
+          className: 'api-method post',
+        },
+        {
+          type: 'doc',
+          id: 'api/reset-inactive-rolling-monitored-shows',
+          label: 'Reset inactive rolling monitored shows',
+          className: 'api-method post',
+        },
+        {
+          type: 'doc',
+          id: 'api/delete-rolling-monitored-show',
+          label: 'Delete rolling monitored show',
+          className: 'api-method delete',
+        },
+        {
+          type: 'doc',
+          id: 'api/run-session-monitor',
+          label: 'Run session monitor',
+          className: 'api-method post',
+        },
+      ],
+    },
+    {
+      type: 'category',
       label: 'Sonarr Configuration',
+      link: {
+        type: 'doc',
+        id: 'api/sonarr-configuration',
+      },
       items: [
         {
           type: 'doc',
@@ -477,6 +555,10 @@ const sidebar: SidebarsConfig = {
     {
       type: 'category',
       label: 'Statistics',
+      link: {
+        type: 'doc',
+        id: 'api/statistics',
+      },
       items: [
         {
           type: 'doc',
@@ -555,6 +637,10 @@ const sidebar: SidebarsConfig = {
     {
       type: 'category',
       label: 'Sync',
+      link: {
+        type: 'doc',
+        id: 'api/sync',
+      },
       items: [
         {
           type: 'doc',
@@ -573,6 +659,10 @@ const sidebar: SidebarsConfig = {
     {
       type: 'category',
       label: 'Tags',
+      link: {
+        type: 'doc',
+        id: 'api/tags',
+      },
       items: [
         {
           type: 'doc',
@@ -615,6 +705,10 @@ const sidebar: SidebarsConfig = {
     {
       type: 'category',
       label: 'Watchlist Workflow',
+      link: {
+        type: 'doc',
+        id: 'api/watchlist-workflow',
+      },
       items: [
         {
           type: 'doc',
@@ -632,6 +726,50 @@ const sidebar: SidebarsConfig = {
           type: 'doc',
           id: 'api/get-watchlist-workflow-status',
           label: 'Get watchlist workflow status',
+          className: 'api-method get',
+        },
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Tautulli',
+      link: {
+        type: 'doc',
+        id: 'api/tautulli',
+      },
+      items: [
+        {
+          type: 'doc',
+          id: 'api/test-tautulli-connection',
+          label: 'Test Tautulli connection',
+          className: 'api-method get',
+        },
+        {
+          type: 'doc',
+          id: 'api/test-tautulli-connection-with-credentials',
+          label: 'Test Tautulli connection with credentials',
+          className: 'api-method post',
+        },
+        {
+          type: 'doc',
+          id: 'api/sync-tautulli-notifiers',
+          label: 'Sync Tautulli notifiers',
+          className: 'api-method post',
+        },
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Progress',
+      link: {
+        type: 'doc',
+        id: 'api/progress',
+      },
+      items: [
+        {
+          type: 'doc',
+          id: 'api/stream-progress',
+          label: 'Stream progress events',
           className: 'api-method get',
         },
       ],
