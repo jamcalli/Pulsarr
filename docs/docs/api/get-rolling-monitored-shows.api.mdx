@@ -1,0 +1,63 @@
+---
+id: get-rolling-monitored-shows
+title: "Get rolling monitored shows"
+description: "Retrieve all shows currently being monitored by the rolling monitoring system"
+sidebar_label: "Get rolling monitored shows"
+hide_title: true
+hide_table_of_contents: true
+api: eJy9Vu+L4zYQ/VfEfOqBtsnetRT8beGOY6GFsGn7ZQlmYk9iXWXJNxpnNwT/70Wys9k43h8HpRCIkd48SfOeZnQA3xCjGO9uS8hgS3LnrTVu+4d3RjxTuaz8QwANgtsA2T0sKQTjnRoAxm1hpaGkULBpIhFkcEfChnak0FoVIoEqWmZyYvdqTcZtVX3kV+u9kooU9+seJ+Jn2AehGjQwhca7QAGyA3ycz+Pf+YqfaYOtFXU3IEFD4Z2Qk4jFprGmSMecfQsx4AChqKjG+CX7hiADv/5GhYCGhmNSxPTLhbYoKIRnwLX3ltBBpyGd7dkUMuMeNBihOrzNbcpnGNfWa+LE6h0y54HYUMhfAMmuXJ/PBUlqaHCttbi2BJlwS50GU78fG4+Ui5E4NIZ3Gk7y5P3cJSW5to5OaYz1RzuBho3hIEvC4N1xcNVpGIyRPxkiDwkzeWiLQfIHlKL6ARw1JviSXgaG3tJ5iTJ5oMsc9QIZFwRdQS9J1Fh6zNtA/N7cPwU4rN+3k4IJhcocZVKttilfm06nfxXTxcv3vTVMZZTUlDBhz5MZT1Y7M9KlbV7RfVrlFzSdUnBSn5Ea41yfZfIsb5dZWmnAsjSxmqBdPLvQG7SBunHOjgXkWC3eDO80/PL/1jhi9vy2+j3s7f3HMkFS+aGjxOVQKshgtrueDVJdnRwxG0r/1ZMVYq6Id8Sx4xygZQsZVCJNNptdz3/++Fv6/TqHceNZsKmR92qZoqHTrwRnn+bzTxcMnw1TIQOBuknSqZ8ejFSq8SwfLjmtL9BWPsg04e/H6UmylQbjNj7lvq+5sGhtQGZ1s7i9ILtZ3KrSF21NTpLUauNZHSOuFKqFpUeVbok1QZRxQls+QZfpZih0pbrDEplBQ8xzT//3dSpbPkiNyUB9HYKvJOP+TGXf2MdbPJw8+Z8/AwZ3Cj3KrLFoUgtOWhwGh93D7jqZZ+yx+Ii4cNlKQxQmhh0Oawz0F9uui8PfW+I9ZPcrDTtk05fc+9iuKsKSONnyH9pHSYqCmujxHdo2vQHGFzGK/HQfvn75E7ruX7uGWg0=
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get rolling monitored shows"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/session-monitoring/rolling-monitored"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieve all shows currently being monitored by the rolling monitoring system
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"shows":{"type":"array","items":{"type":"object","properties":{"id":{"type":"number"},"sonarr_series_id":{"type":"number"},"tvdb_id":{"type":"string","nullable":true},"imdb_id":{"type":"string","nullable":true},"show_title":{"type":"string"},"monitoring_type":{"type":"string","enum":["pilotRolling","firstSeasonRolling"]},"current_monitored_season":{"type":"number"},"last_watched_season":{"type":"number"},"last_watched_episode":{"type":"number"},"last_session_date":{"type":"string","nullable":true},"sonarr_instance_id":{"type":"number"},"plex_user_id":{"type":"string","nullable":true},"plex_username":{"type":"string","nullable":true},"created_at":{"type":"string"},"updated_at":{"type":"string"},"last_updated_at":{"type":"string"}},"required":["id","sonarr_series_id","tvdb_id","imdb_id","show_title","monitoring_type","current_monitored_season","last_watched_season","last_watched_episode","last_session_date","sonarr_instance_id","plex_user_id","plex_username","created_at","updated_at","last_updated_at"],"additionalProperties":false}}},"required":["success","shows"],"additionalProperties":false}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"}},"required":["error"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      
