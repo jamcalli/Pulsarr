@@ -161,11 +161,6 @@ const config: Config = {
         },
         {
           type: 'html',
-          value: '<span class="navbar__star-reminder">Star us →</span>',
-          position: 'right',
-        },
-        {
-          type: 'html',
           value: '<div id="github-stats-button"></div>',
           position: 'right',
         },
