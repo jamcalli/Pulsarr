@@ -1,0 +1,71 @@
+---
+id: reset-inactive-rolling-monitored-shows
+title: "Reset inactive rolling monitored shows"
+description: "Reset all rolling monitored shows that have been inactive for a specified number of days"
+sidebar_label: "Reset inactive rolling monitored shows"
+hide_title: true
+hide_table_of_contents: true
+api: eJy9VU1v00AQ/SurOYG0IQmlIPlWWg6VQEQJcKlymNiTeGG96+6Ok0aR/zuatdOkaSkcACuSV96ZN1/vTXbgawrIxrvrAjIIFImvHeZs1jT11hq3+uSdYR+omJV+E0ED4ypCdgMzitF4p3oD41Yw11BQzIOpBRIymAqgQmtV6NBUtYdTUfAUl8iqxDWpBZFTpg+ulj4oVLGm3CwNFco11YKC8ktV4FbSCHTbUOT3vthCtoPcOybHcsS6tiZPVQ2/R8ljBzEvqUI58bYmyMAvvlPOoKEO0gM2FOW2j294eyVhDvZdfNBQGWeqpoJsrKHCu+589va8bTVgURgJi3ZyhLpEG6ltxSBQrL2LXazXo5G8HnbsipbYWFbT3hL03yotNnlO8bimhfeW0EGroaIYcUVHl5HTSLukiS9906XwsB9dUbeNCVQIKfZBDogP/Od/0KM3/7ctFIIPT9R9Ulhn9vv8Uy+59CKn2scUD7mEDIbr8TB2mhlU95oZ9sIY3AtjmPo12CsBNEQKawoiuh00wUIGJXOdDYfj0avX79LvfASn2psEU2HYqlnyhlY/45ydjUZnjxCuTKCcewB1kSarXmwMl6r2gV8+xrQ+R1v6yE8DftxfPwk21yDDmx6E/eEOq9rSU8IctRqMW/o0OcNiBJPGRgxBXUyuH4W+mFyrwudNRY4TUdKG2XsMFKqJpTu1Qc5LayIr45hW4WA6804s0RVqigUG2QUylQ7+21iUIgOvMNHPYUX3C/B+q/1iC55me7TO/uUK7RnPdMfD2qJJmyDNc9eT9gbW40TAU9qKrE+Ju5f6gbpzDTJtwdntFhjpa7BtK59vGwpbyG7mGtYYDC5kgDfzVkNJWFBIXP9BW8jgsmvF4ItkK+a2kawfaV7I2HkIuWp+1nZ+JNPJ59kX0LDo/0kqX4hPwI0UhBvIADT4NJq0MdK3HVh0qybtTOgw5fkJ21aQMw==
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Reset inactive rolling monitored shows"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/session-monitoring/rolling-monitored/reset-inactive"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Reset all rolling monitored shows that have been inactive for a specified number of days
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"inactivityDays":{"type":"number","minimum":1,"maximum":365}},"additionalProperties":false}}}}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"resetCount":{"type":"number"}},"required":["success","message","resetCount"],"additionalProperties":false}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"}},"required":["error"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

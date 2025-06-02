@@ -1,0 +1,71 @@
+---
+id: get-user-watchlist
+title: "Get user watchlist items"
+description: "Fetch all watchlist items for a specific user by their ID"
+sidebar_label: "Get user watchlist items"
+hide_title: true
+hide_table_of_contents: true
+api: eJzVVk2P2zgM/SsCTy3g3WT6gQV8G2DaIsAegul29xDkQFtMrFaWXInONDD83xf0R8ZN3GaK9lIgQBKJfCSfHkU14CsKyMa7lYYU9sQfIoX/kPPCmsiQAOM+QroBWY+wTUBTzIOpxAdSeEucFwqtVQ+jkzJMZVQ7HxSqWFFudiZXdaSgsqPigkxQqztIoMKAJbHgppsGYl5QiZA2wMeKIIXIwbg9tAkYCVUhF5CAw1I2BW+lIYFAn2sTSEPKoaZ2Kyux8i5SFKwXy6V8fZ31He2wtqzuB0tIIPeOybHYYlVZk3esLD5GcZhJzmcfKReCqiAcsunDxTrPKcaJYea9JXRSRkkx4p5mS9TIT4CXqq9bGT2xcXWZUZAQPXMXsdsphxtxHky3CaDWRnhAu55E2KGN1CZwOvKVnPgEGkPAIyRgzta/kS8btvOsfKLj7Hq/MLdR1GV2uZOAq63FTMJ0MklgXxv9lJwnNO3JBfpBn8jI9cxeAuTqUgivyOl+RY6BIpOcwD5glnW/nGezM6Rh23YHQvoJ9Z0das9wz+fA3sjVyMSpvFPOY7QrOhDWPaOd0dxZFp16L2Qzul8PM8UaG+2xq4YeugYjQK+Wr36DS+FqxU8p9fVvcf/9glI7fC78MMe6+cIFpLA43CxEeXHR9EOjXTxMBlykcBhHUB0spFAwV+licbP888Vf3ef1Es7n3jqYEsNRve+8oU2+45y+XC5fXiDcmUA5DwDqtitYPXswXKjKB35+iWl9jrbwkecB/x63Z8G2MkV3fnLdwrq2EUNQt+vVBdjteqW0z+uSHHdK6Ob56PGHQrW29GU69B3TPjyavvdOLNFpdY8agzS+8NzD/3sjeqh85BI7fQ1T/R1x/1I4e02c59c86vWnniCDDJm+8KKyaDqZdqQ3g3w2cLiBpLu6JIv09O541NA2AaFdbJsmw0gfgm1bWf5cUzhCutkmcMBg+vt504A2UX7rQb7fKe7Z/dAWz9W30h1nkZOr/YC2ln/DXX96J7UyPApCLe+HTTNsilAqnrhdtL7o5tRW7978A237P/ZHgt0=
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get user watchlist items"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/users/{userId}/watchlist"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Fetch all watchlist items for a specific user by their ID
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"string"},"in":"path","name":"userId","required":true}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"data":{"type":"object","properties":{"user":{"type":"object","properties":{"id":{"type":"number"},"name":{"type":"string"}},"required":["id","name"],"additionalProperties":false},"watchlistItems":{"type":"array","items":{"type":"object","properties":{"title":{"type":"string"},"key":{"type":"string"},"type":{"type":"string"},"thumb":{"type":"string","nullable":true},"guids":{"type":"array","items":{"type":"string"}},"genres":{"type":"array","items":{"type":"string"}},"status":{"type":"string","enum":["pending","requested","grabbed","notified"]},"added":{"type":"string","nullable":true}},"required":["title","key","type","thumb","guids","genres","status","added"],"additionalProperties":false}},"total":{"type":"number"}},"required":["user","watchlistItems","total"],"additionalProperties":false}},"required":["success","message","data"],"additionalProperties":false}}}},"404":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}},"500":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

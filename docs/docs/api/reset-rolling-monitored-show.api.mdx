@@ -1,0 +1,71 @@
+---
+id: reset-rolling-monitored-show
+title: "Reset rolling monitored show"
+description: "Reset a rolling monitored show back to its original monitoring state (pilot only or first season only)"
+sidebar_label: "Reset rolling monitored show"
+hide_title: true
+hide_table_of_contents: true
+api: eJzVVcFq20AQ/ZVlTgkolZ2kFHQL5BJoqbHbXowPY2lsbbLeVWZHdozQv5eR5diN3bSnQkFgeXfm7cy+90YNhIoYxQb/UEAGTJFkHJyzfvkleCuBqZiUYQMJCC4jZFOYUIw2eNPvW7+EWQIFxZxtpUiQwVhxDBreQZnVHsvEMmzMHPMnI8FYiSawXVqPbh+j4VFQyFxU1gUxwbutCWwWlqOYSBiD7xYvIYEKGVckxFpaAzEvaYWQNSDbiiCDKF2BbQJW66pQSkjA40o3bQEJMD3XlqmATLimdqYrsQo+UlSc68FAf35t754WWDsx4z4SEsiDF/KisVhVzubdpaaPURPOFBbmj5SLdsBKgdjdcbHOc4rxKHAegiP02sKKYsQlnWmvPe5j+opySJklgEVhtSZ0o6MjF+gita0i3P7bVok58J972YX9Xf23/3H9Hb9SBrVhFWJ3nqo1g3Q9TOPOdFcHk6S9t65evZU2tmjTzsKQQCRe721Rs4MMSpEqS9Ph4MP1p+75OIC3xh2xXSFvzaTLhjZ5Jzm7GQxuThDuLVMuPYC564RoLjZWSlMFlstTTBdydGWIch7w8377LNhMnb0IHQ9WnBIxql1EZnM3ejgBuxs9mCLk9Yq8dLSbRWCzz7gyaEaOXswGJS+djWKsF1ryIXQSvEaiL8wYC2SGBPSed/A/hupTpW+FnZj6SbObh+en4dsam4NA/90c7TUs9CJp5dB286ZjqellOIX1sJPVWyHqDH0rRUgg66erqnGWgBKoIE0zx0jf2bWtLj/XxFvIprME1sgW58rgtIHCRn0veoO8c0UX495sl+Z3ffSL6LdKFrpa/0ECT7TdfQXaWZtASVgQd6fvNlRulRylnEwLVd+raUdfJ9+gbX8CjXGMAw==
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Reset rolling monitored show"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/session-monitoring/rolling-monitored/{id}/reset"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Reset a rolling monitored show back to its original monitoring state (pilot only or first season only)
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"string"},"in":"path","name":"id","required":true}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"}},"required":["error"],"additionalProperties":false}}}},"404":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"}},"required":["error"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      
