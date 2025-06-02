@@ -34,9 +34,9 @@ export type PlexNotificationsFormValues = z.infer<
 >
 
 /**
- * Provides state and handlers for managing Plex notifications configuration in a React form.
+ * React hook for managing Plex notifications configuration via a form.
  *
- * This hook initializes the form with current Plex notification settings, validates user input, and handles submission, cancellation, and deletion of the configuration. It communicates with server endpoints to fetch, update, or remove Plex notification settings, and manages related loading and error states.
+ * Initializes and validates the Plex notifications form, fetches current configuration from the server, and provides handlers for submitting, canceling, and deleting the configuration. Manages loading, submission, and error states, and exposes the latest server response data.
  *
  * @returns An object containing the form instance, error message, loading and submission states, handlers for submitting, canceling, and deleting the configuration, a placeholder for initiating deletion, and the latest server response data.
  */

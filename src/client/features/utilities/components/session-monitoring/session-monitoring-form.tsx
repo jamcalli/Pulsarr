@@ -38,9 +38,11 @@ const sessionMonitoringSchema = z.object({
 type SessionMonitoringFormData = z.infer<typeof sessionMonitoringSchema>
 
 /**
- * Provides a form interface for configuring Plex session monitoring and rolling monitoring reset settings.
+ * Renders a form for configuring Plex session monitoring and rolling monitoring reset settings.
  *
- * Allows users to enable or disable Plex session monitoring, set polling intervals, define episode thresholds, filter by users, and configure automatic reset options for rolling monitored shows. Integrates with schedule management and displays real-time status and management tools for active and inactive rolling shows.
+ * Enables users to manage Plex session monitoring options, including enabling/disabling monitoring, setting polling intervals, defining episode thresholds, filtering by users, and configuring automatic reset for rolling monitored shows. Integrates with schedule management and displays real-time status and management tools for active and inactive rolling shows.
+ *
+ * @returns The session monitoring configuration form UI.
  */
 export function SessionMonitoringForm() {
   const { config, updateConfig } = useConfigStore()
