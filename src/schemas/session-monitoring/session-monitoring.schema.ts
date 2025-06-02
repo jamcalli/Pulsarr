@@ -40,6 +40,11 @@ const SessionMonitoringResultSchema = z.object({
 
 // Schema for getting rolling monitored shows
 export const getRollingMonitoredSchema = {
+  summary: 'Get rolling monitored shows',
+  operationId: 'getRollingMonitoredShows',
+  description:
+    'Retrieve all shows currently being monitored by the rolling monitoring system',
+  tags: ['Session Monitoring'],
   response: {
     200: z.object({
       success: z.boolean(),
@@ -53,6 +58,11 @@ export const getRollingMonitoredSchema = {
 
 // Schema for manually running session monitor
 export const runSessionMonitorSchema = {
+  summary: 'Run session monitor manually',
+  operationId: 'runSessionMonitor',
+  description:
+    'Manually trigger the Plex session monitoring process to check for viewing activity and update rolling monitored shows',
+  tags: ['Session Monitoring'],
   response: {
     200: z.object({
       success: z.boolean(),
@@ -66,6 +76,11 @@ export const runSessionMonitorSchema = {
 
 // Schema for deleting a rolling monitored show
 export const deleteRollingMonitoredSchema = {
+  summary: 'Delete rolling monitored show',
+  operationId: 'deleteRollingMonitoredShow',
+  description:
+    'Remove a show from rolling monitoring and stop tracking its viewing activity',
+  tags: ['Session Monitoring'],
   params: z.object({
     id: z.string(),
   }),
@@ -85,6 +100,11 @@ export const deleteRollingMonitoredSchema = {
 
 // Schema for resetting a rolling monitored show
 export const resetRollingMonitoredSchema = {
+  summary: 'Reset rolling monitored show',
+  operationId: 'resetRollingMonitoredShow',
+  description:
+    'Reset a rolling monitored show back to its original monitoring state (pilot only or first season only)',
+  tags: ['Session Monitoring'],
   params: z.object({
     id: z.string(),
   }),
@@ -104,6 +124,11 @@ export const resetRollingMonitoredSchema = {
 
 // Schema for resetting inactive shows
 export const resetInactiveShowsSchema = {
+  summary: 'Reset inactive rolling monitored shows',
+  operationId: 'resetInactiveRollingMonitoredShows',
+  description:
+    'Reset all rolling monitored shows that have been inactive for a specified number of days',
+  tags: ['Session Monitoring'],
   body: z.object({
     inactivityDays: z.number().min(1).max(365).optional(),
   }),
@@ -121,6 +146,11 @@ export const resetInactiveShowsSchema = {
 
 // Schema for getting inactive rolling monitored shows
 export const getInactiveRollingMonitoredSchema = {
+  summary: 'Get inactive rolling monitored shows',
+  operationId: 'getInactiveRollingMonitoredShows',
+  description:
+    'Retrieve rolling monitored shows that have been inactive for a specified number of days',
+  tags: ['Session Monitoring'],
   querystring: z.object({
     inactivityDays: z.coerce.number().min(1).max(365).optional(),
   }),
