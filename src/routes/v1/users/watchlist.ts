@@ -26,7 +26,7 @@ const watchlistRoute: FastifyPluginAsync = async (fastify) => {
           404: GetUserWatchlistErrorSchema,
           500: GetUserWatchlistErrorSchema,
         },
-        tags: ['users'],
+        tags: ['Users'],
       },
     },
     async (request, reply) => {
