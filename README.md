@@ -16,8 +16,6 @@
 
 <h2 align="center">⭐ Love Pulsarr? Give Us a Star! ⭐</h2>
 
-#### Support Open-Source Media Automation
-
 If Pulsarr has simplified your media management, please star this repository! It takes just a second, helps others find us, and motivates continued development. Thank you for being part of our community!
 
 <p align="center">
@@ -25,6 +23,8 @@ If Pulsarr has simplified your media management, please star this repository! It
     <img src="https://reporoster.com/stars/dark/jamcalli/pulsarr?max=6" alt="Stargazers repo roster for @jamcalli/pulsarr" style="border: 1px solid #30363d; border-radius: 6px;" />
   </a>
 </p>
+
+---
 
 Pulsarr is an integration tool that bridges Plex watchlists with Sonarr and Radarr, enabling real-time media monitoring and automated content acquisition all from within the Plex App itself.
 
