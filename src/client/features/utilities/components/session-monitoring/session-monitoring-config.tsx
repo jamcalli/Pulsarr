@@ -71,7 +71,13 @@ export function SessionMonitoringConfig({
                 <Input
                   type="number"
                   {...field}
-                  onChange={(e) => field.onChange(Number(e.target.value))}
+                  onChange={(e) => {
+                    const value =
+                      e.target.value === '' ? 0 : Number(e.target.value)
+                    if (!Number.isNaN(value)) {
+                      field.onChange(value)
+                    }
+                  }}
                   min={1}
                   max={1440}
                   disabled={!isEnabled}
@@ -110,7 +116,13 @@ export function SessionMonitoringConfig({
                 <Input
                   type="number"
                   {...field}
-                  onChange={(e) => field.onChange(Number(e.target.value))}
+                  onChange={(e) => {
+                    const value =
+                      e.target.value === '' ? 0 : Number(e.target.value)
+                    if (!Number.isNaN(value)) {
+                      field.onChange(value)
+                    }
+                  }}
                   min={1}
                   max={10}
                   disabled={!isEnabled}

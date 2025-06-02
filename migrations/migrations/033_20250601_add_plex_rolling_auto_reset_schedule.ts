@@ -15,7 +15,7 @@ export async function up(knex: Knex): Promise<void> {
     await knex('schedules').insert({
       name: 'plex-rolling-auto-reset',
       type: 'interval',
-      config: JSON.stringify({ hours: 24 }),
+      config: JSON.stringify({ hours: 24 }), // Interval config: { hours: number }
       enabled: false, // Start disabled, user can enable via UI
       created_at: knex.fn.now(),
       updated_at: knex.fn.now()

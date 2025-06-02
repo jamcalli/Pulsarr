@@ -280,7 +280,7 @@ export class SonarrManagerService {
             }
           } else {
             this.log.warn(
-              `Could not find series ${sonarrItem.title} in Sonarr after ${3} retries - rolling monitoring entry not created`,
+              `Could not find series ${sonarrItem.title} in Sonarr after ${3 - retries} retries - rolling monitoring entry not created`,
             )
           }
         } catch (error) {

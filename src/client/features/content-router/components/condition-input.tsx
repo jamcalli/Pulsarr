@@ -169,7 +169,9 @@ function ConditionInput({
 
     handleNumberChange: (e: React.ChangeEvent<HTMLInputElement>) => {
       // Fix: Handle empty input correctly
-      const value = e.target.value === '' ? null : Number(e.target.value)
+      const numValue = Number(e.target.value)
+      const value =
+        e.target.value === '' ? null : Number.isNaN(numValue) ? null : numValue
       onChangeRef.current(value as ConditionValue)
     },
 

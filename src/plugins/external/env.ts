@@ -6,6 +6,16 @@ import crypto from 'node:crypto'
 
 const generateSecret = () => crypto.randomBytes(32).toString('hex')
 
+const DEFAULT_PLEX_SESSION_MONITORING = {
+  enabled: false,
+  pollingIntervalMinutes: 15,
+  remainingEpisodes: 2,
+  filterUsers: [],
+  enableAutoReset: true,
+  inactivityResetDays: 7,
+  autoResetIntervalHours: 24,
+}
+
 const schema = {
   type: 'object',
   required: ['port'],
@@ -272,15 +282,7 @@ const schema = {
     },
     plexSessionMonitoring: {
       type: 'string',
-      default: JSON.stringify({
-        enabled: false,
-        pollingIntervalMinutes: 15,
-        remainingEpisodes: 2,
-        filterUsers: [],
-        enableAutoReset: true,
-        inactivityResetDays: 7,
-        autoResetIntervalHours: 24,
-      }),
+      default: JSON.stringify(DEFAULT_PLEX_SESSION_MONITORING),
     },
     newUserDefaultCanSync: {
       type: 'boolean',

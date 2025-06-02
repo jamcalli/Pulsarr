@@ -111,6 +111,7 @@ export default async function sessionMonitoringRoutes(
     async (
       request: FastifyRequest<{
         Params: { id: string }
+        Querystring: { reset?: string }
       }>,
       reply: FastifyReply,
     ) => {
@@ -134,19 +135,26 @@ export default async function sessionMonitoringRoutes(
           })
         }
 
-        // First reset the show to its original monitoring state and delete excess files
-        await resetShowMonitoring(existingShow, fastify.plexSessionMonitor)
+        // Check if reset is requested (for backwards compatibility, default to true)
+        const shouldReset = request.query.reset !== 'false'
 
-        // Then delete the tracking record
+        if (shouldReset) {
+          // Reset the show to its original monitoring state and delete excess files
+          await resetShowMonitoring(existingShow, fastify.plexSessionMonitor)
+        }
+
+        // Remove from tracking
         await fastify.db.deleteRollingMonitoredShow(showId)
 
         request.log.info(
-          `Deleted rolling monitored show with ID ${showId} and reset monitoring state`,
+          `${shouldReset ? 'Deleted and reset' : 'Removed'} rolling monitored show with ID ${showId}`,
         )
 
         return reply.send({
           success: true,
-          message: `Successfully deleted ${existingShow.show_title} and reset to original monitoring state`,
+          message: shouldReset
+            ? `Successfully deleted ${existingShow.show_title} and reset to original monitoring state`
+            : `Successfully removed ${existingShow.show_title} from rolling monitoring`,
         })
       } catch (error) {
         request.log.error('Error deleting rolling monitored show:', error)

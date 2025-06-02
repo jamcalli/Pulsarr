@@ -129,6 +129,7 @@ export function NewUserDefaultsForm() {
                       type="button"
                       size="sm"
                       onClick={async () => {
+                        setIsSubmitting(true)
                         const newEnabledState = !isEnabled
                         form.setValue('canSync', newEnabledState, {
                           shouldDirty: true,

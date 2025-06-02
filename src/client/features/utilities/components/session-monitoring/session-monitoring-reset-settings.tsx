@@ -38,6 +38,8 @@ export function SessionMonitoringResetSettings({
   form,
   isEnabled,
 }: SessionMonitoringResetSettingsProps) {
+  const enableAutoReset = form.watch('enableAutoReset')
+
   return (
     <div>
       <h3 className="font-medium text-sm text-text mb-2">
@@ -109,10 +111,16 @@ export function SessionMonitoringResetSettings({
                   <Input
                     type="number"
                     {...field}
-                    onChange={(e) => field.onChange(Number(e.target.value))}
+                    onChange={(e) => {
+                      const value =
+                        e.target.value === '' ? 0 : Number(e.target.value)
+                      if (!Number.isNaN(value)) {
+                        field.onChange(value)
+                      }
+                    }}
                     min={1}
                     max={365}
-                    disabled={!isEnabled || !form.watch('enableAutoReset')}
+                    disabled={!isEnabled || !enableAutoReset}
                   />
                 </FormControl>
                 <FormMessage />
@@ -149,10 +157,16 @@ export function SessionMonitoringResetSettings({
                   <Input
                     type="number"
                     {...field}
-                    onChange={(e) => field.onChange(Number(e.target.value))}
+                    onChange={(e) => {
+                      const value =
+                        e.target.value === '' ? 0 : Number(e.target.value)
+                      if (!Number.isNaN(value)) {
+                        field.onChange(value)
+                      }
+                    }}
                     min={1}
                     max={168}
-                    disabled={!isEnabled || !form.watch('enableAutoReset')}
+                    disabled={!isEnabled || !enableAutoReset}
                   />
                 </FormControl>
                 <FormMessage />
