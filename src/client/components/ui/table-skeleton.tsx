@@ -154,8 +154,16 @@ export function TableLoadingState({
   className?: string
 }) {
   return (
-    <div className={`flex flex-col items-center justify-center py-12 ${className || ''}`}>
-      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-3" />
+    <div 
+      className={`flex flex-col items-center justify-center py-12 ${className || ''}`}
+      role="status"
+      aria-live="polite"
+      aria-label={message}
+    >
+      <Loader2 
+        className="h-8 w-8 animate-spin text-muted-foreground mb-3"
+        aria-hidden="true"
+      />
       <p className="text-sm text-muted-foreground">{message}</p>
     </div>
   )
