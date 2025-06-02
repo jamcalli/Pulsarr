@@ -16,12 +16,6 @@ const sidebar: SidebarsConfig = {
       items: [
         {
           type: 'doc',
-          id: 'api/get-self-watchlist-token',
-          label: 'Get self watchlist token',
-          className: 'api-method get',
-        },
-        {
-          type: 'doc',
           id: 'api/get-self-watchlist-items',
           label: 'Get self watchlist items',
           className: 'api-method get',
