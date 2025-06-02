@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en" dir="ltr" class="docs-wrapper plugin-docs plugin-id-default docs-version-current docs-doc-page docs-doc-id-utilities/session-monitoring" data-has-hydrated="false">
+<head>
+<meta charset="UTF-8">
+<meta name="generator" content="Docusaurus v3.7.0">
+<title data-rh="true">Plex Session Monitoring | Pulsarr</title><meta data-rh="true" name="viewport" content="width=device-width,initial-scale=1"><meta data-rh="true" name="twitter:card" content="summary_large_image"><meta data-rh="true" property="og:image" content="https://jamcalli.github.io/Pulsarr/img/pulsarr-social-card.png"><meta data-rh="true" name="twitter:image" content="https://jamcalli.github.io/Pulsarr/img/pulsarr-social-card.png"><meta data-rh="true" property="og:url" content="https://jamcalli.github.io/Pulsarr/docs/utilities/session-monitoring"><meta data-rh="true" property="og:locale" content="en"><meta data-rh="true" name="docusaurus_locale" content="en"><meta data-rh="true" name="docsearch:language" content="en"><meta data-rh="true" name="docusaurus_version" content="current"><meta data-rh="true" name="docusaurus_tag" content="docs-default-current"><meta data-rh="true" name="docsearch:version" content="current"><meta data-rh="true" name="docsearch:docusaurus_tag" content="docs-default-current"><meta data-rh="true" property="og:title" content="Plex Session Monitoring | Pulsarr"><meta data-rh="true" name="description" content="Pulsarr&#x27;s Session Monitoring feature intelligently tracks active Plex viewing sessions and automatically triggers Sonarr searches for upcoming content based on user viewing patterns. This ensures that the next episodes or seasons are ready before users finish watching their current content."><meta data-rh="true" property="og:description" content="Pulsarr&#x27;s Session Monitoring feature intelligently tracks active Plex viewing sessions and automatically triggers Sonarr searches for upcoming content based on user viewing patterns. This ensures that the next episodes or seasons are ready before users finish watching their current content."><link data-rh="true" rel="icon" href="/Pulsarr/img/favicon.ico"><link data-rh="true" rel="canonical" href="https://jamcalli.github.io/Pulsarr/docs/utilities/session-monitoring"><link data-rh="true" rel="alternate" href="https://jamcalli.github.io/Pulsarr/docs/utilities/session-monitoring" hreflang="en"><link data-rh="true" rel="alternate" href="https://jamcalli.github.io/Pulsarr/docs/utilities/session-monitoring" hreflang="x-default"><link rel="stylesheet" href="/Pulsarr/assets/css/styles.5d19bc28.css">
+<script src="/Pulsarr/assets/js/runtime~main.5372a65d.js" defer="defer"></script>
+<script src="/Pulsarr/assets/js/main.1128fbcd.js" defer="defer"></script>
+</head>
+<body class="navigation-with-keyboard">
+<script>!function(){function t(t){document.documentElement.setAttribute("data-theme",t)}var e=function(){try{return new URLSearchParams(window.location.search).get("docusaurus-theme")}catch(t){}}()||function(){try{return window.localStorage.getItem("theme")}catch(t){}}();null!==e?t(e):window.matchMedia("(prefers-color-scheme: dark)").matches?t("dark"):window.matchMedia("(prefers-color-scheme: light)").matches?t("light"):t("dark")}(),function(){try{const c=new URLSearchParams(window.location.search).entries();for(var[t,e]of c)if(t.startsWith("docusaurus-data-")){var a=t.replace("docusaurus-data-","data-");document.documentElement.setAttribute(a,e)}}catch(t){}}()</script><div id="__docusaurus"><link rel="preload" as="image" href="/Pulsarr/img/logo.svg"><link rel="preload" as="image" href="/Pulsarr/img/Plex-Session-Monitoring.png"><div role="region" aria-label="Skip to main content"><a class="skipToContent_fXgn" href="#__docusaurus_skipToContent_fallback">Skip to main content</a></div><nav aria-label="Main" class="navbar navbar--fixed-top" style="background-color:#48a9a6;border-bottom:4px solid #000"><div class="navbar__inner"><div class="navbar__items"><button aria-label="Toggle navigation bar" aria-expanded="false" class="navbar__toggle clean-btn" type="button"><svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><path stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="2" d="M4 7h22M4 15h22M4 23h22"></path></svg></button><a class="navbar__brand" href="/Pulsarr/"><div class="navbar__logo"><img src="/Pulsarr/img/logo.svg" alt="Pulsarr Logo" class="themedComponent_mlkZ themedComponent--light_NVdE"><img src="/Pulsarr/img/logo.svg" alt="Pulsarr Logo" class="themedComponent_mlkZ themedComponent--dark_xIcU"></div><b class="navbar__title text--truncate">Pulsarr</b></a><a aria-current="page" class="navbar__item navbar__link navbar__link--active" type="docSidebar" href="/Pulsarr/docs/intro">Documentation</a></div><div class="navbar__items navbar__items--right"><div class="navbar__item"><span class="navbar__star-reminder">Star us →</span></div><div class="navbar__item"><div id="github-stats-button"></div></div><div class="colorModeToggle_x44X"><button type="button" style="display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;border-radius:5px;font-size:0.875rem;font-weight:500;height:2.5rem;width:2.5rem;border:2px solid #000;background-color:#212121;color:#e6e6e6;position:relative;cursor:pointer;transition:all 0.2s ease" class=""><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sun" style="position:absolute;opacity:0;transform:rotate(-90deg) scale(0);transition:all 0.2s cubic-bezier(0.4, 0, 0.2, 1);color:#e6e6e6" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-moon" style="position:absolute;opacity:1;transform:rotate(0) scale(1);transition:all 0.2s cubic-bezier(0.4, 0, 0.2, 1);color:#e6e6e6" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg><span class="sr-only">Switch to <!-- -->light<!-- --> mode</span></button></div><div class="navbarSearchContainer_dCNk"></div></div></div><div role="presentation" class="navbar-sidebar__backdrop"></div></nav><div id="__docusaurus_skipToContent_fallback" class="main-wrapper mainWrapper_z2l0"><div class="docsWrapper_hBAB"><button aria-label="Scroll back to top" class="clean-btn theme-back-to-top-button backToTopButton_sjWU" type="button"></button><div class="docRoot_UBD9"><aside class="theme-doc-sidebar-container docSidebarContainer_YfHR"><div class="sidebarViewport_aRkj"><div class="sidebar_njMd"><nav aria-label="Docs sidebar" class="menu thin-scrollbar menu_SIkG"><ul class="theme-doc-sidebar-menu menu__list"><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class="menu__link" href="/Pulsarr/docs/intro">Introduction to Pulsarr</a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist menu__link--sublist-caret" role="button" aria-expanded="false" href="/Pulsarr/docs/installation/quick-start">Installation</a></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist menu__link--sublist-caret" role="button" aria-expanded="false" href="/Pulsarr/docs/features/content-routing">Features</a></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist menu__link--sublist-caret" role="button" aria-expanded="false" href="/Pulsarr/docs/notifications/discord">Notifications</a></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist menu__link--sublist-caret menu__link--active" role="button" aria-expanded="true" href="/Pulsarr/docs/utilities/delete-sync">Utilities</a></div><ul style="display:block;overflow:visible;height:auto" class="menu__list"><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/Pulsarr/docs/utilities/delete-sync">Delete Sync</a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/Pulsarr/docs/utilities/user-tagging">User Tagging</a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link menu__link--active" aria-current="page" tabindex="0" href="/Pulsarr/docs/utilities/session-monitoring">Plex Session Monitoring</a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/Pulsarr/docs/utilities/plex-notifications">Plex Notifications</a></li></ul></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class="menu__link" href="/Pulsarr/docs/architecture">Architecture</a></li><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-1 menu__list-item"><a class="menu__link" href="/Pulsarr/docs/contributing">Contributing</a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-1 menu__list-item"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist menu__link--sublist-caret" role="button" aria-expanded="true" href="/Pulsarr/docs/api/pulsarr-api">API Reference</a></div><ul style="display:block;overflow:visible;height:auto" class="menu__list"><li class="theme-doc-sidebar-item-link theme-doc-sidebar-item-link-level-2 menu__list-item"><a class="menu__link" tabindex="0" href="/Pulsarr/docs/api/pulsarr-api">Introduction</a></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" tabindex="0" href="/Pulsarr/docs/api/plex">Plex</a><button aria-label="Expand sidebar category &#x27;Plex&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" tabindex="0" href="/Pulsarr/docs/api/sonarr">Sonarr</a><button aria-label="Expand sidebar category &#x27;Sonarr&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" tabindex="0" href="/Pulsarr/docs/api/radarr">Radarr</a><button aria-label="Expand sidebar category &#x27;Radarr&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" tabindex="0" href="/Pulsarr/docs/api/config">Config</a><button aria-label="Expand sidebar category &#x27;Config&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" tabindex="0" href="/Pulsarr/docs/api/authentication">Authentication</a><button aria-label="Expand sidebar category &#x27;Authentication&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist" tabindex="0" href="/Pulsarr/docs/api/users">Users</a><button aria-label="Expand sidebar category &#x27;Users&#x27;" aria-expanded="false" type="button" class="clean-btn menu__caret"></button></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist menu__link--sublist-caret" role="button" aria-expanded="false" tabindex="0" href="/Pulsarr/docs/api/get-all-router-rules">Content Router</a></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist menu__link--sublist-caret" role="button" aria-expanded="false" tabindex="0" href="/Pulsarr/docs/api/start-discord-bot">Notifications</a></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist menu__link--sublist-caret" role="button" aria-expanded="false" tabindex="0" href="/Pulsarr/docs/api/get-radarr-instances">Radarr Configuration</a></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist menu__link--sublist-caret" role="button" aria-expanded="false" tabindex="0" href="/Pulsarr/docs/api/get-all-schedules">Scheduler</a></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist menu__link--sublist-caret" role="button" aria-expanded="false" tabindex="0" href="/Pulsarr/docs/api/get-sonarr-instances">Sonarr Configuration</a></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist menu__link--sublist-caret" role="button" aria-expanded="false" tabindex="0" href="/Pulsarr/docs/api/get-all-dashboard-stats">Statistics</a></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist menu__link--sublist-caret" role="button" aria-expanded="false" tabindex="0" href="/Pulsarr/docs/api/sync-instance">Sync</a></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist menu__link--sublist-caret" role="button" aria-expanded="false" tabindex="0" href="/Pulsarr/docs/api/get-tagging-status">Tags</a></div></li><li class="theme-doc-sidebar-item-category theme-doc-sidebar-item-category-level-2 menu__list-item menu__list-item--collapsed"><div class="menu__list-item-collapsible"><a class="menu__link menu__link--sublist menu__link--sublist-caret" role="button" aria-expanded="false" tabindex="0" href="/Pulsarr/docs/api/start-watchlist-workflow">Watchlist Workflow</a></div></li></ul></li></ul></nav></div></div></aside><main class="docMainContainer_TBSr"><div class="container padding-top--md padding-bottom--lg"><div class="row"><div class="col docItemCol_xLCN"><div class="docItemContainer_jfFK"><article><nav class="theme-doc-breadcrumbs breadcrumbsContainer_Z_bl" aria-label="Breadcrumbs"><ul class="breadcrumbs" itemscope="" itemtype="https://schema.org/BreadcrumbList"><li class="breadcrumbs__item"><a aria-label="Home page" class="breadcrumbs__link" href="/Pulsarr/"><svg viewBox="0 0 24 24" class="breadcrumbHomeIcon_YNFT"><path d="M10 19v-5h4v5c0 .55.45 1 1 1h3c.55 0 1-.45 1-1v-7h1.7c.46 0 .68-.57.33-.87L12.67 3.6c-.38-.34-.96-.34-1.34 0l-8.36 7.53c-.34.3-.13.87.33.87H5v7c0 .55.45 1 1 1h3c.55 0 1-.45 1-1z" fill="currentColor"></path></svg></a></li><li class="breadcrumbs__item"><span class="breadcrumbs__link">Utilities</span><meta itemprop="position" content="1"></li><li itemscope="" itemprop="itemListElement" itemtype="https://schema.org/ListItem" class="breadcrumbs__item breadcrumbs__item--active"><span class="breadcrumbs__link" itemprop="name">Plex Session Monitoring</span><meta itemprop="position" content="2"></li></ul></nav><div class="tocCollapsible_ETCw theme-doc-toc-mobile tocMobile_ITEo"><button type="button" class="clean-btn tocCollapsibleButton_TO0P">On this page</button></div><div class="theme-doc-markdown markdown"><div class="row"><div class="col col--12 markdown"><header><h1>Plex Session Monitoring</h1></header>
+<p>Pulsarr&#x27;s Session Monitoring feature intelligently tracks active Plex viewing sessions and automatically triggers Sonarr searches for upcoming content based on user viewing patterns. This ensures that the next episodes or seasons are ready before users finish watching their current content.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="key-features">Key Features<a href="#key-features" class="hash-link" aria-label="Direct link to Key Features" title="Direct link to Key Features">​</a></h2>
+<ul>
+<li><strong>Real-Time Session Monitoring</strong>: Tracks active Plex viewing sessions as they happen</li>
+<li><strong>Smart Episode Detection</strong>: Automatically identifies when users are near the end of seasons</li>
+<li><strong>Rolling Monitoring Support</strong>: Progressive season downloads that expand based on viewing patterns</li>
+<li><strong>User Filtering</strong>: Optionally restrict monitoring to specific Plex users</li>
+<li><strong>Deduplication</strong>: Prevents duplicate searches with intelligent 7-day caching</li>
+<li><strong>Pilot Episode Handling</strong>: Special logic for standalone pilot episodes</li>
+<li><strong>Cross-Instance Support</strong>: Works across all your Sonarr instances simultaneously</li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="how-it-works">How It Works<a href="#how-it-works" class="hash-link" aria-label="Direct link to How It Works" title="Direct link to How It Works">​</a></h2>
+<p>Session Monitoring operates on a simple principle: <strong>anticipate what users will want to watch next</strong>.</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="standard-monitoring">Standard Monitoring<a href="#standard-monitoring" class="hash-link" aria-label="Direct link to Standard Monitoring" title="Direct link to Standard Monitoring">​</a></h3>
+<p>When a user is watching a TV episode, the system:</p>
+<ol>
+<li><strong>Detects the viewing session</strong> via Plex&#x27;s active sessions API</li>
+<li><strong>Calculates remaining episodes</strong> in the current season using Sonarr data</li>
+<li><strong>Triggers searches</strong> when users approach the end of a season (configurable threshold)</li>
+<li><strong>Handles next seasons</strong> by either searching existing seasons or enabling monitoring for new content</li>
+</ol>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="rolling-monitoring">Rolling Monitoring<a href="#rolling-monitoring" class="hash-link" aria-label="Direct link to Rolling Monitoring" title="Direct link to Rolling Monitoring">​</a></h3>
+<p>For shows configured with rolling monitoring options:</p>
+<ol>
+<li><strong>Starts minimal</strong> - Only monitors pilot episode or first season initially</li>
+<li><strong>Tracks viewing progress</strong> - Records what users have watched</li>
+<li><strong>Expands intelligently</strong> - Adds next season monitoring when users near completion</li>
+<li><strong>Switches to full monitoring</strong> - Eventually transitions to monitoring all future content</li>
+</ol>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="rolling-monitoring-options">Rolling Monitoring Options<a href="#rolling-monitoring-options" class="hash-link" aria-label="Direct link to Rolling Monitoring Options" title="Direct link to Rolling Monitoring Options">​</a></h2>
+<p>Rolling monitoring provides two progressive strategies for new content:</p>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="pilot-rolling">Pilot Rolling<a href="#pilot-rolling" class="hash-link" aria-label="Direct link to Pilot Rolling" title="Direct link to Pilot Rolling">​</a></h3>
+<ul>
+<li><strong>Initial State</strong>: Only the pilot episode is monitored</li>
+<li><strong>Expansion</strong>: When users watch the pilot, Season 1 remainder is searched</li>
+<li><strong>Progressive</strong>: Additional seasons added as users progress</li>
+<li><strong>Best For</strong>: New shows where you want to test user interest</li>
+</ul>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="first-season-rolling">First Season Rolling<a href="#first-season-rolling" class="hash-link" aria-label="Direct link to First Season Rolling" title="Direct link to First Season Rolling">​</a></h3>
+<ul>
+<li><strong>Initial State</strong>: All of Season 1 is monitored</li>
+<li><strong>Expansion</strong>: Season 2 monitoring added when users near Season 1 completion</li>
+<li><strong>Progressive</strong>: Subsequent seasons added based on viewing</li>
+<li><strong>Best For</strong>: Established shows where Season 1 commitment is acceptable</li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="configuration">Configuration<a href="#configuration" class="hash-link" aria-label="Direct link to Configuration" title="Direct link to Configuration">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="basic-settings">Basic Settings<a href="#basic-settings" class="hash-link" aria-label="Direct link to Basic Settings" title="Direct link to Basic Settings">​</a></h3>
+<p>Navigate to <strong>Utilities &gt; Plex Session Monitoring</strong> to configure:</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="enabledisable-control">Enable/Disable Control<a href="#enabledisable-control" class="hash-link" aria-label="Direct link to Enable/Disable Control" title="Direct link to Enable/Disable Control">​</a></h4>
+<ul>
+<li><strong>Session Monitoring Status</strong>: Enable or disable the entire feature<!-- -->
+<ul>
+<li>Default: Disabled</li>
+<li>When enabled, activates all monitoring features</li>
+<li>When disabled, no sessions are processed</li>
+</ul>
+</li>
+</ul>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="monitoring-configuration">Monitoring Configuration<a href="#monitoring-configuration" class="hash-link" aria-label="Direct link to Monitoring Configuration" title="Direct link to Monitoring Configuration">​</a></h4>
+<ul>
+<li>
+<p><strong>Polling Interval</strong>: How often to check for active sessions (1-1440 minutes)</p>
+<ul>
+<li>Default: 15 minutes</li>
+<li>Lower values = more responsive monitoring</li>
+<li>Higher values = reduced server load</li>
+<li>Recommended: 15-30 minutes</li>
+</ul>
+</li>
+<li>
+<p><strong>Remaining Episodes Threshold</strong>: When to trigger searches (1-10 episodes)</p>
+<ul>
+<li>Default: 2 episodes</li>
+<li>Example: With threshold 2, searches trigger when watching episode 8 of a 10-episode season</li>
+<li>Recommended: 2-3 episodes</li>
+</ul>
+</li>
+</ul>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="filtering-options">Filtering Options<a href="#filtering-options" class="hash-link" aria-label="Direct link to Filtering Options" title="Direct link to Filtering Options">​</a></h4>
+<ul>
+<li><strong>Filter Users</strong>: Optionally restrict monitoring to specific Plex users<!-- -->
+<ul>
+<li>Leave empty to monitor all users</li>
+<li>Add specific users to focus monitoring efforts</li>
+<li>Useful for households with different viewing preferences</li>
+</ul>
+</li>
+</ul>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="rolling-monitoring-reset-settings">Rolling Monitoring Reset Settings<a href="#rolling-monitoring-reset-settings" class="hash-link" aria-label="Direct link to Rolling Monitoring Reset Settings" title="Direct link to Rolling Monitoring Reset Settings">​</a></h3>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="automatic-reset">Automatic Reset<a href="#automatic-reset" class="hash-link" aria-label="Direct link to Automatic Reset" title="Direct link to Automatic Reset">​</a></h4>
+<ul>
+<li><strong>Enable Automatic Reset</strong>: Automatically reset inactive rolling monitored shows<!-- -->
+<ul>
+<li>Default: Enabled</li>
+<li>Reverts shows to original monitoring state (pilot-only or first-season-only)</li>
+<li>Deletes excess episode files to save storage space</li>
+<li>Helps manage storage for shows that users have abandoned</li>
+</ul>
+</li>
+</ul>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="reset-configuration">Reset Configuration<a href="#reset-configuration" class="hash-link" aria-label="Direct link to Reset Configuration" title="Direct link to Reset Configuration">​</a></h4>
+<ul>
+<li>
+<p><strong>Inactivity Reset Days</strong>: Days without watching before resetting (1-365 days)</p>
+<ul>
+<li>Default: 7 days</li>
+<li>Shows not watched within this period are considered inactive</li>
+<li>Shorter periods = more aggressive storage management</li>
+<li>Longer periods = more lenient for sporadic viewing</li>
+</ul>
+</li>
+<li>
+<p><strong>Auto Reset Check Interval</strong>: How often to check for inactive shows (1-168 hours)</p>
+<ul>
+<li>Default: 24 hours</li>
+<li>Controls how frequently the system checks for inactive shows</li>
+<li>Lower values = more frequent cleanup checks</li>
+<li>Higher values = less server load</li>
+</ul>
+</li>
+</ul>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="rolling-monitoring-management">Rolling Monitoring Management<a href="#rolling-monitoring-management" class="hash-link" aria-label="Direct link to Rolling Monitoring Management" title="Direct link to Rolling Monitoring Management">​</a></h3>
+<p>The interface provides real-time status and management tools:</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="status-overview">Status Overview<a href="#status-overview" class="hash-link" aria-label="Direct link to Status Overview" title="Direct link to Status Overview">​</a></h4>
+<ul>
+<li>
+<p><strong>Active Shows</strong>: Shows currently being tracked with rolling monitoring</p>
+<ul>
+<li>Displays count of actively monitored shows</li>
+<li>Quick view button to see all active shows</li>
+<li>Shows expand their monitoring based on viewing patterns</li>
+</ul>
+</li>
+<li>
+<p><strong>Inactive Shows</strong>: Shows that haven&#x27;t been watched recently</p>
+<ul>
+<li>Displays count with customizable inactivity threshold</li>
+<li>Yellow warning badge for reset candidates</li>
+<li>Reset all button for bulk cleanup</li>
+<li>Adjustable day threshold for viewing inactive shows</li>
+</ul>
+</li>
+</ul>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="management-actions">Management Actions<a href="#management-actions" class="hash-link" aria-label="Direct link to Management Actions" title="Direct link to Management Actions">​</a></h4>
+<ul>
+<li>
+<p><strong>Check Sessions</strong>: Manually trigger a session monitoring check</p>
+<ul>
+<li>Runs the monitoring process immediately</li>
+<li>Useful for testing or forcing immediate updates</li>
+<li>Shows processing status while running</li>
+</ul>
+</li>
+<li>
+<p><strong>View Shows</strong>: Detailed tables showing all tracked shows</p>
+<ul>
+<li>Show title and monitoring type (Pilot/First Season)</li>
+<li>Current monitored season</li>
+<li>Last activity timestamp</li>
+<li>Individual reset/remove actions per show</li>
+</ul>
+</li>
+<li>
+<p><strong>Reset Actions</strong>:</p>
+<ul>
+<li><strong>Reset Show</strong>: Reverts to original monitoring state and deletes excess files</li>
+<li><strong>Remove from Monitoring</strong>: Stops tracking without affecting Sonarr settings</li>
+<li>Confirmation dialogs prevent accidental actions</li>
+</ul>
+</li>
+</ul>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="sonarr-integration">Sonarr Integration<a href="#sonarr-integration" class="hash-link" aria-label="Direct link to Sonarr Integration" title="Direct link to Sonarr Integration">​</a></h3>
+<p>Rolling monitoring options appear in two places:</p>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="instance-defaults">Instance Defaults<a href="#instance-defaults" class="hash-link" aria-label="Direct link to Instance Defaults" title="Direct link to Instance Defaults">​</a></h4>
+<p>Configure default rolling behavior in <strong>Sonarr Instance Settings</strong>:</p>
+<ul>
+<li>Set the default season monitoring strategy for all content added to an instance</li>
+<li>Choose from standard options (All, Future, etc.) or rolling options</li>
+</ul>
+<h4 class="anchor anchorWithStickyNavbar_LWe7" id="content-router-rules">Content Router Rules<a href="#content-router-rules" class="hash-link" aria-label="Direct link to Content Router Rules" title="Direct link to Content Router Rules">​</a></h4>
+<p>Override instance defaults in <strong>Content Router Rules</strong>:</p>
+<ul>
+<li>Apply rolling monitoring to specific content based on conditions</li>
+<li>Mix rolling and standard monitoring strategies</li>
+<li>Target rolling monitoring to specific genres, users, or criteria</li>
+</ul>
+<div class="theme-admonition theme-admonition-tip admonition_xJq3 alert alert--success"><div class="admonitionHeading_Gvgb"><span class="admonitionIcon_Rf37"><svg viewBox="0 0 12 16"><path fill-rule="evenodd" d="M6.5 0C3.48 0 1 2.19 1 5c0 .92.55 2.25 1 3 1.34 2.25 1.78 2.78 2 4v1h5v-1c.22-1.22.66-1.75 2-4 .45-.75 1-2.08 1-3 0-2.81-2.48-5-5.5-5zm3.64 7.48c-.25.44-.47.8-.67 1.11-.86 1.41-1.25 2.06-1.45 3.23-.02.05-.02.11-.02.17H5c0-.06 0-.13-.02-.17-.2-1.17-.59-1.83-1.45-3.23-.2-.31-.42-.67-.67-1.11C2.44 6.78 2 5.65 2 5c0-2.2 2.02-4 4.5-4 1.22 0 2.36.42 3.22 1.19C10.55 2.94 11 3.94 11 5c0 .66-.44 1.78-.86 2.48zM4 14h5c-.23 1.14-1.3 2-2.5 2s-2.27-.86-2.5-2z"></path></svg></span>Pro Tip</div><div class="admonitionContent_BuS1"><p>Rolling monitoring options are only available when Session Monitoring is enabled. If you don&#x27;t see these options, check that Session Monitoring is configured and running.</p></div></div>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="best-practices">Best Practices<a href="#best-practices" class="hash-link" aria-label="Direct link to Best Practices" title="Direct link to Best Practices">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="polling-interval-selection">Polling Interval Selection<a href="#polling-interval-selection" class="hash-link" aria-label="Direct link to Polling Interval Selection" title="Direct link to Polling Interval Selection">​</a></h3>
+<ul>
+<li><strong>High Activity Users</strong>: 10-15 minutes for responsive monitoring</li>
+<li><strong>Casual Viewing</strong>: 30-60 minutes to balance responsiveness with resource usage</li>
+<li><strong>Large Deployments</strong>: 60+ minutes to minimize server load</li>
+</ul>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="threshold-configuration">Threshold Configuration<a href="#threshold-configuration" class="hash-link" aria-label="Direct link to Threshold Configuration" title="Direct link to Threshold Configuration">​</a></h3>
+<ul>
+<li><strong>Conservative</strong>: 3-4 episodes remaining (ensures content is ready well in advance)</li>
+<li><strong>Balanced</strong>: 2-3 episodes remaining (good balance of timing and efficiency)</li>
+<li><strong>Aggressive</strong>: 1-2 episodes remaining (just-in-time downloading)</li>
+</ul>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="user-filtering-strategy">User Filtering Strategy<a href="#user-filtering-strategy" class="hash-link" aria-label="Direct link to User Filtering Strategy" title="Direct link to User Filtering Strategy">​</a></h3>
+<ul>
+<li><strong>Family Accounts</strong>: Filter to adult users who typically finish series</li>
+<li><strong>Shared Servers</strong>: Monitor only primary users or content decision makers</li>
+<li><strong>Testing</strong>: Start with a single user to validate configuration</li>
+</ul>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="rolling-monitoring-strategy">Rolling Monitoring Strategy<a href="#rolling-monitoring-strategy" class="hash-link" aria-label="Direct link to Rolling Monitoring Strategy" title="Direct link to Rolling Monitoring Strategy">​</a></h3>
+<ul>
+<li><strong>New Shows</strong>: Use &quot;Pilot Rolling&quot; to test user engagement</li>
+<li><strong>Popular Shows</strong>: Use &quot;First Season Rolling&quot; for established content</li>
+<li><strong>Trusted Content</strong>: Use standard &quot;All&quot; monitoring for known favorites</li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="technical-details">Technical Details<a href="#technical-details" class="hash-link" aria-label="Direct link to Technical Details" title="Direct link to Technical Details">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="session-detection">Session Detection<a href="#session-detection" class="hash-link" aria-label="Direct link to Session Detection" title="Direct link to Session Detection">​</a></h3>
+<ul>
+<li>Uses Plex&#x27;s <code>/status/sessions</code> API endpoint</li>
+<li>Processes only TV episode sessions (ignores movies and music)</li>
+<li>Extracts series metadata including TVDB IDs for accurate matching</li>
+</ul>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="deduplication-logic">Deduplication Logic<a href="#deduplication-logic" class="hash-link" aria-label="Direct link to Deduplication Logic" title="Direct link to Deduplication Logic">​</a></h3>
+<ul>
+<li>Maintains 7-day cache of processed sessions</li>
+<li>Prevents duplicate searches for the same series/season combination</li>
+<li>Automatically cleans up expired cache entries</li>
+</ul>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="series-matching">Series Matching<a href="#series-matching" class="hash-link" aria-label="Direct link to Series Matching" title="Direct link to Series Matching">​</a></h3>
+<ul>
+<li>Primary: TVDB ID matching between Plex and Sonarr</li>
+<li>Fallback: IMDB ID matching when available</li>
+<li>Last Resort: Title matching (case-insensitive)</li>
+</ul>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="error-handling">Error Handling<a href="#error-handling" class="hash-link" aria-label="Direct link to Error Handling" title="Direct link to Error Handling">​</a></h3>
+<ul>
+<li>Graceful degradation when Plex is unavailable</li>
+<li>Retry logic for Sonarr API calls</li>
+<li>Comprehensive logging for troubleshooting</li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="monitoring-and-logs">Monitoring and Logs<a href="#monitoring-and-logs" class="hash-link" aria-label="Direct link to Monitoring and Logs" title="Direct link to Monitoring and Logs">​</a></h2>
+<p>Session Monitoring provides detailed logging for troubleshooting:</p>
+<ul>
+<li><strong>Session Processing</strong>: Which sessions are being monitored</li>
+<li><strong>Search Triggers</strong>: When and why searches are initiated</li>
+<li><strong>Rolling Updates</strong>: Progression of rolling monitoring expansions</li>
+<li><strong>Error Conditions</strong>: API failures, network issues, or configuration problems</li>
+</ul>
+<p>Check your Pulsarr logs for session monitoring activity. Look for log entries such as:</p>
+<ul>
+<li><code>&quot;Found X active Plex sessions&quot;</code> - Shows when sessions are detected</li>
+<li><code>&quot;Processing session: ShowName S01E08 watched by Username&quot;</code> - Individual session processing</li>
+<li><code>&quot;Successfully triggered search for ShowName Season 2&quot;</code> - When searches are initiated</li>
+<li><code>&quot;Expanded monitoring for ShowName to include season 3&quot;</code> - Rolling monitoring progression</li>
+<li><code>&quot;Session monitoring complete. Processed: X, Triggered: Y&quot;</code> - Summary of monitoring cycles</li>
+</ul>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="environment-variable-configuration">Environment Variable Configuration<a href="#environment-variable-configuration" class="hash-link" aria-label="Direct link to Environment Variable Configuration" title="Direct link to Environment Variable Configuration">​</a></h2>
+<p>Session monitoring can also be configured via the <code>plexSessionMonitoring</code> environment variable in your <code>.env</code> file. This is useful for Docker deployments or when you want to set defaults before accessing the web UI.</p>
+<div class="language-env codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#F8F8F2;--prism-background-color:#282A36"><div class="codeBlockContent_biex"><pre tabindex="0" class="prism-code language-env codeBlock_bY9V thin-scrollbar" style="color:#F8F8F2;background-color:#282A36"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#F8F8F2"><span class="token plain"># Plex Session Monitoring Configuration (JSON format)</span><br></span><span class="token-line" style="color:#F8F8F2"><span class="token plain">plexSessionMonitoring=&#x27;{&quot;enabled&quot;:false,&quot;pollingIntervalMinutes&quot;:15,&quot;remainingEpisodes&quot;:2,&quot;filterUsers&quot;:[],&quot;enableAutoReset&quot;:true,&quot;inactivityResetDays&quot;:7,&quot;autoResetIntervalHours&quot;:24}&#x27;</span><br></span></code></pre><div class="buttonGroup__atx"><button type="button" aria-label="Copy code to clipboard" title="Copy" class="clean-btn"><span class="copyButtonIcons_eSgA" aria-hidden="true"><svg viewBox="0 0 24 24" class="copyButtonIcon_y97N"><path fill="currentColor" d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"></path></svg><svg viewBox="0 0 24 24" class="copyButtonSuccessIcon_LjdS"><path fill="currentColor" d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"></path></svg></span></button></div></div></div>
+<p>The JSON object supports the following properties:</p>
+<ul>
+<li><code>enabled</code>: Enable/disable session monitoring (default: <code>false</code>)</li>
+<li><code>pollingIntervalMinutes</code>: How often to check sessions (default: <code>15</code>, range: 1-1440)</li>
+<li><code>remainingEpisodes</code>: Threshold for triggering searches (default: <code>2</code>, range: 1-10)</li>
+<li><code>filterUsers</code>: Array of usernames to monitor, empty for all (default: <code>[]</code>)</li>
+<li><code>enableAutoReset</code>: Enable automatic reset feature (default: <code>true</code>)</li>
+<li><code>inactivityResetDays</code>: Days before considering show inactive (default: <code>7</code>, range: 1-365)</li>
+<li><code>autoResetIntervalHours</code>: How often to check for inactive shows (default: <code>24</code>, range: 1-168)</li>
+</ul>
+<p>Example with custom settings:</p>
+<div class="language-env codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#F8F8F2;--prism-background-color:#282A36"><div class="codeBlockContent_biex"><pre tabindex="0" class="prism-code language-env codeBlock_bY9V thin-scrollbar" style="color:#F8F8F2;background-color:#282A36"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#F8F8F2"><span class="token plain"># Enable monitoring with custom thresholds</span><br></span><span class="token-line" style="color:#F8F8F2"><span class="token plain">plexSessionMonitoring=&#x27;{&quot;enabled&quot;:true,&quot;pollingIntervalMinutes&quot;:30,&quot;remainingEpisodes&quot;:3,&quot;filterUsers&quot;:[&quot;Alice&quot;,&quot;Bob&quot;],&quot;enableAutoReset&quot;:true,&quot;inactivityResetDays&quot;:14,&quot;autoResetIntervalHours&quot;:12}&#x27;</span><br></span></code></pre><div class="buttonGroup__atx"><button type="button" aria-label="Copy code to clipboard" title="Copy" class="clean-btn"><span class="copyButtonIcons_eSgA" aria-hidden="true"><svg viewBox="0 0 24 24" class="copyButtonIcon_y97N"><path fill="currentColor" d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"></path></svg><svg viewBox="0 0 24 24" class="copyButtonSuccessIcon_LjdS"><path fill="currentColor" d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"></path></svg></span></button></div></div></div>
+<div class="theme-admonition theme-admonition-tip admonition_xJq3 alert alert--success"><div class="admonitionHeading_Gvgb"><span class="admonitionIcon_Rf37"><svg viewBox="0 0 12 16"><path fill-rule="evenodd" d="M6.5 0C3.48 0 1 2.19 1 5c0 .92.55 2.25 1 3 1.34 2.25 1.78 2.78 2 4v1h5v-1c.22-1.22.66-1.75 2-4 .45-.75 1-2.08 1-3 0-2.81-2.48-5-5.5-5zm3.64 7.48c-.25.44-.47.8-.67 1.11-.86 1.41-1.25 2.06-1.45 3.23-.02.05-.02.11-.02.17H5c0-.06 0-.13-.02-.17-.2-1.17-.59-1.83-1.45-3.23-.2-.31-.42-.67-.67-1.11C2.44 6.78 2 5.65 2 5c0-2.2 2.02-4 4.5-4 1.22 0 2.36.42 3.22 1.19C10.55 2.94 11 3.94 11 5c0 .66-.44 1.78-.86 2.48zM4 14h5c-.23 1.14-1.3 2-2.5 2s-2.27-.86-2.5-2z"></path></svg></span>tip</div><div class="admonitionContent_BuS1"><p>Environment variable settings override database settings. If you set values in the <code>.env</code> file, they will take precedence over settings configured in the web UI.</p></div></div>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="user-interface">User Interface<a href="#user-interface" class="hash-link" aria-label="Direct link to User Interface" title="Direct link to User Interface">​</a></h2>
+<p>The Session Monitoring configuration is located in the <strong>Utilities</strong> section of the Pulsarr web interface. The accordion-style interface provides clear sections for:</p>
+<ul>
+<li><strong>Enable/Disable Control</strong>: Quick toggle to activate or deactivate the entire feature</li>
+<li><strong>Monitoring Configuration</strong>: Core settings like polling interval and episode thresholds</li>
+<li><strong>Filtering Options</strong>: User selection and filtering controls</li>
+<li><strong>Rolling Monitoring Reset Settings</strong>: Automatic cleanup configuration for inactive shows</li>
+<li><strong>Rolling Monitoring Status</strong>: Real-time view of active and inactive shows with management actions</li>
+<li><strong>Action Controls</strong>: Save/cancel options with visual feedback</li>
+</ul>
+<p>The interface features:</p>
+<ul>
+<li><strong>Compact Layout</strong>: Settings organized in a 2-column grid to minimize vertical space</li>
+<li><strong>Visual Status Indicators</strong>: Blue-themed cards showing active/inactive show counts</li>
+<li><strong>Inline Management</strong>: Quick access to view, reset, and manage tracked shows</li>
+<li><strong>Confirmation Dialogs</strong>: Prevent accidental actions with clear explanations</li>
+<li><strong>Responsive Design</strong>: Optimized for both desktop and mobile viewing</li>
+</ul>
+<img src="/Pulsarr/img/Plex-Session-Monitoring.png" alt="Plex Session Monitoring Configuration Interface">
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="troubleshooting">Troubleshooting<a href="#troubleshooting" class="hash-link" aria-label="Direct link to Troubleshooting" title="Direct link to Troubleshooting">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="sessions-not-being-detected">Sessions Not Being Detected<a href="#sessions-not-being-detected" class="hash-link" aria-label="Direct link to Sessions Not Being Detected" title="Direct link to Sessions Not Being Detected">​</a></h3>
+<ol>
+<li>Verify Plex server connection in <strong>Plex</strong> settings</li>
+<li>Check that users are actively watching content (not paused for extended periods)</li>
+<li>Confirm polling interval isn&#x27;t too high</li>
+<li>Review logs for Plex API connection errors</li>
+</ol>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="searches-not-triggering">Searches Not Triggering<a href="#searches-not-triggering" class="hash-link" aria-label="Direct link to Searches Not Triggering" title="Direct link to Searches Not Triggering">​</a></h3>
+<ol>
+<li>Verify series exists in Sonarr with matching metadata</li>
+<li>Check threshold settings aren&#x27;t too conservative</li>
+<li>Confirm Sonarr instance is accessible and responsive</li>
+<li>Review deduplication cache (may have processed recently)</li>
+</ol>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="rolling-monitoring-not-working">Rolling Monitoring Not Working<a href="#rolling-monitoring-not-working" class="hash-link" aria-label="Direct link to Rolling Monitoring Not Working" title="Direct link to Rolling Monitoring Not Working">​</a></h3>
+<ol>
+<li>Ensure Session Monitoring is enabled and running</li>
+<li>Verify content was added with rolling monitoring options</li>
+<li>Check database for rolling monitoring entries</li>
+<li>Confirm Sonarr series has complete season metadata</li>
+</ol>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="performance-issues">Performance Issues<a href="#performance-issues" class="hash-link" aria-label="Direct link to Performance Issues" title="Direct link to Performance Issues">​</a></h3>
+<ol>
+<li>Increase polling interval to reduce API calls</li>
+<li>Enable user filtering to limit session processing</li>
+<li>Check Plex server performance and connection stability</li>
+<li>Monitor Sonarr instance response times</li>
+</ol>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="integration-with-other-features">Integration with Other Features<a href="#integration-with-other-features" class="hash-link" aria-label="Direct link to Integration with Other Features" title="Direct link to Integration with Other Features">​</a></h2>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="content-router">Content Router<a href="#content-router" class="hash-link" aria-label="Direct link to Content Router" title="Direct link to Content Router">​</a></h3>
+<ul>
+<li>Rolling monitoring options available in route configuration</li>
+<li>Apply different monitoring strategies based on content criteria</li>
+<li>Override instance defaults for specific content types</li>
+</ul>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="user-tagging">User Tagging<a href="#user-tagging" class="hash-link" aria-label="Direct link to User Tagging" title="Direct link to User Tagging">​</a></h3>
+<ul>
+<li>Session monitoring respects user tag configurations</li>
+<li>Triggered searches inherit user tags from original requests</li>
+<li>Rolling progression maintains user attribution</li>
+</ul>
+<h3 class="anchor anchorWithStickyNavbar_LWe7" id="delete-sync">Delete Sync<a href="#delete-sync" class="hash-link" aria-label="Direct link to Delete Sync" title="Direct link to Delete Sync">​</a></h3>
+<ul>
+<li>Rolling monitored content participates in delete sync operations</li>
+<li>Progression history preserved during sync operations</li>
+<li>Tag-based deletion modes work with rolling monitoring</li>
+</ul>
+<p>Session Monitoring transforms Pulsarr from reactive to proactive, ensuring your users always have the next episode ready to watch.</p>
+<h2 class="anchor anchorWithStickyNavbar_LWe7" id="attribution">Attribution<a href="#attribution" class="hash-link" aria-label="Direct link to Attribution" title="Direct link to Attribution">​</a></h2>
+<p>The Session Monitoring workflow was inspired by <a href="https://github.com/p-hueber/prefetcharr" target="_blank" rel="noopener noreferrer">prefetcharr</a> by p-hueber. If you find this feature useful, please consider giving their project a ⭐ on GitHub!</p></div></div></div><div class="row"><div class="col col--12"><footer class="theme-doc-footer docusaurus-mt-lg"><div class="row margin-top--sm theme-doc-footer-edit-meta-row"><div class="col"><a href="https://github.com/jamcalli/pulsarr/edit/main/docs/docs/utilities/session-monitoring.md" target="_blank" rel="noopener noreferrer" class="theme-edit-this-page"><svg fill="currentColor" height="20" width="20" viewBox="0 0 40 40" class="iconEdit_Z9Sw" aria-hidden="true"><g><path d="m34.5 11.7l-3 3.1-6.3-6.3 3.1-3q0.5-0.5 1.2-0.5t1.1 0.5l3.9 3.9q0.5 0.4 0.5 1.1t-0.5 1.2z m-29.5 17.1l18.4-18.5 6.3 6.3-18.4 18.4h-6.3v-6.2z"></path></g></svg>Edit this page</a></div><div class="col lastUpdated_JAkA"></div></div></footer></div></div></article><div class="row"><div class="col col--12"><nav class="pagination-nav docusaurus-mt-lg" aria-label="Docs pages"><a class="pagination-nav__link pagination-nav__link--prev" href="/Pulsarr/docs/utilities/user-tagging"><div class="pagination-nav__sublabel">Previous</div><div class="pagination-nav__label">User Tagging</div></a><a class="pagination-nav__link pagination-nav__link--next" href="/Pulsarr/docs/utilities/plex-notifications"><div class="pagination-nav__sublabel">Next</div><div class="pagination-nav__label">Plex Notifications</div></a></nav></div></div></div></div><div class="col col--3"><div class="tableOfContents_bqdL thin-scrollbar theme-doc-toc-desktop"><ul class="table-of-contents table-of-contents__left-border"><li><a href="#key-features" class="table-of-contents__link toc-highlight">Key Features</a></li><li><a href="#how-it-works" class="table-of-contents__link toc-highlight">How It Works</a><ul><li><a href="#standard-monitoring" class="table-of-contents__link toc-highlight">Standard Monitoring</a></li><li><a href="#rolling-monitoring" class="table-of-contents__link toc-highlight">Rolling Monitoring</a></li></ul></li><li><a href="#rolling-monitoring-options" class="table-of-contents__link toc-highlight">Rolling Monitoring Options</a><ul><li><a href="#pilot-rolling" class="table-of-contents__link toc-highlight">Pilot Rolling</a></li><li><a href="#first-season-rolling" class="table-of-contents__link toc-highlight">First Season Rolling</a></li></ul></li><li><a href="#configuration" class="table-of-contents__link toc-highlight">Configuration</a><ul><li><a href="#basic-settings" class="table-of-contents__link toc-highlight">Basic Settings</a></li><li><a href="#rolling-monitoring-reset-settings" class="table-of-contents__link toc-highlight">Rolling Monitoring Reset Settings</a></li><li><a href="#rolling-monitoring-management" class="table-of-contents__link toc-highlight">Rolling Monitoring Management</a></li><li><a href="#sonarr-integration" class="table-of-contents__link toc-highlight">Sonarr Integration</a></li></ul></li><li><a href="#best-practices" class="table-of-contents__link toc-highlight">Best Practices</a><ul><li><a href="#polling-interval-selection" class="table-of-contents__link toc-highlight">Polling Interval Selection</a></li><li><a href="#threshold-configuration" class="table-of-contents__link toc-highlight">Threshold Configuration</a></li><li><a href="#user-filtering-strategy" class="table-of-contents__link toc-highlight">User Filtering Strategy</a></li><li><a href="#rolling-monitoring-strategy" class="table-of-contents__link toc-highlight">Rolling Monitoring Strategy</a></li></ul></li><li><a href="#technical-details" class="table-of-contents__link toc-highlight">Technical Details</a><ul><li><a href="#session-detection" class="table-of-contents__link toc-highlight">Session Detection</a></li><li><a href="#deduplication-logic" class="table-of-contents__link toc-highlight">Deduplication Logic</a></li><li><a href="#series-matching" class="table-of-contents__link toc-highlight">Series Matching</a></li><li><a href="#error-handling" class="table-of-contents__link toc-highlight">Error Handling</a></li></ul></li><li><a href="#monitoring-and-logs" class="table-of-contents__link toc-highlight">Monitoring and Logs</a></li><li><a href="#environment-variable-configuration" class="table-of-contents__link toc-highlight">Environment Variable Configuration</a></li><li><a href="#user-interface" class="table-of-contents__link toc-highlight">User Interface</a></li><li><a href="#troubleshooting" class="table-of-contents__link toc-highlight">Troubleshooting</a><ul><li><a href="#sessions-not-being-detected" class="table-of-contents__link toc-highlight">Sessions Not Being Detected</a></li><li><a href="#searches-not-triggering" class="table-of-contents__link toc-highlight">Searches Not Triggering</a></li><li><a href="#rolling-monitoring-not-working" class="table-of-contents__link toc-highlight">Rolling Monitoring Not Working</a></li><li><a href="#performance-issues" class="table-of-contents__link toc-highlight">Performance Issues</a></li></ul></li><li><a href="#integration-with-other-features" class="table-of-contents__link toc-highlight">Integration with Other Features</a><ul><li><a href="#content-router" class="table-of-contents__link toc-highlight">Content Router</a></li><li><a href="#user-tagging" class="table-of-contents__link toc-highlight">User Tagging</a></li><li><a href="#delete-sync" class="table-of-contents__link toc-highlight">Delete Sync</a></li></ul></li><li><a href="#attribution" class="table-of-contents__link toc-highlight">Attribution</a></li></ul></div></div></div></div></main></div></div></div><footer class="footer footer--dark"><div class="container container-fluid"><div class="row footer__links"><div class="col footer__col"><div class="footer__title">Docs</div><ul class="footer__items clean-list"><li class="footer__item"><a class="footer__link-item" href="/Pulsarr/docs/intro">Getting Started</a></li></ul></div><div class="col footer__col"><div class="footer__title">Community</div><ul class="footer__items clean-list"><li class="footer__item"><a href="https://github.com/jamcalli/pulsarr" target="_blank" rel="noopener noreferrer" class="footer__link-item">GitHub<svg width="13.5" height="13.5" aria-hidden="true" viewBox="0 0 24 24" class="iconExternalLink_nPIU"><path fill="currentColor" d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"></path></svg></a></li><li class="footer__item"><a href="https://github.com/jamcalli/pulsarr/issues" target="_blank" rel="noopener noreferrer" class="footer__link-item">Issues<svg width="13.5" height="13.5" aria-hidden="true" viewBox="0 0 24 24" class="iconExternalLink_nPIU"><path fill="currentColor" d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"></path></svg></a></li></ul></div><div class="col footer__col"><div class="footer__title">More</div><ul class="footer__items clean-list"><li class="footer__item"><a href="https://github.com/jamcalli/pulsarr" target="_blank" rel="noopener noreferrer" class="footer__link-item">Pulsarr App<svg width="13.5" height="13.5" aria-hidden="true" viewBox="0 0 24 24" class="iconExternalLink_nPIU"><path fill="currentColor" d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"></path></svg></a></li><li class="footer__item"><a href="https://github.com/jamcalli/pulsarr/blob/main/LICENSE" target="_blank" rel="noopener noreferrer" class="footer__link-item">License (GPL)<svg width="13.5" height="13.5" aria-hidden="true" viewBox="0 0 24 24" class="iconExternalLink_nPIU"><path fill="currentColor" d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"></path></svg></a></li></ul></div></div></div></footer></div>
+</body>
+</html>

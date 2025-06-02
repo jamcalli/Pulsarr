@@ -192,6 +192,51 @@
                         },
                         "_isReady": {
                           "type": "boolean"
+                        },
+                        "plexSessionMonitoring": {
+                          "type": "object",
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean",
+                              "default": false
+                            },
+                            "pollingIntervalMinutes": {
+                              "type": "number",
+                              "minimum": 1,
+                              "default": 15
+                            },
+                            "remainingEpisodes": {
+                              "type": "number",
+                              "minimum": 1,
+                              "default": 2
+                            },
+                            "filterUsers": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "enableAutoReset": {
+                              "type": "boolean",
+                              "default": true
+                            },
+                            "inactivityResetDays": {
+                              "type": "number",
+                              "minimum": 1,
+                              "maximum": 365,
+                              "default": 7
+                            },
+                            "autoResetIntervalHours": {
+                              "type": "number",
+                              "minimum": 1,
+                              "maximum": 168,
+                              "default": 24
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "newUserDefaultCanSync": {
+                          "type": "boolean"
                         }
                       },
                       "additionalProperties": false
@@ -430,6 +475,51 @@
                   },
                   "_isReady": {
                     "type": "boolean"
+                  },
+                  "plexSessionMonitoring": {
+                    "type": "object",
+                    "properties": {
+                      "enabled": {
+                        "type": "boolean",
+                        "default": false
+                      },
+                      "pollingIntervalMinutes": {
+                        "type": "number",
+                        "minimum": 1,
+                        "default": 15
+                      },
+                      "remainingEpisodes": {
+                        "type": "number",
+                        "minimum": 1,
+                        "default": 2
+                      },
+                      "filterUsers": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "enableAutoReset": {
+                        "type": "boolean",
+                        "default": true
+                      },
+                      "inactivityResetDays": {
+                        "type": "number",
+                        "minimum": 1,
+                        "maximum": 365,
+                        "default": 7
+                      },
+                      "autoResetIntervalHours": {
+                        "type": "number",
+                        "minimum": 1,
+                        "maximum": 168,
+                        "default": 24
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "newUserDefaultCanSync": {
+                    "type": "boolean"
                   }
                 },
                 "additionalProperties": false
@@ -613,6 +703,51 @@
                           "type": "string"
                         },
                         "_isReady": {
+                          "type": "boolean"
+                        },
+                        "plexSessionMonitoring": {
+                          "type": "object",
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean",
+                              "default": false
+                            },
+                            "pollingIntervalMinutes": {
+                              "type": "number",
+                              "minimum": 1,
+                              "default": 15
+                            },
+                            "remainingEpisodes": {
+                              "type": "number",
+                              "minimum": 1,
+                              "default": 2
+                            },
+                            "filterUsers": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "enableAutoReset": {
+                              "type": "boolean",
+                              "default": true
+                            },
+                            "inactivityResetDays": {
+                              "type": "number",
+                              "minimum": 1,
+                              "maximum": 365,
+                              "default": 7
+                            },
+                            "autoResetIntervalHours": {
+                              "type": "number",
+                              "minimum": 1,
+                              "maximum": 168,
+                              "default": 24
+                            }
+                          },
+                          "additionalProperties": false
+                        },
+                        "newUserDefaultCanSync": {
                           "type": "boolean"
                         }
                       },
@@ -6427,6 +6562,34 @@
                     }
                   },
                   "required": ["statusCode", "error", "message"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/progress/": {
+      "get": {
+        "operationId": "streamProgress",
+        "summary": "Stream progress events",
+        "tags": ["progress"],
+        "description": "Server-Sent Events stream for real-time progress updates. This endpoint establishes an SSE connection to receive progress updates for various operations like watchlist syncing, delete sync analysis, etc.",
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "description": "SSE stream of progress events"
+                    }
+                  },
+                  "required": ["message"],
                   "additionalProperties": false
                 }
               }
@@ -12872,6 +13035,166 @@
             }
           },
           "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["success", "message"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/users/{userId}/watchlist": {
+      "get": {
+        "operationId": "getUserWatchlist",
+        "summary": "Get user watchlist items",
+        "tags": ["users"],
+        "description": "Fetch all watchlist items for a specific user by their ID",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "path",
+            "name": "userId",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "user": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "number"
+                            },
+                            "name": {
+                              "type": "string"
+                            }
+                          },
+                          "required": ["id", "name"],
+                          "additionalProperties": false
+                        },
+                        "watchlistItems": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "title": {
+                                "type": "string"
+                              },
+                              "key": {
+                                "type": "string"
+                              },
+                              "type": {
+                                "type": "string"
+                              },
+                              "thumb": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "guids": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "genres": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "pending",
+                                  "requested",
+                                  "grabbed",
+                                  "notified"
+                                ]
+                              },
+                              "added": {
+                                "type": "string",
+                                "nullable": true
+                              }
+                            },
+                            "required": [
+                              "title",
+                              "key",
+                              "type",
+                              "thumb",
+                              "guids",
+                              "genres",
+                              "status",
+                              "added"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "total": {
+                          "type": "number"
+                        }
+                      },
+                      "required": ["user", "watchlistItems", "total"],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": ["success", "message", "data"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Default Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["success", "message"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
             "description": "Default Response",
             "content": {
               "application/json": {
