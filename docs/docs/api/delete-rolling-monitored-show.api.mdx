@@ -1,0 +1,71 @@
+---
+id: delete-rolling-monitored-show
+title: "Delete rolling monitored show"
+description: "Remove a show from rolling monitoring and stop tracking its viewing activity"
+sidebar_label: "Delete rolling monitored show"
+hide_title: true
+hide_table_of_contents: true
+api: eJzVVE1r20AQ/SvLnBpQajtJKegWcA6BFIzd9mJ8GGvH1iYrrbI7kmOE/nuZtRK7tpv2UAoFgaT5eDuz89604CryyMaV9xpS0GSJaeqsNeX6iysNO096lrsNJMC4DpDOYUYhGFeq3m/KNSwS0BQybyqBghSmVLiGFKqQu41aeVcov0NVxVuawlKrwK5S7DF7EovhoBpDm+jN2DSGt5BAhR4LYvJSQAshy6lASFvgbUWQQuBYRpeAkdMr5BwSKLEQp9GQgKfn2njSkLKvqVuIJVSuDBQE52o4lNfPTYxphbVlNe0jIYHMlUwlSyxWlTVZvLvBY5CEM4W55SNlLB14uWk2u+NCnWUUwkHg0jlLWEoLBYWAazrTXnfYx/wNZZ+ySAC1NlIT2snBkSu0gbpOEG7+bavkvfO/72UX9mf13/zH9cf5cu72aov05hxSGDSjQdiJ63KvkkEvnFcT6UFrdAcJBPLNqyRqbyGFnLlKB4PR8OPV5/h8GsKxNCfeFOi3ahazoUveSU6vh8PrE4Sx8ZRxD6BuIwnVh43hXFXO88UppnUZ2twFPg/48Oo+C7YQVa9cnIFhK0OY1Dag9+p2cn8Cdju5V9pldUElx5GrlfPqNeNSoZpYelEb5Cy3JrAyJdPa70NnrpRIWU5T1Og9JCD3vIP/PhKNVi5wgZFI/ZYZx2EebznScQMeF9nu2fm3V2VPU6YXHlQWTVwpcRhtz7M5NKPInmOmyZo85hokkBotxJb5SHLbLjHQN2+7TszPNfktpPNFAg16g0sZ0LwFbYJ8657771zAh2mvowv1q/p7I5bSYYO2lj9I4Im2uwXfLboEckJNPp6+cwibKj5IOVkEQq43PY7vHu6+3kHX/QC6B3am
+sidebar_class_name: "delete api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Delete rolling monitored show"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"delete"}
+  path={"/v1/session-monitoring/rolling-monitored/{id}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Remove a show from rolling monitoring and stop tracking its viewing activity
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"string"},"in":"path","name":"id","required":true}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"}},"required":["error"],"additionalProperties":false}}}},"404":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"}},"required":["error"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

@@ -1,0 +1,63 @@
+---
+id: stream-progress
+title: "Stream progress events"
+description: "Server-Sent Events stream for real-time progress updates. This endpoint establishes an SSE connection to receive progress updates for various operations like watchlist syncing, delete sync analysis, etc."
+sidebar_label: "Stream progress events"
+hide_title: true
+hide_table_of_contents: true
+api: eJzdVMFu2zAM/RWCpw1Qm6TFMMC3Ag2GAjsETbdLkAMjM7FaWXJFOm1g+N8HOUmbNcU+YIYB2xL1+Ei+5w5jw4nUxXBXYoGiiamepbhJLIIGlTaCxQLflpYGSxabXJMPYYFzTltOF3MOCtMtBxXYo8A6JkhM/kJdzdAcEKBtSlKWS3ionACHsokuKLAorbyTigUowHw+BRtDYJvzgEZIbNltz4GGPFtKLrYCb+UIePfE8EJqK+9EQXbBurAxULJn5eEbKJDfiRMDrPYSDSaWJgZhwaLDq/E4P/6u95bX1HqF+0MkGrQxKAfNsdQ03tmBwehR8oEOxVZcU37TXcNYYFw9slU02KTMV90+Xc0itOGTQNHkwgbPWj6fHnsc1+/94KH72Pe5jOfWJS7z6I6wS4NUli5jkJ+dZF6TF+7zZbBmrWJWwoYHgqQVFjjaTkbHNCM0KMPMszA6bJPHAivVphiNJuPLq+/D/W18RnuWXE1pB3vFYG/+cbi4Ho+vzxBuXWKrBwC4sTaX/eXFaQVNTPr1HNNHS76Kop8D/jxufwq2NOjCOg4DcerzRGatF0oJbmZ3Z2A3szsoo21rDjooYFDm8cQFEMw8v55I0gXlTXoPnceQIymUcE8lpYQGc5/38L8n2BtsomhNg64C1ZnSfK+EjzL4wK57V+l/ZtmDV5RfddR4ciG3aRBBd9DvAreTvduOv7Vshjz2vNd1KxL+lXzf5+XnltMOi8XSYGZIqzz3xbI3WDGVnAbRP/EuD9xabrJNtuTbzOHM/VlCb5b6MX3Avv8DUhHnoA==
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Stream progress events"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/progress/"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Server-Sent Events stream for real-time progress updates. This endpoint establishes an SSE connection to receive progress updates for various operations like watchlist syncing, delete sync analysis, etc.
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"message":{"type":"string","description":"SSE stream of progress events"}},"required":["message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      
