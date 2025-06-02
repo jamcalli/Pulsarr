@@ -9,15 +9,12 @@ interface UserMultiSelectProps {
 }
 
 /**
- * Renders a multi-select input for choosing user(s).
+ * Displays a multi-select input for selecting one or more users, integrating with a controlled form field.
  *
- * This component initializes the configuration store if needed and fetches the user list,
- * mapping each user into an option with a label (combining the user's name with their alias, if available)
- * and a stringified ID as the value. When the selection changes, it updates the form state via the provided
- * field handler, using a single value for one selection and an array for multiple selections.
+ * Initializes and fetches user data from the configuration store if necessary, then presents users as selectable options. Updates the form field value based on the current selection, supporting both single and multiple user selections.
  *
- * @param field - A controlled form field from react-hook-form used to manage the input's value.
- * @param disabled - Optional disabled state for the multi-select component.
+ * @param field - Controlled form field from react-hook-form for managing the selected user(s).
+ * @param disabled - If true, disables the multi-select input.
  */
 export function UserMultiSelect({ field, disabled }: UserMultiSelectProps) {
   const users = useConfigStore((state) => state.users)

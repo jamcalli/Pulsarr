@@ -1,9 +1,9 @@
 import type { Knex } from 'knex'
 
 /**
- * Adds a new disabled schedule entry named 'plex-rolling-auto-reset' to the 'schedules' table if it does not already exist.
+ * Inserts a disabled schedule entry named 'plex-rolling-auto-reset' into the 'schedules' table if it does not already exist.
  *
- * The schedule is of type 'interval' with a 24-hour interval configuration. Timestamps are set to the current time.
+ * The schedule is configured as an interval type with a 24-hour interval and current timestamps for creation and update.
  */
 export async function up(knex: Knex): Promise<void> {
   // Add the new schedule for automatic rolling monitor reset
@@ -24,7 +24,7 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Removes the 'plex-rolling-auto-reset' schedule entry from the schedules table.
+ * Deletes the schedule entry named 'plex-rolling-auto-reset' from the schedules table.
  */
 export async function down(knex: Knex): Promise<void> {
   // Remove the schedule

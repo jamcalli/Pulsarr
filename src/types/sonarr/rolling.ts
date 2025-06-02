@@ -17,9 +17,10 @@ export const ROLLING_MONITORING_OPTIONS = new Set<string>([
 ])
 
 /**
- * Type guard to check if a monitoring option is a rolling option
- * @param option - The monitoring option to check
- * @returns true if the option is a rolling monitoring option
+ * Determines whether the given monitoring option is a recognized rolling monitoring option.
+ *
+ * @param option - The monitoring option to check.
+ * @returns `true` if {@link option} is a rolling monitoring option; otherwise, `false`.
  */
 export function isRollingMonitoringOption(option: string): boolean {
   return ROLLING_MONITORING_OPTIONS.has(option)
