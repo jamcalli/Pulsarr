@@ -1,0 +1,71 @@
+---
+id: get-inactive-rolling-monitored-shows
+title: "Get inactive rolling monitored shows"
+description: "Retrieve rolling monitored shows that have been inactive for a specified number of days"
+sidebar_label: "Get inactive rolling monitored shows"
+hide_title: true
+hide_table_of_contents: true
+api: eJy9Vl2L6zYQ/StinlrwNsnd3l7w28KWy0ILYdP2JYQwsSexbmXJdzTObgj+70Wy82lnd/vQQsBBmjnSzDkzoz24ihhFO/uUQwobkieLmegtPTtjtN387qwWx5TPCvfiIQHBjYd0DjPyXjurOgNtN7BIICefsa4CIKTwTMKatqS4BVPlAU35AKekQFEFbkmtiKzS3dlq7Vih8hVleq0pV7YuV8TKrVWOu3CLChlLEuJwlz34rKASId2D7CqCFFoHSKDUVpd1CekkgRJf2//3v3xuEtDhit9r4h0kYLEMft0NtOwe24OYvteaKYd0jcZTswhLvnLWkw/nfRqPw+cy7kdaY21EPXeWkEDmrJCVYItVZXQWkz765oPDQABu9Y0yCZFyoEh0e5yvs4y8PzNcOWcILTQJxJyebSEzhti0UOnfx9Z5P4EB1VlkXnpiTX55w0i2+epyz0vURAK2NgZXhiAVrinkvfy4bQhpKVrC0rV5k0B5FN+y3etDkg2Mz6HSxkknakhgrdnLjNA7e1hcNAlkNTNZWR6FuvTRZjBog16WLyhZ8S/sqNLe5XTb0LeFtcxRBgPq56glSFsvaDO6RVFl6HVZe+KP5v7o0NbGBzwyJhTKlyiDbNVV/tZ2jP5Nm+a8HudBsAPyPInxJLULIfVl8wbvwyzf4HSIwUF+rti4zvVFJi/y1s/SIgHMcx26CZrpWUG3/Sr2uYue1tfGVVoPPebQUHoI7x0ZAH/+f/siMTt+XzGt2fv3D62FpHDdTIwDRwpIYbSdjDp6704qGnXz7e4on9FhlIUsEm8Pg6pmAykUIlU6Gk3GP336En+fx3A9O6esS+SdmkVvaJI3nNP78fi+h/ComTLpANRDJFX98KKlUJVj+bGPaVyGpnBehgF/O2wPgi2CTtYuktA2bJjWxiOzepg+9cAepk8qd1ldkpXIeRz6B487hWpq6FXFEjPai9JWaMMn01ksK4U2V8+YI4dpH/Lcwv81iT3PeSkxKqkb8F9JTs+MG8+S67vuTyr9D580nXKFXmVUGdRxpEd69p365rCdRD1d6y+8U64VeCpbCoIPtAWE/X6Fnv5k0zRhuX3+BGXm2odefnjoJPA37YYeRFs0dbhnJHyLrNsJMA/TsyDMiSNc6x10UsmZV6/GA8qx1L7++gc0zT/vTrxV
+sidebar_class_name: "get api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get inactive rolling monitored shows"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/v1/session-monitoring/rolling-monitored/inactive"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Retrieve rolling monitored shows that have been inactive for a specified number of days
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"number","minimum":1,"maximum":365},"in":"query","name":"inactivityDays","required":false}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"shows":{"type":"array","items":{"type":"object","properties":{"id":{"type":"number"},"sonarr_series_id":{"type":"number"},"tvdb_id":{"type":"string","nullable":true},"imdb_id":{"type":"string","nullable":true},"show_title":{"type":"string"},"monitoring_type":{"type":"string","enum":["pilotRolling","firstSeasonRolling"]},"current_monitored_season":{"type":"number"},"last_watched_season":{"type":"number"},"last_watched_episode":{"type":"number"},"last_session_date":{"type":"string","nullable":true},"sonarr_instance_id":{"type":"number"},"plex_user_id":{"type":"string","nullable":true},"plex_username":{"type":"string","nullable":true},"created_at":{"type":"string"},"updated_at":{"type":"string"},"last_updated_at":{"type":"string"}},"required":["id","sonarr_series_id","tvdb_id","imdb_id","show_title","monitoring_type","current_monitored_season","last_watched_season","last_watched_episode","last_session_date","sonarr_instance_id","plex_user_id","plex_username","created_at","updated_at","last_updated_at"],"additionalProperties":false}},"inactivityDays":{"type":"number"}},"required":["success","shows","inactivityDays"],"additionalProperties":false}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"error":{"type":"string"}},"required":["error"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      
