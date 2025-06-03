@@ -211,10 +211,17 @@
                               "default": 2
                             },
                             "filterUsers": {
-                              "type": "array",
-                              "items": {
-                                "type": "string"
-                              }
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              ]
                             },
                             "enableAutoReset": {
                               "type": "boolean",
@@ -494,10 +501,17 @@
                         "default": 2
                       },
                       "filterUsers": {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        ]
                       },
                       "enableAutoReset": {
                         "type": "boolean",
@@ -723,10 +737,17 @@
                               "default": 2
                             },
                             "filterUsers": {
-                              "type": "array",
-                              "items": {
-                                "type": "string"
-                              }
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              ]
                             },
                             "enableAutoReset": {
                               "type": "boolean",
