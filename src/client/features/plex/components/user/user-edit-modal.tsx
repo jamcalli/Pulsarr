@@ -120,12 +120,11 @@ const FormContent = React.memo(
                   <FormLabel className="text-text">Discord ID</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="Discord ID"
-                      className="bg-muted/50 cursor-not-allowed"
-                      disabled={true}
-                      readOnly
+                      placeholder="Discord ID (optional)"
+                      disabled={saveStatus !== 'idle'}
                       {...field}
                       value={field.value || ''}
+                      onChange={(e) => field.onChange(e.target.value || null)}
                     />
                   </FormControl>
                   <FormMessage />

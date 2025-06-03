@@ -29,7 +29,14 @@ const sessionMonitoringSchema = z.object({
   enabled: z.boolean(),
   pollingIntervalMinutes: z.number().min(1).max(1440),
   remainingEpisodes: z.number().min(1).max(10),
-  filterUsers: z.array(z.string()).optional(),
+  filterUsers: z
+    .union([z.string(), z.array(z.string())])
+    .optional()
+    .transform((val) => {
+      // Always convert to array for consistency
+      if (!val) return undefined
+      return Array.isArray(val) ? val : [val]
+    }),
   enableAutoReset: z.boolean(),
   inactivityResetDays: z.number().min(1).max(365),
   autoResetIntervalHours: z.number().min(1).max(168),
