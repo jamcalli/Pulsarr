@@ -7,7 +7,13 @@ import type { Knex } from 'knex'
  * This migration introduces a configuration option for Radarr instances to specify when movies are considered available. Possible values include 'announced', 'inCinemas', or 'released'.
  */
 export async function up(knex: Knex): Promise<void> {
-  // Add minimum_availability to radarr_instances
+    // Skip on PostgreSQL - consolidated in migration 034
+  const client = knex.client.config.client
+  if (client === 'pg') {
+    console.log('Skipping migration 020_20250506_add_minimum_availability - PostgreSQL uses consolidated schema in migration 034')
+    return
+  }
+// Add minimum_availability to radarr_instances
   await knex.schema.alterTable('radarr_instances', (table) => {
     // Add the minimum_availability column with a default value of 'released'
     table.string('minimum_availability').defaultTo('released')
@@ -25,6 +31,11 @@ export async function up(knex: Knex): Promise<void> {
  * Reverses the migration applied in the `up` function.
  */
 export async function down(knex: Knex): Promise<void> {
+    // Skip on PostgreSQL - consolidated in migration 034
+  const client = knex.client.config.client
+  if (client === 'pg') {
+    return
+  }
   await knex.schema.alterTable('radarr_instances', (table) => {
     table.dropColumn('minimum_availability')
   })

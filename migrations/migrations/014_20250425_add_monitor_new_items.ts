@@ -7,7 +7,13 @@ import type { Knex } from 'knex'
  * Also updates existing rows where `monitor_new_items` is `NULL` to `'all'` to ensure consistency.
  */
 export async function up(knex: Knex): Promise<void> {
-  await knex.schema.alterTable('sonarr_instances', (table) => {
+    // Skip on PostgreSQL - consolidated in migration 034
+  const client = knex.client.config.client
+  if (client === 'pg') {
+    console.log('Skipping migration 014_20250425_add_monitor_new_items - PostgreSQL uses consolidated schema in migration 034')
+    return
+  }
+await knex.schema.alterTable('sonarr_instances', (table) => {
     // Add the monitor_new_items column with a default value of 'all'
     table.string('monitor_new_items').defaultTo('all')
   })
@@ -22,6 +28,11 @@ export async function up(knex: Knex): Promise<void> {
  * Reverts the migration by removing the `monitor_new_items` column from the `sonarr_instances` table.
  */
 export async function down(knex: Knex): Promise<void> {
+    // Skip on PostgreSQL - consolidated in migration 034
+  const client = knex.client.config.client
+  if (client === 'pg') {
+    return
+  }
   await knex.schema.alterTable('sonarr_instances', (table) => {
     table.dropColumn('monitor_new_items')
   })

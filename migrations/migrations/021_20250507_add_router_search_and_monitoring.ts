@@ -6,7 +6,13 @@ import type { Knex } from 'knex'
  * The `search_on_add` column is intended to control automatic search behavior for Radarr and Sonarr routes, while `season_monitoring` specifies season monitoring preferences for Sonarr routes.
  */
 export async function up(knex: Knex): Promise<void> {
-  await knex.schema.alterTable('router_rules', (table) => {
+    // Skip on PostgreSQL - consolidated in migration 034
+  const client = knex.client.config.client
+  if (client === 'pg') {
+    console.log('Skipping migration 021_20250507_add_router_search_and_monitoring - PostgreSQL uses consolidated schema in migration 034')
+    return
+  }
+await knex.schema.alterTable('router_rules', (table) => {
     // Add search_on_add column (nullable boolean)
     table.boolean('search_on_add').nullable()
     
@@ -19,6 +25,11 @@ export async function up(knex: Knex): Promise<void> {
  * Removes the 'search_on_add' and 'season_monitoring' columns from the 'router_rules' table to revert the migration.
  */
 export async function down(knex: Knex): Promise<void> {
+    // Skip on PostgreSQL - consolidated in migration 034
+  const client = knex.client.config.client
+  if (client === 'pg') {
+    return
+  }
   await knex.schema.alterTable('router_rules', (table) => {
     table.dropColumn('search_on_add')
     table.dropColumn('season_monitoring')

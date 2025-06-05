@@ -6,7 +6,13 @@ import type { Knex } from 'knex'
  * Sets `removedTagMode` to `'keep'` for existing config rows where `persistHistoricalTags` is `true`; otherwise, sets it to `'remove'`.
  */
 export async function up(knex: Knex): Promise<void> {
-  // Check if the table exists before attempting to modify
+    // Skip on PostgreSQL - consolidated in migration 034
+  const client = knex.client.config.client
+  if (client === 'pg') {
+    console.log('Skipping migration 023_20250513_add_tag_removal_options - PostgreSQL uses consolidated schema in migration 034')
+    return
+  }
+// Check if the table exists before attempting to modify
   const configExists = await knex.schema.hasTable('configs')
   
   if (configExists) {
@@ -44,6 +50,11 @@ export async function up(knex: Knex): Promise<void> {
  * Reverts the schema changes introduced by the `up` migration.
  */
 export async function down(knex: Knex): Promise<void> {
+    // Skip on PostgreSQL - consolidated in migration 034
+  const client = knex.client.config.client
+  if (client === 'pg') {
+    return
+  }
   // Check if the table exists before attempting to modify
   const configExists = await knex.schema.hasTable('configs')
   

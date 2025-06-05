@@ -8,7 +8,13 @@ import type { Knex } from 'knex'
  * @remark The default value `'watchlist'` maintains backward compatibility. The `'tag-based'` mode uses the existing `removedTagPrefix` configuration for content deletion.
  */
 export async function up(knex: Knex): Promise<void> {
-  // Check if the table exists before attempting to modify
+    // Skip on PostgreSQL - consolidated in migration 034
+  const client = knex.client.config.client
+  if (client === 'pg') {
+    console.log('Skipping migration 024_20250513_add_tag_based_deletion_mode - PostgreSQL uses consolidated schema in migration 034')
+    return
+  }
+// Check if the table exists before attempting to modify
   const configExists = await knex.schema.hasTable('configs')
   
   if (configExists) {
@@ -26,6 +32,11 @@ export async function up(knex: Knex): Promise<void> {
  * Checks for the existence of the `configs` table before attempting to drop the column to avoid errors if the table is missing.
  */
 export async function down(knex: Knex): Promise<void> {
+    // Skip on PostgreSQL - consolidated in migration 034
+  const client = knex.client.config.client
+  if (client === 'pg') {
+    return
+  }
   // Check if the table exists before attempting to modify
   const configExists = await knex.schema.hasTable('configs')
   

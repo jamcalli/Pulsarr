@@ -6,7 +6,13 @@ import type { Knex } from 'knex'
  * The table includes columns for webhook source type, associated instance, unique identifiers, payload data, and timestamps. It enforces allowed values for `instance_type` and `media_type`, and adds indexes for efficient querying by `guid`, `media_type`, and `expires_at`.
  */
 export async function up(knex: Knex): Promise<void> {
-  await knex.schema.createTable('pending_webhooks', (table) => {
+    // Skip on PostgreSQL - consolidated in migration 034
+  const client = knex.client.config.client
+  if (client === 'pg') {
+    console.log('Skipping migration 026_20250515_add_pending_webhooks - PostgreSQL uses consolidated schema in migration 034')
+    return
+  }
+await knex.schema.createTable('pending_webhooks', (table) => {
     table.increments('id').primary()
     table.string('instance_type', 10).notNullable() // 'radarr' or 'sonarr'
     table.integer('instance_id').unsigned().nullable() // Can be null when instance is unknown
@@ -32,5 +38,10 @@ export async function up(knex: Knex): Promise<void> {
  * Drops the `pending_webhooks` table if it exists, reversing the migration.
  */
 export async function down(knex: Knex): Promise<void> {
+    // Skip on PostgreSQL - consolidated in migration 034
+  const client = knex.client.config.client
+  if (client === 'pg') {
+    return
+  }
   await knex.schema.dropTableIfExists('pending_webhooks')
 }

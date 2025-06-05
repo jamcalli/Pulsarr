@@ -90,32 +90,60 @@ export class DatabaseService {
     private readonly log: FastifyBaseLogger,
     private readonly config: FastifyInstance['config'],
   ) {
-    this.knex = knex(DatabaseService.createKnexConfig(config.dbPath, log))
+    this.knex = knex(DatabaseService.createKnexConfig(config, log))
   }
 
   /**
-   * Creates Knex configuration for better-sqlite3
+   * Creates Knex configuration for SQLite or PostgreSQL
    *
    * Sets up connection pooling, logging, and other database-specific configurations.
    *
-   * @param dbPath - Path to the SQLite database file
+   * @param config - Application configuration containing database settings
    * @param log - Logger to use for database operations
    * @returns Knex configuration object
    */
   private static createKnexConfig(
-    dbPath: string,
+    config: FastifyInstance['config'],
     log: FastifyBaseLogger,
   ): Knex.Config {
+    const isPostgres = config.dbType === 'postgres'
+    
+    // Build PostgreSQL connection
+    const getPostgresConnection = () => {
+      if (config.dbConnectionString) {
+        return config.dbConnectionString
+      }
+      
+      return {
+        host: config.dbHost,
+        port: config.dbPort,
+        user: config.dbUser,
+        password: config.dbPassword,
+        database: config.dbName
+      }
+    }
+
     return {
-      client: 'better-sqlite3',
-      connection: {
-        filename: dbPath,
+      client: isPostgres ? 'pg' : 'better-sqlite3',
+      connection: isPostgres ? getPostgresConnection() : {
+        filename: config.dbPath,
       },
-      useNullAsDefault: true,
-      pool: {
-        min: 1,
-        max: 1,
-      },
+      useNullAsDefault: !isPostgres,
+      pool: isPostgres 
+        ? { 
+            min: 2, 
+            max: 10 
+          }
+        : {
+            min: 1,
+            max: 1,
+            afterCreate: (conn: any, cb: any) => {
+              // SQLite-specific optimizations
+              conn.exec('PRAGMA journal_mode = WAL;')
+              conn.exec('PRAGMA foreign_keys = ON;')
+              cb()
+            }
+          },
       log: {
         warn: (message: string) => log.warn(message),
         error: (message: string | Error) => {

@@ -6,7 +6,13 @@ import type { Knex } from 'knex'
  * Adds a nullable `last_updated_at` timestamp column, populates it with values from `updated_at` for existing rows, then alters the column to be non-nullable and creates an index on it.
  */
 export async function up(knex: Knex): Promise<void> {
-  // First add the column as nullable
+    // Skip on PostgreSQL - consolidated in migration 034
+  const client = knex.client.config.client
+  if (client === 'pg') {
+    console.log('Skipping migration 032_20250531_add_rolling_monitoring_reset - PostgreSQL uses consolidated schema in migration 034')
+    return
+  }
+// First add the column as nullable
   await knex.schema.alterTable('rolling_monitored_shows', (table) => {
     table.timestamp('last_updated_at').nullable()
   })
@@ -27,6 +33,11 @@ export async function up(knex: Knex): Promise<void> {
  * Reverts the migration by dropping the `last_updated_at` column and its index from the `rolling_monitored_shows` table.
  */
 export async function down(knex: Knex): Promise<void> {
+    // Skip on PostgreSQL - consolidated in migration 034
+  const client = knex.client.config.client
+  if (client === 'pg') {
+    return
+  }
   // Remove the last_updated_at field and its index
   await knex.schema.alterTable('rolling_monitored_shows', (table) => {
     table.dropIndex('last_updated_at')

@@ -1,7 +1,13 @@
 import type { Knex } from 'knex'
 
 export async function up(knex: Knex): Promise<void> {
-  await knex.schema.createTable('schedules', (table) => {
+    // Skip on PostgreSQL - consolidated in migration 034
+  const client = knex.client.config.client
+  if (client === 'pg') {
+    console.log('Skipping migration 008_20250320_add_schedules - PostgreSQL uses consolidated schema in migration 034')
+    return
+  }
+await knex.schema.createTable('schedules', (table) => {
     table.increments('id').primary()
     table.string('name').notNullable().unique()  // Unique name for the scheduled job
     table.string('type').notNullable()           // 'interval' or 'cron'
@@ -32,5 +38,10 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 export async function down(knex: Knex): Promise<void> {
+    // Skip on PostgreSQL - consolidated in migration 034
+  const client = knex.client.config.client
+  if (client === 'pg') {
+    return
+  }
   await knex.schema.dropTable('schedules')
 }

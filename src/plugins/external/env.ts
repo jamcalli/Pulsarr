@@ -28,9 +28,38 @@ const schema = {
       type: 'number',
       default: 3003,
     },
+    dbType: {
+      type: 'string',
+      enum: ['sqlite', 'postgres'],
+      default: 'sqlite',
+    },
     dbPath: {
       type: 'string',
       default: './data/db/pulsarr.db',
+    },
+    dbHost: {
+      type: 'string',
+      default: 'localhost',
+    },
+    dbPort: {
+      type: 'number',
+      default: 5432,
+    },
+    dbName: {
+      type: 'string',
+      default: 'pulsarr',
+    },
+    dbUser: {
+      type: 'string',
+      default: 'postgres',
+    },
+    dbPassword: {
+      type: 'string',
+      default: '',
+    },
+    dbConnectionString: {
+      type: 'string',
+      default: '',
     },
     cookieSecret: {
       type: 'string',
