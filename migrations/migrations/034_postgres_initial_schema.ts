@@ -94,9 +94,6 @@ export async function up(knex: Knex): Promise<void> {
     table.specificType('series_type', 'series_type').defaultTo('standard')
     table.timestamp('created_at').defaultTo(knex.fn.now())
     table.timestamp('updated_at').defaultTo(knex.fn.now())
-    table.index('name')
-    table.index('is_default')
-    table.index('is_enabled')
   })
 
   // Create radarr_instances table
@@ -116,9 +113,6 @@ export async function up(knex: Knex): Promise<void> {
     table.jsonb('synced_instances').defaultTo('[]')
     table.timestamp('created_at').defaultTo(knex.fn.now())
     table.timestamp('updated_at').defaultTo(knex.fn.now())
-    table.index('name')
-    table.index('is_default')
-    table.index('is_enabled')
   })
 
   // Create configs table
@@ -236,7 +230,7 @@ export async function up(knex: Knex): Promise<void> {
     table.unique(['user_id', 'key'])
     table.index(['user_id', 'key'])
     table.index('user_id')
-    table.index('guids')
+    table.index('guids', undefined, 'gin')
     table.index('sonarr_instance_id')
     table.index('radarr_instance_id')
     table.index('status')
@@ -359,7 +353,7 @@ export async function up(knex: Knex): Promise<void> {
     table.jsonb('genres')
     table.string('source').notNullable()
     table.timestamp('created_at').defaultTo(knex.fn.now())
-    table.index('guids')
+    table.index('guids', undefined, 'gin')
   })
 
   // Create schedules table
@@ -499,7 +493,7 @@ export async function up(knex: Knex): Promise<void> {
     {
       name: 'delete-sync',
       type: 'interval',
-      config: JSON.stringify({ intervalMinutes: 60 }),
+      config: { intervalMinutes: 60 },
       enabled: false,
       last_run: null,
       next_run: null,
@@ -509,7 +503,7 @@ export async function up(knex: Knex): Promise<void> {
     {
       name: 'plex-rolling-auto-reset',
       type: 'interval',
-      config: JSON.stringify({ intervalMinutes: 1440 }), // 24 hours
+      config: { intervalMinutes: 1440 }, // 24 hours
       enabled: false,
       last_run: null,
       next_run: null,

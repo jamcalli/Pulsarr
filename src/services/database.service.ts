@@ -94,6 +94,24 @@ export class DatabaseService {
   }
 
   /**
+   * Helper method to check if we're using PostgreSQL
+   */
+  private isPostgreSQL(): boolean {
+    return this.config.dbType === 'postgres'
+  }
+
+  /**
+   * Helper method to extract rows from raw query results
+   * PostgreSQL returns {rows: T[]} while SQLite returns T[] directly
+   */
+  private extractRawQueryRows<T>(result: unknown): T[] {
+    if (this.isPostgreSQL()) {
+      return (result as { rows: T[] }).rows
+    }
+    return result as T[]
+  }
+
+  /**
    * Creates Knex configuration for SQLite or PostgreSQL
    *
    * Sets up connection pooling, logging, and other database-specific configurations.
@@ -365,28 +383,28 @@ export class DatabaseService {
     (User & { watchlist_count: number })[]
   > {
     const rows = await this.knex('users')
-      .select([
-        'users.*',
-        this.knex.raw('COUNT(watchlist_items.id) as watchlist_count'),
-      ])
+      .select('users.*')
+      .count('watchlist_items.id as watchlist_count')
       .leftJoin('watchlist_items', 'users.id', 'watchlist_items.user_id')
       .groupBy('users.id')
       .orderBy('users.name', 'asc')
 
     return rows.map((row) => ({
-      id: row.id,
-      name: row.name,
-      apprise: row.apprise,
-      alias: row.alias,
-      discord_id: row.discord_id,
+      id: Number(row.id),
+      name: String(row.name),
+      apprise: row.apprise ? String(row.apprise) : null,
+      alias: row.alias ? String(row.alias) : null,
+      discord_id: row.discord_id ? String(row.discord_id) : null,
       notify_apprise: Boolean(row.notify_apprise),
       notify_discord: Boolean(row.notify_discord),
       notify_tautulli: Boolean(row.notify_tautulli),
-      tautulli_notifier_id: row.tautulli_notifier_id,
+      tautulli_notifier_id: row.tautulli_notifier_id
+        ? Number(row.tautulli_notifier_id)
+        : null,
       can_sync: Boolean(row.can_sync),
       is_primary_token: Boolean(row.is_primary_token),
-      created_at: row.created_at,
-      updated_at: row.updated_at,
+      created_at: String(row.created_at),
+      updated_at: String(row.updated_at),
       watchlist_count: Number(row.watchlist_count),
     })) satisfies (User & { watchlist_count: number })[]
   }
@@ -1820,7 +1838,11 @@ export class DatabaseService {
   ): Promise<number> {
     try {
       const items = await this.knex('watchlist_items')
-        .whereRaw('json_array_length(guids) > 0')
+        .whereRaw(
+          this.isPostgreSQL()
+            ? 'jsonb_array_length(guids) > 0'
+            : 'json_array_length(guids) > 0',
+        )
         .select('id', 'guids')
 
       const matchingIds = items
@@ -2343,55 +2365,63 @@ export class DatabaseService {
   }
 
   /**
-   * For better-sqlite3, raw queries need to be executed differently
+   * Cross-database compatible GUID extraction
    *
    * @returns Promise resolving to array of lowercase GUIDs
    */
   async getUniqueGuidsRaw(): Promise<string[]> {
     try {
-      // Using knex.raw for better-sqlite3
-      const result = await this.knex.raw(`
-      WITH extracted_guids AS (
-        SELECT DISTINCT json_extract(value, '$') as guid
-        FROM watchlist_items
-        JOIN json_each(
-          CASE 
-            WHEN json_valid(guids) THEN guids
-            ELSE json_array(guids)
-          END
-        )
-        WHERE guids IS NOT NULL AND guids != '[]'
-      )
-      SELECT DISTINCT lower(guid) as guid 
-      FROM extracted_guids 
-      WHERE guid IS NOT NULL AND guid != '';
-    `)
+      if (this.isPostgreSQL()) {
+        // PostgreSQL version using jsonb functions
+        const result = await this.knex.raw(`
+          SELECT DISTINCT lower(guid_element::text) as guid
+          FROM watchlist_items,
+               jsonb_array_elements_text(
+                 CASE 
+                   WHEN jsonb_typeof(guids) = 'array' THEN guids
+                   ELSE jsonb_build_array(guids)
+                 END
+               ) as guid_element
+          WHERE guids IS NOT NULL 
+            AND jsonb_typeof(guids) != 'null'
+            AND jsonb_array_length(
+              CASE 
+                WHEN jsonb_typeof(guids) = 'array' THEN guids
+                ELSE jsonb_build_array(guids)
+              END
+            ) > 0
+            AND guid_element::text != ''
+        `)
 
-      // Extract guids from result rows - format depends on better-sqlite3 driver
+        return (
+          result.rows
+            ?.map((row: { guid: string }) => row.guid)
+            .filter(Boolean) || []
+        )
+      }
+      // SQLite version using json functions
+      const result = await this.knex.raw(`
+          WITH extracted_guids AS (
+            SELECT DISTINCT json_extract(value, '$') as guid
+            FROM watchlist_items
+            JOIN json_each(
+              CASE 
+                WHEN json_valid(guids) THEN guids
+                ELSE json_array(guids)
+              END
+            )
+            WHERE guids IS NOT NULL AND guids != '[]'
+          )
+          SELECT DISTINCT lower(guid) as guid 
+          FROM extracted_guids 
+          WHERE guid IS NOT NULL AND guid != '';
+        `)
+
+      // SQLite result handling
       if (Array.isArray(result)) {
         return result.map((row) => row.guid || row[0]).filter(Boolean)
       }
 
-      // If not an array, try to handle other result formats
-      if (result && typeof result === 'object') {
-        if ('rows' in result) {
-          // Some drivers return a {rows: []} structure
-          const rows = result.rows as Array<{ guid: string } | [string]>
-          return rows
-            .map((row) => {
-              if (Array.isArray(row)) return row[0]
-              return row.guid
-            })
-            .filter(Boolean)
-        }
-
-        if ('guid' in result) {
-          // Single result case
-          return [result.guid].filter(Boolean)
-        }
-      }
-
-      // Fallback to empty array if we couldn't extract guids
       this.log.warn('Could not extract GUIDs from raw query result')
       return []
     } catch (error) {
@@ -3119,7 +3149,11 @@ export class DatabaseService {
    */
   async getWatchlistItemsByGuid(guid: string): Promise<TokenWatchlistItem[]> {
     const items = await this.knex('watchlist_items')
-      .whereRaw('json_array_length(guids) > 0')
+      .whereRaw(
+        this.isPostgreSQL()
+          ? 'jsonb_array_length(guids) > 0'
+          : 'json_array_length(guids) > 0',
+      )
       .select('*')
 
     return items
@@ -3571,7 +3605,11 @@ export class DatabaseService {
       }
 
       // Execute raw SQL query with CTEs for better performance and readability
-      const results = await this.knex.raw<GrabbedToNotifiedRow[]>(`
+      const dateDiffFunction = this.isPostgreSQL()
+        ? 'EXTRACT(EPOCH FROM (n.first_notified - g.first_grabbed)) / 86400' // PostgreSQL: seconds to days
+        : 'julianday(n.first_notified) - julianday(g.first_grabbed)' // SQLite: julian days
+
+      const results = await this.knex.raw(`
     WITH grabbed_status AS (
       -- Find the earliest "grabbed" status timestamp for each watchlist item
       SELECT
@@ -3593,9 +3631,9 @@ export class DatabaseService {
     -- Join these with watchlist items and calculate time differences
     SELECT
       w.type AS content_type,
-      AVG(julianday(n.first_notified) - julianday(g.first_grabbed)) AS avg_days,
-      MIN(julianday(n.first_notified) - julianday(g.first_grabbed)) AS min_days,
-      MAX(julianday(n.first_notified) - julianday(g.first_grabbed)) AS max_days,
+      AVG(${dateDiffFunction}) AS avg_days,
+      MIN(${dateDiffFunction}) AS min_days,
+      MAX(${dateDiffFunction}) AS max_days,
       COUNT(*) AS count
     FROM watchlist_items w
     JOIN grabbed_status g ON w.id = g.watchlist_item_id
@@ -3612,7 +3650,8 @@ export class DatabaseService {
   `)
 
       // Format and return the results
-      const formattedResults = results.map((row: GrabbedToNotifiedRow) => ({
+      const rawResults = this.extractRawQueryRows<GrabbedToNotifiedRow>(results)
+      const formattedResults = rawResults.map((row: GrabbedToNotifiedRow) => ({
         content_type: String(row.content_type),
         avg_days: Number(row.avg_days),
         min_days: Number(row.min_days),
@@ -3670,13 +3709,17 @@ export class DatabaseService {
       }
 
       // First, get all the direct transitions without filtering
-      const rawTransitions = await this.knex.raw<RawTransition[]>(`
+      const transitionDateDiffFunction = this.isPostgreSQL()
+        ? 'EXTRACT(EPOCH FROM (h2.timestamp - h1.timestamp)) / 86400' // PostgreSQL: seconds to days
+        : 'julianday(h2.timestamp) - julianday(h1.timestamp)' // SQLite: julian days
+
+      const rawTransitions = await this.knex.raw(`
         WITH status_pairs AS (
           SELECT 
             h1.status AS from_status,
             h2.status AS to_status,
             w.type AS content_type,
-            julianday(h2.timestamp) - julianday(h1.timestamp) AS days_between
+            ${transitionDateDiffFunction} AS days_between
           FROM watchlist_status_history h1
           JOIN watchlist_status_history h2 
             ON h1.watchlist_item_id = h2.watchlist_item_id 
@@ -3699,9 +3742,11 @@ export class DatabaseService {
       `)
 
       const transitionGroups = new Map<string, number[]>()
+      const rawTransitionResults =
+        this.extractRawQueryRows<RawTransition>(rawTransitions)
 
       // Process and group raw transitions with numeric coercion and validation
-      for (const row of rawTransitions) {
+      for (const row of rawTransitionResults) {
         const key = `${row.from_status}|${row.to_status}|${row.content_type}`
 
         const daysBetweenRaw =
@@ -3832,6 +3877,10 @@ export class DatabaseService {
     this.log.debug('Calculating average time from addition to availability')
 
     // Execute raw SQL query with CTEs for first add and first notification timestamps
+    const availabilityDateDiffFunction = this.isPostgreSQL()
+      ? 'EXTRACT(EPOCH FROM (n.first_notification - a.added)) / 86400' // PostgreSQL: seconds to days
+      : 'julianday(n.first_notification) - julianday(a.added)' // SQLite: julian days
+
     const results = await this.knex.raw<AvailabilityStatsRow[]>(`
     WITH first_added AS (
       -- Get initial addition timestamp for each item
@@ -3854,9 +3903,9 @@ export class DatabaseService {
     -- Join and calculate statistics on the time difference
     SELECT
       a.content_type,
-      AVG(julianday(n.first_notification) - julianday(a.added)) AS avg_days,
-      MIN(julianday(n.first_notification) - julianday(a.added)) AS min_days,
-      MAX(julianday(n.first_notification) - julianday(a.added)) AS max_days,
+      AVG(${availabilityDateDiffFunction}) AS avg_days,
+      MIN(${availabilityDateDiffFunction}) AS min_days,
+      MAX(${availabilityDateDiffFunction}) AS max_days,
       COUNT(*) AS count
     FROM first_added a
     JOIN first_notified n ON a.id = n.watchlist_item_id
@@ -3875,13 +3924,17 @@ export class DatabaseService {
   `)
 
     // Format and return the results
-    const formattedResults = results.map((row: AvailabilityStatsRow) => ({
-      content_type: String(row.content_type),
-      avg_days: Number(row.avg_days),
-      min_days: Number(row.min_days),
-      max_days: Number(row.max_days),
-      count: Number(row.count),
-    }))
+    const availabilityRawResults =
+      this.extractRawQueryRows<AvailabilityStatsRow>(results)
+    const formattedResults = availabilityRawResults.map(
+      (row: AvailabilityStatsRow) => ({
+        content_type: String(row.content_type),
+        avg_days: Number(row.avg_days),
+        min_days: Number(row.min_days),
+        max_days: Number(row.max_days),
+        count: Number(row.count),
+      }),
+    )
 
     this.log.debug(
       `Calculated time-to-availability metrics for ${formattedResults.length} content types`,
@@ -3927,6 +3980,10 @@ export class DatabaseService {
       }
 
       // Execute raw SQL query to get status transition data
+      const statusFlowDateDiffFunction = this.isPostgreSQL()
+        ? 'EXTRACT(EPOCH FROM (h2.timestamp - h1.timestamp)) / 86400' // PostgreSQL: seconds to days
+        : 'julianday(h2.timestamp) - julianday(h1.timestamp)' // SQLite: julian days
+
       const results = await this.knex.raw<StatusFlowRow[]>(`
     WITH status_transitions AS (
       -- For each item, find all pairs of consecutive status changes
@@ -3934,7 +3991,7 @@ export class DatabaseService {
         h1.status AS from_status,
         h2.status AS to_status,
         w.type AS content_type,
-        julianday(h2.timestamp) - julianday(h1.timestamp) AS days_between
+        ${statusFlowDateDiffFunction} AS days_between
       FROM watchlist_status_history h1
       JOIN watchlist_status_history h2 ON h1.watchlist_item_id = h2.watchlist_item_id AND h2.timestamp > h1.timestamp
       JOIN watchlist_items w ON h1.watchlist_item_id = w.id
@@ -3959,13 +4016,17 @@ export class DatabaseService {
   `)
 
       // Format and return the results
-      const formattedResults = results.map((row: StatusFlowRow) => ({
-        from_status: String(row.from_status),
-        to_status: String(row.to_status),
-        content_type: String(row.content_type),
-        count: Number(row.count),
-        avg_days: Number(row.avg_days),
-      }))
+      const statusFlowRawResults =
+        this.extractRawQueryRows<StatusFlowRow>(results)
+      const formattedResults = statusFlowRawResults.map(
+        (row: StatusFlowRow) => ({
+          from_status: String(row.from_status),
+          to_status: String(row.to_status),
+          content_type: String(row.content_type),
+          count: Number(row.count),
+          avg_days: Number(row.avg_days),
+        }),
+      )
 
       this.log.debug(
         `Retrieved ${formattedResults.length} status flow data points`,
@@ -4025,35 +4086,27 @@ export class DatabaseService {
       .groupBy('type')
       .orderBy('count', 'desc')
 
-    // Query 3: Breakdown by delivery channel (using raw SQL for UNION)
-    const byChannelQuery = this.knex.raw<{ channel: string; count: number }[]>(
-      `
-    -- Count discord notifications
-    SELECT 
-      'discord' as channel, 
-      COUNT(*) as count 
-    FROM notifications 
-    WHERE created_at >= ? AND sent_to_discord = 1
-    
-    UNION ALL
-    
-    -- Count apprise notifications
-    SELECT 
-      'apprise' as channel, 
-      COUNT(*) as count 
-    FROM notifications 
-    WHERE created_at >= ? AND sent_to_apprise = 1
-    
-    UNION ALL
-    
-    -- Count webhook notifications
-    SELECT 
-      'webhook' as channel, 
-      COUNT(*) as count 
-    FROM notifications 
-    WHERE created_at >= ? AND sent_to_webhook = 1
-  `,
-      [cutoffDateStr, cutoffDateStr, cutoffDateStr],
+    // Query 3: Breakdown by delivery channel using Promise.all for simplicity
+    const channelQueries = [
+      { channel: 'discord', column: 'sent_to_discord' },
+      { channel: 'apprise', column: 'sent_to_apprise' },
+      { channel: 'webhook', column: 'sent_to_webhook' },
+      { channel: 'tautulli', column: 'sent_to_tautulli' },
+    ]
+
+    const byChannelQuery = Promise.all(
+      channelQueries.map(async ({ channel, column }) => {
+        const result = await this.knex('notifications')
+          .count('* as count')
+          .where('created_at', '>=', cutoffDateStr)
+          .where(column, true)
+          .first()
+
+        return {
+          channel,
+          count: Number(result?.count || 0),
+        }
+      }),
     )
 
     // Query 4: Breakdown by recipient user
