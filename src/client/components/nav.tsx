@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { SettingsButton } from '@/components/ui/settings-button'
 import { cn } from '@/lib/utils'
 import { FileText } from 'lucide-react'
+import { DOCUMENTATION_URL } from '@/lib/constants'
 import {
   Tooltip,
   TooltipContent,
@@ -199,7 +200,7 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
             <Tooltip>
               <TooltipTrigger asChild>
                 <a
-                  href="https://jamcalli.github.io/Pulsarr/docs/intro"
+                  href={DOCUMENTATION_URL}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex h-[50px] w-full items-center justify-center bg-main text-black cursor-pointer border-b-4 border-b-border dark:border-b-darkBorder rounded-tr-base"

@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
-import { createBrowserRouter, Navigate } from 'react-router-dom'
+import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom'
 import AuthenticatedLayout from '@/layouts/authenticated'
+import RootLayout from '@/layouts/root'
 
 const LoginPage = lazy(() => import('@/features/auth'))
 const CreateUserPage = lazy(() => import('@/features/create-user'))
@@ -17,90 +18,100 @@ const LoadingFallback = () => null
 export const router = createBrowserRouter([
   {
     path: '/',
-    element: <Navigate to="/dashboard" replace />,
-  },
-  {
-    path: '/login',
     element: (
-      <Suspense fallback={<LoadingFallback />}>
-        <LoginPage />
-      </Suspense>
+      <RootLayout>
+        <Outlet />
+      </RootLayout>
     ),
-  },
-  {
-    path: '/create-user',
-    element: (
-      <Suspense fallback={<LoadingFallback />}>
-        <CreateUserPage />
-      </Suspense>
-    ),
-  },
-  {
-    path: '/plex',
-    element: (
-      <AuthenticatedLayout>
-        <Suspense fallback={<LoadingFallback />}>
-          <PlexConfigPage />
-        </Suspense>
-      </AuthenticatedLayout>
-    ),
-  },
-  {
-    path: '/sonarr',
-    element: (
-      <AuthenticatedLayout>
-        <Suspense fallback={<LoadingFallback />}>
-          <SonarrConfigPage />
-        </Suspense>
-      </AuthenticatedLayout>
-    ),
-  },
-  {
-    path: '/radarr',
-    element: (
-      <AuthenticatedLayout>
-        <Suspense fallback={<LoadingFallback />}>
-          <RadarrConfigPage />
-        </Suspense>
-      </AuthenticatedLayout>
-    ),
-  },
-  {
-    path: '/notifications',
-    element: (
-      <AuthenticatedLayout>
-        <Suspense fallback={<LoadingFallback />}>
-          <NotificationsConfigPage />
-        </Suspense>
-      </AuthenticatedLayout>
-    ),
-  },
-  {
-    path: '/dashboard',
-    element: (
-      <AuthenticatedLayout>
-        <Suspense fallback={<LoadingFallback />}>
-          <DashboardPage />
-        </Suspense>
-      </AuthenticatedLayout>
-    ),
-  },
-  {
-    path: '/utilities',
-    element: (
-      <AuthenticatedLayout>
-        <Suspense fallback={<LoadingFallback />}>
-          <UtilitiesPage />
-        </Suspense>
-      </AuthenticatedLayout>
-    ),
-  },
-  {
-    path: '*',
-    element: (
-      <Suspense fallback={<LoadingFallback />}>
-        <NotFoundPage />
-      </Suspense>
-    ),
+    children: [
+      {
+        index: true,
+        element: <Navigate to="/dashboard" replace />,
+      },
+      {
+        path: 'login',
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <LoginPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'create-user',
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <CreateUserPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'plex',
+        element: (
+          <AuthenticatedLayout>
+            <Suspense fallback={<LoadingFallback />}>
+              <PlexConfigPage />
+            </Suspense>
+          </AuthenticatedLayout>
+        ),
+      },
+      {
+        path: 'sonarr',
+        element: (
+          <AuthenticatedLayout>
+            <Suspense fallback={<LoadingFallback />}>
+              <SonarrConfigPage />
+            </Suspense>
+          </AuthenticatedLayout>
+        ),
+      },
+      {
+        path: 'radarr',
+        element: (
+          <AuthenticatedLayout>
+            <Suspense fallback={<LoadingFallback />}>
+              <RadarrConfigPage />
+            </Suspense>
+          </AuthenticatedLayout>
+        ),
+      },
+      {
+        path: 'notifications',
+        element: (
+          <AuthenticatedLayout>
+            <Suspense fallback={<LoadingFallback />}>
+              <NotificationsConfigPage />
+            </Suspense>
+          </AuthenticatedLayout>
+        ),
+      },
+      {
+        path: 'dashboard',
+        element: (
+          <AuthenticatedLayout>
+            <Suspense fallback={<LoadingFallback />}>
+              <DashboardPage />
+            </Suspense>
+          </AuthenticatedLayout>
+        ),
+      },
+      {
+        path: 'utilities',
+        element: (
+          <AuthenticatedLayout>
+            <Suspense fallback={<LoadingFallback />}>
+              <UtilitiesPage />
+            </Suspense>
+          </AuthenticatedLayout>
+        ),
+      },
+      {
+        path: '*',
+        element: (
+          <Suspense fallback={<LoadingFallback />}>
+            <NotFoundPage />
+          </Suspense>
+        ),
+      },
+    ],
   },
 ])
