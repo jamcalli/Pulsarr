@@ -17,7 +17,13 @@ interface RootLayoutProps {
   children: ReactNode
 }
 
-// Background component that checks route
+/**
+ * Renders the animated background layer with visual effects and branding, conditionally displayed based on device type and current route.
+ *
+ * The background is always shown on desktop devices, but on mobile devices it appears only on the login route. It includes a CRT overlay, a parallax starfield with a planet image (responsive to device type), a pulsar graphic, an optional asteroids animation, a centered title and subtitle, and a version display in the bottom-right corner.
+ *
+ * @returns The background layer JSX if conditions are met; otherwise, `null`.
+ */
 function BackgroundLayer() {
   const isMobile = useMediaQuery('(max-width: 768px)')
   const { asteroidsEnabled } = useSettings()
@@ -111,6 +117,13 @@ function BackgroundLayer() {
   )
 }
 
+/**
+ * Provides the application's root layout with a dynamic animated background and centered content area.
+ *
+ * Renders a full-viewport container with a layered background, overlays the main content in the center, and includes a notification toaster.
+ *
+ * @param children - The main content to display above the background.
+ */
 export default function RootLayout({ children }: RootLayoutProps) {
   return (
     <div className="h-screen relative overflow-hidden">

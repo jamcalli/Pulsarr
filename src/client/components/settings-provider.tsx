@@ -19,6 +19,16 @@ const initialState: SettingsProviderState = {
 const SettingsProviderContext =
   createContext<SettingsProviderState>(initialState)
 
+/**
+ * Provides the asteroids-enabled setting and its updater to descendant components via React context.
+ *
+ * Initializes the `asteroidsEnabled` state from localStorage, defaulting to `true` if unavailable or invalid. Updates to the setting are persisted to localStorage when possible.
+ *
+ * @param children - React nodes to be rendered within the provider.
+ *
+ * @remark
+ * If localStorage access fails, the state is still updated but changes will not persist across reloads.
+ */
 export function SettingsProvider({
   children,
   ...props

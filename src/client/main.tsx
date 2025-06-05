@@ -19,10 +19,16 @@ const setFavicon = () => {
 
 setFavicon()
 
+/**
+ * Renders the application's routing provider to enable client-side navigation.
+ */
 function RootLayoutContent() {
   return <RouterProvider router={router} />
 }
 
+/**
+ * Provides theme and settings context to the application and renders the main layout content.
+ */
 function RootLayout() {
   return (
     <ThemeProvider>
