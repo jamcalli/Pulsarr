@@ -67,14 +67,9 @@ interface UserTableProps {
 }
 
 /**
- * Displays an interactive table for managing user watchlist data, with features including sorting, username filtering, pagination, column visibility toggling, row selection, and both individual and bulk editing.
+ * Renders an interactive table for managing user watchlist data, supporting sorting, filtering by username, pagination, column visibility toggling, row selection, and both individual and bulk editing.
  *
- * Users can view and edit individual user details, perform bulk edits on selected rows, and open a modal to view a user's watchlist. The table adapts to loading state, provides responsive column visibility, and displays visual indicators for notification and sync statuses.
- *
- * @param users - The array of user watchlist data to display in the table.
- * @param onEditUser - Callback invoked when editing a single user.
- * @param isLoading - Optional flag indicating loading state; disables controls and shows skeleton rows when true.
- * @param onBulkEdit - Optional callback invoked with selected rows for bulk editing.
+ * Users can edit individual user details, perform bulk edits on selected rows, and open a modal to view a user's watchlist. The table adapts to loading state, disables controls as needed, and displays visual indicators for notification and sync statuses.
  *
  * @remark If a user's ID is invalid when attempting to view their watchlist, an error is logged and a destructive toast notification is shown; the modal will not open.
  */
@@ -156,7 +151,7 @@ export default function UserTable({
     },
     {
       accessorKey: 'notify_apprise',
-      header: () => <div className="hidden md:block">Apprise</div>,
+      header: () => <div>Apprise</div>,
       cell: ({ row }) => (
         <div className="flex justify-center w-16">
           {row.getValue('notify_apprise') ? (
@@ -166,14 +161,10 @@ export default function UserTable({
           )}
         </div>
       ),
-      meta: {
-        className: 'hidden md:table-cell',
-        headerClassName: 'hidden md:table-cell',
-      },
     },
     {
       accessorKey: 'notify_discord',
-      header: () => <div className="hidden md:block">Discord</div>,
+      header: () => <div>Discord</div>,
       cell: ({ row }) => (
         <div className="flex justify-center w-16">
           {row.getValue('notify_discord') ? (
@@ -183,14 +174,10 @@ export default function UserTable({
           )}
         </div>
       ),
-      meta: {
-        className: 'hidden md:table-cell',
-        headerClassName: 'hidden md:table-cell',
-      },
     },
     {
       accessorKey: 'notify_tautulli',
-      header: () => <div className="hidden md:block">Tautulli</div>,
+      header: () => <div>Tautulli</div>,
       cell: ({ row }) => (
         <div className="flex justify-center w-16">
           {row.getValue('notify_tautulli') ? (
@@ -200,14 +187,10 @@ export default function UserTable({
           )}
         </div>
       ),
-      meta: {
-        className: 'hidden md:table-cell',
-        headerClassName: 'hidden md:table-cell',
-      },
     },
     {
       accessorKey: 'can_sync',
-      header: () => <div className="hidden xs:block">Can Sync</div>,
+      header: () => <div>Can Sync</div>,
       cell: ({ row }) => (
         <div className="flex justify-center w-16">
           {row.getValue('can_sync') ? (
@@ -217,10 +200,6 @@ export default function UserTable({
           )}
         </div>
       ),
-      meta: {
-        className: 'hidden xs:table-cell',
-        headerClassName: 'hidden xs:table-cell',
-      },
     },
 
     {
@@ -315,7 +294,7 @@ export default function UserTable({
   })
 
   return (
-    <div className="w-full font-base text-mtext">
+    <div className="w-full font-base text-mtext overflow-x-auto">
       <div>
         <div className="flex items-center justify-between py-4">
           <Input
@@ -393,12 +372,12 @@ export default function UserTable({
           <TableSkeleton
             rows={table.getState().pagination.pageSize}
             columns={[
-              { type: 'checkbox', hideOnMobile: false },
+              { type: 'checkbox' },
               { type: 'text', width: 'w-32' },
-              { type: 'text', width: 'w-48', hideOnMobile: true },
-              { type: 'icon', hideOnMobile: true },
-              { type: 'icon', hideOnMobile: true },
-              { type: 'badge', hideOnMobile: true },
+              { type: 'icon' },
+              { type: 'icon' },
+              { type: 'icon' },
+              { type: 'icon' },
               { type: 'text', width: 'w-16' },
               { type: 'button', width: 'w-8', className: 'text-right' },
             ]}

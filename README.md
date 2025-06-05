@@ -52,10 +52,11 @@ Full documentation is available at: **[https://jamcalli.github.io/Pulsarr/](http
 
 1. Create a `.env` file:
 ```env
-baseUrl=http://your-server-ip
-port=3003
-TZ=America/Los_Angeles
-logLevel=info
+baseUrl=http://your-server-ip   # Address where Pulsarr can be reached
+port=3003                       # Port where Pulsarr is accessible
+TZ=America/Los_Angeles          # Set to your local timezone
+logLevel=info                   # Default is 'silent', but 'info' is recommended
+NODE_ARGS=--log-both            # Default logs to file only, '--log-both' shows logs in terminal too
 ```
 
 2. Create `docker-compose.yml`:
@@ -74,9 +75,9 @@ services:
       - .env
 ```
 
-3. Start the service:
+3. Pull and start the service:
 ```bash
-docker compose up -d
+docker compose pull && docker compose up -d
 ```
 
 4. Access the web UI at `http://your-server:3003` to complete setup.
