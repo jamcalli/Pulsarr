@@ -1,6 +1,13 @@
 import { Link, useLocation } from 'react-router-dom'
 import { SettingsButton } from '@/components/ui/settings-button'
 import { cn } from '@/lib/utils'
+import { FileText } from 'lucide-react'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 interface NavProps {
   isMobile: boolean
@@ -31,7 +38,7 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
             className={cn(
               'p-4 flex items-center text-lg m-2 rounded-base',
               location.pathname === '/dashboard'
-                ? 'text-text font-bold border-2 border-border bg-main'
+                ? 'text-black font-bold border-2 border-border bg-main'
                 : 'text-text',
             )}
             to="/dashboard"
@@ -43,7 +50,7 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
             className={cn(
               'p-4 flex items-center text-lg m-2 rounded-base',
               location.pathname === '/notifications'
-                ? 'text-text font-bold border-2 border-border bg-main'
+                ? 'text-black font-bold border-2 border-border bg-main'
                 : 'text-text',
             )}
             to="/notifications"
@@ -55,7 +62,7 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
             className={cn(
               'p-4 flex items-center text-lg m-2 rounded-base',
               location.pathname === '/utilities'
-                ? 'text-text font-bold border-2 border-border bg-main'
+                ? 'text-black font-bold border-2 border-border bg-main'
                 : 'text-text',
             )}
             to="/utilities"
@@ -67,7 +74,7 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
             className={cn(
               'p-4 flex items-center text-lg m-2 rounded-base',
               location.pathname === '/plex'
-                ? 'text-text font-bold border-2 border-border bg-main'
+                ? 'text-black font-bold border-2 border-border bg-main'
                 : 'text-text',
             )}
             to="/plex"
@@ -79,7 +86,7 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
             className={cn(
               'p-4 flex items-center text-lg m-2 rounded-base',
               location.pathname === '/sonarr'
-                ? 'text-text font-bold border-2 border-border bg-main'
+                ? 'text-black font-bold border-2 border-border bg-main'
                 : 'text-text',
             )}
             to="/sonarr"
@@ -91,7 +98,7 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
             className={cn(
               'p-4 flex items-center text-lg m-2 rounded-base',
               location.pathname === '/radarr'
-                ? 'text-text font-bold border-2 border-border bg-main'
+                ? 'text-black font-bold border-2 border-border bg-main'
                 : 'text-text',
             )}
             to="/radarr"
@@ -122,7 +129,7 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
               className={
                 location.pathname === '/dashboard'
                   ? 'bg-black text-white flex h-full items-center justify-center uppercase'
-                  : 'text-text bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border dark:border-r-darkBorder'
+                  : 'text-black bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border dark:border-r-darkBorder'
               }
               to="/dashboard"
             >
@@ -132,7 +139,7 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
               className={
                 location.pathname === '/notifications'
                   ? 'bg-black text-white flex h-full items-center justify-center uppercase'
-                  : 'text-text bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border dark:border-r-darkBorder'
+                  : 'text-black bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border dark:border-r-darkBorder'
               }
               to="/notifications"
             >
@@ -142,7 +149,7 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
               className={
                 location.pathname === '/utilities'
                   ? 'bg-black text-white flex h-full items-center justify-center uppercase'
-                  : 'text-text bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border dark:border-r-darkBorder'
+                  : 'text-black bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border dark:border-r-darkBorder'
               }
               to="/utilities"
             >
@@ -156,7 +163,7 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
               className={
                 location.pathname === '/plex'
                   ? 'bg-black text-white flex h-full items-center justify-center uppercase'
-                  : 'text-text bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border dark:border-r-darkBorder'
+                  : 'text-black bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border dark:border-r-darkBorder'
               }
               to="/plex"
             >
@@ -166,7 +173,7 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
               className={
                 location.pathname === '/sonarr'
                   ? 'bg-black text-white flex h-full items-center justify-center uppercase'
-                  : 'text-text bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border dark:border-r-darkBorder'
+                  : 'text-black bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border dark:border-r-darkBorder'
               }
               to="/sonarr"
             >
@@ -176,7 +183,7 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
               className={
                 location.pathname === '/radarr'
                   ? 'bg-black text-white flex h-full items-center justify-center uppercase'
-                  : 'text-text bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border dark:border-r-darkBorder'
+                  : 'text-black bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border dark:border-r-darkBorder'
               }
               to="/radarr"
             >
@@ -185,9 +192,32 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
           </div>
         </div>
 
-        {/* Settings button column spans both rows */}
-        <div className="row-span-2 h-full border-b-4 border-b-border dark:border-b-darkBorder">
-          <SettingsButton />
+        {/* Settings and docs column spans both rows */}
+        <div className="row-span-2 h-full flex flex-col">
+          {/* Documentation link - top half */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <a
+                  href="https://jamcalli.github.io/Pulsarr/docs/intro"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-[50px] w-full items-center justify-center bg-main text-black cursor-pointer border-b-4 border-b-border dark:border-b-darkBorder rounded-tr-base"
+                  aria-label="Documentation"
+                >
+                  <FileText className="stroke-current h-6 w-6" />
+                  <span className="sr-only">Documentation</span>
+                </a>
+              </TooltipTrigger>
+              <TooltipContent side="left">
+                <p>Documentation</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          {/* Settings button - bottom half */}
+          <div className="h-[50px] border-b-4 border-b-border dark:border-b-darkBorder">
+            <SettingsButton />
+          </div>
         </div>
       </div>
     </nav>
