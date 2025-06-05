@@ -1,4 +1,5 @@
 import type { Knex } from 'knex'
+import { shouldSkipForPostgreSQL, shouldSkipDownForPostgreSQL } from '../utils/clientDetection.js'
 
 /**
  * Inserts a disabled schedule entry named 'plex-rolling-auto-reset' into the 'schedules' table if it does not already exist.
@@ -6,10 +7,7 @@ import type { Knex } from 'knex'
  * The schedule is configured as an interval type with a 24-hour interval and current timestamps for creation and update.
  */
 export async function up(knex: Knex): Promise<void> {
-    // Skip on PostgreSQL - consolidated in migration 034
-  const client = knex.client.config.client
-  if (client === 'pg') {
-    console.log('Skipping migration 033_20250601_add_plex_rolling_auto_reset_schedule - PostgreSQL uses consolidated schema in migration 034')
+    if (shouldSkipForPostgreSQL(knex, '033_20250601_add_plex_rolling_auto_reset_schedule')) {
     return
   }
 // Add the new schedule for automatic rolling monitor reset
@@ -33,9 +31,7 @@ export async function up(knex: Knex): Promise<void> {
  * Deletes the schedule entry named 'plex-rolling-auto-reset' from the schedules table.
  */
 export async function down(knex: Knex): Promise<void> {
-    // Skip on PostgreSQL - consolidated in migration 034
-  const client = knex.client.config.client
-  if (client === 'pg') {
+    if (shouldSkipDownForPostgreSQL(knex)) {
     return
   }
   // Remove the schedule
