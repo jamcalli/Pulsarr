@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { createBrowserRouter } from 'react-router-dom'
+import { createBrowserRouter, Navigate } from 'react-router-dom'
 import AuthenticatedLayout from '@/layouts/authenticated'
 
 const LoginPage = lazy(() => import('@/features/auth'))
@@ -10,10 +10,15 @@ const RadarrConfigPage = lazy(() => import('@/features/radarr'))
 const NotificationsConfigPage = lazy(() => import('@/features/notifications'))
 const DashboardPage = lazy(() => import('@/features/dashboard'))
 const UtilitiesPage = lazy(() => import('@/features/utilities'))
+const NotFoundPage = lazy(() => import('@/features/not-found'))
 
 const LoadingFallback = () => null
 
 export const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <Navigate to="/dashboard" replace />,
+  },
   {
     path: '/login',
     element: (
@@ -90,5 +95,12 @@ export const router = createBrowserRouter([
       </AuthenticatedLayout>
     ),
   },
-  // Other routes...
+  {
+    path: '*',
+    element: (
+      <Suspense fallback={<LoadingFallback />}>
+        <NotFoundPage />
+      </Suspense>
+    ),
+  },
 ])

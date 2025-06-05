@@ -1,5 +1,6 @@
-import { Settings, LogOut, Moon, Sun } from 'lucide-react'
+import { Settings, LogOut, Moon, Sun, Sparkles } from 'lucide-react'
 import { useTheme } from '@/components/theme-provider'
+import { useSettings } from '@/components/settings-provider'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +22,7 @@ interface SettingsButtonProps {
 
 export function SettingsButton({ isMobile = false }: SettingsButtonProps) {
   const { theme, setTheme } = useTheme()
+  const { asteroidsEnabled, setAsteroidsEnabled } = useSettings()
   const [showLogoutAlert, setShowLogoutAlert] = useState(false)
 
   return (
@@ -46,7 +48,7 @@ export function SettingsButton({ isMobile = false }: SettingsButtonProps) {
             <TooltipContent side={isMobile ? "bottom" : "left"}>
               <p>Settings</p>
             </TooltipContent>
-            <DropdownMenuContent align="end" className="w-40">
+            <DropdownMenuContent align="end" className="w-44">
               <DropdownMenuItem onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
                 {theme === 'dark' ? (
                   <Sun className="mr-2 h-4 w-4" />
@@ -54,6 +56,10 @@ export function SettingsButton({ isMobile = false }: SettingsButtonProps) {
                   <Moon className="mr-2 h-4 w-4" />
                 )}
                 <span>Switch theme</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setAsteroidsEnabled(!asteroidsEnabled)}>
+                <Sparkles className="mr-2 h-4 w-4" />
+                <span>{asteroidsEnabled ? 'Disable' : 'Enable'} asteroids</span>
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => setShowLogoutAlert(true)}>
                 <LogOut className="mr-2 h-4 w-4" />

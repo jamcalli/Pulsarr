@@ -3,6 +3,7 @@ import './styles/fonts.css'
 import { useState, useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
 import { ThemeProvider } from '@/components/theme-provider'
+import { SettingsProvider } from '@/components/settings-provider'
 import { Toaster } from '@/components/ui/toaster'
 import ParallaxStarfield from '@/components/ui/starfield'
 import CRTOverlay from '@/components/ui/crt-overlay'
@@ -16,6 +17,7 @@ import planetMobile from '@/assets/images/planet-m.webp'
 import PulsarrIcon from '@/assets/images/pulsarr.svg'
 import { VersionDisplay } from '@/components/ui/version-display'
 import { useMediaQuery } from '@/hooks/use-media-query'
+import { useSettings } from '@/components/settings-provider'
 
 const setFavicon = () => {
   const link =
@@ -32,6 +34,7 @@ setFavicon()
 // Background component that checks route
 function BackgroundLayer() {
   const isMobile = useMediaQuery('(max-width: 768px)')
+  const { asteroidsEnabled } = useSettings()
   const [isLoginRoute, setIsLoginRoute] = useState(
     window.location.pathname === '/login',
   )
@@ -105,7 +108,7 @@ function BackgroundLayer() {
           <div className="fixed top-32 left-1/2 -translate-x-1/2 -translate-y-32 ml-24 z-[-1] pointer-events-none">
             <Pulsar className="w-24 h-24" />
           </div>
-          <AsteroidsBackground />
+          {asteroidsEnabled && <AsteroidsBackground />}
         </ParallaxStarfield>
         <div className="absolute bottom-8 left-0 right-0 z-10">
           <p
@@ -148,7 +151,9 @@ function RootLayoutContent() {
 function RootLayout() {
   return (
     <ThemeProvider>
-      <RootLayoutContent />
+      <SettingsProvider>
+        <RootLayoutContent />
+      </SettingsProvider>
     </ThemeProvider>
   )
 }
