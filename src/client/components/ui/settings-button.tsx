@@ -20,6 +20,13 @@ interface SettingsButtonProps {
   isMobile?: boolean
 }
 
+/**
+ * Renders a settings button with a dropdown menu for theme switching, feature toggling, and logout.
+ *
+ * Displays a tooltip labeled "Settings" on hover or focus. The dropdown menu allows users to switch between light and dark themes, toggle the "asteroids" feature (on non-mobile devices), and initiate a logout confirmation dialog.
+ *
+ * @param isMobile - If true, renders the button and menu with mobile-specific styling and layout.
+ */
 export function SettingsButton({ isMobile = false }: SettingsButtonProps) {
   const { theme, setTheme } = useTheme()
   const { asteroidsEnabled, setAsteroidsEnabled } = useSettings()

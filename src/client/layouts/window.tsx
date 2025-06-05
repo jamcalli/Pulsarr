@@ -17,6 +17,13 @@ interface WindowedLayoutProps {
   children: ReactNode
 }
 
+/**
+ * Renders a responsive layout that adapts to mobile and desktop screens, providing distinct navigation and content presentation for each.
+ *
+ * On mobile devices (≤768px), displays a fixed full-screen layout with a top header containing a slide-out navigation menu, app title, documentation link, and settings button. On desktop, presents a windowed two-column layout with a vertical sidebar title, persistent navigation, and a scrollable main content area.
+ *
+ * @param children - The content to display within the main area of the layout.
+ */
 export default function WindowedLayout({ children }: WindowedLayoutProps) {
   const isMobile = useMediaQuery('(max-width: 768px)')
   const [sheetOpen, setSheetOpen] = useState(false)

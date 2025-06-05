@@ -67,14 +67,9 @@ interface UserTableProps {
 }
 
 /**
- * Displays an interactive table for managing user watchlist data, with features including sorting, username filtering, pagination, column visibility toggling, row selection, and both individual and bulk editing.
+ * Renders an interactive table for managing user watchlist data, supporting sorting, filtering by username, pagination, column visibility toggling, row selection, and both individual and bulk editing.
  *
- * Users can view and edit individual user details, perform bulk edits on selected rows, and open a modal to view a user's watchlist. The table adapts to loading state, provides responsive column visibility, and displays visual indicators for notification and sync statuses.
- *
- * @param users - The array of user watchlist data to display in the table.
- * @param onEditUser - Callback invoked when editing a single user.
- * @param isLoading - Optional flag indicating loading state; disables controls and shows skeleton rows when true.
- * @param onBulkEdit - Optional callback invoked with selected rows for bulk editing.
+ * Users can edit individual user details, perform bulk edits on selected rows, and open a modal to view a user's watchlist. The table adapts to loading state, disables controls as needed, and displays visual indicators for notification and sync statuses.
  *
  * @remark If a user's ID is invalid when attempting to view their watchlist, an error is logged and a destructive toast notification is shown; the modal will not open.
  */

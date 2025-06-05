@@ -2,6 +2,11 @@ import { Link } from 'react-router-dom'
 import { AlertCircle, Home } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
+/**
+ * Displays a styled error alert indicating that the requested page was not found.
+ *
+ * Provides a message explaining the missing page and a link to return to the dashboard.
+ */
 export function NotFoundPage() {
   return (
     <div className="w-full max-w-md px-4">
