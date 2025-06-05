@@ -48,7 +48,7 @@ export function SettingsButton({ isMobile = false }: SettingsButtonProps) {
             <TooltipContent side={isMobile ? "bottom" : "left"}>
               <p>Settings</p>
             </TooltipContent>
-            <DropdownMenuContent align="end" className="w-44">
+            <DropdownMenuContent align="end" className={isMobile ? "w-40" : "w-44"}>
               <DropdownMenuItem onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
                 {theme === 'dark' ? (
                   <Sun className="mr-2 h-4 w-4" />
@@ -57,10 +57,12 @@ export function SettingsButton({ isMobile = false }: SettingsButtonProps) {
                 )}
                 <span>Switch theme</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setAsteroidsEnabled(!asteroidsEnabled)}>
-                <Sparkles className="mr-2 h-4 w-4" />
-                <span>{asteroidsEnabled ? 'Disable' : 'Enable'} asteroids</span>
-              </DropdownMenuItem>
+              {!isMobile && (
+                <DropdownMenuItem onClick={() => setAsteroidsEnabled(!asteroidsEnabled)}>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  <span>{asteroidsEnabled ? 'Disable' : 'Enable'} asteroids</span>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onSelect={() => setShowLogoutAlert(true)}>
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Log out</span>
