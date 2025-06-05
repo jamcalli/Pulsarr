@@ -24,13 +24,24 @@ export function SettingsProvider({
   ...props
 }: SettingsProviderProps) {
   const [asteroidsEnabled, setAsteroidsEnabledState] = useState<boolean>(() => {
-    const stored = localStorage.getItem('pulsarr-asteroids-enabled')
-    return stored !== null ? JSON.parse(stored) : true
+    try {
+      const stored = localStorage.getItem('pulsarr-asteroids-enabled')
+      return stored !== null ? JSON.parse(stored) : true
+    } catch (error) {
+      console.warn('Failed to load asteroids setting:', error)
+      return true
+    }
   })
 
   const setAsteroidsEnabled = React.useCallback((enabled: boolean) => {
-    localStorage.setItem('pulsarr-asteroids-enabled', JSON.stringify(enabled))
-    setAsteroidsEnabledState(enabled)
+    try {
+      localStorage.setItem('pulsarr-asteroids-enabled', JSON.stringify(enabled))
+      setAsteroidsEnabledState(enabled)
+    } catch (error) {
+      console.error('Failed to save asteroids setting:', error)
+      // Still update state even if localStorage fails
+      setAsteroidsEnabledState(enabled)
+    }
   }, [])
 
   const value = React.useMemo(

@@ -5,6 +5,7 @@ import { useMediaQuery } from '@/hooks/use-media-query'
 import { Menu, FileText } from 'lucide-react'
 import { SettingsButton } from '@/components/ui/settings-button'
 import { useState } from 'react'
+import { DOCUMENTATION_URL } from '@/lib/constants'
 import {
   Sheet,
   SheetContent,
@@ -51,7 +52,7 @@ export default function WindowedLayout({ children }: WindowedLayoutProps) {
           {/* Mobile Settings and Docs Buttons */}
           <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-3">
             <a
-              href="https://jamcalli.github.io/Pulsarr/docs/intro"
+              href={DOCUMENTATION_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="text-black"

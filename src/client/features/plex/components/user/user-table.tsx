@@ -372,7 +372,7 @@ export default function UserTable({
           </div>
         )}
       </div>
-      <div className="rounded-md overflow-x-auto">
+      <div className="rounded-md">
         {isLoading ? (
           <TableSkeleton
             rows={table.getState().pagination.pageSize}
