@@ -15,7 +15,7 @@ export function NotFoundPage() {
           </p>
           <Link
             to="/dashboard"
-            className="inline-flex items-center gap-2 text-black underline hover:no-underline font-medium"
+            className="inline-flex items-center gap-2 underline hover:no-underline font-medium"
           >
             <Home className="h-4 w-4" />
             Back to Dashboard

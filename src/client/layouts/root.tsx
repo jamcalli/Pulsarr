@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { useMemo } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { useSettings } from '@/components/settings-provider'
@@ -24,7 +25,10 @@ function BackgroundLayer() {
   const isLoginRoute = location.pathname === '/login'
 
   // Show background on desktop always, or on mobile only for login
-  const shouldShowBackground = !isMobile || (isMobile && isLoginRoute)
+  const shouldShowBackground = useMemo(
+    () => !isMobile || (isMobile && isLoginRoute),
+    [isMobile, isLoginRoute],
+  )
 
   if (!shouldShowBackground) return null
 
@@ -49,6 +53,7 @@ function BackgroundLayer() {
           <div className="fixed bottom-0 right-0 z-0 translate-x-1/4 translate-y-1/4">
             <div
               className={`relative ${isMobile ? 'w-[600px]' : 'w-[1000px]'}`}
+              aria-hidden="true"
             >
               <AspectRatio ratio={1522 / 1608}>
                 <picture>
@@ -63,7 +68,7 @@ function BackgroundLayer() {
                   />
                   <img
                     src={planetDesktop}
-                    alt="Planet"
+                    alt=""
                     fetchPriority="high"
                     width="1522"
                     height="1608"
