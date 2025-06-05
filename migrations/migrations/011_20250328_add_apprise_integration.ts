@@ -1,10 +1,8 @@
 import type { Knex } from 'knex'
+import { shouldSkipForPostgreSQL, shouldSkipDownForPostgreSQL } from '../utils/clientDetection.js'
 
 export async function up(knex: Knex): Promise<void> {
-    // Skip on PostgreSQL - consolidated in migration 034
-  const client = knex.client.config.client
-  if (client === 'pg') {
-    console.log('Skipping migration 011_20250328_add_apprise_integration - PostgreSQL uses consolidated schema in migration 034')
+    if (shouldSkipForPostgreSQL(knex, '011_20250328_add_apprise_integration')) {
     return
   }
 // 1. Add Apprise settings to configs table
@@ -88,9 +86,7 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 export async function down(knex: Knex): Promise<void> {
-    // Skip on PostgreSQL - consolidated in migration 034
-  const client = knex.client.config.client
-  if (client === 'pg') {
+    if (shouldSkipDownForPostgreSQL(knex)) {
     return
   }
   // Revert notification format changes

@@ -1,4 +1,5 @@
 import type { Knex } from 'knex'
+import { shouldSkipForPostgreSQL, shouldSkipDownForPostgreSQL } from '../utils/clientDetection.js'
 
 /**
  * Converts all non-conditional router rules in the database to a standardized predicate-based criteria format.
@@ -9,10 +10,7 @@ import type { Knex } from 'knex'
  * Rules with missing or unrecognized criteria are skipped. Errors encountered during individual rule processing are logged and do not interrupt the migration process.
  */
 export async function up(knex: Knex): Promise<void> {
-    // Skip on PostgreSQL - consolidated in migration 034
-  const client = knex.client.config.client
-  if (client === 'pg') {
-    console.log('Skipping migration 013_20250414_update_router_rules_format - PostgreSQL uses consolidated schema in migration 034')
+    if (shouldSkipForPostgreSQL(knex, '013_20250414_update_router_rules_format')) {
     return
   }
 // Get total count for logging
@@ -164,9 +162,7 @@ export async function up(knex: Knex): Promise<void> {
  * For each non-conditional router rule, reconstructs the original criteria object from the `condition` property and updates the database. Known rule types are mapped to their original keys; unknown types use the condition's field name as the key.
  */
 export async function down(knex: Knex): Promise<void> {
-    // Skip on PostgreSQL - consolidated in migration 034
-  const client = knex.client.config.client
-  if (client === 'pg') {
+    if (shouldSkipDownForPostgreSQL(knex)) {
     return
   }
   const result = await knex('router_rules')

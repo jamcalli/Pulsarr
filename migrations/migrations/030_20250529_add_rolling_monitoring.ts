@@ -1,4 +1,5 @@
 import type { Knex } from 'knex'
+import { shouldSkipForPostgreSQL, shouldSkipDownForPostgreSQL } from '../utils/clientDetection.js'
 
 /**
  * Applies the migration to add rolling monitoring support.
@@ -6,10 +7,7 @@ import type { Knex } from 'knex'
  * Creates the `rolling_monitored_shows` table for tracking shows monitored with rolling strategies, including references to Sonarr series and instances, external identifiers, monitoring configuration, progress tracking, and optional Plex user information. Adds a nullable JSON column `plexSessionMonitoring` to the `configs` table for session monitoring configuration.
  */
 export async function up(knex: Knex): Promise<void> {
-    // Skip on PostgreSQL - consolidated in migration 034
-  const client = knex.client.config.client
-  if (client === 'pg') {
-    console.log('Skipping migration 030_20250529_add_rolling_monitoring - PostgreSQL uses consolidated schema in migration 034')
+    if (shouldSkipForPostgreSQL(knex, '030_20250529_add_rolling_monitoring')) {
     return
   }
 // Create table for tracking rolling monitored shows
@@ -63,9 +61,7 @@ export async function up(knex: Knex): Promise<void> {
  * Reverts the migration by removing the `plexSessionMonitoring` column from the `configs` table and dropping the `rolling_monitored_shows` table if it exists.
  */
 export async function down(knex: Knex): Promise<void> {
-    // Skip on PostgreSQL - consolidated in migration 034
-  const client = knex.client.config.client
-  if (client === 'pg') {
+    if (shouldSkipDownForPostgreSQL(knex)) {
     return
   }
   // Remove session monitoring configuration

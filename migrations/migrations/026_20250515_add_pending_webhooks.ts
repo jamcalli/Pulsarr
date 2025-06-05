@@ -1,4 +1,5 @@
 import type { Knex } from 'knex'
+import { shouldSkipForPostgreSQL, shouldSkipDownForPostgreSQL } from '../utils/clientDetection.js'
 
 /**
  * Creates the `pending_webhooks` table for storing incoming webhook events.
@@ -6,10 +7,7 @@ import type { Knex } from 'knex'
  * The table includes columns for webhook source type, associated instance, unique identifiers, payload data, and timestamps. It enforces allowed values for `instance_type` and `media_type`, and adds indexes for efficient querying by `guid`, `media_type`, and `expires_at`.
  */
 export async function up(knex: Knex): Promise<void> {
-    // Skip on PostgreSQL - consolidated in migration 034
-  const client = knex.client.config.client
-  if (client === 'pg') {
-    console.log('Skipping migration 026_20250515_add_pending_webhooks - PostgreSQL uses consolidated schema in migration 034')
+  if (shouldSkipForPostgreSQL(knex, '026_20250515_add_pending_webhooks')) {
     return
   }
 await knex.schema.createTable('pending_webhooks', (table) => {
@@ -38,9 +36,7 @@ await knex.schema.createTable('pending_webhooks', (table) => {
  * Drops the `pending_webhooks` table if it exists, reversing the migration.
  */
 export async function down(knex: Knex): Promise<void> {
-    // Skip on PostgreSQL - consolidated in migration 034
-  const client = knex.client.config.client
-  if (client === 'pg') {
+  if (shouldSkipDownForPostgreSQL(knex)) {
     return
   }
   await knex.schema.dropTableIfExists('pending_webhooks')

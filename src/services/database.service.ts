@@ -107,42 +107,47 @@ export class DatabaseService {
     log: FastifyBaseLogger,
   ): Knex.Config {
     const isPostgres = config.dbType === 'postgres'
-    
+
     // Build PostgreSQL connection
     const getPostgresConnection = () => {
       if (config.dbConnectionString) {
         return config.dbConnectionString
       }
-      
+
       return {
         host: config.dbHost,
         port: config.dbPort,
         user: config.dbUser,
         password: config.dbPassword,
-        database: config.dbName
+        database: config.dbName,
       }
     }
 
     return {
       client: isPostgres ? 'pg' : 'better-sqlite3',
-      connection: isPostgres ? getPostgresConnection() : {
-        filename: config.dbPath,
-      },
+      connection: isPostgres
+        ? getPostgresConnection()
+        : {
+            filename: config.dbPath,
+          },
       useNullAsDefault: !isPostgres,
-      pool: isPostgres 
-        ? { 
-            min: 2, 
-            max: 10 
+      pool: isPostgres
+        ? {
+            min: 2,
+            max: 10,
           }
         : {
             min: 1,
             max: 1,
-            afterCreate: (conn: any, cb: any) => {
+            afterCreate: (
+              conn: { exec: (sql: string) => void },
+              cb: () => void,
+            ) => {
               // SQLite-specific optimizations
               conn.exec('PRAGMA journal_mode = WAL;')
               conn.exec('PRAGMA foreign_keys = ON;')
               cb()
-            }
+            },
           },
       log: {
         warn: (message: string) => log.warn(message),

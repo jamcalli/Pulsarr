@@ -1,10 +1,8 @@
 import type { Knex } from 'knex'
+import { shouldSkipForPostgreSQL, shouldSkipDownForPostgreSQL } from '../utils/clientDetection.js'
 
 export async function up(knex: Knex): Promise<void> {
-    // Skip on PostgreSQL - consolidated in migration 034
-  const client = knex.client.config.client
-  if (client === 'pg') {
-    console.log('Skipping migration 009_20250323_add_respect_user_sync_setting - PostgreSQL uses consolidated schema in migration 034')
+    if (shouldSkipForPostgreSQL(knex, '009_20250323_add_respect_user_sync_setting')) {
     return
   }
 await knex.schema.alterTable('configs', (table) => {
@@ -18,9 +16,7 @@ await knex.schema.alterTable('configs', (table) => {
 }
 
 export async function down(knex: Knex): Promise<void> {
-    // Skip on PostgreSQL - consolidated in migration 034
-  const client = knex.client.config.client
-  if (client === 'pg') {
+    if (shouldSkipDownForPostgreSQL(knex)) {
     return
   }
   await knex.schema.alterTable('configs', (table) => {
