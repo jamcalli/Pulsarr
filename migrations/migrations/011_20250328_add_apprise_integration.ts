@@ -1,7 +1,13 @@
 import type { Knex } from 'knex'
 
 export async function up(knex: Knex): Promise<void> {
-  // 1. Add Apprise settings to configs table
+    // Skip on PostgreSQL - consolidated in migration 034
+  const client = knex.client.config.client
+  if (client === 'pg') {
+    console.log('Skipping migration 011_20250328_add_apprise_integration - PostgreSQL uses consolidated schema in migration 034')
+    return
+  }
+// 1. Add Apprise settings to configs table
   await knex.schema.alterTable('configs', (table) => {
     table.boolean('enableApprise').defaultTo(false)
     table.string('appriseUrl').defaultTo('')
@@ -82,6 +88,11 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 export async function down(knex: Knex): Promise<void> {
+    // Skip on PostgreSQL - consolidated in migration 034
+  const client = knex.client.config.client
+  if (client === 'pg') {
+    return
+  }
   // Revert notification format changes
   const configs = await knex('configs').select('id', 'deleteSyncNotify')
   

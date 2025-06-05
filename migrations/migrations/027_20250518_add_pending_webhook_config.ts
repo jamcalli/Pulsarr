@@ -9,7 +9,13 @@ import type { Knex } from 'knex'
  * No changes are made if the `configs` table does not exist or if the columns are already present.
  */
 export async function up(knex: Knex): Promise<void> {
-  // Check if the configs table exists
+    // Skip on PostgreSQL - consolidated in migration 034
+  const client = knex.client.config.client
+  if (client === 'pg') {
+    console.log('Skipping migration 027_20250518_add_pending_webhook_config - PostgreSQL uses consolidated schema in migration 034')
+    return
+  }
+// Check if the configs table exists
   const configsExists = await knex.schema.hasTable('configs')
   
   if (configsExists) {
@@ -43,6 +49,11 @@ export async function up(knex: Knex): Promise<void> {
  * Drops the columns `pendingWebhookRetryInterval`, `pendingWebhookMaxAge`, and `pendingWebhookCleanupInterval` from the `configs` table, provided the table and columns exist.
  */
 export async function down(knex: Knex): Promise<void> {
+    // Skip on PostgreSQL - consolidated in migration 034
+  const client = knex.client.config.client
+  if (client === 'pg') {
+    return
+  }
   const configsExists = await knex.schema.hasTable('configs')
   
   if (configsExists) {

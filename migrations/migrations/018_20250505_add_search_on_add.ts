@@ -7,7 +7,13 @@ import type { Knex } from 'knex'
  * Introduces a configuration option to control whether automatic searches are performed when new content is added to Radarr or Sonarr. Existing rows are updated to ensure the new column is set to true by default.
  */
 export async function up(knex: Knex): Promise<void> {
-  // Add search_on_add to radarr_instances
+    // Skip on PostgreSQL - consolidated in migration 034
+  const client = knex.client.config.client
+  if (client === 'pg') {
+    console.log('Skipping migration 018_20250505_add_search_on_add - PostgreSQL uses consolidated schema in migration 034')
+    return
+  }
+// Add search_on_add to radarr_instances
   await knex.schema.alterTable('radarr_instances', (table) => {
     // Add the search_on_add column with a default value of true
     table.boolean('search_on_add').defaultTo(true)
@@ -35,6 +41,11 @@ export async function up(knex: Knex): Promise<void> {
  * This function reverts the changes made by the corresponding migration's `up` function.
  */
 export async function down(knex: Knex): Promise<void> {
+    // Skip on PostgreSQL - consolidated in migration 034
+  const client = knex.client.config.client
+  if (client === 'pg') {
+    return
+  }
   await knex.schema.alterTable('radarr_instances', (table) => {
     table.dropColumn('search_on_add')
   })

@@ -1,7 +1,13 @@
 import type { Knex } from 'knex'
 
 export async function up(knex: Knex): Promise<void> {
-  // Create junction table for watchlist items to Radarr instances
+    // Skip on PostgreSQL - consolidated in migration 034
+  const client = knex.client.config.client
+  if (client === 'pg') {
+    console.log('Skipping migration 004_20250306_add_junction_tables - PostgreSQL uses consolidated schema in migration 034')
+    return
+  }
+// Create junction table for watchlist items to Radarr instances
   await knex.schema.createTable('watchlist_radarr_instances', (table) => {
     table.increments('id').primary()
     table.integer('watchlist_id')
@@ -78,6 +84,11 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 export async function down(knex: Knex): Promise<void> {
+    // Skip on PostgreSQL - consolidated in migration 034
+  const client = knex.client.config.client
+  if (client === 'pg') {
+    return
+  }
   await knex.schema.dropTable('watchlist_radarr_instances')
   await knex.schema.dropTable('watchlist_sonarr_instances')
 }

@@ -2,7 +2,13 @@ import type { Knex } from 'knex'
 
 export async function up(knex: Knex): Promise<void> {
 
-  const existingGenres = await knex('genres').select('name')
+    // Skip on PostgreSQL - consolidated in migration 034
+  const client = knex.client.config.client
+  if (client === 'pg') {
+    console.log('Skipping migration 007_20250312_seed_genres - PostgreSQL uses consolidated schema in migration 034')
+    return
+  }
+const existingGenres = await knex('genres').select('name')
   const existingGenreNames = existingGenres.map(g => g.name)
   
   const genres = [
@@ -65,6 +71,11 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 export async function down(knex: Knex): Promise<void> {
+    // Skip on PostgreSQL - consolidated in migration 034
+  const client = knex.client.config.client
+  if (client === 'pg') {
+    return
+  }
   // List of genres that were added by this migration
   const genresToRemove = [
     'Action', 'Action/Adventure', 'Adventure', 'Animation', 'Anime',

@@ -6,7 +6,13 @@ import type { Knex } from 'knex'
  * Adds columns for Tautulli notifier settings and notification tracking to support integration with Tautulli.
  */
 export async function up(knex: Knex): Promise<void> {
-  // Add Tautulli fields to users table
+    // Skip on PostgreSQL - consolidated in migration 034
+  const client = knex.client.config.client
+  if (client === 'pg') {
+    console.log('Skipping migration 028_20250527_add_tautulli_integration - PostgreSQL uses consolidated schema in migration 034')
+    return
+  }
+// Add Tautulli fields to users table
   await knex.schema.alterTable('users', (table) => {
     table.integer('tautulli_notifier_id').nullable()
     table.boolean('notify_tautulli').defaultTo(false)
@@ -31,6 +37,11 @@ export async function up(knex: Knex): Promise<void> {
  * Drops the columns added by the corresponding migration from the `configs`, `notifications`, and `users` tables.
  */
 export async function down(knex: Knex): Promise<void> {
+    // Skip on PostgreSQL - consolidated in migration 034
+  const client = knex.client.config.client
+  if (client === 'pg') {
+    return
+  }
   await knex.schema.alterTable('configs', (table) => {
     table.dropColumn('tautulliEnabled')
     table.dropColumn('tautulliUrl')

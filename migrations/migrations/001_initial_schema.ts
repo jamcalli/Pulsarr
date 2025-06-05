@@ -1,6 +1,12 @@
 import type { Knex } from 'knex'
 
 export async function up(knex: Knex): Promise<void> {
+  // Skip on PostgreSQL - consolidated in migration 034
+  const client = knex.client.config.client
+  if (client === 'pg') {
+    console.log('Skipping migration 001 - PostgreSQL uses consolidated schema in migration 034')
+    return
+  }
   await knex.schema.createTable('users', (table) => {
     table.increments('id').primary()
     table.string('name').notNullable()
@@ -202,6 +208,12 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 export async function down(knex: Knex): Promise<void> {
+  // Skip on PostgreSQL - consolidated in migration 034
+  const client = knex.client.config.client
+  if (client === 'pg') {
+    return
+  }
+  
   await knex.schema.dropTable('temp_rss_items')
   await knex.schema.dropTable('watchlist_items')
   await knex.schema.dropTable('radarr_genre_routing')

@@ -9,7 +9,13 @@ import type { Knex } from 'knex'
  * Rules with missing or unrecognized criteria are skipped. Errors encountered during individual rule processing are logged and do not interrupt the migration process.
  */
 export async function up(knex: Knex): Promise<void> {
-  // Get total count for logging
+    // Skip on PostgreSQL - consolidated in migration 034
+  const client = knex.client.config.client
+  if (client === 'pg') {
+    console.log('Skipping migration 013_20250414_update_router_rules_format - PostgreSQL uses consolidated schema in migration 034')
+    return
+  }
+// Get total count for logging
   const result = await knex('router_rules')
     .whereNot('type', 'conditional')
     .count<[{ count: number }]>('* as count')
@@ -158,6 +164,11 @@ export async function up(knex: Knex): Promise<void> {
  * For each non-conditional router rule, reconstructs the original criteria object from the `condition` property and updates the database. Known rule types are mapped to their original keys; unknown types use the condition's field name as the key.
  */
 export async function down(knex: Knex): Promise<void> {
+    // Skip on PostgreSQL - consolidated in migration 034
+  const client = knex.client.config.client
+  if (client === 'pg') {
+    return
+  }
   const result = await knex('router_rules')
     .whereNot('type', 'conditional')
     .count<[{ count: number }]>('* as count')
