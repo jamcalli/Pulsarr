@@ -104,11 +104,20 @@ export class DatabaseService {
    * Helper method to extract rows from raw query results
    * PostgreSQL returns {rows: T[]} while SQLite returns T[] directly
    */
-  private extractRawQueryRows<T>(result: unknown): T[] {
-    if (this.isPostgreSQL()) {
-      return (result as { rows: T[] }).rows
+  private extractRawQueryRows<T>(result: T[] | { rows: T[] }): T[] {
+    if (Array.isArray(result)) {
+      return result
     }
-    return result as T[]
+    if (
+      result &&
+      typeof result === 'object' &&
+      'rows' in result &&
+      Array.isArray(result.rows)
+    ) {
+      return result.rows
+    }
+    this.log.warn('Unexpected raw-query shape', { result })
+    return []
   }
 
   /**
