@@ -31,40 +31,7 @@
  */
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import knex, { type Knex } from 'knex'
-import type { types as PgTypes } from 'pg'
-
-// Configure PostgreSQL type parsers once at module load
-let pgTypesConfigured = false
-async function configurePgTypes(log: FastifyBaseLogger) {
-  if (pgTypesConfigured) return
-
-  try {
-    const pg = await import('pg')
-    const types = pg.default.types
-
-    if (types && typeof types === 'object' && 'setTypeParser' in types) {
-      const typesParser = types as typeof PgTypes
-
-      // Dates and timestamps
-      typesParser.setTypeParser(1082, (str: string) => str) // date
-      typesParser.setTypeParser(1114, (str: string) => str) // timestamp without timezone
-      typesParser.setTypeParser(1184, (str: string) => str) // timestamp with timezone
-      typesParser.setTypeParser(1083, (str: string) => str) // time without timezone
-      typesParser.setTypeParser(1266, (str: string) => str) // time with timezone
-
-      // JSON types
-      typesParser.setTypeParser(114, (str: string) => str) // json
-      typesParser.setTypeParser(3802, (str: string) => str) // jsonb
-
-      pgTypesConfigured = true
-      log.debug('PostgreSQL type parsers configured successfully')
-    } else {
-      log.warn('PostgreSQL types.setTypeParser not available')
-    }
-  } catch (error) {
-    log.warn('Failed to configure PostgreSQL type parsers:', error)
-  }
-}
+import { configurePgTypes } from '@utils/postgres-config.js'
 import type { Config, User } from '@root/types/config.types.js'
 import { DefaultInstanceError } from '@root/types/errors.js'
 import type {
