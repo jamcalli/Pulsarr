@@ -2,10 +2,14 @@ import type { Knex } from 'knex'
 import { fileURLToPath } from 'url'
 import { dirname, resolve } from 'path'
 import fs from 'node:fs'
+import dotenv from 'dotenv'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 const projectRoot = resolve(__dirname, '..')
+
+// Load environment variables before anything else
+dotenv.config({ path: resolve(projectRoot, '.env') })
 
 function ensureDbDirectory() {
   const dbDirectory = resolve(projectRoot, 'data', 'db')

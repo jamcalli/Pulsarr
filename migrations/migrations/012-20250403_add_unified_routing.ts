@@ -1,4 +1,5 @@
 import type { Knex } from 'knex'
+import { isPostgreSQL } from '../utils/clientDetection.js'
 
 /**
  * Creates the unified router_rules table, sets up cascading delete triggers, and migrates genre routing data.
@@ -9,6 +10,12 @@ import type { Knex } from 'knex'
  * genre data into a JSON structure in the criteria column—and then drops the old tables.
  */
 export async function up(knex: Knex): Promise<void> {
+  // Skip this migration for PostgreSQL - it's included in migration 034
+  if (isPostgreSQL(knex)) {
+    console.log('Skipping migration 012-20250403_add_unified_routing - PostgreSQL uses consolidated schema in migration 034')
+    return
+  }
+
   await knex.transaction(async (trx) => {
     // Create the router_rules table
     await trx.schema.createTable('router_rules', (table) => {
