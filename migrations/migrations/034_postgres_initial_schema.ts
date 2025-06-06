@@ -27,7 +27,7 @@ export async function up(knex: Knex): Promise<void> {
     CREATE TYPE movie_status AS ENUM ('available', 'unavailable');
     CREATE TYPE notification_type AS ENUM ('episode', 'season', 'movie', 'watchlist_add');
     CREATE TYPE monitoring_type AS ENUM ('pilotRolling', 'firstSeasonRolling');
-    CREATE TYPE delete_sync_notify AS ENUM ('none', 'message', 'webhook', 'both');
+    CREATE TYPE delete_sync_notify AS ENUM ('none', 'message', 'webhook', 'both', 'all', 'discord-only', 'apprise-only', 'webhook-only', 'dm-only', 'discord-webhook', 'discord-message', 'discord-both');
     CREATE TYPE removed_tag_mode AS ENUM ('remove', 'keep', 'special-tag');
     CREATE TYPE deletion_mode AS ENUM ('watchlist', 'tag-based');
     CREATE TYPE auth_method AS ENUM ('required', 'requiredExceptLocal', 'disabled');

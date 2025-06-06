@@ -103,6 +103,7 @@
     "knex": "^3.1.0",
     "lucide-react": "^0.503.0",
     "next-themes": "^0.4.6",
+    "pg": "^8.16.0",
     "pino-pretty": "^13.0.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
