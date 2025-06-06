@@ -5,7 +5,6 @@
  * Provides connection management, user operations, and playlist protection functionality.
  */
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
-import type { Config } from '@root/types/config.types.js'
 import { parseGuids } from '@utils/guid-handler.js'
 import { toItemsSingle } from '@utils/plex.js'
 import type { Item } from '@root/types/plex.types.js'
