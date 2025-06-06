@@ -4,7 +4,7 @@
  * A stateful service class for interacting with Plex Media Server.
  * Provides connection management, user operations, and playlist protection functionality.
  */
-import type { FastifyBaseLogger } from 'fastify'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type { Config } from '@root/types/config.types.js'
 import { parseGuids } from '@utils/guid-handler.js'
 import { toItemsSingle } from '@utils/plex.js'
@@ -168,13 +168,20 @@ export class PlexServerService {
    * Creates a new PlexServerService instance
    *
    * @param log - Fastify logger instance
-   * @param config - Application configuration
+   * @param fastify - Fastify instance for accessing configuration
    */
   constructor(
     private readonly log: FastifyBaseLogger,
-    private readonly config: Config,
+    private readonly fastify: FastifyInstance,
   ) {
     this.log.info('Initializing PlexServerService')
+  }
+
+  /**
+   * Access to application configuration
+   */
+  private get config() {
+    return this.fastify.config
   }
 
   /**
