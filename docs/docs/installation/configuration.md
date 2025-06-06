@@ -37,6 +37,10 @@ Pulsarr supports both SQLite (default) and PostgreSQL databases:
 
 ### PostgreSQL
 
+:::note New Installations Only
+PostgreSQL support is available for **new installations only**. Migration from existing SQLite databases is not currently supported. If you're already using Pulsarr with SQLite, you'll need to start fresh with PostgreSQL.
+:::
+
 :::note Database Setup Required
 Before configuring Pulsarr with PostgreSQL, ensure you have:
 - A PostgreSQL server running
