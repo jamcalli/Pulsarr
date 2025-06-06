@@ -149,13 +149,13 @@ export async function up(knex: Knex): Promise<void> {
     
     // Tautulli configuration
     table.boolean('tautulliEnabled').defaultTo(false)
-    table.string('tautulliUrl').defaultTo('')
-    table.string('tautulliApiKey').defaultTo('')
+    table.string('tautulliUrl').nullable()
+    table.string('tautulliApiKey').nullable()
     
     // Plex configuration
     table.jsonb('plexTokens')
     table.boolean('skipFriendSync')
-    table.string('plexServerUrl')
+    table.string('plexServerUrl').defaultTo('http://localhost:32400')
     table.boolean('enablePlexPlaylistProtection').defaultTo(false)
     table.string('plexProtectionPlaylistName').defaultTo('Do Not Delete')
     table.jsonb('plexSessionMonitoring').nullable()
@@ -492,8 +492,8 @@ export async function up(knex: Knex): Promise<void> {
   const defaultSchedules = [
     {
       name: 'delete-sync',
-      type: 'interval',
-      config: { intervalMinutes: 60 },
+      type: 'cron',
+      config: { expression: '0 1 * * 0' },
       enabled: false,
       last_run: null,
       next_run: null,
@@ -503,7 +503,7 @@ export async function up(knex: Knex): Promise<void> {
     {
       name: 'plex-rolling-auto-reset',
       type: 'interval',
-      config: { intervalMinutes: 1440 }, // 24 hours
+      config: { hours: 24 },
       enabled: false,
       last_run: null,
       next_run: null,
