@@ -10,7 +10,6 @@ import {
   type ScheduleConfig,
   type ScheduleUpdate,
 } from '@schemas/scheduler/scheduler.schema.js'
-import { serializeDate } from '@utils/date-serializer.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   // Get all job schedules
@@ -33,11 +32,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         const schedules = await fastify.db.getAllSchedules()
-        return schedules.map((schedule) => ({
-          ...schedule,
-          created_at: serializeDate(schedule.created_at) || '',
-          updated_at: serializeDate(schedule.updated_at) || '',
-        }))
+        return schedules
       } catch (err) {
         fastify.log.error('Error fetching schedules:', err)
         return reply.internalServerError('Unable to fetch schedules')
@@ -74,11 +69,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           return reply.notFound(`Schedule "${name}" not found`)
         }
 
-        return {
-          ...schedule,
-          created_at: serializeDate(schedule.created_at) || '',
-          updated_at: serializeDate(schedule.updated_at) || '',
-        }
+        return schedule
       } catch (err) {
         if (err instanceof Error && 'statusCode' in err) {
           throw err
