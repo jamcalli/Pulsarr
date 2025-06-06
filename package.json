@@ -129,6 +129,7 @@
     "@commitlint/config-conventional": "^19.8.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^22.15.3",
+    "@types/pg": "^8.15.4",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "@types/safe-regex": "^1.1.6",

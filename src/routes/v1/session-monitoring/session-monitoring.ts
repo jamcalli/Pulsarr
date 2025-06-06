@@ -9,7 +9,6 @@ import {
 } from '@schemas/session-monitoring/session-monitoring.schema.js'
 import type { RollingMonitoredShow } from '@root/types/plex-session.types.js'
 import type { PlexSessionMonitorService } from '@services/plex-session-monitor.service.js'
-import { serializeRollingShowDates } from '@utils/date-serializer.js'
 
 /**
  * Resets a rolling monitored show's monitoring state to its original configuration based on its monitoring type.
@@ -55,7 +54,7 @@ const sessionMonitoringRoutes: FastifyPluginAsync = async (fastify) => {
 
         return reply.send({
           success: true,
-          shows: shows.map(serializeRollingShowDates),
+          shows: shows,
         })
       } catch (error) {
         request.log.error('Error fetching rolling monitored shows:', error)
@@ -234,7 +233,7 @@ const sessionMonitoringRoutes: FastifyPluginAsync = async (fastify) => {
 
         return reply.send({
           success: true,
-          shows: shows.map(serializeRollingShowDates),
+          shows: shows,
           inactivityDays,
         })
       } catch (error) {
