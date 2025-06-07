@@ -46,7 +46,15 @@ export interface Config {
   // System Config
   baseUrl: string
   port: number
+  // Database Config
+  dbType: 'sqlite' | 'postgres'
   dbPath: string
+  dbHost: string
+  dbPort: number
+  dbName: string
+  dbUser: string
+  dbPassword: string
+  dbConnectionString: string
   cookieSecret: string
   cookieName: string
   cookieSecured: boolean

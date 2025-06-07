@@ -1,12 +1,21 @@
 import type { Knex } from 'knex'
+import {
+  shouldSkipForPostgreSQL,
+  shouldSkipDownForPostgreSQL,
+} from '../utils/clientDetection.js'
 
 /**
  * Adds a `series_type` column to the `sonarr_instances` and `router_rules` tables.
  *
  * @remarks
- * In `sonarr_instances`, the `series_type` column is a non-nullable string with a default value of `'standard'`. In `router_rules`, the column is nullable to support per-rule overrides.
+ * This migration is skipped for PostgreSQL databases.
+ * In `sonarr_instances`, the `series_type` column is a non-nullable string with a default value of `'standard'`.
+ * In `router_rules`, the column is nullable to allow per-rule overrides.
  */
 export async function up(knex: Knex): Promise<void> {
+  if (shouldSkipForPostgreSQL(knex, '025_20250514_add_series_type_to_sonarr')) {
+    return
+  }
   // Add series_type column to sonarr_instances table
   await knex.schema.alterTable('sonarr_instances', (table) => {
     table.string('series_type').defaultTo('standard')
@@ -19,11 +28,14 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Removes the `series_type` column from the `sonarr_instances` and `router_rules` tables.
+ * Reverts the migration by dropping the `series_type` column from both `sonarr_instances` and `router_rules` tables.
  *
- * This function reverses the schema changes introduced by the corresponding migration, restoring the tables to their previous structure.
+ * @remark This operation is skipped for PostgreSQL databases.
  */
 export async function down(knex: Knex): Promise<void> {
+  if (shouldSkipDownForPostgreSQL(knex)) {
+    return
+  }
   await knex.schema.alterTable('sonarr_instances', (table) => {
     table.dropColumn('series_type')
   })
