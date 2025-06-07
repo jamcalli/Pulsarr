@@ -17,6 +17,7 @@
     "migrate:make": "knex migrate:make -x ts",
     "migrate:rollback": "knex migrate:rollback",
     "migrate:sqlite-to-postgres": "tsx migrations/scripts/sqlite-to-postgresql.ts",
+    "migrate:postgres-setup": "tsx migrations/migrate.ts",
     "release:beta:develop": "git checkout develop && git pull origin develop && npm version prerelease --preid=beta && git push origin develop && git push origin --tags",
     "release:beta": "npm version prerelease --preid=beta && git push && git push --tags",
     "release:patch": "npm version patch && git push && git push --tags",
