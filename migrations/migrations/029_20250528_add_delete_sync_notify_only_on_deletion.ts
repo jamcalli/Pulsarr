@@ -7,7 +7,10 @@ import {
 /**
  * Adds the `deleteSyncNotifyOnlyOnDeletion` boolean column to the `configs` table with a default value of `false`.
  *
- * @param knex - The Knex schema builder instance.
+ * The migration is skipped for PostgreSQL databases.
+ *
+ * @remark
+ * This operation does not run on PostgreSQL clients; see {@link shouldSkipForPostgreSQL}.
  */
 export async function up(knex: Knex): Promise<void> {
   if (
@@ -25,7 +28,10 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Reverts the migration by removing the `deleteSyncNotifyOnlyOnDeletion` column from the `configs` table.
+ * Removes the `deleteSyncNotifyOnlyOnDeletion` column from the `configs` table if the migration is not skipped for PostgreSQL databases.
+ *
+ * @remark
+ * The operation is skipped if {@link shouldSkipDownForPostgreSQL} returns true for the provided Knex instance.
  */
 export async function down(knex: Knex): Promise<void> {
   if (shouldSkipDownForPostgreSQL(knex)) {

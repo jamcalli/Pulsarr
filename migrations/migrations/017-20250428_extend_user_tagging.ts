@@ -7,7 +7,9 @@ import {
 /**
  * Adds user tagging configuration columns to the `configs` table.
  *
- * Introduces the `cleanupOrphanedTags`, `persistHistoricalTags`, and `tagPrefix` columns with default values, and updates existing rows to ensure these columns are not null.
+ * Adds the `cleanupOrphanedTags`, `persistHistoricalTags`, and `tagPrefix` columns with default values, and updates existing rows to ensure these columns are populated.
+ *
+ * @remark This migration is skipped when running on PostgreSQL databases.
  */
 export async function up(knex: Knex): Promise<void> {
   if (shouldSkipForPostgreSQL(knex, '017-20250428_extend_user_tagging')) {
@@ -35,9 +37,11 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Removes the user tagging configuration columns from the `configs` table.
+ * Reverts the migration by removing user tagging configuration columns from the `configs` table.
  *
- * Drops the `cleanupOrphanedTags`, `persistHistoricalTags`, and `tagPrefix` columns to revert the migration.
+ * Drops the `cleanupOrphanedTags`, `persistHistoricalTags`, and `tagPrefix` columns to undo changes made in the corresponding up migration.
+ *
+ * @remark This operation is skipped when running on PostgreSQL databases.
  */
 export async function down(knex: Knex): Promise<void> {
   if (shouldSkipDownForPostgreSQL(knex)) {

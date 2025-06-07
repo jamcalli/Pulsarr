@@ -5,9 +5,11 @@ import {
 } from '../utils/clientDetection.js'
 
 /**
- * Adds user tagging configuration columns for Sonarr and Radarr to the `configs` table.
+ * Adds `tagUsersInSonarr` and `tagUsersInRadarr` boolean columns to the `configs` table for user tagging configuration.
  *
- * Adds the `tagUsersInSonarr` and `tagUsersInRadarr` boolean columns with a default value of `false`, and updates any existing rows with `NULL` values in these columns to `false`.
+ * The new columns default to `false`, and any existing rows with `NULL` values in these columns are updated to `false`.
+ *
+ * @remark This migration is skipped for PostgreSQL databases.
  */
 export async function up(knex: Knex): Promise<void> {
   if (shouldSkipForPostgreSQL(knex, '015-20250427_add_user_tagging')) {
@@ -31,9 +33,10 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Reverts the migration by removing user tagging configuration columns from the `configs` table.
+ * Reverts the migration by dropping the `tagUsersInSonarr` and `tagUsersInRadarr` columns from the `configs` table.
  *
- * Drops the `tagUsersInSonarr` and `tagUsersInRadarr` columns to undo the changes made in the corresponding migration.
+ * @remark
+ * This migration is skipped for PostgreSQL databases.
  */
 export async function down(knex: Knex): Promise<void> {
   if (shouldSkipDownForPostgreSQL(knex)) {

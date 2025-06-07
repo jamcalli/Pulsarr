@@ -4,6 +4,14 @@ import {
   shouldSkipDownForPostgreSQL,
 } from '../utils/clientDetection.js'
 
+/**
+ * Applies the migration to add notification status tracking to the notifications table.
+ *
+ * Adds a `notification_status` column with a default value of `'active'`, updates existing rows with `NULL` status to `'active'`, and creates an index on `watchlist_item_id`, `type`, and `notification_status`.
+ *
+ * @remark
+ * This migration is skipped when running on PostgreSQL.
+ */
 export async function up(knex: Knex): Promise<void> {
   if (shouldSkipForPostgreSQL(knex, '005_20250310_add_notification_tracking')) {
     return
@@ -24,6 +32,13 @@ export async function up(knex: Knex): Promise<void> {
   })
 }
 
+/**
+ * Reverts the notification status tracking changes in the `notifications` table.
+ *
+ * Drops the `notification_status` column and the associated index from the `notifications` table, unless running on PostgreSQL.
+ *
+ * @remark This migration is skipped on PostgreSQL databases.
+ */
 export async function down(knex: Knex): Promise<void> {
   if (shouldSkipDownForPostgreSQL(knex)) {
     return

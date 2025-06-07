@@ -5,10 +5,10 @@ import {
 } from '../utils/clientDetection.js'
 
 /**
- * Applies a migration that adds the `is_primary_token` column to the `users` table, creates a unique index for rows where this flag is true, and sets the first user named "token1" as the primary token user if present.
+ * Applies a migration to add the `is_primary_token` column to the `users` table, creates a unique index for primary token users, and sets the first user named "token1" as the primary token user if found.
  *
  * @remark
- * The unique index `idx_unique_primary_token` ensures that only one user can have `is_primary_token` set to true in SQLite databases.
+ * The unique index `idx_unique_primary_token` enforces that only one user can have `is_primary_token` set to true in SQLite databases.
  */
 export async function up(knex: Knex): Promise<void> {
   if (shouldSkipForPostgreSQL(knex, '016-20250428_add_primary_user_flag')) {
@@ -43,7 +43,10 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Reverts the migration by dropping the unique index on `is_primary_token` and removing the column from the `users` table.
+ * Rolls back the migration by removing the `is_primary_token` column and its unique index from the `users` table.
+ *
+ * @remark
+ * This operation is skipped for PostgreSQL databases.
  */
 export async function down(knex: Knex): Promise<void> {
   if (shouldSkipDownForPostgreSQL(knex)) {
