@@ -84,6 +84,7 @@ export default fp(
               seasonMonitoring: mergedConfig.sonarrSeasonMonitoring,
               monitorNewItems: mergedConfig.sonarrMonitorNewItems || 'all',
               tags: mergedConfig.sonarrTags || [],
+              createSeasonFolders: mergedConfig.sonarrCreateSeasonFolders,
               isDefault: true,
             })
           }
@@ -126,6 +127,7 @@ export default fp(
               seasonMonitoring: initialConfig.sonarrSeasonMonitoring,
               monitorNewItems: initialConfig.sonarrMonitorNewItems || 'all',
               tags: initialConfig.sonarrTags || [],
+              createSeasonFolders: initialConfig.sonarrCreateSeasonFolders,
               isDefault: true,
             })
           }

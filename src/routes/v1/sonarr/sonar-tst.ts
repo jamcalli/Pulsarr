@@ -13,6 +13,7 @@ const SonarrInstanceSchema = z.object({
   seasonMonitoring: z.string().optional().default('all'),
   monitorNewItems: z.enum(['all', 'none']).default('all'),
   searchOnAdd: z.boolean().optional().default(true),
+  createSeasonFolders: z.boolean().optional().default(false),
   tags: z.array(z.string()).optional().default([]),
   isDefault: z.boolean().optional().default(false),
   syncedInstances: z.array(z.number()).optional(),
@@ -45,6 +46,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       return instances.map((instance) => ({
         ...instance,
         searchOnAdd: instance.searchOnAdd ?? true,
+        createSeasonFolders: instance.createSeasonFolders ?? false,
         seriesType: instance.seriesType ?? 'standard',
         tags: (instance.tags ?? []).map((t) => t.toString()),
       }))

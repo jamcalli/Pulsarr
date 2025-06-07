@@ -19,6 +19,7 @@ const baseObjectSchema = z.object({
   ),
   monitorNewItems: z.enum(['all', 'none']).default('all'),
   searchOnAdd: z.boolean().default(true),
+  createSeasonFolders: z.boolean().default(false),
   tags: z.array(z.string()),
   isDefault: z.boolean(),
   syncedInstances: z.array(z.number()).optional(),

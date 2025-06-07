@@ -81,6 +81,7 @@ export interface SonarrPost {
   monitorNewItems: 'all' | 'none'
   tags: string[]
   seriesType?: 'standard' | 'anime' | 'daily'
+  seasonFolder?: boolean
 }
 
 export interface SonarrEpisode {
@@ -164,6 +165,7 @@ export interface SonarrConfiguration {
   sonarrMonitorNewItems?: 'all' | 'none'
   searchOnAdd?: boolean
   sonarrSeriesType?: 'standard' | 'anime' | 'daily'
+  createSeasonFolders?: boolean
 }
 
 export interface SonarrInstance {
@@ -181,6 +183,7 @@ export interface SonarrInstance {
   syncedInstances?: number[]
   searchOnAdd?: boolean
   seriesType?: 'standard' | 'anime' | 'daily'
+  createSeasonFolders?: boolean
   data?: {
     qualityProfiles?: Array<{ id: number; name: string }>
     rootFolders?: Array<{ path: string }>

@@ -57,6 +57,7 @@ export function useSonarrInstance(instanceId: number) {
             seasonMonitoring: 'all',
             monitorNewItems: 'all',
             searchOnAdd: true,
+            createSeasonFolders: false,
             tags: [],
             isDefault: true, // Always set placeholder instance as default
             syncedInstances: [],
