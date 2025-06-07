@@ -229,6 +229,7 @@ sonarrSeasonMonitoring=all             # Season monitoring strategy
 sonarrMonitorNewItems=all              # Monitor strategy for new items ('all' or 'none')
 sonarrTags=[]                          # Tags as JSON array
 sonarrSeriesType=standard              # Series type: 'standard', 'anime', or 'daily'
+sonarrCreateSeasonFolders=false        # Create season folders (true/false)
 
 # Radarr Configuration (these will seed a single instance. Needs all the values. Only use in dev.)
 radarrBaseUrl=http://x.x.x.x:7878      # Radarr instance URL

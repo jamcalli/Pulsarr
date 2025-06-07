@@ -115,6 +115,7 @@ export default function SonarrConfigPage() {
                       seasonMonitoring: 'all',
                       monitorNewItems: 'all',
                       searchOnAdd: true,
+                      createSeasonFolders: false,
                       tags: [],
                       isDefault: instances.length === 0,
                       qualityProfile: '',
