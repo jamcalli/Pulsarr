@@ -59,9 +59,9 @@ interface InstanceCardProps {
 }
 
 /**
- * Displays an interactive card for configuring a Sonarr instance, allowing users to view, edit, test, sync, and delete instance settings.
+ * Renders an interactive configuration card for a Sonarr instance, enabling users to view, edit, test, sync, and delete instance settings.
  *
- * The card provides a comprehensive form for managing connection details, quality profile, root folder, monitoring and search options, tag management, season monitoring, series type, syncing with other instances, and default instance selection. It integrates with global state, supports asynchronous operations for testing connections, saving changes, syncing, deleting, and refreshing tags, and provides user feedback through toasts and modals.
+ * Provides a comprehensive form for managing connection details, quality profile, root folder, monitoring and search options, tag management, season monitoring, series type, syncing with other instances, and default instance selection. Integrates with global state and supports asynchronous operations for testing connections, saving changes, syncing, deleting, and refreshing tags. User feedback is provided through toasts and modals.
  *
  * @param instance - The Sonarr instance to display and configure.
  * @param setShowInstanceCard - Optional callback to control the visibility of the card.
@@ -505,6 +505,46 @@ export function InstanceCard({
                           </FormControl>
                           <span className="text-sm text-text text-muted-foreground">
                             Bypass ignore exclusions
+                          </span>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="createSeasonFolders"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center space-x-2">
+                          <FormLabel className="text-text">
+                            Create Season Folders
+                          </FormLabel>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  When enabled, Sonarr will create season
+                                  folders (e.g., Season 01, Season 02) to
+                                  organize episodes by season within each series
+                                  folder.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                        <div className="flex h-10 items-center gap-2 px-3 py-2">
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              disabled={!isConnectionValid}
+                            />
+                          </FormControl>
+                          <span className="text-sm text-text text-muted-foreground">
+                            Organize episodes in season folders
                           </span>
                         </div>
                       </FormItem>

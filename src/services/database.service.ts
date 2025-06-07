@@ -916,6 +916,7 @@ export class DatabaseService {
       monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
       searchOnAdd:
         instance.search_on_add == null ? true : Boolean(instance.search_on_add),
+      createSeasonFolders: Boolean(instance.create_season_folders),
       tags: this.safeJsonParse(instance.tags, [], 'sonarr.tags'),
       isDefault: Boolean(instance.is_default),
       syncedInstances: this.safeJsonParse(
@@ -955,6 +956,7 @@ export class DatabaseService {
       monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
       searchOnAdd:
         instance.search_on_add == null ? true : Boolean(instance.search_on_add),
+      createSeasonFolders: Boolean(instance.create_season_folders),
       tags: this.safeJsonParse(instance.tags, [], 'sonarr.tags'),
       isDefault: true,
       syncedInstances: this.safeJsonParse(
@@ -990,6 +992,7 @@ export class DatabaseService {
       monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
       searchOnAdd:
         instance.search_on_add == null ? true : Boolean(instance.search_on_add),
+      createSeasonFolders: Boolean(instance.create_season_folders),
       tags: this.safeJsonParse(instance.tags, [], 'sonarr.tags'),
       isDefault: Boolean(instance.is_default),
       syncedInstances: this.safeJsonParse(
@@ -1031,6 +1034,7 @@ export class DatabaseService {
           instance.monitorNewItems,
         ),
         search_on_add: instance.searchOnAdd ?? true,
+        create_season_folders: instance.createSeasonFolders ?? false,
         tags: JSON.stringify(instance.tags || []),
         is_default: instance.isDefault ?? false,
         is_enabled: true,
@@ -1314,6 +1318,9 @@ export class DatabaseService {
           }),
           ...(typeof updates.searchOnAdd !== 'undefined' && {
             search_on_add: updates.searchOnAdd,
+          }),
+          ...(typeof updates.createSeasonFolders !== 'undefined' && {
+            create_season_folders: updates.createSeasonFolders,
           }),
           ...(typeof updates.seriesType !== 'undefined' && {
             series_type: updates.seriesType,
@@ -5220,6 +5227,11 @@ export class DatabaseService {
           seasonMonitoring: instance.season_monitoring,
           monitorNewItems:
             (instance.monitor_new_items as 'all' | 'none') || 'all',
+          searchOnAdd:
+            instance.search_on_add == null
+              ? true
+              : Boolean(instance.search_on_add),
+          createSeasonFolders: Boolean(instance.create_season_folders),
           tags: this.safeJsonParse(instance.tags, [], 'sonarr.tags'),
           isDefault: Boolean(instance.is_default),
           syncedInstances: this.safeJsonParse(
@@ -5227,6 +5239,9 @@ export class DatabaseService {
             [],
             'sonarr.synced_instances',
           ),
+          seriesType:
+            (instance.series_type as 'standard' | 'anime' | 'daily') ||
+            'standard',
         }
       }
     }

@@ -94,6 +94,7 @@ export interface Config {
   sonarrSeasonMonitoring: string
   sonarrMonitorNewItems: 'all' | 'none'
   sonarrTags: string[]
+  sonarrCreateSeasonFolders: boolean
   // Radarr Config
   radarrBaseUrl: string
   radarrApiKey: string
@@ -141,6 +142,8 @@ export interface Config {
   }
   // New User Defaults
   newUserDefaultCanSync?: boolean
+  // Security Config
+  allowIframes: boolean
   // Ready state
   _isReady: boolean
 }
