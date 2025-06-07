@@ -1,5 +1,8 @@
 import type { Knex } from 'knex'
-import { shouldSkipForPostgreSQL, shouldSkipDownForPostgreSQL } from '../utils/clientDetection.js'
+import {
+  shouldSkipForPostgreSQL,
+  shouldSkipDownForPostgreSQL,
+} from '../utils/clientDetection.js'
 
 /**
  * Creates the `pending_webhooks` table for storing incoming webhook events.
@@ -10,7 +13,7 @@ export async function up(knex: Knex): Promise<void> {
   if (shouldSkipForPostgreSQL(knex, '026_20250515_add_pending_webhooks')) {
     return
   }
-await knex.schema.createTable('pending_webhooks', (table) => {
+  await knex.schema.createTable('pending_webhooks', (table) => {
     table.increments('id').primary()
     table.string('instance_type', 10).notNullable() // 'radarr' or 'sonarr'
     table.integer('instance_id').unsigned().nullable() // Can be null when instance is unknown
@@ -21,11 +24,11 @@ await knex.schema.createTable('pending_webhooks', (table) => {
     // Timestamps are stored as UTC via ISO strings in the application layer
     table.timestamp('received_at').defaultTo(knex.fn.now()).notNullable()
     table.timestamp('expires_at').notNullable()
-    
+
     // Simple index for quick lookups by guid
     table.index(['guid', 'media_type'], 'idx_guid_media')
     table.index('expires_at', 'idx_expires')
-    
+
     // Check constraints for SQLite
     table.check(`"instance_type" IN ('radarr', 'sonarr')`)
     table.check(`"media_type" IN ('movie', 'show')`)

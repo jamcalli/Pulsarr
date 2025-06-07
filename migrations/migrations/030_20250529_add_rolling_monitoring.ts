@@ -1,5 +1,8 @@
 import type { Knex } from 'knex'
-import { shouldSkipForPostgreSQL, shouldSkipDownForPostgreSQL } from '../utils/clientDetection.js'
+import {
+  shouldSkipForPostgreSQL,
+  shouldSkipDownForPostgreSQL,
+} from '../utils/clientDetection.js'
 
 /**
  * Applies the migration to add rolling monitoring support.
@@ -7,40 +10,45 @@ import { shouldSkipForPostgreSQL, shouldSkipDownForPostgreSQL } from '../utils/c
  * Creates the `rolling_monitored_shows` table for tracking shows monitored with rolling strategies, including references to Sonarr series and instances, external identifiers, monitoring configuration, progress tracking, and optional Plex user information. Adds a nullable JSON column `plexSessionMonitoring` to the `configs` table for session monitoring configuration.
  */
 export async function up(knex: Knex): Promise<void> {
-    if (shouldSkipForPostgreSQL(knex, '030_20250529_add_rolling_monitoring')) {
+  if (shouldSkipForPostgreSQL(knex, '030_20250529_add_rolling_monitoring')) {
     return
   }
-// Create table for tracking rolling monitored shows
+  // Create table for tracking rolling monitored shows
   await knex.schema.createTable('rolling_monitored_shows', (table) => {
     table.increments('id').primary()
-    
+
     // Sonarr references
     table.integer('sonarr_series_id').notNullable()
     table.integer('sonarr_instance_id').unsigned().notNullable()
-    table.foreign('sonarr_instance_id').references('sonarr_instances.id').onDelete('CASCADE')
-    
+    table
+      .foreign('sonarr_instance_id')
+      .references('sonarr_instances.id')
+      .onDelete('CASCADE')
+
     // Series identifiers
     table.string('tvdb_id').nullable()
     table.string('imdb_id').nullable()
     table.string('show_title').notNullable()
-    
+
     // Monitoring configuration
-    table.enum('monitoring_type', ['pilotRolling', 'firstSeasonRolling']).notNullable()
+    table
+      .enum('monitoring_type', ['pilotRolling', 'firstSeasonRolling'])
+      .notNullable()
     table.integer('current_monitored_season').notNullable().defaultTo(1)
-    
+
     // Progress tracking
     table.integer('last_watched_season').notNullable().defaultTo(0)
     table.integer('last_watched_episode').notNullable().defaultTo(0)
     table.timestamp('last_session_date').nullable()
-    
+
     // Optional user tracking
     table.string('plex_user_id').nullable()
     table.string('plex_username').nullable()
-    
+
     // Timestamps
     table.timestamp('created_at').notNullable().defaultTo(knex.fn.now())
     table.timestamp('updated_at').notNullable().defaultTo(knex.fn.now())
-    
+
     // Indexes
     table.index(['sonarr_series_id', 'sonarr_instance_id'])
     table.index('tvdb_id')
@@ -53,7 +61,7 @@ export async function up(knex: Knex): Promise<void> {
     table.json('plexSessionMonitoring').nullable()
   })
 
-  // Note: Rolling monitoring options (pilotRolling, firstSeasonRolling) 
+  // Note: Rolling monitoring options (pilotRolling, firstSeasonRolling)
   // are now available for sonarr_instances.season_monitoring field
 }
 
@@ -61,7 +69,7 @@ export async function up(knex: Knex): Promise<void> {
  * Reverts the migration by removing the `plexSessionMonitoring` column from the `configs` table and dropping the `rolling_monitored_shows` table if it exists.
  */
 export async function down(knex: Knex): Promise<void> {
-    if (shouldSkipDownForPostgreSQL(knex)) {
+  if (shouldSkipDownForPostgreSQL(knex)) {
     return
   }
   // Remove session monitoring configuration

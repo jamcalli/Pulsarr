@@ -1,5 +1,8 @@
 import type { Knex } from 'knex'
-import { shouldSkipForPostgreSQL, shouldSkipDownForPostgreSQL } from '../utils/clientDetection.js'
+import {
+  shouldSkipForPostgreSQL,
+  shouldSkipDownForPostgreSQL,
+} from '../utils/clientDetection.js'
 
 /**
  * Adds user tagging configuration columns for Sonarr and Radarr to the `configs` table.
@@ -21,7 +24,7 @@ export async function up(knex: Knex): Promise<void> {
   await knex('configs')
     .whereNull('tagUsersInSonarr')
     .update({ tagUsersInSonarr: false })
-    
+
   await knex('configs')
     .whereNull('tagUsersInRadarr')
     .update({ tagUsersInRadarr: false })

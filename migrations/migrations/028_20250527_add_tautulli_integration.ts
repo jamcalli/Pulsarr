@@ -1,5 +1,8 @@
 import type { Knex } from 'knex'
-import { shouldSkipForPostgreSQL, shouldSkipDownForPostgreSQL } from '../utils/clientDetection.js'
+import {
+  shouldSkipForPostgreSQL,
+  shouldSkipDownForPostgreSQL,
+} from '../utils/clientDetection.js'
 
 /**
  * Applies schema changes to add Tautulli integration fields to the users, notifications, and configs tables.
@@ -10,7 +13,7 @@ export async function up(knex: Knex): Promise<void> {
   if (shouldSkipForPostgreSQL(knex, '028_20250527_add_tautulli_integration')) {
     return
   }
-// Add Tautulli fields to users table
+  // Add Tautulli fields to users table
   await knex.schema.alterTable('users', (table) => {
     table.integer('tautulli_notifier_id').nullable()
     table.boolean('notify_tautulli').defaultTo(false)
@@ -43,11 +46,11 @@ export async function down(knex: Knex): Promise<void> {
     table.dropColumn('tautulliUrl')
     table.dropColumn('tautulliApiKey')
   })
-  
+
   await knex.schema.alterTable('notifications', (table) => {
     table.dropColumn('sent_to_tautulli')
   })
-  
+
   await knex.schema.alterTable('users', (table) => {
     table.dropColumn('tautulli_notifier_id')
     table.dropColumn('notify_tautulli')

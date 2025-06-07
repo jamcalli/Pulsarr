@@ -1,5 +1,8 @@
 import type { Knex } from 'knex'
-import { shouldSkipForPostgreSQL, shouldSkipDownForPostgreSQL } from '../utils/clientDetection.js'
+import {
+  shouldSkipForPostgreSQL,
+  shouldSkipDownForPostgreSQL,
+} from '../utils/clientDetection.js'
 
 /**
  * Adds user tagging configuration columns to the `configs` table.
@@ -21,11 +24,11 @@ export async function up(knex: Knex): Promise<void> {
   await knex('configs')
     .whereNull('cleanupOrphanedTags')
     .update({ cleanupOrphanedTags: true })
-    
+
   await knex('configs')
     .whereNull('persistHistoricalTags')
     .update({ persistHistoricalTags: false })
-    
+
   await knex('configs')
     .whereNull('tagPrefix')
     .update({ tagPrefix: 'pulsarr:user' })

@@ -7,7 +7,7 @@ dotenv.config()
 
 async function migrate() {
   const db = knex(config.development)
-  
+
   try {
     await db.migrate.latest()
     console.log('Migrations completed successfully')
