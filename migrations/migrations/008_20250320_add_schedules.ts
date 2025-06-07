@@ -4,6 +4,14 @@ import {
   shouldSkipDownForPostgreSQL,
 } from '../utils/clientDetection.js'
 
+/**
+ * Creates the `schedules` table and inserts a default disabled cron schedule.
+ *
+ * The table includes columns for schedule metadata, configuration, status, and timestamps, with indexes on `name` and `enabled`. A default schedule named 'delete-sync' is added to run every Sunday at 1:00 AM.
+ *
+ * @remark
+ * This migration is skipped when running against PostgreSQL.
+ */
 export async function up(knex: Knex): Promise<void> {
   if (shouldSkipForPostgreSQL(knex, '008_20250320_add_schedules')) {
     return
@@ -38,6 +46,12 @@ export async function up(knex: Knex): Promise<void> {
   ])
 }
 
+/**
+ * Reverts the migration by dropping the `schedules` table, unless running on PostgreSQL.
+ *
+ * @remark
+ * The operation is skipped on PostgreSQL databases.
+ */
 export async function down(knex: Knex): Promise<void> {
   if (shouldSkipDownForPostgreSQL(knex)) {
     return

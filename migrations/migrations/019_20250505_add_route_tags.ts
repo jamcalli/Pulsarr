@@ -11,7 +11,8 @@ import {
 /**
  * Adds a "tags" JSON column to the "router_rules" table with a default value of an empty array.
  *
- * The new "tags" column allows each router rule to store an array of associated tags.
+ * @remark
+ * This migration is skipped for PostgreSQL databases.
  */
 export async function up(knex: Knex): Promise<void> {
   if (shouldSkipForPostgreSQL(knex, '019_20250505_add_route_tags')) {
@@ -24,7 +25,10 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Drops the "tags" column from the "router_rules" table, reverting the schema to its previous state.
+ * Removes the "tags" column from the "router_rules" table if the migration is not skipped for PostgreSQL.
+ *
+ * @remark
+ * This operation is skipped on PostgreSQL databases.
  */
 export async function down(knex: Knex): Promise<void> {
   if (shouldSkipDownForPostgreSQL(knex)) {

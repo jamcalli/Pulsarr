@@ -5,9 +5,11 @@ import {
 } from '../utils/clientDetection.js'
 
 /**
- * Applies a migration that adds and initializes the `last_updated_at` column in the `rolling_monitored_shows` table.
+ * Adds and initializes the `last_updated_at` column in the `rolling_monitored_shows` table.
  *
- * Adds a nullable `last_updated_at` timestamp column, populates it with values from `updated_at` for existing rows, then alters the column to be non-nullable and creates an index on it.
+ * This migration adds a nullable `last_updated_at` timestamp column, sets its value to match `updated_at` for all existing rows, then alters the column to be non-nullable and creates an index on it.
+ *
+ * @remark This migration is skipped for PostgreSQL databases.
  */
 export async function up(knex: Knex): Promise<void> {
   if (
@@ -33,7 +35,10 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Reverts the migration by dropping the `last_updated_at` column and its index from the `rolling_monitored_shows` table.
+ * Reverts the migration by removing the `last_updated_at` column and its index from the `rolling_monitored_shows` table.
+ *
+ * @remark
+ * This operation is skipped for PostgreSQL databases.
  */
 export async function down(knex: Knex): Promise<void> {
   if (shouldSkipDownForPostgreSQL(knex)) {

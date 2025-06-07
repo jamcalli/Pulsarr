@@ -4,6 +4,12 @@ import {
   shouldSkipDownForPostgreSQL,
 } from '../utils/clientDetection.js'
 
+/**
+ * Applies the initial database schema by creating all required tables and indexes for users, admin users, Sonarr and Radarr instances, genre routing, configurations, watchlists, genres, and temporary RSS items.
+ *
+ * @remark
+ * If running on PostgreSQL and `shouldSkipForPostgreSQL` returns true for this migration, the schema creation is skipped.
+ */
 export async function up(knex: Knex): Promise<void> {
   if (shouldSkipForPostgreSQL(knex, '001_initial_schema')) {
     return
@@ -214,6 +220,11 @@ export async function up(knex: Knex): Promise<void> {
   })
 }
 
+/**
+ * Reverts the initial database schema by dropping all tables created in the corresponding migration.
+ *
+ * Drops tables in reverse order of creation, unless the operation is skipped for PostgreSQL.
+ */
 export async function down(knex: Knex): Promise<void> {
   if (shouldSkipDownForPostgreSQL(knex)) {
     return

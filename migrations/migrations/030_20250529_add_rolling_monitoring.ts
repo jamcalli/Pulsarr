@@ -5,9 +5,11 @@ import {
 } from '../utils/clientDetection.js'
 
 /**
- * Applies the migration to add rolling monitoring support.
+ * Applies the migration to add rolling monitoring support for tracked shows.
  *
- * Creates the `rolling_monitored_shows` table for tracking shows monitored with rolling strategies, including references to Sonarr series and instances, external identifiers, monitoring configuration, progress tracking, and optional Plex user information. Adds a nullable JSON column `plexSessionMonitoring` to the `configs` table for session monitoring configuration.
+ * Creates the `rolling_monitored_shows` table to store rolling monitoring configurations and progress for shows, including references to Sonarr series and instances, external identifiers, monitoring type, progress tracking, and optional Plex user information. Also adds a nullable JSON column `plexSessionMonitoring` to the `configs` table for session monitoring configuration.
+ *
+ * @remark This migration is skipped for PostgreSQL databases.
  */
 export async function up(knex: Knex): Promise<void> {
   if (shouldSkipForPostgreSQL(knex, '030_20250529_add_rolling_monitoring')) {
@@ -66,7 +68,10 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Reverts the migration by removing the `plexSessionMonitoring` column from the `configs` table and dropping the `rolling_monitored_shows` table if it exists.
+ * Rolls back the migration by dropping the `rolling_monitored_shows` table and removing the `plexSessionMonitoring` column from the `configs` table.
+ *
+ * @remark
+ * If the database is PostgreSQL, this migration is skipped and no changes are made.
  */
 export async function down(knex: Knex): Promise<void> {
   if (shouldSkipDownForPostgreSQL(knex)) {

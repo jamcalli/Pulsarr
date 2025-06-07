@@ -4,6 +4,13 @@ import {
   shouldSkipDownForPostgreSQL,
 } from '../utils/clientDetection.js'
 
+/**
+ * Applies a database migration that adds `deleteSyncNotify` and `maxDeletionPrevention` columns to the `configs` table.
+ *
+ * Adds the `deleteSyncNotify` column with a default value of `'none'` and the `maxDeletionPrevention` column with a default value of `10`. Updates existing rows where these columns are null to use the default values.
+ *
+ * @remark This migration is skipped for PostgreSQL databases.
+ */
 export async function up(knex: Knex): Promise<void> {
   if (
     shouldSkipForPostgreSQL(knex, '010_20250325_add_delete_sync_notifications')
@@ -24,6 +31,12 @@ export async function up(knex: Knex): Promise<void> {
     .update({ maxDeletionPrevention: 10 })
 }
 
+/**
+ * Reverts the migration by removing the `deleteSyncNotify` and `maxDeletionPrevention` columns from the `configs` table.
+ *
+ * @remark
+ * This migration is skipped for PostgreSQL databases.
+ */
 export async function down(knex: Knex): Promise<void> {
   if (shouldSkipDownForPostgreSQL(knex)) {
     return

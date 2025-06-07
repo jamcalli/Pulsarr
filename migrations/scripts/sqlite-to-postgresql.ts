@@ -407,7 +407,11 @@ class SQLiteToPostgresMigration {
   }
 }
 
-// Main execution
+/**
+ * Parses command-line arguments, builds migration configuration, and executes the SQLite to PostgreSQL migration process.
+ *
+ * Displays help information if requested, validates batch size, and loads environment variables for database connections. Handles errors and exits the process with an appropriate status code.
+ */
 async function main() {
   const args = process.argv.slice(2)
   const verbose = args.includes('--verbose') || args.includes('-v')
