@@ -4,11 +4,10 @@
  * Monitors Plex sessions and triggers Sonarr searches based on viewing patterns
  * Implements "rolling" monitoring for progressive season downloads
  */
-import type { FastifyBaseLogger } from 'fastify'
+import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type { PlexServerService } from '@utils/plex-server.js'
 import type { SonarrManagerService } from './sonarr-manager.service.js'
 import type { DatabaseService } from './database.service.js'
-import type { Config } from '@root/types/config.types.js'
 import type { SonarrSeries } from '@root/types/sonarr.types.js'
 import type {
   PlexSession,
@@ -17,27 +16,22 @@ import type {
 } from '@root/types/plex-session.types.js'
 import { extractTvdbId, parseGuids } from '@utils/guid-handler.js'
 
-/**
- * Simple in-memory deduplication tracker
- */
-interface SeenEntry {
-  series: string // TVDB ID or series title
-  season: number
-  timestamp: Date
-}
-
 export class PlexSessionMonitorService {
-  private seenEntries = new Map<string, SeenEntry>()
-  private readonly SEEN_EXPIRY_DAYS = 7
-
   constructor(
     private readonly log: FastifyBaseLogger,
-    private readonly config: Config,
+    private readonly fastify: FastifyInstance,
     private readonly plexServer: PlexServerService,
     private readonly sonarrManager: SonarrManagerService,
     private readonly db: DatabaseService,
   ) {
     this.log.info('PlexSessionMonitorService initialized')
+  }
+
+  /**
+   * Access to application configuration
+   */
+  private get config() {
+    return this.fastify.config
   }
 
   /**
@@ -52,9 +46,6 @@ export class PlexSessionMonitorService {
     }
 
     try {
-      // Clean up old seen entries
-      this.cleanupSeenEntries()
-
       // Get active sessions
       const sessions = await this.plexServer.getActiveSessions()
 
@@ -131,8 +122,10 @@ export class PlexSessionMonitorService {
     if (rollingShow) {
       await this.handleRollingMonitoredShow(session, rollingShow, result)
     } else {
-      // Standard monitoring logic (non-rolling)
-      await this.handleStandardMonitoring(session, result)
+      // Skip shows that are not configured for rolling monitoring
+      this.log.debug(
+        `Skipping ${session.grandparentTitle} - not configured for rolling monitoring`,
+      )
     }
   }
 
@@ -194,135 +187,6 @@ export class PlexSessionMonitorService {
         await this.switchToMonitorAll(rollingShow, session, result)
       }
     }
-  }
-
-  /**
-   * Handle standard (non-rolling) monitoring
-   */
-  private async handleStandardMonitoring(
-    session: PlexSession,
-    result: SessionMonitoringResult,
-  ): Promise<void> {
-    // Get series identifiers (may be empty object for title fallback)
-    const seriesIds = await this.getSeriesIdentifiers(session)
-    if (!seriesIds) {
-      this.log.error(
-        `Failed to get any identifiers for ${session.grandparentTitle}`,
-      )
-      return
-    }
-
-    // Find series in Sonarr - will use TVDB/IMDB if available, otherwise title
-    this.log.debug(
-      `Looking for series in Sonarr: ${session.grandparentTitle}`,
-      seriesIds,
-    )
-    const sonarrSeries = await this.findSeriesInSonarr(
-      seriesIds,
-      session.grandparentTitle,
-    )
-    if (!sonarrSeries) {
-      this.log.warn(
-        `Series ${session.grandparentTitle} not found in any Sonarr instance`,
-      )
-      return
-    }
-    this.log.debug(
-      `Found series in Sonarr instance ${sonarrSeries.instanceId}: ${sonarrSeries.series.title}`,
-    )
-
-    // Check if we should trigger a search using Sonarr data
-    const shouldTrigger = await this.shouldTriggerSearch(session, sonarrSeries)
-    if (!shouldTrigger) {
-      return
-    }
-
-    // Check deduplication
-    const seenKey = `${seriesIds.tvdbId || session.grandparentTitle}_${session.parentIndex}`
-    if (this.hasSeenRecently(seenKey)) {
-      this.log.debug(
-        `Already processed ${session.grandparentTitle} season ${session.parentIndex} recently`,
-      )
-      return
-    }
-
-    // Trigger appropriate action
-    if (await this.isStandalonePilot(session, sonarrSeries)) {
-      await this.handleStandalonePilot(sonarrSeries, session, result)
-    } else {
-      await this.handleEndOfSeason(sonarrSeries, session, result)
-    }
-
-    // Mark as seen
-    this.markAsSeen(seenKey, session.parentIndex)
-  }
-
-  /**
-   * Determine if we should trigger a search based on episode position using Sonarr data
-   */
-  private async shouldTriggerSearch(
-    session: PlexSession,
-    sonarrData: { series: SonarrSeries; instanceId: number },
-  ): Promise<boolean> {
-    const threshold = this.config.plexSessionMonitoring?.remainingEpisodes || 2
-
-    this.log.debug(
-      `Checking trigger conditions for ${session.grandparentTitle} S${session.parentIndex}E${session.index}, threshold: ${threshold}`,
-    )
-
-    // Check for standalone pilot using Sonarr data
-    if (session.parentIndex === 1 && session.index === 1) {
-      const season1 = sonarrData.series.seasons?.find(
-        (s) => s.seasonNumber === 1,
-      )
-      if (season1?.statistics?.episodeFileCount === 1) {
-        this.log.info(
-          `Detected standalone pilot for ${session.grandparentTitle} (only 1 episode file in Sonarr)`,
-        )
-        return true
-      }
-    }
-
-    // Check for end of season using Sonarr data
-    const currentSeason = sonarrData.series.seasons?.find(
-      (s) => s.seasonNumber === session.parentIndex,
-    )
-    if (!currentSeason?.statistics) {
-      this.log.warn(
-        `No season statistics found in Sonarr for ${session.grandparentTitle} season ${session.parentIndex}`,
-      )
-      return false
-    }
-
-    const totalEpisodes = currentSeason.statistics.totalEpisodeCount
-    if (!totalEpisodes || totalEpisodes <= 0) {
-      this.log.warn(
-        `Invalid episode count in Sonarr for ${session.grandparentTitle} season ${session.parentIndex}: ${totalEpisodes}`,
-      )
-      return false
-    }
-
-    // Check if current episode is near the end of season: current_episode > (total_episodes - remaining_threshold)
-    const isEndOfSeason = session.index > totalEpisodes - threshold
-
-    this.log.debug(
-      `Episode count from Sonarr: ${totalEpisodes}, current episode: ${session.index}`,
-    )
-    this.log.debug(
-      `End of season check: ${session.index} > (${totalEpisodes} - ${threshold}) = ${session.index} > ${totalEpisodes - threshold} = ${isEndOfSeason}`,
-    )
-
-    if (isEndOfSeason) {
-      this.log.info(
-        `User watching near end of season for ${session.grandparentTitle} (episode ${session.index} of ${totalEpisodes})`,
-      )
-      return true
-    }
-
-    this.log.debug(
-      `Search not triggered for ${session.grandparentTitle} - not near end of season`,
-    )
-    return false
   }
 
   /**
@@ -494,109 +358,6 @@ export class PlexSessionMonitorService {
     }
 
     return null
-  }
-
-  /**
-   * Check if this is a standalone pilot episode
-   */
-  private async isStandalonePilot(
-    session: PlexSession,
-    sonarrData: { series: SonarrSeries; instanceId: number },
-  ): Promise<boolean> {
-    if (session.parentIndex !== 1 || session.index !== 1) {
-      return false
-    }
-
-    // Check Sonarr season statistics
-    const season1 = sonarrData.series.seasons?.find((s) => s.seasonNumber === 1)
-
-    if (!season1?.statistics) {
-      return false
-    }
-
-    // Standalone pilot = only 1 episode file exists
-    return season1.statistics.episodeFileCount === 1
-  }
-
-  /**
-   * Handle standalone pilot episode
-   */
-  private async handleStandalonePilot(
-    sonarrData: { series: SonarrSeries; instanceId: number },
-    session: PlexSession,
-    result: SessionMonitoringResult,
-  ): Promise<void> {
-    this.log.info(
-      `Searching for remaining Season 1 episodes of ${session.grandparentTitle}`,
-    )
-
-    try {
-      const sonarr = this.sonarrManager.getInstance(sonarrData.instanceId)
-      if (!sonarr) return
-
-      // Search for missing episodes in season 1
-      await sonarr.searchSeason(sonarrData.series.id, 1)
-
-      result.triggeredSearches++
-      this.log.info(
-        `Successfully triggered search for ${session.grandparentTitle} Season 1`,
-      )
-    } catch (error) {
-      this.log.error(
-        `Failed to search for ${session.grandparentTitle} Season 1:`,
-        error,
-      )
-    }
-  }
-
-  /**
-   * Handle end of season scenario
-   */
-  private async handleEndOfSeason(
-    sonarrData: { series: SonarrSeries; instanceId: number },
-    session: PlexSession,
-    result: SessionMonitoringResult,
-  ): Promise<void> {
-    const nextSeason = session.parentIndex + 1
-
-    this.log.info(
-      `Checking for Season ${nextSeason} of ${session.grandparentTitle}`,
-    )
-
-    try {
-      const sonarr = this.sonarrManager.getInstance(sonarrData.instanceId)
-      if (!sonarr) return
-
-      // Check if next season exists in Sonarr
-      const hasNextSeason = sonarrData.series.seasons?.some(
-        (s) => s.seasonNumber === nextSeason,
-      )
-
-      if (hasNextSeason) {
-        // Search for next season
-        await sonarr.searchSeason(sonarrData.series.id, nextSeason)
-        result.triggeredSearches++
-
-        this.log.info(
-          `Successfully triggered search for ${session.grandparentTitle} Season ${nextSeason}`,
-        )
-      } else {
-        // Enable monitoring for new seasons
-        await sonarr.updateSeriesMonitoring(sonarrData.series.id, {
-          monitored: true,
-          monitorNewItems: 'all',
-        })
-
-        this.log.info(
-          `Enabled monitoring for new seasons of ${session.grandparentTitle}`,
-        )
-      }
-    } catch (error) {
-      this.log.error(
-        `Failed to handle end of season for ${session.grandparentTitle}:`,
-        error,
-      )
-    }
   }
 
   /**
@@ -775,44 +536,6 @@ export class PlexSessionMonitorService {
         error,
       )
     }
-  }
-
-  /**
-   * Clean up old seen entries
-   */
-  private cleanupSeenEntries(): void {
-    const cutoffDate = new Date()
-    cutoffDate.setDate(cutoffDate.getDate() - this.SEEN_EXPIRY_DAYS)
-
-    for (const [key, entry] of this.seenEntries.entries()) {
-      if (entry.timestamp < cutoffDate) {
-        this.seenEntries.delete(key)
-      }
-    }
-  }
-
-  /**
-   * Check if we've seen this series/season recently
-   */
-  private hasSeenRecently(key: string): boolean {
-    const entry = this.seenEntries.get(key)
-    if (!entry) return false
-
-    const cutoffDate = new Date()
-    cutoffDate.setDate(cutoffDate.getDate() - this.SEEN_EXPIRY_DAYS)
-
-    return entry.timestamp > cutoffDate
-  }
-
-  /**
-   * Mark a series/season as seen
-   */
-  private markAsSeen(seriesKey: string, season: number): void {
-    this.seenEntries.set(seriesKey, {
-      series: seriesKey,
-      season,
-      timestamp: new Date(),
-    })
   }
 
   /**

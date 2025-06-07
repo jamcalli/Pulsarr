@@ -1,4 +1,8 @@
 import type { Knex } from 'knex'
+import {
+  shouldSkipForPostgreSQL,
+  shouldSkipDownForPostgreSQL,
+} from '../utils/clientDetection.js'
 
 /**
  * Adds Plex playlist protection configuration columns to the configs table.
@@ -8,6 +12,11 @@ import type { Knex } from 'knex'
  * @remark The plexServerUrl column is optional, as the system can auto-detect the Plex server URL, but this setting allows manual configuration for custom environments.
  */
 export async function up(knex: Knex): Promise<void> {
+  if (
+    shouldSkipForPostgreSQL(knex, '022_20250508_add_plex_playlist_protection')
+  ) {
+    return
+  }
   await knex.schema.alterTable('configs', (table) => {
     table.boolean('enablePlexPlaylistProtection').defaultTo(false)
     table.string('plexProtectionPlaylistName').defaultTo('Do Not Delete')
@@ -21,6 +30,9 @@ export async function up(knex: Knex): Promise<void> {
  * Drops the `enablePlexPlaylistProtection`, `plexProtectionPlaylistName`, and `plexServerUrl` columns.
  */
 export async function down(knex: Knex): Promise<void> {
+  if (shouldSkipDownForPostgreSQL(knex)) {
+    return
+  }
   await knex.schema.alterTable('configs', (table) => {
     table.dropColumn('enablePlexPlaylistProtection')
     table.dropColumn('plexProtectionPlaylistName')

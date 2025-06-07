@@ -1,11 +1,15 @@
 import type { Knex } from 'knex'
-import { fileURLToPath } from 'url'
-import { dirname, resolve } from 'path'
+import { fileURLToPath } from 'node:url'
+import { dirname, resolve } from 'node:path'
 import fs from 'node:fs'
+import dotenv from 'dotenv'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 const projectRoot = resolve(__dirname, '..')
+
+// Load environment variables before anything else
+dotenv.config({ path: resolve(projectRoot, '.env') })
 
 function ensureDbDirectory() {
   const dbDirectory = resolve(projectRoot, 'data', 'db')
@@ -20,24 +24,61 @@ function ensureDbDirectory() {
   }
 }
 
+// Helper to determine database type from environment
+const dbType = process.env.dbType || 'sqlite'
+const isPostgres = dbType === 'postgres'
+
+// Build PostgreSQL connection configuration
+const getPostgresConnection = () => {
+  // If connection string is provided, use it
+  if (process.env.dbConnectionString) {
+    return process.env.dbConnectionString
+  }
+
+  // Parse and validate port number
+  const port = Number.parseInt(process.env.dbPort || '5432', 10)
+  if (Number.isNaN(port) || port < 1 || port > 65535) {
+    throw new Error('Invalid database port number')
+  }
+
+  // Otherwise, build from individual components
+  return {
+    host: process.env.dbHost || 'localhost',
+    port,
+    user: process.env.dbUser || 'postgres',
+    password: process.env.dbPassword || undefined,
+    database: process.env.dbName || 'pulsarr',
+  }
+}
+
+// Build SQLite connection configuration
+const getSqliteConnection = () => ({
+  filename: process.env.dbPath || resolve(ensureDbDirectory(), 'pulsarr.db'),
+})
+
 const config: { [key: string]: Knex.Config } = {
   development: {
-    client: 'better-sqlite3',
-    connection: {
-      filename: resolve(ensureDbDirectory(), 'pulsarr.db')
-    },
-    useNullAsDefault: true,
+    client: isPostgres ? 'pg' : 'better-sqlite3',
+    connection: isPostgres ? getPostgresConnection() : getSqliteConnection(),
+    useNullAsDefault: !isPostgres,
     migrations: {
-      directory: resolve(__dirname, 'migrations')
+      directory: resolve(__dirname, 'migrations'),
     },
-    pool: {
-      afterCreate: (conn: any, cb: any) => {
-        conn.exec('PRAGMA journal_mode = WAL;')
-        conn.exec('PRAGMA foreign_keys = ON;')
-        cb()
-      }
-    }
-  }
+    pool: isPostgres
+      ? {
+          min: 2,
+          max: 10,
+        }
+      : {
+          afterCreate: (conn: unknown, cb: () => void) => {
+            // Type assertion for SQLite database connection
+            const sqliteConn = conn as { exec: (sql: string) => void }
+            sqliteConn.exec('PRAGMA journal_mode = WAL;')
+            sqliteConn.exec('PRAGMA foreign_keys = ON;')
+            cb()
+          },
+        },
+  },
 }
 
 export default config
