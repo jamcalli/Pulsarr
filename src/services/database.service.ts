@@ -91,23 +91,27 @@ export class DatabaseService {
     private readonly log: FastifyBaseLogger,
     private readonly config: FastifyInstance['config'],
   ) {
+    this.knex = knex(DatabaseService.createKnexConfig(config, log))
+
     // Configure PostgreSQL type parsers if needed
     if (config.dbType === 'postgres') {
-      try {
-        // Note: configurePgTypes is async but we need synchronous initialization
-        // The type parsers are configured globally, so this should be done
-        // before any database operations
-        configurePgTypes(log).catch((error) => {
-          log.error('Failed to configure PostgreSQL type parsers:', error)
-          throw new Error('PostgreSQL type parser configuration failed')
-        })
-      } catch (error) {
-        log.error('Failed to configure PostgreSQL type parsers:', error)
-        throw new Error('PostgreSQL type parser configuration failed')
-      }
+      // Schedule async type parser configuration
+      this.configurePostgresTypes()
     }
+  }
 
-    this.knex = knex(DatabaseService.createKnexConfig(config, log))
+  /**
+   * Configures PostgreSQL type parsers asynchronously
+   */
+  private async configurePostgresTypes(): Promise<void> {
+    try {
+      await configurePgTypes(this.log)
+      this.log.info('PostgreSQL type parsers configured successfully')
+    } catch (error) {
+      this.log.error('Failed to configure PostgreSQL type parsers:', error)
+      // Consider if this should be fatal or if the app can continue
+      // with default type parsing
+    }
   }
 
   /**

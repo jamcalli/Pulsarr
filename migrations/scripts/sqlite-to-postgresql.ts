@@ -203,7 +203,19 @@ class SQLiteToPostgresMigration {
 
       // Ensure JSON fields are properly stringified
       else if (value && typeof value === 'object') {
-        transformed[key] = JSON.stringify(value)
+        // Safety check: don't stringify special objects that shouldn't be JSON
+        if (
+          value instanceof Date ||
+          value instanceof Buffer ||
+          value instanceof Uint8Array ||
+          ArrayBuffer.isView(value)
+        ) {
+          // Leave these as-is for proper handling by database driver
+          transformed[key] = value
+        } else {
+          // Safe to stringify plain objects and arrays
+          transformed[key] = JSON.stringify(value)
+        }
       }
 
       // Handle JSON strings - ensure they're valid
@@ -233,7 +245,7 @@ class SQLiteToPostgresMigration {
       }
 
       // Clear target table (cascade will handle dependent records)
-      await this.targetDb.raw(`TRUNCATE TABLE "${tableName}" CASCADE`)
+      await this.targetDb.raw('TRUNCATE TABLE ?? CASCADE', [tableName])
 
       // Migrate in batches
       let migrated = 0
