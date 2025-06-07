@@ -7,7 +7,7 @@ import dotenv from 'dotenv'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
-const projectRoot = resolve(__dirname, '..')
+const projectRoot = resolve(__dirname, '..', '..')
 
 // Load environment variables
 dotenv.config({ path: resolve(projectRoot, '.env') })
@@ -148,13 +148,19 @@ class SQLiteToPostgresMigration {
   async getSequences(): Promise<Map<string, string>> {
     const sequences = new Map<string, string>()
 
+    // First, get tables that actually have an 'id' column
     const result = await this.targetDb.raw(`
       SELECT 
-        tablename as table_name,
-        pg_get_serial_sequence(tablename::text, 'id') as sequence_name
-      FROM pg_tables 
-      WHERE schemaname = 'public'
-      AND pg_get_serial_sequence(tablename::text, 'id') IS NOT NULL
+        t.tablename as table_name,
+        pg_get_serial_sequence(t.tablename::text, 'id') as sequence_name
+      FROM pg_tables t
+      JOIN information_schema.columns c 
+        ON c.table_name = t.tablename 
+        AND c.table_schema = t.schemaname
+      WHERE t.schemaname = 'public'
+      AND c.column_name = 'id'
+      AND t.tablename NOT IN ('knex_migrations', 'knex_migrations_lock')
+      AND pg_get_serial_sequence(t.tablename::text, 'id') IS NOT NULL
     `)
 
     for (const row of result.rows) {
@@ -278,7 +284,7 @@ class SQLiteToPostgresMigration {
     const connection = this.config.source.connection
     const sourcePath =
       typeof connection === 'object' && connection && 'filename' in connection
-        ? connection.filename
+        ? (connection.filename as string)
         : resolve(projectRoot, 'data/db/pulsarr.db')
     await fs.copyFile(sourcePath, backupPath)
 
@@ -316,14 +322,12 @@ class SQLiteToPostgresMigration {
         return
       }
 
-      // Disable foreign key checks during migration
-      await this.targetDb.raw('SET session_replication_role = replica;')
-
       // Track statistics
       const stats: { [table: string]: number } = {}
       let totalMigrated = 0
 
-      // Migrate each table
+      // Migrate each table in dependency order
+      // Using CASCADE on TRUNCATE and proper ordering should handle FK constraints
       for (const table of orderedTables) {
         this.log(`Migrating ${table}...`)
         const count = await this.migrateTable(table)
@@ -331,9 +335,6 @@ class SQLiteToPostgresMigration {
         totalMigrated += count
         this.log(`✓ ${table}: ${count} rows`)
       }
-
-      // Re-enable foreign key checks
-      await this.targetDb.raw('SET session_replication_role = DEFAULT;')
 
       // Update sequences
       for (const [table, sequence] of sequences) {

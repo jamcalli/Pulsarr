@@ -138,27 +138,71 @@ docker-compose -f docker-compose.migration.yml --profile migration run --rm puls
 Run the data migration script:
 
 ```bash
-# This will prompt for confirmation before proceeding
+# Interactive mode (will prompt for confirmation before proceeding)
 docker-compose -f docker-compose.migration.yml --profile migration run --rm pulsarr-migrate-data
+```
+
+#### Non-Interactive Migration
+
+For automated deployments or if you want to skip the confirmation prompt:
+
+```bash
+# Auto-confirm migration (non-interactive)
+echo "y" | docker-compose -f docker-compose.migration.yml --profile migration run --rm pulsarr-migrate-data
+```
+
+#### Migration Command Options
+
+You can pass additional options to the migration script:
+
+```bash
+# Show help and available options
+docker-compose -f docker-compose.migration.yml --profile migration run --rm pulsarr-migrate-data npx tsx migrations/scripts/sqlite-to-postgresql.ts --help
+
+# Verbose output (shows detailed progress for each batch)
+echo "y" | docker-compose -f docker-compose.migration.yml --profile migration run --rm pulsarr-migrate-data npx tsx migrations/scripts/sqlite-to-postgresql.ts --verbose
+
+# Custom batch size (default: 1000 rows per batch)
+echo "y" | docker-compose -f docker-compose.migration.yml --profile migration run --rm pulsarr-migrate-data npx tsx migrations/scripts/sqlite-to-postgresql.ts --batch-size=500
 ```
 
 The script will:
 - ✅ Verify connections to both databases
 - ✅ Create a backup of your SQLite database
-- ✅ Show migration summary and ask for confirmation
+- ✅ Show migration summary and ask for confirmation (unless auto-confirmed)
 - ✅ Migrate all data with proper type conversions
 - ✅ Update PostgreSQL auto-increment sequences
 - ✅ Verify migration completed successfully
 
-### Step 6: Start Pulsarr
+### Step 6: Verify Migration
 
-Once migration is complete, start Pulsarr normally:
+After migration completes successfully, verify everything migrated correctly:
+
+1. **Check the migration output** - Look for:
+   - ✅ "All row counts match!" 
+   - ✅ Total number of migrated rows
+   - ✅ Backup location
+
+2. **Verify your .env configuration** - Ensure PostgreSQL settings are active:
+   ```env
+   dbType=postgres
+   # Your PostgreSQL connection settings should be uncommented/active
+   ```
+
+### Step 7: Start Pulsarr
+
+Once migration is verified, start Pulsarr normally:
 
 ```bash
 docker-compose up -d
 ```
 
 Pulsarr will now use your PostgreSQL database!
+
+**First startup verification:**
+- Check the logs: `docker-compose logs pulsarr`
+- Verify the web interface loads correctly
+- Test a few key functions (viewing watchlists, checking settings)
 
 ## Environment Variables Reference
 
@@ -175,19 +219,30 @@ Pulsarr will now use your PostgreSQL database!
 ### Connection String
 - `dbConnectionString` - Full PostgreSQL connection string (optional)
 
-## Migration Options
+## Advanced Usage
 
-The migration script supports several options:
+### Automation and CI/CD
+
+For automated deployments, you can run the entire migration process non-interactively:
 
 ```bash
-# Verbose output (shows detailed progress)
-docker-compose -f docker-compose.migration.yml --profile migration run --rm pulsarr-migrate-data npm run migrate:sqlite-to-postgres -- --verbose
+# Complete automated migration
+echo "y" | docker-compose -f docker-compose.migration.yml --profile migration run --rm pulsarr-migrate-data
 
-# Custom batch size (default: 1000)
-docker-compose -f docker-compose.migration.yml --profile migration run --rm pulsarr-migrate-data npm run migrate:sqlite-to-postgres -- --batch-size=500
+# With verbose logging for automation monitoring
+echo "y" | docker-compose -f docker-compose.migration.yml --profile migration run --rm pulsarr-migrate-data npx tsx migrations/scripts/sqlite-to-postgresql.ts --verbose
+```
 
-# Show help
-docker-compose -f docker-compose.migration.yml --profile migration run --rm pulsarr-migrate-data npm run migrate:sqlite-to-postgres -- --help
+### Performance Tuning
+
+For large databases, you may want to adjust the batch size:
+
+```bash
+# Smaller batches for memory-constrained environments
+echo "y" | docker-compose -f docker-compose.migration.yml --profile migration run --rm pulsarr-migrate-data npx tsx migrations/scripts/sqlite-to-postgresql.ts --batch-size=500
+
+# Larger batches for faster migration (more memory usage)
+echo "y" | docker-compose -f docker-compose.migration.yml --profile migration run --rm pulsarr-migrate-data npx tsx migrations/scripts/sqlite-to-postgresql.ts --batch-size=2000
 ```
 
 ## Troubleshooting
