@@ -4,6 +4,11 @@ import {
   shouldSkipDownForPostgreSQL,
 } from '../utils/clientDetection.js'
 
+/**
+ * Applies the Apprise integration migration to the database schema.
+ *
+ * Adds Apprise-related columns to the `configs` table, migrates `deleteSyncNotify` values to new formats, clears and renames email-related fields in the `users` table, and updates the `notifications` table to use Apprise notification tracking. Skips execution for PostgreSQL clients.
+ */
 export async function up(knex: Knex): Promise<void> {
   if (shouldSkipForPostgreSQL(knex, '011_20250328_add_apprise_integration')) {
     return
@@ -88,6 +93,13 @@ export async function up(knex: Knex): Promise<void> {
   })
 }
 
+/**
+ * Reverts the Apprise integration migration by restoring previous schema and data formats.
+ *
+ * This includes reverting `deleteSyncNotify` values in the `configs` table to their original format, restoring the `sent_to_email` column and removing the `sent_to_apprise` column in the `notifications` table, renaming `apprise` and `notify_apprise` columns back to `email` and `notify_email` in the `users` table, and dropping Apprise-related columns from the `configs` table.
+ *
+ * @remark This migration is skipped for PostgreSQL clients.
+ */
 export async function down(knex: Knex): Promise<void> {
   if (shouldSkipDownForPostgreSQL(knex)) {
     return

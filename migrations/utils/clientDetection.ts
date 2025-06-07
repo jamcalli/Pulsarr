@@ -4,14 +4,12 @@ export const POSTGRESQL_CLIENT = 'pg' as const
 export const SQLITE_CLIENT = 'better-sqlite3' as const
 
 /**
- * Checks if the current migration should be skipped for PostgreSQL databases
+ * Determines whether a migration should be skipped for PostgreSQL databases.
  *
- * PostgreSQL uses a consolidated schema in migration 034 that includes all
- * previous SQLite migrations (001-033), so those migrations should be skipped.
+ * Skips migrations for PostgreSQL if the database client is PostgreSQL, as migrations 001-033 are consolidated into migration 034 for PostgreSQL.
  *
- * @param knex - Knex instance
- * @param migrationName - Name of the migration for logging purposes
- * @returns true if the migration should be skipped, false otherwise
+ * @param migrationName - The name of the migration, used for logging when a migration is skipped.
+ * @returns `true` if the migration should be skipped for PostgreSQL; otherwise, `false`.
  */
 export function shouldSkipForPostgreSQL(
   knex: Knex,
@@ -28,10 +26,9 @@ export function shouldSkipForPostgreSQL(
 }
 
 /**
- * Checks if the current migration should be skipped for PostgreSQL databases (down migration)
+ * Determines whether a down migration should be skipped for PostgreSQL databases.
  *
- * @param knex - Knex instance
- * @returns true if the migration should be skipped, false otherwise
+ * @returns `true` if the current database client is PostgreSQL; otherwise, `false`.
  */
 export function shouldSkipDownForPostgreSQL(knex: Knex): boolean {
   const client = knex.client.config?.client
@@ -39,30 +36,27 @@ export function shouldSkipDownForPostgreSQL(knex: Knex): boolean {
 }
 
 /**
- * Gets the current database client type
+ * Returns the database client type string from the given Knex instance.
  *
- * @param knex - Knex instance
- * @returns The client type ('pg', 'better-sqlite3', etc.)
+ * @returns The client type identifier (e.g., 'pg', 'better-sqlite3'), or 'unknown' if not defined.
  */
 export function getDatabaseClient(knex: Knex): string {
   return knex.client.config?.client || 'unknown'
 }
 
 /**
- * Checks if the current database is PostgreSQL
+ * Determines whether the current database client is PostgreSQL.
  *
- * @param knex - Knex instance
- * @returns true if PostgreSQL, false otherwise
+ * @returns `true` if the Knex instance is configured for PostgreSQL; otherwise, `false`.
  */
 export function isPostgreSQL(knex: Knex): boolean {
   return getDatabaseClient(knex) === POSTGRESQL_CLIENT
 }
 
 /**
- * Checks if the current database is SQLite
+ * Determines whether the current database client is SQLite.
  *
- * @param knex - Knex instance
- * @returns true if SQLite, false otherwise
+ * @returns `true` if the Knex instance is connected to a SQLite database; otherwise, `false`.
  */
 export function isSQLite(knex: Knex): boolean {
   return getDatabaseClient(knex) === SQLITE_CLIENT

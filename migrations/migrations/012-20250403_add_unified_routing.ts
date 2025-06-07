@@ -2,12 +2,11 @@ import type { Knex } from 'knex'
 import { isPostgreSQL } from '../utils/clientDetection.js'
 
 /**
- * Creates the unified router_rules table, sets up cascading delete triggers, and migrates genre routing data.
+ * Migrates legacy genre routing data into a unified `router_rules` table and sets up referential integrity triggers.
  *
- * This asynchronous migration function creates the new router_rules table with the required columns and indexes to store
- * routing rules for multiple plugin types. It also defines triggers to cascade deletions from sonarr and radarr instances.
- * The function migrates genre routing entries from the legacy sonarr_genre_routing and radarr_genre_routing tables—converting
- * genre data into a JSON structure in the criteria column—and then drops the old tables.
+ * Creates the `router_rules` table to consolidate routing rules for multiple plugin types, adds indexes, and defines triggers to cascade deletions from related Sonarr and Radarr instance tables. Migrates existing genre routing entries from `sonarr_genre_routing` and `radarr_genre_routing` into the new table, converting genre data to JSON format, and drops the legacy tables after migration.
+ *
+ * @remark This migration is skipped for PostgreSQL databases, as the schema changes are handled in a later migration.
  */
 export async function up(knex: Knex): Promise<void> {
   // Skip this migration for PostgreSQL - it's included in migration 034
@@ -107,11 +106,11 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Reverts the unified routing migration by restoring the original genre routing tables.
+ * Rolls back the unified routing migration by restoring the original genre routing tables and migrating data back from the unified table.
  *
- * This function recreates the `sonarr_genre_routing` and `radarr_genre_routing` tables with their original schema and
- * constraints, migrates genre routing data from the unified `router_rules` table back into these tables based on the target type,
- * and finally drops the `router_rules` table.
+ * Recreates the `sonarr_genre_routing` and `radarr_genre_routing` tables with their original schema and constraints, migrates genre routing rules from the `router_rules` table based on target type, and drops the unified `router_rules` table.
+ *
+ * @remark Skips execution on PostgreSQL databases, as rollback is handled by a separate migration.
  */
 export async function down(knex: Knex): Promise<void> {
   // Skip this migration for PostgreSQL - it's included in migration 034

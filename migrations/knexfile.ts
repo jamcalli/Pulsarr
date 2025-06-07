@@ -11,6 +11,13 @@ const projectRoot = resolve(__dirname, '..')
 // Load environment variables before anything else
 dotenv.config({ path: resolve(projectRoot, '.env') })
 
+/**
+ * Ensures that the database directory exists at `data/db` within the project root, creating it if necessary.
+ *
+ * @returns The absolute path to the database directory.
+ *
+ * @remark If the directory cannot be created, the process will terminate with an error.
+ */
 function ensureDbDirectory() {
   const dbDirectory = resolve(projectRoot, 'data', 'db')
   try {
