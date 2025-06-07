@@ -307,6 +307,7 @@ export class SonarrService {
           sonarrSeasonMonitoring: instance.seasonMonitoring,
           sonarrMonitorNewItems: instance.monitorNewItems || 'all',
           sonarrSeriesType: instance.seriesType || 'standard',
+          createSeasonFolders: instance.createSeasonFolders,
         }
         return
       }
@@ -323,6 +324,7 @@ export class SonarrService {
         searchOnAdd:
           instance.searchOnAdd !== undefined ? instance.searchOnAdd : true,
         sonarrSeriesType: instance.seriesType || 'standard',
+        createSeasonFolders: instance.createSeasonFolders,
       }
 
       this.log.info(
@@ -734,6 +736,7 @@ export class SonarrService {
     overrideSearchOnAdd?: boolean | null,
     overrideSeasonMonitoring?: string | null,
     overrideSeriesType?: 'standard' | 'anime' | 'daily' | null,
+    overrideCreateSeasonFolders?: boolean | null,
   ): Promise<void> {
     const config = this.sonarrConfig
     try {
@@ -845,6 +848,13 @@ export class SonarrService {
           ? overrideSeriesType
           : config.sonarrSeriesType || 'standard'
 
+      // Create season folders - prefer override, then config, then default to undefined (Sonarr default)
+      const createSeasonFolders =
+        overrideCreateSeasonFolders !== undefined &&
+        overrideCreateSeasonFolders !== null
+          ? overrideCreateSeasonFolders
+          : config.createSeasonFolders
+
       const show: SonarrPost = {
         title: item.title,
         tvdbId: tvdbId ? Number.parseInt(tvdbId, 10) : 0,
@@ -856,6 +866,7 @@ export class SonarrService {
         monitorNewItems: config.sonarrMonitorNewItems || 'all',
         tags,
         seriesType,
+        seasonFolder: createSeasonFolders,
       }
 
       await this.postToSonarr<void>('series', show)

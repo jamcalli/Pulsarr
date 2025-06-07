@@ -512,6 +512,46 @@ export function InstanceCard({
                   />
                   <FormField
                     control={form.control}
+                    name="createSeasonFolders"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center space-x-2">
+                          <FormLabel className="text-text">
+                            Create Season Folders
+                          </FormLabel>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p className="max-w-xs">
+                                  When enabled, Sonarr will create season
+                                  folders (e.g., Season 01, Season 02) to
+                                  organize episodes by season within each series
+                                  folder.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                        <div className="flex h-10 items-center gap-2 px-3 py-2">
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              disabled={!isConnectionValid}
+                            />
+                          </FormControl>
+                          <span className="text-sm text-text text-muted-foreground">
+                            Organize episodes in season folders
+                          </span>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
                     name="tags"
                     render={({ field }) => (
                       <FormItem>
