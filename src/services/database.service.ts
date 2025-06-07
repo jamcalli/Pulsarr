@@ -235,6 +235,22 @@ export class DatabaseService {
     }
   }
 
+  /**
+   * Generate database-specific date difference calculation SQL
+   *
+   * @param date1 - First date expression (minuend)
+   * @param date2 - Second date expression (subtrahend)
+   * @param alias - Optional alias for the result
+   * @returns SQL expression for date difference in days
+   */
+  private getDateDiffSQL(date1: string, date2: string, alias?: string): string {
+    const diff = this.isPostgreSQL()
+      ? `EXTRACT(EPOCH FROM (${date1} - ${date2})) / 86400`
+      : `julianday(${date1}) - julianday(${date2})`
+
+    return alias ? `${diff} AS ${alias}` : diff
+  }
+
   //=============================================================================
   // USER MANAGEMENT
   //=============================================================================
@@ -3707,9 +3723,10 @@ export class DatabaseService {
       }
 
       // Execute raw SQL query with CTEs for better performance and readability
-      const dateDiffFunction = this.isPostgreSQL()
-        ? 'EXTRACT(EPOCH FROM (n.first_notified - g.first_grabbed)) / 86400' // PostgreSQL: seconds to days
-        : 'julianday(n.first_notified) - julianday(g.first_grabbed)' // SQLite: julian days
+      const dateDiffFunction = this.getDateDiffSQL(
+        'n.first_notified',
+        'g.first_grabbed',
+      )
 
       const results = await this.knex.raw(`
     WITH grabbed_status AS (
@@ -3811,9 +3828,10 @@ export class DatabaseService {
       }
 
       // First, get all the direct transitions without filtering
-      const transitionDateDiffFunction = this.isPostgreSQL()
-        ? 'EXTRACT(EPOCH FROM (h2.timestamp - h1.timestamp)) / 86400' // PostgreSQL: seconds to days
-        : 'julianday(h2.timestamp) - julianday(h1.timestamp)' // SQLite: julian days
+      const transitionDateDiffFunction = this.getDateDiffSQL(
+        'h2.timestamp',
+        'h1.timestamp',
+      )
 
       const rawTransitions = await this.knex.raw(`
         WITH status_pairs AS (
@@ -3979,9 +3997,10 @@ export class DatabaseService {
     this.log.debug('Calculating average time from addition to availability')
 
     // Execute raw SQL query with CTEs for first add and first notification timestamps
-    const availabilityDateDiffFunction = this.isPostgreSQL()
-      ? 'EXTRACT(EPOCH FROM (n.first_notification - a.added::timestamp)) / 86400' // PostgreSQL: seconds to days (cast varchar to timestamp)
-      : 'julianday(n.first_notification) - julianday(a.added)' // SQLite: julian days
+    const availabilityDateDiffFunction = this.getDateDiffSQL(
+      'n.first_notification',
+      this.isPostgreSQL() ? 'a.added::timestamp' : 'a.added',
+    )
 
     const results = await this.knex.raw<AvailabilityStatsRow[]>(`
     WITH first_added AS (
@@ -4082,9 +4101,10 @@ export class DatabaseService {
       }
 
       // Execute raw SQL query to get status transition data
-      const statusFlowDateDiffFunction = this.isPostgreSQL()
-        ? 'EXTRACT(EPOCH FROM (h2.timestamp - h1.timestamp)) / 86400' // PostgreSQL: seconds to days
-        : 'julianday(h2.timestamp) - julianday(h1.timestamp)' // SQLite: julian days
+      const statusFlowDateDiffFunction = this.getDateDiffSQL(
+        'h2.timestamp',
+        'h1.timestamp',
+      )
 
       const results = await this.knex.raw<StatusFlowRow[]>(`
     WITH status_transitions AS (
