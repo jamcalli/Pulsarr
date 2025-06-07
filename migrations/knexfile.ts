@@ -1,6 +1,6 @@
 import type { Knex } from 'knex'
-import { fileURLToPath } from 'url'
-import { dirname, resolve } from 'path'
+import { fileURLToPath } from 'node:url'
+import { dirname, resolve } from 'node:path'
 import fs from 'node:fs'
 import dotenv from 'dotenv'
 
@@ -34,26 +34,26 @@ const getPostgresConnection = () => {
   if (process.env.dbConnectionString) {
     return process.env.dbConnectionString
   }
-  
+
   // Parse and validate port number
-  const port = parseInt(process.env.dbPort || '5432', 10)
-  if (isNaN(port) || port < 1 || port > 65535) {
+  const port = Number.parseInt(process.env.dbPort || '5432', 10)
+  if (Number.isNaN(port) || port < 1 || port > 65535) {
     throw new Error('Invalid database port number')
   }
-  
+
   // Otherwise, build from individual components
   return {
     host: process.env.dbHost || 'localhost',
     port,
     user: process.env.dbUser || 'postgres',
     password: process.env.dbPassword || undefined,
-    database: process.env.dbName || 'pulsarr'
+    database: process.env.dbName || 'pulsarr',
   }
 }
 
 // Build SQLite connection configuration
 const getSqliteConnection = () => ({
-  filename: process.env.dbPath || resolve(ensureDbDirectory(), 'pulsarr.db')
+  filename: process.env.dbPath || resolve(ensureDbDirectory(), 'pulsarr.db'),
 })
 
 const config: { [key: string]: Knex.Config } = {
@@ -62,21 +62,23 @@ const config: { [key: string]: Knex.Config } = {
     connection: isPostgres ? getPostgresConnection() : getSqliteConnection(),
     useNullAsDefault: !isPostgres,
     migrations: {
-      directory: resolve(__dirname, 'migrations')
+      directory: resolve(__dirname, 'migrations'),
     },
-    pool: isPostgres 
-      ? { 
-          min: 2, 
-          max: 10 
+    pool: isPostgres
+      ? {
+          min: 2,
+          max: 10,
         }
       : {
-          afterCreate: (conn: any, cb: any) => {
-            conn.exec('PRAGMA journal_mode = WAL;')
-            conn.exec('PRAGMA foreign_keys = ON;')
+          afterCreate: (conn: unknown, cb: () => void) => {
+            // Type assertion for SQLite database connection
+            const sqliteConn = conn as { exec: (sql: string) => void }
+            sqliteConn.exec('PRAGMA journal_mode = WAL;')
+            sqliteConn.exec('PRAGMA foreign_keys = ON;')
             cb()
-          }
-        }
-  }
+          },
+        },
+  },
 }
 
 export default config

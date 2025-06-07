@@ -1,11 +1,14 @@
 import type { Knex } from 'knex'
-import { shouldSkipForPostgreSQL, shouldSkipDownForPostgreSQL } from '../utils/clientDetection.js'
+import {
+  shouldSkipForPostgreSQL,
+  shouldSkipDownForPostgreSQL,
+} from '../utils/clientDetection.js'
 
 export async function up(knex: Knex): Promise<void> {
-    if (shouldSkipForPostgreSQL(knex, '006_20250311_add_sync_status')) {
+  if (shouldSkipForPostgreSQL(knex, '006_20250311_add_sync_status')) {
     return
   }
-await knex.schema.alterTable('watchlist_radarr_instances', (table) => {
+  await knex.schema.alterTable('watchlist_radarr_instances', (table) => {
     table.boolean('syncing').defaultTo(false).notNullable()
     table.index('syncing')
   })
@@ -17,7 +20,7 @@ await knex.schema.alterTable('watchlist_radarr_instances', (table) => {
 }
 
 export async function down(knex: Knex): Promise<void> {
-    if (shouldSkipDownForPostgreSQL(knex)) {
+  if (shouldSkipDownForPostgreSQL(knex)) {
     return
   }
   await knex.schema.alterTable('watchlist_radarr_instances', (table) => {

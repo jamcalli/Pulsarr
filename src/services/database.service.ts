@@ -213,6 +213,28 @@ export class DatabaseService {
     await this.knex.destroy()
   }
 
+  /**
+   * Safely parse JSON strings with error logging
+   *
+   * @param value - JSON string to parse
+   * @param defaultValue - Default value to return on parse failure
+   * @param context - Context string for logging (e.g., 'watchlist_item.guids')
+   * @returns Parsed value or default value
+   */
+  private safeJsonParse<T>(
+    value: string | null | undefined,
+    defaultValue: T,
+    context?: string,
+  ): T {
+    if (!value) return defaultValue
+    try {
+      return JSON.parse(value)
+    } catch (error) {
+      this.log.warn('JSON parse error', { value, context, error })
+      return defaultValue
+    }
+  }
+
   //=============================================================================
   // USER MANAGEMENT
   //=============================================================================
@@ -610,30 +632,16 @@ export class DatabaseService {
     const config = await this.knex('configs').where({ id }).first()
     if (!config) return undefined
 
-    // Helper function to safely parse JSON with error handling
-    const safeJsonParse = <T>(
-      value: string | undefined,
-      defaultValue: T,
-      fieldName: string,
-    ): T => {
-      if (!value) return defaultValue
-      try {
-        return JSON.parse(value)
-      } catch (error) {
-        this.log.warn(
-          `Failed to parse ${fieldName} from database, using default:`,
-          error,
-        )
-        return defaultValue
-      }
-    }
-
     return {
       ...config,
       // Parse JSON fields with error handling
-      plexTokens: safeJsonParse(config.plexTokens, [], 'plexTokens'),
+      plexTokens: this.safeJsonParse<string[]>(
+        config.plexTokens,
+        [],
+        'config.plexTokens',
+      ),
       plexSessionMonitoring: config.plexSessionMonitoring
-        ? safeJsonParse(
+        ? this.safeJsonParse(
             config.plexSessionMonitoring,
             {
               enabled: false,
@@ -644,7 +652,7 @@ export class DatabaseService {
               inactivityResetDays: 7,
               autoResetIntervalHours: 24,
             },
-            'plexSessionMonitoring',
+            'config.plexSessionMonitoring',
           )
         : undefined,
       newUserDefaultCanSync: Boolean(config.newUserDefaultCanSync ?? true),
@@ -872,9 +880,13 @@ export class DatabaseService {
       monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
       searchOnAdd:
         instance.search_on_add == null ? true : Boolean(instance.search_on_add),
-      tags: JSON.parse(instance.tags || '[]'),
+      tags: this.safeJsonParse(instance.tags, [], 'sonarr.tags'),
       isDefault: Boolean(instance.is_default),
-      syncedInstances: JSON.parse(instance.synced_instances || '[]'),
+      syncedInstances: this.safeJsonParse(
+        instance.synced_instances,
+        [],
+        'sonarr.synced_instances',
+      ),
       seriesType:
         (instance.series_type as 'standard' | 'anime' | 'daily') || 'standard',
     }))
@@ -907,9 +919,13 @@ export class DatabaseService {
       monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
       searchOnAdd:
         instance.search_on_add == null ? true : Boolean(instance.search_on_add),
-      tags: JSON.parse(instance.tags || '[]'),
+      tags: this.safeJsonParse(instance.tags, [], 'sonarr.tags'),
       isDefault: true,
-      syncedInstances: JSON.parse(instance.synced_instances || '[]'),
+      syncedInstances: this.safeJsonParse(
+        instance.synced_instances,
+        [],
+        'sonarr.synced_instances',
+      ),
       seriesType:
         (instance.series_type as 'standard' | 'anime' | 'daily') || 'standard',
     }
@@ -938,9 +954,13 @@ export class DatabaseService {
       monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
       searchOnAdd:
         instance.search_on_add == null ? true : Boolean(instance.search_on_add),
-      tags: JSON.parse(instance.tags || '[]'),
+      tags: this.safeJsonParse(instance.tags, [], 'sonarr.tags'),
       isDefault: Boolean(instance.is_default),
-      syncedInstances: JSON.parse(instance.synced_instances || '[]'),
+      syncedInstances: this.safeJsonParse(
+        instance.synced_instances,
+        [],
+        'sonarr.synced_instances',
+      ),
       seriesType:
         (instance.series_type as 'standard' | 'anime' | 'daily') || 'standard',
     }
@@ -1307,7 +1327,11 @@ export class DatabaseService {
 
       for (const instance of instances) {
         try {
-          const syncedInstances = JSON.parse(instance.synced_instances || '[]')
+          const syncedInstances = this.safeJsonParse<number[]>(
+            instance.synced_instances,
+            [],
+            'synced_instances',
+          )
 
           if (
             Array.isArray(syncedInstances) &&
@@ -1430,9 +1454,13 @@ export class DatabaseService {
       minimumAvailability: this.normaliseMinimumAvailability(
         instance.minimum_availability,
       ),
-      tags: JSON.parse(instance.tags || '[]'),
+      tags: this.safeJsonParse(instance.tags, [], 'sonarr.tags'),
       isDefault: Boolean(instance.is_default),
-      syncedInstances: JSON.parse(instance.synced_instances || '[]'),
+      syncedInstances: this.safeJsonParse(
+        instance.synced_instances,
+        [],
+        'sonarr.synced_instances',
+      ),
     }))
   }
 
@@ -1462,9 +1490,13 @@ export class DatabaseService {
       minimumAvailability: this.normaliseMinimumAvailability(
         instance.minimum_availability,
       ),
-      tags: JSON.parse(instance.tags || '[]'),
+      tags: this.safeJsonParse(instance.tags, [], 'sonarr.tags'),
       isDefault: true,
-      syncedInstances: JSON.parse(instance.synced_instances || '[]'),
+      syncedInstances: this.safeJsonParse(
+        instance.synced_instances,
+        [],
+        'sonarr.synced_instances',
+      ),
     }
   }
 
@@ -1490,9 +1522,13 @@ export class DatabaseService {
       minimumAvailability: this.normaliseMinimumAvailability(
         instance.minimum_availability,
       ),
-      tags: JSON.parse(instance.tags || '[]'),
+      tags: this.safeJsonParse(instance.tags, [], 'sonarr.tags'),
       isDefault: Boolean(instance.is_default),
-      syncedInstances: JSON.parse(instance.synced_instances || '[]'),
+      syncedInstances: this.safeJsonParse(
+        instance.synced_instances,
+        [],
+        'sonarr.synced_instances',
+      ),
     }
   }
 
@@ -1644,7 +1680,11 @@ export class DatabaseService {
 
       for (const instance of instances) {
         try {
-          const syncedInstances = JSON.parse(instance.synced_instances || '[]')
+          const syncedInstances = this.safeJsonParse<number[]>(
+            instance.synced_instances,
+            [],
+            'synced_instances',
+          )
 
           if (
             Array.isArray(syncedInstances) &&
@@ -1884,7 +1924,11 @@ export class DatabaseService {
       const matchingIds = items
         .filter((item) => {
           try {
-            const guids = JSON.parse(item.guids || '[]')
+            const guids = this.safeJsonParse<string[]>(
+              item.guids,
+              [],
+              'watchlist_item.guids',
+            )
             return Array.isArray(guids) && guids.includes(guid)
           } catch (e) {
             this.log.error(`Error parsing GUIDs for item ${item.id}:`, e)
@@ -1982,8 +2026,8 @@ export class DatabaseService {
 
     return results.map((row) => ({
       ...row,
-      guids: JSON.parse(row.guids),
-      genres: JSON.parse(row.genres || '[]'),
+      guids: this.safeJsonParse(row.guids, [], 'watchlist_item.guids'),
+      genres: this.safeJsonParse(row.genres, [], 'watchlist_item.genres'),
     }))
   }
 
@@ -2489,7 +2533,11 @@ export class DatabaseService {
       // Extract all unique genres
       for (const row of items) {
         try {
-          const parsedGenres = JSON.parse(row.genres || '[]')
+          const parsedGenres = this.safeJsonParse<string[]>(
+            row.genres,
+            [],
+            'watchlist_item.genres',
+          )
           if (Array.isArray(parsedGenres)) {
             for (const genre of parsedGenres) {
               if (typeof genre === 'string' && genre.trim().length > 1) {
@@ -2614,11 +2662,11 @@ export class DatabaseService {
         ...item,
         guids:
           typeof item.guids === 'string'
-            ? JSON.parse(item.guids || '[]')
+            ? this.safeJsonParse(item.guids, [], 'watchlist_item.guids')
             : item.guids || [],
         genres:
           typeof item.genres === 'string'
-            ? JSON.parse(item.genres || '[]')
+            ? this.safeJsonParse(item.genres, [], 'watchlist_item.genres')
             : item.genres || [],
       }))
     } catch (error) {
@@ -2642,11 +2690,11 @@ export class DatabaseService {
         ...item,
         guids:
           typeof item.guids === 'string'
-            ? JSON.parse(item.guids || '[]')
+            ? this.safeJsonParse(item.guids, [], 'watchlist_item.guids')
             : item.guids || [],
         genres:
           typeof item.genres === 'string'
-            ? JSON.parse(item.genres || '[]')
+            ? this.safeJsonParse(item.genres, [], 'watchlist_item.genres')
             : item.genres || [],
       }))
     } catch (error) {
@@ -2788,8 +2836,10 @@ export class DatabaseService {
     const results = await query
     return results.map((row) => ({
       ...row,
-      guids: JSON.parse(row.guids),
-      genres: row.genres ? JSON.parse(row.genres || '[]') : [],
+      guids: this.safeJsonParse(row.guids, [], 'watchlist_item.guids'),
+      genres: row.genres
+        ? this.safeJsonParse(row.genres, [], 'watchlist_item.genres')
+        : [],
     }))
   }
 
@@ -2852,8 +2902,8 @@ export class DatabaseService {
 
     return items.map((item) => ({
       ...item,
-      guids: JSON.parse(item.guids || '[]'),
-      genres: JSON.parse(item.genres || '[]'),
+      guids: this.safeJsonParse(item.guids, [], 'watchlist_item.guids'),
+      genres: this.safeJsonParse(item.genres, [], 'watchlist_item.genres'),
     }))
   }
 
@@ -3194,13 +3244,25 @@ export class DatabaseService {
 
     return items
       .filter((item) => {
-        const guids = JSON.parse(item.guids || '[]')
+        const guids = this.safeJsonParse<string[]>(
+          item.guids,
+          [],
+          'watchlist_item.guids',
+        )
         return guids.includes(guid)
       })
       .map((item) => ({
         ...item,
-        guids: JSON.parse(item.guids || '[]'),
-        genres: JSON.parse(item.genres || '[]'),
+        guids: this.safeJsonParse<string[]>(
+          item.guids,
+          [],
+          'watchlist_item.guids',
+        ),
+        genres: this.safeJsonParse<string[]>(
+          item.genres,
+          [],
+          'watchlist_item.genres',
+        ),
       }))
   }
 
@@ -3233,7 +3295,11 @@ export class DatabaseService {
         try {
           let genres: string[] = []
           try {
-            const parsed = JSON.parse(item.genres || '[]')
+            const parsed = this.safeJsonParse(
+              item.genres,
+              [],
+              'watchlist_item.genres',
+            )
             if (Array.isArray(parsed)) {
               genres = parsed
             }
@@ -5112,9 +5178,13 @@ export class DatabaseService {
           seasonMonitoring: instance.season_monitoring,
           monitorNewItems:
             (instance.monitor_new_items as 'all' | 'none') || 'all',
-          tags: JSON.parse(instance.tags || '[]'),
+          tags: this.safeJsonParse(instance.tags, [], 'sonarr.tags'),
           isDefault: Boolean(instance.is_default),
-          syncedInstances: JSON.parse(instance.synced_instances || '[]'),
+          syncedInstances: this.safeJsonParse(
+            instance.synced_instances,
+            [],
+            'sonarr.synced_instances',
+          ),
         }
       }
     }
@@ -5158,9 +5228,13 @@ export class DatabaseService {
           minimumAvailability: this.normaliseMinimumAvailability(
             instance.minimum_availability,
           ),
-          tags: JSON.parse(instance.tags || '[]'),
+          tags: this.safeJsonParse(instance.tags, [], 'sonarr.tags'),
           isDefault: Boolean(instance.is_default),
-          syncedInstances: JSON.parse(instance.synced_instances || '[]'),
+          syncedInstances: this.safeJsonParse(
+            instance.synced_instances,
+            [],
+            'sonarr.synced_instances',
+          ),
         }
       }
     }
@@ -5189,12 +5263,20 @@ export class DatabaseService {
           enabled: Boolean(schedule.enabled),
           last_run: schedule.last_run
             ? typeof schedule.last_run === 'string'
-              ? (JSON.parse(schedule.last_run) as JobRunInfo)
+              ? this.safeJsonParse<JobRunInfo>(
+                  schedule.last_run,
+                  {} as JobRunInfo,
+                  'schedule.last_run',
+                )
               : (schedule.last_run as JobRunInfo)
             : null,
           next_run: schedule.next_run
             ? typeof schedule.next_run === 'string'
-              ? (JSON.parse(schedule.next_run) as JobRunInfo)
+              ? this.safeJsonParse<JobRunInfo>(
+                  schedule.next_run,
+                  {} as JobRunInfo,
+                  'schedule.next_run',
+                )
               : (schedule.next_run as JobRunInfo)
             : null,
           created_at: schedule.created_at,
@@ -5204,7 +5286,7 @@ export class DatabaseService {
         // Parse the config
         const parsedConfig =
           typeof schedule.config === 'string'
-            ? JSON.parse(schedule.config || '{}')
+            ? this.safeJsonParse(schedule.config, {}, 'schedule.config')
             : schedule.config
 
         // Return properly typed object based on schedule type
@@ -5247,12 +5329,20 @@ export class DatabaseService {
         enabled: Boolean(schedule.enabled),
         last_run: schedule.last_run
           ? typeof schedule.last_run === 'string'
-            ? (JSON.parse(schedule.last_run) as JobRunInfo)
+            ? this.safeJsonParse<JobRunInfo>(
+                schedule.last_run,
+                {} as JobRunInfo,
+                'schedule.last_run',
+              )
             : (schedule.last_run as JobRunInfo)
           : null,
         next_run: schedule.next_run
           ? typeof schedule.next_run === 'string'
-            ? (JSON.parse(schedule.next_run) as JobRunInfo)
+            ? this.safeJsonParse<JobRunInfo>(
+                schedule.next_run,
+                {} as JobRunInfo,
+                'schedule.next_run',
+              )
             : (schedule.next_run as JobRunInfo)
           : null,
         created_at: schedule.created_at,
@@ -5262,7 +5352,7 @@ export class DatabaseService {
       // Parse the config
       const parsedConfig =
         typeof schedule.config === 'string'
-          ? JSON.parse(schedule.config || '{}')
+          ? this.safeJsonParse(schedule.config, {}, 'schedule.config')
           : schedule.config
 
       // Return properly typed object based on schedule type
@@ -5425,15 +5515,15 @@ export class DatabaseService {
         rule.search_on_add == null ? null : Boolean(rule.search_on_add),
       criteria:
         typeof rule.criteria === 'string'
-          ? JSON.parse(rule.criteria || '{}')
+          ? this.safeJsonParse(rule.criteria, {}, 'router_rule.criteria')
           : rule.criteria,
       tags:
         typeof rule.tags === 'string'
-          ? JSON.parse(rule.tags || '[]')
+          ? this.safeJsonParse(rule.tags, [], 'router_rule.tags')
           : rule.tags || [],
       metadata: rule.metadata
         ? typeof rule.metadata === 'string'
-          ? JSON.parse(rule.metadata || 'null')
+          ? this.safeJsonParse(rule.metadata, null, 'router_rule.metadata')
           : rule.metadata
         : null,
     }
@@ -5513,15 +5603,19 @@ export class DatabaseService {
       enabled: Boolean(createdRule.enabled),
       criteria:
         typeof createdRule.criteria === 'string'
-          ? JSON.parse(createdRule.criteria || '{}')
+          ? this.safeJsonParse(createdRule.criteria, {}, 'router_rule.criteria')
           : createdRule.criteria,
       tags:
         typeof createdRule.tags === 'string'
-          ? JSON.parse(createdRule.tags || '[]')
+          ? this.safeJsonParse(createdRule.tags, [], 'router_rule.tags')
           : createdRule.tags || [],
       metadata: createdRule.metadata
         ? typeof createdRule.metadata === 'string'
-          ? JSON.parse(createdRule.metadata || 'null')
+          ? this.safeJsonParse(
+              createdRule.metadata,
+              null,
+              'router_rule.metadata',
+            )
           : createdRule.metadata
         : null,
     }
@@ -5573,15 +5667,19 @@ export class DatabaseService {
       enabled: Boolean(updatedRule.enabled),
       criteria:
         typeof updatedRule.criteria === 'string'
-          ? JSON.parse(updatedRule.criteria || '{}')
+          ? this.safeJsonParse(updatedRule.criteria, {}, 'router_rule.criteria')
           : updatedRule.criteria,
       tags:
         typeof updatedRule.tags === 'string'
-          ? JSON.parse(updatedRule.tags || '[]')
+          ? this.safeJsonParse(updatedRule.tags, [], 'router_rule.tags')
           : updatedRule.tags || [],
       metadata: updatedRule.metadata
         ? typeof updatedRule.metadata === 'string'
-          ? JSON.parse(updatedRule.metadata || 'null')
+          ? this.safeJsonParse(
+              updatedRule.metadata,
+              null,
+              'router_rule.metadata',
+            )
           : updatedRule.metadata
         : null,
     }
@@ -5679,15 +5777,19 @@ export class DatabaseService {
       enabled: Boolean(updatedRule.enabled),
       criteria:
         typeof updatedRule.criteria === 'string'
-          ? JSON.parse(updatedRule.criteria || '{}')
+          ? this.safeJsonParse(updatedRule.criteria, {}, 'router_rule.criteria')
           : updatedRule.criteria,
       tags:
         typeof updatedRule.tags === 'string'
-          ? JSON.parse(updatedRule.tags || '[]')
+          ? this.safeJsonParse(updatedRule.tags, [], 'router_rule.tags')
           : updatedRule.tags || [],
       metadata: updatedRule.metadata
         ? typeof updatedRule.metadata === 'string'
-          ? JSON.parse(updatedRule.metadata || 'null')
+          ? this.safeJsonParse(
+              updatedRule.metadata,
+              null,
+              'router_rule.metadata',
+            )
           : updatedRule.metadata
         : null,
     }
@@ -5973,11 +6075,15 @@ export class DatabaseService {
       enabled: Boolean(createdRule.enabled),
       criteria:
         typeof createdRule.criteria === 'string'
-          ? JSON.parse(createdRule.criteria || '{}')
+          ? this.safeJsonParse(createdRule.criteria, {}, 'router_rule.criteria')
           : createdRule.criteria,
       metadata: createdRule.metadata
         ? typeof createdRule.metadata === 'string'
-          ? JSON.parse(createdRule.metadata || 'null')
+          ? this.safeJsonParse(
+              createdRule.metadata,
+              null,
+              'router_rule.metadata',
+            )
           : createdRule.metadata
         : null,
     }
@@ -6035,7 +6141,7 @@ export class DatabaseService {
     if (updates.condition !== undefined) {
       const currentCriteria =
         typeof currentRule.criteria === 'string'
-          ? JSON.parse(currentRule.criteria || '{}')
+          ? this.safeJsonParse(currentRule.criteria, {}, 'router_rule.criteria')
           : currentRule.criteria
 
       const newCriteria = {
@@ -6069,11 +6175,15 @@ export class DatabaseService {
       enabled: Boolean(updatedRule.enabled),
       criteria:
         typeof updatedRule.criteria === 'string'
-          ? JSON.parse(updatedRule.criteria || '{}')
+          ? this.safeJsonParse(updatedRule.criteria, {}, 'router_rule.criteria')
           : updatedRule.criteria,
       metadata: updatedRule.metadata
         ? typeof updatedRule.metadata === 'string'
-          ? JSON.parse(updatedRule.metadata || 'null')
+          ? this.safeJsonParse(
+              updatedRule.metadata,
+              null,
+              'router_rule.metadata',
+            )
           : updatedRule.metadata
         : null,
     }
@@ -6167,7 +6277,11 @@ export class DatabaseService {
         ...webhook,
         payload: (() => {
           try {
-            return JSON.parse(webhook.payload || '{}')
+            return this.safeJsonParse(
+              webhook.payload,
+              {},
+              'pending_webhook.payload',
+            )
           } catch (e) {
             this.log.warn(
               { webhookId: webhook.id, error: e },
@@ -6240,7 +6354,11 @@ export class DatabaseService {
         ...webhook,
         payload: (() => {
           try {
-            return JSON.parse(webhook.payload || '{}')
+            return this.safeJsonParse(
+              webhook.payload,
+              {},
+              'pending_webhook.payload',
+            )
           } catch (e) {
             this.log.warn(
               { webhookId: webhook.id, guid, error: e },
