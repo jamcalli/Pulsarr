@@ -125,6 +125,7 @@ function getTerminalOptions(): LoggerOptions {
       options: {
         translateTime: 'HH:MM:ss Z',
         ignore: 'pid,hostname',
+        colorize: true, // Force colors even in Docker
       },
     },
     serializers: {
@@ -197,6 +198,7 @@ export function createLoggerConfig(
         options: {
           translateTime: 'HH:MM:ss Z',
           ignore: 'pid,hostname',
+          colorize: true, // Force colors even in Docker
         },
       })
 
