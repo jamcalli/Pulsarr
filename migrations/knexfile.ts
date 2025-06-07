@@ -35,12 +35,18 @@ const getPostgresConnection = () => {
     return process.env.dbConnectionString
   }
   
+  // Parse and validate port number
+  const port = parseInt(process.env.dbPort || '5432', 10)
+  if (isNaN(port) || port < 1 || port > 65535) {
+    throw new Error('Invalid database port number')
+  }
+  
   // Otherwise, build from individual components
   return {
     host: process.env.dbHost || 'localhost',
-    port: parseInt(process.env.dbPort || '5432'),
+    port,
     user: process.env.dbUser || 'postgres',
-    password: process.env.dbPassword || '',
+    password: process.env.dbPassword || undefined,
     database: process.env.dbName || 'pulsarr'
   }
 }

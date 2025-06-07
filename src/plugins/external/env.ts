@@ -405,6 +405,19 @@ export default fp(
         parsedConfig.dbConnectionString &&
         parsedConfig.dbConnectionString.trim() !== ''
 
+      if (isUsingConnectionString) {
+        // Basic validation of connection string format
+        const connStr = parsedConfig.dbConnectionString.trim()
+        if (
+          !connStr.startsWith('postgres://') &&
+          !connStr.startsWith('postgresql://')
+        ) {
+          throw new Error(
+            'Invalid PostgreSQL connection string format. Must start with postgres:// or postgresql://',
+          )
+        }
+      }
+
       if (!isUsingConnectionString) {
         // Validate individual connection parameters
         if (!parsedConfig.dbPassword || parsedConfig.dbPassword.trim() === '') {

@@ -93,9 +93,18 @@ export class DatabaseService {
   ) {
     // Configure PostgreSQL type parsers if needed
     if (config.dbType === 'postgres') {
-      configurePgTypes(log).catch((error) => {
-        log.warn('Failed to configure PostgreSQL type parsers:', error)
-      })
+      try {
+        // Note: configurePgTypes is async but we need synchronous initialization
+        // The type parsers are configured globally, so this should be done
+        // before any database operations
+        configurePgTypes(log).catch((error) => {
+          log.error('Failed to configure PostgreSQL type parsers:', error)
+          throw new Error('PostgreSQL type parser configuration failed')
+        })
+      } catch (error) {
+        log.error('Failed to configure PostgreSQL type parsers:', error)
+        throw new Error('PostgreSQL type parser configuration failed')
+      }
     }
 
     this.knex = knex(DatabaseService.createKnexConfig(config, log))
@@ -124,8 +133,8 @@ export class DatabaseService {
     ) {
       return result.rows
     }
-    this.log.warn('Unexpected raw-query shape', { result })
-    return []
+    this.log.error('Unexpected raw query result format', { result })
+    throw new Error('Invalid database query result format')
   }
 
   /**
