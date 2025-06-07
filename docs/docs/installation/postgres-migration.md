@@ -1,3 +1,7 @@
+---
+sidebar_position: 3
+---
+
 # Migrating from SQLite to PostgreSQL
 
 Pulsarr supports both SQLite and PostgreSQL databases. This guide will help you migrate your existing SQLite data to PostgreSQL.

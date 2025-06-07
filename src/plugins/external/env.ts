@@ -196,6 +196,10 @@ const schema = {
       type: 'string',
       default: '[]',
     },
+    sonarrCreateSeasonFolders: {
+      type: 'boolean',
+      default: false,
+    },
     radarrBaseUrl: {
       type: 'string',
       default: 'http://localhost:7878',
@@ -316,6 +320,10 @@ const schema = {
     newUserDefaultCanSync: {
       type: 'boolean',
       default: true,
+    },
+    allowIframes: {
+      type: 'boolean',
+      default: false,
     },
   },
 }
