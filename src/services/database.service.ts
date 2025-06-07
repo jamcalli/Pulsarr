@@ -92,12 +92,23 @@ export class DatabaseService {
     private readonly config: FastifyInstance['config'],
   ) {
     this.knex = knex(DatabaseService.createKnexConfig(config, log))
+  }
+
+  /**
+   * Factory method to create a properly initialized DatabaseService
+   */
+  static async create(
+    log: FastifyBaseLogger,
+    config: FastifyInstance['config'],
+  ): Promise<DatabaseService> {
+    const service = new DatabaseService(log, config)
 
     // Configure PostgreSQL type parsers if needed
     if (config.dbType === 'postgres') {
-      // Schedule async type parser configuration
-      this.configurePostgresTypes()
+      await service.configurePostgresTypes()
     }
+
+    return service
   }
 
   /**
@@ -560,7 +571,8 @@ export class DatabaseService {
    */
   async hasAdminUsers(): Promise<boolean> {
     const count = await this.knex('admin_users').count('* as count').first()
-    return Number(count?.count || 0) > 0
+    const numCount = Number(count?.count || 0)
+    return !Number.isNaN(numCount) && numCount > 0
   }
 
   /**
