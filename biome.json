@@ -3,7 +3,6 @@
     "ignore": [
       "dist",
       "tests",
-      "migrations",
       "docs/build",
       "docs/.docusaurus",
       "docs/node_modules",

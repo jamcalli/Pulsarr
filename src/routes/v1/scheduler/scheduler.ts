@@ -31,7 +31,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        return await fastify.db.getAllSchedules()
+        const schedules = await fastify.db.getAllSchedules()
+        return schedules
       } catch (err) {
         fastify.log.error('Error fetching schedules:', err)
         return reply.internalServerError('Unable to fetch schedules')

@@ -15,7 +15,7 @@ declare module 'fastify' {
 
 export default fp(
   async function plexServer(fastify: FastifyInstance) {
-    const service = new PlexServerService(fastify.log, fastify.config)
+    const service = new PlexServerService(fastify.log, fastify)
 
     fastify.decorate('plexServerService', service)
 

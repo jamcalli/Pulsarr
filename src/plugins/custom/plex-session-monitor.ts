@@ -18,7 +18,7 @@ export default fp(
   async function plexSessionMonitor(fastify: FastifyInstance) {
     const service = new PlexSessionMonitorService(
       fastify.log,
-      fastify.config,
+      fastify,
       fastify.plexServerService,
       fastify.sonarrManager,
       fastify.db,

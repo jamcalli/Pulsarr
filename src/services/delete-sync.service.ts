@@ -84,7 +84,7 @@ export class DeleteSyncService {
     private readonly fastify: FastifyInstance,
   ) {
     this.log.info('Initializing Delete Sync Service')
-    this.plexServer = new PlexServerService(this.log, this.config)
+    this.plexServer = new PlexServerService(this.log, this.fastify)
   }
 
   /**

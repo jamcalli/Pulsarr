@@ -28,9 +28,38 @@ const schema = {
       type: 'number',
       default: 3003,
     },
+    dbType: {
+      type: 'string',
+      enum: ['sqlite', 'postgres'],
+      default: 'sqlite',
+    },
     dbPath: {
       type: 'string',
       default: './data/db/pulsarr.db',
+    },
+    dbHost: {
+      type: 'string',
+      default: 'localhost',
+    },
+    dbPort: {
+      type: 'number',
+      default: 5432,
+    },
+    dbName: {
+      type: 'string',
+      default: 'pulsarr',
+    },
+    dbUser: {
+      type: 'string',
+      default: 'postgres',
+    },
+    dbPassword: {
+      type: 'string',
+      default: 'pulsarrpostgrespw',
+    },
+    dbConnectionString: {
+      type: 'string',
+      default: '',
     },
     cookieSecret: {
       type: 'string',
@@ -369,6 +398,56 @@ export default fp(
     parsedConfig.plexTokens = Array.isArray(parsedConfig.plexTokens)
       ? parsedConfig.plexTokens
       : []
+
+    // Validate PostgreSQL configuration for security
+    if (parsedConfig.dbType === 'postgres') {
+      const isUsingConnectionString =
+        parsedConfig.dbConnectionString &&
+        parsedConfig.dbConnectionString.trim() !== ''
+
+      if (isUsingConnectionString) {
+        // Basic validation of connection string format
+        const connStr = parsedConfig.dbConnectionString.trim()
+        if (
+          !connStr.startsWith('postgres://') &&
+          !connStr.startsWith('postgresql://')
+        ) {
+          throw new Error(
+            'Invalid PostgreSQL connection string format. Must start with postgres:// or postgresql://',
+          )
+        }
+      }
+
+      if (!isUsingConnectionString) {
+        // Validate individual connection parameters
+        if (!parsedConfig.dbPassword || parsedConfig.dbPassword.trim() === '') {
+          fastify.log.error(
+            'PostgreSQL database selected but no password provided. This is a security risk.',
+          )
+          throw new Error(
+            'dbPassword is required when using PostgreSQL. Please set a secure password.',
+          )
+        }
+
+        if (parsedConfig.dbPassword === 'pulsarrpostgrespw') {
+          fastify.log.warn(
+            'WARNING: Using default PostgreSQL password. Please change this for production deployments!',
+          )
+        }
+
+        if (!parsedConfig.dbHost || parsedConfig.dbHost.trim() === '') {
+          throw new Error('dbHost is required when using PostgreSQL.')
+        }
+
+        if (!parsedConfig.dbName || parsedConfig.dbName.trim() === '') {
+          throw new Error('dbName is required when using PostgreSQL.')
+        }
+
+        if (!parsedConfig.dbUser || parsedConfig.dbUser.trim() === '') {
+          throw new Error('dbUser is required when using PostgreSQL.')
+        }
+      }
+    }
 
     fastify.config = parsedConfig as Config
 
