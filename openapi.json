@@ -9619,6 +9619,10 @@
                         "type": "boolean",
                         "default": true
                       },
+                      "createSeasonFolders": {
+                        "type": "boolean",
+                        "default": false
+                      },
                       "tags": {
                         "type": "array",
                         "items": {
@@ -9708,6 +9712,10 @@
                   "searchOnAdd": {
                     "type": "boolean",
                     "default": true
+                  },
+                  "createSeasonFolders": {
+                    "type": "boolean",
+                    "default": false
                   },
                   "tags": {
                     "type": "array",
@@ -9817,6 +9825,10 @@
                   "searchOnAdd": {
                     "type": "boolean",
                     "default": true
+                  },
+                  "createSeasonFolders": {
+                    "type": "boolean",
+                    "default": false
                   },
                   "tags": {
                     "type": "array",
