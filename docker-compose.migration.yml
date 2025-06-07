@@ -12,7 +12,7 @@ services:
       - migration
     command: npm run migrate
 
-  # Step 2: Setup PostgreSQL schema  
+  # Step 2: Setup PostgreSQL schema
   pulsarr-migrate-postgres-setup:
     image: lakker/pulsarr:latest
     container_name: pulsarr-migrate-postgres-setup

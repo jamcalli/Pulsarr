@@ -45,15 +45,11 @@ import type {
 import type { AdminUser } from '@schemas/auth/auth.js'
 import type {
   SonarrInstance,
-  SonarrGenreRoute,
   SonarrEpisodeSchema,
   MediaNotification,
   NotificationResult,
 } from '@root/types/sonarr.types.js'
-import type {
-  RadarrInstance,
-  RadarrGenreRoute,
-} from '@root/types/radarr.types.js'
+import type { RadarrInstance } from '@root/types/radarr.types.js'
 import type {
   WatchlistInstanceStatus,
   MainTableField,
@@ -87,10 +83,13 @@ export class DatabaseService {
    * @param log - Fastify logger instance for recording database operations
    * @param config - Fastify configuration containing database connection details
    */
+  private readonly isPostgres: boolean
+
   constructor(
     private readonly log: FastifyBaseLogger,
     private readonly config: FastifyInstance['config'],
   ) {
+    this.isPostgres = config.dbType === 'postgres'
     this.knex = knex(DatabaseService.createKnexConfig(config, log))
   }
 
@@ -129,7 +128,7 @@ export class DatabaseService {
    * Helper method to check if we're using PostgreSQL
    */
   private isPostgreSQL(): boolean {
-    return this.config.dbType === 'postgres'
+    return this.isPostgres
   }
 
   /**
@@ -148,7 +147,12 @@ export class DatabaseService {
     ) {
       return result.rows
     }
-    this.log.error('Unexpected raw query result format', { result })
+    this.log.error('Unexpected raw query result format', {
+      result,
+      resultType: typeof result,
+      isArray: Array.isArray(result),
+      hasRows: result && typeof result === 'object' && 'rows' in result,
+    })
     throw new Error('Invalid database query result format')
   }
 
@@ -2176,7 +2180,9 @@ export class DatabaseService {
                     updated_at: this.timestamp,
                   })
 
-                updatedCount += Number(updated) > 0 ? 1 : 0
+                const numericUpdated = Number(updated)
+                updatedCount +=
+                  !Number.isNaN(numericUpdated) && numericUpdated > 0 ? 1 : 0
               }
 
               // Handle Radarr instance junction updates

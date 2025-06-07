@@ -114,6 +114,14 @@ export async function up(knex: Knex): Promise<void> {
  * and finally drops the `router_rules` table.
  */
 export async function down(knex: Knex): Promise<void> {
+  // Skip this migration for PostgreSQL - it's included in migration 034
+  if (isPostgreSQL(knex)) {
+    console.log(
+      'Skipping migration 012-20250403_add_unified_routing rollback - PostgreSQL uses consolidated schema in migration 034',
+    )
+    return
+  }
+
   // Drop the triggers first
   await knex.raw('DROP TRIGGER IF EXISTS fk_router_rules_sonarr_delete')
   await knex.raw('DROP TRIGGER IF EXISTS fk_router_rules_radarr_delete')
