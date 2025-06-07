@@ -65,7 +65,10 @@ class SQLiteToPostgresMigration {
       await this.targetDb.raw('SELECT 1')
       this.log('PostgreSQL connection verified')
     } catch (error) {
-      throw new Error(`Database connection failed: ${error}`)
+      this.log(`Connection error details: ${error}`)
+      throw new Error(
+        `Database connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      )
     }
   }
 
@@ -354,7 +357,7 @@ class SQLiteToPostgresMigration {
         const maxId = result[0]?.max_id
 
         if (maxId) {
-          await this.targetDb.raw(`SELECT setval('${sequence}', ?)`, [maxId])
+          await this.targetDb.raw('SELECT setval(?, ?)', [sequence, maxId])
         }
       }
 
@@ -413,6 +416,11 @@ async function main() {
       '1000',
     10,
   )
+
+  if (Number.isNaN(batchSize) || batchSize <= 0) {
+    console.error('Error: Batch size must be a positive integer')
+    process.exit(1)
+  }
 
   if (args.includes('--help') || args.includes('-h')) {
     console.log(`
