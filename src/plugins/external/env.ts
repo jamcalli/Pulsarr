@@ -317,6 +317,10 @@ const schema = {
       type: 'boolean',
       default: true,
     },
+    allowIframes: {
+      type: 'boolean',
+      default: false,
+    },
   },
 }
 
