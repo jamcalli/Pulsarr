@@ -8,7 +8,8 @@ import {
  * Adds the `monitor_new_items` column to the `sonarr_instances` table with a default value of `'all'`.
  *
  * @remark
- * Also updates existing rows where `monitor_new_items` is `NULL` to `'all'` to ensure consistency.
+ * This migration is skipped for PostgreSQL databases.
+ * Existing rows with `monitor_new_items` set to `NULL` are updated to `'all'`.
  */
 export async function up(knex: Knex): Promise<void> {
   if (shouldSkipForPostgreSQL(knex, '014_20250425_add_monitor_new_items')) {
@@ -26,7 +27,10 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Reverts the migration by removing the `monitor_new_items` column from the `sonarr_instances` table.
+ * Removes the `monitor_new_items` column from the `sonarr_instances` table if the migration is not skipped for PostgreSQL.
+ *
+ * @remark
+ * This operation is skipped for PostgreSQL databases.
  */
 export async function down(knex: Knex): Promise<void> {
   if (shouldSkipDownForPostgreSQL(knex)) {

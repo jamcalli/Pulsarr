@@ -10,10 +10,12 @@ import type { types as PgTypes } from 'pg'
 let pgTypesConfigured = false
 
 /**
- * Configure PostgreSQL type parsers to return dates and JSON as strings
- * This makes PostgreSQL behave like SQLite for existing code compatibility
+ * Configures PostgreSQL type parsers to return date, time, and JSON types as strings for compatibility with codebases expecting SQLite-like behavior.
  *
- * @param log - Fastify logger instance for logging configuration status
+ * @param log - Logger used to report configuration status and warnings.
+ *
+ * @remark
+ * This function is idempotent and will only configure type parsers once per process. It does not throw errors but logs warnings if configuration fails or is unavailable.
  */
 export async function configurePgTypes(log: FastifyBaseLogger): Promise<void> {
   if (pgTypesConfigured) return

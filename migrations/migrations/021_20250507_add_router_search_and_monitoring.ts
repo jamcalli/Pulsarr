@@ -5,9 +5,9 @@ import {
 } from '../utils/clientDetection.js'
 
 /**
- * Alters the `router_rules` table by adding `search_on_add` (nullable boolean) and `season_monitoring` (nullable string) columns.
+ * Adds `search_on_add` (nullable boolean) and `season_monitoring` (nullable string) columns to the `router_rules` table.
  *
- * The `search_on_add` column is intended to control automatic search behavior for Radarr and Sonarr routes, while `season_monitoring` specifies season monitoring preferences for Sonarr routes.
+ * @remark This migration is skipped for PostgreSQL databases based on the result of {@link shouldSkipForPostgreSQL}.
  */
 export async function up(knex: Knex): Promise<void> {
   if (
@@ -28,7 +28,10 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Removes the 'search_on_add' and 'season_monitoring' columns from the 'router_rules' table to revert the migration.
+ * Reverts the migration by dropping the 'search_on_add' and 'season_monitoring' columns from the 'router_rules' table.
+ *
+ * @remark
+ * This operation is skipped for PostgreSQL databases based on the result of {@link shouldSkipDownForPostgreSQL}.
  */
 export async function down(knex: Knex): Promise<void> {
   if (shouldSkipDownForPostgreSQL(knex)) {

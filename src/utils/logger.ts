@@ -113,9 +113,9 @@ function getFileStream(): rfs.RotatingFileStream | NodeJS.WriteStream {
 }
 
 /**
- * Returns logger options for terminal output with human-readable formatting and redacted sensitive request data.
+ * Returns logger options configured for terminal output with human-readable formatting and redacted sensitive request data.
  *
- * The configuration uses the 'info' log level, formats logs with `pino-pretty`, and applies a request serializer that redacts sensitive query parameters from logged Fastify requests.
+ * Uses the 'info' log level, formats logs with `pino-pretty` (including colorized output), and applies a serializer that redacts sensitive query parameters from Fastify request logs.
  */
 function getTerminalOptions(): LoggerOptions {
   return {
@@ -168,12 +168,12 @@ export function parseLogDestinationFromArgs(): LogDestination {
 }
 
 /**
- * Creates a logger configuration for terminal, file, or both destinations, with request serialization and sensitive data redaction.
+ * Generates logger configuration options for terminal, file, or both destinations, with sensitive data redaction in HTTP request logs.
  *
- * Determines the logging destination from the provided argument or command line flags, and configures the logger accordingly. Supports simultaneous logging to terminal and file with appropriate serializers to redact sensitive query parameters in logged requests.
+ * Determines the log output destination based on the provided argument or command line flags, and configures the logger accordingly. When logging to both terminal and file, combines pretty-printed terminal output with file logging, applying request serializers that redact sensitive query parameters.
  *
- * @param destination - Optional log destination; if omitted, the destination is inferred from command line arguments.
- * @returns Logger configuration options for initializing a logger with the specified output destination(s).
+ * @param destination - The desired log output destination; if omitted, the destination is inferred from command line arguments.
+ * @returns Logger configuration options suitable for initializing a logger with the specified output destination(s).
  */
 export function createLoggerConfig(
   destination?: LogDestination,

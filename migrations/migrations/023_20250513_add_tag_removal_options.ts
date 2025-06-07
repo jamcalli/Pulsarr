@@ -5,9 +5,11 @@ import {
 } from '../utils/clientDetection.js'
 
 /**
- * Adds `removedTagMode` and `removedTagPrefix` columns to the `configs` table if it exists.
+ * Applies a database migration that adds `removedTagMode` and `removedTagPrefix` columns to the `configs` table and updates `removedTagMode` based on existing configuration.
  *
- * Sets `removedTagMode` to `'keep'` for existing config rows where `persistHistoricalTags` is `true`; otherwise, sets it to `'remove'`.
+ * If the `configs` table exists, this migration adds the new columns with default values. For existing rows, it sets `removedTagMode` to `'keep'` if `persistHistoricalTags` is `true`, otherwise to `'remove'`.
+ *
+ * @remark This migration is skipped when running on PostgreSQL.
  */
 export async function up(knex: Knex): Promise<void> {
   if (shouldSkipForPostgreSQL(knex, '023_20250513_add_tag_removal_options')) {
@@ -46,9 +48,9 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Drops the `removedTagMode` and `removedTagPrefix` columns from the `configs` table if it exists.
+ * Reverts the schema changes made by the `up` migration by removing the `removedTagMode` and `removedTagPrefix` columns from the `configs` table, if it exists.
  *
- * Reverts the schema changes introduced by the `up` migration.
+ * @remark This migration is skipped when running on PostgreSQL.
  */
 export async function down(knex: Knex): Promise<void> {
   if (shouldSkipDownForPostgreSQL(knex)) {

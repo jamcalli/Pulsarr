@@ -2,11 +2,12 @@ import type { Knex } from 'knex'
 import { isPostgreSQL } from '../utils/clientDetection.js'
 
 /**
- * PostgreSQL Initial Schema Migration
+ * Creates the initial PostgreSQL schema for the application.
  *
- * This migration consolidates all previous migrations (001-033) for PostgreSQL.
- * It only runs on PostgreSQL databases and creates the complete schema with
- * PostgreSQL-specific optimizations.
+ * This migration consolidates all previous migrations into a single setup, creating all required tables, ENUM types, indexes, triggers, and seeding default data. It only runs on PostgreSQL databases and applies PostgreSQL-specific optimizations.
+ *
+ * @remark
+ * This migration is a no-op on non-PostgreSQL databases.
  */
 export async function up(knex: Knex): Promise<void> {
   await knex.transaction(async (knex) => {
@@ -582,6 +583,12 @@ export async function up(knex: Knex): Promise<void> {
   })
 }
 
+/**
+ * Reverts the initial PostgreSQL schema by dropping all tables, indexes, triggers, functions, and ENUM types created by the corresponding migration.
+ *
+ * @remark
+ * This operation only executes if the database client is PostgreSQL. All schema elements are dropped in reverse dependency order to ensure a clean rollback.
+ */
 export async function down(knex: Knex): Promise<void> {
   await knex.transaction(async (knex) => {
     // Only run on PostgreSQL

@@ -5,9 +5,11 @@ import {
 } from '../utils/clientDetection.js'
 
 /**
- * Inserts a disabled schedule entry named 'plex-rolling-auto-reset' into the 'schedules' table if it does not already exist.
+ * Adds a disabled 'plex-rolling-auto-reset' schedule to the 'schedules' table if it does not already exist.
  *
- * The schedule is configured as an interval type with a 24-hour interval and current timestamps for creation and update.
+ * The schedule is set as an interval type with a 24-hour interval and current timestamps for creation and update.
+ *
+ * @remark Skips execution for PostgreSQL databases.
  */
 export async function up(knex: Knex): Promise<void> {
   if (
@@ -36,7 +38,10 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Deletes the schedule entry named 'plex-rolling-auto-reset' from the schedules table.
+ * Removes the 'plex-rolling-auto-reset' schedule entry from the 'schedules' table if it exists.
+ *
+ * @remark
+ * This operation is skipped for PostgreSQL databases.
  */
 export async function down(knex: Knex): Promise<void> {
   if (shouldSkipDownForPostgreSQL(knex)) {

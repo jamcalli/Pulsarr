@@ -5,9 +5,10 @@ import {
 } from '../utils/clientDetection.js'
 
 /**
- * Adds a `newUserDefaultCanSync` boolean column to the `configs` table with a default value of `true`.
+ * Adds the `newUserDefaultCanSync` boolean column with a default value of `true` to the `configs` table.
  *
- * @param knex - The Knex instance for schema modification.
+ * @remark
+ * This migration is skipped for PostgreSQL databases.
  */
 export async function up(knex: Knex): Promise<void> {
   if (shouldSkipForPostgreSQL(knex, '031_20250530_add_new_user_defaults')) {
@@ -19,7 +20,10 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Drops the `newUserDefaultCanSync` column from the `configs` table, reverting the schema change introduced by the migration.
+ * Removes the `newUserDefaultCanSync` column from the `configs` table if the migration is not skipped for the current database.
+ *
+ * @remark
+ * This operation is skipped for PostgreSQL databases.
  */
 export async function down(knex: Knex): Promise<void> {
   if (shouldSkipDownForPostgreSQL(knex)) {

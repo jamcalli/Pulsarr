@@ -8,7 +8,7 @@ import {
  * Adds the `minimum_availability` column to the `radarr_instances` table with a default value of 'released'.
  *
  * @remarks
- * This migration introduces a configuration option for Radarr instances to specify when movies are considered available. Possible values include 'announced', 'inCinemas', or 'released'.
+ * Skips execution for PostgreSQL databases. This migration introduces a configuration option for Radarr instances to specify when movies are considered available. Possible values include 'announced', 'inCinemas', or 'released'.
  */
 export async function up(knex: Knex): Promise<void> {
   if (shouldSkipForPostgreSQL(knex, '020_20250506_add_minimum_availability')) {
@@ -27,9 +27,9 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Removes the `minimum_availability` column from the `radarr_instances` table.
+ * Reverts the migration by dropping the `minimum_availability` column from the `radarr_instances` table.
  *
- * Reverses the migration applied in the `up` function.
+ * @remark This operation is skipped for PostgreSQL databases.
  */
 export async function down(knex: Knex): Promise<void> {
   if (shouldSkipDownForPostgreSQL(knex)) {
