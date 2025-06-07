@@ -3,7 +3,7 @@ import helmet from '@fastify/helmet'
 import type { FastifyInstance } from 'fastify'
 import type { FastifyHelmetOptions } from '@fastify/helmet'
 
-const createHelmetConfig = (): FastifyHelmetOptions => ({
+const createHelmetConfig = (allowIframes: boolean): FastifyHelmetOptions => ({
   global: true,
   contentSecurityPolicy: false,
   crossOriginEmbedderPolicy: false,
@@ -16,14 +16,19 @@ const createHelmetConfig = (): FastifyHelmetOptions => ({
   dnsPrefetchControl: {
     allow: false,
   },
-  frameguard: {
-    action: 'sameorigin',
-  },
+  frameguard: allowIframes
+    ? false
+    : {
+        action: 'sameorigin',
+      },
 })
 
 export default fp(
   async (fastify: FastifyInstance) => {
-    await fastify.register(helmet, createHelmetConfig())
+    await fastify.register(
+      helmet,
+      createHelmetConfig(fastify.config.allowIframes),
+    )
   },
   {
     name: 'helmet-plugin',

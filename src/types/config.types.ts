@@ -141,6 +141,8 @@ export interface Config {
   }
   // New User Defaults
   newUserDefaultCanSync?: boolean
+  // Security Config
+  allowIframes: boolean
   // Ready state
   _isReady: boolean
 }
