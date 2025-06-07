@@ -1,0 +1,41 @@
+services:
+  # Step 1: Update SQLite to latest migrations
+  pulsarr-migrate-sqlite:
+    image: lakker/pulsarr:latest
+    container_name: pulsarr-migrate-sqlite
+    volumes:
+      - ./data:/app/data
+      - .env:/app/.env
+    env_file:
+      - .env
+    profiles:
+      - migration
+    command: npm run migrate
+
+  # Step 2: Setup PostgreSQL schema
+  pulsarr-migrate-postgres-setup:
+    image: lakker/pulsarr:latest
+    container_name: pulsarr-migrate-postgres-setup
+    volumes:
+      - ./data:/app/data
+      - .env:/app/.env
+    env_file:
+      - .env
+    profiles:
+      - migration
+    command: npm run migrate:postgres-setup
+
+  # Step 3: Migrate data from SQLite to PostgreSQL
+  pulsarr-migrate-data:
+    image: lakker/pulsarr:latest
+    container_name: pulsarr-migrate-data
+    volumes:
+      - ./data:/app/data
+      - .env:/app/.env
+    env_file:
+      - .env
+    profiles:
+      - migration
+    stdin_open: true
+    tty: true
+    command: npm run migrate:sqlite-to-postgres

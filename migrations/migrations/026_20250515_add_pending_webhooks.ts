@@ -1,11 +1,20 @@
 import type { Knex } from 'knex'
+import {
+  shouldSkipForPostgreSQL,
+  shouldSkipDownForPostgreSQL,
+} from '../utils/clientDetection.js'
 
 /**
- * Creates the `pending_webhooks` table for storing incoming webhook events.
+ * Creates the `pending_webhooks` table to store incoming webhook events.
  *
- * The table includes columns for webhook source type, associated instance, unique identifiers, payload data, and timestamps. It enforces allowed values for `instance_type` and `media_type`, and adds indexes for efficient querying by `guid`, `media_type`, and `expires_at`.
+ * The table includes columns for webhook source type, instance association, unique identifiers, payload data, and timestamps. It enforces allowed values for `instance_type` and `media_type`, and adds indexes for efficient querying.
+ *
+ * @remark This migration is skipped when running against PostgreSQL databases.
  */
 export async function up(knex: Knex): Promise<void> {
+  if (shouldSkipForPostgreSQL(knex, '026_20250515_add_pending_webhooks')) {
+    return
+  }
   await knex.schema.createTable('pending_webhooks', (table) => {
     table.increments('id').primary()
     table.string('instance_type', 10).notNullable() // 'radarr' or 'sonarr'
@@ -17,11 +26,11 @@ export async function up(knex: Knex): Promise<void> {
     // Timestamps are stored as UTC via ISO strings in the application layer
     table.timestamp('received_at').defaultTo(knex.fn.now()).notNullable()
     table.timestamp('expires_at').notNullable()
-    
+
     // Simple index for quick lookups by guid
     table.index(['guid', 'media_type'], 'idx_guid_media')
     table.index('expires_at', 'idx_expires')
-    
+
     // Check constraints for SQLite
     table.check(`"instance_type" IN ('radarr', 'sonarr')`)
     table.check(`"media_type" IN ('movie', 'show')`)
@@ -29,8 +38,13 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Drops the `pending_webhooks` table if it exists, reversing the migration.
+ * Drops the `pending_webhooks` table if it exists.
+ *
+ * @remark This operation is skipped when running against PostgreSQL databases.
  */
 export async function down(knex: Knex): Promise<void> {
+  if (shouldSkipDownForPostgreSQL(knex)) {
+    return
+  }
   await knex.schema.dropTableIfExists('pending_webhooks')
 }

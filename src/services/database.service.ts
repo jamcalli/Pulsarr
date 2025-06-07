@@ -31,6 +31,7 @@
  */
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import knex, { type Knex } from 'knex'
+import { configurePgTypes } from '@utils/postgres-config.js'
 import type { Config, User } from '@root/types/config.types.js'
 import { DefaultInstanceError } from '@root/types/errors.js'
 import type {
@@ -44,15 +45,11 @@ import type {
 import type { AdminUser } from '@schemas/auth/auth.js'
 import type {
   SonarrInstance,
-  SonarrGenreRoute,
   SonarrEpisodeSchema,
   MediaNotification,
   NotificationResult,
 } from '@root/types/sonarr.types.js'
-import type {
-  RadarrInstance,
-  RadarrGenreRoute,
-} from '@root/types/radarr.types.js'
+import type { RadarrInstance } from '@root/types/radarr.types.js'
 import type {
   WatchlistInstanceStatus,
   MainTableField,
@@ -86,36 +83,135 @@ export class DatabaseService {
    * @param log - Fastify logger instance for recording database operations
    * @param config - Fastify configuration containing database connection details
    */
+  private readonly isPostgres: boolean
+
   constructor(
     private readonly log: FastifyBaseLogger,
     private readonly config: FastifyInstance['config'],
   ) {
-    this.knex = knex(DatabaseService.createKnexConfig(config.dbPath, log))
+    this.isPostgres = config.dbType === 'postgres'
+    this.knex = knex(DatabaseService.createKnexConfig(config, log))
   }
 
   /**
-   * Creates Knex configuration for better-sqlite3
+   * Factory method to create a properly initialized DatabaseService
+   */
+  static async create(
+    log: FastifyBaseLogger,
+    config: FastifyInstance['config'],
+  ): Promise<DatabaseService> {
+    const service = new DatabaseService(log, config)
+
+    // Configure PostgreSQL type parsers if needed
+    if (config.dbType === 'postgres') {
+      await service.configurePostgresTypes()
+    }
+
+    return service
+  }
+
+  /**
+   * Configures PostgreSQL type parsers asynchronously
+   */
+  private async configurePostgresTypes(): Promise<void> {
+    try {
+      await configurePgTypes(this.log)
+      this.log.info('PostgreSQL type parsers configured successfully')
+    } catch (error) {
+      this.log.error('Failed to configure PostgreSQL type parsers:', error)
+      // Consider if this should be fatal or if the app can continue
+      // with default type parsing
+    }
+  }
+
+  /**
+   * Helper method to check if we're using PostgreSQL
+   */
+  private isPostgreSQL(): boolean {
+    return this.isPostgres
+  }
+
+  /**
+   * Helper method to extract rows from raw query results
+   * PostgreSQL returns {rows: T[]} while SQLite returns T[] directly
+   */
+  private extractRawQueryRows<T>(result: T[] | { rows: T[] }): T[] {
+    if (Array.isArray(result)) {
+      return result
+    }
+    if (
+      result &&
+      typeof result === 'object' &&
+      'rows' in result &&
+      Array.isArray(result.rows)
+    ) {
+      return result.rows
+    }
+    this.log.error('Unexpected raw query result format', {
+      result,
+      resultType: typeof result,
+      isArray: Array.isArray(result),
+      hasRows: result && typeof result === 'object' && 'rows' in result,
+    })
+    throw new Error('Invalid database query result format')
+  }
+
+  /**
+   * Creates Knex configuration for SQLite or PostgreSQL
    *
    * Sets up connection pooling, logging, and other database-specific configurations.
    *
-   * @param dbPath - Path to the SQLite database file
+   * @param config - Application configuration containing database settings
    * @param log - Logger to use for database operations
    * @returns Knex configuration object
    */
   private static createKnexConfig(
-    dbPath: string,
+    config: FastifyInstance['config'],
     log: FastifyBaseLogger,
   ): Knex.Config {
+    const isPostgres = config.dbType === 'postgres'
+
+    // Build PostgreSQL connection
+    const getPostgresConnection = () => {
+      if (config.dbConnectionString) {
+        return config.dbConnectionString
+      }
+
+      return {
+        host: config.dbHost,
+        port: config.dbPort,
+        user: config.dbUser,
+        password: config.dbPassword,
+        database: config.dbName,
+      }
+    }
+
     return {
-      client: 'better-sqlite3',
-      connection: {
-        filename: dbPath,
-      },
-      useNullAsDefault: true,
-      pool: {
-        min: 1,
-        max: 1,
-      },
+      client: isPostgres ? 'pg' : 'better-sqlite3',
+      connection: isPostgres
+        ? getPostgresConnection()
+        : {
+            filename: config.dbPath,
+          },
+      useNullAsDefault: !isPostgres,
+      pool: isPostgres
+        ? {
+            min: 2,
+            max: 10,
+          }
+        : {
+            min: 1,
+            max: 1,
+            afterCreate: (
+              conn: { exec: (sql: string) => void },
+              cb: () => void,
+            ) => {
+              // SQLite-specific optimizations
+              conn.exec('PRAGMA journal_mode = WAL;')
+              conn.exec('PRAGMA foreign_keys = ON;')
+              cb()
+            },
+          },
       log: {
         warn: (message: string) => log.warn(message),
         error: (message: string | Error) => {
@@ -134,6 +230,44 @@ export class DatabaseService {
    */
   async close(): Promise<void> {
     await this.knex.destroy()
+  }
+
+  /**
+   * Safely parse JSON strings with error logging
+   *
+   * @param value - JSON string to parse
+   * @param defaultValue - Default value to return on parse failure
+   * @param context - Context string for logging (e.g., 'watchlist_item.guids')
+   * @returns Parsed value or default value
+   */
+  private safeJsonParse<T>(
+    value: string | null | undefined,
+    defaultValue: T,
+    context?: string,
+  ): T {
+    if (!value) return defaultValue
+    try {
+      return JSON.parse(value)
+    } catch (error) {
+      this.log.warn('JSON parse error', { value, context, error })
+      return defaultValue
+    }
+  }
+
+  /**
+   * Generate database-specific date difference calculation SQL
+   *
+   * @param date1 - First date expression (minuend)
+   * @param date2 - Second date expression (subtrahend)
+   * @param alias - Optional alias for the result
+   * @returns SQL expression for date difference in days
+   */
+  private getDateDiffSQL(date1: string, date2: string, alias?: string): string {
+    const diff = this.isPostgreSQL()
+      ? `EXTRACT(EPOCH FROM (${date1} - ${date2})) / 86400`
+      : `julianday(${date1}) - julianday(${date2})`
+
+    return alias ? `${diff} AS ${alias}` : diff
   }
 
   //=============================================================================
@@ -393,12 +527,17 @@ export class DatabaseService {
     password: string
     role: string
   }): Promise<boolean> {
-    const created = await this.knex('admin_users').insert({
-      ...userData,
-      created_at: this.timestamp,
-      updated_at: this.timestamp,
-    })
-    return created.length > 0
+    try {
+      await this.knex('admin_users').insert({
+        ...userData,
+        created_at: this.timestamp,
+        updated_at: this.timestamp,
+      })
+      return true
+    } catch (error) {
+      this.log.error('Error creating admin user:', error)
+      return false
+    }
   }
 
   /**
@@ -436,7 +575,8 @@ export class DatabaseService {
    */
   async hasAdminUsers(): Promise<boolean> {
     const count = await this.knex('admin_users').count('* as count').first()
-    return Boolean(count && (count.count as number) > 0)
+    const numCount = Number(count?.count || 0)
+    return !Number.isNaN(numCount) && numCount > 0
   }
 
   /**
@@ -450,11 +590,16 @@ export class DatabaseService {
     email: string,
     hashedPassword: string,
   ): Promise<boolean> {
-    const updated = await this.knex('admin_users').where({ email }).update({
-      password: hashedPassword,
-      updated_at: this.timestamp,
-    })
-    return updated > 0
+    try {
+      const updated = await this.knex('admin_users').where({ email }).update({
+        password: hashedPassword,
+        updated_at: this.timestamp,
+      })
+      return updated > 0
+    } catch (error) {
+      this.log.error('Error updating admin password:', error)
+      return false
+    }
   }
 
   /**
@@ -523,30 +668,16 @@ export class DatabaseService {
     const config = await this.knex('configs').where({ id }).first()
     if (!config) return undefined
 
-    // Helper function to safely parse JSON with error handling
-    const safeJsonParse = <T>(
-      value: string | undefined,
-      defaultValue: T,
-      fieldName: string,
-    ): T => {
-      if (!value) return defaultValue
-      try {
-        return JSON.parse(value)
-      } catch (error) {
-        this.log.warn(
-          `Failed to parse ${fieldName} from database, using default:`,
-          error,
-        )
-        return defaultValue
-      }
-    }
-
     return {
       ...config,
       // Parse JSON fields with error handling
-      plexTokens: safeJsonParse(config.plexTokens, [], 'plexTokens'),
+      plexTokens: this.safeJsonParse<string[]>(
+        config.plexTokens,
+        [],
+        'config.plexTokens',
+      ),
       plexSessionMonitoring: config.plexSessionMonitoring
-        ? safeJsonParse(
+        ? this.safeJsonParse(
             config.plexSessionMonitoring,
             {
               enabled: false,
@@ -557,7 +688,7 @@ export class DatabaseService {
               inactivityResetDays: 7,
               autoResetIntervalHours: 24,
             },
-            'plexSessionMonitoring',
+            'config.plexSessionMonitoring',
           )
         : undefined,
       newUserDefaultCanSync: Boolean(config.newUserDefaultCanSync ?? true),
@@ -785,9 +916,13 @@ export class DatabaseService {
       monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
       searchOnAdd:
         instance.search_on_add == null ? true : Boolean(instance.search_on_add),
-      tags: JSON.parse(instance.tags || '[]'),
+      tags: this.safeJsonParse(instance.tags, [], 'sonarr.tags'),
       isDefault: Boolean(instance.is_default),
-      syncedInstances: JSON.parse(instance.synced_instances || '[]'),
+      syncedInstances: this.safeJsonParse(
+        instance.synced_instances,
+        [],
+        'sonarr.synced_instances',
+      ),
       seriesType:
         (instance.series_type as 'standard' | 'anime' | 'daily') || 'standard',
     }))
@@ -820,9 +955,13 @@ export class DatabaseService {
       monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
       searchOnAdd:
         instance.search_on_add == null ? true : Boolean(instance.search_on_add),
-      tags: JSON.parse(instance.tags || '[]'),
+      tags: this.safeJsonParse(instance.tags, [], 'sonarr.tags'),
       isDefault: true,
-      syncedInstances: JSON.parse(instance.synced_instances || '[]'),
+      syncedInstances: this.safeJsonParse(
+        instance.synced_instances,
+        [],
+        'sonarr.synced_instances',
+      ),
       seriesType:
         (instance.series_type as 'standard' | 'anime' | 'daily') || 'standard',
     }
@@ -851,9 +990,13 @@ export class DatabaseService {
       monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
       searchOnAdd:
         instance.search_on_add == null ? true : Boolean(instance.search_on_add),
-      tags: JSON.parse(instance.tags || '[]'),
+      tags: this.safeJsonParse(instance.tags, [], 'sonarr.tags'),
       isDefault: Boolean(instance.is_default),
-      syncedInstances: JSON.parse(instance.synced_instances || '[]'),
+      syncedInstances: this.safeJsonParse(
+        instance.synced_instances,
+        [],
+        'sonarr.synced_instances',
+      ),
       seriesType:
         (instance.series_type as 'standard' | 'anime' | 'daily') || 'standard',
     }
@@ -1220,7 +1363,11 @@ export class DatabaseService {
 
       for (const instance of instances) {
         try {
-          const syncedInstances = JSON.parse(instance.synced_instances || '[]')
+          const syncedInstances = this.safeJsonParse<number[]>(
+            instance.synced_instances,
+            [],
+            'synced_instances',
+          )
 
           if (
             Array.isArray(syncedInstances) &&
@@ -1343,9 +1490,13 @@ export class DatabaseService {
       minimumAvailability: this.normaliseMinimumAvailability(
         instance.minimum_availability,
       ),
-      tags: JSON.parse(instance.tags || '[]'),
+      tags: this.safeJsonParse(instance.tags, [], 'sonarr.tags'),
       isDefault: Boolean(instance.is_default),
-      syncedInstances: JSON.parse(instance.synced_instances || '[]'),
+      syncedInstances: this.safeJsonParse(
+        instance.synced_instances,
+        [],
+        'sonarr.synced_instances',
+      ),
     }))
   }
 
@@ -1375,9 +1526,13 @@ export class DatabaseService {
       minimumAvailability: this.normaliseMinimumAvailability(
         instance.minimum_availability,
       ),
-      tags: JSON.parse(instance.tags || '[]'),
+      tags: this.safeJsonParse(instance.tags, [], 'sonarr.tags'),
       isDefault: true,
-      syncedInstances: JSON.parse(instance.synced_instances || '[]'),
+      syncedInstances: this.safeJsonParse(
+        instance.synced_instances,
+        [],
+        'sonarr.synced_instances',
+      ),
     }
   }
 
@@ -1403,9 +1558,13 @@ export class DatabaseService {
       minimumAvailability: this.normaliseMinimumAvailability(
         instance.minimum_availability,
       ),
-      tags: JSON.parse(instance.tags || '[]'),
+      tags: this.safeJsonParse(instance.tags, [], 'sonarr.tags'),
       isDefault: Boolean(instance.is_default),
-      syncedInstances: JSON.parse(instance.synced_instances || '[]'),
+      syncedInstances: this.safeJsonParse(
+        instance.synced_instances,
+        [],
+        'sonarr.synced_instances',
+      ),
     }
   }
 
@@ -1557,7 +1716,11 @@ export class DatabaseService {
 
       for (const instance of instances) {
         try {
-          const syncedInstances = JSON.parse(instance.synced_instances || '[]')
+          const syncedInstances = this.safeJsonParse<number[]>(
+            instance.synced_instances,
+            [],
+            'synced_instances',
+          )
 
           if (
             Array.isArray(syncedInstances) &&
@@ -1787,13 +1950,21 @@ export class DatabaseService {
   ): Promise<number> {
     try {
       const items = await this.knex('watchlist_items')
-        .whereRaw('json_array_length(guids) > 0')
+        .whereRaw(
+          this.isPostgreSQL()
+            ? 'jsonb_array_length(guids) > 0'
+            : 'json_array_length(guids) > 0',
+        )
         .select('id', 'guids')
 
       const matchingIds = items
         .filter((item) => {
           try {
-            const guids = JSON.parse(item.guids || '[]')
+            const guids = this.safeJsonParse<string[]>(
+              item.guids,
+              [],
+              'watchlist_item.guids',
+            )
             return Array.isArray(guids) && guids.includes(guid)
           } catch (e) {
             this.log.error(`Error parsing GUIDs for item ${item.id}:`, e)
@@ -1891,8 +2062,8 @@ export class DatabaseService {
 
     return results.map((row) => ({
       ...row,
-      guids: JSON.parse(row.guids || '[]'),
-      genres: JSON.parse(row.genres || '[]'),
+      guids: this.safeJsonParse(row.guids, [], 'watchlist_item.guids'),
+      genres: this.safeJsonParse(row.genres, [], 'watchlist_item.genres'),
     }))
   }
 
@@ -2009,7 +2180,9 @@ export class DatabaseService {
                     updated_at: this.timestamp,
                   })
 
-                updatedCount += updated > 0 ? 1 : 0
+                const numericUpdated = Number(updated)
+                updatedCount +=
+                  !Number.isNaN(numericUpdated) && numericUpdated > 0 ? 1 : 0
               }
 
               // Handle Radarr instance junction updates
@@ -2310,55 +2483,63 @@ export class DatabaseService {
   }
 
   /**
-   * For better-sqlite3, raw queries need to be executed differently
+   * Cross-database compatible GUID extraction
    *
    * @returns Promise resolving to array of lowercase GUIDs
    */
   async getUniqueGuidsRaw(): Promise<string[]> {
     try {
-      // Using knex.raw for better-sqlite3
-      const result = await this.knex.raw(`
-      WITH extracted_guids AS (
-        SELECT DISTINCT json_extract(value, '$') as guid
-        FROM watchlist_items
-        JOIN json_each(
-          CASE 
-            WHEN json_valid(guids) THEN guids
-            ELSE json_array(guids)
-          END
-        )
-        WHERE guids IS NOT NULL AND guids != '[]'
-      )
-      SELECT DISTINCT lower(guid) as guid 
-      FROM extracted_guids 
-      WHERE guid IS NOT NULL AND guid != '';
-    `)
+      if (this.isPostgreSQL()) {
+        // PostgreSQL version using jsonb functions
+        const result = await this.knex.raw(`
+          SELECT DISTINCT lower(guid_element::text) as guid
+          FROM watchlist_items,
+               jsonb_array_elements_text(
+                 CASE 
+                   WHEN jsonb_typeof(guids) = 'array' THEN guids
+                   ELSE jsonb_build_array(guids)
+                 END
+               ) as guid_element
+          WHERE guids IS NOT NULL 
+            AND jsonb_typeof(guids) != 'null'
+            AND jsonb_array_length(
+              CASE 
+                WHEN jsonb_typeof(guids) = 'array' THEN guids
+                ELSE jsonb_build_array(guids)
+              END
+            ) > 0
+            AND guid_element::text != ''
+        `)
 
-      // Extract guids from result rows - format depends on better-sqlite3 driver
+        return (
+          result.rows
+            ?.map((row: { guid: string }) => row.guid)
+            .filter(Boolean) || []
+        )
+      }
+      // SQLite version using json functions
+      const result = await this.knex.raw(`
+          WITH extracted_guids AS (
+            SELECT DISTINCT json_extract(value, '$') as guid
+            FROM watchlist_items
+            JOIN json_each(
+              CASE 
+                WHEN json_valid(guids) THEN guids
+                ELSE json_array(guids)
+              END
+            )
+            WHERE guids IS NOT NULL AND guids != '[]'
+          )
+          SELECT DISTINCT lower(guid) as guid 
+          FROM extracted_guids 
+          WHERE guid IS NOT NULL AND guid != '';
+        `)
+
+      // SQLite result handling
       if (Array.isArray(result)) {
         return result.map((row) => row.guid || row[0]).filter(Boolean)
       }
 
-      // If not an array, try to handle other result formats
-      if (result && typeof result === 'object') {
-        if ('rows' in result) {
-          // Some drivers return a {rows: []} structure
-          const rows = result.rows as Array<{ guid: string } | [string]>
-          return rows
-            .map((row) => {
-              if (Array.isArray(row)) return row[0]
-              return row.guid
-            })
-            .filter(Boolean)
-        }
-
-        if ('guid' in result) {
-          // Single result case
-          return [result.guid].filter(Boolean)
-        }
-      }
-
-      // Fallback to empty array if we couldn't extract guids
       this.log.warn('Could not extract GUIDs from raw query result')
       return []
     } catch (error) {
@@ -2390,7 +2571,11 @@ export class DatabaseService {
       // Extract all unique genres
       for (const row of items) {
         try {
-          const parsedGenres = JSON.parse(row.genres || '[]')
+          const parsedGenres = this.safeJsonParse<string[]>(
+            row.genres,
+            [],
+            'watchlist_item.genres',
+          )
           if (Array.isArray(parsedGenres)) {
             for (const genre of parsedGenres) {
               if (typeof genre === 'string' && genre.trim().length > 1) {
@@ -2515,11 +2700,11 @@ export class DatabaseService {
         ...item,
         guids:
           typeof item.guids === 'string'
-            ? JSON.parse(item.guids)
+            ? this.safeJsonParse(item.guids, [], 'watchlist_item.guids')
             : item.guids || [],
         genres:
           typeof item.genres === 'string'
-            ? JSON.parse(item.genres)
+            ? this.safeJsonParse(item.genres, [], 'watchlist_item.genres')
             : item.genres || [],
       }))
     } catch (error) {
@@ -2543,11 +2728,11 @@ export class DatabaseService {
         ...item,
         guids:
           typeof item.guids === 'string'
-            ? JSON.parse(item.guids)
+            ? this.safeJsonParse(item.guids, [], 'watchlist_item.guids')
             : item.guids || [],
         genres:
           typeof item.genres === 'string'
-            ? JSON.parse(item.genres)
+            ? this.safeJsonParse(item.genres, [], 'watchlist_item.genres')
             : item.genres || [],
       }))
     } catch (error) {
@@ -2689,8 +2874,10 @@ export class DatabaseService {
     const results = await query
     return results.map((row) => ({
       ...row,
-      guids: JSON.parse(row.guids),
-      genres: row.genres ? JSON.parse(row.genres) : [],
+      guids: this.safeJsonParse(row.guids, [], 'watchlist_item.guids'),
+      genres: row.genres
+        ? this.safeJsonParse(row.genres, [], 'watchlist_item.genres')
+        : [],
     }))
   }
 
@@ -2753,8 +2940,8 @@ export class DatabaseService {
 
     return items.map((item) => ({
       ...item,
-      guids: JSON.parse(item.guids || '[]'),
-      genres: JSON.parse(item.genres || '[]'),
+      guids: this.safeJsonParse(item.guids, [], 'watchlist_item.guids'),
+      genres: this.safeJsonParse(item.genres, [], 'watchlist_item.genres'),
     }))
   }
 
@@ -3086,18 +3273,34 @@ export class DatabaseService {
    */
   async getWatchlistItemsByGuid(guid: string): Promise<TokenWatchlistItem[]> {
     const items = await this.knex('watchlist_items')
-      .whereRaw('json_array_length(guids) > 0')
+      .whereRaw(
+        this.isPostgreSQL()
+          ? 'jsonb_array_length(guids) > 0'
+          : 'json_array_length(guids) > 0',
+      )
       .select('*')
 
     return items
       .filter((item) => {
-        const guids = JSON.parse(item.guids || '[]')
+        const guids = this.safeJsonParse<string[]>(
+          item.guids,
+          [],
+          'watchlist_item.guids',
+        )
         return guids.includes(guid)
       })
       .map((item) => ({
         ...item,
-        guids: JSON.parse(item.guids || '[]'),
-        genres: JSON.parse(item.genres || '[]'),
+        guids: this.safeJsonParse<string[]>(
+          item.guids,
+          [],
+          'watchlist_item.guids',
+        ),
+        genres: this.safeJsonParse<string[]>(
+          item.genres,
+          [],
+          'watchlist_item.genres',
+        ),
       }))
   }
 
@@ -3130,7 +3333,11 @@ export class DatabaseService {
         try {
           let genres: string[] = []
           try {
-            const parsed = JSON.parse(item.genres)
+            const parsed = this.safeJsonParse(
+              item.genres,
+              [],
+              'watchlist_item.genres',
+            )
             if (Array.isArray(parsed)) {
               genres = parsed
             }
@@ -3187,7 +3394,7 @@ export class DatabaseService {
       .where('type', 'show')
       .select('title', 'thumb')
       .count('* as count')
-      .groupBy('key')
+      .groupBy('key', 'title', 'thumb')
       .orderBy('count', 'desc')
       .limit(limit)
 
@@ -3217,7 +3424,7 @@ export class DatabaseService {
       .where('type', 'movie')
       .select('title', 'thumb')
       .count('* as count')
-      .groupBy('key')
+      .groupBy('key', 'title', 'thumb')
       .orderBy('count', 'desc')
       .limit(limit)
 
@@ -3538,7 +3745,12 @@ export class DatabaseService {
       }
 
       // Execute raw SQL query with CTEs for better performance and readability
-      const results = await this.knex.raw<GrabbedToNotifiedRow[]>(`
+      const dateDiffFunction = this.getDateDiffSQL(
+        'n.first_notified',
+        'g.first_grabbed',
+      )
+
+      const results = await this.knex.raw(`
     WITH grabbed_status AS (
       -- Find the earliest "grabbed" status timestamp for each watchlist item
       SELECT
@@ -3560,9 +3772,9 @@ export class DatabaseService {
     -- Join these with watchlist items and calculate time differences
     SELECT
       w.type AS content_type,
-      AVG(julianday(n.first_notified) - julianday(g.first_grabbed)) AS avg_days,
-      MIN(julianday(n.first_notified) - julianday(g.first_grabbed)) AS min_days,
-      MAX(julianday(n.first_notified) - julianday(g.first_grabbed)) AS max_days,
+      AVG(${dateDiffFunction}) AS avg_days,
+      MIN(${dateDiffFunction}) AS min_days,
+      MAX(${dateDiffFunction}) AS max_days,
       COUNT(*) AS count
     FROM watchlist_items w
     JOIN grabbed_status g ON w.id = g.watchlist_item_id
@@ -3579,7 +3791,8 @@ export class DatabaseService {
   `)
 
       // Format and return the results
-      const formattedResults = results.map((row: GrabbedToNotifiedRow) => ({
+      const rawResults = this.extractRawQueryRows<GrabbedToNotifiedRow>(results)
+      const formattedResults = rawResults.map((row: GrabbedToNotifiedRow) => ({
         content_type: String(row.content_type),
         avg_days: Number(row.avg_days),
         min_days: Number(row.min_days),
@@ -3637,13 +3850,18 @@ export class DatabaseService {
       }
 
       // First, get all the direct transitions without filtering
-      const rawTransitions = await this.knex.raw<RawTransition[]>(`
+      const transitionDateDiffFunction = this.getDateDiffSQL(
+        'h2.timestamp',
+        'h1.timestamp',
+      )
+
+      const rawTransitions = await this.knex.raw(`
         WITH status_pairs AS (
           SELECT 
             h1.status AS from_status,
             h2.status AS to_status,
             w.type AS content_type,
-            julianday(h2.timestamp) - julianday(h1.timestamp) AS days_between
+            ${transitionDateDiffFunction} AS days_between
           FROM watchlist_status_history h1
           JOIN watchlist_status_history h2 
             ON h1.watchlist_item_id = h2.watchlist_item_id 
@@ -3666,9 +3884,11 @@ export class DatabaseService {
       `)
 
       const transitionGroups = new Map<string, number[]>()
+      const rawTransitionResults =
+        this.extractRawQueryRows<RawTransition>(rawTransitions)
 
       // Process and group raw transitions with numeric coercion and validation
-      for (const row of rawTransitions) {
+      for (const row of rawTransitionResults) {
         const key = `${row.from_status}|${row.to_status}|${row.content_type}`
 
         const daysBetweenRaw =
@@ -3799,6 +4019,11 @@ export class DatabaseService {
     this.log.debug('Calculating average time from addition to availability')
 
     // Execute raw SQL query with CTEs for first add and first notification timestamps
+    const availabilityDateDiffFunction = this.getDateDiffSQL(
+      'n.first_notification',
+      this.isPostgreSQL() ? 'a.added::timestamp' : 'a.added',
+    )
+
     const results = await this.knex.raw<AvailabilityStatsRow[]>(`
     WITH first_added AS (
       -- Get initial addition timestamp for each item
@@ -3821,9 +4046,9 @@ export class DatabaseService {
     -- Join and calculate statistics on the time difference
     SELECT
       a.content_type,
-      AVG(julianday(n.first_notification) - julianday(a.added)) AS avg_days,
-      MIN(julianday(n.first_notification) - julianday(a.added)) AS min_days,
-      MAX(julianday(n.first_notification) - julianday(a.added)) AS max_days,
+      AVG(${availabilityDateDiffFunction}) AS avg_days,
+      MIN(${availabilityDateDiffFunction}) AS min_days,
+      MAX(${availabilityDateDiffFunction}) AS max_days,
       COUNT(*) AS count
     FROM first_added a
     JOIN first_notified n ON a.id = n.watchlist_item_id
@@ -3842,13 +4067,17 @@ export class DatabaseService {
   `)
 
     // Format and return the results
-    const formattedResults = results.map((row: AvailabilityStatsRow) => ({
-      content_type: String(row.content_type),
-      avg_days: Number(row.avg_days),
-      min_days: Number(row.min_days),
-      max_days: Number(row.max_days),
-      count: Number(row.count),
-    }))
+    const availabilityRawResults =
+      this.extractRawQueryRows<AvailabilityStatsRow>(results)
+    const formattedResults = availabilityRawResults.map(
+      (row: AvailabilityStatsRow) => ({
+        content_type: String(row.content_type),
+        avg_days: Number(row.avg_days),
+        min_days: Number(row.min_days),
+        max_days: Number(row.max_days),
+        count: Number(row.count),
+      }),
+    )
 
     this.log.debug(
       `Calculated time-to-availability metrics for ${formattedResults.length} content types`,
@@ -3894,6 +4123,11 @@ export class DatabaseService {
       }
 
       // Execute raw SQL query to get status transition data
+      const statusFlowDateDiffFunction = this.getDateDiffSQL(
+        'h2.timestamp',
+        'h1.timestamp',
+      )
+
       const results = await this.knex.raw<StatusFlowRow[]>(`
     WITH status_transitions AS (
       -- For each item, find all pairs of consecutive status changes
@@ -3901,7 +4135,7 @@ export class DatabaseService {
         h1.status AS from_status,
         h2.status AS to_status,
         w.type AS content_type,
-        julianday(h2.timestamp) - julianday(h1.timestamp) AS days_between
+        ${statusFlowDateDiffFunction} AS days_between
       FROM watchlist_status_history h1
       JOIN watchlist_status_history h2 ON h1.watchlist_item_id = h2.watchlist_item_id AND h2.timestamp > h1.timestamp
       JOIN watchlist_items w ON h1.watchlist_item_id = w.id
@@ -3926,13 +4160,17 @@ export class DatabaseService {
   `)
 
       // Format and return the results
-      const formattedResults = results.map((row: StatusFlowRow) => ({
-        from_status: String(row.from_status),
-        to_status: String(row.to_status),
-        content_type: String(row.content_type),
-        count: Number(row.count),
-        avg_days: Number(row.avg_days),
-      }))
+      const statusFlowRawResults =
+        this.extractRawQueryRows<StatusFlowRow>(results)
+      const formattedResults = statusFlowRawResults.map(
+        (row: StatusFlowRow) => ({
+          from_status: String(row.from_status),
+          to_status: String(row.to_status),
+          content_type: String(row.content_type),
+          count: Number(row.count),
+          avg_days: Number(row.avg_days),
+        }),
+      )
 
       this.log.debug(
         `Retrieved ${formattedResults.length} status flow data points`,
@@ -3992,35 +4230,27 @@ export class DatabaseService {
       .groupBy('type')
       .orderBy('count', 'desc')
 
-    // Query 3: Breakdown by delivery channel (using raw SQL for UNION)
-    const byChannelQuery = this.knex.raw<{ channel: string; count: number }[]>(
-      `
-    -- Count discord notifications
-    SELECT 
-      'discord' as channel, 
-      COUNT(*) as count 
-    FROM notifications 
-    WHERE created_at >= ? AND sent_to_discord = 1
-    
-    UNION ALL
-    
-    -- Count apprise notifications
-    SELECT 
-      'apprise' as channel, 
-      COUNT(*) as count 
-    FROM notifications 
-    WHERE created_at >= ? AND sent_to_apprise = 1
-    
-    UNION ALL
-    
-    -- Count webhook notifications
-    SELECT 
-      'webhook' as channel, 
-      COUNT(*) as count 
-    FROM notifications 
-    WHERE created_at >= ? AND sent_to_webhook = 1
-  `,
-      [cutoffDateStr, cutoffDateStr, cutoffDateStr],
+    // Query 3: Breakdown by delivery channel using Promise.all for simplicity
+    const channelQueries = [
+      { channel: 'discord', column: 'sent_to_discord' },
+      { channel: 'apprise', column: 'sent_to_apprise' },
+      { channel: 'webhook', column: 'sent_to_webhook' },
+      { channel: 'tautulli', column: 'sent_to_tautulli' },
+    ]
+
+    const byChannelQuery = Promise.all(
+      channelQueries.map(async ({ channel, column }) => {
+        const result = await this.knex('notifications')
+          .count('* as count')
+          .where('created_at', '>=', cutoffDateStr)
+          .where(column, true)
+          .first()
+
+        return {
+          channel,
+          count: Number(result?.count || 0),
+        }
+      }),
     )
 
     // Query 4: Breakdown by recipient user
@@ -4990,9 +5220,13 @@ export class DatabaseService {
           seasonMonitoring: instance.season_monitoring,
           monitorNewItems:
             (instance.monitor_new_items as 'all' | 'none') || 'all',
-          tags: JSON.parse(instance.tags || '[]'),
+          tags: this.safeJsonParse(instance.tags, [], 'sonarr.tags'),
           isDefault: Boolean(instance.is_default),
-          syncedInstances: JSON.parse(instance.synced_instances || '[]'),
+          syncedInstances: this.safeJsonParse(
+            instance.synced_instances,
+            [],
+            'sonarr.synced_instances',
+          ),
         }
       }
     }
@@ -5036,9 +5270,13 @@ export class DatabaseService {
           minimumAvailability: this.normaliseMinimumAvailability(
             instance.minimum_availability,
           ),
-          tags: JSON.parse(instance.tags || '[]'),
+          tags: this.safeJsonParse(instance.tags, [], 'sonarr.tags'),
           isDefault: Boolean(instance.is_default),
-          syncedInstances: JSON.parse(instance.synced_instances || '[]'),
+          syncedInstances: this.safeJsonParse(
+            instance.synced_instances,
+            [],
+            'sonarr.synced_instances',
+          ),
         }
       }
     }
@@ -5067,12 +5305,20 @@ export class DatabaseService {
           enabled: Boolean(schedule.enabled),
           last_run: schedule.last_run
             ? typeof schedule.last_run === 'string'
-              ? (JSON.parse(schedule.last_run) as JobRunInfo)
+              ? this.safeJsonParse<JobRunInfo>(
+                  schedule.last_run,
+                  {} as JobRunInfo,
+                  'schedule.last_run',
+                )
               : (schedule.last_run as JobRunInfo)
             : null,
           next_run: schedule.next_run
             ? typeof schedule.next_run === 'string'
-              ? (JSON.parse(schedule.next_run) as JobRunInfo)
+              ? this.safeJsonParse<JobRunInfo>(
+                  schedule.next_run,
+                  {} as JobRunInfo,
+                  'schedule.next_run',
+                )
               : (schedule.next_run as JobRunInfo)
             : null,
           created_at: schedule.created_at,
@@ -5082,7 +5328,7 @@ export class DatabaseService {
         // Parse the config
         const parsedConfig =
           typeof schedule.config === 'string'
-            ? JSON.parse(schedule.config)
+            ? this.safeJsonParse(schedule.config, {}, 'schedule.config')
             : schedule.config
 
         // Return properly typed object based on schedule type
@@ -5125,12 +5371,20 @@ export class DatabaseService {
         enabled: Boolean(schedule.enabled),
         last_run: schedule.last_run
           ? typeof schedule.last_run === 'string'
-            ? (JSON.parse(schedule.last_run) as JobRunInfo)
+            ? this.safeJsonParse<JobRunInfo>(
+                schedule.last_run,
+                {} as JobRunInfo,
+                'schedule.last_run',
+              )
             : (schedule.last_run as JobRunInfo)
           : null,
         next_run: schedule.next_run
           ? typeof schedule.next_run === 'string'
-            ? (JSON.parse(schedule.next_run) as JobRunInfo)
+            ? this.safeJsonParse<JobRunInfo>(
+                schedule.next_run,
+                {} as JobRunInfo,
+                'schedule.next_run',
+              )
             : (schedule.next_run as JobRunInfo)
           : null,
         created_at: schedule.created_at,
@@ -5140,7 +5394,7 @@ export class DatabaseService {
       // Parse the config
       const parsedConfig =
         typeof schedule.config === 'string'
-          ? JSON.parse(schedule.config)
+          ? this.safeJsonParse(schedule.config, {}, 'schedule.config')
           : schedule.config
 
       // Return properly typed object based on schedule type
@@ -5303,13 +5557,15 @@ export class DatabaseService {
         rule.search_on_add == null ? null : Boolean(rule.search_on_add),
       criteria:
         typeof rule.criteria === 'string'
-          ? JSON.parse(rule.criteria)
+          ? this.safeJsonParse(rule.criteria, {}, 'router_rule.criteria')
           : rule.criteria,
       tags:
-        typeof rule.tags === 'string' ? JSON.parse(rule.tags) : rule.tags || [],
+        typeof rule.tags === 'string'
+          ? this.safeJsonParse(rule.tags, [], 'router_rule.tags')
+          : rule.tags || [],
       metadata: rule.metadata
         ? typeof rule.metadata === 'string'
-          ? JSON.parse(rule.metadata)
+          ? this.safeJsonParse(rule.metadata, null, 'router_rule.metadata')
           : rule.metadata
         : null,
     }
@@ -5389,15 +5645,19 @@ export class DatabaseService {
       enabled: Boolean(createdRule.enabled),
       criteria:
         typeof createdRule.criteria === 'string'
-          ? JSON.parse(createdRule.criteria)
+          ? this.safeJsonParse(createdRule.criteria, {}, 'router_rule.criteria')
           : createdRule.criteria,
       tags:
         typeof createdRule.tags === 'string'
-          ? JSON.parse(createdRule.tags)
+          ? this.safeJsonParse(createdRule.tags, [], 'router_rule.tags')
           : createdRule.tags || [],
       metadata: createdRule.metadata
         ? typeof createdRule.metadata === 'string'
-          ? JSON.parse(createdRule.metadata)
+          ? this.safeJsonParse(
+              createdRule.metadata,
+              null,
+              'router_rule.metadata',
+            )
           : createdRule.metadata
         : null,
     }
@@ -5449,15 +5709,19 @@ export class DatabaseService {
       enabled: Boolean(updatedRule.enabled),
       criteria:
         typeof updatedRule.criteria === 'string'
-          ? JSON.parse(updatedRule.criteria)
+          ? this.safeJsonParse(updatedRule.criteria, {}, 'router_rule.criteria')
           : updatedRule.criteria,
       tags:
         typeof updatedRule.tags === 'string'
-          ? JSON.parse(updatedRule.tags)
+          ? this.safeJsonParse(updatedRule.tags, [], 'router_rule.tags')
           : updatedRule.tags || [],
       metadata: updatedRule.metadata
         ? typeof updatedRule.metadata === 'string'
-          ? JSON.parse(updatedRule.metadata)
+          ? this.safeJsonParse(
+              updatedRule.metadata,
+              null,
+              'router_rule.metadata',
+            )
           : updatedRule.metadata
         : null,
     }
@@ -5555,15 +5819,19 @@ export class DatabaseService {
       enabled: Boolean(updatedRule.enabled),
       criteria:
         typeof updatedRule.criteria === 'string'
-          ? JSON.parse(updatedRule.criteria)
+          ? this.safeJsonParse(updatedRule.criteria, {}, 'router_rule.criteria')
           : updatedRule.criteria,
       tags:
         typeof updatedRule.tags === 'string'
-          ? JSON.parse(updatedRule.tags)
+          ? this.safeJsonParse(updatedRule.tags, [], 'router_rule.tags')
           : updatedRule.tags || [],
       metadata: updatedRule.metadata
         ? typeof updatedRule.metadata === 'string'
-          ? JSON.parse(updatedRule.metadata)
+          ? this.safeJsonParse(
+              updatedRule.metadata,
+              null,
+              'router_rule.metadata',
+            )
           : updatedRule.metadata
         : null,
     }
@@ -5849,11 +6117,15 @@ export class DatabaseService {
       enabled: Boolean(createdRule.enabled),
       criteria:
         typeof createdRule.criteria === 'string'
-          ? JSON.parse(createdRule.criteria)
+          ? this.safeJsonParse(createdRule.criteria, {}, 'router_rule.criteria')
           : createdRule.criteria,
       metadata: createdRule.metadata
         ? typeof createdRule.metadata === 'string'
-          ? JSON.parse(createdRule.metadata)
+          ? this.safeJsonParse(
+              createdRule.metadata,
+              null,
+              'router_rule.metadata',
+            )
           : createdRule.metadata
         : null,
     }
@@ -5911,7 +6183,7 @@ export class DatabaseService {
     if (updates.condition !== undefined) {
       const currentCriteria =
         typeof currentRule.criteria === 'string'
-          ? JSON.parse(currentRule.criteria)
+          ? this.safeJsonParse(currentRule.criteria, {}, 'router_rule.criteria')
           : currentRule.criteria
 
       const newCriteria = {
@@ -5945,11 +6217,15 @@ export class DatabaseService {
       enabled: Boolean(updatedRule.enabled),
       criteria:
         typeof updatedRule.criteria === 'string'
-          ? JSON.parse(updatedRule.criteria)
+          ? this.safeJsonParse(updatedRule.criteria, {}, 'router_rule.criteria')
           : updatedRule.criteria,
       metadata: updatedRule.metadata
         ? typeof updatedRule.metadata === 'string'
-          ? JSON.parse(updatedRule.metadata)
+          ? this.safeJsonParse(
+              updatedRule.metadata,
+              null,
+              'router_rule.metadata',
+            )
           : updatedRule.metadata
         : null,
     }
@@ -6043,7 +6319,11 @@ export class DatabaseService {
         ...webhook,
         payload: (() => {
           try {
-            return JSON.parse(webhook.payload ?? '{}')
+            return this.safeJsonParse(
+              webhook.payload,
+              {},
+              'pending_webhook.payload',
+            )
           } catch (e) {
             this.log.warn(
               { webhookId: webhook.id, error: e },
@@ -6116,7 +6396,11 @@ export class DatabaseService {
         ...webhook,
         payload: (() => {
           try {
-            return JSON.parse(webhook.payload ?? '{}')
+            return this.safeJsonParse(
+              webhook.payload,
+              {},
+              'pending_webhook.payload',
+            )
           } catch (e) {
             this.log.warn(
               { webhookId: webhook.id, guid, error: e },

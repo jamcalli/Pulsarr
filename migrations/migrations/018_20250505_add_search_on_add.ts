@@ -1,12 +1,19 @@
 import type { Knex } from 'knex'
+import {
+  shouldSkipForPostgreSQL,
+  shouldSkipDownForPostgreSQL,
+} from '../utils/clientDetection.js'
 
 /**
- * Adds the `search_on_add` column with a default value of true to the `radarr_instances` and `sonarr_instances` tables.
+ * Adds the `search_on_add` boolean column with a default value of true to both `radarr_instances` and `sonarr_instances` tables.
  *
  * @remarks
- * Introduces a configuration option to control whether automatic searches are performed when new content is added to Radarr or Sonarr. Existing rows are updated to ensure the new column is set to true by default.
+ * Skips execution for PostgreSQL databases. Updates existing rows to ensure the new column is set to true where it was previously null.
  */
 export async function up(knex: Knex): Promise<void> {
+  if (shouldSkipForPostgreSQL(knex, '018_20250505_add_search_on_add')) {
+    return
+  }
   // Add search_on_add to radarr_instances
   await knex.schema.alterTable('radarr_instances', (table) => {
     // Add the search_on_add column with a default value of true
@@ -30,11 +37,15 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Removes the `search_on_add` column from the `radarr_instances` and `sonarr_instances` tables.
+ * Reverts the migration by removing the `search_on_add` column from both `radarr_instances` and `sonarr_instances` tables.
  *
- * This function reverts the changes made by the corresponding migration's `up` function.
+ * @remark
+ * This operation is skipped for PostgreSQL databases.
  */
 export async function down(knex: Knex): Promise<void> {
+  if (shouldSkipDownForPostgreSQL(knex)) {
+    return
+  }
   await knex.schema.alterTable('radarr_instances', (table) => {
     table.dropColumn('search_on_add')
   })
