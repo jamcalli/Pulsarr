@@ -20,7 +20,11 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'Installation',
-      items: ['installation/quick-start', 'installation/configuration'],
+      items: [
+        'installation/quick-start',
+        'installation/configuration',
+        'installation/postgres-migration',
+      ],
     },
     {
       type: 'category',
