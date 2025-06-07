@@ -9,9 +9,7 @@ import { isPostgreSQL } from '../utils/clientDetection.js'
  * PostgreSQL-specific optimizations.
  */
 export async function up(knex: Knex): Promise<void> {
-  await knex.transaction(async (trx) => {
-    const knex = trx // re-alias for readability
-
+  await knex.transaction(async (knex) => {
     // Only run on PostgreSQL
     if (!isPostgreSQL(knex)) {
       console.log(
@@ -585,9 +583,7 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 export async function down(knex: Knex): Promise<void> {
-  await knex.transaction(async (trx) => {
-    const knex = trx // re-alias for readability
-
+  await knex.transaction(async (knex) => {
     // Only run on PostgreSQL
     if (!isPostgreSQL(knex)) {
       return
