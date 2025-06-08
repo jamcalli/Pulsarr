@@ -15,10 +15,10 @@ export const SessionMonitoringConfigSchema = z.object({
       if (!val) return undefined
       return Array.isArray(val) ? val : [val]
     }),
-  enableAutoReset: z.boolean(),
-  inactivityResetDays: z.number().min(1).max(365),
-  autoResetIntervalHours: z.number().min(1).max(168),
-  enableProgressiveCleanup: z.boolean(),
+  enableAutoReset: z.boolean().optional(),
+  inactivityResetDays: z.number().min(1).max(365).optional(),
+  autoResetIntervalHours: z.number().min(1).max(168).optional(),
+  enableProgressiveCleanup: z.boolean().optional(),
 })
 
 // Infer the TypeScript type from the schema
