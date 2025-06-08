@@ -1,32 +1,38 @@
 import { useState, useEffect, useRef } from 'react'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Loader2, Save, X } from 'lucide-react'
-import { Form } from '@/components/ui/form'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { toast } from '@/hooks/use-toast'
-import { cn } from '@/lib/utils'
+
+import { Loader2, Save, X } from 'lucide-react'
+
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Form } from '@/components/ui/form'
 import { Separator } from '@/components/ui/separator'
+
+import { cn } from '@/lib/utils'
+import { toast } from '@/hooks/use-toast'
 import { useConfigStore } from '@/stores/configStore'
-import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
+
 import { useRollingMonitoring } from '@/features/utilities/hooks/useRollingMonitoring'
-import type { JobStatus } from '@root/schemas/scheduler/scheduler.schema'
+import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 import {
   SessionMonitoringConfigSchema,
   type SessionMonitoringFormData,
 } from '@/features/utilities/constants/session-monitoring'
-import { SessionMonitoringActions } from './session-monitoring-actions'
-import { SessionMonitoringConfig } from './session-monitoring-config'
-import { SessionMonitoringFiltering } from './session-monitoring-filtering'
-import { SessionMonitoringResetSettings } from './session-monitoring-reset-settings'
-import { SessionMonitoringStatus } from './session-monitoring-status'
+
+import type { JobStatus } from '@root/schemas/scheduler/scheduler.schema'
+
+import { SessionMonitoringActions } from '@/features/utilities/components/session-monitoring/session-monitoring-actions'
+import { SessionMonitoringConfig } from '@/features/utilities/components/session-monitoring/session-monitoring-config'
+import { SessionMonitoringFiltering } from '@/features/utilities/components/session-monitoring/session-monitoring-filtering'
+import { SessionMonitoringResetSettings } from '@/features/utilities/components/session-monitoring/session-monitoring-reset-settings'
+import { SessionMonitoringStatus } from '@/features/utilities/components/session-monitoring/session-monitoring-status'
 
 /**
  * Renders a form for configuring Plex session monitoring and rolling monitoring reset settings.

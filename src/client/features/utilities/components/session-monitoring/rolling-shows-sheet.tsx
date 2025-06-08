@@ -11,6 +11,8 @@ import {
   useReactTable,
   type VisibilityState,
 } from '@tanstack/react-table'
+import { formatDistanceToNow } from 'date-fns'
+
 import {
   ArrowUpDown,
   ChevronDown,
@@ -27,20 +29,6 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Input } from '@/components/ui/input'
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet'
-import {
   Drawer,
   DrawerContent,
   DrawerDescription,
@@ -48,12 +36,26 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer'
 import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
 import {
   Table,
   TableBody,
@@ -68,10 +70,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+
 import { useMediaQuery } from '@/hooks/use-media-query'
-import { formatDistanceToNow } from 'date-fns'
+
 import type { RollingMonitoredShow } from '@/features/utilities/hooks/useRollingMonitoring'
-import { RollingShowActionAlert } from './rolling-show-action-alert'
+
+import { RollingShowActionAlert } from '@/features/utilities/components/session-monitoring/rolling-show-action-alert'
 
 interface ColumnMetaType {
   className?: string

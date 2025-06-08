@@ -1,4 +1,5 @@
 import { HelpCircle } from 'lucide-react'
+
 import {
   FormControl,
   FormField,
@@ -6,13 +7,14 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import { UserMultiSelect } from '@/components/ui/user-multi-select'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { UserMultiSelect } from '@/components/ui/user-multi-select'
+
 import type { SessionMonitoringComponentProps } from '@/features/utilities/constants/session-monitoring'
 
 interface SessionMonitoringFilteringProps
