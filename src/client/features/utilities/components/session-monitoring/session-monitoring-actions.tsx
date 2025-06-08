@@ -1,21 +1,13 @@
 import { Button } from '@/components/ui/button'
 import { Loader2, Power } from 'lucide-react'
 import { useMediaQuery } from '@/hooks/use-media-query'
-import type { UseFormReturn } from 'react-hook-form'
+import type {
+  SessionMonitoringFormData,
+  SessionMonitoringComponentProps,
+} from '@/features/utilities/constants/session-monitoring'
 
-type SessionMonitoringFormData = {
-  enabled: boolean
-  pollingIntervalMinutes: number
-  remainingEpisodes: number
-  filterUsers?: string[]
-  enableAutoReset: boolean
-  inactivityResetDays: number
-  autoResetIntervalHours: number
-}
-
-interface SessionMonitoringActionsProps {
-  form: UseFormReturn<SessionMonitoringFormData>
-  isEnabled: boolean
+interface SessionMonitoringActionsProps
+  extends SessionMonitoringComponentProps {
   isSubmitting: boolean
   onSubmit: (data: SessionMonitoringFormData) => Promise<void>
 }

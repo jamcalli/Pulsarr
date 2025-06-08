@@ -687,6 +687,7 @@ export class DatabaseService {
               enableAutoReset: true,
               inactivityResetDays: 7,
               autoResetIntervalHours: 24,
+              enableProgressiveCleanup: false,
             },
             'config.plexSessionMonitoring',
           )
@@ -6521,15 +6522,17 @@ export class DatabaseService {
   }
 
   /**
-   * Gets a rolling monitored show by TVDB ID or title
+   * Gets a rolling monitored show by TVDB ID or title for a specific user
    *
    * @param tvdbId - The TVDB ID
    * @param title - The show title
+   * @param plexUserId - The Plex user ID for per-user tracking
    * @returns Promise resolving to the rolling monitored show or null
    */
   async getRollingMonitoredShow(
     tvdbId?: string,
     title?: string,
+    plexUserId?: string,
   ): Promise<RollingMonitoredShow | null> {
     try {
       const query = this.knex('rolling_monitored_shows')
@@ -6540,6 +6543,14 @@ export class DatabaseService {
         query.where('show_title', title)
       } else {
         return null
+      }
+
+      // Always filter by user ID to ensure per-user entries
+      if (plexUserId) {
+        query.where('plex_user_id', plexUserId)
+      } else {
+        // If no user ID provided, look for legacy global entries (null plex_user_id)
+        query.whereNull('plex_user_id')
       }
 
       return await query.first()

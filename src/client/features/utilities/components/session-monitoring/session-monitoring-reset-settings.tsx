@@ -14,22 +14,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import type { UseFormReturn } from 'react-hook-form'
+import type { SessionMonitoringComponentProps } from '@/features/utilities/constants/session-monitoring'
 
-type SessionMonitoringFormData = {
-  enabled: boolean
-  pollingIntervalMinutes: number
-  remainingEpisodes: number
-  filterUsers?: string[]
-  enableAutoReset: boolean
-  inactivityResetDays: number
-  autoResetIntervalHours: number
-}
-
-interface SessionMonitoringResetSettingsProps {
-  form: UseFormReturn<SessionMonitoringFormData>
-  isEnabled: boolean
-}
+interface SessionMonitoringResetSettingsProps
+  extends SessionMonitoringComponentProps {}
 
 /**
  * Renders a form section for configuring rolling monitoring reset settings in a session monitoring form.
@@ -48,41 +36,80 @@ export function SessionMonitoringResetSettings({
         Rolling Monitoring Reset Settings
       </h3>
       <div className="space-y-4">
-        <FormField
-          control={form.control}
-          name="enableAutoReset"
-          render={({ field }) => (
-            <FormItem className="flex items-center space-x-2">
-              <FormControl>
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                  disabled={!isEnabled}
-                />
-              </FormControl>
-              <div className="flex items-center">
-                <FormLabel className="text-text m-0">
-                  Enable Automatic Reset
-                </FormLabel>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="max-w-xs">
-                        Automatically reset rolling monitored shows to their
-                        original monitoring state (pilot-only or
-                        first-season-only) when they haven't been watched for
-                        the specified period.
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="enableAutoReset"
+            render={({ field }) => (
+              <FormItem className="flex items-center space-x-2">
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                    disabled={!isEnabled}
+                  />
+                </FormControl>
+                <div className="flex items-center">
+                  <FormLabel className="text-text m-0">
+                    Enable Automatic Reset
+                  </FormLabel>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs">
+                          Automatically reset rolling monitored shows to their
+                          original monitoring state (pilot-only or
+                          first-season-only) when they haven't been watched for
+                          the specified period.
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="enableProgressiveCleanup"
+            render={({ field }) => (
+              <FormItem className="flex items-center space-x-2">
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                    disabled={!isEnabled}
+                  />
+                </FormControl>
+                <div className="flex items-center">
+                  <FormLabel className="text-text m-0">
+                    Enable Progressive Cleanup
+                  </FormLabel>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs">
+                          Immediately clean up previous seasons when a user
+                          progresses to a new season, but only if no other users
+                          have watched those seasons within the inactivity
+                          period. Always preserves the original monitoring state
+                          (pilot-only or first-season-only).
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+              </FormItem>
+            )}
+          />
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField

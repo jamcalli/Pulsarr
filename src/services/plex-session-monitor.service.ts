@@ -92,20 +92,21 @@ export class PlexSessionMonitorService {
       return
     }
 
-    // Check user filter if configured
+    // Determine if this user is allowed to trigger monitoring actions
+    let canTriggerActions = true
     if (
       this.config.plexSessionMonitoring?.filterUsers &&
       this.config.plexSessionMonitoring.filterUsers.length > 0
     ) {
       const allowedUsers = this.config.plexSessionMonitoring.filterUsers
-      if (
-        !allowedUsers.includes(session.User.id) &&
-        !allowedUsers.includes(session.User.title)
-      ) {
+      canTriggerActions =
+        allowedUsers.includes(session.User.id) ||
+        allowedUsers.includes(session.User.title)
+
+      if (!canTriggerActions) {
         this.log.debug(
-          `Skipping session for user ${session.User.title} - not in filter list`,
+          `User ${session.User.title} not in filter list - will track progress but not trigger monitoring actions`,
         )
-        return
       }
     }
 
@@ -116,15 +117,20 @@ export class PlexSessionMonitorService {
       `Processing session: ${episodeInfo} watched by ${session.User.title}`,
     )
 
-    // Check if this is a rolling monitored show
+    // Always check for rolling monitored show (per-user lookup)
     const rollingShow = await this.getRollingMonitoredShow(session)
 
     if (rollingShow) {
-      await this.handleRollingMonitoredShow(session, rollingShow, result)
+      await this.handleRollingMonitoredShow(
+        session,
+        rollingShow,
+        result,
+        canTriggerActions,
+      )
     } else {
       // Skip shows that are not configured for rolling monitoring
       this.log.debug(
-        `Skipping ${session.grandparentTitle} - not configured for rolling monitoring`,
+        `Skipping ${session.grandparentTitle} - not configured for rolling monitoring for user ${session.User.title}`,
       )
     }
   }
@@ -136,16 +142,25 @@ export class PlexSessionMonitorService {
     session: PlexSession,
     rollingShow: RollingMonitoredShow,
     result: SessionMonitoringResult,
+    canTriggerActions = true,
   ): Promise<void> {
     const currentSeason = session.parentIndex
     const currentEpisode = session.index
 
-    // Update last watched info
+    // Always update progress tracking (regardless of user filtering)
     await this.updateRollingShowProgress(
       rollingShow.id,
       currentSeason,
       currentEpisode,
     )
+
+    // Only trigger monitoring actions if user is allowed (respects user filtering)
+    if (!canTriggerActions) {
+      this.log.debug(
+        `User ${session.User.title} progress tracked but not triggering monitoring actions due to user filtering`,
+      )
+      return
+    }
 
     // Special case for pilot rolling: if watching the pilot episode, expand immediately
     if (
@@ -378,7 +393,8 @@ export class PlexSessionMonitorService {
   }
 
   /**
-   * Get rolling monitored show from database
+   * Get rolling monitored show from database for the specific user
+   * Handles migration from global to per-user entries
    */
   private async getRollingMonitoredShow(
     session: PlexSession,
@@ -387,10 +403,46 @@ export class PlexSessionMonitorService {
       const identifiers = await this.getSeriesIdentifiers(session)
       const tvdbId = identifiers?.tvdbId
 
-      const rollingShow = await this.db.getRollingMonitoredShow(
+      // First, check for global entry to see if this show should be monitored
+      const globalShow = await this.db.getRollingMonitoredShow(
         tvdbId,
         session.grandparentTitle,
+        undefined, // Look for global entry (null plex_user_id)
       )
+
+      if (!globalShow) {
+        // No global entry means this show is not configured for rolling monitoring
+        return null
+      }
+
+      // Now try to find user-specific entry for progress tracking
+      let rollingShow = await this.db.getRollingMonitoredShow(
+        tvdbId,
+        session.grandparentTitle,
+        session.User.id, // Pass user ID for per-user entries
+      )
+
+      // If no user-specific entry found, create one based on global entry
+      if (!rollingShow) {
+        this.log.info(
+          `Creating per-user rolling show entry for ${globalShow.show_title} for user ${session.User.title}`,
+        )
+
+        const userEntryId = await this.db.createRollingMonitoredShow({
+          sonarr_series_id: globalShow.sonarr_series_id,
+          sonarr_instance_id: globalShow.sonarr_instance_id,
+          tvdb_id: globalShow.tvdb_id,
+          imdb_id: globalShow.imdb_id,
+          show_title: globalShow.show_title,
+          monitoring_type: globalShow.monitoring_type,
+          current_monitored_season: globalShow.current_monitored_season,
+          plex_user_id: session.User.id,
+          plex_username: session.User.title,
+        })
+
+        // Get the newly created per-user entry
+        rollingShow = await this.db.getRollingMonitoredShowById(userEntryId)
+      }
 
       return rollingShow
     } catch (error) {
@@ -409,6 +461,14 @@ export class PlexSessionMonitorService {
   ): Promise<void> {
     try {
       await this.db.updateRollingShowProgress(showId, season, episode)
+
+      // Check if progressive cleanup is enabled and trigger cleanup if needed
+      if (this.config.plexSessionMonitoring?.enableProgressiveCleanup) {
+        const rollingShow = await this.db.getRollingMonitoredShowById(showId)
+        if (rollingShow) {
+          await this.checkAndPerformProgressiveCleanup(rollingShow, season)
+        }
+      }
     } catch (error) {
       this.log.error('Error updating rolling show progress:', error)
     }
@@ -781,6 +841,339 @@ export class PlexSessionMonitorService {
       }
     } catch (error) {
       this.log.error('Error resetting inactive rolling shows:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Progressive cleanup for rolling monitored shows
+   * Removes previous seasons when a user progresses to the next season,
+   * but only if no other tracked users are currently watching those seasons
+   * Always preserves the original monitoring state (pilot or full season 1)
+   */
+  private async checkAndPerformProgressiveCleanup(
+    rollingShow: RollingMonitoredShow,
+    currentSeason: number,
+  ): Promise<void> {
+    try {
+      this.log.debug(
+        `Progressive cleanup check for ${rollingShow.show_title}: current season ${currentSeason}, last watched season ${rollingShow.last_watched_season}`,
+      )
+
+      this.log.debug(
+        'Progressive cleanup proceeding - checking if any previous seasons can be cleaned up',
+      )
+
+      // Get the inactivity threshold from config
+      const inactivityDays =
+        this.config.plexSessionMonitoring?.inactivityResetDays || 7
+
+      // Find all other rolling show entries for this same series (different users)
+      const cutoffDate = new Date()
+      cutoffDate.setDate(cutoffDate.getDate() - inactivityDays)
+
+      const allRollingShows = await this.db.getRollingMonitoredShows()
+      const otherUsersWatchingShow = allRollingShows.filter(
+        (show) =>
+          show.sonarr_series_id === rollingShow.sonarr_series_id &&
+          show.sonarr_instance_id === rollingShow.sonarr_instance_id &&
+          show.id !== rollingShow.id &&
+          new Date(show.last_session_date) >= cutoffDate,
+      )
+
+      this.log.debug(
+        `Progressive cleanup safety check: found ${otherUsersWatchingShow.length} other active users for ${rollingShow.show_title}`,
+      )
+
+      // Determine which seasons to clean up based on monitoring type
+      const seasonsToCleanup: number[] = []
+
+      if (rollingShow.monitoring_type === 'pilotRolling') {
+        this.log.debug(
+          `Processing pilot rolling cleanup for ${rollingShow.show_title}`,
+        )
+
+        // For pilot rolling: clean up Season 2+ (never clean Season 1 as it should stay pilot-only)
+        for (let season = 2; season < currentSeason; season++) {
+          const otherUserWatchingSeason = otherUsersWatchingShow.some(
+            (show) =>
+              show.last_watched_season <= season &&
+              show.current_monitored_season >= season,
+          )
+          this.log.debug(
+            `Season ${season} check - other user watching: ${otherUserWatchingSeason}`,
+          )
+          if (!otherUserWatchingSeason) {
+            seasonsToCleanup.push(season)
+          }
+        }
+
+        // Check if Season 1 needs to be reset back to pilot-only (when watching S2+)
+        if (currentSeason > 1) {
+          const otherUserWatchingSeason1 = otherUsersWatchingShow.some(
+            (show) =>
+              show.last_watched_season <= 1 &&
+              show.current_monitored_season >= 1,
+          )
+          this.log.debug(
+            `Season 1 pilot reset check - other user watching S1: ${otherUserWatchingSeason1}, currentSeason: ${currentSeason}`,
+          )
+
+          if (!otherUserWatchingSeason1) {
+            // Check if Season 1 is already in pilot-only state before resetting
+            const isAlreadyPilotOnly = await this.isSeasonAlreadyPilotOnly(
+              rollingShow.sonarr_series_id,
+              rollingShow.sonarr_instance_id,
+            )
+
+            if (!isAlreadyPilotOnly) {
+              this.log.debug(
+                `Resetting Season 1 of ${rollingShow.show_title} back to pilot-only`,
+              )
+              await this.resetSeasonToPilotOnly(
+                rollingShow.sonarr_series_id,
+                rollingShow.sonarr_instance_id,
+                rollingShow.show_title,
+              )
+            } else {
+              this.log.debug(
+                `Season 1 of ${rollingShow.show_title} is already pilot-only, skipping reset`,
+              )
+            }
+          } else {
+            this.log.debug(
+              'NOT resetting Season 1 - other user still watching Season 1',
+            )
+          }
+        } else {
+          this.log.debug(
+            'Skipping Season 1 reset check - still watching Season 1',
+          )
+        }
+      } else if (rollingShow.monitoring_type === 'firstSeasonRolling') {
+        // For first season rolling: clean up Season 2+ (keep Season 1 fully monitored)
+        for (let season = 2; season < currentSeason; season++) {
+          const otherUserWatchingSeason = otherUsersWatchingShow.some(
+            (show) =>
+              show.last_watched_season <= season &&
+              show.current_monitored_season >= season,
+          )
+          if (!otherUserWatchingSeason) {
+            seasonsToCleanup.push(season)
+          }
+        }
+      }
+
+      // Perform cleanup for safe seasons
+      if (seasonsToCleanup.length > 0) {
+        this.log.info(
+          `Progressive cleanup for ${rollingShow.show_title}: removing seasons ${seasonsToCleanup.join(', ')}`,
+        )
+
+        await this.cleanupSpecificSeasons(
+          rollingShow.sonarr_series_id,
+          rollingShow.sonarr_instance_id,
+          rollingShow.show_title,
+          seasonsToCleanup,
+        )
+      }
+    } catch (error) {
+      this.log.error('Error in progressive cleanup:', error)
+    }
+  }
+
+  /**
+   * Check if Season 1 is already in pilot-only state (only S01E01 monitored and has file)
+   */
+  private async isSeasonAlreadyPilotOnly(
+    sonarrSeriesId: number,
+    sonarrInstanceId: number,
+  ): Promise<boolean> {
+    try {
+      const sonarr = this.sonarrManager.getInstance(sonarrInstanceId)
+      if (!sonarr) {
+        return false
+      }
+
+      // Get all episodes for the series
+      const allEpisodes = await sonarr.getEpisodes(sonarrSeriesId)
+
+      // Find all Season 1 episodes
+      const season1Episodes = allEpisodes.filter((ep) => ep.seasonNumber === 1)
+      if (season1Episodes.length === 0) {
+        return false
+      }
+
+      // Find the pilot episode (S01E01)
+      const pilotEpisode = season1Episodes.find((ep) => ep.episodeNumber === 1)
+      if (!pilotEpisode) {
+        return false
+      }
+
+      // Check if only the pilot is monitored and all other S1 episodes are unmonitored
+      const nonPilotEpisodes = season1Episodes.filter(
+        (ep) => ep.id !== pilotEpisode.id,
+      )
+      const allNonPilotUnmonitored = nonPilotEpisodes.every(
+        (ep) => !ep.monitored,
+      )
+      const pilotIsMonitored = pilotEpisode.monitored
+
+      this.log.debug(
+        `Pilot-only check for series ${sonarrSeriesId}: pilot monitored: ${pilotIsMonitored}, non-pilot episodes unmonitored: ${allNonPilotUnmonitored} (${nonPilotEpisodes.length} episodes)`,
+      )
+
+      return pilotIsMonitored && allNonPilotUnmonitored
+    } catch (error) {
+      this.log.debug(
+        `Error checking pilot-only state for series ${sonarrSeriesId}:`,
+        error,
+      )
+      return false
+    }
+  }
+
+  /**
+   * Reset Season 1 back to pilot-only monitoring (for pilotRolling shows)
+   * Based on the existing resetToPilotOnly method but only operates on Season 1
+   */
+  private async resetSeasonToPilotOnly(
+    sonarrSeriesId: number,
+    sonarrInstanceId: number,
+    showTitle: string,
+  ): Promise<void> {
+    try {
+      this.log.debug(
+        `Starting Season 1 pilot reset for ${showTitle} (Sonarr series ${sonarrSeriesId})`,
+      )
+
+      const sonarr = this.sonarrManager.getInstance(sonarrInstanceId)
+      if (!sonarr) {
+        this.log.debug(`ERROR: Sonarr instance ${sonarrInstanceId} not found`)
+        throw new Error(`Sonarr instance ${sonarrInstanceId} not found`)
+      }
+
+      this.log.debug(`Fetching all episodes for series ${sonarrSeriesId}`)
+      // Get all episodes for the series
+      const allEpisodes = await sonarr.getEpisodes(sonarrSeriesId)
+      this.log.debug(`Found ${allEpisodes.length} total episodes`)
+
+      // Find the pilot episode (S01E01)
+      const pilotEpisode = allEpisodes.find(
+        (ep) => ep.seasonNumber === 1 && ep.episodeNumber === 1,
+      )
+
+      if (!pilotEpisode) {
+        this.log.debug(
+          `ERROR: Pilot episode not found for series ${sonarrSeriesId}`,
+        )
+        this.log.warn(`Pilot episode not found for series ${sonarrSeriesId}`)
+        return
+      }
+
+      this.log.debug(`Found pilot episode: S01E01 (ID: ${pilotEpisode.id})`)
+
+      // Find all other episodes in Season 1 that have files and need to be deleted
+      const episodesToDelete = allEpisodes.filter(
+        (ep) =>
+          ep.seasonNumber === 1 &&
+          ep.id !== pilotEpisode.id &&
+          ep.hasFile === true &&
+          ep.episodeFileId > 0,
+      )
+
+      // Find all other episodes in Season 1 that need to be unmonitored
+      const episodesToUnmonitor = allEpisodes
+        .filter(
+          (ep) =>
+            ep.seasonNumber === 1 &&
+            ep.id !== pilotEpisode.id &&
+            ep.monitored === true,
+        )
+        .map((ep) => ({ id: ep.id, monitored: false }))
+
+      let deletedCount = 0
+      if (episodesToDelete.length > 0) {
+        // Delete episode files first
+        const episodeFileIds = episodesToDelete.map((ep) => ep.episodeFileId)
+        await sonarr.deleteEpisodeFiles(episodeFileIds)
+        deletedCount = episodeFileIds.length
+      }
+
+      if (episodesToUnmonitor.length > 0) {
+        // Then unmonitor all episodes except the pilot
+        await sonarr.updateEpisodesMonitoring(episodesToUnmonitor)
+      }
+
+      this.log.info(
+        `Progressive cleanup: reset Season 1 of ${showTitle} back to pilot-only (deleted ${deletedCount} episode files, unmonitored ${episodesToUnmonitor.length} episodes)`,
+      )
+    } catch (error) {
+      this.log.error(
+        `Error resetting Season 1 to pilot-only for ${showTitle}:`,
+        error,
+      )
+      throw error
+    }
+  }
+
+  /**
+   * Cleanup specific seasons for a rolling monitored show
+   * Based on the existing season cleanup logic but targeted to specific seasons
+   */
+  private async cleanupSpecificSeasons(
+    sonarrSeriesId: number,
+    sonarrInstanceId: number,
+    showTitle: string,
+    seasonsToCleanup: number[],
+  ): Promise<void> {
+    try {
+      const sonarr = this.sonarrManager.getInstance(sonarrInstanceId)
+      if (!sonarr) {
+        throw new Error(`Sonarr instance ${sonarrInstanceId} not found`)
+      }
+
+      // Get all episodes for the series
+      const allEpisodes = await sonarr.getEpisodes(sonarrSeriesId)
+
+      for (const seasonNumber of seasonsToCleanup) {
+        // Find episodes in this season that have files and need to be deleted
+        const episodesToDelete = allEpisodes.filter(
+          (ep) =>
+            ep.seasonNumber === seasonNumber &&
+            ep.hasFile === true &&
+            ep.episodeFileId > 0,
+        )
+
+        // Find episodes in this season that need to be unmonitored
+        const episodesToUnmonitor = allEpisodes
+          .filter(
+            (ep) => ep.seasonNumber === seasonNumber && ep.monitored === true,
+          )
+          .map((ep) => ({ id: ep.id, monitored: false }))
+
+        let deletedCount = 0
+        if (episodesToDelete.length > 0) {
+          // Delete episode files first
+          const episodeFileIds = episodesToDelete.map((ep) => ep.episodeFileId)
+          await sonarr.deleteEpisodeFiles(episodeFileIds)
+          deletedCount = episodeFileIds.length
+        }
+
+        if (episodesToUnmonitor.length > 0) {
+          // Then unmonitor all episodes in this season
+          await sonarr.updateEpisodesMonitoring(episodesToUnmonitor)
+        }
+
+        // Unmonitor the entire season
+        await sonarr.updateSeasonMonitoring(sonarrSeriesId, seasonNumber, false)
+
+        this.log.info(
+          `Progressive cleanup: removed season ${seasonNumber} of ${showTitle} (deleted ${deletedCount} episode files, unmonitored ${episodesToUnmonitor.length} episodes)`,
+        )
+      }
+    } catch (error) {
+      this.log.error(`Error cleaning up seasons for ${showTitle}:`, error)
       throw error
     }
   }
