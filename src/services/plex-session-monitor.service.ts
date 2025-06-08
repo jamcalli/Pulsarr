@@ -449,7 +449,7 @@ export class PlexSessionMonitorService {
           imdb_id: globalShow.imdb_id,
           show_title: globalShow.show_title,
           monitoring_type: globalShow.monitoring_type,
-          current_monitored_season: globalShow.current_monitored_season,
+          current_monitored_season: 1, // New users always start from season 1
           plex_user_id: session.User.id,
           plex_username: session.User.title,
         })
@@ -1089,9 +1089,6 @@ export class PlexSessionMonitorService {
       )
 
       if (!pilotEpisode) {
-        this.log.debug(
-          `ERROR: Pilot episode not found for series ${sonarrSeriesId}`,
-        )
         this.log.warn(`Pilot episode not found for series ${sonarrSeriesId}`)
         return
       }

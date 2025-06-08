@@ -6690,34 +6690,36 @@ export class DatabaseService {
         return 0
       }
 
-      // Delete all user entries (keep only master record)
-      const deletedUserEntries = await this.knex('rolling_monitored_shows')
-        .where({
-          sonarr_series_id: show.sonarr_series_id,
-          sonarr_instance_id: show.sonarr_instance_id,
-        })
-        .whereNotNull('plex_user_id') // Only delete user entries, not master
-        .delete()
+      return await this.knex.transaction(async (trx) => {
+        // Delete all user entries (keep only master record)
+        const deletedUserEntries = await trx('rolling_monitored_shows')
+          .where({
+            sonarr_series_id: show.sonarr_series_id,
+            sonarr_instance_id: show.sonarr_instance_id,
+          })
+          .whereNotNull('plex_user_id') // Only delete user entries, not master
+          .delete()
 
-      // Reset the master record to original state (if it exists)
-      await this.knex('rolling_monitored_shows')
-        .where({
-          sonarr_series_id: show.sonarr_series_id,
-          sonarr_instance_id: show.sonarr_instance_id,
-        })
-        .whereNull('plex_user_id') // Only update master record
-        .update({
-          current_monitored_season: 1,
-          last_watched_season: 0,
-          last_watched_episode: 0,
-          updated_at: this.knex.fn.now(),
-        })
+        // Reset the master record to original state (if it exists)
+        await trx('rolling_monitored_shows')
+          .where({
+            sonarr_series_id: show.sonarr_series_id,
+            sonarr_instance_id: show.sonarr_instance_id,
+          })
+          .whereNull('plex_user_id') // Only update master record
+          .update({
+            current_monitored_season: 1,
+            last_watched_season: 0,
+            last_watched_episode: 0,
+            updated_at: trx.fn.now(),
+          })
 
-      this.log.info(
-        `Reset ${show.show_title} to original state: removed ${deletedUserEntries} user entries, reset master record (series_id: ${show.sonarr_series_id}, instance_id: ${show.sonarr_instance_id})`,
-      )
+        this.log.info(
+          `Reset ${show.show_title} to original state: removed ${deletedUserEntries} user entries, reset master record (series_id: ${show.sonarr_series_id}, instance_id: ${show.sonarr_instance_id})`,
+        )
 
-      return deletedUserEntries
+        return deletedUserEntries
+      })
     } catch (error) {
       this.log.error(
         'Error resetting rolling monitored show to original state:',

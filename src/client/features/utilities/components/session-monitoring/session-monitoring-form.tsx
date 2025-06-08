@@ -169,7 +169,7 @@ export function SessionMonitoringForm() {
     data: SessionMonitoringFormData,
   ) => {
     // Auto-reset should be enabled when session monitoring is enabled AND enableAutoReset is true
-    const shouldEnableAutoReset = data.enabled && data.enableAutoReset
+    const shouldEnableAutoReset = data.enabled && (data.enableAutoReset ?? true)
 
     // Check if enabled state changed
     if (schedule.enabled !== shouldEnableAutoReset) {
@@ -179,9 +179,10 @@ export function SessionMonitoringForm() {
     // Check if auto-reset interval changed and schedule should be enabled
     const currentAutoResetInterval =
       schedule.type === 'interval' ? schedule.config?.hours || 24 : 24
+    const newAutoResetInterval = data.autoResetIntervalHours ?? 24
     if (
       shouldEnableAutoReset &&
-      currentAutoResetInterval !== data.autoResetIntervalHours
+      currentAutoResetInterval !== newAutoResetInterval
     ) {
       // Update the schedule with new interval
       const response = await fetch(`/v1/scheduler/schedules/${schedule.name}`, {
@@ -190,7 +191,7 @@ export function SessionMonitoringForm() {
         body: JSON.stringify({
           type: 'interval',
           config: {
-            hours: data.autoResetIntervalHours,
+            hours: newAutoResetInterval,
           },
         }),
       })

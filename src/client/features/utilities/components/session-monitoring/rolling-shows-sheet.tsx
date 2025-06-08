@@ -192,13 +192,24 @@ export function RollingShowsSheet({
         const username = row.getValue('plex_username') as string | null
 
         return (
-          <div className="text-sm truncate max-w-24">
-            {username || (
-              <span className="text-muted-foreground italic font-medium">
-                Master Record
-              </span>
-            )}
-          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="text-sm truncate max-w-24">
+                  {username || (
+                    <span className="text-muted-foreground italic font-medium">
+                      Master Record
+                    </span>
+                  )}
+                </div>
+              </TooltipTrigger>
+              {username && (
+                <TooltipContent>
+                  <p>{username}</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
         )
       },
       meta: {
