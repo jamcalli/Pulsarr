@@ -57,14 +57,6 @@ port=3003                       # Port where Pulsarr is accessible
 TZ=America/Los_Angeles          # Set to your local timezone
 logLevel=info                   # Default is 'silent', but 'info' is recommended
 NODE_ARGS=--log-both            # Default logs to file only, '--log-both' shows logs in terminal too
-
-# Optional: PostgreSQL Configuration (default is SQLite)
-# dbType=postgres               # Enable PostgreSQL support
-# dbHost=your-postgres-host     # PostgreSQL server hostname or IP
-# dbPort=5432                   # PostgreSQL server port
-# dbName=pulsarr                # PostgreSQL database name
-# dbUser=pulsarr                # PostgreSQL username
-# dbPassword=your-password      # PostgreSQL password
 ```
 
 2. Create `docker-compose.yml`:
@@ -94,10 +86,7 @@ For detailed installation options, including Unraid, manual installation, and Po
 
 ### Database Options
 
-Pulsarr supports both SQLite (default) and PostgreSQL:
-
-- **SQLite** (default): Zero configuration, perfect for most users
-- **PostgreSQL**: For advanced users requiring external database access or high-scale deployments
+Pulsarr uses SQLite by default but can also be configured to use PostgreSQL for users requiring external database access or high-scale deployments.
 
 See the [configuration documentation](https://jamcalli.github.io/Pulsarr/docs/installation/configuration) for PostgreSQL setup details.
 
