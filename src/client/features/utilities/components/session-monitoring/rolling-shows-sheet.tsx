@@ -170,6 +170,38 @@ export function RollingShowsSheet({
       ),
     },
     {
+      accessorKey: 'plex_username',
+      header: ({ column }) => {
+        return (
+          <Button
+            variant="noShadow"
+            size="sm"
+            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+            className="whitespace-nowrap"
+          >
+            User
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        )
+      },
+      cell: ({ row }) => {
+        const username = row.getValue('plex_username') as string | null
+
+        return (
+          <div className="text-sm truncate max-w-24">
+            {username || (
+              <span className="text-muted-foreground italic font-medium">
+                Master Record
+              </span>
+            )}
+          </div>
+        )
+      },
+      meta: {
+        className: 'w-[100px]',
+      },
+    },
+    {
       accessorKey: 'monitoring_type',
       header: () => <div>Type</div>,
       cell: ({ row }) => {
@@ -270,6 +302,19 @@ export function RollingShowsSheet({
         const isActiveDelete =
           actionLoading.deleting && activeActionId === row.original.id
         const isAnyLoading = actionLoading.resetting || actionLoading.deleting
+
+        // Only show action buttons for master records (Global entries without specific user)
+        const isMasterRecord = !row.original.plex_username
+
+        if (!isMasterRecord) {
+          return (
+            <div className="flex items-center justify-center">
+              <span className="text-xs text-muted-foreground italic">
+                Tracking only
+              </span>
+            </div>
+          )
+        }
 
         return (
           <div className="flex items-center gap-2 justify-center">

@@ -5,7 +5,6 @@ import { Loader2, Save, X } from 'lucide-react'
 import { Form } from '@/components/ui/form'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 import { toast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 import {
@@ -19,30 +18,15 @@ import { useConfigStore } from '@/stores/configStore'
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 import { useRollingMonitoring } from '@/features/utilities/hooks/useRollingMonitoring'
 import type { JobStatus } from '@root/schemas/scheduler/scheduler.schema'
+import {
+  SessionMonitoringConfigSchema,
+  type SessionMonitoringFormData,
+} from '@/features/utilities/constants/session-monitoring'
 import { SessionMonitoringActions } from './session-monitoring-actions'
 import { SessionMonitoringConfig } from './session-monitoring-config'
 import { SessionMonitoringFiltering } from './session-monitoring-filtering'
 import { SessionMonitoringResetSettings } from './session-monitoring-reset-settings'
 import { SessionMonitoringStatus } from './session-monitoring-status'
-
-const sessionMonitoringSchema = z.object({
-  enabled: z.boolean(),
-  pollingIntervalMinutes: z.number().min(1).max(1440),
-  remainingEpisodes: z.number().min(1).max(10),
-  filterUsers: z
-    .union([z.string(), z.array(z.string())])
-    .optional()
-    .transform((val) => {
-      // Always convert to array for consistency
-      if (!val) return undefined
-      return Array.isArray(val) ? val : [val]
-    }),
-  enableAutoReset: z.boolean(),
-  inactivityResetDays: z.number().min(1).max(365),
-  autoResetIntervalHours: z.number().min(1).max(168),
-})
-
-type SessionMonitoringFormData = z.infer<typeof sessionMonitoringSchema>
 
 /**
  * Renders a form for configuring Plex session monitoring and rolling monitoring reset settings.
@@ -79,7 +63,7 @@ export function SessionMonitoringForm() {
   } = useRollingMonitoring()
 
   const form = useForm<SessionMonitoringFormData>({
-    resolver: zodResolver(sessionMonitoringSchema),
+    resolver: zodResolver(SessionMonitoringConfigSchema),
     defaultValues: {
       enabled: config?.plexSessionMonitoring?.enabled || false,
       pollingIntervalMinutes:
@@ -91,6 +75,8 @@ export function SessionMonitoringForm() {
         config?.plexSessionMonitoring?.inactivityResetDays || 7,
       autoResetIntervalHours:
         config?.plexSessionMonitoring?.autoResetIntervalHours || 24,
+      enableProgressiveCleanup:
+        config?.plexSessionMonitoring?.enableProgressiveCleanup || false,
     },
   })
 
@@ -119,6 +105,8 @@ export function SessionMonitoringForm() {
           config.plexSessionMonitoring.inactivityResetDays || 7,
         autoResetIntervalHours:
           config.plexSessionMonitoring.autoResetIntervalHours || 24,
+        enableProgressiveCleanup:
+          config.plexSessionMonitoring.enableProgressiveCleanup || false,
       }
       form.reset(formValues)
       setInactivityDays(config.plexSessionMonitoring.inactivityResetDays || 7)

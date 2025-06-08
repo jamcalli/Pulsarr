@@ -13,22 +13,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import type { UseFormReturn } from 'react-hook-form'
+import type { SessionMonitoringComponentProps } from '@/features/utilities/constants/session-monitoring'
 
-type SessionMonitoringFormData = {
-  enabled: boolean
-  pollingIntervalMinutes: number
-  remainingEpisodes: number
-  filterUsers?: string[]
-  enableAutoReset: boolean
-  inactivityResetDays: number
-  autoResetIntervalHours: number
-}
-
-interface SessionMonitoringFilteringProps {
-  form: UseFormReturn<SessionMonitoringFormData>
-  isEnabled: boolean
-}
+interface SessionMonitoringFilteringProps
+  extends SessionMonitoringComponentProps {}
 
 /**
  * Renders the filtering options section within a session monitoring form.

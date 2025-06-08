@@ -139,6 +139,8 @@ export interface Config {
     enableAutoReset?: boolean
     inactivityResetDays?: number
     autoResetIntervalHours?: number
+    // Progressive cleanup mode - cleans up previous seasons as user progresses
+    enableProgressiveCleanup?: boolean
   }
   // New User Defaults
   newUserDefaultCanSync?: boolean
