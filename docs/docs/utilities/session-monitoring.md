@@ -95,6 +95,14 @@ Navigate to **Utilities > Plex Session Monitoring** to configure:
   - Deletes excess episode files to save storage space
   - Helps manage storage for shows that users have abandoned
 
+#### Progressive Cleanup
+- **Enable Progressive Cleanup**: Automatically clean up previous seasons as users progress
+  - Default: Disabled
+  - Immediately removes previous seasons when users advance to new seasons
+  - Only cleans up if no filtered users have watched within the inactivity period
+  - Always preserves the original monitoring state (pilot-only or first-season-only)
+  - Provides proactive storage management while respecting user access patterns
+
 #### Reset Configuration
 - **Inactivity Reset Days**: Days without watching before resetting (1-365 days)
   - Default: 7 days
@@ -117,6 +125,7 @@ The interface provides real-time status and management tools:
   - Displays count of actively monitored shows
   - Quick view button to see all active shows
   - Shows expand their monitoring based on viewing patterns
+  - Distinguishes between master records (actionable) and user tracking entries
 
 - **Inactive Shows**: Shows that haven't been watched recently
   - Displays count with customizable inactivity threshold
@@ -132,14 +141,16 @@ The interface provides real-time status and management tools:
 
 - **View Shows**: Detailed tables showing all tracked shows
   - Show title and monitoring type (Pilot/First Season)
-  - Current monitored season
-  - Last activity timestamp
-  - Individual reset/remove actions per show
+  - User column distinguishing master records from individual user tracking
+  - Current monitored season and last activity timestamp
+  - Individual reset/remove actions per show (master records only)
+  - User tracking entries display "Tracking only" status
 
 - **Reset Actions**: 
-  - **Reset Show**: Reverts to original monitoring state and deletes excess files
-  - **Remove from Monitoring**: Stops tracking without affecting Sonarr settings
-  - Confirmation dialogs prevent accidental actions
+  - **Reset Show**: Reverts to original monitoring state, removes all user entries, resets master record
+  - **Remove from Monitoring**: Completely removes show and all user entries from tracking
+  - Actions only available on master records to prevent confusion
+  - Confirmation dialogs prevent accidental actions with detailed explanations
 
 ### Sonarr Integration
 
@@ -182,12 +193,31 @@ Rolling monitoring options are only available when Session Monitoring is enabled
 - **Popular Shows**: Use "First Season Rolling" for established content
 - **Trusted Content**: Use standard "All" monitoring for known favorites
 
+### Progressive Cleanup Strategy
+- **High Storage Constraints**: Enable progressive cleanup for aggressive space management
+- **Mixed User Patterns**: Use with appropriate inactivity periods to respect different viewing schedules
+- **Family Environments**: Consider longer inactivity periods to accommodate shared viewing
+- **Testing Phase**: Start disabled and monitor storage usage before enabling
+
 ## Technical Details
 
 ### Session Detection
 - Uses Plex's `/status/sessions` API endpoint
 - Processes only TV episode sessions (ignores movies and music)
 - Extracts series metadata including TVDB IDs for accurate matching
+
+### Per-User Tracking Architecture
+- **Master Records**: Define which shows should be monitored (no specific user)
+- **User Entries**: Created automatically when filtered users watch monitored shows
+- **Progressive Expansion**: User entries track individual progress while master records control monitoring
+- **Cleanup Operations**: Actions on master records affect all associated user entries
+
+### Progressive Cleanup Logic
+- Triggers when filtered users advance to new seasons
+- Checks inactivity period against all filtered users (not just current user)
+- Only cleans up seasons when no filtered users have watched within the configured period
+- Preserves original monitoring state defined by master record
+- Respects user filtering settings for consistent behavior
 
 ### Deduplication Logic
 - Maintains 7-day cache of processed sessions
@@ -211,13 +241,18 @@ Session Monitoring provides detailed logging for troubleshooting:
 - **Session Processing**: Which sessions are being monitored
 - **Search Triggers**: When and why searches are initiated
 - **Rolling Updates**: Progression of rolling monitoring expansions
+- **Progressive Cleanup**: When seasons are cleaned up and user entry management
+- **User Filtering**: Which users trigger actions vs tracking-only behavior
 - **Error Conditions**: API failures, network issues, or configuration problems
 
 Check your Pulsarr logs for session monitoring activity. Look for log entries such as:
 - `"Found X active Plex sessions"` - Shows when sessions are detected
 - `"Processing session: ShowName S01E08 watched by Username"` - Individual session processing
+- `"User Username not in filter list - will track progress but not trigger monitoring actions"` - User filtering behavior
+- `"Creating per-user rolling show entry for ShowName for user Username"` - User entry creation
 - `"Successfully triggered search for ShowName Season 2"` - When searches are initiated
 - `"Expanded monitoring for ShowName to include season 3"` - Rolling monitoring progression
+- `"Progressive cleanup for ShowName: removing seasons X, Y"` - Progressive cleanup actions
 - `"Session monitoring complete. Processed: X, Triggered: Y"` - Summary of monitoring cycles
 
 ## Environment Variable Configuration
@@ -226,7 +261,7 @@ Session monitoring can also be configured via the `plexSessionMonitoring` enviro
 
 ```env
 # Plex Session Monitoring Configuration (JSON format)
-plexSessionMonitoring='{"enabled":false,"pollingIntervalMinutes":15,"remainingEpisodes":2,"filterUsers":[],"enableAutoReset":true,"inactivityResetDays":7,"autoResetIntervalHours":24}'
+plexSessionMonitoring='{"enabled":false,"pollingIntervalMinutes":15,"remainingEpisodes":2,"filterUsers":[],"enableAutoReset":true,"inactivityResetDays":7,"autoResetIntervalHours":24,"enableProgressiveCleanup":false}'
 ```
 
 The JSON object supports the following properties:
@@ -237,11 +272,12 @@ The JSON object supports the following properties:
 - `enableAutoReset`: Enable automatic reset feature (default: `true`)
 - `inactivityResetDays`: Days before considering show inactive (default: `7`, range: 1-365)
 - `autoResetIntervalHours`: How often to check for inactive shows (default: `24`, range: 1-168)
+- `enableProgressiveCleanup`: Enable progressive cleanup feature (default: `false`)
 
 Example with custom settings:
 ```env
-# Enable monitoring with custom thresholds
-plexSessionMonitoring='{"enabled":true,"pollingIntervalMinutes":30,"remainingEpisodes":3,"filterUsers":["Alice","Bob"],"enableAutoReset":true,"inactivityResetDays":14,"autoResetIntervalHours":12}'
+# Enable monitoring with progressive cleanup and custom thresholds
+plexSessionMonitoring='{"enabled":true,"pollingIntervalMinutes":30,"remainingEpisodes":3,"filterUsers":["Alice","Bob"],"enableAutoReset":true,"inactivityResetDays":14,"autoResetIntervalHours":12,"enableProgressiveCleanup":true}'
 ```
 
 :::tip
@@ -287,6 +323,13 @@ The interface features:
 2. Verify content was added with rolling monitoring options
 3. Check database for rolling monitoring entries
 4. Confirm Sonarr series has complete season metadata
+
+### Progressive Cleanup Issues
+1. Verify progressive cleanup is enabled in settings
+2. Check that user is in the filtered users list (if filtering is enabled)
+3. Confirm inactivity period settings are appropriate for usage patterns
+4. Review logs for progressive cleanup decision-making process
+5. Ensure sufficient time has passed since season progression
 
 ### Performance Issues
 1. Increase polling interval to reduce API calls
