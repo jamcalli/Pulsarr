@@ -16,6 +16,7 @@ import {
   queuePendingWebhook,
 } from '@root/utils/webhookQueue.js'
 import { extractTmdbId, extractTvdbId } from '@root/utils/guid-handler.js'
+import { processContentNotifications } from '@root/utils/notification-processor.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.post<{
@@ -181,115 +182,55 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             title: body.movie.title,
           }
 
-          const notificationResults = await fastify.db.processNotifications(
-            mediaInfo,
-            false,
-          )
-
-          // If public content is enabled, also get public notification data
-          if (fastify.config.publicContentNotifications?.enabled) {
-            const publicNotificationResults =
-              await fastify.db.processNotifications(
-                mediaInfo,
-                false,
-                true, // byGuid = true for public content
-              )
-            // Add public notifications to the existing user notifications
-            notificationResults.push(...publicNotificationResults)
-          }
-
-          for (const result of notificationResults) {
-            // Handle global admin user specially
-            if (result.user.id === -1) {
-              // This is the global admin user - route to global endpoints
-              if (result.user.notify_discord) {
+          await processContentNotifications(fastify, mediaInfo, false, {
+            sequential: true,
+            onUserNotification: async (result) => {
+              // Queue Tautulli notifications
+              if (
+                result.user.notify_tautulli &&
+                fastify.tautulli?.isEnabled()
+              ) {
                 try {
-                  // Collect Discord IDs from all real users for @ mentions
-                  const userDiscordIds = notificationResults
-                    .filter((r) => r.user.id !== -1 && r.user.discord_id)
-                    .map((r) => r.user.discord_id as string)
-                  await fastify.discord.sendPublicNotification(
-                    result.notification,
-                    userDiscordIds,
+                  // Find the watchlist item for this user
+                  const userItem = matchingItems.find(
+                    (item) => item.user_id === result.user.id,
                   )
-                } catch (error) {
-                  fastify.log.error(
-                    { error },
-                    'Failed to send public Discord notification',
-                  )
-                }
-              }
-              if (result.user.notify_apprise) {
-                try {
-                  await fastify.apprise.sendPublicNotification(
-                    result.notification,
-                  )
-                } catch (error) {
-                  fastify.log.error(
-                    { error },
-                    'Failed to send public Apprise notification',
-                  )
-                }
-              }
-            } else {
-              // Regular user notifications (unchanged)
-              if (result.user.notify_discord && result.user.discord_id) {
-                await fastify.discord.sendDirectMessage(
-                  result.user.discord_id,
-                  result.notification,
-                )
-              }
 
-              if (result.user.notify_apprise) {
-                await fastify.apprise.sendMediaNotification(
-                  result.user,
-                  result.notification,
-                )
-              }
-            }
+                  if (userItem) {
+                    const itemId =
+                      typeof userItem.id === 'string'
+                        ? Number.parseInt(userItem.id, 10)
+                        : userItem.id
 
-            // Queue Tautulli notifications
-            if (result.user.notify_tautulli && fastify.tautulli?.isEnabled()) {
-              try {
-                // Find the watchlist item for this user
-                const userItem = matchingItems.find(
-                  (item) => item.user_id === result.user.id,
-                )
-
-                if (userItem) {
-                  const itemId =
-                    typeof userItem.id === 'string'
-                      ? Number.parseInt(userItem.id, 10)
-                      : userItem.id
-
-                  const tmdbId = extractTmdbId(userItem.guids)
-                  if (tmdbId > 0) {
-                    await fastify.tautulli.queueNotification(
-                      `tmdb:${tmdbId}`,
-                      'movie',
-                      [
+                    const tmdbId = extractTmdbId(userItem.guids)
+                    if (tmdbId > 0) {
+                      await fastify.tautulli.queueNotification(
+                        `tmdb:${tmdbId}`,
+                        'movie',
+                        [
+                          {
+                            userId: result.user.id,
+                            username: result.user.name,
+                            notifierId: result.user.tautulli_notifier_id || 0,
+                          },
+                        ],
                         {
-                          userId: result.user.id,
-                          username: result.user.name,
-                          notifierId: result.user.tautulli_notifier_id || 0,
+                          title: body.movie.title,
+                          watchlistItemId: itemId,
+                          watchlistItemKey: userItem.key,
                         },
-                      ],
-                      {
-                        title: body.movie.title,
-                        watchlistItemId: itemId,
-                        watchlistItemKey: userItem.key,
-                      },
-                    )
+                      )
+                    }
                   }
+                } catch (error) {
+                  fastify.log.error(
+                    { error, userId: result.user.id, title: body.movie.title },
+                    'Failed to queue Tautulli notification for movie',
+                  )
                 }
-              } catch (error) {
-                fastify.log.error(
-                  { error, userId: result.user.id, title: body.movie.title },
-                  'Failed to queue Tautulli notification for movie',
-                )
               }
-            }
-          }
+            },
+          })
 
           return { success: true }
         }
@@ -384,9 +325,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                 }
 
                 for (const result of notificationResults) {
-                  // Handle global admin user specially
+                  // Handle public content notifications specially
+                  // Note: ID -1 is a virtual runtime identifier, actual database records use user_id: null
                   if (result.user.id === -1) {
-                    // This is the global admin user - route to global endpoints
+                    // This is public content - route to global endpoints
                     if (result.user.notify_discord) {
                       try {
                         // Collect Discord IDs from all real users for @ mentions
@@ -625,9 +567,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
               }
 
               for (const result of notificationResults) {
-                // Handle global admin user specially
+                // Handle public content notifications specially
+                // Note: ID -1 is a virtual runtime identifier, actual database records use user_id: null
                 if (result.user.id === -1) {
-                  // This is the global admin user - route to global endpoints
+                  // This is public content - route to global endpoints
                   if (result.user.notify_discord) {
                     try {
                       // Collect Discord IDs from all real users for @ mentions

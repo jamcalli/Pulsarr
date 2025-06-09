@@ -37,6 +37,7 @@ import {
   determineNotificationType,
   createNotificationObject,
   getPublicContentNotificationFlags,
+  createPublicContentNotification,
 } from '@root/utils/notification-processor.js'
 import { DefaultInstanceError } from '@root/types/errors.js'
 import type {
@@ -3300,21 +3301,11 @@ export class DatabaseService {
         }
 
         // Create public content user notification
-        const publicContentUser: NotificationResult = {
-          user: {
-            id: -1, // Special ID for public content
-            name: 'Public Content',
-            apprise: null,
-            alias: null,
-            discord_id: null,
-            notify_apprise: hasAppriseUrls,
-            notify_discord: hasDiscordUrls,
-            notify_tautulli: false,
-            tautulli_notifier_id: null,
-            can_sync: false,
-          },
+        const publicContentUser = createPublicContentNotification(
           notification,
-        }
+          hasDiscordUrls,
+          hasAppriseUrls,
+        )
 
         notifications.push(publicContentUser)
       }
@@ -3329,32 +3320,20 @@ export class DatabaseService {
       // Create a virtual public content user notification using the first real notification as a template
       const templateNotification = notifications[0]
 
-      const publicContentUser: NotificationResult = {
-        user: {
-          id: -1, // Special ID for public content
-          name: 'Public Content',
-          apprise: null,
-          alias: null,
-          discord_id: null,
-          notify_apprise: Boolean(
-            this.config.publicContentNotifications.appriseUrls ||
-              this.config.publicContentNotifications.appriseUrlsMovies ||
-              this.config.publicContentNotifications.appriseUrlsShows,
-          ),
-          notify_discord: Boolean(
-            this.config.publicContentNotifications.discordWebhookUrls ||
-              this.config.publicContentNotifications.discordWebhookUrlsMovies ||
-              this.config.publicContentNotifications.discordWebhookUrlsShows,
-          ),
-          notify_tautulli: false,
-          tautulli_notifier_id: null,
-          can_sync: false,
-        },
-        notification: {
+      // Determine notification flags for regular mode
+      const { hasDiscordUrls, hasAppriseUrls } =
+        getPublicContentNotificationFlags(
+          this.config.publicContentNotifications,
+        )
+
+      const publicContentUser = createPublicContentNotification(
+        {
           ...templateNotification.notification,
           username: 'Public Content', // Override username for public content
         },
-      }
+        hasDiscordUrls,
+        hasAppriseUrls,
+      )
 
       notifications.push(publicContentUser)
     }

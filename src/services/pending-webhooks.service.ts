@@ -6,6 +6,7 @@ import type {
   NotificationResult,
 } from '@root/types/sonarr.types.js'
 import type { TokenWatchlistItem } from '@root/types/plex.types.js'
+import { processContentNotifications } from '@root/utils/notification-processor.js'
 
 /**
  * Service to handle webhooks that arrive before RSS feed matching is complete.
@@ -173,98 +174,21 @@ export class PendingWebhooksService {
                 title: webhook.title,
               }
 
-              const notificationResults =
-                await this.fastify.db.processNotifications(mediaInfo, false)
-
-              // If public content is enabled, also get public notification data
-              if (this.fastify.config.publicContentNotifications?.enabled) {
-                const publicNotificationResults =
-                  await this.fastify.db.processNotifications(
-                    mediaInfo,
-                    false,
-                    true, // byGuid = true for public content
-                  )
-                // Add public notifications to the existing user notifications
-                notificationResults.push(...publicNotificationResults)
-              }
-
-              // Process notifications concurrently to reduce latency
-              await Promise.all(
-                notificationResults.map(async (result) => {
-                  // Handle global admin user specially
-                  if (result.user.id === -1) {
-                    // This is the global admin user - route to global endpoints
-                    if (result.user.notify_discord) {
-                      // Collect Discord IDs from all real users for @ mentions
-                      const userDiscordIds = notificationResults
-                        .filter((r) => r.user.id !== -1 && r.user.discord_id)
-                        .map((r) => r.user.discord_id as string)
-                      try {
-                        await this.fastify.discord.sendPublicNotification(
-                          result.notification,
-                          userDiscordIds,
-                        )
-                      } catch (error) {
-                        this.log.error(
-                          { error, userId: result.user.id },
-                          'Failed to send public Discord notification',
-                        )
-                      }
-                    }
-                    if (result.user.notify_apprise) {
-                      try {
-                        await this.fastify.apprise.sendPublicNotification(
-                          result.notification,
-                        )
-                      } catch (error) {
-                        this.log.error(
-                          { error, userId: result.user.id },
-                          'Failed to send public Apprise notification',
-                        )
-                      }
-                    }
-                  } else {
-                    // Regular user notifications (unchanged)
-                    if (result.user.notify_discord && result.user.discord_id) {
-                      try {
-                        await this.fastify.discord.sendDirectMessage(
-                          result.user.discord_id,
-                          result.notification,
-                        )
-                      } catch (error) {
-                        this.log.error(
-                          {
-                            error,
-                            userId: result.user.id,
-                            discord_id: result.user.discord_id,
-                          },
-                          'Failed to send Discord notification',
-                        )
-                      }
-                    }
-
-                    if (result.user.notify_apprise) {
-                      try {
-                        await this.fastify.apprise.sendMediaNotification(
-                          result.user,
-                          result.notification,
-                        )
-                      } catch (error) {
-                        this.log.error(
-                          { error, userId: result.user.id },
-                          'Failed to send Apprise notification',
-                        )
-                      }
-                    }
-
-                    // Send Tautulli notifications
+              await processContentNotifications(
+                this.fastify,
+                mediaInfo,
+                false,
+                {
+                  logger: this.log,
+                  onUserNotification: async (result) => {
+                    // Send Tautulli notifications for regular users
                     await this.sendTautulliNotification(
                       result,
                       matchingItems,
                       webhook,
                     )
-                  }
-                }),
+                  },
+                },
               )
             } else if (webhook.media_type === 'show') {
               // For shows, we need to parse the payload to get episode information
@@ -298,104 +222,21 @@ export class PendingWebhooksService {
                   episodes: body.episodes,
                 }
 
-                const notificationResults =
-                  await this.fastify.db.processNotifications(
-                    mediaInfo,
-                    body.episodes.length > 1,
-                  )
-
-                // If public content is enabled, also get public notification data
-                if (this.fastify.config.publicContentNotifications?.enabled) {
-                  const publicNotificationResults =
-                    await this.fastify.db.processNotifications(
-                      mediaInfo,
-                      body.episodes.length > 1,
-                      true, // byGuid = true for public content
-                    )
-                  // Add public notifications to the existing user notifications
-                  notificationResults.push(...publicNotificationResults)
-                }
-
-                // Process notifications concurrently to reduce latency
-                await Promise.all(
-                  notificationResults.map(async (result) => {
-                    // Handle global admin user specially
-                    if (result.user.id === -1) {
-                      // This is the global admin user - route to global endpoints
-                      if (result.user.notify_discord) {
-                        // Collect Discord IDs from all real users for @ mentions
-                        const userDiscordIds = notificationResults
-                          .filter((r) => r.user.id !== -1 && r.user.discord_id)
-                          .map((r) => r.user.discord_id as string)
-                        try {
-                          await this.fastify.discord.sendPublicNotification(
-                            result.notification,
-                            userDiscordIds,
-                          )
-                        } catch (error) {
-                          this.log.error(
-                            { error, userId: result.user.id },
-                            'Failed to send public Discord notification for TV show',
-                          )
-                        }
-                      }
-                      if (result.user.notify_apprise) {
-                        try {
-                          await this.fastify.apprise.sendPublicNotification(
-                            result.notification,
-                          )
-                        } catch (error) {
-                          this.log.error(
-                            { error, userId: result.user.id },
-                            'Failed to send public Apprise notification for TV show',
-                          )
-                        }
-                      }
-                    } else {
-                      // Regular user notifications (unchanged)
-                      if (
-                        result.user.notify_discord &&
-                        result.user.discord_id
-                      ) {
-                        try {
-                          await this.fastify.discord.sendDirectMessage(
-                            result.user.discord_id,
-                            result.notification,
-                          )
-                        } catch (error) {
-                          this.log.error(
-                            {
-                              error,
-                              userId: result.user.id,
-                              discord_id: result.user.discord_id,
-                            },
-                            'Failed to send Discord notification for TV show',
-                          )
-                        }
-                      }
-
-                      if (result.user.notify_apprise) {
-                        try {
-                          await this.fastify.apprise.sendMediaNotification(
-                            result.user,
-                            result.notification,
-                          )
-                        } catch (error) {
-                          this.log.error(
-                            { error, userId: result.user.id },
-                            'Failed to send Apprise notification for TV show',
-                          )
-                        }
-                      }
-
-                      // Send Tautulli notifications
+                await processContentNotifications(
+                  this.fastify,
+                  mediaInfo,
+                  body.episodes.length > 1,
+                  {
+                    logger: this.log,
+                    onUserNotification: async (result) => {
+                      // Send Tautulli notifications for regular users
                       await this.sendTautulliNotification(
                         result,
                         matchingItems,
                         webhook,
                       )
-                    }
-                  }),
+                    },
+                  },
                 )
               }
             }

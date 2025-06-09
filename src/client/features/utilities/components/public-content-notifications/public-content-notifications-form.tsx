@@ -26,11 +26,129 @@ import {
 } from '@/components/ui/accordion'
 import { Separator } from '@/components/ui/separator'
 import { useMediaQuery } from '@/hooks/use-media-query'
-import {
-  usePublicContentNotifications,
-  type PublicContentNotificationsFormValues,
-} from '@/features/utilities/hooks/usePublicContentNotifications'
+import { usePublicContentNotifications } from '@/features/utilities/hooks/usePublicContentNotifications'
 import { PublicContentClearAlert } from '@/features/utilities/components/public-content-notifications/public-content-clear-alert'
+
+// Type for string URL fields only (excludes boolean 'enabled' field)
+type WebhookFieldName =
+  | 'discordWebhookUrls'
+  | 'discordWebhookUrlsMovies'
+  | 'discordWebhookUrlsShows'
+  | 'appriseUrls'
+  | 'appriseUrlsMovies'
+  | 'appriseUrlsShows'
+
+interface WebhookFieldProps {
+  name: WebhookFieldName
+  label: string
+  placeholder: string
+  tooltip: string
+  helpText: string
+  isTestable?: boolean
+  testHandler?: () => void
+  isTestLoading?: boolean
+  testResult?: boolean | null
+  showTestError?: boolean
+  onClear: () => void
+  value?: string
+  disabled?: boolean
+  form: ReturnType<typeof usePublicContentNotifications>['form']
+}
+
+/**
+ * Reusable webhook field component that reduces duplication across the 6 similar fields
+ */
+function WebhookField({
+  name,
+  label,
+  placeholder,
+  tooltip,
+  helpText,
+  isTestable = false,
+  testHandler,
+  isTestLoading,
+  testResult,
+  showTestError,
+  onClear,
+  value,
+  disabled,
+  form,
+}: WebhookFieldProps) {
+  return (
+    <FormField
+      control={form.control}
+      name={name}
+      render={({ field }) => (
+        <FormItem>
+          <div className="flex items-center gap-1">
+            <FormLabel className="text-text">{label}</FormLabel>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <InfoIcon className="h-4 w-4 text-text cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">{tooltip}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <FormControl>
+            <div className="flex gap-2">
+              <Input
+                {...field}
+                placeholder={placeholder}
+                disabled={disabled}
+                className="w-full"
+              />
+              {isTestable && (
+                <TooltipProvider>
+                  <Tooltip open={showTestError || undefined}>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        onClick={testHandler}
+                        disabled={disabled || !field.value}
+                        size="icon"
+                        variant="noShadow"
+                        className="shrink-0"
+                      >
+                        {isTestLoading ? (
+                          <Loader2 className="animate-spin" />
+                        ) : testResult ? (
+                          <Check className="text-black" />
+                        ) : (
+                          <Check />
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent
+                      className={showTestError ? 'bg-error text-black' : ''}
+                    >
+                      <p>Test connection</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+              {value && (
+                <Button
+                  type="button"
+                  variant="error"
+                  size="icon"
+                  onClick={onClear}
+                  disabled={disabled}
+                  className="shrink-0"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          </FormControl>
+          <p className="text-xs text-text opacity-70">{helpText}</p>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  )
+}
 
 /**
  * Form for configuring public content notifications that broadcast ALL content availability
@@ -52,7 +170,8 @@ export function PublicContentNotificationsForm() {
   } = usePublicContentNotifications()
 
   const [showClearAlert, setShowClearAlert] = React.useState(false)
-  const [clearingField, setClearingField] = React.useState<string | null>(null)
+  const [clearingField, setClearingField] =
+    React.useState<WebhookFieldName | null>(null)
 
   const isEnabled = form.watch('enabled')
 
@@ -267,347 +386,85 @@ export function PublicContentNotificationsForm() {
                             Discord Webhook Configuration
                           </h3>
                           <div className="space-y-4">
-                            <FormField
-                              control={form.control}
+                            <WebhookField
                               name="discordWebhookUrls"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <div className="flex items-center gap-1">
-                                    <FormLabel className="text-text">
-                                      General Discord Webhook URLs
-                                    </FormLabel>
-                                    <TooltipProvider>
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <InfoIcon className="h-4 w-4 text-text cursor-help" />
-                                        </TooltipTrigger>
-                                        <TooltipContent className="max-w-xs">
-                                          Discord webhook URLs for general
-                                          content notifications. Multiple URLs
-                                          can be separated by commas.
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    </TooltipProvider>
-                                  </div>
-                                  <FormControl>
-                                    <div className="flex gap-2">
-                                      <Input
-                                        {...field}
-                                        placeholder="https://discord.com/api/webhooks/..., https://discord.com/api/webhooks/..."
-                                        disabled={
-                                          testStatus.isTestingGeneral ||
-                                          isSubmitting ||
-                                          isToggling ||
-                                          isClearing
-                                        }
-                                        className="w-full"
-                                      />
-                                      <TooltipProvider>
-                                        <Tooltip
-                                          open={
-                                            showGeneralTestError || undefined
-                                          }
-                                        >
-                                          <TooltipTrigger asChild>
-                                            <Button
-                                              type="button"
-                                              onClick={() =>
-                                                handleTestDiscordWebhook(
-                                                  'general',
-                                                )
-                                              }
-                                              disabled={
-                                                testStatus.isTestingGeneral ||
-                                                isSubmitting ||
-                                                isToggling ||
-                                                isClearing ||
-                                                !field.value
-                                              }
-                                              size="icon"
-                                              variant="noShadow"
-                                              className="shrink-0"
-                                            >
-                                              {testStatus.isTestingGeneral ? (
-                                                <Loader2 className="animate-spin" />
-                                              ) : testStatus.testResults
-                                                  .general ? (
-                                                <Check className="text-black" />
-                                              ) : (
-                                                <Check />
-                                              )}
-                                            </Button>
-                                          </TooltipTrigger>
-                                          <TooltipContent
-                                            className={
-                                              showGeneralTestError
-                                                ? 'bg-error text-black'
-                                                : ''
-                                            }
-                                          >
-                                            <p>Test connection</p>
-                                          </TooltipContent>
-                                        </Tooltip>
-                                      </TooltipProvider>
-
-                                      {generalUrls && (
-                                        <Button
-                                          type="button"
-                                          variant="error"
-                                          size="icon"
-                                          onClick={() => {
-                                            setClearingField(
-                                              'discordWebhookUrls',
-                                            )
-                                            setShowClearAlert(true)
-                                          }}
-                                          disabled={
-                                            testStatus.isTestingGeneral ||
-                                            isSubmitting ||
-                                            isToggling ||
-                                            isClearing
-                                          }
-                                          className="shrink-0"
-                                        >
-                                          <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                      )}
-                                    </div>
-                                  </FormControl>
-                                  <p className="text-xs text-text opacity-70">
-                                    Comma-separated list of Discord webhook URLs
-                                    for general content notifications
-                                  </p>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
+                              label="General Discord Webhook URLs"
+                              placeholder="https://discord.com/api/webhooks/..., https://discord.com/api/webhooks/..."
+                              tooltip="Discord webhook URLs for general content notifications. Multiple URLs can be separated by commas."
+                              helpText="Comma-separated list of Discord webhook URLs for general content notifications"
+                              isTestable={true}
+                              testHandler={() =>
+                                handleTestDiscordWebhook('general')
+                              }
+                              isTestLoading={testStatus.isTestingGeneral}
+                              testResult={testStatus.testResults.general}
+                              showTestError={showGeneralTestError}
+                              onClear={() => {
+                                setClearingField('discordWebhookUrls')
+                                setShowClearAlert(true)
+                              }}
+                              value={generalUrls}
+                              disabled={
+                                testStatus.isTestingGeneral ||
+                                isSubmitting ||
+                                isToggling ||
+                                isClearing
+                              }
+                              form={form}
                             />
 
-                            <FormField
-                              control={form.control}
+                            <WebhookField
                               name="discordWebhookUrlsMovies"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <div className="flex items-center gap-1">
-                                    <FormLabel className="text-text">
-                                      Movie-specific Discord Webhook URLs
-                                    </FormLabel>
-                                    <TooltipProvider>
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <InfoIcon className="h-4 w-4 text-text cursor-help" />
-                                        </TooltipTrigger>
-                                        <TooltipContent className="max-w-xs">
-                                          Discord webhook URLs specifically for
-                                          movie notifications. Multiple URLs can
-                                          be separated by commas.
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    </TooltipProvider>
-                                  </div>
-                                  <FormControl>
-                                    <div className="flex gap-2">
-                                      <Input
-                                        {...field}
-                                        placeholder="https://discord.com/api/webhooks/..., https://discord.com/api/webhooks/..."
-                                        disabled={
-                                          testStatus.isTestingMovies ||
-                                          isSubmitting ||
-                                          isToggling ||
-                                          isClearing
-                                        }
-                                        className="w-full"
-                                      />
-                                      <TooltipProvider>
-                                        <Tooltip
-                                          open={
-                                            showMoviesTestError || undefined
-                                          }
-                                        >
-                                          <TooltipTrigger asChild>
-                                            <Button
-                                              type="button"
-                                              onClick={() =>
-                                                handleTestDiscordWebhook(
-                                                  'movies',
-                                                )
-                                              }
-                                              disabled={
-                                                testStatus.isTestingMovies ||
-                                                isSubmitting ||
-                                                isToggling ||
-                                                isClearing ||
-                                                !field.value
-                                              }
-                                              size="icon"
-                                              variant="noShadow"
-                                              className="shrink-0"
-                                            >
-                                              {testStatus.isTestingMovies ? (
-                                                <Loader2 className="animate-spin" />
-                                              ) : testStatus.testResults
-                                                  .movies ? (
-                                                <Check className="text-black" />
-                                              ) : (
-                                                <Check />
-                                              )}
-                                            </Button>
-                                          </TooltipTrigger>
-                                          <TooltipContent
-                                            className={
-                                              showMoviesTestError
-                                                ? 'bg-error text-black'
-                                                : ''
-                                            }
-                                          >
-                                            <p>Test connection</p>
-                                          </TooltipContent>
-                                        </Tooltip>
-                                      </TooltipProvider>
-
-                                      {moviesUrls && (
-                                        <Button
-                                          type="button"
-                                          variant="error"
-                                          size="icon"
-                                          onClick={() => {
-                                            setClearingField(
-                                              'discordWebhookUrlsMovies',
-                                            )
-                                            setShowClearAlert(true)
-                                          }}
-                                          disabled={
-                                            testStatus.isTestingMovies ||
-                                            isSubmitting ||
-                                            isToggling ||
-                                            isClearing
-                                          }
-                                          className="shrink-0"
-                                        >
-                                          <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                      )}
-                                    </div>
-                                  </FormControl>
-                                  <p className="text-xs text-text opacity-70">
-                                    Comma-separated list of Discord webhook URLs
-                                    specifically for movie notifications
-                                  </p>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
+                              label="Movie-specific Discord Webhook URLs"
+                              placeholder="https://discord.com/api/webhooks/..., https://discord.com/api/webhooks/..."
+                              tooltip="Discord webhook URLs specifically for movie notifications. Multiple URLs can be separated by commas."
+                              helpText="Comma-separated list of Discord webhook URLs specifically for movie notifications"
+                              isTestable={true}
+                              testHandler={() =>
+                                handleTestDiscordWebhook('movies')
+                              }
+                              isTestLoading={testStatus.isTestingMovies}
+                              testResult={testStatus.testResults.movies}
+                              showTestError={showMoviesTestError}
+                              onClear={() => {
+                                setClearingField('discordWebhookUrlsMovies')
+                                setShowClearAlert(true)
+                              }}
+                              value={moviesUrls}
+                              disabled={
+                                testStatus.isTestingMovies ||
+                                isSubmitting ||
+                                isToggling ||
+                                isClearing
+                              }
+                              form={form}
                             />
 
-                            <FormField
-                              control={form.control}
+                            <WebhookField
                               name="discordWebhookUrlsShows"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <div className="flex items-center gap-1">
-                                    <FormLabel className="text-text">
-                                      Show-specific Discord Webhook URLs
-                                    </FormLabel>
-                                    <TooltipProvider>
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <InfoIcon className="h-4 w-4 text-text cursor-help" />
-                                        </TooltipTrigger>
-                                        <TooltipContent className="max-w-xs">
-                                          Discord webhook URLs specifically for
-                                          TV show notifications. Multiple URLs
-                                          can be separated by commas.
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    </TooltipProvider>
-                                  </div>
-                                  <FormControl>
-                                    <div className="flex gap-2">
-                                      <Input
-                                        {...field}
-                                        placeholder="https://discord.com/api/webhooks/..., https://discord.com/api/webhooks/..."
-                                        disabled={
-                                          testStatus.isTestingShows ||
-                                          isSubmitting ||
-                                          isToggling ||
-                                          isClearing
-                                        }
-                                        className="w-full"
-                                      />
-                                      <TooltipProvider>
-                                        <Tooltip
-                                          open={showShowsTestError || undefined}
-                                        >
-                                          <TooltipTrigger asChild>
-                                            <Button
-                                              type="button"
-                                              onClick={() =>
-                                                handleTestDiscordWebhook(
-                                                  'shows',
-                                                )
-                                              }
-                                              disabled={
-                                                testStatus.isTestingShows ||
-                                                isSubmitting ||
-                                                isToggling ||
-                                                isClearing ||
-                                                !field.value
-                                              }
-                                              size="icon"
-                                              variant="noShadow"
-                                              className="shrink-0"
-                                            >
-                                              {testStatus.isTestingShows ? (
-                                                <Loader2 className="animate-spin" />
-                                              ) : testStatus.testResults
-                                                  .shows ? (
-                                                <Check className="text-black" />
-                                              ) : (
-                                                <Check />
-                                              )}
-                                            </Button>
-                                          </TooltipTrigger>
-                                          <TooltipContent
-                                            className={
-                                              showShowsTestError
-                                                ? 'bg-error text-black'
-                                                : ''
-                                            }
-                                          >
-                                            <p>Test connection</p>
-                                          </TooltipContent>
-                                        </Tooltip>
-                                      </TooltipProvider>
-
-                                      {showsUrls && (
-                                        <Button
-                                          type="button"
-                                          variant="error"
-                                          size="icon"
-                                          onClick={() => {
-                                            setClearingField(
-                                              'discordWebhookUrlsShows',
-                                            )
-                                            setShowClearAlert(true)
-                                          }}
-                                          disabled={
-                                            testStatus.isTestingShows ||
-                                            isSubmitting ||
-                                            isToggling ||
-                                            isClearing
-                                          }
-                                          className="shrink-0"
-                                        >
-                                          <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                      )}
-                                    </div>
-                                  </FormControl>
-                                  <p className="text-xs text-text opacity-70">
-                                    Comma-separated list of Discord webhook URLs
-                                    specifically for TV show notifications
-                                  </p>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
+                              label="Show-specific Discord Webhook URLs"
+                              placeholder="https://discord.com/api/webhooks/..., https://discord.com/api/webhooks/..."
+                              tooltip="Discord webhook URLs specifically for TV show notifications. Multiple URLs can be separated by commas."
+                              helpText="Comma-separated list of Discord webhook URLs specifically for TV show notifications"
+                              isTestable={true}
+                              testHandler={() =>
+                                handleTestDiscordWebhook('shows')
+                              }
+                              isTestLoading={testStatus.isTestingShows}
+                              testResult={testStatus.testResults.shows}
+                              showTestError={showShowsTestError}
+                              onClear={() => {
+                                setClearingField('discordWebhookUrlsShows')
+                                setShowClearAlert(true)
+                              }}
+                              value={showsUrls}
+                              disabled={
+                                testStatus.isTestingShows ||
+                                isSubmitting ||
+                                isToggling ||
+                                isClearing
+                              }
+                              form={form}
                             />
                           </div>
                         </div>
@@ -619,201 +476,58 @@ export function PublicContentNotificationsForm() {
                             Apprise Configuration
                           </h3>
                           <div className="space-y-4">
-                            <FormField
-                              control={form.control}
+                            <WebhookField
                               name="appriseUrls"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <div className="flex items-center gap-1">
-                                    <FormLabel className="text-text">
-                                      General Apprise URLs
-                                    </FormLabel>
-                                    <TooltipProvider>
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <InfoIcon className="h-4 w-4 text-text cursor-help" />
-                                        </TooltipTrigger>
-                                        <TooltipContent className="max-w-xs">
-                                          Apprise URLs for general content
-                                          notifications. Multiple URLs can be
-                                          separated by commas.
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    </TooltipProvider>
-                                  </div>
-                                  <FormControl>
-                                    <div className="flex gap-2">
-                                      <Input
-                                        {...field}
-                                        placeholder="discord://webhook_id/token, mailto://user:pass@gmail.com"
-                                        disabled={
-                                          isSubmitting ||
-                                          isToggling ||
-                                          isClearing
-                                        }
-                                        className="w-full"
-                                      />
-
-                                      {appriseGeneralUrls && (
-                                        <Button
-                                          type="button"
-                                          variant="error"
-                                          size="icon"
-                                          onClick={() => {
-                                            setClearingField('appriseUrls')
-                                            setShowClearAlert(true)
-                                          }}
-                                          disabled={
-                                            isSubmitting ||
-                                            isToggling ||
-                                            isClearing
-                                          }
-                                          className="shrink-0"
-                                        >
-                                          <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                      )}
-                                    </div>
-                                  </FormControl>
-                                  <p className="text-xs text-text opacity-70">
-                                    Comma-separated list of Apprise URLs for
-                                    general content notifications
-                                  </p>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
+                              label="General Apprise URLs"
+                              placeholder="discord://webhook_id/token, mailto://user:pass@gmail.com"
+                              tooltip="Apprise URLs for general content notifications. Multiple URLs can be separated by commas."
+                              helpText="Comma-separated list of Apprise URLs for general content notifications"
+                              isTestable={false}
+                              onClear={() => {
+                                setClearingField('appriseUrls')
+                                setShowClearAlert(true)
+                              }}
+                              value={appriseGeneralUrls}
+                              disabled={
+                                isSubmitting || isToggling || isClearing
+                              }
+                              form={form}
                             />
 
-                            <FormField
-                              control={form.control}
+                            <WebhookField
                               name="appriseUrlsMovies"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <div className="flex items-center gap-1">
-                                    <FormLabel className="text-text">
-                                      Movie-specific Apprise URLs
-                                    </FormLabel>
-                                    <TooltipProvider>
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <InfoIcon className="h-4 w-4 text-text cursor-help" />
-                                        </TooltipTrigger>
-                                        <TooltipContent className="max-w-xs">
-                                          Apprise URLs specifically for movie
-                                          notifications. Multiple URLs can be
-                                          separated by commas.
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    </TooltipProvider>
-                                  </div>
-                                  <FormControl>
-                                    <div className="flex gap-2">
-                                      <Input
-                                        {...field}
-                                        placeholder="discord://webhook_id/token, mailto://user:pass@gmail.com"
-                                        disabled={
-                                          isSubmitting ||
-                                          isToggling ||
-                                          isClearing
-                                        }
-                                        className="w-full"
-                                      />
-
-                                      {appriseMoviesUrls && (
-                                        <Button
-                                          type="button"
-                                          variant="error"
-                                          size="icon"
-                                          onClick={() => {
-                                            setClearingField(
-                                              'appriseUrlsMovies',
-                                            )
-                                            setShowClearAlert(true)
-                                          }}
-                                          disabled={
-                                            isSubmitting ||
-                                            isToggling ||
-                                            isClearing
-                                          }
-                                          className="shrink-0"
-                                        >
-                                          <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                      )}
-                                    </div>
-                                  </FormControl>
-                                  <p className="text-xs text-text opacity-70">
-                                    Comma-separated list of Apprise URLs
-                                    specifically for movie notifications
-                                  </p>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
+                              label="Movie-specific Apprise URLs"
+                              placeholder="discord://webhook_id/token, mailto://user:pass@gmail.com"
+                              tooltip="Apprise URLs specifically for movie notifications. Multiple URLs can be separated by commas."
+                              helpText="Comma-separated list of Apprise URLs specifically for movie notifications"
+                              isTestable={false}
+                              onClear={() => {
+                                setClearingField('appriseUrlsMovies')
+                                setShowClearAlert(true)
+                              }}
+                              value={appriseMoviesUrls}
+                              disabled={
+                                isSubmitting || isToggling || isClearing
+                              }
+                              form={form}
                             />
 
-                            <FormField
-                              control={form.control}
+                            <WebhookField
                               name="appriseUrlsShows"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <div className="flex items-center gap-1">
-                                    <FormLabel className="text-text">
-                                      Show-specific Apprise URLs
-                                    </FormLabel>
-                                    <TooltipProvider>
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <InfoIcon className="h-4 w-4 text-text cursor-help" />
-                                        </TooltipTrigger>
-                                        <TooltipContent className="max-w-xs">
-                                          Apprise URLs specifically for TV show
-                                          notifications. Multiple URLs can be
-                                          separated by commas.
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    </TooltipProvider>
-                                  </div>
-                                  <FormControl>
-                                    <div className="flex gap-2">
-                                      <Input
-                                        {...field}
-                                        placeholder="discord://webhook_id/token, mailto://user:pass@gmail.com"
-                                        disabled={
-                                          isSubmitting ||
-                                          isToggling ||
-                                          isClearing
-                                        }
-                                        className="w-full"
-                                      />
-
-                                      {appriseShowsUrls && (
-                                        <Button
-                                          type="button"
-                                          variant="error"
-                                          size="icon"
-                                          onClick={() => {
-                                            setClearingField('appriseUrlsShows')
-                                            setShowClearAlert(true)
-                                          }}
-                                          disabled={
-                                            isSubmitting ||
-                                            isToggling ||
-                                            isClearing
-                                          }
-                                          className="shrink-0"
-                                        >
-                                          <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                      )}
-                                    </div>
-                                  </FormControl>
-                                  <p className="text-xs text-text opacity-70">
-                                    Comma-separated list of Apprise URLs
-                                    specifically for TV show notifications
-                                  </p>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
+                              label="Show-specific Apprise URLs"
+                              placeholder="discord://webhook_id/token, mailto://user:pass@gmail.com"
+                              tooltip="Apprise URLs specifically for TV show notifications. Multiple URLs can be separated by commas."
+                              helpText="Comma-separated list of Apprise URLs specifically for TV show notifications"
+                              isTestable={false}
+                              onClear={() => {
+                                setClearingField('appriseUrlsShows')
+                                setShowClearAlert(true)
+                              }}
+                              value={appriseShowsUrls}
+                              disabled={
+                                isSubmitting || isToggling || isClearing
+                              }
+                              form={form}
                             />
                           </div>
                         </div>
@@ -875,9 +589,7 @@ export function PublicContentNotificationsForm() {
         onOpenChange={setShowClearAlert}
         onConfirm={async () => {
           if (clearingField) {
-            await handleClearField(
-              clearingField as keyof PublicContentNotificationsFormValues,
-            )
+            await handleClearField(clearingField)
             setClearingField(null)
           }
         }}
