@@ -9,10 +9,12 @@ import { SessionMonitoringForm } from '@/features/utilities/components/session-m
 import { SessionMonitoringSkeleton } from '@/features/utilities/components/session-monitoring/session-monitoring-skeleton'
 import { NewUserDefaultsForm } from '@/features/utilities/components/new-user-defaults/new-user-defaults-form'
 import { NewUserDefaultsSkeleton } from '@/features/utilities/components/new-user-defaults/new-user-defaults-skeleton'
+import { PublicContentNotificationsForm } from '@/features/utilities/components/public-content-notifications/public-content-notifications-form'
+import { PublicContentNotificationsSkeleton } from '@/features/utilities/components/public-content-notifications/public-content-notifications-skeleton'
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 
 /**
- * Renders the utilities dashboard with sections for DeleteSync, NewUserDefaults, PlexNotifications, SessionMonitoring, and UserTags.
+ * Renders the utilities dashboard with sections for DeleteSync, NewUserDefaults, PublicContentNotifications, PlexNotifications, SessionMonitoring, and UserTags.
  *
  * Displays skeleton placeholders while utility data is loading, then transitions to the corresponding utility forms once loading completes.
  *
@@ -50,6 +52,12 @@ export function UtilitiesDashboard() {
           <NewUserDefaultsSkeleton />
         ) : (
           <NewUserDefaultsForm />
+        )}
+
+        {isLoading || loading.schedules ? (
+          <PublicContentNotificationsSkeleton />
+        ) : (
+          <PublicContentNotificationsForm />
         )}
 
         {isLoading || loading.schedules ? (

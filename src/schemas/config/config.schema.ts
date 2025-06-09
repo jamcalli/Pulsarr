@@ -50,6 +50,24 @@ export const ConfigSchema = z.object({
   enableApprise: z.boolean().optional(),
   appriseUrl: z.string().optional(),
   systemAppriseUrl: z.string().optional(),
+  // Public Content Notifications - broadcast ALL content availability to public channels/endpoints
+  publicContentNotifications: z
+    .object({
+      enabled: z.boolean().default(false),
+      // Discord webhook URLs for public content announcements (comma-separated)
+      discordWebhookUrls: z.string().optional(),
+      // Movie-specific Discord webhook URLs (comma-separated)
+      discordWebhookUrlsMovies: z.string().optional(),
+      // Show-specific Discord webhook URLs (comma-separated)
+      discordWebhookUrlsShows: z.string().optional(),
+      // Apprise URLs for public content announcements (comma-separated)
+      appriseUrls: z.string().optional(),
+      // Movie-specific Apprise URLs (comma-separated)
+      appriseUrlsMovies: z.string().optional(),
+      // Show-specific Apprise URLs (comma-separated)
+      appriseUrlsShows: z.string().optional(),
+    })
+    .optional(),
   // Tautulli Config
   tautulliEnabled: z.boolean().optional(),
   tautulliUrl: z.string().optional(),
