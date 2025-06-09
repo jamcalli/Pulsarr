@@ -116,6 +116,111 @@ Navigate to **Utilities > Plex Session Monitoring** to configure:
   - Lower values = more frequent cleanup checks
   - Higher values = less server load
 
+## Cleanup Workflows and Scenarios
+
+Understanding how the two cleanup methods work together is crucial for optimal storage management:
+
+### Progressive Cleanup vs Automatic Reset
+
+Pulsarr provides two complementary cleanup mechanisms that serve different purposes:
+
+#### Progressive Cleanup (Activity-Based)
+- **When**: Triggers when users advance to new seasons AND no filtered users have watched previous seasons within the inactivity period
+- **Purpose**: Proactive storage management during active viewing while respecting recent activity
+- **Scope**: Removes specific previous seasons that are no longer needed
+- **Safety**: Only cleans up if no filtered users have watched the target seasons within the configured inactivity window
+
+#### Automatic Reset (Scheduled)
+- **When**: Runs on schedule (default every 24 hours) for shows inactive beyond the threshold
+- **Purpose**: Comprehensive cleanup for abandoned shows
+- **Scope**: Removes all user entries and resets master record to original state
+- **Safety**: Only affects shows with no activity from any user within the inactivity period
+
+### Detailed Workflow Scenarios
+
+#### Scenario 1: First Season Rolling with Progressive Cleanup
+1. **Setup**: User Alice watches "Show A" (First Season Rolling)
+2. **Initial State**: Season 1 fully monitored and downloaded
+3. **Progression**: Alice reaches S1E8 (2 episodes remaining)
+4. **System Action**: Season 2 monitoring enabled, episodes searched
+5. **Progressive Cleanup**: When Alice starts Season 2, Season 1 remains fully available (First Season Rolling preserves complete Season 1)
+6. **Later Seasons**: If Alice advances to Season 3, Season 2 files are deleted (if no other filtered users watching S2 within inactivity period)
+7. **Result**: Season 1 always preserved, intermediate seasons cleaned up progressively
+
+#### Scenario 2: Pilot Rolling with Progressive Cleanup
+1. **Setup**: User Alice watches "Show B" (Pilot Rolling)
+2. **Initial State**: Only pilot episode (S01E01) monitored
+3. **Pilot Viewing**: Alice watches pilot, rest of Season 1 is searched and downloaded
+4. **Season Progression**: Alice advances to Season 2, then Season 3
+5. **Progressive Cleanup**: When Alice starts Season 3, system checks if any filtered users watched Season 2 or Season 1 within the inactivity period (default 7 days)
+6. **Cleanup Decision**: If no filtered users watched Season 2 within the window, Season 2 files are deleted. If no filtered users watched Season 1 within the window, Season 1 is reset back to pilot-only (S01E02-S01E10 files deleted, only pilot remains)
+7. **Result**: Only seasons that haven't been watched recently by any filtered user are cleaned up
+
+#### Scenario 3: Multiple Users Watching Same Show
+1. **Setup**: Users Alice and Bob both watching "Show C" (Pilot Rolling)
+2. **Alice's Progress**: Advances to Season 3
+3. **Progressive Cleanup Check**: System checks if Bob has watched Seasons 1-2 within inactivity period
+4. **Safety Decision**: If Bob watched Season 1 recently, no cleanup occurs
+5. **Preservation**: Previous seasons preserved until all filtered users advance
+6. **Result**: Multi-user viewing patterns respected
+
+#### Scenario 4: Abandoned Show with Automatic Reset
+1. **Setup**: "Show D" was being tracked, users stopped watching 10 days ago
+2. **Scheduled Check**: Automatic reset runs daily, detects 10 days > 7-day threshold
+3. **Reset Process**: All user entries deleted, master record reset to original monitoring
+4. **Sonarr Actions**: Episodes beyond original state deleted, monitoring reverted
+5. **Result**: Show returns to starting state (pilot-only or first-season-only)
+
+#### Scenario 5: Mixed Cleanup Interaction
+1. **Progressive Phase**: Users actively watching, progressive cleanup manages current storage
+2. **Abandonment**: Users stop watching for extended period
+3. **Automatic Reset**: Scheduled reset detects inactivity, performs comprehensive cleanup
+4. **Final State**: Show completely reset regardless of previous progressive cleanup
+5. **Result**: Both mechanisms work together for complete lifecycle management
+
+### Interplay Between Cleanup Methods
+
+The two cleanup methods complement each other in a layered approach:
+
+```mermaid
+graph TD
+    A[User Watches Show] --> B{Progressive Cleanup Enabled?}
+    B -->|Yes| C[Real-time Season Cleanup]
+    B -->|No| D[Standard Monitoring]
+    C --> E[Continue Watching]
+    D --> E
+    E --> F{Show Abandoned?}
+    F -->|No| A
+    F -->|Yes| G[Automatic Reset Timer]
+    G --> H{Inactivity > Threshold?}
+    H -->|No| I[Wait]
+    H -->|Yes| J[Complete Reset to Original State]
+    I --> G
+    J --> K[Show Ready for New Users]
+```
+
+#### Key Design Principles
+
+1. **Progressive Cleanup Respects Activity Windows**: Acts during viewing sessions but only cleans up seasons that haven't been watched within the inactivity period
+2. **Automatic Reset is Comprehensive**: Handles complete show lifecycle
+3. **Safety First**: Both methods check filtered user activity patterns
+4. **Non-Conflicting**: Progressive cleanup doesn't interfere with automatic reset
+5. **User-Centric**: All decisions based on actual user viewing patterns
+
+#### When Each Method Triggers
+
+**Progressive Cleanup Triggers When**:
+- User advances to a new season
+- Progressive cleanup is enabled
+- User is in filtered users list (if filtering enabled)
+- No other filtered users have watched previous seasons within inactivity period
+
+**Automatic Reset Triggers When**:
+- Scheduled check runs (default every 24 hours)
+- Show has no activity from ANY user within inactivity period
+- Show has rolling monitoring entries to clean up
+- Automatic reset is enabled
+
 ### Rolling Monitoring Management
 
 The interface provides real-time status and management tools:

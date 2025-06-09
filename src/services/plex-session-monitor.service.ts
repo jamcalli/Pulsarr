@@ -811,6 +811,7 @@ export class PlexSessionMonitorService {
 
   /**
    * Reset inactive rolling monitored shows to their original monitoring state
+   * Removes all user entries and resets master records to season 1
    * Should be called periodically to clean up shows that haven't been watched recently
    */
   async resetInactiveRollingShows(inactivityDays = 7): Promise<void> {
@@ -844,12 +845,12 @@ export class PlexSessionMonitorService {
             )
           }
 
-          // Update the database to reset the current monitored season
-          const initialSeason = 1
-          await this.db.updateRollingShowMonitoredSeason(show.id, initialSeason)
+          // Remove all user entries and reset master record to original state
+          const deletedUserEntries =
+            await this.db.resetRollingMonitoredShowToOriginal(show.id)
 
           this.log.info(
-            `Successfully reset inactive rolling show: ${show.show_title}`,
+            `Successfully reset inactive rolling show: ${show.show_title}${deletedUserEntries > 0 ? ` (removed ${deletedUserEntries} user ${deletedUserEntries === 1 ? 'entry' : 'entries'})` : ''}`,
           )
         } catch (error) {
           this.log.error(
