@@ -55,12 +55,6 @@ export function UtilitiesDashboard() {
         )}
 
         {isLoading || loading.schedules ? (
-          <PublicContentNotificationsSkeleton />
-        ) : (
-          <PublicContentNotificationsForm />
-        )}
-
-        {isLoading || loading.schedules ? (
           <PlexNotificationsSkeleton />
         ) : (
           <PlexNotificationsForm />
@@ -70,6 +64,12 @@ export function UtilitiesDashboard() {
           <SessionMonitoringSkeleton />
         ) : (
           <SessionMonitoringForm />
+        )}
+
+        {isLoading || loading.schedules ? (
+          <PublicContentNotificationsSkeleton />
+        ) : (
+          <PublicContentNotificationsForm />
         )}
 
         {isLoading || loading.schedules ? (
