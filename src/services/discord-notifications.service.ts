@@ -15,6 +15,7 @@ import type {
   DiscordWebhookPayload,
   SystemNotification,
 } from '@root/types/discord.types.js'
+import { getPublicContentUrls } from '@root/utils/notification-processor.js'
 import {
   notificationsCommand,
   handleNotificationButtons,
@@ -386,30 +387,14 @@ export class DiscordNotificationService {
     const config = this.config.publicContentNotifications
     if (!config?.enabled) return false
 
-    // Determine which webhook URLs to use based on notification type
-    let webhookUrls: string[] = []
+    // Use centralized URL configuration utility
+    const webhookUrls = getPublicContentUrls(
+      config,
+      notification.type,
+      'discord',
+    )
 
-    if (notification.type === 'movie' && config.discordWebhookUrlsMovies) {
-      webhookUrls = config.discordWebhookUrlsMovies
-        .split(',')
-        .map((url: string) => url.trim())
-        .filter((url: string) => url.length > 0)
-    } else if (notification.type === 'show' && config.discordWebhookUrlsShows) {
-      webhookUrls = config.discordWebhookUrlsShows
-        .split(',')
-        .map((url: string) => url.trim())
-        .filter((url: string) => url.length > 0)
-    }
-
-    // Fallback to general webhook URLs if no specific ones configured
-    if (webhookUrls.length === 0 && config.discordWebhookUrls) {
-      webhookUrls = config.discordWebhookUrls
-        .split(',')
-        .map((url: string) => url.trim())
-        .filter((url: string) => url.length > 0)
-    }
-
-    // NO FALLBACK - if no global URLs configured, don't send anything
+    // If no URLs configured, don't send anything
     if (webhookUrls.length === 0) return false
 
     // Create embed using EXACTLY the same logic as sendDirectMessage for consistency
