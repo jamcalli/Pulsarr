@@ -97,10 +97,10 @@ export function NewUserDefaultsForm() {
         <AccordionTrigger className="px-6 py-4 bg-main hover:bg-main hover:no-underline">
           <div className="flex justify-between items-center w-full pr-2">
             <div>
-              <h3 className="text-lg font-medium text-text text-left">
+              <h3 className="text-lg font-medium text-black text-left">
                 New User Defaults
               </h3>
-              <p className="text-sm text-text text-left">
+              <p className="text-sm text-black text-left">
                 Configure default settings for newly discovered Plex users
               </p>
             </div>
@@ -113,7 +113,7 @@ export function NewUserDefaultsForm() {
                   : 'bg-red-500 hover:bg-red-500 text-white',
               )}
             >
-              {isEnabled ? 'Sync Enabled' : 'Sync Disabled'}
+              {isEnabled ? 'Enabled' : 'Disabled'}
             </Badge>
           </div>
         </AccordionTrigger>
