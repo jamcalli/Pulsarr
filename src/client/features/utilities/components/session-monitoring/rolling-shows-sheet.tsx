@@ -11,6 +11,8 @@ import {
   useReactTable,
   type VisibilityState,
 } from '@tanstack/react-table'
+import { formatDistanceToNow } from 'date-fns'
+
 import {
   ArrowUpDown,
   ChevronDown,
@@ -27,20 +29,6 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Input } from '@/components/ui/input'
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet'
-import {
   Drawer,
   DrawerContent,
   DrawerDescription,
@@ -48,12 +36,26 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer'
 import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
 import {
   Table,
   TableBody,
@@ -68,10 +70,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+
 import { useMediaQuery } from '@/hooks/use-media-query'
-import { formatDistanceToNow } from 'date-fns'
+
 import type { RollingMonitoredShow } from '@/features/utilities/hooks/useRollingMonitoring'
-import { RollingShowActionAlert } from './rolling-show-action-alert'
+
+import { RollingShowActionAlert } from '@/features/utilities/components/session-monitoring/rolling-show-action-alert'
 
 interface ColumnMetaType {
   className?: string
@@ -168,6 +172,49 @@ export function RollingShowsSheet({
           {row.getValue('show_title')}
         </div>
       ),
+    },
+    {
+      accessorKey: 'plex_username',
+      header: ({ column }) => {
+        return (
+          <Button
+            variant="noShadow"
+            size="sm"
+            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+            className="whitespace-nowrap"
+          >
+            User
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        )
+      },
+      cell: ({ row }) => {
+        const username = row.getValue('plex_username') as string | null
+
+        return (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="text-sm truncate max-w-24">
+                  {username || (
+                    <span className="text-muted-foreground italic font-medium">
+                      Master Record
+                    </span>
+                  )}
+                </div>
+              </TooltipTrigger>
+              {username && (
+                <TooltipContent>
+                  <p>{username}</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
+        )
+      },
+      meta: {
+        className: 'w-[100px]',
+      },
     },
     {
       accessorKey: 'monitoring_type',
@@ -270,6 +317,19 @@ export function RollingShowsSheet({
         const isActiveDelete =
           actionLoading.deleting && activeActionId === row.original.id
         const isAnyLoading = actionLoading.resetting || actionLoading.deleting
+
+        // Only show action buttons for master records (Global entries without specific user)
+        const isMasterRecord = !row.original.plex_username
+
+        if (!isMasterRecord) {
+          return (
+            <div className="flex items-center justify-center">
+              <span className="text-xs text-muted-foreground italic">
+                Tracking only
+              </span>
+            </div>
+          )
+        }
 
         return (
           <div className="flex items-center gap-2 justify-center">

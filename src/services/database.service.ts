@@ -687,6 +687,7 @@ export class DatabaseService {
               enableAutoReset: true,
               inactivityResetDays: 7,
               autoResetIntervalHours: 24,
+              enableProgressiveCleanup: false,
             },
             'config.plexSessionMonitoring',
           )
@@ -6521,15 +6522,17 @@ export class DatabaseService {
   }
 
   /**
-   * Gets a rolling monitored show by TVDB ID or title
+   * Gets a rolling monitored show by TVDB ID or title for a specific user
    *
    * @param tvdbId - The TVDB ID
    * @param title - The show title
+   * @param plexUserId - The Plex user ID for per-user tracking
    * @returns Promise resolving to the rolling monitored show or null
    */
   async getRollingMonitoredShow(
     tvdbId?: string,
     title?: string,
+    plexUserId?: string,
   ): Promise<RollingMonitoredShow | null> {
     try {
       const query = this.knex('rolling_monitored_shows')
@@ -6540,6 +6543,14 @@ export class DatabaseService {
         query.where('show_title', title)
       } else {
         return null
+      }
+
+      // Always filter by user ID to ensure per-user entries
+      if (plexUserId) {
+        query.where('plex_user_id', plexUserId)
+      } else {
+        // If no user ID provided, look for legacy global entries (null plex_user_id)
+        query.whereNull('plex_user_id')
       }
 
       return await query.first()
@@ -6623,6 +6634,98 @@ export class DatabaseService {
     } catch (error) {
       this.log.error('Error deleting rolling monitored show:', error)
       return false
+    }
+  }
+
+  /**
+   * Deletes all rolling monitored show entries for a given show
+   * (all users watching the same sonarr_series_id + sonarr_instance_id)
+   *
+   * @param id - The ID of any rolling monitored show entry for the show
+   * @returns Promise resolving to number of deleted entries
+   */
+  async deleteAllRollingMonitoredShowEntries(id: number): Promise<number> {
+    try {
+      // First get the show details to find the series and instance
+      const show = await this.getRollingMonitoredShowById(id)
+      if (!show) {
+        return 0
+      }
+
+      // Delete all entries for this show (all users)
+      const deleted = await this.knex('rolling_monitored_shows')
+        .where({
+          sonarr_series_id: show.sonarr_series_id,
+          sonarr_instance_id: show.sonarr_instance_id,
+        })
+        .delete()
+
+      this.log.info(
+        `Deleted ${deleted} rolling monitored show entries for ${show.show_title} (series_id: ${show.sonarr_series_id}, instance_id: ${show.sonarr_instance_id})`,
+      )
+
+      return deleted
+    } catch (error) {
+      this.log.error(
+        'Error deleting all rolling monitored show entries:',
+        error,
+      )
+      return 0
+    }
+  }
+
+  /**
+   * Resets a rolling monitored show to its original state:
+   * - Removes all user entries
+   * - Resets master record to season 1
+   *
+   * @param id - The ID of any rolling monitored show entry for the show
+   * @returns Promise resolving to number of user entries deleted
+   */
+  async resetRollingMonitoredShowToOriginal(id: number): Promise<number> {
+    try {
+      // First get the show details to find the series and instance
+      const show = await this.getRollingMonitoredShowById(id)
+      if (!show) {
+        return 0
+      }
+
+      return await this.knex.transaction(async (trx) => {
+        // Delete all user entries (keep only master record)
+        const deletedUserEntries = await trx('rolling_monitored_shows')
+          .where({
+            sonarr_series_id: show.sonarr_series_id,
+            sonarr_instance_id: show.sonarr_instance_id,
+          })
+          .whereNotNull('plex_user_id') // Only delete user entries, not master
+          .delete()
+
+        // Reset the master record to original state (if it exists)
+        await trx('rolling_monitored_shows')
+          .where({
+            sonarr_series_id: show.sonarr_series_id,
+            sonarr_instance_id: show.sonarr_instance_id,
+          })
+          .whereNull('plex_user_id') // Only update master record
+          .update({
+            current_monitored_season: 1,
+            last_watched_season: 0,
+            last_watched_episode: 0,
+            updated_at: trx.fn.now(),
+          })
+
+        this.log.info(
+          `Reset ${show.show_title} to original state: removed ${deletedUserEntries} user entries, reset master record (series_id: ${show.sonarr_series_id}, instance_id: ${show.sonarr_instance_id})`,
+        )
+
+        return deletedUserEntries
+      })
+    } catch (error) {
+      this.log.error(
+        'Error resetting rolling monitored show to original state:',
+        error,
+      )
+      return 0
     }
   }
 

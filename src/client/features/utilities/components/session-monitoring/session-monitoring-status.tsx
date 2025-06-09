@@ -12,7 +12,7 @@ import {
 } from 'lucide-react'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { toast } from '@/hooks/use-toast'
-import { RollingShowsSheet } from './rolling-shows-sheet'
+import { RollingShowsSheet } from '@/features/utilities/components/session-monitoring/rolling-shows-sheet'
 import type { RollingMonitoredShow } from '@/features/utilities/hooks/useRollingMonitoring'
 import type { SessionMonitoringResult } from '@root/types/plex-session.types'
 
