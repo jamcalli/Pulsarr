@@ -692,6 +692,21 @@ export class DatabaseService {
             'config.plexSessionMonitoring',
           )
         : undefined,
+      publicContentNotifications: config.publicContentNotifications
+        ? this.safeJsonParse(
+            config.publicContentNotifications,
+            {
+              enabled: false,
+              discordWebhookUrls: '',
+              discordWebhookUrlsMovies: '',
+              discordWebhookUrlsShows: '',
+              appriseUrls: '',
+              appriseUrlsMovies: '',
+              appriseUrlsShows: '',
+            },
+            'config.publicContentNotifications',
+          )
+        : undefined,
       newUserDefaultCanSync: Boolean(config.newUserDefaultCanSync ?? true),
       // Handle optional RSS fields
       selfRss: config.selfRss || undefined,
@@ -831,6 +846,10 @@ export class DatabaseService {
         plexSessionMonitoring: config.plexSessionMonitoring
           ? JSON.stringify(config.plexSessionMonitoring)
           : null,
+        // Public Content Notifications
+        publicContentNotifications: config.publicContentNotifications
+          ? JSON.stringify(config.publicContentNotifications)
+          : null,
         // New User Defaults
         newUserDefaultCanSync: config.newUserDefaultCanSync ?? true,
         // Ready state
@@ -877,6 +896,7 @@ export class DatabaseService {
         ) {
           updateData[key] = value
         } else if (
+          key === 'publicContentNotifications' ||
           Array.isArray(value) ||
           (typeof value === 'object' && value !== null)
         ) {
@@ -3156,6 +3176,44 @@ export class DatabaseService {
         },
         notification,
       })
+    }
+
+    // Add public content notification if enabled and we have notifications
+    if (
+      this.config.publicContentNotifications?.enabled &&
+      notifications.length > 0
+    ) {
+      // Create a virtual public content user notification using the first real notification as a template
+      const templateNotification = notifications[0]
+
+      const publicContentUser: NotificationResult = {
+        user: {
+          id: -1, // Special ID for public content
+          name: 'Public Content',
+          apprise: null,
+          alias: null,
+          discord_id: null,
+          notify_apprise: Boolean(
+            this.config.publicContentNotifications.appriseUrls ||
+              this.config.publicContentNotifications.appriseUrlsMovies ||
+              this.config.publicContentNotifications.appriseUrlsShows,
+          ),
+          notify_discord: Boolean(
+            this.config.publicContentNotifications.discordWebhookUrls ||
+              this.config.publicContentNotifications.discordWebhookUrlsMovies ||
+              this.config.publicContentNotifications.discordWebhookUrlsShows,
+          ),
+          notify_tautulli: false,
+          tautulli_notifier_id: null,
+          can_sync: false,
+        },
+        notification: {
+          ...templateNotification.notification,
+          username: 'Public Content', // Override username for public content
+        },
+      }
+
+      notifications.push(publicContentUser)
     }
 
     return notifications

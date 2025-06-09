@@ -148,6 +148,63 @@ export class AppriseNotificationService {
   }
 
   /**
+   * Send public content notification to shared Apprise endpoints
+   */
+  async sendPublicNotification(
+    notification: MediaNotification,
+    contentType: 'movie' | 'show',
+  ): Promise<boolean> {
+    const config = this.config.publicContentNotifications
+    if (!config?.enabled) return false
+
+    // Determine which Apprise URLs to use
+    let appriseUrls: string[] = []
+
+    if (contentType === 'movie' && config.appriseUrlsMovies) {
+      appriseUrls = config.appriseUrlsMovies
+        .split(',')
+        .map((url: string) => url.trim())
+        .filter((url: string) => url.length > 0)
+    } else if (contentType === 'show' && config.appriseUrlsShows) {
+      appriseUrls = config.appriseUrlsShows
+        .split(',')
+        .map((url: string) => url.trim())
+        .filter((url: string) => url.length > 0)
+    }
+
+    // Fallback to general Apprise URLs if no specific ones configured
+    if (appriseUrls.length === 0 && config.appriseUrls) {
+      appriseUrls = config.appriseUrls
+        .split(',')
+        .map((url: string) => url.trim())
+        .filter((url: string) => url.length > 0)
+    }
+
+    // NO FALLBACK - if no global URLs configured, don't send anything
+    if (appriseUrls.length === 0) return false
+
+    // Create a fake user for public notifications with shared Apprise URLs
+    const publicNotificationUser = {
+      id: -1,
+      name: 'Public Content',
+      apprise: appriseUrls.join(','),
+      alias: null,
+      discord_id: null,
+      notify_apprise: true,
+      notify_discord: false,
+      notify_tautulli: false,
+      tautulli_notifier_id: null,
+      can_sync: false,
+    }
+
+    // Send notification using existing Apprise service
+    return await this.sendMediaNotification(
+      publicNotificationUser,
+      notification,
+    )
+  }
+
+  /**
    * Sends a media notification to a user via their configured Apprise URL
    *
    * @param user - The user to notify

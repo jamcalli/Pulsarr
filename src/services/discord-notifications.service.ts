@@ -375,6 +375,140 @@ export class DiscordNotificationService {
     }
   }
 
+  /**
+   * Send public content notification with @ mentions for users who have the content watchlisted
+   */
+  async sendPublicNotification(
+    notification: MediaNotification,
+    contentType: 'movie' | 'show',
+    userDiscordIds?: string[],
+  ): Promise<boolean> {
+    const config = this.config.publicContentNotifications
+    if (!config?.enabled) return false
+
+    // Determine which webhook URLs to use
+    let webhookUrls: string[] = []
+
+    if (contentType === 'movie' && config.discordWebhookUrlsMovies) {
+      webhookUrls = config.discordWebhookUrlsMovies
+        .split(',')
+        .map((url: string) => url.trim())
+        .filter((url: string) => url.length > 0)
+    } else if (contentType === 'show' && config.discordWebhookUrlsShows) {
+      webhookUrls = config.discordWebhookUrlsShows
+        .split(',')
+        .map((url: string) => url.trim())
+        .filter((url: string) => url.length > 0)
+    }
+
+    // Fallback to general webhook URLs if no specific ones configured
+    if (webhookUrls.length === 0 && config.discordWebhookUrls) {
+      webhookUrls = config.discordWebhookUrls
+        .split(',')
+        .map((url: string) => url.trim())
+        .filter((url: string) => url.length > 0)
+    }
+
+    // NO FALLBACK - if no global URLs configured, don't send anything
+    if (webhookUrls.length === 0) return false
+
+    // Create custom payload with @ mentions using same format as existing embeds
+    const emoji = notification.type === 'movie' ? '🎬' : '📺'
+    const mediaType =
+      notification.type.charAt(0).toUpperCase() + notification.type.slice(1)
+
+    const embed: DiscordEmbed = {
+      title: notification.title,
+      description: `${emoji} New ${mediaType} Available`,
+      color: this.COLOR,
+      timestamp: new Date().toISOString(),
+      footer: {
+        text: 'Pulsarr',
+      },
+      fields: [
+        {
+          name: 'Type',
+          value: mediaType,
+          inline: true,
+        },
+      ],
+    }
+
+    // Add episode details for shows
+    if (notification.type === 'show' && notification.episodeDetails) {
+      const { episodeDetails } = notification
+      if (
+        episodeDetails.seasonNumber !== undefined &&
+        episodeDetails.episodeNumber !== undefined
+      ) {
+        // Single episode
+        const seasonNum = episodeDetails.seasonNumber
+          .toString()
+          .padStart(2, '0')
+        const episodeNum = episodeDetails.episodeNumber
+          .toString()
+          .padStart(2, '0')
+        embed.fields = embed.fields || []
+        embed.fields.push({
+          name: 'Episode',
+          value: `S${seasonNum}E${episodeNum}`,
+          inline: true,
+        })
+        if (episodeDetails.title) {
+          embed.fields.push({
+            name: 'Episode Title',
+            value: episodeDetails.title,
+            inline: true,
+          })
+        }
+      } else if (episodeDetails.seasonNumber !== undefined) {
+        // Season release
+        embed.fields = embed.fields || []
+        embed.fields.push({
+          name: 'Season',
+          value: `Season ${episodeDetails.seasonNumber}`,
+          inline: true,
+        })
+      }
+    }
+
+    // Add poster image if available
+    if (notification.posterUrl) {
+      embed.image = {
+        url: notification.posterUrl,
+      }
+    }
+
+    // Create @ mentions content
+    let content = ''
+    if (userDiscordIds && userDiscordIds.length > 0) {
+      const mentions = userDiscordIds.map((id) => `<@${id}>`).join(' ')
+      content = mentions
+    }
+
+    const payload: DiscordWebhookPayload = {
+      content,
+      embeds: [embed],
+      username: 'Pulsarr',
+      avatar_url:
+        'https://raw.githubusercontent.com/jamcalli/Pulsarr/master/src/client/assets/images/pulsarr.png',
+    }
+
+    // Use existing Discord service with global webhook URLs
+    const originalWebhookUrl = this.config.discordWebhookUrl
+
+    try {
+      // Temporarily override the webhook URL to use global endpoints
+      this.config.discordWebhookUrl = webhookUrls.join(',')
+
+      // Send notification using existing service method with custom payload
+      return await this.sendNotification(payload)
+    } finally {
+      // Restore original webhook URL
+      this.config.discordWebhookUrl = originalWebhookUrl
+    }
+  }
+
   async sendMediaNotification(
     notification: MediaNotification,
   ): Promise<boolean> {

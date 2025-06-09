@@ -16,6 +16,8 @@ import {
   queuePendingWebhook,
 } from '@root/utils/webhookQueue.js'
 import { extractTmdbId, extractTvdbId } from '@root/utils/guid-handler.js'
+import type { MediaNotification } from '@root/types/sonarr.types.js'
+import type { FastifyInstance } from 'fastify'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.post<{
@@ -187,18 +189,41 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           )
 
           for (const result of notificationResults) {
-            if (result.user.notify_discord && result.user.discord_id) {
-              await fastify.discord.sendDirectMessage(
-                result.user.discord_id,
-                result.notification,
-              )
-            }
+            // Handle global admin user specially
+            if (result.user.id === -1) {
+              // This is the global admin user - route to global endpoints
+              if (result.user.notify_discord) {
+                // Collect Discord IDs from all real users for @ mentions
+                const userDiscordIds = notificationResults
+                  .filter((r) => r.user.id !== -1 && r.user.discord_id)
+                  .map((r) => r.user.discord_id as string)
+                await fastify.discord.sendGlobalNotification(
+                  result.notification,
+                  'movie',
+                  userDiscordIds,
+                )
+              }
+              if (result.user.notify_apprise) {
+                await fastify.apprise.sendGlobalNotification(
+                  result.notification,
+                  'movie',
+                )
+              }
+            } else {
+              // Regular user notifications (unchanged)
+              if (result.user.notify_discord && result.user.discord_id) {
+                await fastify.discord.sendDirectMessage(
+                  result.user.discord_id,
+                  result.notification,
+                )
+              }
 
-            if (result.user.notify_apprise) {
-              await fastify.apprise.sendMediaNotification(
-                result.user,
-                result.notification,
-              )
+              if (result.user.notify_apprise) {
+                await fastify.apprise.sendMediaNotification(
+                  result.user,
+                  result.notification,
+                )
+              }
             }
 
             // Queue Tautulli notifications
@@ -325,18 +350,41 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                   await fastify.db.processNotifications(mediaInfo, false)
 
                 for (const result of notificationResults) {
-                  if (result.user.notify_discord && result.user.discord_id) {
-                    await fastify.discord.sendDirectMessage(
-                      result.user.discord_id,
-                      result.notification,
-                    )
-                  }
+                  // Handle global admin user specially
+                  if (result.user.id === -1) {
+                    // This is the global admin user - route to global endpoints
+                    if (result.user.notify_discord) {
+                      // Collect Discord IDs from all real users for @ mentions
+                      const userDiscordIds = notificationResults
+                        .filter((r) => r.user.id !== -1 && r.user.discord_id)
+                        .map((r) => r.user.discord_id as string)
+                      await fastify.discord.sendGlobalNotification(
+                        result.notification,
+                        'show',
+                        userDiscordIds,
+                      )
+                    }
+                    if (result.user.notify_apprise) {
+                      await fastify.apprise.sendGlobalNotification(
+                        result.notification,
+                        'show',
+                      )
+                    }
+                  } else {
+                    // Regular user notifications (unchanged)
+                    if (result.user.notify_discord && result.user.discord_id) {
+                      await fastify.discord.sendDirectMessage(
+                        result.user.discord_id,
+                        result.notification,
+                      )
+                    }
 
-                  if (result.user.notify_apprise) {
-                    await fastify.apprise.sendMediaNotification(
-                      result.user,
-                      result.notification,
-                    )
+                    if (result.user.notify_apprise) {
+                      await fastify.apprise.sendMediaNotification(
+                        result.user,
+                        result.notification,
+                      )
+                    }
                   }
 
                   // Queue Tautulli notifications
@@ -519,18 +567,41 @@ const plugin: FastifyPluginAsync = async (fastify) => {
               }
 
               for (const result of notificationResults) {
-                if (result.user.notify_discord && result.user.discord_id) {
-                  await fastify.discord.sendDirectMessage(
-                    result.user.discord_id,
-                    result.notification,
-                  )
-                }
+                // Handle global admin user specially
+                if (result.user.id === -1) {
+                  // This is the global admin user - route to global endpoints
+                  if (result.user.notify_discord) {
+                    // Collect Discord IDs from all real users for @ mentions
+                    const userDiscordIds = notificationResults
+                      .filter((r) => r.user.id !== -1 && r.user.discord_id)
+                      .map((r) => r.user.discord_id as string)
+                    await fastify.discord.sendGlobalNotification(
+                      result.notification,
+                      'show',
+                      userDiscordIds,
+                    )
+                  }
+                  if (result.user.notify_apprise) {
+                    await fastify.apprise.sendGlobalNotification(
+                      result.notification,
+                      'show',
+                    )
+                  }
+                } else {
+                  // Regular user notifications (unchanged)
+                  if (result.user.notify_discord && result.user.discord_id) {
+                    await fastify.discord.sendDirectMessage(
+                      result.user.discord_id,
+                      result.notification,
+                    )
+                  }
 
-                if (result.user.notify_apprise) {
-                  await fastify.apprise.sendMediaNotification(
-                    result.user,
-                    result.notification,
-                  )
+                  if (result.user.notify_apprise) {
+                    await fastify.apprise.sendMediaNotification(
+                      result.user,
+                      result.notification,
+                    )
+                  }
                 }
 
                 // Queue Tautulli notifications
