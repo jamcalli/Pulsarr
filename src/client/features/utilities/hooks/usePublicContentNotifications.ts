@@ -19,109 +19,47 @@ function parseWebhookUrls(value?: string): string[] {
     .filter(Boolean)
 }
 
+// Reusable Discord webhook URL validator
+const discordWebhookString = z
+  .string()
+  .optional()
+  .refine(
+    (value): value is string => {
+      const urls = parseWebhookUrls(value)
+      if (urls.length === 0) {
+        return value === undefined || value.trim() === ''
+      }
+      return urls.every((url) => url.includes('discord.com/api/webhooks'))
+    },
+    {
+      message: 'All URLs must be valid Discord webhook URLs',
+    },
+  )
+  .superRefine((value, ctx) => {
+    const urls = parseWebhookUrls(value)
+    if (urls.length === 0) return
+
+    const invalidUrls = urls.filter(
+      (url) => !url.includes('discord.com/api/webhooks'),
+    )
+
+    if (invalidUrls.length > 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Invalid Discord webhook URL${
+          invalidUrls.length > 1 ? 's' : ''
+        }: ${invalidUrls.join(', ')}`,
+      })
+    }
+  })
+
 // Create an enhanced schema with connection testing validation
 const publicContentNotificationsSchema = z
   .object({
     enabled: z.boolean().default(false),
-    discordWebhookUrls: z
-      .string()
-      .optional()
-      .refine(
-        (value): value is string => {
-          const urls = parseWebhookUrls(value)
-          if (urls.length === 0) {
-            return value === undefined || value.trim() === ''
-          }
-          return urls.every((url) => url.includes('discord.com/api/webhooks'))
-        },
-        {
-          message: 'All URLs must be valid Discord webhook URLs',
-        },
-      )
-      .superRefine((value, ctx) => {
-        const urls = parseWebhookUrls(value)
-        if (urls.length === 0) return
-
-        const invalidUrls = urls.filter(
-          (url) => !url.includes('discord.com/api/webhooks'),
-        )
-
-        if (invalidUrls.length > 0) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: `Invalid Discord webhook URL${
-              invalidUrls.length > 1 ? 's' : ''
-            }: ${invalidUrls.join(', ')}`,
-            path: ['discordWebhookUrls'],
-          })
-        }
-      }),
-    discordWebhookUrlsMovies: z
-      .string()
-      .optional()
-      .refine(
-        (value): value is string => {
-          const urls = parseWebhookUrls(value)
-          if (urls.length === 0) {
-            return value === undefined || value.trim() === ''
-          }
-          return urls.every((url) => url.includes('discord.com/api/webhooks'))
-        },
-        {
-          message: 'All URLs must be valid Discord webhook URLs',
-        },
-      )
-      .superRefine((value, ctx) => {
-        const urls = parseWebhookUrls(value)
-        if (urls.length === 0) return
-
-        const invalidUrls = urls.filter(
-          (url) => !url.includes('discord.com/api/webhooks'),
-        )
-
-        if (invalidUrls.length > 0) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: `Invalid Discord webhook URL${
-              invalidUrls.length > 1 ? 's' : ''
-            }: ${invalidUrls.join(', ')}`,
-            path: ['discordWebhookUrlsMovies'],
-          })
-        }
-      }),
-    discordWebhookUrlsShows: z
-      .string()
-      .optional()
-      .refine(
-        (value): value is string => {
-          const urls = parseWebhookUrls(value)
-          if (urls.length === 0) {
-            return value === undefined || value.trim() === ''
-          }
-          return urls.every((url) => url.includes('discord.com/api/webhooks'))
-        },
-        {
-          message: 'All URLs must be valid Discord webhook URLs',
-        },
-      )
-      .superRefine((value, ctx) => {
-        const urls = parseWebhookUrls(value)
-        if (urls.length === 0) return
-
-        const invalidUrls = urls.filter(
-          (url) => !url.includes('discord.com/api/webhooks'),
-        )
-
-        if (invalidUrls.length > 0) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: `Invalid Discord webhook URL${
-              invalidUrls.length > 1 ? 's' : ''
-            }: ${invalidUrls.join(', ')}`,
-            path: ['discordWebhookUrlsShows'],
-          })
-        }
-      }),
+    discordWebhookUrls: discordWebhookString,
+    discordWebhookUrlsMovies: discordWebhookString,
+    discordWebhookUrlsShows: discordWebhookString,
     appriseUrls: z.string().optional(),
     appriseUrlsMovies: z.string().optional(),
     appriseUrlsShows: z.string().optional(),
@@ -514,7 +452,10 @@ export function usePublicContentNotifications() {
           setTimeout(resolve, 500),
         )
 
-        const formData = { ...form.getValues(), enabled: newEnabledState }
+        // Strip internal flags before persisting
+        const { _generalTested, _moviesTested, _showsTested, ...cleanValues } =
+          form.getValues()
+        const formData = { ...cleanValues, enabled: newEnabledState }
 
         await Promise.all([
           updateConfig({

@@ -282,34 +282,49 @@ export class DiscordNotificationService {
     })
   }
 
-  async sendNotification(payload: DiscordWebhookPayload): Promise<boolean> {
-    if (!this.config.discordWebhookUrl) {
-      this.log.debug(
-        'Attempted to send notification without webhook URL configured',
-      )
-      return false
-    }
+  async sendNotification(
+    payload: DiscordWebhookPayload,
+    overrideUrls?: string[],
+  ): Promise<boolean> {
+    let webhookUrls: string[]
 
-    // Trim the input string first to handle whitespace-only input
-    const trimmedInput = this.config.discordWebhookUrl?.trim() ?? ''
-    if (trimmedInput.length === 0) {
-      this.log.debug('Webhook URL is empty or contains only whitespace')
-      return false
-    }
+    if (overrideUrls) {
+      // Use provided URLs directly
+      webhookUrls = overrideUrls.filter((url) => url.trim().length > 0)
+      if (webhookUrls.length === 0) {
+        this.log.debug('No valid override webhook URLs provided')
+        return false
+      }
+    } else {
+      // Use config URLs (existing behavior)
+      if (!this.config.discordWebhookUrl) {
+        this.log.debug(
+          'Attempted to send notification without webhook URL configured',
+        )
+        return false
+      }
 
-    // Split webhook URLs by comma, trim whitespace, and deduplicate
-    const webhookUrls = [
-      ...new Set(
-        trimmedInput
-          .split(',')
-          .map((url) => url.trim())
-          .filter((url) => url.length > 0),
-      ),
-    ]
+      // Trim the input string first to handle whitespace-only input
+      const trimmedInput = this.config.discordWebhookUrl?.trim() ?? ''
+      if (trimmedInput.length === 0) {
+        this.log.debug('Webhook URL is empty or contains only whitespace')
+        return false
+      }
 
-    if (webhookUrls.length === 0) {
-      this.log.debug('No valid webhook URLs found after parsing')
-      return false
+      // Split webhook URLs by comma, trim whitespace, and deduplicate
+      webhookUrls = [
+        ...new Set(
+          trimmedInput
+            .split(',')
+            .map((url) => url.trim())
+            .filter((url) => url.length > 0),
+        ),
+      ]
+
+      if (webhookUrls.length === 0) {
+        this.log.debug('No valid webhook URLs found after parsing')
+        return false
+      }
     }
 
     try {
@@ -500,19 +515,8 @@ export class DiscordNotificationService {
         'https://raw.githubusercontent.com/jamcalli/Pulsarr/master/src/client/assets/images/pulsarr.png',
     }
 
-    // Use existing Discord service with global webhook URLs
-    const originalWebhookUrl = this.config.discordWebhookUrl
-
-    try {
-      // Temporarily override the webhook URL to use global endpoints
-      this.config.discordWebhookUrl = webhookUrls.join(',')
-
-      // Send notification using existing service method with custom payload
-      return await this.sendNotification(payload)
-    } finally {
-      // Restore original webhook URL
-      this.config.discordWebhookUrl = originalWebhookUrl
-    }
+    // Send notification using existing service method with custom payload
+    return await this.sendNotification(payload, webhookUrls)
   }
 
   async sendMediaNotification(
