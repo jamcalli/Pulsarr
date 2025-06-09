@@ -87,10 +87,14 @@ export class DatabaseService {
 
   constructor(
     private readonly log: FastifyBaseLogger,
-    private readonly config: FastifyInstance['config'],
+    private readonly fastify: FastifyInstance,
   ) {
-    this.isPostgres = config.dbType === 'postgres'
-    this.knex = knex(DatabaseService.createKnexConfig(config, log))
+    this.isPostgres = fastify.config.dbType === 'postgres'
+    this.knex = knex(DatabaseService.createKnexConfig(fastify.config, log))
+  }
+
+  private get config() {
+    return this.fastify.config
   }
 
   /**
@@ -98,12 +102,12 @@ export class DatabaseService {
    */
   static async create(
     log: FastifyBaseLogger,
-    config: FastifyInstance['config'],
+    fastify: FastifyInstance,
   ): Promise<DatabaseService> {
-    const service = new DatabaseService(log, config)
+    const service = new DatabaseService(log, fastify)
 
     // Configure PostgreSQL type parsers if needed
-    if (config.dbType === 'postgres') {
+    if (fastify.config.dbType === 'postgres') {
       await service.configurePostgresTypes()
     }
 
@@ -2997,6 +3001,7 @@ export class DatabaseService {
       episodes?: SonarrEpisodeSchema[]
     },
     isBulkRelease: boolean,
+    byGuid = false,
   ): Promise<NotificationResult[]> {
     // Get all watchlist items matching this guid
     const watchlistItems = await this.getWatchlistItemsByGuid(mediaInfo.guid)
@@ -3178,10 +3183,194 @@ export class DatabaseService {
       })
     }
 
-    // Add public content notification if enabled and we have notifications
+    // Handle byGuid mode - create public notification from any available watchlist item for rich data
+    if (byGuid && watchlistItems.length > 0) {
+      // Get rich data from the first available watchlist item (regardless of user)
+      const referenceItem = watchlistItems[0]
+
+      // Determine notification type and details
+      let contentType: 'movie' | 'season' | 'episode'
+      let seasonNumber: number | undefined
+      let episodeNumber: number | undefined
+
+      if (mediaInfo.type === 'movie') {
+        contentType = 'movie'
+      } else if (mediaInfo.type === 'show' && mediaInfo.episodes?.length) {
+        if (isBulkRelease) {
+          contentType = 'season'
+          seasonNumber = mediaInfo.episodes[0].seasonNumber
+        } else {
+          contentType = 'episode'
+          seasonNumber = mediaInfo.episodes[0].seasonNumber
+          episodeNumber = mediaInfo.episodes[0].episodeNumber
+        }
+      } else {
+        return notifications // Can't process without proper type
+      }
+
+      // Create notification using rich data from reference item
+      const notificationTitle = mediaInfo.title || referenceItem.title
+      const notification: MediaNotification = {
+        type: mediaInfo.type,
+        title: notificationTitle,
+        username: 'Public Content',
+        posterUrl: referenceItem.thumb || undefined,
+      }
+
+      // Add episode details for shows
+      if (contentType === 'season' && seasonNumber !== undefined) {
+        notification.episodeDetails = {
+          seasonNumber: seasonNumber,
+        }
+      } else if (
+        contentType === 'episode' &&
+        mediaInfo.episodes &&
+        mediaInfo.episodes.length > 0
+      ) {
+        const episode = mediaInfo.episodes[0]
+        notification.episodeDetails = {
+          title: episode.title,
+          ...(episode.overview && { overview: episode.overview }),
+          seasonNumber: episode.seasonNumber,
+          episodeNumber: episode.episodeNumber,
+          airDateUtc: episode.airDateUtc,
+        }
+      }
+
+      // Check for existing public content notification to avoid duplicates
+      const existingPublicNotification = await this.knex('notifications')
+        .where({
+          user_id: null, // Public content notifications use null user_id
+          type: contentType,
+          watchlist_item_id: null, // Public notifications not tied to specific items
+          notification_status: 'active',
+        })
+        .modify((query) => {
+          if (seasonNumber !== undefined) {
+            query.where('season_number', seasonNumber)
+          }
+          if (episodeNumber !== undefined) {
+            query.where('episode_number', episodeNumber)
+          }
+        })
+        .first()
+
+      if (existingPublicNotification) {
+        this.log.info(
+          `Skipping public ${contentType} notification for ${mediaInfo.title}${
+            seasonNumber !== undefined ? ` S${seasonNumber}` : ''
+          }${
+            episodeNumber !== undefined ? `E${episodeNumber}` : ''
+          } - already sent previously`,
+        )
+      } else {
+        // Create notification record for public content
+        if (contentType === 'movie') {
+          await this.createNotificationRecord({
+            watchlist_item_id: null, // Public notifications not tied to specific watchlist items
+            user_id: null, // Public content notifications use null user_id
+            type: 'movie',
+            title: notificationTitle,
+            sent_to_discord: Boolean(
+              this.config.publicContentNotifications?.discordWebhookUrls ||
+                this.config.publicContentNotifications
+                  ?.discordWebhookUrlsMovies ||
+                this.config.publicContentNotifications?.discordWebhookUrlsShows,
+            ),
+            sent_to_apprise: Boolean(
+              this.config.publicContentNotifications?.appriseUrls ||
+                this.config.publicContentNotifications?.appriseUrlsMovies ||
+                this.config.publicContentNotifications?.appriseUrlsShows,
+            ),
+            sent_to_webhook: false,
+            sent_to_tautulli: false,
+          })
+        } else if (contentType === 'season') {
+          await this.createNotificationRecord({
+            watchlist_item_id: null,
+            user_id: null,
+            type: 'season',
+            title: notificationTitle,
+            season_number: seasonNumber,
+            sent_to_discord: Boolean(
+              this.config.publicContentNotifications?.discordWebhookUrls ||
+                this.config.publicContentNotifications
+                  ?.discordWebhookUrlsMovies ||
+                this.config.publicContentNotifications?.discordWebhookUrlsShows,
+            ),
+            sent_to_apprise: Boolean(
+              this.config.publicContentNotifications?.appriseUrls ||
+                this.config.publicContentNotifications?.appriseUrlsMovies ||
+                this.config.publicContentNotifications?.appriseUrlsShows,
+            ),
+            sent_to_webhook: false,
+            sent_to_tautulli: false,
+          })
+        } else if (
+          contentType === 'episode' &&
+          mediaInfo.episodes &&
+          mediaInfo.episodes.length > 0
+        ) {
+          const episode = mediaInfo.episodes[0]
+          await this.createNotificationRecord({
+            watchlist_item_id: null,
+            user_id: null,
+            type: 'episode',
+            title: notificationTitle,
+            message: episode.overview,
+            season_number: episode.seasonNumber,
+            episode_number: episode.episodeNumber,
+            sent_to_discord: Boolean(
+              this.config.publicContentNotifications?.discordWebhookUrls ||
+                this.config.publicContentNotifications
+                  ?.discordWebhookUrlsMovies ||
+                this.config.publicContentNotifications?.discordWebhookUrlsShows,
+            ),
+            sent_to_apprise: Boolean(
+              this.config.publicContentNotifications?.appriseUrls ||
+                this.config.publicContentNotifications?.appriseUrlsMovies ||
+                this.config.publicContentNotifications?.appriseUrlsShows,
+            ),
+            sent_to_webhook: false,
+            sent_to_tautulli: false,
+          })
+        }
+
+        // Create public content user notification
+        const publicContentUser: NotificationResult = {
+          user: {
+            id: -1, // Special ID for public content
+            name: 'Public Content',
+            apprise: null,
+            alias: null,
+            discord_id: null,
+            notify_apprise: Boolean(
+              this.config.publicContentNotifications?.appriseUrls ||
+                this.config.publicContentNotifications?.appriseUrlsMovies ||
+                this.config.publicContentNotifications?.appriseUrlsShows,
+            ),
+            notify_discord: Boolean(
+              this.config.publicContentNotifications?.discordWebhookUrls ||
+                this.config.publicContentNotifications
+                  ?.discordWebhookUrlsMovies ||
+                this.config.publicContentNotifications?.discordWebhookUrlsShows,
+            ),
+            notify_tautulli: false,
+            tautulli_notifier_id: null,
+            can_sync: false,
+          },
+          notification,
+        }
+
+        notifications.push(publicContentUser)
+      }
+    }
+
+    // Add public content notification if enabled (regardless of individual user notifications)
     if (
       this.config.publicContentNotifications?.enabled &&
-      notifications.length > 0
+      notifications.length > 0 &&
+      !byGuid // Don't duplicate when byGuid already added public content
     ) {
       // Create a virtual public content user notification using the first real notification as a template
       const templateNotification = notifications[0]
