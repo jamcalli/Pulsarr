@@ -107,6 +107,8 @@ export const ConfigSchema = z.object({
       enableAutoReset: z.boolean().default(true).optional(),
       inactivityResetDays: z.number().min(1).max(365).default(7).optional(),
       autoResetIntervalHours: z.number().min(1).max(168).default(24).optional(),
+      // Progressive cleanup mode - cleans up previous seasons as user progresses
+      enableProgressiveCleanup: z.boolean().default(false).optional(),
     })
     .optional(),
   // New User Defaults

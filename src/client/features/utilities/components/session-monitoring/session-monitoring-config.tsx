@@ -1,4 +1,5 @@
 import { HelpCircle } from 'lucide-react'
+
 import {
   FormControl,
   FormField,
@@ -13,22 +14,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import type { UseFormReturn } from 'react-hook-form'
 
-type SessionMonitoringFormData = {
-  enabled: boolean
-  pollingIntervalMinutes: number
-  remainingEpisodes: number
-  filterUsers?: string[]
-  enableAutoReset: boolean
-  inactivityResetDays: number
-  autoResetIntervalHours: number
-}
+import type { SessionMonitoringComponentProps } from '@/features/utilities/constants/session-monitoring'
 
-interface SessionMonitoringConfigProps {
-  form: UseFormReturn<SessionMonitoringFormData>
-  isEnabled: boolean
-}
+interface SessionMonitoringConfigProps
+  extends SessionMonitoringComponentProps {}
 
 /**
  * Renders a configuration section for session monitoring settings within a form.

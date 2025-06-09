@@ -14,6 +14,7 @@ const DEFAULT_PLEX_SESSION_MONITORING = {
   enableAutoReset: true,
   inactivityResetDays: 7,
   autoResetIntervalHours: 24,
+  enableProgressiveCleanup: false,
 }
 
 const schema = {
@@ -389,6 +390,7 @@ export default fp(
               enableAutoReset: true,
               inactivityResetDays: 7,
               autoResetIntervalHours: 24,
+              enableProgressiveCleanup: false,
             },
             'plexSessionMonitoring',
           )

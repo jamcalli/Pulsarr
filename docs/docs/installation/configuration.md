@@ -268,7 +268,7 @@ deleteSyncNotifyOnlyOnDeletion=false   # Only send notifications when items are 
 maxDeletionPrevention=10               # Safeguard to prevent mass deletion. % of total library to allow during delete sync
 
 # Plex Session Monitoring
-plexSessionMonitoring='{"enabled":false,"pollingIntervalMinutes":15,"remainingEpisodes":2,"filterUsers":[],"enableAutoReset":true,"inactivityResetDays":7,"autoResetIntervalHours":24}'  # JSON config for session monitoring
+plexSessionMonitoring='{"enabled":false,"pollingIntervalMinutes":15,"remainingEpisodes":2,"filterUsers":[],"enableAutoReset":true,"inactivityResetDays":7,"autoResetIntervalHours":24,"enableProgressiveCleanup":false}'  # JSON config for session monitoring
 # Session monitoring configuration (JSON format):
 # - enabled: Enable/disable session monitoring (default: false)
 # - pollingIntervalMinutes: How often to check sessions in minutes (default: 15, range: 1-1440)
@@ -277,6 +277,7 @@ plexSessionMonitoring='{"enabled":false,"pollingIntervalMinutes":15,"remainingEp
 # - enableAutoReset: Enable automatic reset of inactive shows (default: true)
 # - inactivityResetDays: Days without activity before reset (default: 7, range: 1-365)
 # - autoResetIntervalHours: How often to check for inactive shows in hours (default: 24, range: 1-168)
+# - enableProgressiveCleanup: Enable progressive cleanup of previous seasons (default: false)
 
 # New User Defaults
 newUserDefaultCanSync=true             # Default sync permission for new users

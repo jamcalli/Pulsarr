@@ -137,18 +137,19 @@ const sessionMonitoringRoutes: FastifyPluginAsync = async (fastify) => {
           await resetShowMonitoring(existingShow, fastify.plexSessionMonitor)
         }
 
-        // Remove from tracking
-        await fastify.db.deleteRollingMonitoredShow(showId)
+        // Remove all user entries for this show from tracking
+        const deletedCount =
+          await fastify.db.deleteAllRollingMonitoredShowEntries(showId)
 
         request.log.info(
-          `${shouldReset ? 'Deleted and reset' : 'Removed'} rolling monitored show with ID ${showId}`,
+          `${shouldReset ? 'Deleted and reset' : 'Removed'} rolling monitored show with ID ${showId} (${deletedCount} entries removed)`,
         )
 
         return reply.send({
           success: true,
           message: shouldReset
-            ? `Successfully deleted ${existingShow.show_title} and reset to original monitoring state`
-            : `Successfully removed ${existingShow.show_title} from rolling monitoring`,
+            ? `Successfully deleted ${existingShow.show_title} and reset to original monitoring state (removed ${deletedCount} user ${deletedCount === 1 ? 'entry' : 'entries'})`
+            : `Successfully removed ${existingShow.show_title} from rolling monitoring (removed ${deletedCount} user ${deletedCount === 1 ? 'entry' : 'entries'})`,
         })
       } catch (error) {
         request.log.error('Error deleting rolling monitored show:', error)
@@ -194,16 +195,17 @@ const sessionMonitoringRoutes: FastifyPluginAsync = async (fastify) => {
         // Reset the show based on its monitoring type
         await resetShowMonitoring(existingShow, fastify.plexSessionMonitor)
 
-        // Update the database to reset the current monitored season
-        await fastify.db.updateRollingShowMonitoredSeason(showId, 1)
+        // Remove all user entries and reset master record to original state
+        const deletedUserEntries =
+          await fastify.db.resetRollingMonitoredShowToOriginal(showId)
 
         request.log.info(
-          `Manually reset rolling monitored show: ${existingShow.show_title}`,
+          `Manually reset rolling monitored show: ${existingShow.show_title} (removed ${deletedUserEntries} user entries)`,
         )
 
         return reply.send({
           success: true,
-          message: `Successfully reset ${existingShow.show_title} to its original monitoring state`,
+          message: `Successfully reset ${existingShow.show_title} to its original monitoring state${deletedUserEntries > 0 ? ` (removed ${deletedUserEntries} user ${deletedUserEntries === 1 ? 'entry' : 'entries'})` : ''}`,
         })
       } catch (error) {
         request.log.error('Error resetting rolling monitored show:', error)
