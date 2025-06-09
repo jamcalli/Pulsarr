@@ -33,6 +33,11 @@ import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import knex, { type Knex } from 'knex'
 import { configurePgTypes } from '@utils/postgres-config.js'
 import type { Config, User } from '@root/types/config.types.js'
+import {
+  determineNotificationType,
+  createNotificationObject,
+  getPublicContentNotificationFlags,
+} from '@root/utils/notification-processor.js'
 import { DefaultInstanceError } from '@root/types/errors.js'
 import type {
   PendingWebhook,
@@ -2993,6 +2998,7 @@ export class DatabaseService {
    * @param isBulkRelease - Whether this is a bulk release (e.g., full season)
    * @returns Promise resolving to array of notification results
    */
+
   async processNotifications(
     mediaInfo: {
       type: 'movie' | 'show'
@@ -3028,24 +3034,14 @@ export class DatabaseService {
       }
 
       // Determine notification type and details
-      let contentType: 'movie' | 'season' | 'episode'
-      let seasonNumber: number | undefined
-      let episodeNumber: number | undefined
-
-      if (mediaInfo.type === 'movie') {
-        contentType = 'movie'
-      } else if (mediaInfo.type === 'show' && mediaInfo.episodes?.length) {
-        if (isBulkRelease) {
-          contentType = 'season'
-          seasonNumber = mediaInfo.episodes[0].seasonNumber
-        } else {
-          contentType = 'episode'
-          seasonNumber = mediaInfo.episodes[0].seasonNumber
-          episodeNumber = mediaInfo.episodes[0].episodeNumber
-        }
-      } else {
+      const notificationTypeInfo = determineNotificationType(
+        mediaInfo,
+        isBulkRelease,
+      )
+      if (!notificationTypeInfo) {
         continue
       }
+      const { contentType, seasonNumber, episodeNumber } = notificationTypeInfo
 
       // Check for existing notification to avoid duplicates
       const existingNotification = await this.knex('notifications')
@@ -3189,33 +3185,22 @@ export class DatabaseService {
       const referenceItem = watchlistItems[0]
 
       // Determine notification type and details
-      let contentType: 'movie' | 'season' | 'episode'
-      let seasonNumber: number | undefined
-      let episodeNumber: number | undefined
-
-      if (mediaInfo.type === 'movie') {
-        contentType = 'movie'
-      } else if (mediaInfo.type === 'show' && mediaInfo.episodes?.length) {
-        if (isBulkRelease) {
-          contentType = 'season'
-          seasonNumber = mediaInfo.episodes[0].seasonNumber
-        } else {
-          contentType = 'episode'
-          seasonNumber = mediaInfo.episodes[0].seasonNumber
-          episodeNumber = mediaInfo.episodes[0].episodeNumber
-        }
-      } else {
+      const notificationTypeInfo = determineNotificationType(
+        mediaInfo,
+        isBulkRelease,
+      )
+      if (!notificationTypeInfo) {
         return notifications // Can't process without proper type
       }
+      const { contentType, seasonNumber, episodeNumber } = notificationTypeInfo
 
       // Create notification using rich data from reference item
       const notificationTitle = mediaInfo.title || referenceItem.title
-      const notification: MediaNotification = {
-        type: mediaInfo.type,
-        title: notificationTitle,
-        username: 'Public Content',
-        posterUrl: referenceItem.thumb || undefined,
-      }
+      const notification: MediaNotification = createNotificationObject(
+        mediaInfo,
+        referenceItem,
+        'Public Content',
+      )
 
       // Add episode details for shows
       if (contentType === 'season' && seasonNumber !== undefined) {
@@ -3265,23 +3250,19 @@ export class DatabaseService {
         )
       } else {
         // Create notification record for public content
+        const { hasDiscordUrls, hasAppriseUrls } =
+          getPublicContentNotificationFlags(
+            this.config.publicContentNotifications,
+          )
+
         if (contentType === 'movie') {
           await this.createNotificationRecord({
             watchlist_item_id: null, // Public notifications not tied to specific watchlist items
             user_id: null, // Public content notifications use null user_id
             type: 'movie',
             title: notificationTitle,
-            sent_to_discord: Boolean(
-              this.config.publicContentNotifications?.discordWebhookUrls ||
-                this.config.publicContentNotifications
-                  ?.discordWebhookUrlsMovies ||
-                this.config.publicContentNotifications?.discordWebhookUrlsShows,
-            ),
-            sent_to_apprise: Boolean(
-              this.config.publicContentNotifications?.appriseUrls ||
-                this.config.publicContentNotifications?.appriseUrlsMovies ||
-                this.config.publicContentNotifications?.appriseUrlsShows,
-            ),
+            sent_to_discord: hasDiscordUrls,
+            sent_to_apprise: hasAppriseUrls,
             sent_to_webhook: false,
             sent_to_tautulli: false,
           })
@@ -3292,17 +3273,8 @@ export class DatabaseService {
             type: 'season',
             title: notificationTitle,
             season_number: seasonNumber,
-            sent_to_discord: Boolean(
-              this.config.publicContentNotifications?.discordWebhookUrls ||
-                this.config.publicContentNotifications
-                  ?.discordWebhookUrlsMovies ||
-                this.config.publicContentNotifications?.discordWebhookUrlsShows,
-            ),
-            sent_to_apprise: Boolean(
-              this.config.publicContentNotifications?.appriseUrls ||
-                this.config.publicContentNotifications?.appriseUrlsMovies ||
-                this.config.publicContentNotifications?.appriseUrlsShows,
-            ),
+            sent_to_discord: hasDiscordUrls,
+            sent_to_apprise: hasAppriseUrls,
             sent_to_webhook: false,
             sent_to_tautulli: false,
           })
@@ -3320,17 +3292,8 @@ export class DatabaseService {
             message: episode.overview,
             season_number: episode.seasonNumber,
             episode_number: episode.episodeNumber,
-            sent_to_discord: Boolean(
-              this.config.publicContentNotifications?.discordWebhookUrls ||
-                this.config.publicContentNotifications
-                  ?.discordWebhookUrlsMovies ||
-                this.config.publicContentNotifications?.discordWebhookUrlsShows,
-            ),
-            sent_to_apprise: Boolean(
-              this.config.publicContentNotifications?.appriseUrls ||
-                this.config.publicContentNotifications?.appriseUrlsMovies ||
-                this.config.publicContentNotifications?.appriseUrlsShows,
-            ),
+            sent_to_discord: hasDiscordUrls,
+            sent_to_apprise: hasAppriseUrls,
             sent_to_webhook: false,
             sent_to_tautulli: false,
           })
@@ -3344,17 +3307,8 @@ export class DatabaseService {
             apprise: null,
             alias: null,
             discord_id: null,
-            notify_apprise: Boolean(
-              this.config.publicContentNotifications?.appriseUrls ||
-                this.config.publicContentNotifications?.appriseUrlsMovies ||
-                this.config.publicContentNotifications?.appriseUrlsShows,
-            ),
-            notify_discord: Boolean(
-              this.config.publicContentNotifications?.discordWebhookUrls ||
-                this.config.publicContentNotifications
-                  ?.discordWebhookUrlsMovies ||
-                this.config.publicContentNotifications?.discordWebhookUrlsShows,
-            ),
+            notify_apprise: hasAppriseUrls,
+            notify_discord: hasDiscordUrls,
             notify_tautulli: false,
             tautulli_notifier_id: null,
             can_sync: false,

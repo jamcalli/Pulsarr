@@ -26,7 +26,10 @@ import {
 } from '@/components/ui/accordion'
 import { Separator } from '@/components/ui/separator'
 import { useMediaQuery } from '@/hooks/use-media-query'
-import { usePublicContentNotifications } from '@/features/utilities/hooks/usePublicContentNotifications'
+import {
+  usePublicContentNotifications,
+  type PublicContentNotificationsFormValues,
+} from '@/features/utilities/hooks/usePublicContentNotifications'
 import { PublicContentClearAlert } from '@/features/utilities/components/public-content-notifications/public-content-clear-alert'
 
 /**
@@ -872,7 +875,9 @@ export function PublicContentNotificationsForm() {
         onOpenChange={setShowClearAlert}
         onConfirm={async () => {
           if (clearingField) {
-            await handleClearField(clearingField as keyof typeof form.getValues)
+            await handleClearField(
+              clearingField as keyof PublicContentNotificationsFormValues,
+            )
             setClearingField(null)
           }
         }}

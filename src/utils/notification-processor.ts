@@ -1,4 +1,6 @@
 import type { Config } from '@root/types/config.types.js'
+import type { SonarrEpisodeSchema } from '@root/types/sonarr.types.js'
+import type { TokenWatchlistItem } from '@root/types/plex.types.js'
 
 /**
  * Utility functions to eliminate code duplication across notification services.
@@ -7,11 +9,16 @@ import type { Config } from '@root/types/config.types.js'
 /**
  * Parse comma-separated URLs with consistent trimming and filtering.
  */
-function parseUrls(urlString: string): string[] {
-  return urlString
-    .split(',')
-    .map((url: string) => url.trim())
-    .filter((url: string) => url.length > 0)
+function parseUrls(urlString: string | undefined | null): string[] {
+  if (!urlString) return []
+  return Array.from(
+    new Set(
+      urlString
+        .split(',')
+        .map((url: string) => url.trim())
+        .filter((url: string) => url.length > 0),
+    ),
+  )
 }
 
 /**
@@ -53,7 +60,91 @@ export function getPublicContentUrls(
 export function extractUserDiscordIds(
   notifications: Array<{ user: { id: number; discord_id: string | null } }>,
 ): string[] {
-  return notifications
-    .filter((r) => r.user.id !== -1 && r.user.discord_id)
-    .map((r) => r.user.discord_id as string)
+  return Array.from(
+    new Set(
+      notifications
+        .filter(
+          (r) =>
+            r.user.id !== -1 &&
+            r.user.discord_id &&
+            r.user.discord_id.trim() !== '',
+        )
+        .map((r) => r.user.discord_id as string),
+    ),
+  )
+}
+
+/**
+ * Determine notification type and details from media info
+ */
+export function determineNotificationType(
+  mediaInfo: {
+    type: 'movie' | 'show'
+    guid: string
+    title: string
+    episodes?: SonarrEpisodeSchema[]
+  },
+  isBulkRelease: boolean,
+) {
+  let contentType: 'movie' | 'season' | 'episode'
+  let seasonNumber: number | undefined
+  let episodeNumber: number | undefined
+
+  if (mediaInfo.type === 'movie') {
+    contentType = 'movie'
+  } else if (mediaInfo.type === 'show' && mediaInfo.episodes?.length) {
+    if (isBulkRelease) {
+      contentType = 'season'
+      seasonNumber = mediaInfo.episodes[0].seasonNumber
+    } else {
+      contentType = 'episode'
+      seasonNumber = mediaInfo.episodes[0].seasonNumber
+      episodeNumber = mediaInfo.episodes[0].episodeNumber
+    }
+  } else {
+    return null
+  }
+
+  return { contentType, seasonNumber, episodeNumber }
+}
+
+/**
+ * Create base notification object with common properties
+ */
+export function createNotificationObject(
+  mediaInfo: {
+    type: 'movie' | 'show'
+    guid: string
+    title: string
+    episodes?: SonarrEpisodeSchema[]
+  },
+  referenceItem: TokenWatchlistItem,
+  username: string,
+) {
+  return {
+    type: mediaInfo.type,
+    title: mediaInfo.title || referenceItem.title,
+    username,
+    posterUrl: referenceItem.thumb || undefined,
+  }
+}
+
+/**
+ * Check if public content notifications are enabled for a given type
+ */
+export function getPublicContentNotificationFlags(
+  config: Config['publicContentNotifications'],
+) {
+  return {
+    hasDiscordUrls: Boolean(
+      config?.discordWebhookUrls ||
+        config?.discordWebhookUrlsMovies ||
+        config?.discordWebhookUrlsShows,
+    ),
+    hasAppriseUrls: Boolean(
+      config?.appriseUrls ||
+        config?.appriseUrlsMovies ||
+        config?.appriseUrlsShows,
+    ),
+  }
 }

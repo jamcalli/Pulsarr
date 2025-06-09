@@ -203,19 +203,33 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             if (result.user.id === -1) {
               // This is the global admin user - route to global endpoints
               if (result.user.notify_discord) {
-                // Collect Discord IDs from all real users for @ mentions
-                const userDiscordIds = notificationResults
-                  .filter((r) => r.user.id !== -1 && r.user.discord_id)
-                  .map((r) => r.user.discord_id as string)
-                await fastify.discord.sendPublicNotification(
-                  result.notification,
-                  userDiscordIds,
-                )
+                try {
+                  // Collect Discord IDs from all real users for @ mentions
+                  const userDiscordIds = notificationResults
+                    .filter((r) => r.user.id !== -1 && r.user.discord_id)
+                    .map((r) => r.user.discord_id as string)
+                  await fastify.discord.sendPublicNotification(
+                    result.notification,
+                    userDiscordIds,
+                  )
+                } catch (error) {
+                  fastify.log.error(
+                    { error },
+                    'Failed to send public Discord notification',
+                  )
+                }
               }
               if (result.user.notify_apprise) {
-                await fastify.apprise.sendPublicNotification(
-                  result.notification,
-                )
+                try {
+                  await fastify.apprise.sendPublicNotification(
+                    result.notification,
+                  )
+                } catch (error) {
+                  fastify.log.error(
+                    { error },
+                    'Failed to send public Apprise notification',
+                  )
+                }
               }
             } else {
               // Regular user notifications (unchanged)
@@ -374,19 +388,33 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                   if (result.user.id === -1) {
                     // This is the global admin user - route to global endpoints
                     if (result.user.notify_discord) {
-                      // Collect Discord IDs from all real users for @ mentions
-                      const userDiscordIds = notificationResults
-                        .filter((r) => r.user.id !== -1 && r.user.discord_id)
-                        .map((r) => r.user.discord_id as string)
-                      await fastify.discord.sendPublicNotification(
-                        result.notification,
-                        userDiscordIds,
-                      )
+                      try {
+                        // Collect Discord IDs from all real users for @ mentions
+                        const userDiscordIds = notificationResults
+                          .filter((r) => r.user.id !== -1 && r.user.discord_id)
+                          .map((r) => r.user.discord_id as string)
+                        await fastify.discord.sendPublicNotification(
+                          result.notification,
+                          userDiscordIds,
+                        )
+                      } catch (error) {
+                        fastify.log.error(
+                          { error },
+                          'Failed to send public Discord notification',
+                        )
+                      }
                     }
                     if (result.user.notify_apprise) {
-                      await fastify.apprise.sendPublicNotification(
-                        result.notification,
-                      )
+                      try {
+                        await fastify.apprise.sendPublicNotification(
+                          result.notification,
+                        )
+                      } catch (error) {
+                        fastify.log.error(
+                          { error },
+                          'Failed to send public Apprise notification',
+                        )
+                      }
                     }
                   } else {
                     // Regular user notifications (unchanged)
@@ -601,19 +629,33 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                 if (result.user.id === -1) {
                   // This is the global admin user - route to global endpoints
                   if (result.user.notify_discord) {
-                    // Collect Discord IDs from all real users for @ mentions
-                    const userDiscordIds = notificationResults
-                      .filter((r) => r.user.id !== -1 && r.user.discord_id)
-                      .map((r) => r.user.discord_id as string)
-                    await fastify.discord.sendPublicNotification(
-                      result.notification,
-                      userDiscordIds,
-                    )
+                    try {
+                      // Collect Discord IDs from all real users for @ mentions
+                      const userDiscordIds = notificationResults
+                        .filter((r) => r.user.id !== -1 && r.user.discord_id)
+                        .map((r) => r.user.discord_id as string)
+                      await fastify.discord.sendPublicNotification(
+                        result.notification,
+                        userDiscordIds,
+                      )
+                    } catch (error) {
+                      fastify.log.error(
+                        { error },
+                        'Failed to send public Discord notification',
+                      )
+                    }
                   }
                   if (result.user.notify_apprise) {
-                    await fastify.apprise.sendPublicNotification(
-                      result.notification,
-                    )
+                    try {
+                      await fastify.apprise.sendPublicNotification(
+                        result.notification,
+                      )
+                    } catch (error) {
+                      fastify.log.error(
+                        { error },
+                        'Failed to send public Apprise notification',
+                      )
+                    }
                   }
                 } else {
                   // Regular user notifications (unchanged)
