@@ -1,5 +1,6 @@
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type { User } from '@root/types/config.types.js'
+import { getPublicContentUrls } from '@root/utils/notification-processor.js'
 import type {
   MediaNotification,
   SystemNotification,
@@ -156,28 +157,12 @@ export class AppriseNotificationService {
     const config = this.config.publicContentNotifications
     if (!config?.enabled) return false
 
-    // Determine which Apprise URLs to use based on notification type
-    let appriseUrls: string[] = []
-
-    if (notification.type === 'movie' && config.appriseUrlsMovies) {
-      appriseUrls = config.appriseUrlsMovies
-        .split(',')
-        .map((url: string) => url.trim())
-        .filter((url: string) => url.length > 0)
-    } else if (notification.type === 'show' && config.appriseUrlsShows) {
-      appriseUrls = config.appriseUrlsShows
-        .split(',')
-        .map((url: string) => url.trim())
-        .filter((url: string) => url.length > 0)
-    }
-
-    // Fallback to general Apprise URLs if no specific ones configured
-    if (appriseUrls.length === 0 && config.appriseUrls) {
-      appriseUrls = config.appriseUrls
-        .split(',')
-        .map((url: string) => url.trim())
-        .filter((url: string) => url.length > 0)
-    }
+    // Use centralized URL configuration utility
+    const appriseUrls = getPublicContentUrls(
+      config,
+      notification.type,
+      'apprise',
+    )
 
     // NO FALLBACK - if no global URLs configured, don't send anything
     if (appriseUrls.length === 0) return false
