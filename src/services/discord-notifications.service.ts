@@ -392,27 +392,12 @@ export class DiscordNotificationService {
   }
 
   /**
-   * Send public content notification with @ mentions for users who have the content watchlisted
-   * Uses EXACTLY the same formatting as direct messages for consistency
+   * Create media notification embed with consistent formatting
+   * Centralized logic used by both public and direct message notifications
    */
-  async sendPublicNotification(
+  private createMediaNotificationEmbed(
     notification: MediaNotification,
-    userDiscordIds?: string[],
-  ): Promise<boolean> {
-    const config = this.config.publicContentNotifications
-    if (!config?.enabled) return false
-
-    // Use centralized URL configuration utility
-    const webhookUrls = getPublicContentUrls(
-      config,
-      notification.type,
-      'discord',
-    )
-
-    // If no URLs configured, don't send anything
-    if (webhookUrls.length === 0) return false
-
-    // Create embed using EXACTLY the same logic as sendDirectMessage for consistency
+  ): DiscordEmbed {
     const emoji = notification.type === 'movie' ? '🎬' : '📺'
     let description: string
     const fields: Array<{ name: string; value: string; inline?: boolean }> = []
@@ -425,7 +410,7 @@ export class DiscordNotificationService {
         episodeDetails.episodeNumber !== undefined &&
         episodeDetails.seasonNumber !== undefined
       ) {
-        // Single episode release - SAME logic as sendDirectMessage
+        // Single episode release
         description = `New episode available for ${notification.title}! ${emoji}`
 
         // Format season and episode numbers with padding
@@ -450,7 +435,7 @@ export class DiscordNotificationService {
           inline: false,
         })
 
-        // Add overview if available - SAME as sendDirectMessage
+        // Add overview if available
         if (episodeDetails.overview) {
           fields.push({
             name: 'Overview',
@@ -459,7 +444,7 @@ export class DiscordNotificationService {
           })
         }
 
-        // Add air date if available - SAME as sendDirectMessage
+        // Add air date if available
         if (episodeDetails.airDateUtc) {
           fields.push({
             name: 'Air Date',
@@ -468,7 +453,7 @@ export class DiscordNotificationService {
           })
         }
       } else if (episodeDetails.seasonNumber !== undefined) {
-        // Bulk release - SAME logic as sendDirectMessage
+        // Bulk release
         description = `New season available for ${notification.title}! ${emoji}`
         fields.push({
           name: 'Season Added',
@@ -480,7 +465,7 @@ export class DiscordNotificationService {
         description = `New content available for ${notification.title}! ${emoji}`
       }
     } else {
-      // Movie notification - impersonal for both DMs and public
+      // Movie notification - impersonal for consistency
       description = `Movie available to watch! ${emoji}`
     }
 
@@ -490,15 +475,40 @@ export class DiscordNotificationService {
       color: this.COLOR,
       timestamp: new Date().toISOString(),
       fields,
-      // NO FOOTER - same as sendDirectMessage
     }
 
-    // Add poster image if available - SAME as sendDirectMessage
     if (notification.posterUrl) {
       embed.image = {
         url: notification.posterUrl,
       }
     }
+
+    return embed
+  }
+
+  /**
+   * Send public content notification with @ mentions for users who have the content watchlisted
+   * Uses the same formatting as direct messages for consistency
+   */
+  async sendPublicNotification(
+    notification: MediaNotification,
+    userDiscordIds?: string[],
+  ): Promise<boolean> {
+    const config = this.config.publicContentNotifications
+    if (!config?.enabled) return false
+
+    // Use centralized URL configuration utility
+    const webhookUrls = getPublicContentUrls(
+      config,
+      notification.type,
+      'discord',
+    )
+
+    // If no URLs configured, don't send anything
+    if (webhookUrls.length === 0) return false
+
+    // Create embed using centralized method for consistency
+    const embed = this.createMediaNotificationEmbed(notification)
 
     // Create @ mentions content
     let content = ''
@@ -684,92 +694,8 @@ export class DiscordNotificationService {
           fields: notification.embedFields,
         }
       } else {
-        // Handle media notification
-        const emoji = notification.type === 'movie' ? '🎬' : '📺'
-        let description: string
-        const fields: Array<{ name: string; value: string; inline?: boolean }> =
-          []
-
-        if (notification.type === 'show' && notification.episodeDetails) {
-          const { episodeDetails } = notification
-
-          // Check if it's a single episode (has episode number) or bulk release
-          if (
-            episodeDetails.episodeNumber !== undefined &&
-            episodeDetails.seasonNumber !== undefined
-          ) {
-            // Single episode release
-            description = `New episode available for ${notification.title}! ${emoji}`
-
-            // Format season and episode numbers with padding
-            const seasonNum = episodeDetails.seasonNumber
-              .toString()
-              .padStart(2, '0')
-            const episodeNum = episodeDetails.episodeNumber
-              .toString()
-              .padStart(2, '0')
-
-            // Create episode identifier
-            const episodeId = `S${seasonNum}E${episodeNum}`
-
-            // Add episode title if available
-            const episodeTitle = episodeDetails.title
-              ? ` - ${episodeDetails.title}`
-              : ''
-
-            fields.push({
-              name: 'Episode',
-              value: `${episodeId}${episodeTitle}`,
-              inline: false,
-            })
-
-            // Add overview if available
-            if (episodeDetails.overview) {
-              fields.push({
-                name: 'Overview',
-                value: episodeDetails.overview,
-                inline: false,
-              })
-            }
-
-            // Add air date if available
-            if (episodeDetails.airDateUtc) {
-              fields.push({
-                name: 'Air Date',
-                value: new Date(episodeDetails.airDateUtc).toLocaleDateString(),
-                inline: true,
-              })
-            }
-          } else if (episodeDetails.seasonNumber !== undefined) {
-            // Bulk release
-            description = `New season available for ${notification.title}! ${emoji}`
-            fields.push({
-              name: 'Season Added',
-              value: `Season ${episodeDetails.seasonNumber}`,
-              inline: true,
-            })
-          } else {
-            // Fallback description if somehow neither condition is met
-            description = `New content available for ${notification.title}! ${emoji}`
-          }
-        } else {
-          // Movie notification - impersonal for consistency
-          description = `Movie available to watch! ${emoji}`
-        }
-
-        embed = {
-          title: notification.title,
-          description,
-          color: this.COLOR,
-          timestamp: new Date().toISOString(),
-          fields,
-        }
-
-        if (notification.posterUrl) {
-          embed.image = {
-            url: notification.posterUrl,
-          }
-        }
+        // Handle media notification using centralized method
+        embed = this.createMediaNotificationEmbed(notification)
       }
 
       // Fetch the Discord user and send the message

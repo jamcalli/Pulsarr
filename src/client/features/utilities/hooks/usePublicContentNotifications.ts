@@ -526,7 +526,9 @@ export function usePublicContentNotifications() {
 
   // Handle clearing individual field URLs
   const handleClearField = useCallback(
-    async (fieldName: keyof PublicContentNotificationsFormValues) => {
+    async (
+      fieldName: Exclude<keyof PublicContentNotificationsFormValues, 'enabled'>,
+    ) => {
       setIsClearing(true)
 
       try {

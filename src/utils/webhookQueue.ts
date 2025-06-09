@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import type { WebhookQueue, RecentWebhook } from '@root/types/webhook.types.js'
 import type { WebhookPayload } from '@root/schemas/notifications/webhook.schema.js'
+import { processContentNotifications } from '@root/utils/notification-processor.js'
 
 export const webhookQueue: WebhookQueue = {}
 
@@ -348,9 +349,10 @@ export async function processQueuedWebhooks(
     }
 
     for (const result of notificationResults) {
-      // Handle global admin user specially for public notifications
+      // Handle public content notifications specially
+      // Note: ID -1 is a virtual runtime identifier, actual database records use user_id: null
       if (result.user.id === -1) {
-        // This is the global admin user - route to global endpoints
+        // This is public content - route to global endpoints
         if (result.user.notify_discord) {
           try {
             // Collect Discord IDs from all real users for @ mentions

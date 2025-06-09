@@ -1,10 +1,11 @@
 import type { Config } from '@root/types/config.types.js'
-import type { SonarrEpisodeSchema } from '@root/types/sonarr.types.js'
+import type {
+  SonarrEpisodeSchema,
+  NotificationResult,
+  MediaNotification,
+} from '@root/types/sonarr.types.js'
 import type { TokenWatchlistItem } from '@root/types/plex.types.js'
-
-/**
- * Utility functions to eliminate code duplication across notification services.
- */
+import type { FastifyInstance, FastifyBaseLogger } from 'fastify'
 
 /**
  * Parse comma-separated URLs with consistent trimming and filtering.
@@ -146,5 +147,190 @@ export function getPublicContentNotificationFlags(
         config?.appriseUrlsMovies ||
         config?.appriseUrlsShows,
     ),
+  }
+}
+
+/**
+ * Creates a public content notification object with consistent user structure.
+ * Eliminates duplication between byGuid mode and regular mode in database service.
+ *
+ * IMPORTANT: The user ID -1 here is ONLY used as a runtime identifier for notification
+ * processing logic to distinguish public content notifications from regular user notifications.
+ * This virtual user object is NEVER inserted into the database.
+ *
+ * Database records for public content notifications correctly use user_id: null
+ * (see database.service.ts createNotificationRecord calls), which complies with the
+ * foreign key constraint that allows nullable user_id values.
+ *
+ * The -1 ID is used in the notification processing pipeline to:
+ * 1. Route notifications to public Discord webhooks vs user DMs
+ * 2. Route notifications to public Apprise endpoints vs user-specific endpoints
+ * 3. Skip Tautulli notifications (not applicable for public content)
+ * 4. Extract real user Discord IDs for @ mentions in public notifications
+ */
+export function createPublicContentNotification(
+  notification: MediaNotification,
+  hasDiscordUrls: boolean,
+  hasAppriseUrls: boolean,
+): NotificationResult {
+  return {
+    user: {
+      id: -1, // Virtual runtime ID for public content - NOT stored in database
+      name: 'Public Content',
+      apprise: null,
+      alias: null,
+      discord_id: null,
+      notify_apprise: hasAppriseUrls,
+      notify_discord: hasDiscordUrls,
+      notify_tautulli: false,
+      tautulli_notifier_id: null,
+      can_sync: false,
+    },
+    notification,
+  }
+}
+
+/**
+ * Centralized notification processing function that handles both public and user notifications.
+ * This eliminates the duplication across webhook.ts, pending-webhooks.service.ts, and webhookQueue.ts.
+ */
+export async function processContentNotifications(
+  fastify: FastifyInstance,
+  mediaInfo: {
+    type: 'movie' | 'show'
+    guid: string
+    title: string
+    episodes?: SonarrEpisodeSchema[]
+  },
+  isBulkRelease: boolean,
+  options?: {
+    logger?: FastifyBaseLogger
+    onUserNotification?: (result: NotificationResult) => Promise<void>
+    sequential?: boolean // for webhook.ts which uses for...of instead of Promise.all
+  },
+): Promise<void> {
+  // Get initial notification results
+  const notificationResults = await fastify.db.processNotifications(
+    mediaInfo,
+    isBulkRelease,
+  )
+
+  // If public content is enabled, also get public notification data
+  if (fastify.config.publicContentNotifications?.enabled) {
+    const publicNotificationResults = await fastify.db.processNotifications(
+      mediaInfo,
+      isBulkRelease,
+      true, // byGuid = true for public content
+    )
+    // Add public notifications to the existing user notifications
+    notificationResults.push(...publicNotificationResults)
+  }
+
+  // Process notifications either sequentially or concurrently
+  if (options?.sequential) {
+    for (const result of notificationResults) {
+      await processIndividualNotification(
+        fastify,
+        result,
+        notificationResults,
+        options,
+      )
+    }
+  } else {
+    // Process notifications concurrently to reduce latency
+    await Promise.all(
+      notificationResults.map(async (result) => {
+        await processIndividualNotification(
+          fastify,
+          result,
+          notificationResults,
+          options,
+        )
+      }),
+    )
+  }
+}
+
+/**
+ * Process an individual notification result, handling both global admin and regular users.
+ */
+async function processIndividualNotification(
+  fastify: FastifyInstance,
+  result: NotificationResult,
+  allNotificationResults: NotificationResult[],
+  options?: {
+    logger?: FastifyBaseLogger
+    onUserNotification?: (result: NotificationResult) => Promise<void>
+  },
+): Promise<void> {
+  const log = options?.logger || fastify.log
+
+  // Handle public content notifications specially
+  // Note: ID -1 is a virtual runtime identifier, actual database records use user_id: null
+  if (result.user.id === -1) {
+    // This is public content - route to global endpoints
+    if (result.user.notify_discord) {
+      try {
+        // Collect Discord IDs from all real users for @ mentions
+        const userDiscordIds = extractUserDiscordIds(allNotificationResults)
+        await fastify.discord.sendPublicNotification(
+          result.notification,
+          userDiscordIds,
+        )
+      } catch (error) {
+        log.error(
+          { error, userId: result.user.id },
+          'Failed to send public Discord notification',
+        )
+      }
+    }
+    if (result.user.notify_apprise) {
+      try {
+        await fastify.apprise.sendPublicNotification(result.notification)
+      } catch (error) {
+        log.error(
+          { error, userId: result.user.id },
+          'Failed to send public Apprise notification',
+        )
+      }
+    }
+  } else {
+    // Regular user notifications
+    if (result.user.notify_discord && result.user.discord_id) {
+      try {
+        await fastify.discord.sendDirectMessage(
+          result.user.discord_id,
+          result.notification,
+        )
+      } catch (error) {
+        log.error(
+          {
+            error,
+            userId: result.user.id,
+            discord_id: result.user.discord_id,
+          },
+          'Failed to send Discord notification',
+        )
+      }
+    }
+
+    if (result.user.notify_apprise) {
+      try {
+        await fastify.apprise.sendMediaNotification(
+          result.user,
+          result.notification,
+        )
+      } catch (error) {
+        log.error(
+          { error, userId: result.user.id },
+          'Failed to send Apprise notification',
+        )
+      }
+    }
+
+    // Call optional callback for additional user notifications (e.g., Tautulli)
+    if (options?.onUserNotification) {
+      await options.onUserNotification(result)
+    }
   }
 }
