@@ -16,8 +16,6 @@ import {
   queuePendingWebhook,
 } from '@root/utils/webhookQueue.js'
 import { extractTmdbId, extractTvdbId } from '@root/utils/guid-handler.js'
-import type { MediaNotification } from '@root/types/sonarr.types.js'
-import type { FastifyInstance } from 'fastify'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.post<{
@@ -188,6 +186,18 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             false,
           )
 
+          // If public content is enabled, also get public notification data
+          if (fastify.config.publicContentNotifications?.enabled) {
+            const publicNotificationResults =
+              await fastify.db.processNotifications(
+                mediaInfo,
+                false,
+                true, // byGuid = true for public content
+              )
+            // Add public notifications to the existing user notifications
+            notificationResults.push(...publicNotificationResults)
+          }
+
           for (const result of notificationResults) {
             // Handle global admin user specially
             if (result.user.id === -1) {
@@ -197,16 +207,14 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                 const userDiscordIds = notificationResults
                   .filter((r) => r.user.id !== -1 && r.user.discord_id)
                   .map((r) => r.user.discord_id as string)
-                await fastify.discord.sendGlobalNotification(
+                await fastify.discord.sendPublicNotification(
                   result.notification,
-                  'movie',
                   userDiscordIds,
                 )
               }
               if (result.user.notify_apprise) {
-                await fastify.apprise.sendGlobalNotification(
+                await fastify.apprise.sendPublicNotification(
                   result.notification,
-                  'movie',
                 )
               }
             } else {
@@ -349,6 +357,18 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                 const notificationResults =
                   await fastify.db.processNotifications(mediaInfo, false)
 
+                // If public content is enabled, also get public notification data
+                if (fastify.config.publicContentNotifications?.enabled) {
+                  const publicNotificationResults =
+                    await fastify.db.processNotifications(
+                      mediaInfo,
+                      false,
+                      true, // byGuid = true for public content
+                    )
+                  // Add public notifications to the existing user notifications
+                  notificationResults.push(...publicNotificationResults)
+                }
+
                 for (const result of notificationResults) {
                   // Handle global admin user specially
                   if (result.user.id === -1) {
@@ -358,16 +378,14 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                       const userDiscordIds = notificationResults
                         .filter((r) => r.user.id !== -1 && r.user.discord_id)
                         .map((r) => r.user.discord_id as string)
-                      await fastify.discord.sendGlobalNotification(
+                      await fastify.discord.sendPublicNotification(
                         result.notification,
-                        'show',
                         userDiscordIds,
                       )
                     }
                     if (result.user.notify_apprise) {
-                      await fastify.apprise.sendGlobalNotification(
+                      await fastify.apprise.sendPublicNotification(
                         result.notification,
-                        'show',
                       )
                     }
                   } else {
@@ -555,6 +573,18 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                 recentEpisodes.length > 1,
               )
 
+              // If public content is enabled, also get public notification data
+              if (fastify.config.publicContentNotifications?.enabled) {
+                const publicNotificationResults =
+                  await fastify.db.processNotifications(
+                    mediaInfo,
+                    recentEpisodes.length > 1,
+                    true, // byGuid = true for public content
+                  )
+                // Add public notifications to the existing user notifications
+                notificationResults.push(...publicNotificationResults)
+              }
+
               if (notificationResults.length > 0) {
                 fastify.log.info(
                   {
@@ -575,16 +605,14 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                     const userDiscordIds = notificationResults
                       .filter((r) => r.user.id !== -1 && r.user.discord_id)
                       .map((r) => r.user.discord_id as string)
-                    await fastify.discord.sendGlobalNotification(
+                    await fastify.discord.sendPublicNotification(
                       result.notification,
-                      'show',
                       userDiscordIds,
                     )
                   }
                   if (result.user.notify_apprise) {
-                    await fastify.apprise.sendGlobalNotification(
+                    await fastify.apprise.sendPublicNotification(
                       result.notification,
-                      'show',
                     )
                   }
                 } else {

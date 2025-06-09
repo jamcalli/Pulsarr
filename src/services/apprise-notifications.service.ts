@@ -152,20 +152,19 @@ export class AppriseNotificationService {
    */
   async sendPublicNotification(
     notification: MediaNotification,
-    contentType: 'movie' | 'show',
   ): Promise<boolean> {
     const config = this.config.publicContentNotifications
     if (!config?.enabled) return false
 
-    // Determine which Apprise URLs to use
+    // Determine which Apprise URLs to use based on notification type
     let appriseUrls: string[] = []
 
-    if (contentType === 'movie' && config.appriseUrlsMovies) {
+    if (notification.type === 'movie' && config.appriseUrlsMovies) {
       appriseUrls = config.appriseUrlsMovies
         .split(',')
         .map((url: string) => url.trim())
         .filter((url: string) => url.length > 0)
-    } else if (contentType === 'show' && config.appriseUrlsShows) {
+    } else if (notification.type === 'show' && config.appriseUrlsShows) {
       appriseUrls = config.appriseUrlsShows
         .split(',')
         .map((url: string) => url.trim())
@@ -338,13 +337,13 @@ export class AppriseNotificationService {
           ${posterHtml}
           <div style="background-color: #212121; padding: 15px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
             <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">${this.esc(notification.title)}</h3>
-            <p style="font-weight: 500; color: #ffffff;">Your movie is now available to watch!</p>
+            <p style="font-weight: 500; color: #ffffff;">Movie available to watch!</p>
           </div>
         `
 
         htmlBody = this.htmlWrapper(movieContent)
 
-        textBody = `Movie Available\n\n${notification.title}\nYour movie is now available to watch!`
+        textBody = `Movie Available\n\n${notification.title}\nMovie available to watch!`
       }
 
       // Add signature to text content
