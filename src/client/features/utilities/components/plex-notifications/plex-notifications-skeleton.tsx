@@ -40,7 +40,7 @@ export function PlexNotificationsSkeleton() {
             <div className="space-y-6">
               {/* Actions section skeleton */}
               <div>
-                <h3 className="font-medium text-text mb-2">Actions</h3>
+                <h3 className="font-medium text-black mb-2">Actions</h3>
                 <div className="flex flex-wrap items-center gap-4">
                   <Skeleton className="h-8 w-40" />
                 </div>
@@ -50,10 +50,10 @@ export function PlexNotificationsSkeleton() {
 
               {/* Status section skeleton */}
               <div>
-                <h3 className="font-medium text-text mb-2">Current Status</h3>
+                <h3 className="font-medium text-black mb-2">Current Status</h3>
                 <Skeleton className="h-4 w-3/4 mb-4" />
 
-                <h4 className="font-medium text-sm text-text mb-2">
+                <h4 className="font-medium text-sm text-black mb-2">
                   Radarr Instances
                 </h4>
                 <div className="space-y-2">
@@ -61,7 +61,7 @@ export function PlexNotificationsSkeleton() {
                   <Skeleton className="h-4 w-full" />
                 </div>
 
-                <h4 className="font-medium text-sm text-text mt-3 mb-2">
+                <h4 className="font-medium text-sm text-black mt-3 mb-2">
                   Sonarr Instances
                 </h4>
                 <div className="space-y-2">
@@ -74,7 +74,7 @@ export function PlexNotificationsSkeleton() {
 
               {/* Configuration form skeleton */}
               <div>
-                <h3 className="font-medium text-sm text-text mb-2">
+                <h3 className="font-medium text-sm text-black mb-2">
                   Plex Connection Settings
                 </h3>
                 <div className="space-y-4">

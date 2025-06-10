@@ -45,6 +45,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useDeleteSync } from '@/features/utilities/hooks/useDeleteSync'
+import { useConfigStore } from '@/stores/configStore'
 import { DeleteSyncConfirmationModal } from '@/features/utilities/components/delete-sync/delete-sync-confirmation-modal'
 import { DeleteSyncDryRunModal } from '@/features/utilities/components/delete-sync/delete-sync-dry-run-modal'
 import { useMediaQuery } from '@/hooks/use-media-query'
@@ -89,6 +90,8 @@ export function DeleteSyncForm() {
     setShowRunConfirmation,
     setShowDryRunModal,
   } = useDeleteSync()
+
+  const { setOpenUtilitiesAccordion } = useConfigStore()
 
   return (
     <>
@@ -435,56 +438,9 @@ export function DeleteSyncForm() {
                                             <button
                                               type="button"
                                               onClick={() => {
-                                                // Find the User Tags accordion by looking for the h3 element
-                                                const userTagsHeader =
-                                                  Array.from(
-                                                    document.querySelectorAll(
-                                                      'h3',
-                                                    ),
-                                                  ).find(
-                                                    (h3) =>
-                                                      h3.textContent ===
-                                                      'User Tags',
-                                                  )
-
-                                                if (userTagsHeader) {
-                                                  // Find the parent accordion trigger button
-                                                  const trigger =
-                                                    userTagsHeader.closest(
-                                                      'button',
-                                                    )
-
-                                                  if (trigger) {
-                                                    // Check if closed using aria-expanded
-                                                    const isExpanded =
-                                                      trigger.getAttribute(
-                                                        'aria-expanded',
-                                                      ) === 'true'
-
-                                                    // Click if closed
-                                                    if (!isExpanded) {
-                                                      trigger.click()
-                                                    }
-
-                                                    // Scroll the accordion item into view
-                                                    // The trigger button itself is the accordion item
-                                                    setTimeout(() => {
-                                                      // Find the accordion item container (parent with border)
-                                                      const accordionWrapper =
-                                                        trigger.closest(
-                                                          '.border-2.border-border',
-                                                        )
-                                                      if (accordionWrapper) {
-                                                        accordionWrapper.scrollIntoView(
-                                                          {
-                                                            behavior: 'smooth',
-                                                            block: 'start',
-                                                          },
-                                                        )
-                                                      }
-                                                    }, 300)
-                                                  }
-                                                }
+                                                setOpenUtilitiesAccordion(
+                                                  'user-tags',
+                                                )
                                               }}
                                               className="underline font-medium hover:text-yellow-900 dark:hover:text-yellow-300"
                                             >

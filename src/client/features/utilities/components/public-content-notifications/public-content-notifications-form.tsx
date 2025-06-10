@@ -28,6 +28,7 @@ import { Separator } from '@/components/ui/separator'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { usePublicContentNotifications } from '@/features/utilities/hooks/usePublicContentNotifications'
 import { PublicContentClearAlert } from '@/features/utilities/components/public-content-notifications/public-content-clear-alert'
+import { useConfigStore } from '@/stores/configStore'
 
 // Type for string URL fields only (excludes boolean 'enabled' field)
 type WebhookFieldName =
@@ -37,6 +38,29 @@ type WebhookFieldName =
   | 'appriseUrls'
   | 'appriseUrlsMovies'
   | 'appriseUrlsShows'
+
+/**
+ * Maps webhook field names to human-readable labels for the clear alert dialog
+ */
+const getFieldLabel = (field: string | null): string => {
+  const fieldLabels: Record<string, string> = {
+    discordWebhookUrls: 'General Discord Webhook URLs',
+    discordWebhookUrlsMovies: 'Movie Discord Webhook URLs',
+    discordWebhookUrlsShows: 'Show Discord Webhook URLs',
+    appriseUrls: 'General Apprise URLs',
+    appriseUrlsMovies: 'Movie Apprise URLs',
+    appriseUrlsShows: 'Show Apprise URLs',
+  }
+  return field ? fieldLabels[field] || 'URLs' : 'URLs'
+}
+
+/**
+ * Gets the service type (Discord or Apprise) for description text
+ */
+const getServiceType = (field: string | null): string => {
+  if (!field) return 'URLs'
+  return field.includes('discord') ? 'Discord webhook URLs' : 'Apprise URLs'
+}
 
 interface WebhookFieldProps {
   name: WebhookFieldName
@@ -193,6 +217,9 @@ function WebhookField({
  */
 export function PublicContentNotificationsForm() {
   const isMobile = useMediaQuery('(max-width: 768px)')
+  const openUtilitiesAccordion = useConfigStore(
+    (state) => state.openUtilitiesAccordion,
+  )
   const {
     form,
     isSubmitting,
@@ -314,10 +341,20 @@ export function PublicContentNotificationsForm() {
 
   return (
     <>
-      <Accordion type="single" collapsible className="w-full">
+      <Accordion
+        type="single"
+        collapsible
+        className="w-full"
+        value={
+          openUtilitiesAccordion === 'public-content-notifications'
+            ? 'public-content-notifications'
+            : undefined
+        }
+      >
         <AccordionItem
           value="public-content-notifications"
           className="border-2 border-border rounded-base overflow-hidden"
+          data-accordion-value="public-content-notifications"
         >
           <AccordionTrigger className="px-6 py-4 bg-main hover:bg-main hover:no-underline">
             <div className="flex justify-between items-center w-full pr-2">
@@ -647,24 +684,8 @@ export function PublicContentNotificationsForm() {
             setClearingField(null)
           }
         }}
-        title={`Clear ${
-          clearingField
-            ? clearingField === 'discordWebhookUrls'
-              ? 'General Discord Webhook URLs'
-              : clearingField === 'discordWebhookUrlsMovies'
-                ? 'Movie Discord Webhook URLs'
-                : clearingField === 'discordWebhookUrlsShows'
-                  ? 'Show Discord Webhook URLs'
-                  : clearingField === 'appriseUrls'
-                    ? 'General Apprise URLs'
-                    : clearingField === 'appriseUrlsMovies'
-                      ? 'Movie Apprise URLs'
-                      : clearingField === 'appriseUrlsShows'
-                        ? 'Show Apprise URLs'
-                        : 'URLs'
-            : 'URLs'
-        }?`}
-        description={`This will remove the ${clearingField ? (clearingField.includes('discord') ? 'Discord webhook URLs' : 'Apprise URLs') : 'URLs'} from this field and save the configuration.`}
+        title={`Clear ${getFieldLabel(clearingField)}?`}
+        description={`This will remove the ${getServiceType(clearingField)} from this field and save the configuration.`}
       />
     </>
   )

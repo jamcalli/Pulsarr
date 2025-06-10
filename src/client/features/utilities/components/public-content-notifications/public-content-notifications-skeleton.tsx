@@ -5,18 +5,33 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useConfigStore } from '@/stores/configStore'
 
 /**
- * Renders a static skeleton UI for the public content notifications form during loading.
+ * Renders a controlled skeleton UI for the public content notifications form during loading.
  *
- * Displays an accordion with skeleton placeholders that visually represent the structure of the notifications form, including headers, actions, configuration fields, buttons, and informational text.
+ * Displays an accordion with skeleton placeholders that visually represent the structure of the notifications form, including headers, actions, configuration fields, buttons, and informational text. The accordion responds to the global utilities accordion state.
  */
 export function PublicContentNotificationsSkeleton() {
+  const openUtilitiesAccordion = useConfigStore(
+    (state) => state.openUtilitiesAccordion,
+  )
+
   return (
-    <Accordion type="single" collapsible className="w-full">
+    <Accordion
+      type="single"
+      collapsible
+      className="w-full"
+      value={
+        openUtilitiesAccordion === 'public-content-notifications'
+          ? 'public-content-notifications'
+          : undefined
+      }
+    >
       <AccordionItem
         value="public-content-notifications"
         className="border-2 border-border rounded-base overflow-hidden"
+        data-accordion-value="public-content-notifications"
       >
         <AccordionTrigger className="px-6 py-4 bg-main hover:bg-main hover:no-underline">
           <div className="flex justify-between items-center w-full pr-2">
@@ -59,9 +74,9 @@ export function PublicContentNotificationsSkeleton() {
                       <Skeleton className="h-3 w-72 mt-1" />
                     </div>
                     <div>
-                      <Skeleton className="h-4 w-42 mb-2" />
+                      <Skeleton className="h-4 w-44 mb-2" />
                       <Skeleton className="h-10 w-full" />
-                      <Skeleton className="h-3 w-68 mt-1" />
+                      <Skeleton className="h-3 w-80 mt-1" />
                     </div>
                   </div>
                 </div>
@@ -82,7 +97,7 @@ export function PublicContentNotificationsSkeleton() {
                       <Skeleton className="h-3 w-64 mt-1" />
                     </div>
                     <div>
-                      <Skeleton className="h-4 w-38 mb-2" />
+                      <Skeleton className="h-4 w-40 mb-2" />
                       <Skeleton className="h-10 w-full" />
                       <Skeleton className="h-3 w-60 mt-1" />
                     </div>

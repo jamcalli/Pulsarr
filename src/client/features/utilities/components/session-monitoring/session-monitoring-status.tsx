@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { toast } from '@/hooks/use-toast'
+import { useDebounce } from '@/hooks/useDebounce'
 import { RollingShowsSheet } from '@/features/utilities/components/session-monitoring/rolling-shows-sheet'
 import type { RollingMonitoredShow } from '@/features/utilities/hooks/useRollingMonitoring'
 import type { SessionMonitoringResult } from '@root/types/plex-session.types'
@@ -68,15 +69,17 @@ export function SessionMonitoringStatus({
   const [showInactiveShows, setShowInactiveShows] = useState(false)
   const [localInactivityDays, setLocalInactivityDays] = useState(inactivityDays)
 
-  // Debounce inactivity days changes to prevent excessive API calls
+  // Debounced inactivity days handler to prevent excessive API calls
+  const debouncedSetInactivityDays = useDebounce((days: number) => {
+    setInactivityDays(days)
+  }, 500)
+
+  // Update debounced handler when localInactivityDays changes
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (localInactivityDays !== inactivityDays) {
-        setInactivityDays(localInactivityDays)
-      }
-    }, 500)
-    return () => clearTimeout(timer)
-  }, [localInactivityDays, inactivityDays, setInactivityDays])
+    if (localInactivityDays !== inactivityDays) {
+      debouncedSetInactivityDays(localInactivityDays)
+    }
+  }, [localInactivityDays, inactivityDays, debouncedSetInactivityDays])
 
   // Sync local state when prop changes (e.g., from config updates)
   useEffect(() => {

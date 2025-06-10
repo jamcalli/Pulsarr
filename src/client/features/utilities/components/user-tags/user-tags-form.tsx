@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { useConfigStore } from '@/stores/configStore'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -57,6 +58,9 @@ import { useTaggingProgress } from '@/features/utilities/hooks/useTaggingProgres
  */
 export function UserTagsForm() {
   const isMobile = useMediaQuery('(max-width: 768px)')
+  const openUtilitiesAccordion = useConfigStore(
+    (state) => state.openUtilitiesAccordion,
+  )
 
   const {
     form,
@@ -114,10 +118,16 @@ export function UserTagsForm() {
         isSubmitting={isRemovingTags}
       />
 
-      <Accordion type="single" collapsible className="w-full">
+      <Accordion
+        type="single"
+        collapsible
+        className="w-full"
+        value={openUtilitiesAccordion === 'user-tags' ? 'user-tags' : undefined}
+      >
         <AccordionItem
           value="user-tags"
           className="border-2 border-border rounded-base overflow-hidden"
+          data-accordion-value="user-tags"
         >
           <AccordionTrigger className="px-6 py-4 bg-main hover:bg-main hover:no-underline">
             <div className="flex justify-between items-center w-full pr-2">

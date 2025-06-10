@@ -40,7 +40,7 @@ export function SessionMonitoringSkeleton() {
             <div className="space-y-6">
               {/* Actions section skeleton */}
               <div>
-                <h3 className="font-medium text-text mb-2">Actions</h3>
+                <h3 className="font-medium text-black mb-2">Actions</h3>
                 <div className="flex flex-wrap items-center gap-4">
                   <Skeleton className="h-8 w-20" />
                 </div>
@@ -50,7 +50,7 @@ export function SessionMonitoringSkeleton() {
 
               {/* Configuration form skeleton */}
               <div>
-                <h3 className="font-medium text-sm text-text mb-2">
+                <h3 className="font-medium text-sm text-black mb-2">
                   Monitoring Configuration
                 </h3>
                 <div className="space-y-4">

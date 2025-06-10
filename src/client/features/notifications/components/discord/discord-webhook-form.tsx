@@ -170,9 +170,13 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
               throw new Error('Unexpected webhook format')
             }
             // We've already checked that parts.length >= 2, so these values will exist
-            return { id: parts.at(-2) ?? '', token: parts.at(-1) ?? '' }
+            return {
+              url: url.url, // Preserve original URL for deduplication
+              id: parts.at(-2) ?? '',
+              token: parts.at(-1) ?? '',
+            }
           } catch {
-            return { id: undefined, token: undefined }
+            return { url: url.url, id: undefined, token: undefined }
           }
         }),
         count: result.urls.length,

@@ -143,10 +143,14 @@ export function SessionMonitoringResetSettings({
                     type="number"
                     {...field}
                     onChange={(e) => {
-                      const value =
-                        e.target.value === '' ? 0 : Number(e.target.value)
-                      if (!Number.isNaN(value)) {
-                        field.onChange(value)
+                      const raw = e.target.value
+                      if (raw === '') {
+                        field.onChange(undefined)
+                      } else {
+                        const value = Math.max(1, Number(raw))
+                        if (!Number.isNaN(value)) {
+                          field.onChange(value)
+                        }
                       }
                     }}
                     min={1}
@@ -189,10 +193,14 @@ export function SessionMonitoringResetSettings({
                     type="number"
                     {...field}
                     onChange={(e) => {
-                      const value =
-                        e.target.value === '' ? 0 : Number(e.target.value)
-                      if (!Number.isNaN(value)) {
-                        field.onChange(value)
+                      const raw = e.target.value
+                      if (raw === '') {
+                        field.onChange(undefined)
+                      } else {
+                        const value = Math.max(1, Number(raw))
+                        if (!Number.isNaN(value)) {
+                          field.onChange(value)
+                        }
                       }
                     }}
                     min={1}

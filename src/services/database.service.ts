@@ -716,7 +716,15 @@ export class DatabaseService {
             },
             'config.publicContentNotifications',
           )
-        : undefined,
+        : {
+            enabled: false,
+            discordWebhookUrls: undefined,
+            discordWebhookUrlsMovies: undefined,
+            discordWebhookUrlsShows: undefined,
+            appriseUrls: undefined,
+            appriseUrlsMovies: undefined,
+            appriseUrlsShows: undefined,
+          },
       newUserDefaultCanSync: Boolean(config.newUserDefaultCanSync ?? true),
       // Handle optional RSS fields
       selfRss: config.selfRss || undefined,
@@ -6874,7 +6882,7 @@ export class DatabaseService {
             current_monitored_season: 1,
             last_watched_season: 0,
             last_watched_episode: 0,
-            updated_at: trx.fn.now(),
+            updated_at: this.timestamp,
           })
 
         this.log.info(

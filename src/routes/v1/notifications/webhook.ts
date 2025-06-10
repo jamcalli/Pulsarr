@@ -14,8 +14,8 @@ import {
   webhookQueue,
   checkForUpgrade,
   queuePendingWebhook,
+  isEpisodeAlreadyQueued,
 } from '@root/utils/webhookQueue.js'
-import { extractTmdbId, extractTvdbId } from '@root/utils/guid-handler.js'
 import { processContentNotifications } from '@root/utils/notification-processor.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
@@ -281,19 +281,33 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                   }
                 }
 
-                webhookQueue[tvdbId].seasons[seasonNumber].episodes.push(
-                  body.episodes[0],
-                )
-                fastify.log.info(
-                  {
-                    tvdbId,
-                    seasonNumber,
-                    episodeCount:
-                      webhookQueue[tvdbId].seasons[seasonNumber].episodes
-                        .length,
-                  },
-                  'Added single episode to queue',
-                )
+                // Check for duplicate episode before adding
+                if (
+                  !isEpisodeAlreadyQueued(tvdbId, seasonNumber, episodeNumber)
+                ) {
+                  webhookQueue[tvdbId].seasons[seasonNumber].episodes.push(
+                    body.episodes[0],
+                  )
+                  fastify.log.info(
+                    {
+                      tvdbId,
+                      seasonNumber,
+                      episodeCount:
+                        webhookQueue[tvdbId].seasons[seasonNumber].episodes
+                          .length,
+                    },
+                    'Added single episode to queue',
+                  )
+                } else {
+                  fastify.log.debug(
+                    {
+                      tvdbId,
+                      seasonNumber,
+                      episodeNumber,
+                    },
+                    'Episode already queued, skipping duplicate',
+                  )
+                }
               }
 
               return { success: true }
@@ -434,20 +448,44 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                   }, fastify.config.queueWaitTime)
               }
 
-              webhookQueue[tvdbId].seasons[seasonNumber].episodes.push(
-                ...nonRecentEpisodes,
+              // Filter out episodes that are already queued to prevent duplicates
+              const newEpisodes = nonRecentEpisodes.filter(
+                (episode) =>
+                  !isEpisodeAlreadyQueued(
+                    tvdbId,
+                    episode.seasonNumber,
+                    episode.episodeNumber,
+                  ),
               )
 
-              fastify.log.info(
-                {
-                  tvdbId,
-                  seasonNumber,
-                  totalEpisodes:
-                    webhookQueue[tvdbId].seasons[seasonNumber].episodes.length,
-                  justAdded: nonRecentEpisodes.length,
-                },
-                'Added episodes to queue',
-              )
+              if (newEpisodes.length > 0) {
+                webhookQueue[tvdbId].seasons[seasonNumber].episodes.push(
+                  ...newEpisodes,
+                )
+
+                fastify.log.info(
+                  {
+                    tvdbId,
+                    seasonNumber,
+                    totalEpisodes:
+                      webhookQueue[tvdbId].seasons[seasonNumber].episodes
+                        .length,
+                    justAdded: newEpisodes.length,
+                    duplicatesSkipped:
+                      nonRecentEpisodes.length - newEpisodes.length,
+                  },
+                  'Added episodes to queue',
+                )
+              } else {
+                fastify.log.debug(
+                  {
+                    tvdbId,
+                    seasonNumber,
+                    duplicatesSkipped: nonRecentEpisodes.length,
+                  },
+                  'All episodes already queued, skipping duplicates',
+                )
+              }
 
               webhookQueue[tvdbId].seasons[seasonNumber].lastUpdated =
                 new Date()

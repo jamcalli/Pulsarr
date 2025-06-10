@@ -30,9 +30,6 @@ export function UtilitiesDashboard() {
   const openUtilitiesAccordion = useConfigStore(
     (state) => state.openUtilitiesAccordion,
   )
-  const setOpenUtilitiesAccordion = useConfigStore(
-    (state) => state.setOpenUtilitiesAccordion,
-  )
 
   useEffect(() => {
     if (hasLoadedSchedules) {
@@ -44,40 +41,24 @@ export function UtilitiesDashboard() {
     }
   }, [hasLoadedSchedules])
 
-  // Handle accordion opening after page load
+  // Handle controlled accordion opening with scroll
   useEffect(() => {
     if (openUtilitiesAccordion && !isLoading) {
+      // Scroll to accordion after it opens
       setTimeout(() => {
-        const triggerButton = Array.from(
-          document.querySelectorAll('button[data-state]'),
-        ).find((button) => {
-          const h3 = button.querySelector('h3')
-          return h3?.textContent?.trim() === 'Public Content Notifications'
-        }) as HTMLButtonElement
-
-        if (triggerButton) {
-          const isExpanded =
-            triggerButton.getAttribute('aria-expanded') === 'true'
-
-          if (!isExpanded) {
-            triggerButton.click()
-          }
-
-          setTimeout(() => {
-            const accordionItem = triggerButton.closest('[data-state]')
-            if (accordionItem) {
-              accordionItem.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start',
-              })
-            }
-          }, 100)
+        const accordionElement = document.querySelector(
+          `[data-accordion-value="${openUtilitiesAccordion}"]`,
+        )
+        if (accordionElement) {
+          accordionElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start',
+          })
         }
-
-        setOpenUtilitiesAccordion(null)
-      }, 200)
+        // Don't clear the state - let the accordions stay open
+      }, 300) // Give accordion time to open
     }
-  }, [openUtilitiesAccordion, isLoading, setOpenUtilitiesAccordion])
+  }, [openUtilitiesAccordion, isLoading])
 
   return (
     <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
