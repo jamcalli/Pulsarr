@@ -8,14 +8,11 @@ import {
 import { Separator } from '@/components/ui/separator'
 
 /**
- * Renders a skeleton loading UI for the "Plex Notifications" feature.
+ * Displays a skeleton placeholder for the Plex Notifications interface during loading.
  *
- * This component displays a collapsible accordion card with placeholder elements
- * mimicking the layout of the Plex Notifications interface. It includes skeletons for the title,
- * description, actions, and configuration settings, providing a visual cue while the actual
- * data is being loaded.
+ * Renders a collapsible accordion card with skeleton elements that simulate the structure of the Plex Notifications feature, including sections for actions, current status, and connection settings.
  *
- * @returns A JSX element representing the loading state of the Plex Notifications feature.
+ * @returns A JSX element representing the loading state of the Plex Notifications UI.
  */
 export function PlexNotificationsSkeleton() {
   return (

@@ -10,15 +10,11 @@ import { Separator } from '@/components/ui/separator'
 import { useMediaQuery } from '@/hooks/use-media-query'
 
 /**
- * Renders a skeleton loading UI for the "Delete Sync" feature.
+ * Displays a responsive skeleton UI placeholder for the Delete Sync feature while data is loading.
  *
- * This component displays a collapsible accordion card with placeholder elements
- * mimicking the layout of the Delete Sync interface. It includes skeletons for the title,
- * description, actions, status indicators, schedule, configuration, and safety settings,
- * providing a visual cue while the actual data is being loaded. The component is responsive
- * and adapts its layout for mobile and desktop views.
+ * The component visually mimics the structure of the Delete Sync interface, including sections for actions, status, schedule, configuration, safety settings, and action buttons. Layout adapts for mobile and desktop screens.
  *
- * @returns A JSX element representing the loading state of the Delete Sync feature.
+ * @returns A JSX element representing the loading skeleton for the Delete Sync feature.
  */
 export function DeleteSyncSkeleton() {
   const isMobile = useMediaQuery('(max-width: 768px)')
