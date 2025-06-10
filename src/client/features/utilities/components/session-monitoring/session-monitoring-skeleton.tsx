@@ -8,9 +8,9 @@ import {
 import { Separator } from '@/components/ui/separator'
 
 /**
- * Renders a skeleton placeholder for the Plex Session Monitoring interface.
+ * Displays a static skeleton UI for the Plex Session Monitoring interface while data is loading.
  *
- * Displays a static loading UI with skeleton elements for the title, description, actions, configuration fields, and action buttons, simulating the layout of the session monitoring feature while data is loading.
+ * Renders placeholder elements for the title, description, actions, configuration fields, and action buttons to simulate the layout of the session monitoring feature during loading.
  *
  * @returns A JSX element representing the loading skeleton for the Session Monitoring section.
  */

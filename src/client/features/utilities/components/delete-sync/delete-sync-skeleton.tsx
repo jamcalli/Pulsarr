@@ -10,9 +10,9 @@ import { Separator } from '@/components/ui/separator'
 import { useMediaQuery } from '@/hooks/use-media-query'
 
 /**
- * Displays a responsive skeleton UI placeholder for the Delete Sync feature while data is loading.
+ * Renders a responsive skeleton placeholder that visually replicates the Delete Sync interface during data loading.
  *
- * The component visually mimics the structure of the Delete Sync interface, including sections for actions, status, schedule, configuration, safety settings, and action buttons. Layout adapts for mobile and desktop screens.
+ * The skeleton includes sections for actions, status, schedule, configuration, safety settings, and action buttons, with layout adapting for mobile and desktop screens.
  *
  * @returns A JSX element representing the loading skeleton for the Delete Sync feature.
  */

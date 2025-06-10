@@ -7,9 +7,9 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 
 /**
- * Displays a skeleton placeholder for the public content notifications form while data is loading.
+ * Renders a static skeleton UI for the public content notifications form during loading.
  *
- * Renders a static accordion UI with skeleton elements that mimic the structure of the notifications form, including headers, actions, configuration fields, buttons, and informational text.
+ * Displays an accordion with skeleton placeholders that visually represent the structure of the notifications form, including headers, actions, configuration fields, buttons, and informational text.
  */
 export function PublicContentNotificationsSkeleton() {
   return (
