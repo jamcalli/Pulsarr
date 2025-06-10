@@ -41,6 +41,27 @@ export type RemovedTagMode = 'remove' | 'keep' | 'special-tag'
 
 export type DeletionMode = 'watchlist' | 'tag-based'
 
+// Type-safe key definitions for public content notification config
+export type DiscordWebhookKey =
+  | 'discordWebhookUrls'
+  | 'discordWebhookUrlsMovies'
+  | 'discordWebhookUrlsShows'
+
+export type AppriseUrlKey =
+  | 'appriseUrls'
+  | 'appriseUrlsMovies'
+  | 'appriseUrlsShows'
+
+// Type-safe lookup table structure for public content notification keys
+export type PublicContentKeyMap = Record<
+  'discord' | 'apprise',
+  {
+    generic: DiscordWebhookKey | AppriseUrlKey
+    movies: DiscordWebhookKey | AppriseUrlKey
+    shows: DiscordWebhookKey | AppriseUrlKey
+  }
+>
+
 export interface Config {
   id: number
   // System Config

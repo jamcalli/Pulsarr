@@ -35,7 +35,6 @@ import { configurePgTypes } from '@utils/postgres-config.js'
 import type { Config, User } from '@root/types/config.types.js'
 import {
   determineNotificationType,
-  createNotificationObject,
   getPublicContentNotificationFlags,
   createPublicContentNotification,
 } from '@root/utils/notification-processor.js'
@@ -718,12 +717,12 @@ export class DatabaseService {
           )
         : {
             enabled: false,
-            discordWebhookUrls: undefined,
-            discordWebhookUrlsMovies: undefined,
-            discordWebhookUrlsShows: undefined,
-            appriseUrls: undefined,
-            appriseUrlsMovies: undefined,
-            appriseUrlsShows: undefined,
+            discordWebhookUrls: '',
+            discordWebhookUrlsMovies: '',
+            discordWebhookUrlsShows: '',
+            appriseUrls: '',
+            appriseUrlsMovies: '',
+            appriseUrlsShows: '',
           },
       newUserDefaultCanSync: Boolean(config.newUserDefaultCanSync ?? true),
       // Handle optional RSS fields
@@ -915,8 +914,8 @@ export class DatabaseService {
           updateData[key] = value
         } else if (
           key === 'publicContentNotifications' ||
-          Array.isArray(value) ||
-          (typeof value === 'object' && value !== null)
+          key === 'plexTokens' ||
+          key === 'plexSessionMonitoring'
         ) {
           updateData[key] = JSON.stringify(value)
         } else {
@@ -6817,25 +6816,31 @@ export class DatabaseService {
    */
   async deleteAllRollingMonitoredShowEntries(id: number): Promise<number> {
     try {
-      // First get the show details to find the series and instance
-      const show = await this.getRollingMonitoredShowById(id)
-      if (!show) {
-        return 0
-      }
+      return await this.knex.transaction(async (trx) => {
+        // Get the show details inside the transaction to avoid race conditions
+        const show = await trx('rolling_monitored_shows')
+          .where({ id })
+          .forUpdate()
+          .first()
 
-      // Delete all entries for this show (all users)
-      const deleted = await this.knex('rolling_monitored_shows')
-        .where({
-          sonarr_series_id: show.sonarr_series_id,
-          sonarr_instance_id: show.sonarr_instance_id,
-        })
-        .delete()
+        if (!show) {
+          return 0
+        }
 
-      this.log.info(
-        `Deleted ${deleted} rolling monitored show entries for ${show.show_title} (series_id: ${show.sonarr_series_id}, instance_id: ${show.sonarr_instance_id})`,
-      )
+        // Delete all entries for this show (all users)
+        const deleted = await trx('rolling_monitored_shows')
+          .where({
+            sonarr_series_id: show.sonarr_series_id,
+            sonarr_instance_id: show.sonarr_instance_id,
+          })
+          .delete()
 
-      return deleted
+        this.log.info(
+          `Deleted ${deleted} rolling monitored show entries for ${show.show_title} (series_id: ${show.sonarr_series_id}, instance_id: ${show.sonarr_instance_id})`,
+        )
+
+        return deleted
+      })
     } catch (error) {
       this.log.error(
         'Error deleting all rolling monitored show entries:',
@@ -6855,13 +6860,16 @@ export class DatabaseService {
    */
   async resetRollingMonitoredShowToOriginal(id: number): Promise<number> {
     try {
-      // First get the show details to find the series and instance
-      const show = await this.getRollingMonitoredShowById(id)
-      if (!show) {
-        return 0
-      }
-
       return await this.knex.transaction(async (trx) => {
+        // Get the show details inside the transaction to avoid race conditions
+        const show = await trx('rolling_monitored_shows')
+          .where({ id })
+          .forUpdate()
+          .first()
+
+        if (!show) {
+          return 0
+        }
         // Delete all user entries (keep only master record)
         const deletedUserEntries = await trx('rolling_monitored_shows')
           .where({

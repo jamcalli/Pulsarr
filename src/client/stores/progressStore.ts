@@ -6,7 +6,7 @@ interface ProgressState {
   eventSource: EventSource | null
   isConnected: boolean
   isConnecting: boolean
-  reconnectTimeout: NodeJS.Timeout | null
+  reconnectTimeout: ReturnType<typeof setTimeout> | null
   operationSubscribers: Map<string, Set<(event: ProgressEvent) => void>>
   typeSubscribers: Map<string, Set<(event: ProgressEvent) => void>>
 

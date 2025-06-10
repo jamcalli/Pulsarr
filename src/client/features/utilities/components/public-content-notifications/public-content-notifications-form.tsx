@@ -141,17 +141,6 @@ function WebhookField({
                 onChange={field.onChange}
                 placeholder={placeholder}
                 disabled={disabled}
-                validateValue={
-                  name.includes('discord')
-                    ? (url) => {
-                        // Basic Discord webhook URL validation
-                        return (
-                          url === '' ||
-                          url.includes('discord.com/api/webhooks/')
-                        )
-                      }
-                    : undefined
-                }
                 maxFields={5}
                 className="flex-1"
               />
@@ -344,7 +333,8 @@ export function PublicContentNotificationsForm() {
     try {
       await handleToggle(newEnabledState)
     } catch (error) {
-      // Error handling is done in the hook
+      // Error handling (user feedback, logging) is done in the hook
+      // No additional handling needed at component level
     }
   }
 

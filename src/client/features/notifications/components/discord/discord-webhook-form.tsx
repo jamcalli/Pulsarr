@@ -241,7 +241,7 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
             .join(',')
           webhookForm.setValue('discordWebhookUrl', deduplicatedUrls, {
             shouldValidate: true,
-            shouldDirty: true,
+            shouldDirty: false,
           })
         }
 

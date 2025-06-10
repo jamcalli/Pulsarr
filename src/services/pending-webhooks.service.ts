@@ -45,7 +45,7 @@ export class PendingWebhooksService {
         const processed = await this.processWebhooks()
         // Only log completion if we actually processed something
         if (processed > 0) {
-          this.log.info(`Processed ${processed} pending webhooks`)
+          this.log.info(`Deleted ${processed} processed pending webhooks`)
         }
       },
     )
@@ -108,7 +108,7 @@ export class PendingWebhooksService {
         return 0 // Silent return when no webhooks to process
       }
 
-      let processedCount = 0
+      let deletedCount = 0
 
       for (const webhook of webhooks) {
         try {
@@ -140,7 +140,7 @@ export class PendingWebhooksService {
                   webhook.id,
                 )
                 if (deleted) {
-                  processedCount++
+                  deletedCount++
                 } else {
                   this.log.warn(
                     `Failed to delete processed webhook ${webhook.id}`,
@@ -166,14 +166,13 @@ export class PendingWebhooksService {
                 `Failed to parse payload for webhook ${webhook.id}:`,
                 parseError,
               )
-              throw parseError
+              continue // Skip this webhook and continue processing others
             }
 
             // Handle episode notifications
-            // Note: instanceName comparison is case-sensitive to match the webhook schema
             if (
               'instanceName' in body &&
-              body.instanceName === 'Sonarr' &&
+              body.instanceName?.toLowerCase() === 'sonarr' &&
               'episodes' in body &&
               body.episodes.length > 0
             ) {
@@ -203,7 +202,7 @@ export class PendingWebhooksService {
                     webhook.id,
                   )
                   if (deleted) {
-                    processedCount++
+                    deletedCount++
                   } else {
                     this.log.warn(
                       `Failed to delete processed webhook ${webhook.id}`,
@@ -225,7 +224,7 @@ export class PendingWebhooksService {
         }
       }
 
-      return processedCount
+      return deletedCount
     } catch (error) {
       this.log.error('Error processing pending webhooks:', error)
       return 0
