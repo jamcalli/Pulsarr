@@ -4,6 +4,8 @@ import { AppriseForm } from '@/features/notifications/components/apprise/apprise
 import { TautulliForm } from '@/features/notifications/components/tautulli/tautulli-form'
 import { GeneralSettingsForm } from '@/features/notifications/components/general/general-settings-form'
 import { Separator } from '@/components/ui/separator'
+import { useConfigStore } from '@/stores/configStore'
+import { useNavigate } from 'react-router-dom'
 
 interface NotificationsSectionProps {
   isInitialized: boolean
@@ -19,8 +21,34 @@ interface NotificationsSectionProps {
 export function NotificationsSection({
   isInitialized,
 }: NotificationsSectionProps) {
+  const setOpenUtilitiesAccordion = useConfigStore(
+    (state) => state.setOpenUtilitiesAccordion,
+  )
+  const navigate = useNavigate()
+
   return (
     <div className="grid gap-6">
+      {/* Public Content Notifications Info Section */}
+      <div>
+        <div className="text-sm text-text p-3 bg-bw rounded-base border-2 border-border">
+          <p>
+            Want to broadcast ALL content availability to public Discord
+            channels and shared Apprise endpoints? Configure{' '}
+            <button
+              type="button"
+              onClick={() => {
+                setOpenUtilitiesAccordion('public-content-notifications')
+                navigate('/utilities')
+              }}
+              className="underline font-medium"
+            >
+              Public Content Notifications
+            </button>{' '}
+            in the Utilities section.
+          </p>
+        </div>
+      </div>
+
       {/* Discord Notifications Section */}
       <div>
         <h2 className="text-2xl font-bold text-text">Discord Notifications</h2>

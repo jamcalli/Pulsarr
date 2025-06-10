@@ -19,6 +19,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { Input } from '@/components/ui/input'
+import { MultiInput } from '@/components/ui/multi-input'
 import { useToast } from '@/hooks/use-toast'
 import { useConfigStore } from '@/stores/configStore'
 import { AppriseStatusBadge } from '@/components/ui/apprise-status-badge'
@@ -157,6 +158,7 @@ export function AppriseForm({ isInitialized }: AppriseFormProps) {
   const isDirty = appriseForm.formState.isDirty
   const isValid = appriseForm.formState.isValid
   const hasSystemAppriseUrl = !!appriseForm.watch('systemAppriseUrl')
+  const isAppriseEnabled = config?.enableApprise || false
 
   return (
     <div className="grid gap-4">
@@ -230,18 +232,19 @@ export function AppriseForm({ isInitialized }: AppriseFormProps) {
                         <InfoIcon className="h-4 w-4 text-text cursor-help" />
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs">
-                        URL for system-wide notifications. Supports multiple
-                        comma-separated URLs.
+                        URLs for system-wide notifications. Use the + button to
+                        add multiple services.
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
                 </div>
                 <FormControl>
-                  <Input
-                    {...field}
+                  <MultiInput
+                    value={field.value}
+                    onChange={field.onChange}
                     placeholder="Enter System Apprise URL"
-                    type="text"
-                    disabled={appriseStatus === 'loading'}
+                    disabled={appriseStatus === 'loading' || !isAppriseEnabled}
+                    maxFields={5}
                     className="w-full"
                   />
                 </FormControl>
@@ -261,7 +264,7 @@ export function AppriseForm({ isInitialized }: AppriseFormProps) {
                 type="button"
                 variant="cancel"
                 onClick={resetForm}
-                disabled={appriseStatus === 'loading'}
+                disabled={appriseStatus === 'loading' || !isAppriseEnabled}
                 className="flex items-center gap-1"
               >
                 <X className="h-4 w-4" />
@@ -303,7 +306,7 @@ export function AppriseForm({ isInitialized }: AppriseFormProps) {
                 variant="error"
                 size="icon"
                 onClick={() => setShowClearAlert(true)}
-                disabled={appriseStatus === 'loading'}
+                disabled={appriseStatus === 'loading' || !isAppriseEnabled}
                 className="transition-opacity"
                 type="button"
               >

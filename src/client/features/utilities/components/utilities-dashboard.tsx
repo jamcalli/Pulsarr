@@ -12,6 +12,7 @@ import { NewUserDefaultsSkeleton } from '@/features/utilities/components/new-use
 import { PublicContentNotificationsForm } from '@/features/utilities/components/public-content-notifications/public-content-notifications-form'
 import { PublicContentNotificationsSkeleton } from '@/features/utilities/components/public-content-notifications/public-content-notifications-skeleton'
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
+import { useConfigStore } from '@/stores/configStore'
 
 /**
  * Displays the utilities dashboard with sections for DeleteSync, NewUserDefaults, PublicContentNotifications, PlexNotifications, SessionMonitoring, and UserTags.
@@ -26,6 +27,12 @@ export function UtilitiesDashboard() {
   const hasLoadedSchedules = useUtilitiesStore(
     (state) => state.hasLoadedSchedules,
   )
+  const openUtilitiesAccordion = useConfigStore(
+    (state) => state.openUtilitiesAccordion,
+  )
+  const setOpenUtilitiesAccordion = useConfigStore(
+    (state) => state.setOpenUtilitiesAccordion,
+  )
 
   useEffect(() => {
     if (hasLoadedSchedules) {
@@ -36,6 +43,41 @@ export function UtilitiesDashboard() {
       return () => clearTimeout(timer)
     }
   }, [hasLoadedSchedules])
+
+  // Handle accordion opening after page load
+  useEffect(() => {
+    if (openUtilitiesAccordion && !isLoading) {
+      setTimeout(() => {
+        const triggerButton = Array.from(
+          document.querySelectorAll('button[data-state]'),
+        ).find((button) => {
+          const h3 = button.querySelector('h3')
+          return h3?.textContent?.trim() === 'Public Content Notifications'
+        }) as HTMLButtonElement
+
+        if (triggerButton) {
+          const isExpanded =
+            triggerButton.getAttribute('aria-expanded') === 'true'
+
+          if (!isExpanded) {
+            triggerButton.click()
+          }
+
+          setTimeout(() => {
+            const accordionItem = triggerButton.closest('[data-state]')
+            if (accordionItem) {
+              accordionItem.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start',
+              })
+            }
+          }, 100)
+        }
+
+        setOpenUtilitiesAccordion(null)
+      }, 200)
+    }
+  }, [openUtilitiesAccordion, isLoading, setOpenUtilitiesAccordion])
 
   return (
     <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
