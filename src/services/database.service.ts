@@ -3318,32 +3318,8 @@ export class DatabaseService {
       }
     }
 
-    // Add public content notification if enabled (regardless of individual user notifications)
-    if (
-      this.config.publicContentNotifications?.enabled &&
-      notifications.length > 0 &&
-      !byGuid // Don't duplicate when byGuid already added public content
-    ) {
-      // Create a virtual public content user notification using the first real notification as a template
-      const templateNotification = notifications[0]
-
-      // Determine notification flags for regular mode
-      const { hasDiscordUrls, hasAppriseUrls } =
-        getPublicContentNotificationFlags(
-          this.config.publicContentNotifications,
-        )
-
-      const publicContentUser = createPublicContentNotification(
-        {
-          ...templateNotification.notification,
-          username: 'Public Content', // Override username for public content
-        },
-        hasDiscordUrls,
-        hasAppriseUrls,
-      )
-
-      notifications.push(publicContentUser)
-    }
+    // Public content notifications are handled separately via byGuid=true calls
+    // This ensures clean separation between user notifications and public notifications
 
     return notifications
   }

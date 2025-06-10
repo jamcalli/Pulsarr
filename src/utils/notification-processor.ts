@@ -230,7 +230,6 @@ export async function processContentNotifications(
   isBulkRelease: boolean,
   options?: {
     logger?: FastifyBaseLogger
-    onUserNotification?: (result: NotificationResult) => Promise<void>
     sequential?: boolean // for webhook.ts which uses for...of instead of Promise.all
   },
 ): Promise<void> {
@@ -251,6 +250,9 @@ export async function processContentNotifications(
     notificationResults.push(...publicNotificationResults)
   }
 
+  // Get matching watchlist items for Tautulli notifications
+  const matchingItems = await fastify.db.getWatchlistItemsByGuid(mediaInfo.guid)
+
   // Process notifications either sequentially or concurrently
   if (options?.sequential) {
     for (const result of notificationResults) {
@@ -258,6 +260,8 @@ export async function processContentNotifications(
         fastify,
         result,
         notificationResults,
+        matchingItems,
+        mediaInfo,
         options,
       )
     }
@@ -269,6 +273,8 @@ export async function processContentNotifications(
           fastify,
           result,
           notificationResults,
+          matchingItems,
+          mediaInfo,
           options,
         )
       }),
@@ -289,9 +295,15 @@ async function processIndividualNotification(
   fastify: FastifyInstance,
   result: NotificationResult,
   allNotificationResults: NotificationResult[],
+  matchingItems: TokenWatchlistItem[],
+  mediaInfo: {
+    type: 'movie' | 'show'
+    guid: string
+    title: string
+    episodes?: SonarrEpisodeSchema[]
+  },
   options?: {
     logger?: FastifyBaseLogger
-    onUserNotification?: (result: NotificationResult) => Promise<void>
   },
 ): Promise<void> {
   const log = options?.logger || fastify.log
@@ -359,9 +371,45 @@ async function processIndividualNotification(
       }
     }
 
-    // Call optional callback for additional user notifications (e.g., Tautulli)
-    if (options?.onUserNotification) {
-      await options.onUserNotification(result)
+    // Handle Tautulli notifications centrally to maintain DRY principles
+    if (result.user.notify_tautulli && fastify.tautulli?.isEnabled()) {
+      try {
+        // Find the watchlist item for this user
+        const userItem = matchingItems.find(
+          (item) => item.user_id === result.user.id,
+        )
+
+        if (userItem) {
+          const itemId =
+            typeof userItem.id === 'string'
+              ? Number.parseInt(userItem.id, 10)
+              : userItem.id
+
+          const sent = await fastify.tautulli.sendMediaNotification(
+            result.user,
+            result.notification,
+            itemId,
+            mediaInfo.guid,
+            userItem.key,
+          )
+
+          log.info(
+            {
+              userId: result.user.id,
+              username: result.user.name,
+              success: sent,
+              mediaType: mediaInfo.type,
+              guid: mediaInfo.guid,
+            },
+            'Sent Tautulli notification',
+          )
+        }
+      } catch (error) {
+        log.error(
+          { error, userId: result.user.id, guid: mediaInfo.guid },
+          'Failed to send Tautulli notification',
+        )
+      }
     }
   }
 }
