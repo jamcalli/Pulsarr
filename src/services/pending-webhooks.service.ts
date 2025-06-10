@@ -2,6 +2,7 @@ import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type { PendingWebhooksConfig } from '@root/types/pending-webhooks.types.js'
 import type { WebhookPayload } from '@root/schemas/notifications/webhook.schema.js'
 import { processContentNotifications } from '@root/utils/notification-processor.js'
+import pLimit from 'p-limit'
 
 /**
  * Service to handle webhooks that arrive before RSS feed matching is complete.
@@ -42,10 +43,10 @@ export class PendingWebhooksService {
     await this.fastify.scheduler.scheduleJob(
       'pending-webhooks-processor',
       async (jobName: string) => {
-        const processed = await this.processWebhooks()
+        const deleted = await this.processWebhooks()
         // Only log completion if we actually processed something
-        if (processed > 0) {
-          this.log.info(`Deleted ${processed} processed pending webhooks`)
+        if (deleted > 0) {
+          this.log.info(`Deleted ${deleted} pending webhooks`)
         }
       },
     )
@@ -108,121 +109,120 @@ export class PendingWebhooksService {
         return 0 // Silent return when no webhooks to process
       }
 
-      let deletedCount = 0
+      // Process webhooks concurrently with rate limiting
+      const limit = pLimit(5) // Limit to 5 concurrent webhooks to avoid overwhelming the system
+      const results = await Promise.allSettled(
+        webhooks.map((webhook) =>
+          limit(async () => {
+            try {
+              // Process based on instance type
+              if (webhook.media_type === 'movie') {
+                // For movies, we don't need to parse the payload
+                const mediaInfo = {
+                  type: 'movie' as const,
+                  guid: webhook.guid,
+                  title: webhook.title,
+                }
 
-      for (const webhook of webhooks) {
-        try {
-          // Process based on instance type
-          if (webhook.media_type === 'movie') {
-            // For movies, we don't need to parse the payload
-            const mediaInfo = {
-              type: 'movie' as const,
-              guid: webhook.guid,
-              title: webhook.title,
-            }
-
-            const { matchedCount } = await processContentNotifications(
-              this.fastify,
-              mediaInfo,
-              false,
-              {
-                logger: this.log,
-              },
-            )
-
-            if (matchedCount > 0) {
-              this.log.info(
-                `Found ${matchedCount} items for ${webhook.guid}, processed webhook`,
-              )
-              // Delete the processed webhook
-              if (webhook.id) {
-                const deleted = await this.fastify.db.deletePendingWebhook(
-                  webhook.id,
+                const { matchedCount } = await processContentNotifications(
+                  this.fastify,
+                  mediaInfo,
+                  false,
+                  {
+                    logger: this.log,
+                  },
                 )
-                if (deleted) {
-                  deletedCount++
+
+                if (matchedCount > 0) {
+                  this.log.info(
+                    `Found ${matchedCount} items for ${webhook.guid}, processed webhook`,
+                  )
+                  // Delete the processed webhook
+                  if (webhook.id) {
+                    const deleted = await this.fastify.db.deletePendingWebhook(
+                      webhook.id,
+                    )
+                    return deleted ? 1 : 0
+                  }
                 } else {
-                  this.log.warn(
-                    `Failed to delete processed webhook ${webhook.id}`,
+                  this.log.debug(
+                    `No items found for ${webhook.guid}, webhook remains pending`,
                   )
                 }
-              }
-            } else {
-              this.log.debug(
-                `No items found for ${webhook.guid}, webhook remains pending`,
-              )
-            }
-          } else if (webhook.media_type === 'show') {
-            // For shows, we need to parse the payload to get episode information
-            let body: WebhookPayload
-            try {
-              // Safe parse payload in case it's a string (defensive programming)
-              body =
-                typeof webhook.payload === 'string'
-                  ? JSON.parse(webhook.payload)
-                  : webhook.payload
-            } catch (parseError) {
-              this.log.error(
-                `Failed to parse payload for webhook ${webhook.id}:`,
-                parseError,
-              )
-              continue // Skip this webhook and continue processing others
-            }
-
-            // Handle episode notifications
-            if (
-              'instanceName' in body &&
-              body.instanceName?.toLowerCase() === 'sonarr' &&
-              'episodes' in body &&
-              body.episodes.length > 0
-            ) {
-              const mediaInfo = {
-                type: 'show' as const,
-                guid: webhook.guid,
-                title: webhook.title,
-                episodes: body.episodes,
-              }
-
-              const { matchedCount } = await processContentNotifications(
-                this.fastify,
-                mediaInfo,
-                body.episodes.length > 1,
-                {
-                  logger: this.log,
-                },
-              )
-
-              if (matchedCount > 0) {
-                this.log.info(
-                  `Found ${matchedCount} items for ${webhook.guid}, processed webhook`,
-                )
-                // Delete the processed webhook
-                if (webhook.id) {
-                  const deleted = await this.fastify.db.deletePendingWebhook(
-                    webhook.id,
+              } else if (webhook.media_type === 'show') {
+                // For shows, we need to parse the payload to get episode information
+                let body: WebhookPayload
+                try {
+                  // Safe parse payload in case it's a string (defensive programming)
+                  body =
+                    typeof webhook.payload === 'string'
+                      ? JSON.parse(webhook.payload)
+                      : webhook.payload
+                } catch (parseError) {
+                  this.log.error(
+                    `Failed to parse payload for webhook ${webhook.id}:`,
+                    parseError,
                   )
-                  if (deleted) {
-                    deletedCount++
+                  return 0 // Skip this webhook
+                }
+
+                // Handle episode notifications
+                if (
+                  'instanceName' in body &&
+                  body.instanceName?.toLowerCase() === 'sonarr' &&
+                  'episodes' in body &&
+                  Array.isArray(body.episodes) &&
+                  body.episodes.length > 0
+                ) {
+                  const mediaInfo = {
+                    type: 'show' as const,
+                    guid: webhook.guid,
+                    title: webhook.title,
+                    episodes: body.episodes,
+                  }
+
+                  const { matchedCount } = await processContentNotifications(
+                    this.fastify,
+                    mediaInfo,
+                    body.episodes.length > 1,
+                    {
+                      logger: this.log,
+                    },
+                  )
+
+                  if (matchedCount > 0) {
+                    this.log.info(
+                      `Found ${matchedCount} items for ${webhook.guid}, processed webhook`,
+                    )
+                    // Delete the processed webhook
+                    if (webhook.id) {
+                      const deleted =
+                        await this.fastify.db.deletePendingWebhook(webhook.id)
+                      return deleted ? 1 : 0
+                    }
                   } else {
-                    this.log.warn(
-                      `Failed to delete processed webhook ${webhook.id}`,
+                    this.log.debug(
+                      `No items found for ${webhook.guid}, webhook remains pending`,
                     )
                   }
                 }
-              } else {
-                this.log.debug(
-                  `No items found for ${webhook.guid}, webhook remains pending`,
-                )
               }
+              return 0
+            } catch (webhookError) {
+              this.log.error(
+                `Error processing pending webhook ${webhook.id}:`,
+                webhookError,
+              )
+              return 0
             }
-          }
-        } catch (webhookError) {
-          this.log.error(
-            `Error processing pending webhook ${webhook.id}:`,
-            webhookError,
-          )
-        }
-      }
+          }),
+        ),
+      )
+
+      // Count successful deletions
+      const deletedCount = results.reduce((count, result) => {
+        return count + (result.status === 'fulfilled' ? result.value : 0)
+      }, 0)
 
       return deletedCount
     } catch (error) {
