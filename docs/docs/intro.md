@@ -32,6 +32,7 @@ Enjoy all the benefits of other content discovery systems without requiring user
   - Discord integration with user-friendly notification system
   - Apprise integration supporting 80+ notification methods
   - Smart notification batching for season packs and individual episodes/movies
+  - Public content notifications for broadcasting to entire communities
 
 - **User Management**:
   - Granular user controls for watchlist syncing
@@ -73,6 +74,7 @@ Pulsarr uses an intelligent workflow to process and route content:
 
 4. **Notification Delivery**:
    - Send personalized notifications when content is available
+   - Send public notifications to shared channels/endpoints
    - Support for Discord, Apprise, and webhook notifications
 
 5. **Content Lifecycle Management**:

@@ -38,6 +38,7 @@ const sidebars: SidebarsConfig = {
         'notifications/discord',
         'notifications/apprise',
         'notifications/tautulli',
+        'notifications/public-content',
       ],
     },
     {
@@ -48,6 +49,7 @@ const sidebars: SidebarsConfig = {
         'utilities/user-tagging',
         'utilities/session-monitoring',
         'utilities/plex-notifications',
+        'utilities/public-content-notifications',
       ],
     },
     'architecture',

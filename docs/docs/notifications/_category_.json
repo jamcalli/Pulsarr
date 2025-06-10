@@ -3,6 +3,6 @@
   "position": 4,
   "link": {
     "type": "generated-index",
-    "description": "Set up notification systems to keep users informed about content availability."
+    "description": "Set up notification systems to keep users informed about content availability. Includes both user-specific notifications and public content notifications for broadcasting to entire communities."
   }
 }

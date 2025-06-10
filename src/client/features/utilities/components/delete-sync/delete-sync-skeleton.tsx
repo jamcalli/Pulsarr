@@ -10,15 +10,11 @@ import { Separator } from '@/components/ui/separator'
 import { useMediaQuery } from '@/hooks/use-media-query'
 
 /**
- * Renders a skeleton loading UI for the "Delete Sync" feature.
+ * Renders a responsive skeleton placeholder that visually replicates the Delete Sync interface during data loading.
  *
- * This component displays a collapsible accordion card with placeholder elements
- * mimicking the layout of the Delete Sync interface. It includes skeletons for the title,
- * description, actions, status indicators, schedule, configuration, and safety settings,
- * providing a visual cue while the actual data is being loaded. The component is responsive
- * and adapts its layout for mobile and desktop views.
+ * The skeleton includes sections for actions, status, schedule, configuration, safety settings, and action buttons, with layout adapting for mobile and desktop screens.
  *
- * @returns A JSX element representing the loading state of the Delete Sync feature.
+ * @returns A JSX element representing the loading skeleton for the Delete Sync feature.
  */
 export function DeleteSyncSkeleton() {
   const isMobile = useMediaQuery('(max-width: 768px)')
@@ -32,10 +28,10 @@ export function DeleteSyncSkeleton() {
         <AccordionTrigger className="px-6 py-4 bg-main hover:bg-main hover:no-underline">
           <div className="flex justify-between items-center w-full pr-2">
             <div>
-              <h3 className="text-lg font-medium text-text text-left">
+              <h3 className="text-lg font-medium text-black text-left">
                 Delete Sync
               </h3>
-              <p className="text-sm text-text text-left">
+              <p className="text-sm text-black text-left">
                 Automatically removes content when it's no longer on any
                 watchlists
               </p>

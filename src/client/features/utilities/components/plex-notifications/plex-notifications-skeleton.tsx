@@ -8,14 +8,11 @@ import {
 import { Separator } from '@/components/ui/separator'
 
 /**
- * Renders a skeleton loading UI for the "Plex Notifications" feature.
+ * Renders a skeleton UI placeholder for the Plex Notifications interface while data is loading.
  *
- * This component displays a collapsible accordion card with placeholder elements
- * mimicking the layout of the Plex Notifications interface. It includes skeletons for the title,
- * description, actions, and configuration settings, providing a visual cue while the actual
- * data is being loaded.
+ * Simulates the layout of the Plex Notifications feature, including sections for actions, current status, and connection settings, using skeleton elements to indicate loading state.
  *
- * @returns A JSX element representing the loading state of the Plex Notifications feature.
+ * @returns A JSX element representing the loading placeholder for the Plex Notifications UI.
  */
 export function PlexNotificationsSkeleton() {
   return (
@@ -27,10 +24,10 @@ export function PlexNotificationsSkeleton() {
         <AccordionTrigger className="px-6 py-4 bg-main hover:bg-main hover:no-underline">
           <div className="flex justify-between items-center w-full pr-2">
             <div>
-              <h3 className="text-lg font-medium text-text text-left">
+              <h3 className="text-lg font-medium text-black text-left">
                 Plex Notifications
               </h3>
-              <p className="text-sm text-text text-left">
+              <p className="text-sm text-black text-left">
                 Configure Sonarr and Radarr to notify Plex of content added,
                 removed, or modified
               </p>

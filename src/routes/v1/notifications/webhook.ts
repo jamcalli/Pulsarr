@@ -16,6 +16,7 @@ import {
   queuePendingWebhook,
 } from '@root/utils/webhookQueue.js'
 import { extractTmdbId, extractTvdbId } from '@root/utils/guid-handler.js'
+import { processContentNotifications } from '@root/utils/notification-processor.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.post<{
@@ -181,68 +182,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             title: body.movie.title,
           }
 
-          const notificationResults = await fastify.db.processNotifications(
-            mediaInfo,
-            false,
-          )
-
-          for (const result of notificationResults) {
-            if (result.user.notify_discord && result.user.discord_id) {
-              await fastify.discord.sendDirectMessage(
-                result.user.discord_id,
-                result.notification,
-              )
-            }
-
-            if (result.user.notify_apprise) {
-              await fastify.apprise.sendMediaNotification(
-                result.user,
-                result.notification,
-              )
-            }
-
-            // Queue Tautulli notifications
-            if (result.user.notify_tautulli && fastify.tautulli?.isEnabled()) {
-              try {
-                // Find the watchlist item for this user
-                const userItem = matchingItems.find(
-                  (item) => item.user_id === result.user.id,
-                )
-
-                if (userItem) {
-                  const itemId =
-                    typeof userItem.id === 'string'
-                      ? Number.parseInt(userItem.id, 10)
-                      : userItem.id
-
-                  const tmdbId = extractTmdbId(userItem.guids)
-                  if (tmdbId > 0) {
-                    await fastify.tautulli.queueNotification(
-                      `tmdb:${tmdbId}`,
-                      'movie',
-                      [
-                        {
-                          userId: result.user.id,
-                          username: result.user.name,
-                          notifierId: result.user.tautulli_notifier_id || 0,
-                        },
-                      ],
-                      {
-                        title: body.movie.title,
-                        watchlistItemId: itemId,
-                        watchlistItemKey: userItem.key,
-                      },
-                    )
-                  }
-                }
-              } catch (error) {
-                fastify.log.error(
-                  { error, userId: result.user.id, title: body.movie.title },
-                  'Failed to queue Tautulli notification for movie',
-                )
-              }
-            }
-          }
+          await processContentNotifications(fastify, mediaInfo, false, {
+            sequential: true,
+          })
 
           return { success: true }
         }
@@ -321,78 +263,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                   episodes: [body.episodes[0]],
                 }
 
-                const notificationResults =
-                  await fastify.db.processNotifications(mediaInfo, false)
-
-                for (const result of notificationResults) {
-                  if (result.user.notify_discord && result.user.discord_id) {
-                    await fastify.discord.sendDirectMessage(
-                      result.user.discord_id,
-                      result.notification,
-                    )
-                  }
-
-                  if (result.user.notify_apprise) {
-                    await fastify.apprise.sendMediaNotification(
-                      result.user,
-                      result.notification,
-                    )
-                  }
-
-                  // Queue Tautulli notifications
-                  if (
-                    result.user.notify_tautulli &&
-                    fastify.tautulli?.isEnabled()
-                  ) {
-                    try {
-                      // Find the watchlist item for this user
-                      const userItem = matchingItems.find(
-                        (item) => item.user_id === result.user.id,
-                      )
-
-                      if (userItem) {
-                        const itemId =
-                          typeof userItem.id === 'string'
-                            ? Number.parseInt(userItem.id, 10)
-                            : userItem.id
-
-                        const tvdbId = extractTvdbId(userItem.guids)
-                        if (tvdbId > 0) {
-                          await fastify.tautulli.queueNotification(
-                            `tvdb:${tvdbId}`,
-                            'episode',
-                            [
-                              {
-                                userId: result.user.id,
-                                username: result.user.name,
-                                notifierId:
-                                  result.user.tautulli_notifier_id || 0,
-                              },
-                            ],
-                            {
-                              title: body.series.title,
-                              watchlistItemId: itemId,
-                              watchlistItemKey: userItem.key,
-                              seasonNumber: body.episodes[0].seasonNumber,
-                              episodeNumber: body.episodes[0].episodeNumber,
-                            },
-                          )
-                        }
-                      }
-                    } catch (error) {
-                      fastify.log.error(
-                        {
-                          error,
-                          userId: result.user.id,
-                          title: body.series.title,
-                          season: body.episodes[0].seasonNumber,
-                          episode: body.episodes[0].episodeNumber,
-                        },
-                        'Failed to queue Tautulli notification for episode',
-                      )
-                    }
-                  }
-                }
+                await processContentNotifications(fastify, mediaInfo, false, {
+                  sequential: true,
+                })
               } else {
                 if (!webhookQueue[tvdbId].seasons[seasonNumber]) {
                   webhookQueue[tvdbId].seasons[seasonNumber] = {
@@ -502,94 +375,14 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                 episodes: recentEpisodes,
               }
 
-              const notificationResults = await fastify.db.processNotifications(
+              await processContentNotifications(
+                fastify,
                 mediaInfo,
                 recentEpisodes.length > 1,
+                {
+                  sequential: true,
+                },
               )
-
-              if (notificationResults.length > 0) {
-                fastify.log.info(
-                  {
-                    title: body.series.title,
-                    episodeCount: recentEpisodes.length,
-                    recipientCount: notificationResults.length,
-                  },
-                  'Sending notifications for recent episodes',
-                )
-              }
-
-              for (const result of notificationResults) {
-                if (result.user.notify_discord && result.user.discord_id) {
-                  await fastify.discord.sendDirectMessage(
-                    result.user.discord_id,
-                    result.notification,
-                  )
-                }
-
-                if (result.user.notify_apprise) {
-                  await fastify.apprise.sendMediaNotification(
-                    result.user,
-                    result.notification,
-                  )
-                }
-
-                // Queue Tautulli notifications
-                if (
-                  result.user.notify_tautulli &&
-                  fastify.tautulli?.isEnabled()
-                ) {
-                  // Find the watchlist item for this user
-                  const userItem = matchingItems.find(
-                    (item) => item.user_id === result.user.id,
-                  )
-
-                  if (userItem) {
-                    const itemId =
-                      typeof userItem.id === 'string'
-                        ? Number.parseInt(userItem.id, 10)
-                        : userItem.id
-
-                    const tvdbId = extractTvdbId(userItem.guids)
-                    if (tvdbId > 0) {
-                      // For multiple episodes, queue each one separately
-                      for (const episode of recentEpisodes) {
-                        try {
-                          await fastify.tautulli.queueNotification(
-                            `tvdb:${tvdbId}`,
-                            'episode',
-                            [
-                              {
-                                userId: result.user.id,
-                                username: result.user.name,
-                                notifierId:
-                                  result.user.tautulli_notifier_id || 0,
-                              },
-                            ],
-                            {
-                              title: body.series.title,
-                              watchlistItemId: itemId,
-                              watchlistItemKey: userItem.key,
-                              seasonNumber: episode.seasonNumber,
-                              episodeNumber: episode.episodeNumber,
-                            },
-                          )
-                        } catch (error) {
-                          fastify.log.error(
-                            {
-                              error,
-                              userId: result.user.id,
-                              tvdbId,
-                              season: episode.seasonNumber,
-                              episode: episode.episodeNumber,
-                            },
-                            'Failed to queue Tautulli notification for episode',
-                          )
-                        }
-                      }
-                    }
-                  }
-                }
-              }
             }
 
             const nonRecentEpisodes = body.episodes.filter(

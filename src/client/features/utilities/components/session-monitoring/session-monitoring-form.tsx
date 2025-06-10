@@ -35,11 +35,11 @@ import { SessionMonitoringResetSettings } from '@/features/utilities/components/
 import { SessionMonitoringStatus } from '@/features/utilities/components/session-monitoring/session-monitoring-status'
 
 /**
- * Renders a form for configuring Plex session monitoring and rolling monitoring reset settings.
+ * Displays a form for configuring Plex session monitoring and rolling monitoring reset options.
  *
- * Enables users to manage Plex session monitoring options, including enabling/disabling monitoring, setting polling intervals, defining episode thresholds, filtering by users, and configuring automatic reset for rolling monitored shows. Integrates with schedule management and displays real-time status and management tools for active and inactive rolling shows.
+ * Allows users to enable or disable Plex session monitoring, adjust polling intervals, set episode thresholds, filter by users, and configure automatic reset for rolling monitored shows. Integrates with schedule management and provides real-time status and management tools for rolling and inactive shows.
  *
- * @returns The session monitoring configuration form UI.
+ * @returns The user interface for managing Plex session monitoring settings.
  */
 export function SessionMonitoringForm() {
   const { config, updateConfig } = useConfigStore()
@@ -280,10 +280,10 @@ export function SessionMonitoringForm() {
         <AccordionTrigger className="px-6 py-4 bg-main hover:bg-main hover:no-underline">
           <div className="flex justify-between items-center w-full pr-2">
             <div>
-              <h3 className="text-lg font-medium text-text text-left">
+              <h3 className="text-lg font-medium text-black text-left">
                 Plex Session Monitoring
               </h3>
-              <p className="text-sm text-text text-left">
+              <p className="text-sm text-black text-left">
                 Monitor Plex viewing sessions and automatically expand Sonarr
                 monitoring
               </p>
