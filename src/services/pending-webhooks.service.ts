@@ -14,44 +14,6 @@ import { processContentNotifications } from '@root/utils/notification-processor.
  * arrives while the RSS item is still being processed.
  */
 export class PendingWebhooksService {
-  /**
-   * Send Tautulli notification for a user
-   */
-  private async sendTautulliNotification(
-    result: NotificationResult,
-    matchingItems: TokenWatchlistItem[],
-    webhook: { guid: string },
-  ): Promise<void> {
-    if (!result.user.notify_tautulli || !this.fastify.tautulli?.isEnabled()) {
-      return
-    }
-
-    const userItem = matchingItems.find(
-      (item) => item.user_id === result.user.id,
-    )
-
-    if (userItem) {
-      const itemId =
-        typeof userItem.id === 'string'
-          ? Number.parseInt(userItem.id, 10)
-          : userItem.id
-
-      try {
-        await this.fastify.tautulli.sendMediaNotification(
-          result.user,
-          result.notification,
-          itemId,
-          webhook.guid,
-          userItem.key,
-        )
-      } catch (error) {
-        this.log.error(
-          { error, userId: result.user.id, guid: webhook.guid },
-          'Failed to send Tautulli notification',
-        )
-      }
-    }
-  }
   private readonly _config: PendingWebhooksConfig
   private isRunning = false
   private _processingWebhooks = false
@@ -180,14 +142,6 @@ export class PendingWebhooksService {
                 false,
                 {
                   logger: this.log,
-                  onUserNotification: async (result) => {
-                    // Send Tautulli notifications for regular users
-                    await this.sendTautulliNotification(
-                      result,
-                      matchingItems,
-                      webhook,
-                    )
-                  },
                 },
               )
             } else if (webhook.media_type === 'show') {
@@ -228,14 +182,6 @@ export class PendingWebhooksService {
                   body.episodes.length > 1,
                   {
                     logger: this.log,
-                    onUserNotification: async (result) => {
-                      // Send Tautulli notifications for regular users
-                      await this.sendTautulliNotification(
-                        result,
-                        matchingItems,
-                        webhook,
-                      )
-                    },
                   },
                 )
               }
