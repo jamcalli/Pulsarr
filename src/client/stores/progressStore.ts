@@ -70,15 +70,16 @@ export const useProgressStore = create<ProgressState>()(
 
       eventSource.onerror = (err) => {
         console.error('EventSource error:', err)
-        set({ isConnected: false })
+        set({ isConnected: false, isConnecting: false })
         // Debounce reconnect
-        if (!state.reconnectTimeout) {
+        const currentState = get()
+        if (!currentState.reconnectTimeout) {
           const timeout = setTimeout(() => {
-            const currentState = get()
-            if (currentState.eventSource === eventSource) {
+            const latestState = get()
+            if (latestState.eventSource === eventSource) {
               console.log('Reconnecting EventSource after error')
-              currentState.cleanup()
-              currentState.initialize()
+              latestState.cleanup()
+              latestState.initialize()
             }
             set({ reconnectTimeout: null })
           }, 2000)
@@ -110,64 +111,88 @@ export const useProgressStore = create<ProgressState>()(
     },
 
     subscribeToOperation: (operationId, callback) => {
-      const state = get()
+      set((state) => {
+        const newOperationSubscribers = new Map(state.operationSubscribers)
 
-      if (!state.operationSubscribers.has(operationId)) {
-        state.operationSubscribers.set(operationId, new Set())
-      }
+        if (!newOperationSubscribers.has(operationId)) {
+          newOperationSubscribers.set(operationId, new Set())
+        }
 
-      const callbacks = state.operationSubscribers.get(operationId)
-      if (!callbacks) {
-        throw new Error('Unexpected: callbacks set should exist')
-      }
+        const callbacks = newOperationSubscribers.get(operationId)
+        if (!callbacks) return { operationSubscribers: newOperationSubscribers }
+        const newCallbacks = new Set(callbacks)
+        newCallbacks.add(callback)
+        newOperationSubscribers.set(operationId, newCallbacks)
 
-      callbacks.add(callback)
+        return { operationSubscribers: newOperationSubscribers }
+      })
 
-      if (!state.eventSource && !state.isConnecting) {
-        state.initialize()
+      const currentState = get()
+      if (!currentState.eventSource && !currentState.isConnecting) {
+        currentState.initialize()
       }
 
       return () => {
-        const state = get()
-        const callbacks = state.operationSubscribers.get(operationId)
+        set((state) => {
+          const newOperationSubscribers = new Map(state.operationSubscribers)
+          const callbacks = newOperationSubscribers.get(operationId)
 
-        if (callbacks) {
-          callbacks.delete(callback)
-          if (callbacks.size === 0) {
-            state.operationSubscribers.delete(operationId)
+          if (callbacks) {
+            const newCallbacks = new Set(callbacks)
+            newCallbacks.delete(callback)
+
+            if (newCallbacks.size === 0) {
+              newOperationSubscribers.delete(operationId)
+            } else {
+              newOperationSubscribers.set(operationId, newCallbacks)
+            }
           }
-        }
+
+          return { operationSubscribers: newOperationSubscribers }
+        })
       }
     },
 
     subscribeToType: (type, callback) => {
-      const state = get()
+      set((state) => {
+        const newTypeSubscribers = new Map(state.typeSubscribers)
 
-      if (!state.typeSubscribers.has(type)) {
-        state.typeSubscribers.set(type, new Set())
-      }
+        if (!newTypeSubscribers.has(type)) {
+          newTypeSubscribers.set(type, new Set())
+        }
 
-      const callbacks = state.typeSubscribers.get(type)
-      if (!callbacks) {
-        throw new Error('Unexpected: callbacks set should exist')
-      }
+        const callbacks = newTypeSubscribers.get(type)
+        if (!callbacks) return { typeSubscribers: newTypeSubscribers }
+        const newCallbacks = new Set(callbacks)
+        newCallbacks.add(callback)
+        newTypeSubscribers.set(type, newCallbacks)
 
-      callbacks.add(callback)
+        return { typeSubscribers: newTypeSubscribers }
+      })
 
-      if (!state.eventSource && !state.isConnecting) {
-        state.initialize()
+      const currentState = get()
+      if (!currentState.eventSource && !currentState.isConnecting) {
+        currentState.initialize()
       }
 
       return () => {
-        const state = get()
-        const callbacks = state.typeSubscribers.get(type)
+        set((state) => {
+          const newTypeSubscribers = new Map(state.typeSubscribers)
+          const callbacks = newTypeSubscribers.get(type)
 
-        if (callbacks) {
-          callbacks.delete(callback)
-          if (callbacks.size === 0) {
-            state.typeSubscribers.delete(type)
+          if (callbacks) {
+            const newCallbacks = new Set(callbacks)
+            newCallbacks.delete(callback)
+
+            if (newCallbacks.size === 0) {
+              newTypeSubscribers.delete(type)
+            } else {
+              newTypeSubscribers.set(type, newCallbacks)
+            }
           }
-        }
+
+          return { typeSubscribers: newTypeSubscribers }
+        })
       }
     },
   })),

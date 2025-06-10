@@ -421,10 +421,18 @@ async function processIndividualNotification(
         const userItem = itemByUserId.get(result.user.id)
 
         if (userItem) {
-          const itemId =
+          const rawId =
             typeof userItem.id === 'string'
               ? Number.parseInt(userItem.id, 10)
               : userItem.id
+          if (Number.isNaN(rawId)) {
+            log.warn(
+              { rawId, userId: result.user.id },
+              'Skipping Tautulli – invalid item id',
+            )
+            return
+          }
+          const itemId = rawId
 
           const sent = await fastify.tautulli.sendMediaNotification(
             result.user,

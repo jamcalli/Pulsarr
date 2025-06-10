@@ -50,14 +50,18 @@ export function StatusTransitionsChart() {
       count: transition.count,
 
       // Add these properties that the ErrorBar component will use automatically
-      errorX: [
-        Math.round(
-          (transition.avg_days - transition.min_days) * 24 * 60 * 100,
-        ) / 100,
-        Math.round(
-          (transition.max_days - transition.avg_days) * 24 * 60 * 100,
-        ) / 100,
-      ],
+      // Only add error bars if min != max to avoid duplicate keys
+      errorX:
+        transition.min_days !== transition.max_days
+          ? [
+              Math.round(
+                (transition.avg_days - transition.min_days) * 24 * 60 * 100,
+              ) / 100,
+              Math.round(
+                (transition.max_days - transition.avg_days) * 24 * 60 * 100,
+              ) / 100,
+            ]
+          : [0, 0],
     }))
   }, [statusTransitions])
 
@@ -148,7 +152,7 @@ export function StatusTransitionsChart() {
             {/* Display sample size (count) as a label on each bar */}
             {requestToNotifyData.map((entry, index) => (
               <text
-                key={`${entry.contentType}-${entry.avgMinutes}-${entry.count}`}
+                key={`text-${entry.contentType}-${entry.avgMinutes}-${entry.count}-${index}`}
                 x={entry.avgMinutes > 5 ? 25 : entry.avgMinutes + 3}
                 y={index * 40 + 20}
                 textAnchor={entry.avgMinutes > 5 ? 'end' : 'start'}
@@ -167,11 +171,12 @@ export function StatusTransitionsChart() {
               strokeWidth={2}
               stroke={cssColors.error}
               direction="x"
+              key="errorbar-x"
             />
 
             {/* Apply different color for each content type */}
-            {requestToNotifyData.map((entry) => (
-              <defs key={`grad-${entry.contentType}`}>
+            {requestToNotifyData.map((entry, index) => (
+              <defs key={`grad-${entry.contentType}-${index}`}>
                 <linearGradient
                   id={`colorBar-${entry.contentType}`}
                   x1="0"
@@ -199,9 +204,9 @@ export function StatusTransitionsChart() {
               </defs>
             ))}
 
-            {requestToNotifyData.map((entry) => (
+            {requestToNotifyData.map((entry, index) => (
               <Cell
-                key={`bar-cell-${entry.contentType}-${entry.avgMinutes}-${entry.count}`}
+                key={`bar-cell-${entry.contentType}-${entry.avgMinutes}-${entry.count}-${index}`}
                 fill={
                   entry.contentType === 'Movies'
                     ? cssColors.movie
@@ -212,7 +217,12 @@ export function StatusTransitionsChart() {
           </Bar>
 
           {/* Add reference lines for each data point's min and max */}
-          {requestToNotifyData.flatMap((entry) => {
+          {requestToNotifyData.flatMap((entry, index) => {
+            // Only show reference lines if min != max
+            if (entry.minMinutes === entry.maxMinutes) {
+              return []
+            }
+
             const lineColor =
               entry.contentType === 'Movies' ? cssColors.movie : cssColors.show
 
@@ -220,7 +230,7 @@ export function StatusTransitionsChart() {
 
             return [
               <ReferenceLine
-                key={`min-${entry.contentType}-${entry.minMinutes}-${entry.avgMinutes}`}
+                key={`refline-min-${index}-${entry.contentType}-${entry.minMinutes}`}
                 x={entry.minMinutes}
                 stroke={transparentLineColor}
                 strokeDasharray="3 3"
@@ -228,7 +238,7 @@ export function StatusTransitionsChart() {
                 ifOverflow="extendDomain"
               />,
               <ReferenceLine
-                key={`max-${entry.contentType}-${entry.maxMinutes}-${entry.avgMinutes}`}
+                key={`refline-max-${index}-${entry.contentType}-${entry.maxMinutes}`}
                 x={entry.maxMinutes}
                 stroke={transparentLineColor}
                 strokeDasharray="3 3"

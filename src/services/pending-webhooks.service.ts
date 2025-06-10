@@ -36,6 +36,17 @@ export class PendingWebhooksService {
   }
 
   /**
+   * Helper method to delete a webhook and return count
+   */
+  private async deleteWebhookAndCount(
+    webhookId: number | undefined,
+  ): Promise<number> {
+    if (!webhookId) return 0
+    const deleted = await this.fastify.db.deletePendingWebhook(webhookId)
+    return deleted ? 1 : 0
+  }
+
+  /**
    * Initialize the pending webhooks service
    */
   async initialize(): Promise<void> {
@@ -138,17 +149,11 @@ export class PendingWebhooksService {
                     `Found ${matchedCount} items for ${webhook.guid}, processed webhook`,
                   )
                   // Delete the processed webhook
-                  if (webhook.id) {
-                    const deleted = await this.fastify.db.deletePendingWebhook(
-                      webhook.id,
-                    )
-                    return deleted ? 1 : 0
-                  }
-                } else {
-                  this.log.debug(
-                    `No items found for ${webhook.guid}, webhook remains pending`,
-                  )
+                  return await this.deleteWebhookAndCount(webhook.id)
                 }
+                this.log.debug(
+                  `No items found for ${webhook.guid}, webhook remains pending`,
+                )
               } else if (webhook.media_type === 'show') {
                 // For shows, we need to parse the payload to get episode information
                 let body: WebhookPayload
@@ -163,7 +168,14 @@ export class PendingWebhooksService {
                     `Failed to parse payload for webhook ${webhook.id}:`,
                     parseError,
                   )
-                  return 0 // Skip this webhook
+                  // Delete webhook with malformed payload to prevent infinite retries
+                  const deleted = await this.deleteWebhookAndCount(webhook.id)
+                  if (deleted > 0) {
+                    this.log.warn(
+                      `Deleted webhook ${webhook.id} due to malformed payload`,
+                    )
+                  }
+                  return deleted
                 }
 
                 // Handle episode notifications
@@ -195,16 +207,11 @@ export class PendingWebhooksService {
                       `Found ${matchedCount} items for ${webhook.guid}, processed webhook`,
                     )
                     // Delete the processed webhook
-                    if (webhook.id) {
-                      const deleted =
-                        await this.fastify.db.deletePendingWebhook(webhook.id)
-                      return deleted ? 1 : 0
-                    }
-                  } else {
-                    this.log.debug(
-                      `No items found for ${webhook.guid}, webhook remains pending`,
-                    )
+                    return await this.deleteWebhookAndCount(webhook.id)
                   }
+                  this.log.debug(
+                    `No items found for ${webhook.guid}, webhook remains pending`,
+                  )
                 }
               }
               return 0

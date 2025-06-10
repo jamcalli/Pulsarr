@@ -917,7 +917,7 @@ export class DatabaseService {
           key === 'plexTokens' ||
           key === 'plexSessionMonitoring'
         ) {
-          updateData[key] = JSON.stringify(value)
+          updateData[key] = value !== undefined ? JSON.stringify(value) : null
         } else {
           updateData[key] = value
         }
