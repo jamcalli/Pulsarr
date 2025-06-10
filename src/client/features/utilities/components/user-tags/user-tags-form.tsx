@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useConfigStore } from '@/stores/configStore'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -61,6 +61,14 @@ export function UserTagsForm() {
   const openUtilitiesAccordion = useConfigStore(
     (state) => state.openUtilitiesAccordion,
   )
+  const [isOpen, setIsOpen] = useState(false)
+
+  // Handle navigation-triggered opening
+  useEffect(() => {
+    if (openUtilitiesAccordion === 'user-tags') {
+      setIsOpen(true)
+    }
+  }, [openUtilitiesAccordion])
 
   const {
     form,
@@ -122,7 +130,8 @@ export function UserTagsForm() {
         type="single"
         collapsible
         className="w-full"
-        value={openUtilitiesAccordion === 'user-tags' ? 'user-tags' : undefined}
+        value={isOpen ? 'user-tags' : undefined}
+        onValueChange={(value) => setIsOpen(value === 'user-tags')}
       >
         <AccordionItem
           value="user-tags"

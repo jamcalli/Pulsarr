@@ -6,7 +6,6 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion'
 import { Separator } from '@/components/ui/separator'
-import { useConfigStore } from '@/stores/configStore'
 
 /**
  * Displays a controlled skeleton placeholder for the User Tags interface while content is loading.
@@ -16,17 +15,8 @@ import { useConfigStore } from '@/stores/configStore'
  * @returns A JSX element showing the loading state for the User Tags interface.
  */
 export function UserTagsSkeleton() {
-  const openUtilitiesAccordion = useConfigStore(
-    (state) => state.openUtilitiesAccordion,
-  )
-
   return (
-    <Accordion
-      type="single"
-      collapsible
-      className="w-full"
-      value={openUtilitiesAccordion === 'user-tags' ? 'user-tags' : undefined}
-    >
+    <Accordion type="single" collapsible className="w-full">
       <AccordionItem
         value="user-tags"
         className="border-2 border-border rounded-base overflow-hidden"

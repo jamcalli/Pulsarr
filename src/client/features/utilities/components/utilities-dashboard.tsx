@@ -30,6 +30,9 @@ export function UtilitiesDashboard() {
   const openUtilitiesAccordion = useConfigStore(
     (state) => state.openUtilitiesAccordion,
   )
+  const setOpenUtilitiesAccordion = useConfigStore(
+    (state) => state.setOpenUtilitiesAccordion,
+  )
 
   useEffect(() => {
     if (hasLoadedSchedules) {
@@ -41,7 +44,7 @@ export function UtilitiesDashboard() {
     }
   }, [hasLoadedSchedules])
 
-  // Handle controlled accordion opening with scroll
+  // Handle controlled accordion opening with scroll for navigation-triggered opens
   useEffect(() => {
     if (openUtilitiesAccordion && !isLoading) {
       // Scroll to accordion after it opens
@@ -55,10 +58,11 @@ export function UtilitiesDashboard() {
             block: 'start',
           })
         }
-        // Don't clear the state - let the accordions stay open
+        // Clear the state after navigation to prevent sticky behavior
+        setOpenUtilitiesAccordion(null)
       }, 300) // Give accordion time to open
     }
-  }, [openUtilitiesAccordion, isLoading])
+  }, [openUtilitiesAccordion, isLoading, setOpenUtilitiesAccordion])
 
   return (
     <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
