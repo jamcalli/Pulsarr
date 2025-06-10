@@ -72,7 +72,7 @@ export class PendingWebhooksService {
     // Schedule the cleanup job with a wrapper that suppresses logs when no work is done
     await this.fastify.scheduler.scheduleJob(
       'pending-webhooks-cleanup',
-      async (jobName: string) => {
+      async (_jobName: string) => {
         const cleaned = await this.cleanupExpired()
         // Only log if we actually cleaned something
         if (cleaned > 0) {
