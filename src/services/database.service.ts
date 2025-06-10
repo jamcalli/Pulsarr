@@ -3020,8 +3020,13 @@ export class DatabaseService {
       const user = await this.getUser(item.user_id)
       if (!user) continue
 
-      // Skip if user has disabled all notifications
-      if (!user.notify_discord && !user.notify_apprise && !user.notify_tautulli)
+      // Skip if user has disabled all notifications (only for user notifications, not public content)
+      if (
+        !byGuid &&
+        !user.notify_discord &&
+        !user.notify_apprise &&
+        !user.notify_tautulli
+      )
         continue
 
       // Special handling for ended shows that were already notified (unless bulk release)
@@ -3180,11 +3185,8 @@ export class DatabaseService {
       })
     }
 
-    // Handle byGuid mode - create public notification from any available watchlist item for rich data
-    if (byGuid && watchlistItems.length > 0) {
-      // Get rich data from the first available watchlist item (regardless of user)
-      const referenceItem = watchlistItems[0]
-
+    // Handle byGuid mode - create public notification regardless of watchlist items
+    if (byGuid) {
       // Determine notification type and details
       const notificationTypeInfo = determineNotificationType(
         mediaInfo,
@@ -3195,13 +3197,17 @@ export class DatabaseService {
       }
       const { contentType, seasonNumber, episodeNumber } = notificationTypeInfo
 
-      // Create notification using rich data from reference item
-      const notificationTitle = mediaInfo.title || referenceItem.title
-      const notification: MediaNotification = createNotificationObject(
-        mediaInfo,
-        referenceItem,
-        'Public Content',
-      )
+      // Create notification using mediaInfo (with optional rich data from watchlist if available)
+      const referenceItem = watchlistItems.length > 0 ? watchlistItems[0] : null
+      const notificationTitle =
+        mediaInfo.title || referenceItem?.title || 'Unknown Title'
+
+      const notification: MediaNotification = {
+        type: mediaInfo.type,
+        title: notificationTitle,
+        username: 'Public Content',
+        posterUrl: referenceItem?.thumb || undefined,
+      }
 
       // Add episode details for shows
       if (contentType === 'season' && seasonNumber !== undefined) {
@@ -3228,6 +3234,7 @@ export class DatabaseService {
         .where({
           user_id: null, // Public content notifications use null user_id
           type: contentType,
+          title: notificationTitle, // Must match the specific title
           watchlist_item_id: null, // Public notifications not tied to specific items
           notification_status: 'active',
         })

@@ -288,17 +288,6 @@ export async function processQueuedWebhooks(
       isBulkRelease,
     )
 
-    // If public content is enabled, also get public notification data
-    if (fastify.config.publicContentNotifications?.enabled) {
-      const publicNotificationResults = await fastify.db.processNotifications(
-        mediaInfo,
-        isBulkRelease,
-        true, // byGuid = true for public content
-      )
-      // Add public notifications to the existing user notifications
-      initialNotificationResults.push(...publicNotificationResults)
-    }
-
     fastify.log.info(
       {
         tvdbId,
@@ -308,7 +297,55 @@ export async function processQueuedWebhooks(
       'Processed notifications from queue',
     )
 
-    // If no notifications were generated, check if we have watchlist matches
+    // Always process notifications (including public content) regardless of user notifications
+    await processContentNotifications(fastify, mediaInfo, isBulkRelease, {
+      logger: fastify.log,
+      onUserNotification: async (result) => {
+        // Send Tautulli notifications (uses sendMediaNotification instead of queueNotification)
+        if (result.user.notify_tautulli && fastify.tautulli?.isEnabled()) {
+          try {
+            // Find the watchlist item for this user
+            const matchingItems = await fastify.db.getWatchlistItemsByGuid(
+              `tvdb:${tvdbId}`,
+            )
+            const userItem = matchingItems.find(
+              (item) => item.user_id === result.user.id,
+            )
+
+            if (userItem) {
+              const itemId =
+                typeof userItem.id === 'string'
+                  ? Number.parseInt(userItem.id, 10)
+                  : userItem.id
+
+              const sent = await fastify.tautulli.sendMediaNotification(
+                result.user,
+                result.notification,
+                itemId,
+                `tvdb:${tvdbId}`,
+                userItem.key,
+              )
+
+              fastify.log.info(
+                {
+                  userId: result.user.id,
+                  username: result.user.name,
+                  success: sent,
+                },
+                'Sent Tautulli notification',
+              )
+            }
+          } catch (error) {
+            fastify.log.error(
+              { error, userId: result.user.id },
+              'Failed to send Tautulli notification',
+            )
+          }
+        }
+      },
+    })
+
+    // If no user notifications were generated, check if we should queue as pending
     if (initialNotificationResults.length === 0) {
       const matchingItems = await fastify.db.getWatchlistItemsByGuid(
         `tvdb:${tvdbId}`,
@@ -351,54 +388,6 @@ export async function processQueuedWebhooks(
           'No watchlist matches found, queued to pending webhooks',
         )
       }
-    } else {
-      // Process notifications using the centralized utility
-      await processContentNotifications(fastify, mediaInfo, isBulkRelease, {
-        logger: fastify.log,
-        onUserNotification: async (result) => {
-          // Send Tautulli notifications (uses sendMediaNotification instead of queueNotification)
-          if (result.user.notify_tautulli && fastify.tautulli?.isEnabled()) {
-            try {
-              // Find the watchlist item for this user
-              const matchingItems = await fastify.db.getWatchlistItemsByGuid(
-                `tvdb:${tvdbId}`,
-              )
-              const userItem = matchingItems.find(
-                (item) => item.user_id === result.user.id,
-              )
-
-              if (userItem) {
-                const itemId =
-                  typeof userItem.id === 'string'
-                    ? Number.parseInt(userItem.id, 10)
-                    : userItem.id
-
-                const sent = await fastify.tautulli.sendMediaNotification(
-                  result.user,
-                  result.notification,
-                  itemId,
-                  `tvdb:${tvdbId}`,
-                  userItem.key,
-                )
-
-                fastify.log.info(
-                  {
-                    userId: result.user.id,
-                    username: result.user.name,
-                    success: sent,
-                  },
-                  'Sent Tautulli notification',
-                )
-              }
-            } catch (error) {
-              fastify.log.error(
-                { error, userId: result.user.id },
-                'Failed to send Tautulli notification',
-              )
-            }
-          }
-        },
-      })
     }
   } catch (error) {
     fastify.log.error(
