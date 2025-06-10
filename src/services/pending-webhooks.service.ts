@@ -179,7 +179,11 @@ export class PendingWebhooksService {
                 }
 
                 // Abort if payload is not a non-null object
-                if (typeof body !== 'object' || body === null) {
+                if (
+                  typeof body !== 'object' ||
+                  body === null ||
+                  Array.isArray(body)
+                ) {
                   this.log.warn(
                     `Webhook ${webhook.id} payload is not an object; discarding`,
                   )
