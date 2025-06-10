@@ -7,10 +7,10 @@ import { useConfigStore } from '@/stores/configStore'
 import type { WebhookValidationResponse } from '@root/schemas/notifications/discord-control.schema'
 
 /**
- * Parses a comma-separated string of webhook URLs into an array of trimmed, non-empty URLs.
+ * Converts a comma-separated string of webhook URLs into an array of trimmed, non-empty URLs.
  *
- * @param value - A string containing webhook URLs separated by commas.
- * @returns An array of trimmed webhook URLs. Returns an empty array if the input is empty or undefined.
+ * @param value - Comma-separated webhook URLs.
+ * @returns An array of trimmed webhook URLs, or an empty array if {@link value} is empty or undefined.
  */
 function parseWebhookUrls(value?: string): string[] {
   const trimmed = value?.trim() ?? ''
@@ -93,11 +93,11 @@ interface TestStatus {
 }
 
 /**
- * React hook for managing the configuration and validation of public content notifications.
+ * React hook for managing public content notification settings, including form state, validation, Discord webhook connection testing, and persistence.
  *
- * Provides form state management, schema validation, Discord webhook connection testing, and handlers for submitting, toggling, canceling, and clearing notification settings. Integrates with the configuration store for persistence and manages loading and test states for user feedback.
+ * Integrates with the configuration store to synchronize settings, enforces schema validation, and provides handlers for submitting, toggling, canceling, testing, and clearing notification fields. Tracks loading and test states for user feedback.
  *
- * @returns An object containing the form instance, loading states, webhook test status, and handler functions for all notification configuration operations.
+ * @returns An object containing the form instance, loading states, webhook test status, Apprise enablement flag, and handler functions for all notification configuration operations.
  */
 export function usePublicContentNotifications() {
   const { toast } = useToast()
