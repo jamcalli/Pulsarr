@@ -282,7 +282,8 @@ export async function processQueuedWebhooks(
   }
 
   try {
-    const notificationResults = await fastify.db.processNotifications(
+    // First check if we have any notifications to process
+    const initialNotificationResults = await fastify.db.processNotifications(
       mediaInfo,
       isBulkRelease,
     )
@@ -295,16 +296,20 @@ export async function processQueuedWebhooks(
         true, // byGuid = true for public content
       )
       // Add public notifications to the existing user notifications
-      notificationResults.push(...publicNotificationResults)
+      initialNotificationResults.push(...publicNotificationResults)
     }
 
     fastify.log.info(
-      { tvdbId, seasonNumber, recipientCount: notificationResults.length },
+      {
+        tvdbId,
+        seasonNumber,
+        recipientCount: initialNotificationResults.length,
+      },
       'Processed notifications from queue',
     )
 
     // If no notifications were generated, check if we have watchlist matches
-    if (notificationResults.length === 0) {
+    if (initialNotificationResults.length === 0) {
       const matchingItems = await fastify.db.getWatchlistItemsByGuid(
         `tvdb:${tvdbId}`,
       )
@@ -346,130 +351,54 @@ export async function processQueuedWebhooks(
           'No watchlist matches found, queued to pending webhooks',
         )
       }
-    }
-
-    for (const result of notificationResults) {
-      // Handle public content notifications specially
-      // Note: ID -1 is a virtual runtime identifier, actual database records use user_id: null
-      if (result.user.id === -1) {
-        // This is public content - route to global endpoints
-        if (result.user.notify_discord) {
-          try {
-            // Collect Discord IDs from all real users for @ mentions
-            const userDiscordIds = notificationResults
-              .filter((r) => r.user.id !== -1 && r.user.discord_id)
-              .map((r) => r.user.discord_id as string)
-            await fastify.discord.sendPublicNotification(
-              result.notification,
-              userDiscordIds,
-            )
-          } catch (error) {
-            fastify.log.error(
-              { error },
-              'Failed to send public Discord notification',
-            )
-          }
-        }
-        if (result.user.notify_apprise) {
-          try {
-            await fastify.apprise.sendPublicNotification(result.notification)
-          } catch (error) {
-            fastify.log.error(
-              { error },
-              'Failed to send public Apprise notification',
-            )
-          }
-        }
-      } else {
-        // Regular user notifications (unchanged)
-        if (result.user.notify_discord && result.user.discord_id) {
-          try {
-            const sent = await fastify.discord.sendDirectMessage(
-              result.user.discord_id,
-              result.notification,
-            )
-
-            fastify.log.info(
-              {
-                userId: result.user.discord_id,
-                username: result.user.name,
-                success: sent,
-              },
-              'Sent Discord notification',
-            )
-          } catch (error) {
-            fastify.log.error(
-              { error, userId: result.user.discord_id },
-              'Failed to send Discord notification',
-            )
-          }
-        }
-
-        if (result.user.notify_apprise) {
-          try {
-            const sent = await fastify.apprise.sendMediaNotification(
-              result.user,
-              result.notification,
-            )
-
-            fastify.log.info(
-              {
-                userId: result.user.id,
-                username: result.user.name,
-                success: sent,
-              },
-              'Sent Apprise notification',
-            )
-          } catch (error) {
-            fastify.log.error(
-              { error, userId: result.user.id },
-              'Failed to send Apprise notification',
-            )
-          }
-        }
-
-        // Send Tautulli notifications
-        if (result.user.notify_tautulli && fastify.tautulli?.isEnabled()) {
-          try {
-            // Find the watchlist item for this user
-            const matchingItems = await fastify.db.getWatchlistItemsByGuid(
-              `tvdb:${tvdbId}`,
-            )
-            const userItem = matchingItems.find(
-              (item) => item.user_id === result.user.id,
-            )
-
-            if (userItem) {
-              const itemId =
-                typeof userItem.id === 'string'
-                  ? Number.parseInt(userItem.id, 10)
-                  : userItem.id
-
-              const sent = await fastify.tautulli.sendMediaNotification(
-                result.user,
-                result.notification,
-                itemId,
+    } else {
+      // Process notifications using the centralized utility
+      await processContentNotifications(fastify, mediaInfo, isBulkRelease, {
+        logger: fastify.log,
+        onUserNotification: async (result) => {
+          // Send Tautulli notifications (uses sendMediaNotification instead of queueNotification)
+          if (result.user.notify_tautulli && fastify.tautulli?.isEnabled()) {
+            try {
+              // Find the watchlist item for this user
+              const matchingItems = await fastify.db.getWatchlistItemsByGuid(
                 `tvdb:${tvdbId}`,
-                userItem.key,
+              )
+              const userItem = matchingItems.find(
+                (item) => item.user_id === result.user.id,
               )
 
-              fastify.log.info(
-                {
-                  userId: result.user.id,
-                  username: result.user.name,
-                  success: sent,
-                },
-                'Sent Tautulli notification',
+              if (userItem) {
+                const itemId =
+                  typeof userItem.id === 'string'
+                    ? Number.parseInt(userItem.id, 10)
+                    : userItem.id
+
+                const sent = await fastify.tautulli.sendMediaNotification(
+                  result.user,
+                  result.notification,
+                  itemId,
+                  `tvdb:${tvdbId}`,
+                  userItem.key,
+                )
+
+                fastify.log.info(
+                  {
+                    userId: result.user.id,
+                    username: result.user.name,
+                    success: sent,
+                  },
+                  'Sent Tautulli notification',
+                )
+              }
+            } catch (error) {
+              fastify.log.error(
+                { error, userId: result.user.id },
+                'Failed to send Tautulli notification',
               )
             }
-          } catch (error) {
-            fastify.log.error(
-              { error, userId: result.user.id },
-              'Failed to send Tautulli notification',
-            )
           }
-        }
-      }
+        },
+      })
     }
   } catch (error) {
     fastify.log.error(
