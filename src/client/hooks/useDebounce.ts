@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react'
+import { useCallback, useRef, useEffect } from 'react'
 
 /**
  * Custom hook that provides a debounced version of a callback function.
@@ -7,14 +7,14 @@ import { useCallback, useRef } from 'react'
  * @param delay - The delay in milliseconds to wait before calling the callback
  * @returns A debounced version of the callback function
  */
-export function useDebounce<T extends (...args: Parameters<T>) => void>(
-  callback: T,
+export function useDebounce<TArgs extends readonly unknown[], TReturn = void>(
+  callback: (...args: TArgs) => TReturn,
   delay: number
-): T {
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+): (...args: TArgs) => void {
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const debouncedCallback = useCallback(
-    (...args: Parameters<T>) => {
+    (...args: TArgs) => {
       if (timeoutRef.current !== null) {
         clearTimeout(timeoutRef.current)
       }
@@ -24,7 +24,16 @@ export function useDebounce<T extends (...args: Parameters<T>) => void>(
       }, delay)
     },
     [callback, delay]
-  ) as T
+  )
+
+  // Clear any pending timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current !== null) {
+        clearTimeout(timeoutRef.current)
+      }
+    }
+  }, [])
 
   return debouncedCallback
 }

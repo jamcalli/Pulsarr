@@ -1,4 +1,9 @@
-import type { Config } from '@root/types/config.types.js'
+import type {
+  Config,
+  DiscordWebhookKey,
+  AppriseUrlKey,
+  PublicContentKeyMap,
+} from '@root/types/config.types.js'
 import type {
   SonarrEpisodeSchema,
   NotificationResult,
@@ -6,6 +11,7 @@ import type {
 } from '@root/types/sonarr.types.js'
 import type { TokenWatchlistItem } from '@root/types/plex.types.js'
 import type { FastifyInstance, FastifyBaseLogger } from 'fastify'
+import pLimit from 'p-limit'
 
 /**
  * Converts a comma-separated string of URLs into a deduplicated array of trimmed, non-empty URLs.
@@ -25,6 +31,20 @@ function parseUrls(urlString: string | undefined | null): string[] {
   )
 }
 
+// Type-safe lookup table for config keys
+const keyMap: PublicContentKeyMap = {
+  discord: {
+    generic: 'discordWebhookUrls',
+    movies: 'discordWebhookUrlsMovies',
+    shows: 'discordWebhookUrlsShows',
+  },
+  apprise: {
+    generic: 'appriseUrls',
+    movies: 'appriseUrlsMovies',
+    shows: 'appriseUrlsShows',
+  },
+}
+
 /**
  * Retrieves unique public content notification URLs from configuration for a given content type and notification service.
  *
@@ -39,27 +59,19 @@ export function getPublicContentUrls(
   notificationType: 'movie' | 'show',
   urlType: 'discord' | 'apprise',
 ): string[] {
-  const fieldPrefix =
-    urlType === 'discord' ? 'discordWebhookUrls' : 'appriseUrls'
-
-  let urls: string[] = []
+  const keys = keyMap[urlType]
 
   // Try type-specific URLs first
-  const typeSpecificField =
-    notificationType === 'movie'
-      ? `${fieldPrefix}Movies`
-      : `${fieldPrefix}Shows`
+  const typeSpecificKey =
+    notificationType === 'movie' ? keys.movies : keys.shows
+  const typeSpecificUrls = parseUrls(config?.[typeSpecificKey])
 
-  if (config?.[typeSpecificField as keyof typeof config]) {
-    urls = parseUrls(config[typeSpecificField as keyof typeof config] as string)
+  if (typeSpecificUrls.length > 0) {
+    return typeSpecificUrls
   }
 
   // Fallback to general URLs if no type-specific URLs
-  if (urls.length === 0 && config?.[fieldPrefix as keyof typeof config]) {
-    urls = parseUrls(config[fieldPrefix as keyof typeof config] as string)
-  }
-
-  return urls
+  return parseUrls(config?.[keys.generic])
 }
 
 /**
@@ -256,6 +268,12 @@ export async function processContentNotifications(
   // Get matching watchlist items for Tautulli notifications
   const matchingItems = await fastify.db.getWatchlistItemsByGuid(mediaInfo.guid)
 
+  // Create an index for O(1) user lookups instead of O(n) find operations
+  const itemByUserId = new Map<number, TokenWatchlistItem>()
+  for (const item of matchingItems) {
+    itemByUserId.set(item.user_id, item)
+  }
+
   // Process notifications either sequentially or concurrently
   if (options?.sequential) {
     for (const result of notificationResults) {
@@ -263,24 +281,27 @@ export async function processContentNotifications(
         fastify,
         result,
         notificationResults,
-        matchingItems,
+        itemByUserId,
         mediaInfo,
         options,
       )
     }
   } else {
-    // Process notifications concurrently to reduce latency
+    // Process notifications concurrently with rate limiting to prevent API throttling
+    const limit = pLimit(10) // Limit to 10 concurrent notifications
     await Promise.all(
-      notificationResults.map(async (result) => {
-        await processIndividualNotification(
-          fastify,
-          result,
-          notificationResults,
-          matchingItems,
-          mediaInfo,
-          options,
-        )
-      }),
+      notificationResults.map((result) =>
+        limit(() =>
+          processIndividualNotification(
+            fastify,
+            result,
+            notificationResults,
+            itemByUserId,
+            mediaInfo,
+            options,
+          ),
+        ),
+      ),
     )
   }
 
@@ -295,7 +316,7 @@ export async function processContentNotifications(
  *
  * @param result - The notification result to process.
  * @param allNotificationResults - All notification results for the current event, used to collect user Discord IDs for public notifications.
- * @param matchingItems - Watchlist items matching the current media, used for Tautulli notifications.
+ * @param itemByUserId - Map of user IDs to watchlist items for efficient Tautulli notification lookups.
  * @param mediaInfo - Information about the media being notified.
  * @param options - Optional logger for logging notification outcomes.
  */
@@ -303,7 +324,7 @@ async function processIndividualNotification(
   fastify: FastifyInstance,
   result: NotificationResult,
   allNotificationResults: NotificationResult[],
-  matchingItems: TokenWatchlistItem[],
+  itemByUserId: Map<number, TokenWatchlistItem>,
   mediaInfo: {
     type: 'movie' | 'show'
     guid: string
@@ -383,9 +404,7 @@ async function processIndividualNotification(
     if (result.user.notify_tautulli && fastify.tautulli?.isEnabled()) {
       try {
         // Find the watchlist item for this user
-        const userItem = matchingItems.find(
-          (item) => item.user_id === result.user.id,
-        )
+        const userItem = itemByUserId.get(result.user.id)
 
         if (userItem) {
           const itemId =
