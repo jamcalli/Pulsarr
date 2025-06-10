@@ -8,7 +8,10 @@ import type { TokenWatchlistItem } from '@root/types/plex.types.js'
 import type { FastifyInstance, FastifyBaseLogger } from 'fastify'
 
 /**
- * Parse comma-separated URLs with consistent trimming and filtering.
+ * Parses a comma-separated string of URLs into a unique array of trimmed URLs.
+ *
+ * @param urlString - A string containing URLs separated by commas, or null/undefined.
+ * @returns An array of unique, non-empty, trimmed URLs.
  */
 function parseUrls(urlString: string | undefined | null): string[] {
   if (!urlString) return []
@@ -23,8 +26,11 @@ function parseUrls(urlString: string | undefined | null): string[] {
 }
 
 /**
- * Parse and get public content URLs with type-specific fallbacks.
- * Eliminates duplication between Discord and Apprise services.
+ * Retrieves public content notification URLs from configuration, using type-specific fields if available and falling back to general URLs.
+ *
+ * @param notificationType - The type of content ('movie' or 'show') to determine which URLs to retrieve.
+ * @param urlType - The notification service ('discord' or 'apprise') for which URLs are needed.
+ * @returns An array of unique URLs for the specified notification type and service.
  */
 export function getPublicContentUrls(
   config: Config['publicContentNotifications'],
@@ -55,8 +61,12 @@ export function getPublicContentUrls(
 }
 
 /**
- * Extract Discord IDs from notification results for @ mentions.
- * Consolidates the logic that was repeated 5+ times.
+ * Returns a unique array of valid Discord user IDs extracted from notification results.
+ *
+ * Filters out entries with user ID -1, missing, or empty Discord IDs.
+ *
+ * @param notifications - Array of notification results containing user objects.
+ * @returns An array of unique, non-empty Discord user IDs.
  */
 export function extractUserDiscordIds(
   notifications: Array<{ user: { id: number; discord_id: string | null } }>,
@@ -76,7 +86,13 @@ export function extractUserDiscordIds(
 }
 
 /**
- * Determine notification type and details from media info
+ * Determines the notification content type and relevant details based on media information and release mode.
+ *
+ * Returns an object specifying whether the content is a movie, season, or episode, along with season and episode numbers if applicable. Returns `null` if the media information is insufficient to determine the type.
+ *
+ * @param mediaInfo - Media metadata including type, title, and optional episodes.
+ * @param isBulkRelease - Indicates if the release is a bulk (season) release.
+ * @returns An object with `contentType`, and optionally `seasonNumber` and `episodeNumber`, or `null` if undeterminable.
  */
 export function determineNotificationType(
   mediaInfo: {
@@ -110,7 +126,14 @@ export function determineNotificationType(
 }
 
 /**
- * Create base notification object with common properties
+ * Constructs a notification object containing the content type, title, username, and optional poster URL.
+ *
+ * If the media info does not provide a title, the title from the reference item is used. The poster URL is included if available in the reference item.
+ *
+ * @param mediaInfo - Information about the media content.
+ * @param referenceItem - Reference watchlist item for fallback title and poster URL.
+ * @param username - Name of the user associated with the notification.
+ * @returns An object with type, title, username, and optional posterUrl.
  */
 export function createNotificationObject(
   mediaInfo: {
@@ -131,7 +154,10 @@ export function createNotificationObject(
 }
 
 /**
- * Check if public content notifications are enabled for a given type
+ * Determines whether public content notifications are enabled for Discord and Apprise based on the presence of relevant URLs in the configuration.
+ *
+ * @param config - The public content notifications configuration object.
+ * @returns An object indicating if Discord and Apprise notification URLs are configured.
  */
 export function getPublicContentNotificationFlags(
   config: Config['publicContentNotifications'],
@@ -151,22 +177,16 @@ export function getPublicContentNotificationFlags(
 }
 
 /**
- * Creates a public content notification object with consistent user structure.
- * Eliminates duplication between byGuid mode and regular mode in database service.
+ * Creates a notification result object for public content with a virtual user.
  *
- * IMPORTANT: The user ID -1 here is ONLY used as a runtime identifier for notification
- * processing logic to distinguish public content notifications from regular user notifications.
- * This virtual user object is NEVER inserted into the database.
+ * The returned object uses a user ID of -1 to represent public content notifications during runtime processing. This virtual user enables routing to public Discord webhooks and Apprise endpoints, and disables Tautulli notifications. The virtual user is never persisted to the database.
  *
- * Database records for public content notifications correctly use user_id: null
- * (see database.service.ts createNotificationRecord calls), which complies with the
- * foreign key constraint that allows nullable user_id values.
+ * @param notification - The media notification details to include.
+ * @param hasDiscordUrls - Whether public Discord notification URLs are available.
+ * @param hasAppriseUrls - Whether public Apprise notification URLs are available.
+ * @returns A notification result object with a virtual user for public content.
  *
- * The -1 ID is used in the notification processing pipeline to:
- * 1. Route notifications to public Discord webhooks vs user DMs
- * 2. Route notifications to public Apprise endpoints vs user-specific endpoints
- * 3. Skip Tautulli notifications (not applicable for public content)
- * 4. Extract real user Discord IDs for @ mentions in public notifications
+ * @remark The virtual user ID -1 is used only for runtime logic and is not stored in the database.
  */
 export function createPublicContentNotification(
   notification: MediaNotification,
@@ -191,8 +211,13 @@ export function createPublicContentNotification(
 }
 
 /**
- * Centralized notification processing function that handles both public and user notifications.
- * This eliminates the duplication across webhook.ts, pending-webhooks.service.ts, and webhookQueue.ts.
+ * Processes notifications for the specified media content, handling both public and individual user notifications.
+ *
+ * Retrieves notification targets from the database, adds public content notifications if enabled, and sends notifications via supported channels. Supports sequential or concurrent processing and optional callbacks for user notifications.
+ *
+ * @param mediaInfo - Information about the media content to notify about.
+ * @param isBulkRelease - Indicates if the release is a bulk release (e.g., full season).
+ * @param options - Optional settings for logging, notification callbacks, and processing mode.
  */
 export async function processContentNotifications(
   fastify: FastifyInstance,
@@ -252,7 +277,13 @@ export async function processContentNotifications(
 }
 
 /**
- * Process an individual notification result, handling both global admin and regular users.
+ * Sends notifications for a single notification result, handling both public content and individual user notifications.
+ *
+ * For public content (virtual user ID -1), sends notifications to global Discord webhooks and Apprise endpoints, mentioning all real user Discord IDs where applicable. For regular users, sends direct Discord messages and Apprise notifications if enabled. Optionally invokes a callback for additional user-specific notifications.
+ *
+ * @param result - The notification result to process.
+ * @param allNotificationResults - All notification results for the current event, used to collect user Discord IDs for public notifications.
+ * @param options - Optional logger and callback for additional user notifications.
  */
 async function processIndividualNotification(
   fastify: FastifyInstance,

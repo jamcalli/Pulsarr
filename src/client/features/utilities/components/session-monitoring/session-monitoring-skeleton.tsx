@@ -8,11 +8,11 @@ import {
 import { Separator } from '@/components/ui/separator'
 
 /**
- * Displays a skeleton placeholder UI for the Plex Session Monitoring interface.
+ * Renders a skeleton placeholder for the Plex Session Monitoring interface.
  *
- * Renders a collapsible accordion card with skeleton elements representing the title, description, actions, configuration form fields, and action buttons. This provides a visual loading state while the actual session monitoring data is being fetched.
+ * Displays a static loading UI with skeleton elements for the title, description, actions, configuration fields, and action buttons, simulating the layout of the session monitoring feature while data is loading.
  *
- * @returns A JSX element showing the loading skeleton for the Session Monitoring feature.
+ * @returns A JSX element representing the loading skeleton for the Session Monitoring section.
  */
 export function SessionMonitoringSkeleton() {
   return (
