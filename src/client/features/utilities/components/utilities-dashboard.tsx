@@ -15,9 +15,9 @@ import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 import { useConfigStore } from '@/stores/configStore'
 
 /**
- * Renders the utilities dashboard with sections for DeleteSync, NewUserDefaults, PublicContentNotifications, PlexNotifications, SessionMonitoring, and UserTags.
+ * Displays the utilities dashboard with sections for DeleteSync, NewUserDefaults, PublicContentNotifications, PlexNotifications, SessionMonitoring, and UserTags.
  *
- * Displays skeleton placeholders while utility data is loading, then transitions to the corresponding utility forms once loading completes. Automatically expands and scrolls to the "Public Content Notifications" section if requested.
+ * Shows skeleton placeholders while utility data is loading, then transitions to the corresponding utility forms. If a specific section is requested via navigation, automatically scrolls to and expands that section after loading completes.
  *
  * @returns The rendered utilities dashboard UI.
  */

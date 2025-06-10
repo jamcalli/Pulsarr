@@ -1,11 +1,13 @@
 import { useCallback, useRef, useEffect } from 'react'
 
 /**
- * Custom hook that provides a debounced version of a callback function.
- * 
- * @param callback - The function to debounce
- * @param delay - The delay in milliseconds to wait before calling the callback
- * @returns A debounced version of the callback function
+ * Returns a debounced version of the provided callback function that delays its execution until after the specified delay has elapsed since the last call.
+ *
+ * @param callback - The function to debounce.
+ * @param delay - The debounce delay in milliseconds.
+ * @returns A function that, when invoked, postpones calling {@link callback} until after {@link delay} milliseconds have passed since the last invocation.
+ *
+ * @remark The debounced function does not return the result of {@link callback}; it always returns void.
  */
 export function useDebounce<TArgs extends readonly unknown[], TReturn = void>(
   callback: (...args: TArgs) => TReturn,

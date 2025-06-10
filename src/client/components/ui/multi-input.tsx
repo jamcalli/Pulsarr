@@ -40,21 +40,9 @@ interface MultiInputProps {
 }
 
 /**
- * Renders a group of input fields whose values are managed as a single separator-delimited string.
+ * Renders a dynamic group of input fields whose values are combined into a single separator-delimited string.
  *
- * Allows users to dynamically add or remove input fields within configurable minimum and maximum limits. Each field's value is trimmed and combined into a single string using the specified separator. Optionally validates individual field values and disables inputs and controls when requested.
- *
- * @param value - The current combined string of input values, separated by {@link separator}.
- * @param onChange - Callback invoked with the updated combined string when any input changes.
- * @param placeholder - Placeholder text for each input field.
- * @param disabled - Disables all input fields and action buttons.
- * @param className - CSS class for the container element.
- * @param inputClassName - CSS class for each input field.
- * @param buttonClassName - CSS class for add/remove buttons.
- * @param minFields - Minimum number of input fields to display (default: 1).
- * @param maxFields - Maximum number of input fields allowed (default: 10).
- * @param separator - Character used to join and split input values (default: ",").
- * @param validateValue - Optional function to validate individual input values.
+ * Users can add or remove input fields within configurable minimum and maximum limits. Each field's value is trimmed and combined using the specified separator. Optionally validates individual field values and disables all controls when requested.
  *
  * @remark
  * Empty fields are automatically removed from the combined value when saving.

@@ -33,9 +33,9 @@ import {
 } from '@/components/ui/card'
 
 /**
- * Renders a form interface for configuring Plex notifications across all Radarr and Sonarr instances, including Plex server discovery and management.
+ * Displays a form for configuring Plex notifications across all Radarr and Sonarr instances, including Plex server discovery and management.
  *
- * Users can enter Plex connection details, discover and select available Plex servers using a token, and manage notification settings for all connected instances. The form provides real-time status feedback for each Radarr and Sonarr instance and allows removal of all Plex notifications with confirmation.
+ * Users can enter Plex connection details, discover and select available Plex servers using a Plex token, and manage notification settings for all connected Radarr and Sonarr instances. The form provides real-time status feedback for each instance and allows removal of all Plex notifications with confirmation.
  */
 export function PlexNotificationsForm() {
   const {
