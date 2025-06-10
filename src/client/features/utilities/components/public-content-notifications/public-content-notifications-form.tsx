@@ -56,7 +56,24 @@ interface WebhookFieldProps {
 }
 
 /**
- * Reusable webhook field component that reduces duplication across the 6 similar fields
+ * Renders a reusable input field for webhook URLs with optional test and clear actions.
+ *
+ * Displays a labeled input with tooltip, help text, and validation messages. If testable, includes a button to test the webhook connection, showing loading and result states. A clear button appears when a value is present, triggering the provided clear handler.
+ *
+ * @param name - The form field name for the webhook URL.
+ * @param label - The label displayed above the input.
+ * @param placeholder - Placeholder text for the input.
+ * @param tooltip - Tooltip content explaining the field.
+ * @param helpText - Additional help text shown below the input.
+ * @param isTestable - Whether to show the test connection button.
+ * @param testHandler - Callback to test the webhook connection.
+ * @param isTestLoading - Whether the test is currently running.
+ * @param testResult - Result of the last test, if any.
+ * @param showTestError - Whether to display a test error tooltip.
+ * @param onClear - Callback to clear the field value.
+ * @param value - Current value of the input.
+ * @param disabled - Whether the input and actions are disabled.
+ * @param form - The form control object for integration with React Hook Form.
  */
 function WebhookField({
   name,
@@ -151,8 +168,11 @@ function WebhookField({
 }
 
 /**
- * Form for configuring public content notifications that broadcast ALL content availability
- * to public Discord channels and shared Apprise endpoints for server-wide announcements.
+ * Displays a form for configuring public content notifications, allowing administrators to enable or disable broadcasting of all content availability to public Discord channels and shared Apprise endpoints.
+ *
+ * The form supports configuring general, movie-specific, and show-specific webhook URLs for both Discord and Apprise, with validation, connection testing for Discord webhooks, and clear/reset functionality. Users can toggle the feature, test Discord webhook connections, and must pass all tests before saving changes. A confirmation dialog is shown before clearing any webhook field.
+ *
+ * @returns The rendered public content notifications configuration form.
  */
 export function PublicContentNotificationsForm() {
   const isMobile = useMediaQuery('(max-width: 768px)')
