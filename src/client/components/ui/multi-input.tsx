@@ -40,27 +40,24 @@ interface MultiInputProps {
 }
 
 /**
- * A multi-input component that manages multiple input fields and stores them as a separator-delimited string.
- * 
- * Features:
- * - Add/remove input fields dynamically
- * - Stores values as comma-separated string (or custom separator)
- * - Automatic cleanup of empty values
- * - Configurable min/max fields
- * - Individual field validation
- * - Keyboard shortcuts (Enter to add, Escape to remove)
- * 
- * @param value - The current comma-separated string value
- * @param onChange - Callback when the value changes
- * @param placeholder - Placeholder text for input fields
- * @param disabled - Whether inputs are disabled
- * @param className - CSS classes for the container
- * @param inputClassName - CSS classes for input fields
- * @param buttonClassName - CSS classes for buttons
- * @param minFields - Minimum number of input fields (default: 1)
- * @param maxFields - Maximum number of input fields (default: 10)
- * @param separator - Separator character (default: ",")
- * @param validateValue - Custom validation function for individual values
+ * Renders a group of input fields whose values are managed as a single separator-delimited string.
+ *
+ * Allows users to dynamically add or remove input fields within configurable minimum and maximum limits. Each field's value is trimmed and combined into a single string using the specified separator. Optionally validates individual field values and disables inputs and controls when requested.
+ *
+ * @param value - The current combined string of input values, separated by {@link separator}.
+ * @param onChange - Callback invoked with the updated combined string when any input changes.
+ * @param placeholder - Placeholder text for each input field.
+ * @param disabled - Disables all input fields and action buttons.
+ * @param className - CSS class for the container element.
+ * @param inputClassName - CSS class for each input field.
+ * @param buttonClassName - CSS class for add/remove buttons.
+ * @param minFields - Minimum number of input fields to display (default: 1).
+ * @param maxFields - Maximum number of input fields allowed (default: 10).
+ * @param separator - Character used to join and split input values (default: ",").
+ * @param validateValue - Optional function to validate individual input values.
+ *
+ * @remark
+ * Empty fields are automatically removed from the combined value when saving.
  */
 export function MultiInput({
   value = '',
