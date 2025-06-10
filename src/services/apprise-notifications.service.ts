@@ -1,5 +1,6 @@
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type { User } from '@root/types/config.types.js'
+import { getPublicContentUrls } from '@root/utils/notification-processor.js'
 import type {
   MediaNotification,
   SystemNotification,
@@ -148,6 +149,46 @@ export class AppriseNotificationService {
   }
 
   /**
+   * Send public content notification to shared Apprise endpoints
+   */
+  async sendPublicNotification(
+    notification: MediaNotification,
+  ): Promise<boolean> {
+    const config = this.config.publicContentNotifications
+    if (!config?.enabled) return false
+
+    // Use centralized URL configuration utility
+    const appriseUrls = getPublicContentUrls(
+      config,
+      notification.type,
+      'apprise',
+    )
+
+    // NO FALLBACK - if no global URLs configured, don't send anything
+    if (appriseUrls.length === 0) return false
+
+    // Create a fake user for public notifications with shared Apprise URLs
+    const publicNotificationUser = {
+      id: -1,
+      name: 'Public Content',
+      apprise: appriseUrls.join(','),
+      alias: null,
+      discord_id: null,
+      notify_apprise: true,
+      notify_discord: false,
+      notify_tautulli: false,
+      tautulli_notifier_id: null,
+      can_sync: false,
+    }
+
+    // Send notification using existing Apprise service
+    return await this.sendMediaNotification(
+      publicNotificationUser,
+      notification,
+    )
+  }
+
+  /**
    * Sends a media notification to a user via their configured Apprise URL
    *
    * @param user - The user to notify
@@ -281,13 +322,13 @@ export class AppriseNotificationService {
           ${posterHtml}
           <div style="background-color: #212121; padding: 15px; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
             <h3 style="margin-top: 0; color: #ffffff; font-weight: 700;">${this.esc(notification.title)}</h3>
-            <p style="font-weight: 500; color: #ffffff;">Your movie is now available to watch!</p>
+            <p style="font-weight: 500; color: #ffffff;">Movie available to watch!</p>
           </div>
         `
 
         htmlBody = this.htmlWrapper(movieContent)
 
-        textBody = `Movie Available\n\n${notification.title}\nYour movie is now available to watch!`
+        textBody = `Movie Available\n\n${notification.title}\nMovie available to watch!`
       }
 
       // Add signature to text content

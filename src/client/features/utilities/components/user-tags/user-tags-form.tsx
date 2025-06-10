@@ -1,4 +1,5 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { useConfigStore } from '@/stores/configStore'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -49,14 +50,25 @@ import { UserTagsDeleteConfirmationModal } from '@/features/utilities/components
 import { useTaggingProgress } from '@/features/utilities/hooks/useTaggingProgress'
 
 /**
- * Displays an interactive form for configuring and managing user-based tagging in Sonarr and Radarr.
+ * Renders a comprehensive form for configuring and managing user-based tagging in Sonarr and Radarr.
  *
- * Enables administrators to control user tag features, including enabling/disabling tagging, setting tag prefixes, choosing tag behavior when content is removed, and cleaning up orphaned tags. The form provides actions for creating, synchronizing, cleaning up, and removing user tags, with real-time progress indicators, detailed operation results, and error feedback. Safeguards are included for unsaved changes and destructive actions.
+ * Provides administrators with controls to enable or disable user tagging, set tag prefixes, define tag removal behavior, and clean up orphaned tags. Includes actions for creating, synchronizing, cleaning up, and removing user tags, with real-time progress indicators, operation results, and error feedback. Safeguards prevent conflicting actions and accidental destructive operations.
  *
  * @returns A React element containing the user tag management form and controls.
  */
 export function UserTagsForm() {
   const isMobile = useMediaQuery('(max-width: 768px)')
+  const openUtilitiesAccordion = useConfigStore(
+    (state) => state.openUtilitiesAccordion,
+  )
+  const [isOpen, setIsOpen] = useState(false)
+
+  // Handle navigation-triggered opening
+  useEffect(() => {
+    if (openUtilitiesAccordion === 'user-tags') {
+      setIsOpen(true)
+    }
+  }, [openUtilitiesAccordion])
 
   const {
     form,
@@ -114,18 +126,25 @@ export function UserTagsForm() {
         isSubmitting={isRemovingTags}
       />
 
-      <Accordion type="single" collapsible className="w-full">
+      <Accordion
+        type="single"
+        collapsible
+        className="w-full"
+        value={isOpen ? 'user-tags' : undefined}
+        onValueChange={(value) => setIsOpen(value === 'user-tags')}
+      >
         <AccordionItem
           value="user-tags"
           className="border-2 border-border rounded-base overflow-hidden"
+          data-accordion-value="user-tags"
         >
           <AccordionTrigger className="px-6 py-4 bg-main hover:bg-main hover:no-underline">
             <div className="flex justify-between items-center w-full pr-2">
               <div>
-                <h3 className="text-lg font-medium text-text text-left">
+                <h3 className="text-lg font-medium text-black text-left">
                   User Tags
                 </h3>
-                <p className="text-sm text-text text-left">
+                <p className="text-sm text-black text-left">
                   Configure user-based tagging for Sonarr and Radarr content
                 </p>
               </div>

@@ -41,6 +41,27 @@ export type RemovedTagMode = 'remove' | 'keep' | 'special-tag'
 
 export type DeletionMode = 'watchlist' | 'tag-based'
 
+// Type-safe key definitions for public content notification config
+export type DiscordWebhookKey =
+  | 'discordWebhookUrls'
+  | 'discordWebhookUrlsMovies'
+  | 'discordWebhookUrlsShows'
+
+export type AppriseUrlKey =
+  | 'appriseUrls'
+  | 'appriseUrlsMovies'
+  | 'appriseUrlsShows'
+
+// Type-safe lookup table structure for public content notification keys
+export type PublicContentKeyMap = Record<
+  'discord' | 'apprise',
+  {
+    generic: DiscordWebhookKey | AppriseUrlKey
+    movies: DiscordWebhookKey | AppriseUrlKey
+    shows: DiscordWebhookKey | AppriseUrlKey
+  }
+>
+
 export interface Config {
   id: number
   // System Config
@@ -73,6 +94,22 @@ export interface Config {
   enableApprise: boolean
   appriseUrl: string
   systemAppriseUrl: string
+  // Public Content Notifications - broadcast ALL content availability to public channels/endpoints
+  publicContentNotifications: {
+    enabled: boolean
+    // Discord webhook URLs for public content announcements (comma-separated)
+    discordWebhookUrls?: string
+    // Movie-specific Discord webhook URLs (comma-separated)
+    discordWebhookUrlsMovies?: string
+    // Show-specific Discord webhook URLs (comma-separated)
+    discordWebhookUrlsShows?: string
+    // Apprise URLs for public content announcements (comma-separated)
+    appriseUrls?: string
+    // Movie-specific Apprise URLs (comma-separated)
+    appriseUrlsMovies?: string
+    // Show-specific Apprise URLs (comma-separated)
+    appriseUrlsShows?: string
+  }
   // Tautulli Config
   tautulliEnabled: boolean
   tautulliUrl: string
@@ -139,6 +176,8 @@ export interface Config {
     enableAutoReset?: boolean
     inactivityResetDays?: number
     autoResetIntervalHours?: number
+    // Progressive cleanup mode - cleans up previous seasons as user progresses
+    enableProgressiveCleanup?: boolean
   }
   // New User Defaults
   newUserDefaultCanSync?: boolean
@@ -153,5 +192,7 @@ export type RawConfig = {
     ? string
     : K extends 'plexSessionMonitoring'
       ? string
-      : Config[K]
+      : K extends 'publicContentNotifications'
+        ? string
+        : Config[K]
 }

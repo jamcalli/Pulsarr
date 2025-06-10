@@ -1,4 +1,5 @@
 import { HelpCircle } from 'lucide-react'
+
 import {
   FormControl,
   FormField,
@@ -6,29 +7,18 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import { UserMultiSelect } from '@/components/ui/user-multi-select'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import type { UseFormReturn } from 'react-hook-form'
+import { UserMultiSelect } from '@/components/ui/user-multi-select'
 
-type SessionMonitoringFormData = {
-  enabled: boolean
-  pollingIntervalMinutes: number
-  remainingEpisodes: number
-  filterUsers?: string[]
-  enableAutoReset: boolean
-  inactivityResetDays: number
-  autoResetIntervalHours: number
-}
+import type { SessionMonitoringComponentProps } from '@/features/utilities/constants/session-monitoring'
 
-interface SessionMonitoringFilteringProps {
-  form: UseFormReturn<SessionMonitoringFormData>
-  isEnabled: boolean
-}
+interface SessionMonitoringFilteringProps
+  extends SessionMonitoringComponentProps {}
 
 /**
  * Renders the filtering options section within a session monitoring form.

@@ -15,6 +15,7 @@ import type {
   DiscordWebhookPayload,
   SystemNotification,
 } from '@root/types/discord.types.js'
+import { getPublicContentUrls } from '@root/utils/notification-processor.js'
 import {
   notificationsCommand,
   handleNotificationButtons,
@@ -281,34 +282,49 @@ export class DiscordNotificationService {
     })
   }
 
-  async sendNotification(payload: DiscordWebhookPayload): Promise<boolean> {
-    if (!this.config.discordWebhookUrl) {
-      this.log.debug(
-        'Attempted to send notification without webhook URL configured',
-      )
-      return false
-    }
+  async sendNotification(
+    payload: DiscordWebhookPayload,
+    overrideUrls?: string[],
+  ): Promise<boolean> {
+    let webhookUrls: string[]
 
-    // Trim the input string first to handle whitespace-only input
-    const trimmedInput = this.config.discordWebhookUrl?.trim() ?? ''
-    if (trimmedInput.length === 0) {
-      this.log.debug('Webhook URL is empty or contains only whitespace')
-      return false
-    }
+    if (overrideUrls) {
+      // Use provided URLs directly
+      webhookUrls = overrideUrls.filter((url) => url.trim().length > 0)
+      if (webhookUrls.length === 0) {
+        this.log.debug('No valid override webhook URLs provided')
+        return false
+      }
+    } else {
+      // Use config URLs (existing behavior)
+      if (!this.config.discordWebhookUrl) {
+        this.log.debug(
+          'Attempted to send notification without webhook URL configured',
+        )
+        return false
+      }
 
-    // Split webhook URLs by comma, trim whitespace, and deduplicate
-    const webhookUrls = [
-      ...new Set(
-        trimmedInput
-          .split(',')
-          .map((url) => url.trim())
-          .filter((url) => url.length > 0),
-      ),
-    ]
+      // Trim the input string first to handle whitespace-only input
+      const trimmedInput = this.config.discordWebhookUrl?.trim() ?? ''
+      if (trimmedInput.length === 0) {
+        this.log.debug('Webhook URL is empty or contains only whitespace')
+        return false
+      }
 
-    if (webhookUrls.length === 0) {
-      this.log.debug('No valid webhook URLs found after parsing')
-      return false
+      // Split webhook URLs by comma, trim whitespace, and deduplicate
+      webhookUrls = [
+        ...new Set(
+          trimmedInput
+            .split(',')
+            .map((url) => url.trim())
+            .filter((url) => url.length > 0),
+        ),
+      ]
+
+      if (webhookUrls.length === 0) {
+        this.log.debug('No valid webhook URLs found after parsing')
+        return false
+      }
     }
 
     try {
@@ -373,6 +389,144 @@ export class DiscordNotificationService {
       this.log.error({ error }, 'Error in Discord webhook processing')
       return false
     }
+  }
+
+  /**
+   * Create media notification embed with consistent formatting
+   * Centralized logic used by both public and direct message notifications
+   */
+  private createMediaNotificationEmbed(
+    notification: MediaNotification,
+  ): DiscordEmbed {
+    const emoji = notification.type === 'movie' ? '🎬' : '📺'
+    let description: string
+    const fields: Array<{ name: string; value: string; inline?: boolean }> = []
+
+    if (notification.type === 'show' && notification.episodeDetails) {
+      const { episodeDetails } = notification
+
+      // Check if it's a single episode (has episode number) or bulk release
+      if (
+        episodeDetails.episodeNumber !== undefined &&
+        episodeDetails.seasonNumber !== undefined
+      ) {
+        // Single episode release
+        description = `New episode available for ${notification.title}! ${emoji}`
+
+        // Format season and episode numbers with padding
+        const seasonNum = episodeDetails.seasonNumber
+          .toString()
+          .padStart(2, '0')
+        const episodeNum = episodeDetails.episodeNumber
+          .toString()
+          .padStart(2, '0')
+
+        // Create episode identifier
+        const episodeId = `S${seasonNum}E${episodeNum}`
+
+        // Add episode title if available
+        const episodeTitle = episodeDetails.title
+          ? ` - ${episodeDetails.title}`
+          : ''
+
+        fields.push({
+          name: 'Episode',
+          value: `${episodeId}${episodeTitle}`,
+          inline: false,
+        })
+
+        // Add overview if available
+        if (episodeDetails.overview) {
+          fields.push({
+            name: 'Overview',
+            value: episodeDetails.overview,
+            inline: false,
+          })
+        }
+
+        // Add air date if available
+        if (episodeDetails.airDateUtc) {
+          fields.push({
+            name: 'Air Date',
+            value: new Date(episodeDetails.airDateUtc).toLocaleDateString(),
+            inline: true,
+          })
+        }
+      } else if (episodeDetails.seasonNumber !== undefined) {
+        // Bulk release
+        description = `New season available for ${notification.title}! ${emoji}`
+        fields.push({
+          name: 'Season Added',
+          value: `Season ${episodeDetails.seasonNumber}`,
+          inline: true,
+        })
+      } else {
+        // Fallback description if somehow neither condition is met
+        description = `New content available for ${notification.title}! ${emoji}`
+      }
+    } else {
+      // Movie notification - impersonal for consistency
+      description = `Movie available to watch! ${emoji}`
+    }
+
+    const embed: DiscordEmbed = {
+      title: notification.title,
+      description,
+      color: this.COLOR,
+      timestamp: new Date().toISOString(),
+      fields,
+    }
+
+    if (notification.posterUrl) {
+      embed.image = {
+        url: notification.posterUrl,
+      }
+    }
+
+    return embed
+  }
+
+  /**
+   * Send public content notification with @ mentions for users who have the content watchlisted
+   * Uses the same formatting as direct messages for consistency
+   */
+  async sendPublicNotification(
+    notification: MediaNotification,
+    userDiscordIds?: string[],
+  ): Promise<boolean> {
+    const config = this.config.publicContentNotifications
+    if (!config?.enabled) return false
+
+    // Use centralized URL configuration utility
+    const webhookUrls = getPublicContentUrls(
+      config,
+      notification.type,
+      'discord',
+    )
+
+    // If no URLs configured, don't send anything
+    if (webhookUrls.length === 0) return false
+
+    // Create embed using centralized method for consistency
+    const embed = this.createMediaNotificationEmbed(notification)
+
+    // Create @ mentions content
+    let content = ''
+    if (userDiscordIds && userDiscordIds.length > 0) {
+      const mentions = userDiscordIds.map((id) => `<@${id}>`).join(' ')
+      content = `${mentions} 👋`
+    }
+
+    const payload: DiscordWebhookPayload = {
+      content,
+      embeds: [embed],
+      username: 'Pulsarr',
+      avatar_url:
+        'https://raw.githubusercontent.com/jamcalli/Pulsarr/master/src/client/assets/images/pulsarr.png',
+    }
+
+    // Send notification using existing service method with custom payload
+    return await this.sendNotification(payload, webhookUrls)
   }
 
   async sendMediaNotification(
@@ -540,92 +694,8 @@ export class DiscordNotificationService {
           fields: notification.embedFields,
         }
       } else {
-        // Handle media notification
-        const emoji = notification.type === 'movie' ? '🎬' : '📺'
-        let description: string
-        const fields: Array<{ name: string; value: string; inline?: boolean }> =
-          []
-
-        if (notification.type === 'show' && notification.episodeDetails) {
-          const { episodeDetails } = notification
-
-          // Check if it's a single episode (has episode number) or bulk release
-          if (
-            episodeDetails.episodeNumber !== undefined &&
-            episodeDetails.seasonNumber !== undefined
-          ) {
-            // Single episode release
-            description = `New episode available for ${notification.title}! ${emoji}`
-
-            // Format season and episode numbers with padding
-            const seasonNum = episodeDetails.seasonNumber
-              .toString()
-              .padStart(2, '0')
-            const episodeNum = episodeDetails.episodeNumber
-              .toString()
-              .padStart(2, '0')
-
-            // Create episode identifier
-            const episodeId = `S${seasonNum}E${episodeNum}`
-
-            // Add episode title if available
-            const episodeTitle = episodeDetails.title
-              ? ` - ${episodeDetails.title}`
-              : ''
-
-            fields.push({
-              name: 'Episode',
-              value: `${episodeId}${episodeTitle}`,
-              inline: false,
-            })
-
-            // Add overview if available
-            if (episodeDetails.overview) {
-              fields.push({
-                name: 'Overview',
-                value: episodeDetails.overview,
-                inline: false,
-              })
-            }
-
-            // Add air date if available
-            if (episodeDetails.airDateUtc) {
-              fields.push({
-                name: 'Air Date',
-                value: new Date(episodeDetails.airDateUtc).toLocaleDateString(),
-                inline: true,
-              })
-            }
-          } else if (episodeDetails.seasonNumber !== undefined) {
-            // Bulk release
-            description = `New season available for ${notification.title}! ${emoji}`
-            fields.push({
-              name: 'Season Added',
-              value: `Season ${episodeDetails.seasonNumber}`,
-              inline: true,
-            })
-          } else {
-            // Fallback description if somehow neither condition is met
-            description = `New content available for ${notification.title}! ${emoji}`
-          }
-        } else {
-          // Movie notification
-          description = `Your movie is available to watch! ${emoji}`
-        }
-
-        embed = {
-          title: notification.title,
-          description,
-          color: this.COLOR,
-          timestamp: new Date().toISOString(),
-          fields,
-        }
-
-        if (notification.posterUrl) {
-          embed.image = {
-            url: notification.posterUrl,
-          }
-        }
+        // Handle media notification using centralized method
+        embed = this.createMediaNotificationEmbed(notification)
       }
 
       // Fetch the Discord user and send the message

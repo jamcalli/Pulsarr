@@ -11,7 +11,7 @@ declare module 'fastify' {
 
 export default fp(
   async (fastify: FastifyInstance) => {
-    const dbService = await DatabaseService.create(fastify.log, fastify.config)
+    const dbService = await DatabaseService.create(fastify.log, fastify)
     fastify.decorate('db', dbService)
     fastify.addHook('onClose', async () => {
       fastify.log.info('Closing database service...')

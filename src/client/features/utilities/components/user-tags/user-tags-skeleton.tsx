@@ -8,11 +8,11 @@ import {
 import { Separator } from '@/components/ui/separator'
 
 /**
- * Renders a skeleton UI for the "User Tags" feature to indicate loading state.
+ * Renders a controlled accordion skeleton representing the loading state of the User Tags interface.
  *
- * Displays a collapsible accordion with placeholder elements that visually represent the structure of the user tags interface, including action buttons and tag configuration fields.
+ * Displays placeholder elements for action buttons and tag configuration fields within an accordion layout, visually indicating that the User Tags feature is loading.
  *
- * @returns A JSX element showing skeleton placeholders for the User Tags feature while data is loading.
+ * @returns A JSX element showing skeleton placeholders for the User Tags UI.
  */
 export function UserTagsSkeleton() {
   return (
@@ -20,14 +20,15 @@ export function UserTagsSkeleton() {
       <AccordionItem
         value="user-tags"
         className="border-2 border-border rounded-base overflow-hidden"
+        data-accordion-value="user-tags"
       >
         <AccordionTrigger className="px-6 py-4 bg-main hover:bg-main hover:no-underline">
           <div className="flex justify-between items-center w-full pr-2">
             <div>
-              <h3 className="text-lg font-medium text-text text-left">
+              <h3 className="text-lg font-medium text-black text-left">
                 User Tags
               </h3>
-              <p className="text-sm text-text text-left">
+              <p className="text-sm text-black text-left">
                 Configure user-based tagging for Sonarr and Radarr content
               </p>
             </div>
@@ -39,7 +40,7 @@ export function UserTagsSkeleton() {
             <div className="space-y-6">
               {/* Actions section skeleton */}
               <div>
-                <h3 className="font-medium text-text mb-2">Actions</h3>
+                <h3 className="font-medium text-black mb-2">Actions</h3>
                 <div className="flex flex-wrap items-center gap-4">
                   <Skeleton className="h-8 w-20" />
                   <Skeleton className="h-8 w-20" />
@@ -51,7 +52,7 @@ export function UserTagsSkeleton() {
 
               {/* Configuration form skeleton */}
               <div>
-                <h3 className="font-medium text-sm text-text mb-2">
+                <h3 className="font-medium text-sm text-black mb-2">
                   Tag Configuration
                 </h3>
                 <div className="space-y-4">

@@ -1302,12 +1302,22 @@ export class TautulliService {
     // Get user's Tautulli notifier ID (may be null if not yet created)
     const tautulliUser = await this.db.getUser(user.id)
 
+    // Determine media type for Tautulli based on content type
+    // For bulk releases, episodeDetails exists but episodeNumber is undefined (season-level)
+    // For individual episodes, both seasonNumber and episodeNumber are defined
+    let mediaType: 'movie' | 'show' | 'episode' = notification.type
+    if (notification.type === 'show' && notification.episodeDetails) {
+      // Only treat as individual episode if episodeNumber is explicitly provided
+      mediaType =
+        notification.episodeDetails.episodeNumber !== undefined
+          ? 'episode'
+          : 'show' // Bulk release / season-level notification
+    }
+
     // Queue the notification - queueNotification will handle creating notifiers if needed
     await this.queueNotification(
       guid,
-      notification.type === 'show' && notification.episodeDetails
-        ? 'episode'
-        : notification.type,
+      mediaType,
       [
         {
           userId: user.id,
