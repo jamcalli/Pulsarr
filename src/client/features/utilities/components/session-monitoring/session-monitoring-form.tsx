@@ -1,55 +1,45 @@
 import { useState, useEffect, useRef } from 'react'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Loader2, Save, X } from 'lucide-react'
-import { Form } from '@/components/ui/form'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { toast } from '@/hooks/use-toast'
-import { cn } from '@/lib/utils'
+
+import { Loader2, Save, X } from 'lucide-react'
+
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Form } from '@/components/ui/form'
 import { Separator } from '@/components/ui/separator'
+
+import { cn } from '@/lib/utils'
+import { toast } from '@/hooks/use-toast'
 import { useConfigStore } from '@/stores/configStore'
-import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
+
 import { useRollingMonitoring } from '@/features/utilities/hooks/useRollingMonitoring'
+import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
+import {
+  SessionMonitoringConfigSchema,
+  type SessionMonitoringFormData,
+} from '@/features/utilities/constants/session-monitoring'
+
 import type { JobStatus } from '@root/schemas/scheduler/scheduler.schema'
-import { SessionMonitoringActions } from './session-monitoring-actions'
-import { SessionMonitoringConfig } from './session-monitoring-config'
-import { SessionMonitoringFiltering } from './session-monitoring-filtering'
-import { SessionMonitoringResetSettings } from './session-monitoring-reset-settings'
-import { SessionMonitoringStatus } from './session-monitoring-status'
 
-const sessionMonitoringSchema = z.object({
-  enabled: z.boolean(),
-  pollingIntervalMinutes: z.number().min(1).max(1440),
-  remainingEpisodes: z.number().min(1).max(10),
-  filterUsers: z
-    .union([z.string(), z.array(z.string())])
-    .optional()
-    .transform((val) => {
-      // Always convert to array for consistency
-      if (!val) return undefined
-      return Array.isArray(val) ? val : [val]
-    }),
-  enableAutoReset: z.boolean(),
-  inactivityResetDays: z.number().min(1).max(365),
-  autoResetIntervalHours: z.number().min(1).max(168),
-})
-
-type SessionMonitoringFormData = z.infer<typeof sessionMonitoringSchema>
+import { SessionMonitoringActions } from '@/features/utilities/components/session-monitoring/session-monitoring-actions'
+import { SessionMonitoringConfig } from '@/features/utilities/components/session-monitoring/session-monitoring-config'
+import { SessionMonitoringFiltering } from '@/features/utilities/components/session-monitoring/session-monitoring-filtering'
+import { SessionMonitoringResetSettings } from '@/features/utilities/components/session-monitoring/session-monitoring-reset-settings'
+import { SessionMonitoringStatus } from '@/features/utilities/components/session-monitoring/session-monitoring-status'
 
 /**
- * Renders a form for configuring Plex session monitoring and rolling monitoring reset settings.
+ * Renders a form interface for configuring Plex session monitoring and rolling monitoring reset options.
  *
- * Enables users to manage Plex session monitoring options, including enabling/disabling monitoring, setting polling intervals, defining episode thresholds, filtering by users, and configuring automatic reset for rolling monitored shows. Integrates with schedule management and displays real-time status and management tools for active and inactive rolling shows.
+ * Enables users to manage Plex session monitoring settings, including enabling/disabling monitoring, adjusting polling intervals, setting episode thresholds, filtering users, and configuring automatic reset and progressive cleanup for rolling monitored shows. Integrates with schedule management and provides real-time status and management tools for rolling and inactive shows.
  *
- * @returns The session monitoring configuration form UI.
+ * @returns The React component for managing Plex session monitoring settings.
  */
 export function SessionMonitoringForm() {
   const { config, updateConfig } = useConfigStore()
@@ -79,7 +69,7 @@ export function SessionMonitoringForm() {
   } = useRollingMonitoring()
 
   const form = useForm<SessionMonitoringFormData>({
-    resolver: zodResolver(sessionMonitoringSchema),
+    resolver: zodResolver(SessionMonitoringConfigSchema),
     defaultValues: {
       enabled: config?.plexSessionMonitoring?.enabled || false,
       pollingIntervalMinutes:
@@ -91,6 +81,8 @@ export function SessionMonitoringForm() {
         config?.plexSessionMonitoring?.inactivityResetDays || 7,
       autoResetIntervalHours:
         config?.plexSessionMonitoring?.autoResetIntervalHours || 24,
+      enableProgressiveCleanup:
+        config?.plexSessionMonitoring?.enableProgressiveCleanup || false,
     },
   })
 
@@ -119,6 +111,8 @@ export function SessionMonitoringForm() {
           config.plexSessionMonitoring.inactivityResetDays || 7,
         autoResetIntervalHours:
           config.plexSessionMonitoring.autoResetIntervalHours || 24,
+        enableProgressiveCleanup:
+          config.plexSessionMonitoring.enableProgressiveCleanup || false,
       }
       form.reset(formValues)
       setInactivityDays(config.plexSessionMonitoring.inactivityResetDays || 7)
@@ -175,7 +169,7 @@ export function SessionMonitoringForm() {
     data: SessionMonitoringFormData,
   ) => {
     // Auto-reset should be enabled when session monitoring is enabled AND enableAutoReset is true
-    const shouldEnableAutoReset = data.enabled && data.enableAutoReset
+    const shouldEnableAutoReset = data.enabled && (data.enableAutoReset ?? true)
 
     // Check if enabled state changed
     if (schedule.enabled !== shouldEnableAutoReset) {
@@ -185,9 +179,10 @@ export function SessionMonitoringForm() {
     // Check if auto-reset interval changed and schedule should be enabled
     const currentAutoResetInterval =
       schedule.type === 'interval' ? schedule.config?.hours || 24 : 24
+    const newAutoResetInterval = data.autoResetIntervalHours ?? 24
     if (
       shouldEnableAutoReset &&
-      currentAutoResetInterval !== data.autoResetIntervalHours
+      currentAutoResetInterval !== newAutoResetInterval
     ) {
       // Update the schedule with new interval
       const response = await fetch(`/v1/scheduler/schedules/${schedule.name}`, {
@@ -196,7 +191,7 @@ export function SessionMonitoringForm() {
         body: JSON.stringify({
           type: 'interval',
           config: {
-            hours: data.autoResetIntervalHours,
+            hours: newAutoResetInterval,
           },
         }),
       })
@@ -285,10 +280,10 @@ export function SessionMonitoringForm() {
         <AccordionTrigger className="px-6 py-4 bg-main hover:bg-main hover:no-underline">
           <div className="flex justify-between items-center w-full pr-2">
             <div>
-              <h3 className="text-lg font-medium text-text text-left">
+              <h3 className="text-lg font-medium text-black text-left">
                 Plex Session Monitoring
               </h3>
-              <p className="text-sm text-text text-left">
+              <p className="text-sm text-black text-left">
                 Monitor Plex viewing sessions and automatically expand Sonarr
                 monitoring
               </p>

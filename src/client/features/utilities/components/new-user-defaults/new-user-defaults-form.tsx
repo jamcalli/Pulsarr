@@ -25,9 +25,9 @@ const newUserDefaultsSchema = z.object({
 type NewUserDefaultsFormData = z.infer<typeof newUserDefaultsSchema>
 
 /**
- * Displays a form within an accordion for setting whether newly discovered Plex users have sync enabled by default.
+ * Renders a form within an accordion to configure whether newly discovered Plex users have sync enabled by default.
  *
- * The form loads the current default sync setting from configuration, allows toggling the setting, and automatically saves changes. Users receive immediate feedback via toast notifications, and the interface adapts for mobile screens. Contextual information explains the impact of the current setting on new users.
+ * Loads the current default sync setting from configuration, allows toggling and auto-saving the setting, and provides immediate feedback via toast notifications. The interface adapts for mobile screens and includes contextual information about how the sync default affects new users.
  */
 export function NewUserDefaultsForm() {
   const isMobile = useMediaQuery('(max-width: 768px)')
@@ -97,10 +97,10 @@ export function NewUserDefaultsForm() {
         <AccordionTrigger className="px-6 py-4 bg-main hover:bg-main hover:no-underline">
           <div className="flex justify-between items-center w-full pr-2">
             <div>
-              <h3 className="text-lg font-medium text-text text-left">
+              <h3 className="text-lg font-medium text-black text-left">
                 New User Defaults
               </h3>
-              <p className="text-sm text-text text-left">
+              <p className="text-sm text-black text-left">
                 Configure default settings for newly discovered Plex users
               </p>
             </div>
@@ -113,7 +113,7 @@ export function NewUserDefaultsForm() {
                   : 'bg-red-500 hover:bg-red-500 text-white',
               )}
             >
-              {isEnabled ? 'Sync Enabled' : 'Sync Disabled'}
+              {isEnabled ? 'Enabled' : 'Disabled'}
             </Badge>
           </div>
         </AccordionTrigger>

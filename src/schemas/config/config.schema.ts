@@ -50,6 +50,32 @@ export const ConfigSchema = z.object({
   enableApprise: z.boolean().optional(),
   appriseUrl: z.string().optional(),
   systemAppriseUrl: z.string().optional(),
+  // Public Content Notifications - broadcast ALL content availability to public channels/endpoints
+  publicContentNotifications: z
+    .object({
+      enabled: z.boolean().default(false),
+      // Discord webhook URLs for public content announcements (comma-separated)
+      discordWebhookUrls: z.string().optional(),
+      // Movie-specific Discord webhook URLs (comma-separated)
+      discordWebhookUrlsMovies: z.string().optional(),
+      // Show-specific Discord webhook URLs (comma-separated)
+      discordWebhookUrlsShows: z.string().optional(),
+      // Apprise URLs for public content announcements (comma-separated)
+      appriseUrls: z.string().optional(),
+      // Movie-specific Apprise URLs (comma-separated)
+      appriseUrlsMovies: z.string().optional(),
+      // Show-specific Apprise URLs (comma-separated)
+      appriseUrlsShows: z.string().optional(),
+    })
+    .default({
+      enabled: false,
+      discordWebhookUrls: undefined,
+      discordWebhookUrlsMovies: undefined,
+      discordWebhookUrlsShows: undefined,
+      appriseUrls: undefined,
+      appriseUrlsMovies: undefined,
+      appriseUrlsShows: undefined,
+    }),
   // Tautulli Config
   tautulliEnabled: z.boolean().optional(),
   tautulliUrl: z.string().optional(),
@@ -107,6 +133,8 @@ export const ConfigSchema = z.object({
       enableAutoReset: z.boolean().default(true).optional(),
       inactivityResetDays: z.number().min(1).max(365).default(7).optional(),
       autoResetIntervalHours: z.number().min(1).max(168).default(24).optional(),
+      // Progressive cleanup mode - cleans up previous seasons as user progresses
+      enableProgressiveCleanup: z.boolean().default(false).optional(),
     })
     .optional(),
   // New User Defaults

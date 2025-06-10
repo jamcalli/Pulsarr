@@ -45,17 +45,18 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useDeleteSync } from '@/features/utilities/hooks/useDeleteSync'
+import { useConfigStore } from '@/stores/configStore'
 import { DeleteSyncConfirmationModal } from '@/features/utilities/components/delete-sync/delete-sync-confirmation-modal'
 import { DeleteSyncDryRunModal } from '@/features/utilities/components/delete-sync/delete-sync-dry-run-modal'
 import { useMediaQuery } from '@/hooks/use-media-query'
 // Removed unused import
 
 /**
- * Displays a comprehensive form and controls for configuring and managing the delete synchronization job.
+ * Displays a full-featured interface for configuring and managing the delete synchronization job.
  *
- * Allows users to enable or disable the job, run it immediately, perform dry runs, and adjust deletion criteria, scheduling, safety settings, and notification preferences. Includes contextual tooltips, confirmation modals for sensitive actions, and displays validation or operation errors. The form adapts responsively for mobile screens and provides accessibility features.
+ * Users can set deletion criteria, scheduling, safety thresholds, and notification preferences, as well as enable or disable the job, trigger immediate runs, and perform dry runs. The form provides contextual tooltips, validation feedback, confirmation modals, and adapts responsively for mobile devices.
  *
- * @returns The React element representing the delete sync management form and controls.
+ * @returns The React element representing the delete sync configuration and control panel.
  */
 export function DeleteSyncForm() {
   const isMobile = useMediaQuery('(max-width: 768px)')
@@ -90,6 +91,8 @@ export function DeleteSyncForm() {
     setShowDryRunModal,
   } = useDeleteSync()
 
+  const { setOpenUtilitiesAccordion } = useConfigStore()
+
   return (
     <>
       <DeleteSyncConfirmationModal
@@ -121,10 +124,10 @@ export function DeleteSyncForm() {
           <AccordionTrigger className="px-6 py-4 bg-main hover:bg-main hover:no-underline">
             <div className="flex justify-between items-center w-full pr-2">
               <div>
-                <h3 className="text-lg font-medium text-text text-left">
+                <h3 className="text-lg font-medium text-black text-left">
                   Delete Sync
                 </h3>
-                <p className="text-sm text-text text-left">
+                <p className="text-sm text-black text-left">
                   Automatically removes content when it's no longer on any
                   watchlists
                 </p>
@@ -435,56 +438,9 @@ export function DeleteSyncForm() {
                                             <button
                                               type="button"
                                               onClick={() => {
-                                                // Find the User Tags accordion by looking for the h3 element
-                                                const userTagsHeader =
-                                                  Array.from(
-                                                    document.querySelectorAll(
-                                                      'h3',
-                                                    ),
-                                                  ).find(
-                                                    (h3) =>
-                                                      h3.textContent ===
-                                                      'User Tags',
-                                                  )
-
-                                                if (userTagsHeader) {
-                                                  // Find the parent accordion trigger button
-                                                  const trigger =
-                                                    userTagsHeader.closest(
-                                                      'button',
-                                                    )
-
-                                                  if (trigger) {
-                                                    // Check if closed using aria-expanded
-                                                    const isExpanded =
-                                                      trigger.getAttribute(
-                                                        'aria-expanded',
-                                                      ) === 'true'
-
-                                                    // Click if closed
-                                                    if (!isExpanded) {
-                                                      trigger.click()
-                                                    }
-
-                                                    // Scroll the accordion item into view
-                                                    // The trigger button itself is the accordion item
-                                                    setTimeout(() => {
-                                                      // Find the accordion item container (parent with border)
-                                                      const accordionWrapper =
-                                                        trigger.closest(
-                                                          '.border-2.border-border',
-                                                        )
-                                                      if (accordionWrapper) {
-                                                        accordionWrapper.scrollIntoView(
-                                                          {
-                                                            behavior: 'smooth',
-                                                            block: 'start',
-                                                          },
-                                                        )
-                                                      }
-                                                    }, 300)
-                                                  }
-                                                }
+                                                setOpenUtilitiesAccordion(
+                                                  'user-tags',
+                                                )
                                               }}
                                               className="underline font-medium hover:text-yellow-900 dark:hover:text-yellow-300"
                                             >

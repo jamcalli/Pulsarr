@@ -8,14 +8,11 @@ import {
 import { Separator } from '@/components/ui/separator'
 
 /**
- * Renders a skeleton loading UI for the "Plex Notifications" feature.
+ * Displays a skeleton placeholder for the Plex Notifications interface during data loading.
  *
- * This component displays a collapsible accordion card with placeholder elements
- * mimicking the layout of the Plex Notifications interface. It includes skeletons for the title,
- * description, actions, and configuration settings, providing a visual cue while the actual
- * data is being loaded.
+ * Simulates the full layout of the Plex Notifications UI, including sections for actions, current status, and connection settings, using skeleton elements to indicate loading state.
  *
- * @returns A JSX element representing the loading state of the Plex Notifications feature.
+ * @returns A JSX element representing the loading placeholder for the Plex Notifications interface.
  */
 export function PlexNotificationsSkeleton() {
   return (
@@ -27,10 +24,10 @@ export function PlexNotificationsSkeleton() {
         <AccordionTrigger className="px-6 py-4 bg-main hover:bg-main hover:no-underline">
           <div className="flex justify-between items-center w-full pr-2">
             <div>
-              <h3 className="text-lg font-medium text-text text-left">
+              <h3 className="text-lg font-medium text-black text-left">
                 Plex Notifications
               </h3>
-              <p className="text-sm text-text text-left">
+              <p className="text-sm text-black text-left">
                 Configure Sonarr and Radarr to notify Plex of content added,
                 removed, or modified
               </p>
@@ -43,7 +40,7 @@ export function PlexNotificationsSkeleton() {
             <div className="space-y-6">
               {/* Actions section skeleton */}
               <div>
-                <h3 className="font-medium text-text mb-2">Actions</h3>
+                <h3 className="font-medium text-black mb-2">Actions</h3>
                 <div className="flex flex-wrap items-center gap-4">
                   <Skeleton className="h-8 w-40" />
                 </div>
@@ -53,10 +50,10 @@ export function PlexNotificationsSkeleton() {
 
               {/* Status section skeleton */}
               <div>
-                <h3 className="font-medium text-text mb-2">Current Status</h3>
+                <h3 className="font-medium text-black mb-2">Current Status</h3>
                 <Skeleton className="h-4 w-3/4 mb-4" />
 
-                <h4 className="font-medium text-sm text-text mb-2">
+                <h4 className="font-medium text-sm text-black mb-2">
                   Radarr Instances
                 </h4>
                 <div className="space-y-2">
@@ -64,7 +61,7 @@ export function PlexNotificationsSkeleton() {
                   <Skeleton className="h-4 w-full" />
                 </div>
 
-                <h4 className="font-medium text-sm text-text mt-3 mb-2">
+                <h4 className="font-medium text-sm text-black mt-3 mb-2">
                   Sonarr Instances
                 </h4>
                 <div className="space-y-2">
@@ -77,7 +74,7 @@ export function PlexNotificationsSkeleton() {
 
               {/* Configuration form skeleton */}
               <div>
-                <h3 className="font-medium text-sm text-text mb-2">
+                <h3 className="font-medium text-sm text-black mb-2">
                   Plex Connection Settings
                 </h3>
                 <div className="space-y-4">

@@ -12,7 +12,8 @@ import {
 } from 'lucide-react'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { toast } from '@/hooks/use-toast'
-import { RollingShowsSheet } from './rolling-shows-sheet'
+import { useDebounce } from '@/hooks/useDebounce'
+import { RollingShowsSheet } from '@/features/utilities/components/session-monitoring/rolling-shows-sheet'
 import type { RollingMonitoredShow } from '@/features/utilities/hooks/useRollingMonitoring'
 import type { SessionMonitoringResult } from '@root/types/plex-session.types'
 
@@ -41,12 +42,12 @@ interface SessionMonitoringStatusProps {
 }
 
 /**
- * Displays and manages the rolling session monitoring status, including active and inactive shows, for a media application.
+ * Renders the session monitoring status UI for managing active and inactive media shows.
  *
- * Renders a UI section with controls to check session status, view lists of active and inactive shows, adjust inactivity thresholds, and perform reset or delete actions. Data fetching and updates are triggered based on user interaction and prop changes. The component is only visible when monitoring is enabled.
+ * Provides controls to check session status, view and manage lists of active and inactive shows, adjust inactivity thresholds, and perform reset or delete actions. The component is visible only when monitoring is enabled.
  *
  * @remark
- * The inactivity days input is debounced to minimize unnecessary updates. Reset and delete actions are disabled during their respective loading states.
+ * The inactivity days threshold input is debounced to reduce unnecessary updates. Reset and delete actions are disabled while their respective operations are in progress.
  */
 export function SessionMonitoringStatus({
   isEnabled,
@@ -68,15 +69,17 @@ export function SessionMonitoringStatus({
   const [showInactiveShows, setShowInactiveShows] = useState(false)
   const [localInactivityDays, setLocalInactivityDays] = useState(inactivityDays)
 
-  // Debounce inactivity days changes to prevent excessive API calls
+  // Debounced inactivity days handler to prevent excessive API calls
+  const debouncedSetInactivityDays = useDebounce((days: number) => {
+    setInactivityDays(days)
+  }, 500)
+
+  // Update debounced handler when localInactivityDays changes
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (localInactivityDays !== inactivityDays) {
-        setInactivityDays(localInactivityDays)
-      }
-    }, 500)
-    return () => clearTimeout(timer)
-  }, [localInactivityDays, inactivityDays, setInactivityDays])
+    if (localInactivityDays !== inactivityDays) {
+      debouncedSetInactivityDays(localInactivityDays)
+    }
+  }, [localInactivityDays, inactivityDays, debouncedSetInactivityDays])
 
   // Sync local state when prop changes (e.g., from config updates)
   useEffect(() => {

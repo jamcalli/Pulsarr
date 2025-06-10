@@ -33,12 +33,9 @@ import {
 } from '@/components/ui/card'
 
 /**
- * Renders a form for configuring Plex notifications with server discovery.
+ * Displays a form for configuring Plex notifications across all Radarr and Sonarr instances, including Plex server discovery and management.
  *
- * This component provides an interface to set up Plex notifications in all Radarr and Sonarr instances.
- * It allows users to specify Plex connection details like token, host, port, and SSL settings.
- * The form includes a delete button to remove all Plex notifications across instances.
- * Server discovery functionality finds available Plex servers with a token.
+ * Users can enter Plex connection details, discover and select available Plex servers using a Plex token, and manage notification settings for all connected Radarr and Sonarr instances. The form provides real-time status feedback for each instance and allows removal of all Plex notifications with confirmation.
  */
 export function PlexNotificationsForm() {
   const {
@@ -77,10 +74,10 @@ export function PlexNotificationsForm() {
           <AccordionTrigger className="px-6 py-4 bg-main hover:bg-main hover:no-underline">
             <div className="flex justify-between items-center w-full pr-2">
               <div>
-                <h3 className="text-lg font-medium text-text text-left">
+                <h3 className="text-lg font-medium text-black text-left">
                   Plex Notifications
                 </h3>
-                <p className="text-sm text-text text-left">
+                <p className="text-sm text-black text-left">
                   Configure Sonarr and Radarr to notify Plex of content added,
                   removed, or modified
                 </p>

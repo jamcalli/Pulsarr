@@ -14,6 +14,17 @@ const DEFAULT_PLEX_SESSION_MONITORING = {
   enableAutoReset: true,
   inactivityResetDays: 7,
   autoResetIntervalHours: 24,
+  enableProgressiveCleanup: false,
+}
+
+const DEFAULT_PUBLIC_CONTENT_NOTIFICATIONS = {
+  enabled: false,
+  discordWebhookUrls: '',
+  discordWebhookUrlsMovies: '',
+  discordWebhookUrlsShows: '',
+  appriseUrls: '',
+  appriseUrlsMovies: '',
+  appriseUrlsShows: '',
 }
 
 const schema = {
@@ -126,6 +137,11 @@ const schema = {
     systemAppriseUrl: {
       type: 'string',
       default: '',
+    },
+    // Public Content Notifications
+    publicContentNotifications: {
+      type: 'string',
+      default: JSON.stringify(DEFAULT_PUBLIC_CONTENT_NOTIFICATIONS),
     },
     queueWaitTime: {
       type: 'number',
@@ -381,18 +397,17 @@ export default fp(
       plexSessionMonitoring: rawConfig.plexSessionMonitoring
         ? safeJsonParse(
             rawConfig.plexSessionMonitoring as string,
-            {
-              enabled: false,
-              pollingIntervalMinutes: 15,
-              remainingEpisodes: 2,
-              filterUsers: [],
-              enableAutoReset: true,
-              inactivityResetDays: 7,
-              autoResetIntervalHours: 24,
-            },
+            DEFAULT_PLEX_SESSION_MONITORING,
             'plexSessionMonitoring',
           )
         : undefined,
+      publicContentNotifications: rawConfig.publicContentNotifications
+        ? safeJsonParse(
+            rawConfig.publicContentNotifications as string,
+            DEFAULT_PUBLIC_CONTENT_NOTIFICATIONS,
+            'publicContentNotifications',
+          )
+        : DEFAULT_PUBLIC_CONTENT_NOTIFICATIONS,
       _isReady: false,
     }
 
