@@ -35,11 +35,11 @@ import { SessionMonitoringResetSettings } from '@/features/utilities/components/
 import { SessionMonitoringStatus } from '@/features/utilities/components/session-monitoring/session-monitoring-status'
 
 /**
- * Displays a form for configuring Plex session monitoring and rolling monitoring reset options.
+ * Renders a form interface for configuring Plex session monitoring and rolling monitoring reset options.
  *
- * Allows users to enable or disable Plex session monitoring, adjust polling intervals, set episode thresholds, filter by users, and configure automatic reset for rolling monitored shows. Integrates with schedule management and provides real-time status and management tools for rolling and inactive shows.
+ * Enables users to manage Plex session monitoring settings, including enabling/disabling monitoring, adjusting polling intervals, setting episode thresholds, filtering users, and configuring automatic reset and progressive cleanup for rolling monitored shows. Integrates with schedule management and provides real-time status and management tools for rolling and inactive shows.
  *
- * @returns The user interface for managing Plex session monitoring settings.
+ * @returns The React component for managing Plex session monitoring settings.
  */
 export function SessionMonitoringForm() {
   const { config, updateConfig } = useConfigStore()

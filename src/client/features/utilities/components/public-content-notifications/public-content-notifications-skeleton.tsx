@@ -8,9 +8,9 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useConfigStore } from '@/stores/configStore'
 
 /**
- * Renders a controlled skeleton UI for the public content notifications form during loading.
+ * Displays a skeleton UI for the public content notifications form while loading.
  *
- * Displays an accordion with skeleton placeholders that visually represent the structure of the notifications form, including headers, actions, configuration fields, buttons, and informational text. The accordion responds to the global utilities accordion state.
+ * Renders an accordion containing placeholder elements that mimic the structure of the notifications form, including headers, actions, configuration fields, buttons, and informational text. The accordion's open state is controlled by the global utilities accordion value.
  */
 export function PublicContentNotificationsSkeleton() {
   const openUtilitiesAccordion = useConfigStore(

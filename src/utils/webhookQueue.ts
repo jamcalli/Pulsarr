@@ -6,7 +6,12 @@ import { processContentNotifications } from '@root/utils/notification-processor.
 export const webhookQueue: WebhookQueue = {}
 
 /**
- * Checks if an episode already exists in the queue to prevent duplicates
+ * Determines whether a specific episode is already present in the webhook queue for a given TVDB ID and season.
+ *
+ * @param tvdbId - The TVDB identifier for the show.
+ * @param seasonNumber - The season number of the episode.
+ * @param episodeNumber - The episode number within the season.
+ * @returns `true` if the episode is already queued; otherwise, `false`.
  */
 export function isEpisodeAlreadyQueued(
   tvdbId: string,
@@ -219,15 +224,15 @@ export async function checkForUpgrade(
 }
 
 /**
- * Processes and dispatches queued webhook notifications for a specific TV show season.
+ * Processes and dispatches all queued webhook notifications for a specific TV show season.
  *
- * For the given TVDB ID and season, validates and processes any queued webhook episodes. Determines if notifications should be sent based on episode recency and prior notification status, then generates and sends notifications using a centralized processor. If no watchlist matches are found, queues the webhook as pending for later processing. Cleans up the queue after processing.
+ * Validates and processes queued episodes for the given TVDB ID and season. Determines notification eligibility based on episode recency and prior notification status, then sends notifications using a centralized processor. If no watchlist matches are found, queues the webhook as pending for future processing. Cleans up the queue after processing.
  *
  * @param tvdbId - The TVDB ID of the show.
  * @param seasonNumber - The season number to process.
  *
  * @remark
- * Public content notifications are dispatched if enabled, and global admin users are handled with public notification endpoints.
+ * Public content notifications and global admin user endpoints are included in the centralized notification dispatch.
  */
 export async function processQueuedWebhooks(
   tvdbId: string,
