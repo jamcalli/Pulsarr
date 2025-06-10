@@ -56,11 +56,11 @@ interface WebhookFieldProps {
 }
 
 /**
- * Renders a reusable input field for webhook URLs with optional test and clear actions.
+ * Displays an input field for entering one or more webhook URLs, with optional test and clear actions.
  *
- * Displays a labeled input with tooltip, help text, and validation messages. If testable, includes a button to test the webhook connection, showing loading and result states. A clear button appears when a value is present, triggering the provided clear handler.
+ * Shows a labeled input with tooltip, help text, and validation. If testable, provides a button to test the webhook connection, displaying loading and result states. A clear button appears when a value exists, allowing the field to be cleared.
  *
- * @param name - The form field name for the webhook URL.
+ * @param name - The form field name for the webhook URL(s).
  * @param label - The label displayed above the input.
  * @param placeholder - Placeholder text for the input.
  * @param tooltip - Tooltip content explaining the field.
@@ -74,6 +74,8 @@ interface WebhookFieldProps {
  * @param value - Current value of the input.
  * @param disabled - Whether the input and actions are disabled.
  * @param form - The form control object for integration with React Hook Form.
+ *
+ * @remark For Discord webhook fields, basic URL validation is applied to ensure the input matches the expected Discord webhook URL pattern.
  */
 function WebhookField({
   name,
@@ -181,11 +183,13 @@ function WebhookField({
 }
 
 /**
- * Displays a form for configuring public content notifications, allowing administrators to enable or disable broadcasting of all content availability to public Discord channels and shared Apprise endpoints.
+ * Renders a form for administrators to configure public content notifications, enabling or disabling broadcasting of all content availability to public Discord channels and shared Apprise endpoints.
  *
- * The form supports configuring general, movie-specific, and show-specific webhook URLs for both Discord and Apprise, with validation, connection testing for Discord webhooks, and clear/reset functionality. Users can toggle the feature, test Discord webhook connections, and must pass all tests before saving changes. A confirmation dialog is shown before clearing any webhook field.
+ * The form allows configuration of general, movie-specific, and show-specific webhook URLs for both Discord and Apprise. Discord webhook fields support connection testing and require successful tests before saving changes. Users can enable or disable the feature, clear individual webhook fields with confirmation, and manage multiple endpoints per category.
  *
- * @returns The rendered public content notifications configuration form.
+ * @returns The public content notifications configuration form UI.
+ *
+ * @remark Form submission is only allowed when all modified Discord webhook fields have passed connection tests.
  */
 export function PublicContentNotificationsForm() {
   const isMobile = useMediaQuery('(max-width: 768px)')

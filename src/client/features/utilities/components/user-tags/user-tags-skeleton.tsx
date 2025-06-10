@@ -8,11 +8,11 @@ import {
 import { Separator } from '@/components/ui/separator'
 
 /**
- * Displays a skeleton placeholder for the User Tags interface during loading.
+ * Displays a skeleton placeholder for the User Tags interface while content is loading.
  *
- * Renders a static accordion layout with skeleton elements that mimic the structure of the user tags feature, including action buttons and tag configuration fields, to indicate that content is being loaded.
+ * Renders a static accordion layout with skeleton elements that visually represent the structure of the User Tags feature, including action buttons and tag configuration fields.
  *
- * @returns A JSX element representing the loading state of the User Tags feature.
+ * @returns A JSX element showing the loading state for the User Tags interface.
  */
 export function UserTagsSkeleton() {
   return (

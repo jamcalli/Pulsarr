@@ -37,11 +37,11 @@ const appriseFormSchema = z.object({
 type AppriseFormSchema = z.infer<typeof appriseFormSchema>
 
 /****
- * Displays a form for configuring the system-wide Apprise notification service URL.
+ * Renders a form for configuring the system-wide Apprise notification service URLs.
  *
- * Users can view the current Apprise server URL (read-only), update the system Apprise URL, or clear it entirely. The form includes validation, status feedback, and confirmation dialogs for destructive actions.
+ * Users can view the current Apprise server URL (read-only), add or update up to five system Apprise URLs for notifications, or clear them entirely. The form provides validation, status feedback, and confirmation dialogs for destructive actions.
  *
- * @param isInitialized - Whether the configuration is ready for editing.
+ * @param isInitialized - Indicates whether the configuration is ready for editing.
  */
 export function AppriseForm({ isInitialized }: AppriseFormProps) {
   const { toast } = useToast()

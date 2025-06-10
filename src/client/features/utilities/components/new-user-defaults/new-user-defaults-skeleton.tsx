@@ -7,9 +7,9 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 
 /**
- * Displays a skeleton placeholder for the "New User Defaults" form during loading.
+ * Displays a skeleton placeholder for the "New User Defaults" form while data is loading.
  *
- * Mimics the structure of the actual form using an accordion layout with skeleton elements for the header, description, and form fields.
+ * Uses an accordion layout with skeleton elements to visually represent the form's structure, including the header, description, and form fields.
  */
 export function NewUserDefaultsSkeleton() {
   return (
