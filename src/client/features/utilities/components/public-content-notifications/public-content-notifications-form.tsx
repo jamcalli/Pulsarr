@@ -16,7 +16,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
+import { MultiInput } from '@/components/ui/multi-input'
 import { cn } from '@/lib/utils'
 import {
   Accordion,
@@ -110,11 +110,24 @@ function WebhookField({
           </div>
           <FormControl>
             <div className="flex gap-2">
-              <Input
-                {...field}
+              <MultiInput
+                value={field.value}
+                onChange={field.onChange}
                 placeholder={placeholder}
                 disabled={disabled}
-                className="w-full"
+                validateValue={
+                  name.includes('discord')
+                    ? (url) => {
+                        // Basic Discord webhook URL validation
+                        return (
+                          url === '' ||
+                          url.includes('discord.com/api/webhooks/')
+                        )
+                      }
+                    : undefined
+                }
+                maxFields={5}
+                className="flex-1"
               />
               {isTestable && (
                 <TooltipProvider>
@@ -182,6 +195,7 @@ export function PublicContentNotificationsForm() {
     isToggling,
     isClearing,
     testStatus,
+    isAppriseEnabled,
     onSubmit,
     handleCancel,
     handleToggle,
@@ -409,9 +423,9 @@ export function PublicContentNotificationsForm() {
                             <WebhookField
                               name="discordWebhookUrls"
                               label="General Discord Webhook URLs"
-                              placeholder="https://discord.com/api/webhooks/..., https://discord.com/api/webhooks/..."
-                              tooltip="Discord webhook URLs for general content notifications. Multiple URLs can be separated by commas."
-                              helpText="Comma-separated list of Discord webhook URLs for general content notifications"
+                              placeholder="https://discord.com/api/webhooks/..."
+                              tooltip="Discord webhook URLs for general content notifications. Use the + button to add multiple channels."
+                              helpText="Discord webhook URLs for general content notifications"
                               isTestable={true}
                               testHandler={() =>
                                 handleTestDiscordWebhook('general')
@@ -436,9 +450,9 @@ export function PublicContentNotificationsForm() {
                             <WebhookField
                               name="discordWebhookUrlsMovies"
                               label="Movie-specific Discord Webhook URLs"
-                              placeholder="https://discord.com/api/webhooks/..., https://discord.com/api/webhooks/..."
-                              tooltip="Discord webhook URLs specifically for movie notifications. Multiple URLs can be separated by commas."
-                              helpText="Comma-separated list of Discord webhook URLs specifically for movie notifications"
+                              placeholder="https://discord.com/api/webhooks/..."
+                              tooltip="Discord webhook URLs specifically for movie notifications. Use the + button to add multiple channels."
+                              helpText="Discord webhook URLs specifically for movie notifications"
                               isTestable={true}
                               testHandler={() =>
                                 handleTestDiscordWebhook('movies')
@@ -463,9 +477,9 @@ export function PublicContentNotificationsForm() {
                             <WebhookField
                               name="discordWebhookUrlsShows"
                               label="Show-specific Discord Webhook URLs"
-                              placeholder="https://discord.com/api/webhooks/..., https://discord.com/api/webhooks/..."
-                              tooltip="Discord webhook URLs specifically for TV show notifications. Multiple URLs can be separated by commas."
-                              helpText="Comma-separated list of Discord webhook URLs specifically for TV show notifications"
+                              placeholder="https://discord.com/api/webhooks/..."
+                              tooltip="Discord webhook URLs specifically for TV show notifications. Use the + button to add multiple channels."
+                              helpText="Discord webhook URLs specifically for TV show notifications"
                               isTestable={true}
                               testHandler={() =>
                                 handleTestDiscordWebhook('shows')
@@ -492,16 +506,23 @@ export function PublicContentNotificationsForm() {
                         <Separator />
 
                         <div>
-                          <h3 className="font-medium text-text mb-4">
-                            Apprise Configuration
-                          </h3>
+                          <div className="flex items-center gap-2 mb-4">
+                            <h3 className="font-medium text-text">
+                              Apprise Configuration
+                            </h3>
+                            {!isAppriseEnabled && (
+                              <span className="text-xs text-red-500 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded">
+                                Apprise is disabled
+                              </span>
+                            )}
+                          </div>
                           <div className="space-y-4">
                             <WebhookField
                               name="appriseUrls"
                               label="General Apprise URLs"
-                              placeholder="discord://webhook_id/token, mailto://user:pass@gmail.com"
-                              tooltip="Apprise URLs for general content notifications. Multiple URLs can be separated by commas."
-                              helpText="Comma-separated list of Apprise URLs for general content notifications"
+                              placeholder="discord://webhook_id/token"
+                              tooltip="Apprise URLs for general content notifications. Use the + button to add multiple services."
+                              helpText="Apprise URLs for general content notifications"
                               isTestable={false}
                               onClear={() => {
                                 setClearingField('appriseUrls')
@@ -509,7 +530,10 @@ export function PublicContentNotificationsForm() {
                               }}
                               value={appriseGeneralUrls}
                               disabled={
-                                isSubmitting || isToggling || isClearing
+                                isSubmitting ||
+                                isToggling ||
+                                isClearing ||
+                                !isAppriseEnabled
                               }
                               form={form}
                             />
@@ -517,9 +541,9 @@ export function PublicContentNotificationsForm() {
                             <WebhookField
                               name="appriseUrlsMovies"
                               label="Movie-specific Apprise URLs"
-                              placeholder="discord://webhook_id/token, mailto://user:pass@gmail.com"
-                              tooltip="Apprise URLs specifically for movie notifications. Multiple URLs can be separated by commas."
-                              helpText="Comma-separated list of Apprise URLs specifically for movie notifications"
+                              placeholder="discord://webhook_id/token"
+                              tooltip="Apprise URLs specifically for movie notifications. Use the + button to add multiple services."
+                              helpText="Apprise URLs specifically for movie notifications"
                               isTestable={false}
                               onClear={() => {
                                 setClearingField('appriseUrlsMovies')
@@ -527,7 +551,10 @@ export function PublicContentNotificationsForm() {
                               }}
                               value={appriseMoviesUrls}
                               disabled={
-                                isSubmitting || isToggling || isClearing
+                                isSubmitting ||
+                                isToggling ||
+                                isClearing ||
+                                !isAppriseEnabled
                               }
                               form={form}
                             />
@@ -535,9 +562,9 @@ export function PublicContentNotificationsForm() {
                             <WebhookField
                               name="appriseUrlsShows"
                               label="Show-specific Apprise URLs"
-                              placeholder="discord://webhook_id/token, mailto://user:pass@gmail.com"
-                              tooltip="Apprise URLs specifically for TV show notifications. Multiple URLs can be separated by commas."
-                              helpText="Comma-separated list of Apprise URLs specifically for TV show notifications"
+                              placeholder="discord://webhook_id/token"
+                              tooltip="Apprise URLs specifically for TV show notifications. Use the + button to add multiple services."
+                              helpText="Apprise URLs specifically for TV show notifications"
                               isTestable={false}
                               onClear={() => {
                                 setClearingField('appriseUrlsShows')
@@ -545,7 +572,10 @@ export function PublicContentNotificationsForm() {
                               }}
                               value={appriseShowsUrls}
                               disabled={
-                                isSubmitting || isToggling || isClearing
+                                isSubmitting ||
+                                isToggling ||
+                                isClearing ||
+                                !isAppriseEnabled
                               }
                               form={form}
                             />

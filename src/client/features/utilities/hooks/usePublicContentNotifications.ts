@@ -339,6 +339,21 @@ export function usePublicContentNotifications() {
           form.setValue(testedField, true, { shouldValidate: true })
           form.clearErrors(urlField)
 
+          // Update form with deduplicated URLs if duplicates were removed
+          if (
+            result.duplicateCount &&
+            result.duplicateCount > 0 &&
+            result.urls
+          ) {
+            const deduplicatedUrls = result.urls
+              .map((url: { url: string }) => url.url)
+              .join(',')
+            form.setValue(urlField, deduplicatedUrls, {
+              shouldValidate: true,
+              shouldDirty: true,
+            })
+          }
+
           // Get webhook count for user feedback
           const webhookCount = result.urls?.length || 1
           let countText =
@@ -355,7 +370,10 @@ export function usePublicContentNotifications() {
 
           toast({
             description: countText,
-            variant: 'default',
+            variant:
+              result.duplicateCount && result.duplicateCount > 0
+                ? 'destructive'
+                : 'default',
           })
         } else {
           form.setValue(testedField, false, { shouldValidate: true })
@@ -616,6 +634,7 @@ export function usePublicContentNotifications() {
     isToggling,
     isClearing,
     testStatus,
+    isAppriseEnabled: config?.enableApprise || false,
     onSubmit,
     handleCancel,
     handleToggle,
