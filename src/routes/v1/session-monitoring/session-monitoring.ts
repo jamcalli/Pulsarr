@@ -142,14 +142,14 @@ const sessionMonitoringRoutes: FastifyPluginAsync = async (fastify) => {
           await fastify.db.deleteAllRollingMonitoredShowEntries(showId)
 
         request.log.info(
-          `${shouldReset ? 'Deleted and reset' : 'Removed'} rolling monitored show with ID ${showId} (${deletedCount} entries removed)`,
+          `${shouldReset ? 'Completely removed and reset' : 'Completely removed'} rolling monitored show: ${existingShow.show_title} from all monitoring (${deletedCount} total entries deleted)`,
         )
 
         return reply.send({
           success: true,
           message: shouldReset
-            ? `Successfully deleted ${existingShow.show_title} and reset to original monitoring state (removed ${deletedCount} user ${deletedCount === 1 ? 'entry' : 'entries'})`
-            : `Successfully removed ${existingShow.show_title} from rolling monitoring (removed ${deletedCount} user ${deletedCount === 1 ? 'entry' : 'entries'})`,
+            ? `Successfully removed ${existingShow.show_title} from rolling monitoring entirely and reset to original monitoring state (deleted ${deletedCount} total ${deletedCount === 1 ? 'entry' : 'entries'})`
+            : `Successfully removed ${existingShow.show_title} from rolling monitoring entirely (deleted ${deletedCount} total ${deletedCount === 1 ? 'entry' : 'entries'})`,
         })
       } catch (error) {
         request.log.error('Error deleting rolling monitored show:', error)

@@ -37,8 +37,11 @@ export function NotificationsSection({
             <button
               type="button"
               onClick={() => {
-                setOpenUtilitiesAccordion('public-content-notifications')
                 navigate('/utilities')
+                // Set accordion after navigation to ensure the page is loaded
+                setTimeout(() => {
+                  setOpenUtilitiesAccordion('public-content-notifications')
+                }, 100)
               }}
               className="underline font-medium"
             >

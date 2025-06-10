@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useToast } from '@/hooks/use-toast'
 import { useConfigStore } from '@/stores/configStore'
+import { useDebounce } from '@/hooks/useDebounce'
 import type { WebhookValidationResponse } from '@root/schemas/notifications/discord-control.schema'
 
 /**
@@ -120,18 +121,18 @@ export function usePublicContentNotifications() {
   const form = useForm<PublicContentNotificationsFormValues>({
     resolver: zodResolver(publicContentNotificationsSchema),
     defaultValues: {
-      enabled: config?.publicContentNotifications?.enabled || false,
+      enabled: config?.publicContentNotifications.enabled || false,
       discordWebhookUrls:
-        config?.publicContentNotifications?.discordWebhookUrls || '',
+        config?.publicContentNotifications.discordWebhookUrls || '',
       discordWebhookUrlsMovies:
-        config?.publicContentNotifications?.discordWebhookUrlsMovies || '',
+        config?.publicContentNotifications.discordWebhookUrlsMovies || '',
       discordWebhookUrlsShows:
-        config?.publicContentNotifications?.discordWebhookUrlsShows || '',
-      appriseUrls: config?.publicContentNotifications?.appriseUrls || '',
+        config?.publicContentNotifications.discordWebhookUrlsShows || '',
+      appriseUrls: config?.publicContentNotifications.appriseUrls || '',
       appriseUrlsMovies:
-        config?.publicContentNotifications?.appriseUrlsMovies || '',
+        config?.publicContentNotifications.appriseUrlsMovies || '',
       appriseUrlsShows:
-        config?.publicContentNotifications?.appriseUrlsShows || '',
+        config?.publicContentNotifications.appriseUrlsShows || '',
       _generalTested: false,
       _moviesTested: false,
       _showsTested: false,
@@ -141,7 +142,7 @@ export function usePublicContentNotifications() {
 
   // Update form when config changes
   useEffect(() => {
-    if (config?.publicContentNotifications) {
+    if (config) {
       const formValues = {
         enabled: config.publicContentNotifications.enabled || false,
         discordWebhookUrls:
@@ -173,6 +174,19 @@ export function usePublicContentNotifications() {
     return () => subscription.unsubscribe()
   }, [form])
 
+  // Debounced validation function
+  const debouncedValidation = useDebounce(
+    (fieldName: string, value: string) => {
+      if (value && value.length > 0) {
+        form.setError(fieldName as keyof PublicContentNotificationsFormValues, {
+          type: 'manual',
+          message: 'Please test connection before saving',
+        })
+      }
+    },
+    300,
+  )
+
   // Reset testing states when URLs change
   useEffect(() => {
     const subscription = form.watch((_, { name }) => {
@@ -183,12 +197,7 @@ export function usePublicContentNotifications() {
           testResults: { ...prev.testResults, general: null },
         }))
         const url = form.getValues('discordWebhookUrls')
-        if (url && url.length > 0) {
-          form.setError('discordWebhookUrls', {
-            type: 'manual',
-            message: 'Please test connection before saving',
-          })
-        }
+        debouncedValidation('discordWebhookUrls', url)
       } else if (name === 'discordWebhookUrlsMovies') {
         form.setValue('_moviesTested', false, { shouldValidate: true })
         setTestStatus((prev) => ({
@@ -196,12 +205,7 @@ export function usePublicContentNotifications() {
           testResults: { ...prev.testResults, movies: null },
         }))
         const url = form.getValues('discordWebhookUrlsMovies')
-        if (url && url.length > 0) {
-          form.setError('discordWebhookUrlsMovies', {
-            type: 'manual',
-            message: 'Please test connection before saving',
-          })
-        }
+        debouncedValidation('discordWebhookUrlsMovies', url)
       } else if (name === 'discordWebhookUrlsShows') {
         form.setValue('_showsTested', false, { shouldValidate: true })
         setTestStatus((prev) => ({
@@ -209,16 +213,11 @@ export function usePublicContentNotifications() {
           testResults: { ...prev.testResults, shows: null },
         }))
         const url = form.getValues('discordWebhookUrlsShows')
-        if (url && url.length > 0) {
-          form.setError('discordWebhookUrlsShows', {
-            type: 'manual',
-            message: 'Please test connection before saving',
-          })
-        }
+        debouncedValidation('discordWebhookUrlsShows', url)
       }
     })
     return () => subscription.unsubscribe()
-  }, [form])
+  }, [form, debouncedValidation])
 
   // Helper function to validate Discord webhook URL using the same endpoint as notifications
   const validateDiscordWebhook = useCallback(
@@ -512,7 +511,7 @@ export function usePublicContentNotifications() {
 
   // Handle form cancellation
   const handleCancel = useCallback(() => {
-    if (config?.publicContentNotifications) {
+    if (config) {
       const formValues = {
         enabled: config.publicContentNotifications.enabled || false,
         discordWebhookUrls:

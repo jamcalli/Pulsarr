@@ -110,13 +110,11 @@ export function MultiInput({
 
   // Update a specific field
   const updateField = React.useCallback((index: number, newValue: string) => {
-    setFields(prev => {
-      const updated = [...prev]
-      updated[index] = newValue
-      emitChange(updated)
-      return updated
-    })
-  }, [emitChange])
+    const updated = [...fields]
+    updated[index] = newValue
+    setFields(updated)
+    emitChange(updated)
+  }, [fields, emitChange])
 
   // Add a new field
   const addField = React.useCallback(() => {
@@ -141,7 +139,10 @@ export function MultiInput({
   }, [fields.length, minFields, emitChange])
 
 
-  const canAddField = fields.length < maxFields
+  const canAddField = React.useMemo(() => 
+    fields.length < maxFields, 
+    [fields.length, maxFields]
+  )
 
   return (
     <div className={cn('space-y-2', className)}>

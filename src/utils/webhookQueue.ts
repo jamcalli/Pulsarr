@@ -6,6 +6,25 @@ import { processContentNotifications } from '@root/utils/notification-processor.
 export const webhookQueue: WebhookQueue = {}
 
 /**
+ * Checks if an episode already exists in the queue to prevent duplicates
+ */
+export function isEpisodeAlreadyQueued(
+  tvdbId: string,
+  seasonNumber: number,
+  episodeNumber: number,
+): boolean {
+  if (!webhookQueue[tvdbId]?.seasons[seasonNumber]?.episodes) {
+    return false
+  }
+
+  return webhookQueue[tvdbId].seasons[seasonNumber].episodes.some(
+    (episode) =>
+      episode.seasonNumber === seasonNumber &&
+      episode.episodeNumber === episodeNumber,
+  )
+}
+
+/**
  * Queues a pending webhook in the database when no matching media items are found.
  *
  * Stores the webhook with an expiration time for later processing, ensuring that duplicate webhook resends are avoided even if database insertion fails.
@@ -299,16 +318,17 @@ export async function processQueuedWebhooks(
 
     // Process notifications (including public content) using centralized function
     // Tautulli notifications are now handled within the centralized processor
-    await processContentNotifications(fastify, mediaInfo, isBulkRelease, {
-      logger: fastify.log,
-    })
-
-    // Check if we should queue as pending (only if no watchlist matches)
-    const matchingItems = await fastify.db.getWatchlistItemsByGuid(
-      `tvdb:${tvdbId}`,
+    const { matchedCount } = await processContentNotifications(
+      fastify,
+      mediaInfo,
+      isBulkRelease,
+      {
+        logger: fastify.log,
+      },
     )
 
-    if (matchingItems.length === 0) {
+    // Check if we should queue as pending (only if no watchlist matches)
+    if (matchedCount === 0) {
       // No matches found, queue to pending_webhooks
       const sonarrPayload: WebhookPayload = {
         eventType: 'Download',
@@ -341,8 +361,13 @@ export async function processQueuedWebhooks(
       })
 
       fastify.log.info(
-        { tvdbId, seasonNumber, episodeCount: episodes.length },
+        { tvdbId, seasonNumber, episodeCount: episodes.length, matchedCount },
         'No watchlist matches found, queued to pending webhooks',
+      )
+    } else {
+      fastify.log.debug(
+        { tvdbId, seasonNumber, episodeCount: episodes.length, matchedCount },
+        'Watchlist matches found, notifications processed',
       )
     }
   } catch (error) {

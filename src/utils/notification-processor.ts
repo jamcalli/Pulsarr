@@ -220,6 +220,7 @@ export function createPublicContentNotification(
  * @param mediaInfo - Details of the media content to notify about.
  * @param isBulkRelease - Whether the release is a bulk release (such as a full season).
  * @param options - Optional settings for logging and processing mode.
+ * @returns Summary object including the count of matched watchlist items.
  */
 export async function processContentNotifications(
   fastify: FastifyInstance,
@@ -234,7 +235,7 @@ export async function processContentNotifications(
     logger?: FastifyBaseLogger
     sequential?: boolean // for webhook.ts which uses for...of instead of Promise.all
   },
-): Promise<void> {
+): Promise<{ matchedCount: number }> {
   // Get initial notification results
   const notificationResults = await fastify.db.processNotifications(
     mediaInfo,
@@ -242,7 +243,7 @@ export async function processContentNotifications(
   )
 
   // If public content is enabled, also get public notification data
-  if (fastify.config.publicContentNotifications?.enabled) {
+  if (fastify.config.publicContentNotifications.enabled) {
     const publicNotificationResults = await fastify.db.processNotifications(
       mediaInfo,
       isBulkRelease,
@@ -282,6 +283,9 @@ export async function processContentNotifications(
       }),
     )
   }
+
+  // Return summary with match count to avoid duplicate DB queries
+  return { matchedCount: matchingItems.length }
 }
 
 /**

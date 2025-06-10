@@ -195,7 +195,7 @@ export function RollingShowsSheet({
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="text-sm truncate max-w-24">
+                <div className="text-sm truncate max-w-[6rem]">
                   {username || (
                     <span className="text-muted-foreground italic font-medium">
                       Master Record

@@ -407,7 +407,7 @@ export default fp(
             DEFAULT_PUBLIC_CONTENT_NOTIFICATIONS,
             'publicContentNotifications',
           )
-        : undefined,
+        : DEFAULT_PUBLIC_CONTENT_NOTIFICATIONS,
       _isReady: false,
     }
 

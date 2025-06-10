@@ -67,7 +67,15 @@ export const ConfigSchema = z.object({
       // Show-specific Apprise URLs (comma-separated)
       appriseUrlsShows: z.string().optional(),
     })
-    .optional(),
+    .default({
+      enabled: false,
+      discordWebhookUrls: undefined,
+      discordWebhookUrlsMovies: undefined,
+      discordWebhookUrlsShows: undefined,
+      appriseUrls: undefined,
+      appriseUrlsMovies: undefined,
+      appriseUrlsShows: undefined,
+    }),
   // Tautulli Config
   tautulliEnabled: z.boolean().optional(),
   tautulliUrl: z.string().optional(),

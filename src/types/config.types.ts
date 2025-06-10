@@ -74,7 +74,7 @@ export interface Config {
   appriseUrl: string
   systemAppriseUrl: string
   // Public Content Notifications - broadcast ALL content availability to public channels/endpoints
-  publicContentNotifications?: {
+  publicContentNotifications: {
     enabled: boolean
     // Discord webhook URLs for public content announcements (comma-separated)
     discordWebhookUrls?: string
