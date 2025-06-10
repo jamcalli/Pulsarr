@@ -53,7 +53,7 @@ export class PendingWebhooksService {
     // Schedule the processing job with a wrapper that suppresses logs when no work is done
     await this.fastify.scheduler.scheduleJob(
       'pending-webhooks-processor',
-      async (jobName: string) => {
+      async (_jobName: string) => {
         const deleted = await this.processWebhooks()
         // Only log completion if we actually processed something
         if (deleted > 0) {
