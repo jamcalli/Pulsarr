@@ -18,6 +18,17 @@ interface PublicContentClearAlertProps {
   description: string
 }
 
+/**
+ * Displays a modal dialog prompting the user to confirm clearing public content.
+ *
+ * Renders a confirmation alert with a customizable title and description, providing "Cancel" and "Clear" actions. The "Clear" button triggers the provided confirmation handler and closes the modal.
+ *
+ * @param open - Whether the modal is visible.
+ * @param onOpenChange - Callback to update the modal's open state.
+ * @param onConfirm - Async function called when the user confirms the action.
+ * @param title - Title text displayed in the modal.
+ * @param description - Description text displayed below the title.
+ */
 export function PublicContentClearAlert({
   open,
   onOpenChange,

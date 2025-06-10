@@ -14,11 +14,11 @@ import { PublicContentNotificationsSkeleton } from '@/features/utilities/compone
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 
 /**
- * Renders the utilities dashboard with sections for DeleteSync, NewUserDefaults, PublicContentNotifications, PlexNotifications, SessionMonitoring, and UserTags.
+ * Displays the utilities dashboard with sections for DeleteSync, NewUserDefaults, PublicContentNotifications, PlexNotifications, SessionMonitoring, and UserTags.
  *
- * Displays skeleton placeholders while utility data is loading, then transitions to the corresponding utility forms once loading completes.
+ * Shows skeleton placeholders while utility data is loading, then transitions to the corresponding utility forms once loading is complete.
  *
- * @returns The utilities dashboard UI.
+ * @returns The rendered utilities dashboard UI.
  */
 export function UtilitiesDashboard() {
   const [isLoading, setIsLoading] = useState(true)
