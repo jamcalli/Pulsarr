@@ -9,20 +9,29 @@ import { SessionMonitoringForm } from '@/features/utilities/components/session-m
 import { SessionMonitoringSkeleton } from '@/features/utilities/components/session-monitoring/session-monitoring-skeleton'
 import { NewUserDefaultsForm } from '@/features/utilities/components/new-user-defaults/new-user-defaults-form'
 import { NewUserDefaultsSkeleton } from '@/features/utilities/components/new-user-defaults/new-user-defaults-skeleton'
+import { PublicContentNotificationsForm } from '@/features/utilities/components/public-content-notifications/public-content-notifications-form'
+import { PublicContentNotificationsSkeleton } from '@/features/utilities/components/public-content-notifications/public-content-notifications-skeleton'
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
+import { useConfigStore } from '@/stores/configStore'
 
 /**
- * Renders the utilities dashboard with sections for DeleteSync, NewUserDefaults, PlexNotifications, SessionMonitoring, and UserTags.
+ * Renders the utilities dashboard with sections for DeleteSync, NewUserDefaults, PublicContentNotifications, PlexNotifications, SessionMonitoring, and UserTags.
  *
- * Displays skeleton placeholders while utility data is loading, then transitions to the corresponding utility forms once loading completes.
+ * Displays skeleton placeholders while utility data is loading, then transitions to the corresponding utility forms once loading completes. Automatically expands and scrolls to the "Public Content Notifications" section if requested.
  *
- * @returns The utilities dashboard UI.
+ * @returns The rendered utilities dashboard UI.
  */
 export function UtilitiesDashboard() {
   const [isLoading, setIsLoading] = useState(true)
   const loading = useUtilitiesStore((state) => state.loading)
   const hasLoadedSchedules = useUtilitiesStore(
     (state) => state.hasLoadedSchedules,
+  )
+  const openUtilitiesAccordion = useConfigStore(
+    (state) => state.openUtilitiesAccordion,
+  )
+  const setOpenUtilitiesAccordion = useConfigStore(
+    (state) => state.setOpenUtilitiesAccordion,
   )
 
   useEffect(() => {
@@ -34,6 +43,41 @@ export function UtilitiesDashboard() {
       return () => clearTimeout(timer)
     }
   }, [hasLoadedSchedules])
+
+  // Handle accordion opening after page load
+  useEffect(() => {
+    if (openUtilitiesAccordion && !isLoading) {
+      setTimeout(() => {
+        const triggerButton = Array.from(
+          document.querySelectorAll('button[data-state]'),
+        ).find((button) => {
+          const h3 = button.querySelector('h3')
+          return h3?.textContent?.trim() === 'Public Content Notifications'
+        }) as HTMLButtonElement
+
+        if (triggerButton) {
+          const isExpanded =
+            triggerButton.getAttribute('aria-expanded') === 'true'
+
+          if (!isExpanded) {
+            triggerButton.click()
+          }
+
+          setTimeout(() => {
+            const accordionItem = triggerButton.closest('[data-state]')
+            if (accordionItem) {
+              accordionItem.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start',
+              })
+            }
+          }, 100)
+        }
+
+        setOpenUtilitiesAccordion(null)
+      }, 200)
+    }
+  }, [openUtilitiesAccordion, isLoading, setOpenUtilitiesAccordion])
 
   return (
     <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
@@ -62,6 +106,12 @@ export function UtilitiesDashboard() {
           <SessionMonitoringSkeleton />
         ) : (
           <SessionMonitoringForm />
+        )}
+
+        {isLoading || loading.schedules ? (
+          <PublicContentNotificationsSkeleton />
+        ) : (
+          <PublicContentNotificationsForm />
         )}
 
         {isLoading || loading.schedules ? (

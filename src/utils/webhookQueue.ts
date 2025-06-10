@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import type { WebhookQueue, RecentWebhook } from '@root/types/webhook.types.js'
 import type { WebhookPayload } from '@root/schemas/notifications/webhook.schema.js'
+import { processContentNotifications } from '@root/utils/notification-processor.js'
 
 export const webhookQueue: WebhookQueue = {}
 
@@ -201,10 +202,13 @@ export async function checkForUpgrade(
 /**
  * Processes and dispatches queued webhook notifications for a specific TV show season.
  *
- * For the given TVDB ID and season, this function validates and processes any queued webhook episodes. It determines if notifications should be sent based on episode recency and prior notification status, then generates and sends notifications via Discord, Apprise, and Tautulli as configured for each user. If no notifications are generated and no watchlist matches are found, the webhook is queued as pending for later processing. Cleans up the queue after processing.
+ * For the given TVDB ID and season, validates and processes any queued webhook episodes. Determines if notifications should be sent based on episode recency and prior notification status, then generates and sends notifications using a centralized processor. If no watchlist matches are found, queues the webhook as pending for later processing. Cleans up the queue after processing.
  *
  * @param tvdbId - The TVDB ID of the show.
  * @param seasonNumber - The season number to process.
+ *
+ * @remark
+ * Public content notifications are dispatched if enabled, and global admin users are handled with public notification endpoints.
  */
 export async function processQueuedWebhooks(
   tvdbId: string,
@@ -281,149 +285,65 @@ export async function processQueuedWebhooks(
   }
 
   try {
-    const notificationResults = await fastify.db.processNotifications(
-      mediaInfo,
-      isBulkRelease,
-    )
-
     fastify.log.info(
-      { tvdbId, seasonNumber, recipientCount: notificationResults.length },
-      'Processed notifications from queue',
+      {
+        tvdbId,
+        seasonNumber,
+        episodeCount: episodes.length,
+        isBulkRelease,
+        hasRecentEpisodes,
+        title: queue.title,
+      },
+      'Processing queued webhooks with centralized notifications',
     )
 
-    // If no notifications were generated, check if we have watchlist matches
-    if (notificationResults.length === 0) {
-      const matchingItems = await fastify.db.getWatchlistItemsByGuid(
-        `tvdb:${tvdbId}`,
-      )
+    // Process notifications (including public content) using centralized function
+    // Tautulli notifications are now handled within the centralized processor
+    await processContentNotifications(fastify, mediaInfo, isBulkRelease, {
+      logger: fastify.log,
+    })
 
-      if (matchingItems.length === 0) {
-        // No matches found, queue to pending_webhooks
-        const sonarrPayload: WebhookPayload = {
-          eventType: 'Download',
-          instanceName: 'Sonarr',
-          series: {
-            title: queue.title,
-            tvdbId: Number(tvdbId),
-          },
-          episodes: episodes,
-          episodeFiles: episodes.map((ep, idx) => ({
-            id: idx,
-            relativePath: '',
-            quality: '',
-            qualityVersion: 1,
-            size: 0,
-          })),
-          release: {
-            releaseType: 'bulk',
-          },
-          fileCount: episodes.length,
-        }
+    // Check if we should queue as pending (only if no watchlist matches)
+    const matchingItems = await fastify.db.getWatchlistItemsByGuid(
+      `tvdb:${tvdbId}`,
+    )
 
-        await queuePendingWebhook(fastify, {
-          instanceType: 'sonarr',
-          instanceId: seasonQueue.instanceId ?? null,
-          guid: `tvdb:${tvdbId}`,
+    if (matchingItems.length === 0) {
+      // No matches found, queue to pending_webhooks
+      const sonarrPayload: WebhookPayload = {
+        eventType: 'Download',
+        instanceName: 'Sonarr',
+        series: {
           title: queue.title,
-          mediaType: 'show',
-          payload: sonarrPayload,
-        })
-
-        fastify.log.info(
-          { tvdbId, seasonNumber, episodeCount: episodes.length },
-          'No watchlist matches found, queued to pending webhooks',
-        )
-      }
-    }
-
-    for (const result of notificationResults) {
-      if (result.user.notify_discord && result.user.discord_id) {
-        try {
-          const sent = await fastify.discord.sendDirectMessage(
-            result.user.discord_id,
-            result.notification,
-          )
-
-          fastify.log.info(
-            {
-              userId: result.user.discord_id,
-              username: result.user.name,
-              success: sent,
-            },
-            'Sent Discord notification',
-          )
-        } catch (error) {
-          fastify.log.error(
-            { error, userId: result.user.discord_id },
-            'Failed to send Discord notification',
-          )
-        }
+          tvdbId: Number(tvdbId),
+        },
+        episodes: episodes,
+        episodeFiles: episodes.map((_, idx) => ({
+          id: idx,
+          relativePath: '',
+          quality: '',
+          qualityVersion: 1,
+          size: 0,
+        })),
+        release: {
+          releaseType: 'bulk',
+        },
+        fileCount: episodes.length,
       }
 
-      if (result.user.notify_apprise) {
-        try {
-          const sent = await fastify.apprise.sendMediaNotification(
-            result.user,
-            result.notification,
-          )
+      await queuePendingWebhook(fastify, {
+        instanceType: 'sonarr',
+        instanceId: seasonQueue.instanceId ?? null,
+        guid: `tvdb:${tvdbId}`,
+        title: queue.title,
+        mediaType: 'show',
+        payload: sonarrPayload,
+      })
 
-          fastify.log.info(
-            {
-              userId: result.user.id,
-              username: result.user.name,
-              success: sent,
-            },
-            'Sent Apprise notification',
-          )
-        } catch (error) {
-          fastify.log.error(
-            { error, userId: result.user.id },
-            'Failed to send Apprise notification',
-          )
-        }
-      }
-
-      // Send Tautulli notifications
-      if (result.user.notify_tautulli && fastify.tautulli?.isEnabled()) {
-        try {
-          // Find the watchlist item for this user
-          const matchingItems = await fastify.db.getWatchlistItemsByGuid(
-            `tvdb:${tvdbId}`,
-          )
-          const userItem = matchingItems.find(
-            (item) => item.user_id === result.user.id,
-          )
-
-          if (userItem) {
-            const itemId =
-              typeof userItem.id === 'string'
-                ? Number.parseInt(userItem.id, 10)
-                : userItem.id
-
-            const sent = await fastify.tautulli.sendMediaNotification(
-              result.user,
-              result.notification,
-              itemId,
-              `tvdb:${tvdbId}`,
-              userItem.key,
-            )
-
-            fastify.log.info(
-              {
-                userId: result.user.id,
-                username: result.user.name,
-                success: sent,
-              },
-              'Sent Tautulli notification',
-            )
-          }
-        } catch (error) {
-          fastify.log.error(
-            { error, userId: result.user.id },
-            'Failed to send Tautulli notification',
-          )
-        }
-      }
+      fastify.log.info(
+        { tvdbId, seasonNumber, episodeCount: episodes.length },
+        'No watchlist matches found, queued to pending webhooks',
+      )
     }
   } catch (error) {
     fastify.log.error(

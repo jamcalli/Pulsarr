@@ -6,6 +6,7 @@ import type {
   NotificationResult,
 } from '@root/types/sonarr.types.js'
 import type { TokenWatchlistItem } from '@root/types/plex.types.js'
+import { processContentNotifications } from '@root/utils/notification-processor.js'
 
 /**
  * Service to handle webhooks that arrive before RSS feed matching is complete.
@@ -13,44 +14,6 @@ import type { TokenWatchlistItem } from '@root/types/plex.types.js'
  * arrives while the RSS item is still being processed.
  */
 export class PendingWebhooksService {
-  /**
-   * Send Tautulli notification for a user
-   */
-  private async sendTautulliNotification(
-    result: NotificationResult,
-    matchingItems: TokenWatchlistItem[],
-    webhook: { guid: string },
-  ): Promise<void> {
-    if (!result.user.notify_tautulli || !this.fastify.tautulli?.isEnabled()) {
-      return
-    }
-
-    const userItem = matchingItems.find(
-      (item) => item.user_id === result.user.id,
-    )
-
-    if (userItem) {
-      const itemId =
-        typeof userItem.id === 'string'
-          ? Number.parseInt(userItem.id, 10)
-          : userItem.id
-
-      try {
-        await this.fastify.tautulli.sendMediaNotification(
-          result.user,
-          result.notification,
-          itemId,
-          webhook.guid,
-          userItem.key,
-        )
-      } catch (error) {
-        this.log.error(
-          { error, userId: result.user.id, guid: webhook.guid },
-          'Failed to send Tautulli notification',
-        )
-      }
-    }
-  }
   private readonly _config: PendingWebhooksConfig
   private isRunning = false
   private _processingWebhooks = false
@@ -173,51 +136,13 @@ export class PendingWebhooksService {
                 title: webhook.title,
               }
 
-              const notificationResults =
-                await this.fastify.db.processNotifications(mediaInfo, false)
-
-              // Process notifications concurrently to reduce latency
-              await Promise.all(
-                notificationResults.map(async (result) => {
-                  if (result.user.notify_discord && result.user.discord_id) {
-                    try {
-                      await this.fastify.discord.sendDirectMessage(
-                        result.user.discord_id,
-                        result.notification,
-                      )
-                    } catch (error) {
-                      this.log.error(
-                        {
-                          error,
-                          userId: result.user.id,
-                          discord_id: result.user.discord_id,
-                        },
-                        'Failed to send Discord notification',
-                      )
-                    }
-                  }
-
-                  if (result.user.notify_apprise) {
-                    try {
-                      await this.fastify.apprise.sendMediaNotification(
-                        result.user,
-                        result.notification,
-                      )
-                    } catch (error) {
-                      this.log.error(
-                        { error, userId: result.user.id },
-                        'Failed to send Apprise notification',
-                      )
-                    }
-                  }
-
-                  // Send Tautulli notifications
-                  await this.sendTautulliNotification(
-                    result,
-                    matchingItems,
-                    webhook,
-                  )
-                }),
+              await processContentNotifications(
+                this.fastify,
+                mediaInfo,
+                false,
+                {
+                  logger: this.log,
+                },
               )
             } else if (webhook.media_type === 'show') {
               // For shows, we need to parse the payload to get episode information
@@ -251,54 +176,13 @@ export class PendingWebhooksService {
                   episodes: body.episodes,
                 }
 
-                const notificationResults =
-                  await this.fastify.db.processNotifications(
-                    mediaInfo,
-                    body.episodes.length > 1,
-                  )
-
-                // Process notifications concurrently to reduce latency
-                await Promise.all(
-                  notificationResults.map(async (result) => {
-                    if (result.user.notify_discord && result.user.discord_id) {
-                      try {
-                        await this.fastify.discord.sendDirectMessage(
-                          result.user.discord_id,
-                          result.notification,
-                        )
-                      } catch (error) {
-                        this.log.error(
-                          {
-                            error,
-                            userId: result.user.id,
-                            discord_id: result.user.discord_id,
-                          },
-                          'Failed to send Discord notification for TV show',
-                        )
-                      }
-                    }
-
-                    if (result.user.notify_apprise) {
-                      try {
-                        await this.fastify.apprise.sendMediaNotification(
-                          result.user,
-                          result.notification,
-                        )
-                      } catch (error) {
-                        this.log.error(
-                          { error, userId: result.user.id },
-                          'Failed to send Apprise notification for TV show',
-                        )
-                      }
-                    }
-
-                    // Send Tautulli notifications
-                    await this.sendTautulliNotification(
-                      result,
-                      matchingItems,
-                      webhook,
-                    )
-                  }),
+                await processContentNotifications(
+                  this.fastify,
+                  mediaInfo,
+                  body.episodes.length > 1,
+                  {
+                    logger: this.log,
+                  },
                 )
               }
             }

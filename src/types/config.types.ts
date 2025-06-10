@@ -73,6 +73,22 @@ export interface Config {
   enableApprise: boolean
   appriseUrl: string
   systemAppriseUrl: string
+  // Public Content Notifications - broadcast ALL content availability to public channels/endpoints
+  publicContentNotifications?: {
+    enabled: boolean
+    // Discord webhook URLs for public content announcements (comma-separated)
+    discordWebhookUrls?: string
+    // Movie-specific Discord webhook URLs (comma-separated)
+    discordWebhookUrlsMovies?: string
+    // Show-specific Discord webhook URLs (comma-separated)
+    discordWebhookUrlsShows?: string
+    // Apprise URLs for public content announcements (comma-separated)
+    appriseUrls?: string
+    // Movie-specific Apprise URLs (comma-separated)
+    appriseUrlsMovies?: string
+    // Show-specific Apprise URLs (comma-separated)
+    appriseUrlsShows?: string
+  }
   // Tautulli Config
   tautulliEnabled: boolean
   tautulliUrl: string
@@ -155,5 +171,7 @@ export type RawConfig = {
     ? string
     : K extends 'plexSessionMonitoring'
       ? string
-      : Config[K]
+      : K extends 'publicContentNotifications'
+        ? string
+        : Config[K]
 }

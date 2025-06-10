@@ -17,7 +17,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { Input } from '@/components/ui/input'
+import { MultiInput } from '@/components/ui/multi-input'
 import { useToast } from '@/hooks/use-toast'
 import { useConfigStore } from '@/stores/configStore'
 import {
@@ -31,11 +31,11 @@ interface DiscordWebhookFormProps {
 }
 
 /****
- * Displays a form for configuring, validating, testing, saving, and clearing one or more Discord webhook URLs.
+ * Renders a form for managing one or more Discord webhook URLs, including validation, testing, saving, and clearing.
  *
- * Users can enter multiple comma-separated Discord webhook URLs, test their validity, save them to configuration, or clear all saved webhooks with confirmation. Validation and testing are required before saving. The form provides user feedback for all actions and disables controls during loading or testing states.
+ * Users can add up to five Discord webhook URLs, test their validity, save them to the configuration, or clear all saved webhooks with confirmation. Validation and a successful connection test are required before saving. The form provides user feedback and disables controls during loading or testing.
  *
- * @param isInitialized - Whether the configuration is ready for editing.
+ * @param isInitialized - Indicates whether the configuration is ready for editing.
  */
 export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
   const { toast } = useToast()
@@ -230,9 +230,23 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
           } removed)`
         }
 
+        // Update form with deduplicated URLs if duplicates were removed
+        if (result.duplicateCount && result.duplicateCount > 0) {
+          const deduplicatedUrls = result.webhooks
+            .map((url: { url: string }) => url.url)
+            .join(',')
+          webhookForm.setValue('discordWebhookUrl', deduplicatedUrls, {
+            shouldValidate: true,
+            shouldDirty: true,
+          })
+        }
+
         toast({
           description: countText,
-          variant: 'default',
+          variant:
+            result.duplicateCount && result.duplicateCount > 0
+              ? 'destructive'
+              : 'default',
         })
       } else {
         setWebhookTestValid(false)
@@ -416,23 +430,31 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
                         <InfoIcon className="h-4 w-4 text-text cursor-help" />
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs">
-                        Discord webhook URL(s) for sending system notifications.
-                        Multiple URLs can be separated by commas.
+                        Discord webhook URLs for sending system notifications.
+                        Use the + button to add multiple channels.
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
                 </div>
                 <FormControl>
                   <div className="flex gap-2">
-                    <Input
-                      {...field}
-                      placeholder="Enter Discord Webhook URL(s), separate multiple with commas"
-                      type="text"
+                    <MultiInput
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="Enter Discord Webhook URL"
                       disabled={
                         webhookStatus === 'loading' ||
                         webhookStatus === 'testing'
                       }
-                      className="w-full"
+                      validateValue={(url) => {
+                        // Basic Discord webhook URL validation
+                        return (
+                          url === '' ||
+                          url.includes('discord.com/api/webhooks/')
+                        )
+                      }}
+                      maxFields={5}
+                      className="flex-1"
                     />
                     <TooltipProvider>
                       <Tooltip open={showTestError || undefined}>

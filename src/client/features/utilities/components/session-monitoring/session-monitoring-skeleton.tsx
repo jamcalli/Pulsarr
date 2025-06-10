@@ -8,11 +8,11 @@ import {
 import { Separator } from '@/components/ui/separator'
 
 /**
- * Displays a skeleton placeholder UI for the Plex Session Monitoring interface.
+ * Displays a static skeleton UI for the Plex Session Monitoring interface while data is loading.
  *
- * Renders a collapsible accordion card with skeleton elements representing the title, description, actions, configuration form fields, and action buttons. This provides a visual loading state while the actual session monitoring data is being fetched.
+ * Renders placeholder elements for the title, description, actions, configuration fields, and action buttons to simulate the layout of the session monitoring feature during loading.
  *
- * @returns A JSX element showing the loading skeleton for the Session Monitoring feature.
+ * @returns A JSX element representing the loading skeleton for the Session Monitoring section.
  */
 export function SessionMonitoringSkeleton() {
   return (
@@ -24,10 +24,10 @@ export function SessionMonitoringSkeleton() {
         <AccordionTrigger className="px-6 py-4 bg-main hover:bg-main hover:no-underline">
           <div className="flex justify-between items-center w-full pr-2">
             <div>
-              <h3 className="text-lg font-medium text-text text-left">
+              <h3 className="text-lg font-medium text-black text-left">
                 Plex Session Monitoring
               </h3>
-              <p className="text-sm text-text text-left">
+              <p className="text-sm text-black text-left">
                 Monitor Plex viewing sessions and automatically expand Sonarr
                 monitoring
               </p>

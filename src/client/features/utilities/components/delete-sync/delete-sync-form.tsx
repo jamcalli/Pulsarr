@@ -51,11 +51,11 @@ import { useMediaQuery } from '@/hooks/use-media-query'
 // Removed unused import
 
 /**
- * Displays a comprehensive form and controls for configuring and managing the delete synchronization job.
+ * Renders a comprehensive form and control panel for configuring and managing the delete synchronization job.
  *
- * Allows users to enable or disable the job, run it immediately, perform dry runs, and adjust deletion criteria, scheduling, safety settings, and notification preferences. Includes contextual tooltips, confirmation modals for sensitive actions, and displays validation or operation errors. The form adapts responsively for mobile screens and provides accessibility features.
+ * Allows users to set deletion criteria, schedule, safety options, and notification preferences, as well as to enable/disable the job, run it immediately, or perform a dry run. Includes contextual tooltips, confirmation modals, validation feedback, and adapts layout for mobile devices.
  *
- * @returns The React element representing the delete sync management form and controls.
+ * @returns The React element representing the delete sync configuration interface.
  */
 export function DeleteSyncForm() {
   const isMobile = useMediaQuery('(max-width: 768px)')
@@ -121,10 +121,10 @@ export function DeleteSyncForm() {
           <AccordionTrigger className="px-6 py-4 bg-main hover:bg-main hover:no-underline">
             <div className="flex justify-between items-center w-full pr-2">
               <div>
-                <h3 className="text-lg font-medium text-text text-left">
+                <h3 className="text-lg font-medium text-black text-left">
                   Delete Sync
                 </h3>
-                <p className="text-sm text-text text-left">
+                <p className="text-sm text-black text-left">
                   Automatically removes content when it's no longer on any
                   watchlists
                 </p>

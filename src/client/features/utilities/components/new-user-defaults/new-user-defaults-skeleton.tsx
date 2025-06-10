@@ -7,9 +7,9 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 
 /**
- * Renders a skeleton UI for the "New User Defaults" form, providing a visual placeholder during loading states.
+ * Displays a skeleton placeholder for the "New User Defaults" form while data is loading.
  *
- * The skeleton mimics the layout of the form, including header, description, and input fields, using an accordion structure with styled skeleton elements.
+ * Uses an accordion layout with skeleton elements to visually represent the form's structure, including the header, description, and form fields.
  */
 export function NewUserDefaultsSkeleton() {
   return (
@@ -21,10 +21,10 @@ export function NewUserDefaultsSkeleton() {
         <AccordionTrigger className="px-6 py-4 bg-main hover:bg-main hover:no-underline">
           <div className="flex justify-between items-center w-full pr-2">
             <div>
-              <h3 className="text-lg font-medium text-text text-left">
+              <h3 className="text-lg font-medium text-black text-left">
                 New User Defaults
               </h3>
-              <p className="text-sm text-text text-left">
+              <p className="text-sm text-black text-left">
                 Configure default settings for newly discovered Plex users
               </p>
             </div>
