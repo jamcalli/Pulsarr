@@ -156,7 +156,7 @@ export class PendingWebhooksService {
                 )
               } else if (webhook.media_type === 'show') {
                 // For shows, we need to parse the payload to get episode information
-                let body: WebhookPayload
+                let body: WebhookPayload | unknown
                 try {
                   // Safe parse payload in case it's a string (defensive programming)
                   body =
@@ -178,25 +178,36 @@ export class PendingWebhooksService {
                   return deleted
                 }
 
+                // Abort if payload is not a non-null object
+                if (typeof body !== 'object' || body === null) {
+                  this.log.warn(
+                    `Webhook ${webhook.id} payload is not an object; discarding`,
+                  )
+                  return await this.deleteWebhookAndCount(webhook.id)
+                }
+
+                // Type assertion after object guard
+                const payload = body as WebhookPayload
+
                 // Handle episode notifications
                 if (
-                  'instanceName' in body &&
-                  body.instanceName?.toLowerCase() === 'sonarr' &&
-                  'episodes' in body &&
-                  Array.isArray(body.episodes) &&
-                  body.episodes.length > 0
+                  'instanceName' in payload &&
+                  payload.instanceName?.toLowerCase() === 'sonarr' &&
+                  'episodes' in payload &&
+                  Array.isArray(payload.episodes) &&
+                  payload.episodes.length > 0
                 ) {
                   const mediaInfo = {
                     type: 'show' as const,
                     guid: webhook.guid,
                     title: webhook.title,
-                    episodes: body.episodes,
+                    episodes: payload.episodes,
                   }
 
                   const { matchedCount } = await processContentNotifications(
                     this.fastify,
                     mediaInfo,
-                    body.episodes.length > 1,
+                    payload.episodes.length > 1,
                     {
                       logger: this.log,
                     },
@@ -228,7 +239,9 @@ export class PendingWebhooksService {
 
       // Count successful deletions
       const deletedCount = results.reduce((count, result) => {
-        return count + (result.status === 'fulfilled' ? result.value : 0)
+        if (result.status === 'fulfilled') return count + result.value
+        this.log.error('Webhook processing promise rejected:', result.reason)
+        return count
       }, 0)
 
       return deletedCount
