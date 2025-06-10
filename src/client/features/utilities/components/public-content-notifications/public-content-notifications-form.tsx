@@ -220,6 +220,15 @@ export function PublicContentNotificationsForm() {
   const openUtilitiesAccordion = useConfigStore(
     (state) => state.openUtilitiesAccordion,
   )
+  const [isOpen, setIsOpen] = React.useState(false)
+
+  // Handle navigation-triggered opening
+  React.useEffect(() => {
+    if (openUtilitiesAccordion === 'public-content-notifications') {
+      setIsOpen(true)
+    }
+  }, [openUtilitiesAccordion])
+
   const {
     form,
     isSubmitting,
@@ -345,10 +354,9 @@ export function PublicContentNotificationsForm() {
         type="single"
         collapsible
         className="w-full"
-        value={
-          openUtilitiesAccordion === 'public-content-notifications'
-            ? 'public-content-notifications'
-            : undefined
+        value={isOpen ? 'public-content-notifications' : undefined}
+        onValueChange={(value) =>
+          setIsOpen(value === 'public-content-notifications')
         }
       >
         <AccordionItem
