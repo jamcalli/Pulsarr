@@ -22,9 +22,9 @@ interface SessionMonitoringResetSettingsProps
   extends SessionMonitoringComponentProps {}
 
 /**
- * Renders a form section for configuring rolling monitoring reset settings in a session monitoring form.
+ * Displays a form section for configuring rolling monitoring reset and cleanup settings in a session monitoring form.
  *
- * Displays controls to enable automatic reset of rolling monitored shows, set the inactivity period before reset, and specify the interval for automatic reset checks. Controls are disabled based on the provided {@link isEnabled} flag and the state of automatic reset.
+ * Provides controls to enable automatic reset of rolling monitored shows, progressive cleanup of previous seasons, set the inactivity period before reset, and specify the interval for automatic reset checks. Controls are conditionally disabled based on the {@link isEnabled} prop and the current automatic reset state.
  */
 export function SessionMonitoringResetSettings({
   form,

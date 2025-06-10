@@ -13,6 +13,11 @@ import {
 import { ChartContainer } from '@/components/ui/chart'
 import { useStatusTransitionData } from '@/features/dashboard/hooks/useChartData'
 
+/**
+ * Renders a vertical bar chart visualizing the average, minimum, and maximum time (in minutes) for status transitions from "requested" to "notified" for movies and shows.
+ *
+ * Displays a loading indicator while data is being fetched. The chart includes error bars for min/max ranges, reference lines for min/max values, and a legend for content types and value types.
+ */
 export function StatusTransitionsChart() {
   const { data: statusTransitions, isLoading } = useStatusTransitionData()
 

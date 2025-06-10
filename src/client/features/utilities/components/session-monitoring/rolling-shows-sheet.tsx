@@ -100,9 +100,9 @@ interface RollingShowsSheetProps {
 }
 
 /**
- * Renders a responsive, interactive table of rolling monitored shows with sorting, filtering, pagination, and optional reset or delete actions.
+ * Displays a responsive, interactive table of rolling monitored shows with sorting, filtering, pagination, and optional reset or delete actions.
  *
- * Adapts layout for desktop (sliding sheet) and mobile (drawer), displaying a list of rolling monitored shows with controls for filtering by title, toggling column visibility, and paginating results. Optionally provides action buttons for resetting or deleting shows, each with confirmation dialogs and loading indicators. Handles loading and error states with appropriate UI feedback.
+ * Adapts between a sliding sheet (desktop) and a drawer (mobile) layout. Users can filter shows by title, sort and toggle column visibility, and paginate results. For master records, provides action buttons to reset or remove shows, each with confirmation dialogs and loading indicators. Handles loading and error states with contextual UI feedback.
  *
  * @param isOpen - Whether the sheet or drawer is open.
  * @param onClose - Callback to close the sheet or drawer.
@@ -111,10 +111,12 @@ interface RollingShowsSheetProps {
  * @param isLoading - Whether the data is currently loading.
  * @param error - Error object if loading failed.
  * @param onResetShow - Optional callback to reset a show to its original monitoring state.
- * @param onDeleteShow - Optional callback to remove a show from rolling monitoring (without resetting Sonarr).
+ * @param onDeleteShow - Optional callback to remove a show from rolling monitoring.
  * @param showActions - Whether to display action buttons for each show.
  * @param actionLoading - Loading states for reset and delete actions.
  * @param activeActionId - ID of the show currently being acted upon.
+ *
+ * @remark Action buttons are only available for master records (shows without a specific user). Non-master records display a "Tracking only" label instead of action buttons.
  */
 export function RollingShowsSheet({
   isOpen,
