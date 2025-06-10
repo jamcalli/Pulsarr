@@ -14,10 +14,10 @@ import type { FastifyInstance, FastifyBaseLogger } from 'fastify'
 import pLimit from 'p-limit'
 
 /**
- * Converts a comma-separated string of URLs into a deduplicated array of trimmed, non-empty URLs.
+ * Converts a comma-separated string of URLs into a deduplicated array of trimmed, validated URLs.
  *
  * @param urlString - Comma-separated URLs, or null/undefined.
- * @returns An array of unique, trimmed URLs. Returns an empty array if {@link urlString} is null or undefined.
+ * @returns An array of unique, trimmed, valid URLs. Returns an empty array if {@link urlString} is null or undefined.
  */
 function parseUrls(urlString: string | undefined | null): string[] {
   if (!urlString) return []
@@ -26,7 +26,16 @@ function parseUrls(urlString: string | undefined | null): string[] {
       urlString
         .split(',')
         .map((url: string) => url.trim())
-        .filter((url: string) => url.length > 0),
+        .filter((url: string) => {
+          if (url.length === 0) return false
+          // Basic URL validation to catch obviously invalid strings
+          try {
+            new URL(url)
+            return true
+          } catch {
+            return false
+          }
+        }),
     ),
   )
 }
@@ -263,6 +272,11 @@ export async function processContentNotifications(
     )
     // Add public notifications to the existing user notifications
     notificationResults.push(...publicNotificationResults)
+  }
+
+  // Early exit if there are no notifications to process
+  if (notificationResults.length === 0) {
+    return { matchedCount: 0 }
   }
 
   // Get matching watchlist items for Tautulli notifications

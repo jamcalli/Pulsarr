@@ -6818,10 +6818,9 @@ export class DatabaseService {
     try {
       return await this.knex.transaction(async (trx) => {
         // Get the show details inside the transaction to avoid race conditions
-        const show = await trx('rolling_monitored_shows')
-          .where({ id })
-          .forUpdate()
-          .first()
+        const rowQuery = trx('rolling_monitored_shows').where({ id })
+        if (this.isPostgreSQL()) rowQuery.forUpdate() // row-level lock only on PG
+        const show = await rowQuery.first()
 
         if (!show) {
           return 0
@@ -6862,10 +6861,9 @@ export class DatabaseService {
     try {
       return await this.knex.transaction(async (trx) => {
         // Get the show details inside the transaction to avoid race conditions
-        const show = await trx('rolling_monitored_shows')
-          .where({ id })
-          .forUpdate()
-          .first()
+        const rowQuery = trx('rolling_monitored_shows').where({ id })
+        if (this.isPostgreSQL()) rowQuery.forUpdate() // row-level lock only on PG
+        const show = await rowQuery.first()
 
         if (!show) {
           return 0
