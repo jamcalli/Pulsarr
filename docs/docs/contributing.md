@@ -29,11 +29,59 @@ We welcome contributions to Pulsarr! This section outlines the process for contr
    - Ensure tests pass (these are coming!)
    - Follow the existing code style
 
-5. **Commit Your Changes**: Use clear, descriptive commit messages.
+5. **Commit Your Changes**: Follow our commit message guidelines (see below).
 
 6. **Push to Your Fork**: Push your changes to your forked repository.
 
 7. **Submit a Pull Request**: Create a pull request from your branch to the develop branch of the main Pulsarr repository.
+
+## Commit Message Guidelines
+
+This project follows [Conventional Commits](https://www.conventionalcommits.org/) with automated linting via commitlint.
+
+### Format
+
+```
+<type>: <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+### Types
+
+- `feat:` - New features or functionality
+- `fix:` - Bug fixes or corrections  
+- `refactor:` - Code refactoring without functional changes
+- `docs:` - Documentation updates
+- `style:` - Code style changes (formatting, etc.)
+- `test:` - Adding or updating tests
+- `chore:` - Maintenance tasks
+
+### Examples
+
+```bash
+# Feature addition
+feat: add multi-instance support for content distribution
+
+# Bug fix
+fix: filter users to include only those with sync enabled
+
+# Documentation
+docs: update installation guide with PostgreSQL setup
+
+# Refactoring
+refactor: centralize notification processing logic
+```
+
+### Guidelines
+
+- Use lowercase for type and description
+- Keep description under 72 characters
+- Use present tense ("add" not "added")
+- Be specific and descriptive
+- Reference issues when applicable: `fixes #123`
 
 ## API Development
 

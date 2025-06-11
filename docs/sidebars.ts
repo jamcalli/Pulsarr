@@ -29,7 +29,7 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'Features',
-      items: ['features/content-routing'],
+      items: ['features/content-routing', 'features/multi-instance-support'],
     },
     {
       type: 'category',
@@ -38,7 +38,6 @@ const sidebars: SidebarsConfig = {
         'notifications/discord',
         'notifications/apprise',
         'notifications/tautulli',
-        'notifications/public-content',
       ],
     },
     {
@@ -52,12 +51,17 @@ const sidebars: SidebarsConfig = {
         'utilities/public-content-notifications',
       ],
     },
+    {
+      type: 'category',
+      label: 'Development',
+      items: ['development/environment-variables'],
+    },
     'architecture',
     'contributing',
     {
       type: 'category',
       label: 'API Reference',
-      collapsed: false,
+      collapsed: true,
       items: apiSidebar,
     },
   ],
