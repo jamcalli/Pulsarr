@@ -954,7 +954,10 @@ export class DatabaseService {
       monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
       searchOnAdd:
         instance.search_on_add == null ? true : Boolean(instance.search_on_add),
-      createSeasonFolders: Boolean(instance.create_season_folders),
+      createSeasonFolders:
+        instance.create_season_folders == null
+          ? false
+          : Boolean(instance.create_season_folders),
       tags: this.safeJsonParse(instance.tags, [], 'sonarr.tags'),
       isDefault: Boolean(instance.is_default),
       syncedInstances: this.safeJsonParse(
@@ -994,7 +997,10 @@ export class DatabaseService {
       monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
       searchOnAdd:
         instance.search_on_add == null ? true : Boolean(instance.search_on_add),
-      createSeasonFolders: Boolean(instance.create_season_folders),
+      createSeasonFolders:
+        instance.create_season_folders == null
+          ? false
+          : Boolean(instance.create_season_folders),
       tags: this.safeJsonParse(instance.tags, [], 'sonarr.tags'),
       isDefault: true,
       syncedInstances: this.safeJsonParse(
@@ -1030,7 +1036,10 @@ export class DatabaseService {
       monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
       searchOnAdd:
         instance.search_on_add == null ? true : Boolean(instance.search_on_add),
-      createSeasonFolders: Boolean(instance.create_season_folders),
+      createSeasonFolders:
+        instance.create_season_folders == null
+          ? false
+          : Boolean(instance.create_season_folders),
       tags: this.safeJsonParse(instance.tags, [], 'sonarr.tags'),
       isDefault: Boolean(instance.is_default),
       syncedInstances: this.safeJsonParse(
@@ -5402,7 +5411,10 @@ export class DatabaseService {
             instance.search_on_add == null
               ? true
               : Boolean(instance.search_on_add),
-          createSeasonFolders: Boolean(instance.create_season_folders),
+          createSeasonFolders:
+            instance.create_season_folders == null
+              ? false
+              : Boolean(instance.create_season_folders),
           tags: this.safeJsonParse(instance.tags, [], 'sonarr.tags'),
           isDefault: Boolean(instance.is_default),
           syncedInstances: this.safeJsonParse(
