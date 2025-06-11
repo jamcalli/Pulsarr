@@ -124,6 +124,7 @@ export function SessionMonitoringStatus({
             }
           }}
           disabled={!isEnabled || rollingLoading.runningMonitor}
+          aria-disabled={!isEnabled || rollingLoading.runningMonitor}
           className="h-7"
         >
           {rollingLoading.runningMonitor ? (
@@ -151,6 +152,7 @@ export function SessionMonitoringStatus({
             variant="noShadow"
             onClick={() => setShowActiveShows(true)}
             disabled={!isEnabled}
+            aria-disabled={!isEnabled}
             className="h-7"
           >
             <Eye className="h-4 w-4" />
@@ -207,6 +209,7 @@ export function SessionMonitoringStatus({
               className="h-7 w-12 text-xs px-2"
               aria-label="Inactivity days threshold"
               disabled={!isEnabled}
+              aria-disabled={!isEnabled}
             />
             <span className="text-xs text-text mr-1">d</span>
             {inactiveShows.length > 0 && (
@@ -228,6 +231,7 @@ export function SessionMonitoringStatus({
                   }
                 }}
                 disabled={!isEnabled || rollingLoading.resetting}
+                aria-disabled={!isEnabled || rollingLoading.resetting}
                 className="h-7 px-2"
                 title="Reset all inactive shows"
               >
@@ -244,6 +248,7 @@ export function SessionMonitoringStatus({
               variant="noShadow"
               onClick={() => setShowInactiveShows(true)}
               disabled={!isEnabled}
+              aria-disabled={!isEnabled}
               className="h-7"
             >
               <Eye className="h-4 w-4" />
