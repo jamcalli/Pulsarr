@@ -13,7 +13,7 @@ Before starting the migration, ensure you have:
 1. **Existing Pulsarr installation** running on SQLite
 2. **PostgreSQL server** running and accessible
 3. **PostgreSQL database created** - You must manually create an empty database (e.g., `pulsarr`) before migration
-4. **Database user with permissions** - Ensure the user has CREATE, INSERT, UPDATE, DELETE, and DROP privileges on the database
+4. **Database user with permissions** - Ensure the user has ALL PRIVILEGES on the database
 5. **Database backup** (the migration script creates one automatically, but having your own is recommended)
 6. **Network access** from Pulsarr container to PostgreSQL database
 
@@ -36,13 +36,11 @@ The migration involves three main steps:
 2. **Setup PostgreSQL** with the same schema
 3. **Migrate data** from SQLite to PostgreSQL
 
-### Step 1: Prepare Migration Files
+### Step 1: Create Migration Compose File
 
-Download the migration compose file:
+Create a `docker-compose.migration.yml` file in your Pulsarr directory:
 
-```bash
-# Create the migration compose file
-cat > docker-compose.migration.yml << 'EOF'
+```yaml
 services:
   # Step 1: Update SQLite to latest migrations
   pulsarr-migrate-sqlite:
@@ -84,7 +82,6 @@ services:
     stdin_open: true
     tty: true
     command: npm run migrate:sqlite-to-postgres
-EOF
 ```
 
 ### Step 2: Update SQLite Schema
@@ -210,43 +207,32 @@ Pulsarr will now use your PostgreSQL database!
 
 ## Environment Variables Reference
 
-### Database Type
-- `dbType` - Set to `postgres` for PostgreSQL
+These variables must be configured in your `.env` file for the migration:
 
-### Individual Connection Parameters
-- `dbHost` - PostgreSQL server hostname (default: `localhost`)
+### Required for PostgreSQL
+- `dbType=postgres` - Enables PostgreSQL mode
+- `dbHost` - PostgreSQL server hostname (e.g., `localhost`)
 - `dbPort` - PostgreSQL server port (default: `5432`)
-- `dbName` - Database name (default: `pulsarr`)
-- `dbUser` - Database username (default: `postgres`)
-- `dbPassword` - Database password (default: `pulsarrpostgrespw`)
+- `dbName` - Database name (e.g., `pulsarr`)
+- `dbUser` - Database username (e.g., `postgres`)
+- `dbPassword` - Database password
 
-### Connection String
-- `dbConnectionString` - Full PostgreSQL connection string (optional)
+### Alternative: Connection String
+- `dbConnectionString` - Full PostgreSQL URL (takes priority over individual settings)
+  - Format: `postgresql://username:password@host:port/database`
 
-## Advanced Usage
+### For Rollback to SQLite
+- `dbType=sqlite` - Switch back to SQLite mode
+- `dbPath=./data/db/pulsarr.db` - SQLite file path
 
-### Automation and CI/CD
-
-For automated deployments, you can run the entire migration process non-interactively:
+## Advanced Options
 
 ```bash
-# Complete automated migration
+# Automated migration (skip confirmation)
 echo "y" | docker compose -f docker-compose.migration.yml --profile migration run --rm pulsarr-migrate-data
 
-# With verbose logging for automation monitoring
-echo "y" | docker compose -f docker-compose.migration.yml --profile migration run --rm pulsarr-migrate-data npx tsx migrations/scripts/sqlite-to-postgresql.ts --verbose
-```
-
-### Performance Tuning
-
-For large databases, you may want to adjust the batch size:
-
-```bash
-# Smaller batches for memory-constrained environments
+# Custom batch size for large databases
 echo "y" | docker compose -f docker-compose.migration.yml --profile migration run --rm pulsarr-migrate-data npx tsx migrations/scripts/sqlite-to-postgresql.ts --batch-size=500
-
-# Larger batches for faster migration (more memory usage)
-echo "y" | docker compose -f docker-compose.migration.yml --profile migration run --rm pulsarr-migrate-data npx tsx migrations/scripts/sqlite-to-postgresql.ts --batch-size=2000
 ```
 
 ## Troubleshooting
@@ -262,8 +248,8 @@ echo "y" | docker compose -f docker-compose.migration.yml --profile migration ru
 ### Permission Issues
 
 **Error: Permission denied**
-- Ensure the database user has CREATE, INSERT, UPDATE, DELETE permissions
-- For initial setup, the user may need additional privileges to create tables
+- Ensure the database user has ALL PRIVILEGES on the database
+- Check the database connection string/parameters in your `.env` file
 
 ### Schema Mismatch
 

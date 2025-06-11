@@ -72,29 +72,6 @@ Rolling monitoring options appear in:
 Rolling monitoring options only appear when Session Monitoring is enabled.
 :::
 
-## Environment Configuration
-
-Configure via `.env` file for Docker deployments:
-
-```env
-plexSessionMonitoring='{
-  "enabled": true,
-  "pollingIntervalMinutes": 15,
-  "remainingEpisodes": 2,
-  "filterUsers": [],
-  "enableAutoReset": true,
-  "inactivityResetDays": 7,
-  "enableProgressiveCleanup": false
-}'
-```
-
-:::warning
-Environment variables override web UI settings **on app restart**. If `plexSessionMonitoring` is set in your `.env` file:
-- Web UI changes work during the current session
-- On app restart, the .env values will override any database changes
-- Remove the environment variable from `.env` to persist web UI configuration changes
-:::
-
 <img src={useBaseUrl('/img/Plex-Session-Monitoring.png')} alt="Plex Session Monitoring Configuration Interface" />
 
 ## Troubleshooting
