@@ -282,7 +282,20 @@ const schema = {
     },
     deleteSyncNotify: {
       type: 'string',
-      enum: ['none', 'message', 'webhook', 'both'],
+      enum: [
+        'none',
+        'message',
+        'webhook',
+        'both',
+        'all',
+        'discord-only',
+        'apprise-only',
+        'webhook-only',
+        'dm-only',
+        'discord-webhook',
+        'discord-message',
+        'discord-both',
+      ],
       default: 'none',
     },
     deleteSyncNotifyOnlyOnDeletion: {
