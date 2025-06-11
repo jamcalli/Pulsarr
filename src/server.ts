@@ -19,6 +19,8 @@ async function init() {
       },
     },
     pluginTimeout: 60000,
+    // Force close persistent connections (like SSE) during shutdown
+    forceCloseConnections: true,
   })
 
   await app.register(fp(serviceApp))

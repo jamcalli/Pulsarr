@@ -14,6 +14,7 @@ export interface SonarrInstance {
   seasonMonitoring: string
   monitorNewItems?: 'all' | 'none'
   searchOnAdd: boolean
+  createSeasonFolders?: boolean
   tags: string[]
   isDefault: boolean
   syncedInstances?: number[]
