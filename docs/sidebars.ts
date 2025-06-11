@@ -23,6 +23,8 @@ const sidebars: SidebarsConfig = {
       items: [
         'installation/quick-start',
         'installation/configuration',
+        'installation/sonarr-configuration',
+        'installation/radarr-configuration',
         'installation/postgres-migration',
       ],
     },
