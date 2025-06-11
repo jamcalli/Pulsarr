@@ -42,12 +42,12 @@ interface SessionMonitoringStatusProps {
 }
 
 /**
- * Renders the session monitoring status UI for managing active and inactive media shows.
+ * Displays and manages the session monitoring status for active and inactive media shows.
  *
- * Provides controls to check session status, view and manage lists of active and inactive shows, adjust inactivity thresholds, and perform reset or delete actions. The component is visible only when monitoring is enabled.
+ * Provides controls to check session status, view and manage lists of active and inactive shows, adjust the inactivity days threshold, and perform reset or delete actions. All interactive elements are disabled when monitoring is not enabled or when relevant operations are in progress.
  *
  * @remark
- * The inactivity days threshold input is debounced to reduce unnecessary updates. Reset and delete actions are disabled while their respective operations are in progress.
+ * The inactivity days threshold input is debounced to minimize unnecessary updates. Reset and delete actions are unavailable while their respective operations are running.
  */
 export function SessionMonitoringStatus({
   isEnabled,
@@ -99,9 +99,7 @@ export function SessionMonitoringStatus({
     }
   }, [isEnabled, showInactiveShows, inactivityDays, fetchInactiveShows])
 
-  if (!isEnabled) {
-    return null
-  }
+  // Show disabled state instead of hiding completely for better UX consistency
 
   return (
     <div>
@@ -125,7 +123,8 @@ export function SessionMonitoringStatus({
               })
             }
           }}
-          disabled={rollingLoading.runningMonitor}
+          disabled={!isEnabled || rollingLoading.runningMonitor}
+          aria-disabled={!isEnabled || rollingLoading.runningMonitor}
           className="h-7"
         >
           {rollingLoading.runningMonitor ? (
@@ -152,6 +151,8 @@ export function SessionMonitoringStatus({
             size="sm"
             variant="noShadow"
             onClick={() => setShowActiveShows(true)}
+            disabled={!isEnabled}
+            aria-disabled={!isEnabled}
             className="h-7"
           >
             <Eye className="h-4 w-4" />
@@ -207,6 +208,8 @@ export function SessionMonitoringStatus({
               max={365}
               className="h-7 w-12 text-xs px-2"
               aria-label="Inactivity days threshold"
+              disabled={!isEnabled}
+              aria-disabled={!isEnabled}
             />
             <span className="text-xs text-text mr-1">d</span>
             {inactiveShows.length > 0 && (
@@ -227,7 +230,8 @@ export function SessionMonitoringStatus({
                     })
                   }
                 }}
-                disabled={rollingLoading.resetting}
+                disabled={!isEnabled || rollingLoading.resetting}
+                aria-disabled={!isEnabled || rollingLoading.resetting}
                 className="h-7 px-2"
                 title="Reset all inactive shows"
               >
@@ -243,6 +247,8 @@ export function SessionMonitoringStatus({
               size="sm"
               variant="noShadow"
               onClick={() => setShowInactiveShows(true)}
+              disabled={!isEnabled}
+              aria-disabled={!isEnabled}
               className="h-7"
             >
               <Eye className="h-4 w-4" />

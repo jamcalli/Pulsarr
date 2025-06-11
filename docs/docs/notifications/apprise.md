@@ -154,3 +154,7 @@ The integration is designed to work automatically, but if you encounter issues:
 - **Service Not Starting**: Make sure both containers have started successfully with `docker compose ps`
 
 For more information about Apprise itself, refer to the [official Apprise documentation](https://github.com/caronc/apprise/wiki).
+
+## Advanced Features
+
+For broadcasting content availability to shared channels independent of individual user watchlists, see [Public Content Notifications](../utilities/public-content-notifications) in the Utilities section.

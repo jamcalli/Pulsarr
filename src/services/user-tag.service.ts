@@ -7,6 +7,7 @@ import {
 import type { SonarrItem } from '@root/types/sonarr.types.js'
 import type { RadarrItem } from '@root/types/radarr.types.js'
 import type { ProgressEvent } from '@root/types/progress.types.js'
+import type { User } from '@root/types/config.types.js'
 
 /**
  * Tag structure returned from Sonarr/Radarr APIs
@@ -54,14 +55,6 @@ interface MediaService {
 }
 
 /**
- * Type for a user object
- */
-interface User {
-  id: number
-  name: string
-}
-
-/**
  * Service to manage user tagging for media in Sonarr and Radarr
  */
 export class UserTagService {
@@ -69,6 +62,14 @@ export class UserTagService {
     private readonly log: FastifyBaseLogger,
     private readonly fastify: FastifyInstance,
   ) {}
+
+  /**
+   * Get all users with sync enabled
+   */
+  private async getSyncEnabledUsers(): Promise<User[]> {
+    const allUsers = await this.fastify.db.getAllUsers()
+    return allUsers.filter((user) => user.can_sync)
+  }
 
   /**
    * Get config value for tagging users in Sonarr
@@ -223,8 +224,8 @@ export class UserTagService {
     const results = { created: 0, skipped: 0, failed: 0, instances: 0 }
 
     try {
-      // Get all users
-      const users = await this.fastify.db.getAllUsers()
+      // Get all users with sync enabled
+      const users = await this.getSyncEnabledUsers()
 
       // Get all Sonarr instances
       const sonarrManager = this.fastify.sonarrManager
@@ -293,8 +294,8 @@ export class UserTagService {
     const results = { created: 0, skipped: 0, failed: 0, instances: 0 }
 
     try {
-      // Get all users
-      const users = await this.fastify.db.getAllUsers()
+      // Get all users with sync enabled
+      const users = await this.getSyncEnabledUsers()
 
       // Get all Radarr instances
       const radarrManager = this.fastify.radarrManager
@@ -369,8 +370,8 @@ export class UserTagService {
     const results: TaggingResults = { tagged: 0, skipped: 0, failed: 0 }
 
     try {
-      // Get all users for tag lookup
-      const users = await this.fastify.db.getAllUsers()
+      // Get all users with sync enabled for tag lookup
+      const users = await this.getSyncEnabledUsers()
 
       // Create a map of user IDs to user objects
       const userMap = new Map(users.map((user) => [user.id, user]))
@@ -415,12 +416,15 @@ export class UserTagService {
             const batch = instanceSeries.slice(i, i + BATCH_SIZE)
             const batchPromises = batch.map(async (show) => {
               try {
-                // Find users who have this show in their watchlist
+                // Find users who have this show in their watchlist (only sync-enabled users)
                 const showUsers = new Set<number>()
 
                 for (const item of watchlistItems) {
                   if (hasMatchingGuids(show.guids, item.guids)) {
-                    showUsers.add(item.user_id)
+                    // Only include users who have sync enabled
+                    if (userMap.has(item.user_id)) {
+                      showUsers.add(item.user_id)
+                    }
                   }
                 }
 
@@ -606,8 +610,8 @@ export class UserTagService {
     const results: TaggingResults = { tagged: 0, skipped: 0, failed: 0 }
 
     try {
-      // Get all users for tag lookup
-      const users = await this.fastify.db.getAllUsers()
+      // Get all users with sync enabled for tag lookup
+      const users = await this.getSyncEnabledUsers()
 
       // Create a map of user IDs to user objects
       const userMap = new Map(users.map((user) => [user.id, user]))
@@ -652,12 +656,15 @@ export class UserTagService {
             const batch = instanceMovies.slice(i, i + BATCH_SIZE)
             const batchPromises = batch.map(async (movie) => {
               try {
-                // Find users who have this movie in their watchlist
+                // Find users who have this movie in their watchlist (only sync-enabled users)
                 const movieUsers = new Set<number>()
 
                 for (const item of watchlistItems) {
                   if (hasMatchingGuids(movie.guids, item.guids)) {
-                    movieUsers.add(item.user_id)
+                    // Only include users who have sync enabled
+                    if (userMap.has(item.user_id)) {
+                      movieUsers.add(item.user_id)
+                    }
                   }
                 }
 
@@ -1116,8 +1123,8 @@ export class UserTagService {
     }
 
     try {
-      // Get all current users
-      const users = await this.fastify.db.getAllUsers()
+      // Get all current users with sync enabled
+      const users = await this.getSyncEnabledUsers()
       const validUserTagLabels = new Set(
         users.map((user) => this.getUserTagLabel(user).toLowerCase()),
       )
