@@ -99,9 +99,7 @@ export function SessionMonitoringStatus({
     }
   }, [isEnabled, showInactiveShows, inactivityDays, fetchInactiveShows])
 
-  if (!isEnabled) {
-    return null
-  }
+  // Show disabled state instead of hiding completely for better UX consistency
 
   return (
     <div>
@@ -125,7 +123,7 @@ export function SessionMonitoringStatus({
               })
             }
           }}
-          disabled={rollingLoading.runningMonitor}
+          disabled={!isEnabled || rollingLoading.runningMonitor}
           className="h-7"
         >
           {rollingLoading.runningMonitor ? (
@@ -152,6 +150,7 @@ export function SessionMonitoringStatus({
             size="sm"
             variant="noShadow"
             onClick={() => setShowActiveShows(true)}
+            disabled={!isEnabled}
             className="h-7"
           >
             <Eye className="h-4 w-4" />
@@ -207,6 +206,7 @@ export function SessionMonitoringStatus({
               max={365}
               className="h-7 w-12 text-xs px-2"
               aria-label="Inactivity days threshold"
+              disabled={!isEnabled}
             />
             <span className="text-xs text-text mr-1">d</span>
             {inactiveShows.length > 0 && (
@@ -227,7 +227,7 @@ export function SessionMonitoringStatus({
                     })
                   }
                 }}
-                disabled={rollingLoading.resetting}
+                disabled={!isEnabled || rollingLoading.resetting}
                 className="h-7 px-2"
                 title="Reset all inactive shows"
               >
@@ -243,6 +243,7 @@ export function SessionMonitoringStatus({
               size="sm"
               variant="noShadow"
               onClick={() => setShowInactiveShows(true)}
+              disabled={!isEnabled}
               className="h-7"
             >
               <Eye className="h-4 w-4" />
