@@ -89,6 +89,37 @@
                         "systemAppriseUrl": {
                           "type": "string"
                         },
+                        "publicContentNotifications": {
+                          "type": "object",
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean",
+                              "default": false
+                            },
+                            "discordWebhookUrls": {
+                              "type": "string"
+                            },
+                            "discordWebhookUrlsMovies": {
+                              "type": "string"
+                            },
+                            "discordWebhookUrlsShows": {
+                              "type": "string"
+                            },
+                            "appriseUrls": {
+                              "type": "string"
+                            },
+                            "appriseUrlsMovies": {
+                              "type": "string"
+                            },
+                            "appriseUrlsShows": {
+                              "type": "string"
+                            }
+                          },
+                          "additionalProperties": false,
+                          "default": {
+                            "enabled": false
+                          }
+                        },
                         "tautulliEnabled": {
                           "type": "boolean"
                         },
@@ -238,6 +269,10 @@
                               "minimum": 1,
                               "maximum": 168,
                               "default": 24
+                            },
+                            "enableProgressiveCleanup": {
+                              "type": "boolean",
+                              "default": false
                             }
                           },
                           "additionalProperties": false
@@ -378,6 +413,37 @@
                   },
                   "systemAppriseUrl": {
                     "type": "string"
+                  },
+                  "publicContentNotifications": {
+                    "type": "object",
+                    "properties": {
+                      "enabled": {
+                        "type": "boolean",
+                        "default": false
+                      },
+                      "discordWebhookUrls": {
+                        "type": "string"
+                      },
+                      "discordWebhookUrlsMovies": {
+                        "type": "string"
+                      },
+                      "discordWebhookUrlsShows": {
+                        "type": "string"
+                      },
+                      "appriseUrls": {
+                        "type": "string"
+                      },
+                      "appriseUrlsMovies": {
+                        "type": "string"
+                      },
+                      "appriseUrlsShows": {
+                        "type": "string"
+                      }
+                    },
+                    "additionalProperties": false,
+                    "default": {
+                      "enabled": false
+                    }
                   },
                   "tautulliEnabled": {
                     "type": "boolean"
@@ -528,6 +594,10 @@
                         "minimum": 1,
                         "maximum": 168,
                         "default": 24
+                      },
+                      "enableProgressiveCleanup": {
+                        "type": "boolean",
+                        "default": false
                       }
                     },
                     "additionalProperties": false
@@ -614,6 +684,37 @@
                         },
                         "systemAppriseUrl": {
                           "type": "string"
+                        },
+                        "publicContentNotifications": {
+                          "type": "object",
+                          "properties": {
+                            "enabled": {
+                              "type": "boolean",
+                              "default": false
+                            },
+                            "discordWebhookUrls": {
+                              "type": "string"
+                            },
+                            "discordWebhookUrlsMovies": {
+                              "type": "string"
+                            },
+                            "discordWebhookUrlsShows": {
+                              "type": "string"
+                            },
+                            "appriseUrls": {
+                              "type": "string"
+                            },
+                            "appriseUrlsMovies": {
+                              "type": "string"
+                            },
+                            "appriseUrlsShows": {
+                              "type": "string"
+                            }
+                          },
+                          "additionalProperties": false,
+                          "default": {
+                            "enabled": false
+                          }
                         },
                         "tautulliEnabled": {
                           "type": "boolean"
@@ -764,6 +865,10 @@
                               "minimum": 1,
                               "maximum": 168,
                               "default": 24
+                            },
+                            "enableProgressiveCleanup": {
+                              "type": "boolean",
+                              "default": false
                             }
                           },
                           "additionalProperties": false
