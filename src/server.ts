@@ -9,6 +9,11 @@ import {
 } from '@utils/logger.js'
 import type { LevelWithSilent } from 'pino'
 
+/**
+ * Initializes and starts the Fastify server with configured plugins, logging, and graceful shutdown handling.
+ *
+ * Sets up JSON schema validation, logging level, and ensures persistent connections are forcibly closed during shutdown. Handles server startup errors by logging and terminating the process.
+ */
 async function init() {
   const app = Fastify({
     logger: createLoggerConfig(),
@@ -19,6 +24,8 @@ async function init() {
       },
     },
     pluginTimeout: 60000,
+    // Force close persistent connections (like SSE) during shutdown
+    forceCloseConnections: true,
   })
 
   await app.register(fp(serviceApp))

@@ -13,7 +13,7 @@ import {
 import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
 
 /**
- * React hook for managing the form state, validation, and behaviors of a Sonarr instance configuration.
+ * React hook for managing the form state, validation, and behaviors for configuring a Sonarr instance.
  *
  * Initializes form values from the provided instance, applies schema validation based on whether the instance is new or existing, and provides utilities for resetting the form, handling connection validation changes, and updating the instance name. Also manages scroll behavior for new instances and tracks changes to connection-related fields to update connection test status.
  *
@@ -38,6 +38,10 @@ export function useSonarrInstanceForm({
       monitorNewItems: instance.monitorNewItems || 'all',
       searchOnAdd:
         instance.searchOnAdd !== undefined ? instance.searchOnAdd : true,
+      createSeasonFolders:
+        instance.createSeasonFolders !== undefined
+          ? instance.createSeasonFolders
+          : false,
       tags: instance.tags,
       isDefault: isNew
         ? instances.length === 1 && instances[0].apiKey === API_KEY_PLACEHOLDER
@@ -69,6 +73,10 @@ export function useSonarrInstanceForm({
       monitorNewItems: instance.monitorNewItems || 'all',
       searchOnAdd:
         instance.searchOnAdd !== undefined ? instance.searchOnAdd : true,
+      createSeasonFolders:
+        instance.createSeasonFolders !== undefined
+          ? instance.createSeasonFolders
+          : false,
       tags: instance.tags,
       isDefault: instance.isDefault,
       syncedInstances: instance.syncedInstances || [],
@@ -147,6 +155,10 @@ export function useSonarrInstanceForm({
           monitorNewItems: instance.monitorNewItems || 'all',
           searchOnAdd:
             instance.searchOnAdd !== undefined ? instance.searchOnAdd : true,
+          createSeasonFolders:
+            instance.createSeasonFolders !== undefined
+              ? instance.createSeasonFolders
+              : false,
           tags: instance.tags,
           isDefault: instance.isDefault,
           syncedInstances: instance.syncedInstances || [],
