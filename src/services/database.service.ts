@@ -933,6 +933,17 @@ export class DatabaseService {
   //=============================================================================
 
   /**
+   * Converts a nullable value to boolean with default fallback
+   *
+   * @param value - The value to convert (can be null or undefined)
+   * @param defaultValue - The default boolean value to return if value is null/undefined
+   * @returns The converted boolean value or the default
+   */
+  private toBoolean(value: unknown, defaultValue: boolean): boolean {
+    return value == null ? defaultValue : Boolean(value)
+  }
+
+  /**
    * Retrieves all enabled Sonarr instances
    *
    * @returns Promise resolving to an array of all enabled Sonarr instances
@@ -952,12 +963,11 @@ export class DatabaseService {
       bypassIgnored: Boolean(instance.bypass_ignored),
       seasonMonitoring: instance.season_monitoring,
       monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
-      searchOnAdd:
-        instance.search_on_add == null ? true : Boolean(instance.search_on_add),
-      createSeasonFolders:
-        instance.create_season_folders == null
-          ? false
-          : Boolean(instance.create_season_folders),
+      searchOnAdd: this.toBoolean(instance.search_on_add, true),
+      createSeasonFolders: this.toBoolean(
+        instance.create_season_folders,
+        false,
+      ),
       tags: this.safeJsonParse(instance.tags, [], 'sonarr.tags'),
       isDefault: Boolean(instance.is_default),
       syncedInstances: this.safeJsonParse(
@@ -995,12 +1005,11 @@ export class DatabaseService {
       bypassIgnored: Boolean(instance.bypass_ignored),
       seasonMonitoring: instance.season_monitoring,
       monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
-      searchOnAdd:
-        instance.search_on_add == null ? true : Boolean(instance.search_on_add),
-      createSeasonFolders:
-        instance.create_season_folders == null
-          ? false
-          : Boolean(instance.create_season_folders),
+      searchOnAdd: this.toBoolean(instance.search_on_add, true),
+      createSeasonFolders: this.toBoolean(
+        instance.create_season_folders,
+        false,
+      ),
       tags: this.safeJsonParse(instance.tags, [], 'sonarr.tags'),
       isDefault: true,
       syncedInstances: this.safeJsonParse(
@@ -1034,12 +1043,11 @@ export class DatabaseService {
       bypassIgnored: Boolean(instance.bypass_ignored),
       seasonMonitoring: instance.season_monitoring,
       monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
-      searchOnAdd:
-        instance.search_on_add == null ? true : Boolean(instance.search_on_add),
-      createSeasonFolders:
-        instance.create_season_folders == null
-          ? false
-          : Boolean(instance.create_season_folders),
+      searchOnAdd: this.toBoolean(instance.search_on_add, true),
+      createSeasonFolders: this.toBoolean(
+        instance.create_season_folders,
+        false,
+      ),
       tags: this.safeJsonParse(instance.tags, [], 'sonarr.tags'),
       isDefault: Boolean(instance.is_default),
       syncedInstances: this.safeJsonParse(
@@ -1539,8 +1547,7 @@ export class DatabaseService {
       qualityProfile: instance.quality_profile,
       rootFolder: instance.root_folder,
       bypassIgnored: Boolean(instance.bypass_ignored),
-      searchOnAdd:
-        instance.search_on_add == null ? true : Boolean(instance.search_on_add),
+      searchOnAdd: this.toBoolean(instance.search_on_add, true),
       minimumAvailability: this.normaliseMinimumAvailability(
         instance.minimum_availability,
       ),
@@ -1575,8 +1582,7 @@ export class DatabaseService {
       qualityProfile: instance.quality_profile,
       rootFolder: instance.root_folder,
       bypassIgnored: Boolean(instance.bypass_ignored),
-      searchOnAdd:
-        instance.search_on_add == null ? true : Boolean(instance.search_on_add),
+      searchOnAdd: this.toBoolean(instance.search_on_add, true),
       minimumAvailability: this.normaliseMinimumAvailability(
         instance.minimum_availability,
       ),
@@ -1607,8 +1613,7 @@ export class DatabaseService {
       qualityProfile: instance.quality_profile,
       rootFolder: instance.root_folder,
       bypassIgnored: Boolean(instance.bypass_ignored),
-      searchOnAdd:
-        instance.search_on_add == null ? true : Boolean(instance.search_on_add),
+      searchOnAdd: this.toBoolean(instance.search_on_add, true),
       minimumAvailability: this.normaliseMinimumAvailability(
         instance.minimum_availability,
       ),
@@ -5407,14 +5412,11 @@ export class DatabaseService {
           seasonMonitoring: instance.season_monitoring,
           monitorNewItems:
             (instance.monitor_new_items as 'all' | 'none') || 'all',
-          searchOnAdd:
-            instance.search_on_add == null
-              ? true
-              : Boolean(instance.search_on_add),
-          createSeasonFolders:
-            instance.create_season_folders == null
-              ? false
-              : Boolean(instance.create_season_folders),
+          searchOnAdd: this.toBoolean(instance.search_on_add, true),
+          createSeasonFolders: this.toBoolean(
+            instance.create_season_folders,
+            false,
+          ),
           tags: this.safeJsonParse(instance.tags, [], 'sonarr.tags'),
           isDefault: Boolean(instance.is_default),
           syncedInstances: this.safeJsonParse(
