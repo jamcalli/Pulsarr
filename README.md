@@ -94,6 +94,7 @@ See the [configuration documentation](https://jamcalli.github.io/Pulsarr/docs/in
 
 - **Real-time Monitoring**: Instant watchlist updates for Plex Pass users (20-minute polling for non-Pass users)
 - **Smart Content Routing**: Route content based on genre, user, language, year, certification, and more
+- **Multi-Instance Support**: Distribute content across multiple Sonarr/Radarr instances with intelligent synchronization
 - **Multi-User Support**: Monitor watchlists for friends and family with granular permissions
 - **Flexible Notifications**: Discord bot, Tautulli, webhooks, and 80+ services via Apprise
 - **Advanced Lifecycle Management**: Watchlist-based or tag-based deletion with playlist protection

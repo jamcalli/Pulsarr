@@ -223,8 +223,9 @@ export class UserTagService {
     const results = { created: 0, skipped: 0, failed: 0, instances: 0 }
 
     try {
-      // Get all users
-      const users = await this.fastify.db.getAllUsers()
+      // Get all users with sync enabled
+      const allUsers = await this.fastify.db.getAllUsers()
+      const users = allUsers.filter((user) => user.can_sync)
 
       // Get all Sonarr instances
       const sonarrManager = this.fastify.sonarrManager
@@ -293,8 +294,9 @@ export class UserTagService {
     const results = { created: 0, skipped: 0, failed: 0, instances: 0 }
 
     try {
-      // Get all users
-      const users = await this.fastify.db.getAllUsers()
+      // Get all users with sync enabled
+      const allUsers = await this.fastify.db.getAllUsers()
+      const users = allUsers.filter((user) => user.can_sync)
 
       // Get all Radarr instances
       const radarrManager = this.fastify.radarrManager
@@ -369,8 +371,9 @@ export class UserTagService {
     const results: TaggingResults = { tagged: 0, skipped: 0, failed: 0 }
 
     try {
-      // Get all users for tag lookup
-      const users = await this.fastify.db.getAllUsers()
+      // Get all users with sync enabled for tag lookup
+      const allUsers = await this.fastify.db.getAllUsers()
+      const users = allUsers.filter((user) => user.can_sync)
 
       // Create a map of user IDs to user objects
       const userMap = new Map(users.map((user) => [user.id, user]))
@@ -415,12 +418,15 @@ export class UserTagService {
             const batch = instanceSeries.slice(i, i + BATCH_SIZE)
             const batchPromises = batch.map(async (show) => {
               try {
-                // Find users who have this show in their watchlist
+                // Find users who have this show in their watchlist (only sync-enabled users)
                 const showUsers = new Set<number>()
 
                 for (const item of watchlistItems) {
                   if (hasMatchingGuids(show.guids, item.guids)) {
-                    showUsers.add(item.user_id)
+                    // Only include users who have sync enabled
+                    if (userMap.has(item.user_id)) {
+                      showUsers.add(item.user_id)
+                    }
                   }
                 }
 
@@ -606,8 +612,9 @@ export class UserTagService {
     const results: TaggingResults = { tagged: 0, skipped: 0, failed: 0 }
 
     try {
-      // Get all users for tag lookup
-      const users = await this.fastify.db.getAllUsers()
+      // Get all users with sync enabled for tag lookup
+      const allUsers = await this.fastify.db.getAllUsers()
+      const users = allUsers.filter((user) => user.can_sync)
 
       // Create a map of user IDs to user objects
       const userMap = new Map(users.map((user) => [user.id, user]))
@@ -652,12 +659,15 @@ export class UserTagService {
             const batch = instanceMovies.slice(i, i + BATCH_SIZE)
             const batchPromises = batch.map(async (movie) => {
               try {
-                // Find users who have this movie in their watchlist
+                // Find users who have this movie in their watchlist (only sync-enabled users)
                 const movieUsers = new Set<number>()
 
                 for (const item of watchlistItems) {
                   if (hasMatchingGuids(movie.guids, item.guids)) {
-                    movieUsers.add(item.user_id)
+                    // Only include users who have sync enabled
+                    if (userMap.has(item.user_id)) {
+                      movieUsers.add(item.user_id)
+                    }
                   }
                 }
 
@@ -1116,8 +1126,9 @@ export class UserTagService {
     }
 
     try {
-      // Get all current users
-      const users = await this.fastify.db.getAllUsers()
+      // Get all current users with sync enabled
+      const allUsers = await this.fastify.db.getAllUsers()
+      const users = allUsers.filter((user) => user.can_sync)
       const validUserTagLabels = new Set(
         users.map((user) => this.getUserTagLabel(user).toLowerCase()),
       )

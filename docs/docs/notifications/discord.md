@@ -137,3 +137,7 @@ If users aren't receiving notifications:
 2. Check if they have enabled notifications in their settings
 3. Verify their Plex account has sync permissions enabled in Pulsarr
 4. Check if their Discord privacy settings allow DMs from server members
+
+## Advanced Features
+
+For broadcasting content availability to shared channels independent of individual user watchlists, see [Public Content Notifications](../utilities/public-content-notifications) in the Utilities section.
