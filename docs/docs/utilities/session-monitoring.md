@@ -17,10 +17,11 @@ Automatically searches for upcoming episodes and seasons by monitoring what user
 
 ## Rolling Monitoring
 
-Progressive downloading strategy that starts minimal and expands based on viewing:
+Progressive downloading strategy that starts minimal and expands based on viewing activity, with automatic cleanup when shows are abandoned:
 
 - **Pilot Rolling**: Start with pilot only → expand to full season when watched → add seasons progressively
 - **First Season Rolling**: Start with Season 1 → add Season 2 when nearing completion → continue expanding
+- **Auto-cleanup**: Automatically reverts shows to original monitoring states when nobody is watching
 - **Best for**: Testing user interest and managing storage efficiently
 
 ## Configuration

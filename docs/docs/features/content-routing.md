@@ -32,6 +32,55 @@ Each rule consists of:
 - **Instance Settings**: Quality profile, root folder, monitoring options
 - **Priority**: Higher priority rules take precedence
 
+## Instance Configuration Overrides
+
+When creating routing rules, you can override these instance settings:
+
+### Sonarr Overrides
+
+**Core Settings:**
+- **Quality Profile**: Override default quality profile
+- **Root Folder**: Route to specific folder path
+- **Tags**: Apply specific tags for organization
+- **Search on Add**: Automatically search when added
+
+**Series Settings:**
+- **Series Type**: Override series type (`standard`, `anime`, `daily`)
+- **Season Monitoring**: Override monitoring strategy:
+  - `all` - All Seasons
+  - `future` - Future Seasons
+  - `missing` - Missing Episodes
+  - `existing` - Existing Episodes
+  - `firstSeason` - First Season
+  - `lastSeason` - Last Season
+  - `latestSeason` - Latest Season
+  - `pilot` - Pilot Only
+  - `pilotRolling` - Pilot Rolling (Auto-expand, requires session monitoring)
+  - `firstSeasonRolling` - First Season Rolling (Auto-expand, requires session monitoring)
+  - `recent` - Recent Episodes
+  - `monitorSpecials` - Monitor Specials
+  - `unmonitorSpecials` - Unmonitor Specials
+  - `none` - None
+  - `skip` - Skip
+
+### Radarr Overrides
+
+**Core Settings:**
+- **Quality Profile**: Override default quality profile
+- **Root Folder**: Route to specific folder path
+- **Tags**: Apply specific tags for organization
+- **Search on Add**: Automatically search when added
+
+### Routing Conditions
+
+**Available Fields:**
+- **Genres**: Content genre categories
+- **User**: User ID or username
+- **Year**: Release year
+- **Certification**: Content rating (PG-13, R, TV-MA, etc.)
+- **Original Language**: Original language of content
+- **Season**: Season number (Sonarr only)
+
 ## Multi-Instance Routing
 
 **Multiple Instance Support**: Content router rules can send the same content to multiple instances simultaneously. For example:
