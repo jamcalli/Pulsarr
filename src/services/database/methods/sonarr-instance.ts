@@ -25,10 +25,7 @@ export async function getAllSonarrInstances(
     seasonMonitoring: instance.season_monitoring,
     monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
     searchOnAdd: this.toBoolean(instance.search_on_add, true),
-    createSeasonFolders: this.toBoolean(
-      instance.create_season_folders,
-      false,
-    ),
+    createSeasonFolders: this.toBoolean(instance.create_season_folders, false),
     tags: this.safeJsonParse(instance.tags, [], 'sonarr.tags'),
     isDefault: Boolean(instance.is_default),
     syncedInstances: this.safeJsonParse(
@@ -69,10 +66,7 @@ export async function getDefaultSonarrInstance(
     seasonMonitoring: instance.season_monitoring,
     monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
     searchOnAdd: this.toBoolean(instance.search_on_add, true),
-    createSeasonFolders: this.toBoolean(
-      instance.create_season_folders,
-      false,
-    ),
+    createSeasonFolders: this.toBoolean(instance.create_season_folders, false),
     tags: this.safeJsonParse(instance.tags, [], 'sonarr.tags'),
     isDefault: Boolean(instance.is_default),
     syncedInstances: this.safeJsonParse(
@@ -110,10 +104,7 @@ export async function getSonarrInstance(
     seasonMonitoring: instance.season_monitoring,
     monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
     searchOnAdd: this.toBoolean(instance.search_on_add, true),
-    createSeasonFolders: this.toBoolean(
-      instance.create_season_folders,
-      false,
-    ),
+    createSeasonFolders: this.toBoolean(instance.create_season_folders, false),
     tags: this.safeJsonParse(instance.tags, [], 'sonarr.tags'),
     isDefault: Boolean(instance.is_default),
     syncedInstances: this.safeJsonParse(
@@ -292,7 +283,28 @@ export async function getSonarrInstanceByIdentifier(
   this: DatabaseService,
   identifier: string | number,
 ): Promise<SonarrInstance | null> {
-  let instance
+  let instance:
+    | {
+        id: number
+        name: string
+        base_url: string
+        api_key: string
+        quality_profile: string | null
+        root_folder: string | null
+        bypass_ignored: boolean | number
+        season_monitoring: string
+        monitor_new_items: string | null
+        search_on_add: boolean | number | null
+        create_season_folders: boolean | number | null
+        tags: string | null
+        is_default: boolean | number
+        synced_instances: string | null
+        series_type: string | null
+        is_enabled: boolean | number
+        created_at: string | Date
+        updated_at: string | Date
+      }
+    | undefined
 
   if (typeof identifier === 'number') {
     instance = await this.knex('sonarr_instances')
@@ -317,10 +329,7 @@ export async function getSonarrInstanceByIdentifier(
     seasonMonitoring: instance.season_monitoring,
     monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
     searchOnAdd: this.toBoolean(instance.search_on_add, true),
-    createSeasonFolders: this.toBoolean(
-      instance.create_season_folders,
-      false,
-    ),
+    createSeasonFolders: this.toBoolean(instance.create_season_folders, false),
     tags: this.safeJsonParse(instance.tags, [], 'sonarr.tags'),
     isDefault: Boolean(instance.is_default),
     syncedInstances: this.safeJsonParse(

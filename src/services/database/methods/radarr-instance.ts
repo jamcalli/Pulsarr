@@ -338,7 +338,25 @@ export async function getRadarrInstanceByIdentifier(
   this: DatabaseService,
   identifier: string | number,
 ): Promise<RadarrInstance | null> {
-  let instance
+  let instance:
+    | {
+        id: number
+        name: string
+        base_url: string
+        api_key: string
+        quality_profile: string | null
+        root_folder: string | null
+        bypass_ignored: boolean | number
+        tags: string | null
+        is_default: boolean | number
+        synced_instances: string | null
+        search_on_add: boolean | number | null
+        minimum_availability: string | null
+        is_enabled: boolean | number
+        created_at: string | Date
+        updated_at: string | Date
+      }
+    | undefined
 
   if (typeof identifier === 'number') {
     instance = await this.knex('radarr_instances')
