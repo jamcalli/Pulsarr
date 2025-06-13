@@ -1,16 +1,31 @@
 /**
  * Database Service
  *
- * Provides the primary interface for interacting with the application's better-sqlite3 database.
+ * Provides the primary interface for interacting with the application's SQLite/PostgreSQL database.
  * This service is exposed to the application via the 'database' Fastify plugin
  * and can be accessed through the fastify.db decorator.
  *
- * Responsible for:
+ * ARCHITECTURE:
+ * This service follows a modular architecture where database methods are organized into
+ * separate modules by domain (users, watchlist, instances, etc.) and then dynamically
+ * bound to this service class at runtime. This provides:
+ * - Better code organization and maintainability
+ * - Clear separation of concerns by domain
+ * - Type safety through TypeScript method signature declarations
+ * - Easy testing and mocking of individual method groups
+ *
+ * METHOD BINDING:
+ * All database methods are defined in separate files under ./database/methods/ and
+ * their TypeScript signatures are declared in ./database/types/. The bindMethods()
+ * function dynamically attaches these methods to the DatabaseService instance,
+ * allowing them to be called as if they were native class methods.
+ *
+ * RESPONSIBILITIES:
  * - User management (creation, retrieval, updating)
  * - Admin user management (authentication, password handling)
  * - Application configuration storage and retrieval
  * - Sonarr/Radarr instance configuration and management
- * - Genre routing rules for content distribution
+ * - Content routing rules for automated distribution
  * - Watchlist item tracking and status management
  * - Many-to-many relationship management via junction tables
  * - Notification creation, delivery, and history
@@ -18,8 +33,10 @@
  * - Analytics and statistics generation
  * - Genre and media metadata management
  * - Instance content synchronization tracking
+ * - Webhook management for external integrations
+ * - Plex session monitoring for rolling content management
  *
- * Uses Knex.js query builder to interact with the better-sqlite3 database,
+ * Uses Knex.js query builder to interact with SQLite or PostgreSQL databases,
  * providing a clean, consistent interface for all database operations.
  *
  * @example
@@ -32,42 +49,12 @@
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import knex, { type Knex } from 'knex'
 import { configurePgTypes } from '@utils/postgres-config.js'
-import type { Config, User } from '@root/types/config.types.js'
-import {
-  determineNotificationType,
-  getPublicContentNotificationFlags,
-  createPublicContentNotification,
-} from '@root/utils/notification-processor.js'
 import { DefaultInstanceError } from '@root/types/errors.js'
-import type {
-  TokenWatchlistItem,
-  Item as WatchlistItem,
-} from '@root/types/plex.types.js'
-import type {
-  SonarrInstance,
-  SonarrEpisodeSchema,
-  MediaNotification,
-  NotificationResult,
-} from '@root/types/sonarr.types.js'
-import type { RadarrInstance } from '@root/types/radarr.types.js'
-import type {
-  WatchlistInstanceStatus,
-  MainTableField,
-  JunctionTableField,
-  WatchlistItemUpdate,
-} from '@root/types/watchlist-status.types.js'
-import type {
-  DbSchedule,
-  JobRunInfo,
-  IntervalConfig,
-  CronConfig,
-} from '@root/types/scheduler.types.js'
 import type {
   RouterRule,
   Condition,
   ConditionGroup,
 } from '@root/types/router.types.js'
-import type { RollingMonitoredShow } from '@root/types/plex-session.types.js'
 import './database/types/analytics-methods.js'
 import './database/types/config-methods.js'
 import './database/types/instance-methods.js'
@@ -96,13 +83,16 @@ export class DatabaseService {
   public readonly knex: Knex
 
   /**
-   * Creates a new DatabaseService instance
-   *
-   * @param log - Fastify logger instance for recording database operations
-   * @param config - Fastify configuration containing database connection details
+   * Flag indicating whether we're using PostgreSQL (true) or SQLite (false)
    */
   public readonly isPostgres: boolean
 
+  /**
+   * Creates a new DatabaseService instance
+   *
+   * @param log - Fastify logger instance for recording database operations
+   * @param fastify - Fastify instance containing configuration and context
+   */
   constructor(
     public readonly log: FastifyBaseLogger,
     public readonly fastify: FastifyInstance,
@@ -110,15 +100,26 @@ export class DatabaseService {
     this.isPostgres = fastify.config.dbType === 'postgres'
     this.knex = knex(DatabaseService.createKnexConfig(fastify.config, log))
 
+    // Bind all modular database methods to this instance
     this.bindMethods()
   }
 
+  /**
+   * Provides access to the Fastify configuration
+   */
   public get config() {
     return this.fastify.config
   }
 
+  //=============================================================================
+  // DATABASE CONNECTION AND LIFECYCLE
+  //=============================================================================
+
   /**
    * Factory method to create a properly initialized DatabaseService
+   *
+   * This method handles database-specific setup like PostgreSQL type configuration
+   * that needs to happen after construction but before the service is used.
    */
   static async create(
     log: FastifyBaseLogger,
@@ -149,12 +150,33 @@ export class DatabaseService {
   }
 
   /**
+   * Closes the database connection
+   *
+   * Should be called during application shutdown to properly clean up resources.
+   */
+  async close(): Promise<void> {
+    await this.knex.destroy()
+  }
+
+  /**
    * Helper method to check if we're using PostgreSQL
    */
   public isPostgreSQL(): boolean {
     return this.isPostgres
   }
 
+  //=============================================================================
+  // DATABASE UTILITY HELPERS
+  //=============================================================================
+
+  /**
+   * Binds all modular database methods to this service instance
+   *
+   * This method dynamically attaches methods from separate module files to this
+   * DatabaseService instance, allowing them to be called as native class methods.
+   * Each method is bound with the correct 'this' context so they can access
+   * the service's knex instance, logger, and other properties.
+   */
   private bindMethods(): void {
     const methodModules = [
       analyticsMethods,
@@ -175,7 +197,8 @@ export class DatabaseService {
       for (const [methodName, methodFunction] of Object.entries(module)) {
         if (typeof methodFunction === 'function') {
           // Bind each method to this DatabaseService instance
-          ;(this as any)[methodName] = methodFunction.bind(this)
+          ;(this as Record<string, unknown>)[methodName] =
+            methodFunction.bind(this)
         }
       }
     }
@@ -274,15 +297,6 @@ export class DatabaseService {
   }
 
   /**
-   * Closes the database connection
-   *
-   * Should be called during application shutdown to properly clean up resources.
-   */
-  async close(): Promise<void> {
-    await this.knex.destroy()
-  }
-
-  /**
    * Safely parse JSON strings with error logging
    *
    * @param value - JSON string to parse
@@ -352,6 +366,10 @@ export class DatabaseService {
   public get timestamp() {
     return new Date().toISOString()
   }
+
+  //=============================================================================
+  // BUSINESS LOGIC HELPERS
+  //=============================================================================
 
   /**
    * Normalises/validates minimumAvailability values for Radarr
@@ -542,31 +560,7 @@ export class DatabaseService {
   }
 
   //=============================================================================
-  // SONARR INSTANCE MANAGEMENT
-  //=============================================================================
-
-  //=============================================================================
-  // RADARR INSTANCE MANAGEMENT
-  //=============================================================================
-
-  //=============================================================================
-  // WATCHLIST MANAGEMENT
-  //=============================================================================
-
-  //=============================================================================
-  // NOTIFICATION PROCESSING
-  //=============================================================================
-
-  //=============================================================================
-  // RADARR JUNCTION TABLE METHODS
-  //=============================================================================
-
-  //=============================================================================
-  // SCHEDULER METHODS
-  //=============================================================================
-
-  //=============================================================================
-  // CONTENT ROUTER SECTION
+  // CONTENT ROUTER HELPERS
   //=============================================================================
 
   /**
@@ -842,11 +836,14 @@ export class DatabaseService {
     }
   }
 
-  // ============================================
-  // Pending Webhooks Methods
-  // ============================================
-
-  // ============================================
-  // Plex Session Monitoring Methods
-  // ============================================
+  /*
+   * Note: All database methods for specific domains (users, watchlist, instances, etc.)
+   * are implemented in separate module files under ./database/methods/ and bound to
+   * this service instance via the bindMethods() function above.
+   *
+   * Type definitions for these methods can be found in ./database/types/
+   *
+   * This modular approach provides better code organization while maintaining
+   * the convenience of calling methods directly on the database service instance.
+   */
 }
