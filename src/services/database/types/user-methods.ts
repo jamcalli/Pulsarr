@@ -1,7 +1,7 @@
 import type { User } from '@root/types/config.types.js'
 import type { AdminUser } from '@schemas/auth/auth.js'
 
-declare module '@services/database.service.js' {
+declare module '../../database.service.js' {
   interface DatabaseService {
     // USER MANAGEMENT
     /**
@@ -9,7 +9,9 @@ declare module '@services/database.service.js' {
      * @param userData - User data excluding id and timestamps
      * @returns Promise resolving to the created user with ID and timestamps
      */
-    createUser(userData: Omit<User, 'id' | 'created_at' | 'updated_at'>): Promise<User>
+    createUser(
+      userData: Omit<User, 'id' | 'created_at' | 'updated_at'>,
+    ): Promise<User>
 
     /**
      * Retrieves a user by ID or name
@@ -24,7 +26,10 @@ declare module '@services/database.service.js' {
      * @param data - Partial user data to update
      * @returns Promise resolving to true if the user was updated, false otherwise
      */
-    updateUser(id: number, data: Partial<Omit<User, 'id' | 'created_at' | 'updated_at'>>): Promise<boolean>
+    updateUser(
+      id: number,
+      data: Partial<Omit<User, 'id' | 'created_at' | 'updated_at'>>,
+    ): Promise<boolean>
 
     /**
      * Bulk updates multiple users with the same set of changes
@@ -32,7 +37,10 @@ declare module '@services/database.service.js' {
      * @param data - Partial user data to apply to all specified users
      * @returns Promise resolving to object with count of updated users and array of failed IDs
      */
-    bulkUpdateUsers(userIds: number[], data: Partial<Omit<User, 'id' | 'created_at' | 'updated_at'>>): Promise<{ updatedCount: number; failedIds: number[] }>
+    bulkUpdateUsers(
+      userIds: number[],
+      data: Partial<Omit<User, 'id' | 'created_at' | 'updated_at'>>,
+    ): Promise<{ updatedCount: number; failedIds: number[] }>
 
     /**
      * Retrieves all users in the database
@@ -44,7 +52,9 @@ declare module '@services/database.service.js' {
      * Retrieves all users with their watchlist item counts
      * @returns Promise resolving to array of users with watchlist count property
      */
-    getUsersWithWatchlistCount(): Promise<(User & { watchlist_count: number })[]>
+    getUsersWithWatchlistCount(): Promise<
+      (User & { watchlist_count: number })[]
+    >
 
     /**
      * Retrieves the primary user from the database
@@ -57,7 +67,12 @@ declare module '@services/database.service.js' {
      * @param userData - Admin user data including email, username, password, and role
      * @returns Promise resolving to true if created successfully
      */
-    createAdminUser(userData: { email: string, username: string, password: string, role: string }): Promise<boolean>
+    createAdminUser(userData: {
+      email: string
+      username: string
+      password: string
+      role: string
+    }): Promise<boolean>
 
     /**
      * Retrieves an admin user by email

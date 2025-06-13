@@ -1,3 +1,5 @@
+import type { Config } from '@root/types/config.types.js'
+
 declare module '../../database.service.js' {
   interface DatabaseService {
     // CONFIGURATION MANAGEMENT
@@ -13,7 +15,9 @@ declare module '../../database.service.js' {
      * @param config - Configuration data excluding timestamps
      * @returns Promise resolving to the ID of the created configuration
      */
-    createConfig(config: Omit<Config, 'created_at' | 'updated_at'>): Promise<number>
+    createConfig(
+      config: Omit<Config, 'created_at' | 'updated_at'>,
+    ): Promise<number>
 
     /**
      * Updates an existing configuration entry
