@@ -10,6 +10,7 @@ declare module '../../database.service.js' {
      * Processes notifications for media availability
      * @param mediaInfo - Information about the media item
      * @param isBulkRelease - Whether this is a bulk release (e.g., full season)
+     * @param byGuid - Whether to match by guid (optional, defaults to false)
      * @returns Promise resolving to array of notification results
      */
     processNotifications(
@@ -20,6 +21,7 @@ declare module '../../database.service.js' {
         episodes?: SonarrEpisodeSchema[]
       },
       isBulkRelease: boolean,
+      byGuid?: boolean,
     ): Promise<NotificationResult[]>
 
     /**

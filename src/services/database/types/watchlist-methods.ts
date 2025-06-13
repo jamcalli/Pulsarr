@@ -186,7 +186,6 @@ declare module '../../database.service.js' {
     /**
      * Creates temporary RSS items for processing
      * @param items - Array of temporary RSS items to create
-     * @param source - Source of the items ('self' or 'friends')
      * @returns Promise resolving to void when complete
      */
     createTempRssItems(
@@ -195,8 +194,9 @@ declare module '../../database.service.js' {
         type: string
         thumb?: string
         guids: string[]
+        genres?: string[]
+        source: 'self' | 'friends'
       }>,
-      source: 'self' | 'friends',
     ): Promise<void>
 
     /**

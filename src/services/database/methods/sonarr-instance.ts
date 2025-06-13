@@ -11,29 +11,33 @@ export async function getAllSonarrInstances(
   this: DatabaseService,
 ): Promise<SonarrInstance[]> {
   const instances = await this.knex('sonarr_instances')
+    .where('is_enabled', true)
     .select('*')
-    .where('enabled', true)
-    .orderBy('name')
 
   return instances.map((instance) => ({
-    ...instance,
-    tags: this.safeJsonParse<string[]>(
-      instance.tags,
-      [],
-      'sonarrInstance.tags',
+    id: instance.id,
+    name: instance.name,
+    baseUrl: instance.base_url,
+    apiKey: instance.api_key,
+    qualityProfile: instance.quality_profile,
+    rootFolder: instance.root_folder,
+    bypassIgnored: Boolean(instance.bypass_ignored),
+    seasonMonitoring: instance.season_monitoring,
+    monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
+    searchOnAdd: this.toBoolean(instance.search_on_add, true),
+    createSeasonFolders: this.toBoolean(
+      instance.create_season_folders,
+      false,
     ),
-    syncedInstances: this.safeJsonParse<number[]>(
-      instance.syncedInstances,
+    tags: this.safeJsonParse(instance.tags, [], 'sonarr.tags'),
+    isDefault: Boolean(instance.is_default),
+    syncedInstances: this.safeJsonParse(
+      instance.synced_instances,
       [],
-      'sonarrInstance.syncedInstances',
+      'sonarr.synced_instances',
     ),
-    data: instance.data
-      ? this.safeJsonParse(instance.data, {}, 'sonarrInstance.data')
-      : undefined,
-    isDefault: Boolean(instance.isDefault),
-    bypassIgnored: Boolean(instance.bypassIgnored),
-    searchOnAdd: Boolean(instance.searchOnAdd),
-    createSeasonFolders: Boolean(instance.createSeasonFolders),
+    seriesType:
+      (instance.series_type as 'standard' | 'anime' | 'daily') || 'standard',
   }))
 }
 
@@ -46,30 +50,38 @@ export async function getDefaultSonarrInstance(
   this: DatabaseService,
 ): Promise<SonarrInstance | null> {
   const instance = await this.knex('sonarr_instances')
-    .where({ isDefault: true, enabled: true })
+    .where({
+      is_default: true,
+      is_enabled: true,
+    })
     .first()
 
   if (!instance) return null
 
   return {
-    ...instance,
-    tags: this.safeJsonParse<string[]>(
-      instance.tags,
-      [],
-      'sonarrInstance.tags',
+    id: instance.id,
+    name: instance.name,
+    baseUrl: instance.base_url,
+    apiKey: instance.api_key,
+    qualityProfile: instance.quality_profile,
+    rootFolder: instance.root_folder,
+    bypassIgnored: Boolean(instance.bypass_ignored),
+    seasonMonitoring: instance.season_monitoring,
+    monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
+    searchOnAdd: this.toBoolean(instance.search_on_add, true),
+    createSeasonFolders: this.toBoolean(
+      instance.create_season_folders,
+      false,
     ),
-    syncedInstances: this.safeJsonParse<number[]>(
-      instance.syncedInstances,
+    tags: this.safeJsonParse(instance.tags, [], 'sonarr.tags'),
+    isDefault: Boolean(instance.is_default),
+    syncedInstances: this.safeJsonParse(
+      instance.synced_instances,
       [],
-      'sonarrInstance.syncedInstances',
+      'sonarr.synced_instances',
     ),
-    data: instance.data
-      ? this.safeJsonParse(instance.data, {}, 'sonarrInstance.data')
-      : undefined,
-    isDefault: Boolean(instance.isDefault),
-    bypassIgnored: Boolean(instance.bypassIgnored),
-    searchOnAdd: Boolean(instance.searchOnAdd),
-    createSeasonFolders: Boolean(instance.createSeasonFolders),
+    seriesType:
+      (instance.series_type as 'standard' | 'anime' | 'daily') || 'standard',
   }
 }
 
@@ -88,24 +100,29 @@ export async function getSonarrInstance(
   if (!instance) return null
 
   return {
-    ...instance,
-    tags: this.safeJsonParse<string[]>(
-      instance.tags,
-      [],
-      'sonarrInstance.tags',
+    id: instance.id,
+    name: instance.name,
+    baseUrl: instance.base_url,
+    apiKey: instance.api_key,
+    qualityProfile: instance.quality_profile,
+    rootFolder: instance.root_folder,
+    bypassIgnored: Boolean(instance.bypass_ignored),
+    seasonMonitoring: instance.season_monitoring,
+    monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
+    searchOnAdd: this.toBoolean(instance.search_on_add, true),
+    createSeasonFolders: this.toBoolean(
+      instance.create_season_folders,
+      false,
     ),
-    syncedInstances: this.safeJsonParse<number[]>(
-      instance.syncedInstances,
+    tags: this.safeJsonParse(instance.tags, [], 'sonarr.tags'),
+    isDefault: Boolean(instance.is_default),
+    syncedInstances: this.safeJsonParse(
+      instance.synced_instances,
       [],
-      'sonarrInstance.syncedInstances',
+      'sonarr.synced_instances',
     ),
-    data: instance.data
-      ? this.safeJsonParse(instance.data, {}, 'sonarrInstance.data')
-      : undefined,
-    isDefault: Boolean(instance.isDefault),
-    bypassIgnored: Boolean(instance.bypassIgnored),
-    searchOnAdd: Boolean(instance.searchOnAdd),
-    createSeasonFolders: Boolean(instance.createSeasonFolders),
+    seriesType:
+      (instance.series_type as 'standard' | 'anime' | 'daily') || 'standard',
   }
 }
 
@@ -122,21 +139,21 @@ export async function createSonarrInstance(
   const [id] = await this.knex('sonarr_instances')
     .insert({
       name: instance.name,
-      baseUrl: instance.baseUrl,
-      apiKey: instance.apiKey,
-      qualityProfile: instance.qualityProfile,
-      rootFolder: instance.rootFolder,
-      bypassIgnored: instance.bypassIgnored || false,
-      seasonMonitoring: instance.seasonMonitoring,
-      monitorNewItems: instance.monitorNewItems || 'all',
+      base_url: instance.baseUrl,
+      api_key: instance.apiKey,
+      quality_profile: instance.qualityProfile,
+      root_folder: instance.rootFolder,
+      bypass_ignored: instance.bypassIgnored || false,
+      season_monitoring: instance.seasonMonitoring,
+      monitor_new_items: instance.monitorNewItems || 'all',
       tags: JSON.stringify(instance.tags || []),
-      isDefault: instance.isDefault || false,
-      syncedInstances: JSON.stringify(instance.syncedInstances || []),
-      searchOnAdd: instance.searchOnAdd || false,
-      seriesType: instance.seriesType || 'standard',
-      createSeasonFolders: instance.createSeasonFolders || false,
+      is_default: instance.isDefault || false,
+      synced_instances: JSON.stringify(instance.syncedInstances || []),
+      search_on_add: instance.searchOnAdd || false,
+      series_type: instance.seriesType || 'standard',
+      create_season_folders: instance.createSeasonFolders || false,
       data: instance.data ? JSON.stringify(instance.data) : null,
-      enabled: true,
+      is_enabled: true,
       created_at: this.timestamp,
       updated_at: this.timestamp,
     })
@@ -164,10 +181,54 @@ export async function updateSonarrInstance(
 
   for (const [key, value] of Object.entries(updates)) {
     if (value !== undefined) {
-      if (key === 'tags' || key === 'syncedInstances' || key === 'data') {
-        updateData[key] = value !== undefined ? JSON.stringify(value) : null
-      } else {
-        updateData[key] = value
+      switch (key) {
+        case 'name':
+          updateData.name = value
+          break
+        case 'baseUrl':
+          updateData.base_url = value
+          break
+        case 'apiKey':
+          updateData.api_key = value
+          break
+        case 'qualityProfile':
+          updateData.quality_profile = value
+          break
+        case 'rootFolder':
+          updateData.root_folder = value
+          break
+        case 'bypassIgnored':
+          updateData.bypass_ignored = value
+          break
+        case 'seasonMonitoring':
+          updateData.season_monitoring = value
+          break
+        case 'monitorNewItems':
+          updateData.monitor_new_items = value
+          break
+        case 'searchOnAdd':
+          updateData.search_on_add = value
+          break
+        case 'createSeasonFolders':
+          updateData.create_season_folders = value
+          break
+        case 'tags':
+          updateData.tags = JSON.stringify(value)
+          break
+        case 'isDefault':
+          updateData.is_default = value
+          break
+        case 'syncedInstances':
+          updateData.synced_instances = JSON.stringify(value)
+          break
+        case 'seriesType':
+          updateData.series_type = value
+          break
+        case 'data':
+          updateData.data = value ? JSON.stringify(value) : null
+          break
+        default:
+          updateData[key] = value
       }
     }
   }
@@ -246,23 +307,28 @@ export async function getSonarrInstanceByIdentifier(
   if (!instance) return null
 
   return {
-    ...instance,
-    tags: this.safeJsonParse<string[]>(
-      instance.tags,
-      [],
-      'sonarrInstance.tags',
+    id: instance.id,
+    name: instance.name,
+    baseUrl: instance.base_url,
+    apiKey: instance.api_key,
+    qualityProfile: instance.quality_profile,
+    rootFolder: instance.root_folder,
+    bypassIgnored: Boolean(instance.bypass_ignored),
+    seasonMonitoring: instance.season_monitoring,
+    monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
+    searchOnAdd: this.toBoolean(instance.search_on_add, true),
+    createSeasonFolders: this.toBoolean(
+      instance.create_season_folders,
+      false,
     ),
-    syncedInstances: this.safeJsonParse<number[]>(
-      instance.syncedInstances,
+    tags: this.safeJsonParse(instance.tags, [], 'sonarr.tags'),
+    isDefault: Boolean(instance.is_default),
+    syncedInstances: this.safeJsonParse(
+      instance.synced_instances,
       [],
-      'sonarrInstance.syncedInstances',
+      'sonarr.synced_instances',
     ),
-    data: instance.data
-      ? this.safeJsonParse(instance.data, {}, 'sonarrInstance.data')
-      : undefined,
-    isDefault: Boolean(instance.isDefault),
-    bypassIgnored: Boolean(instance.bypassIgnored),
-    searchOnAdd: Boolean(instance.searchOnAdd),
-    createSeasonFolders: Boolean(instance.createSeasonFolders),
+    seriesType:
+      (instance.series_type as 'standard' | 'anime' | 'daily') || 'standard',
   }
 }
