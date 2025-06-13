@@ -1,6 +1,6 @@
 import type { Config } from '@root/types/config.types.js'
 
-declare module '../../database.service.js' {
+declare module '@services/database.service.js' {
   interface DatabaseService {
     // CONFIGURATION MANAGEMENT
     /**

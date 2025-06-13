@@ -84,15 +84,19 @@ export async function addWatchlistToRadarrInstance(
   syncing = false,
 ): Promise<void> {
   try {
-    await this.knex('watchlist_radarr_instances').insert({
-      watchlist_id: watchlistId,
-      radarr_instance_id: instanceId,
-      status,
-      is_primary: isPrimary,
-      syncing,
-      created_at: this.timestamp,
-      updated_at: this.timestamp,
-    })
+    await this.knex('watchlist_radarr_instances')
+      .insert({
+        watchlist_id: watchlistId,
+        radarr_instance_id: instanceId,
+        status,
+        is_primary: isPrimary,
+        syncing,
+        created_at: this.timestamp,
+        updated_at: this.timestamp,
+      })
+      .onConflict(['watchlist_id', 'radarr_instance_id'])
+      .merge(['status', 'is_primary', 'syncing', 'updated_at'])
+
     this.log.debug(
       `Added watchlist ${watchlistId} to Radarr instance ${instanceId}`,
     )
@@ -330,13 +334,24 @@ export async function bulkUpdateWatchlistRadarrInstanceStatuses(
 
       const { watchlist_id, radarr_instance_id, ...fields } = update
 
+      // Filter out undefined values to prevent setting fields to NULL
+      const updateFields = Object.entries(fields).reduce(
+        (acc, [key, value]) => {
+          if (value !== undefined) {
+            acc[key] = value
+          }
+          return acc
+        },
+        {} as Record<string, unknown>,
+      )
+
       await trx('watchlist_radarr_instances')
         .where({
           watchlist_id,
           radarr_instance_id,
         })
         .update({
-          ...fields,
+          ...updateFields,
           updated_at: timestamp,
         })
     }
@@ -459,15 +474,18 @@ export async function addWatchlistToSonarrInstance(
   syncing = false,
 ): Promise<void> {
   try {
-    await this.knex('watchlist_sonarr_instances').insert({
-      watchlist_id: watchlistId,
-      sonarr_instance_id: instanceId,
-      status,
-      is_primary: isPrimary,
-      syncing,
-      created_at: this.timestamp,
-      updated_at: this.timestamp,
-    })
+    await this.knex('watchlist_sonarr_instances')
+      .insert({
+        watchlist_id: watchlistId,
+        sonarr_instance_id: instanceId,
+        status,
+        is_primary: isPrimary,
+        syncing,
+        created_at: this.timestamp,
+        updated_at: this.timestamp,
+      })
+      .onConflict(['watchlist_id', 'sonarr_instance_id'])
+      .merge(['status', 'is_primary', 'syncing', 'updated_at'])
 
     this.log.debug(
       `Added watchlist ${watchlistId} to Sonarr instance ${instanceId}`,
@@ -706,13 +724,24 @@ export async function bulkUpdateWatchlistSonarrInstanceStatuses(
         throw new Error(`Invalid status '${fields.status}'`)
       }
 
+      // Filter out undefined values to prevent setting fields to NULL
+      const updateFields = Object.entries(fields).reduce(
+        (acc, [key, value]) => {
+          if (value !== undefined) {
+            acc[key] = value
+          }
+          return acc
+        },
+        {} as Record<string, unknown>,
+      )
+
       await trx('watchlist_sonarr_instances')
         .where({
           watchlist_id,
           sonarr_instance_id,
         })
         .update({
-          ...fields,
+          ...updateFields,
           updated_at: timestamp,
         })
     }

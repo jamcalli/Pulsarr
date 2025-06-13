@@ -124,24 +124,20 @@ export async function updateWatchlistItemByGuid(
     radarr_instance_id?: number | null
   },
 ): Promise<number> {
-  const items = await this.knex('watchlist_items')
-    .whereRaw(
-      this.isPostgreSQL()
-        ? 'jsonb_array_length(guids) > 0'
-        : 'json_array_length(guids) > 0',
-    )
-    .select('id', 'guids')
-
-  const matchingIds = items
-    .filter((item) => {
-      const guids = this.safeJsonParse<string[]>(
-        item.guids,
-        [],
-        'watchlist_item.guids',
-      )
-      return Array.isArray(guids) && guids.includes(guid)
-    })
-    .map((item) => item.id)
+  // Use database-specific JSON functions to filter efficiently
+  const matchingIds = this.isPostgreSQL()
+    ? await this.knex('watchlist_items')
+        .whereRaw(
+          'EXISTS (SELECT 1 FROM jsonb_array_elements_text(guids) elem WHERE lower(elem) = lower(?))',
+          [guid],
+        )
+        .pluck('id')
+    : await this.knex('watchlist_items')
+        .whereRaw(
+          'EXISTS (SELECT 1 FROM json_each(guids) WHERE json_each.type = "text" AND lower(json_each.value) = lower(?))',
+          [guid],
+        )
+        .pluck('id')
 
   if (matchingIds.length === 0) {
     this.log.warn(`No items found with GUID: ${guid}`)

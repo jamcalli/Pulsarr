@@ -8,7 +8,7 @@ import type {
   SonarrSeriesLookupResponse,
 } from '@root/types/content-lookup.types.js'
 
-declare module '../../database.service.js' {
+declare module '@services/database.service.js' {
   interface DatabaseService {
     // CONTENT ROUTER SECTION
     /**
@@ -52,7 +52,7 @@ declare module '../../database.service.js' {
      */
     updateRouterRule(
       id: number,
-      updates: Partial<RouterRule>,
+      updates: Partial<Omit<RouterRule, 'id' | 'created_at' | 'updated_at'>>,
     ): Promise<RouterRule>
 
     /**

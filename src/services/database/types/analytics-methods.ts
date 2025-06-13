@@ -1,4 +1,4 @@
-declare module '../../database.service.js' {
+declare module '@services/database.service.js' {
   interface DatabaseService {
     // ANALYTICS & STATISTICS
     /**
