@@ -47,7 +47,6 @@ import type {
   TokenWatchlistItem,
   Item as WatchlistItem,
 } from '@root/types/plex.types.js'
-import type { AdminUser } from '@schemas/auth/auth.js'
 import type {
   SonarrInstance,
   SonarrEpisodeSchema,
@@ -78,9 +77,11 @@ import type {
 } from '@root/types/content-lookup.types.js'
 import type { RollingMonitoredShow } from '@root/types/plex-session.types.js'
 import { parseGuids } from '@utils/guid-handler.js'
+import './database/types/user-methods.js'
+import * as userMethods from './database/methods/users.js'
 
 export class DatabaseService {
-  private readonly knex: Knex
+  public readonly knex: Knex
 
   /**
    * Creates a new DatabaseService instance
@@ -88,17 +89,17 @@ export class DatabaseService {
    * @param log - Fastify logger instance for recording database operations
    * @param config - Fastify configuration containing database connection details
    */
-  private readonly isPostgres: boolean
+  public readonly isPostgres: boolean
 
   constructor(
-    private readonly log: FastifyBaseLogger,
-    private readonly fastify: FastifyInstance,
+    public readonly log: FastifyBaseLogger,
+    public readonly fastify: FastifyInstance,
   ) {
     this.isPostgres = fastify.config.dbType === 'postgres'
     this.knex = knex(DatabaseService.createKnexConfig(fastify.config, log))
   }
 
-  private get config() {
+  public get config() {
     return this.fastify.config
   }
 
@@ -122,7 +123,7 @@ export class DatabaseService {
   /**
    * Configures PostgreSQL type parsers asynchronously
    */
-  private async configurePostgresTypes(): Promise<void> {
+  public async configurePostgresTypes(): Promise<void> {
     try {
       await configurePgTypes(this.log)
       this.log.info('PostgreSQL type parsers configured successfully')
@@ -136,15 +137,31 @@ export class DatabaseService {
   /**
    * Helper method to check if we're using PostgreSQL
    */
-  private isPostgreSQL(): boolean {
+  public isPostgreSQL(): boolean {
     return this.isPostgres
+  }
+
+    private bindMethods(): void {
+    const methodModules = [
+      userMethods,  // Add your users module here
+      // You'll add other modules here later (configMethods, instanceMethods, etc.)
+    ]
+
+    for (const module of methodModules) {
+      for (const [methodName, methodFunction] of Object.entries(module)) {
+        if (typeof methodFunction === 'function') {
+          // Bind each method to this DatabaseService instance
+          ;(this as any)[methodName] = methodFunction.bind(this)
+        }
+      }
+    }
   }
 
   /**
    * Helper method to extract rows from raw query results
    * PostgreSQL returns {rows: T[]} while SQLite returns T[] directly
    */
-  private extractRawQueryRows<T>(result: T[] | { rows: T[] }): T[] {
+  public extractRawQueryRows<T>(result: T[] | { rows: T[] }): T[] {
     if (Array.isArray(result)) {
       return result
     }
@@ -174,7 +191,7 @@ export class DatabaseService {
    * @param log - Logger to use for database operations
    * @returns Knex configuration object
    */
-  private static createKnexConfig(
+  public static createKnexConfig(
     config: FastifyInstance['config'],
     log: FastifyBaseLogger,
   ): Knex.Config {
@@ -249,7 +266,7 @@ export class DatabaseService {
    * @param context - Context string for logging (e.g., 'watchlist_item.guids')
    * @returns Parsed value or default value
    */
-  private safeJsonParse<T>(
+  public safeJsonParse<T>(
     value: string | null | undefined,
     defaultValue: T,
     context?: string,
@@ -271,396 +288,12 @@ export class DatabaseService {
    * @param alias - Optional alias for the result
    * @returns SQL expression for date difference in days
    */
-  private getDateDiffSQL(date1: string, date2: string, alias?: string): string {
+  public getDateDiffSQL(date1: string, date2: string, alias?: string): string {
     const diff = this.isPostgreSQL()
       ? `EXTRACT(EPOCH FROM (${date1} - ${date2})) / 86400`
       : `julianday(${date1}) - julianday(${date2})`
 
     return alias ? `${diff} AS ${alias}` : diff
-  }
-
-  //=============================================================================
-  // USER MANAGEMENT
-  //=============================================================================
-
-  /**
-   * Creates a new user in the database
-   *
-   * @param userData - User data excluding id and timestamps
-   * @returns Promise resolving to the created user with ID and timestamps
-   */
-  async createUser(
-    userData: Omit<User, 'id' | 'created_at' | 'updated_at'>,
-  ): Promise<User> {
-    const result = await this.knex('users')
-      .insert({
-        ...userData,
-        created_at: this.timestamp,
-        updated_at: this.timestamp,
-      })
-      .returning('id')
-
-    // Handle different return formats
-    const id =
-      typeof result[0] === 'object' && result[0] !== null
-        ? result[0].id // Handle case where result is an array of objects
-        : result[0] // Handle case where result is an array of values
-
-    if (id === undefined || id === null) {
-      throw new Error('Failed to create user')
-    }
-
-    const user: User = {
-      ...userData,
-      id: Number(id),
-      created_at: this.timestamp,
-      updated_at: this.timestamp,
-    }
-
-    return user
-  }
-
-  /**
-   * Retrieves a user by ID or name
-   *
-   * @param identifier - User ID (number) or username (string)
-   * @returns Promise resolving to the user if found, undefined otherwise
-   */
-  async getUser(identifier: number | string): Promise<User | undefined> {
-    const row = await this.knex('users')
-      .where(
-        typeof identifier === 'number'
-          ? { id: identifier }
-          : { name: identifier },
-      )
-      .first()
-
-    if (!row) return undefined
-
-    return {
-      id: row.id,
-      name: row.name,
-      apprise: row.apprise,
-      alias: row.alias,
-      discord_id: row.discord_id,
-      notify_apprise: Boolean(row.notify_apprise),
-      notify_discord: Boolean(row.notify_discord),
-      notify_tautulli: Boolean(row.notify_tautulli),
-      tautulli_notifier_id: row.tautulli_notifier_id,
-      can_sync: Boolean(row.can_sync),
-      is_primary_token: Boolean(row.is_primary_token),
-      created_at: row.created_at,
-      updated_at: row.updated_at,
-    } satisfies User
-  }
-
-  /**
-   * Updates a user's information
-   *
-   * @param id - ID of the user to update
-   * @param data - Partial user data to update
-   * @returns Promise resolving to true if the user was updated, false otherwise
-   */
-  async updateUser(
-    id: number,
-    data: Partial<Omit<User, 'id' | 'created_at' | 'updated_at'>>,
-  ): Promise<boolean> {
-    const updated = await this.knex('users')
-      .where({ id })
-      .update({
-        ...data,
-        updated_at: this.timestamp,
-      })
-    return updated > 0
-  }
-
-  /**
-   * Bulk updates multiple users with the same set of changes
-   *
-   * @param userIds - Array of user IDs to update
-   * @param data - Partial user data to apply to all specified users
-   * @returns Promise resolving to object with count of updated users and array of failed IDs
-   */
-  async bulkUpdateUsers(
-    userIds: number[],
-    data: Partial<Omit<User, 'id' | 'created_at' | 'updated_at'>>,
-  ): Promise<{ updatedCount: number; failedIds: number[] }> {
-    const failedIds: number[] = []
-    let updatedCount = 0
-
-    try {
-      // Start a transaction to ensure all updates are atomic
-      await this.knex.transaction(async (trx) => {
-        // Prepare the update data with timestamp
-        const updateData = {
-          ...data,
-          updated_at: this.timestamp,
-        }
-
-        // For efficiency with large arrays, do batches
-        const BATCH_SIZE = 50
-        for (let i = 0; i < userIds.length; i += BATCH_SIZE) {
-          const batchIds = userIds.slice(i, i + BATCH_SIZE)
-
-          try {
-            // Perform the batch update
-            const result = await trx('users')
-              .whereIn('id', batchIds)
-              .update(updateData)
-
-            // Add successfully updated count
-            updatedCount += result
-
-            // Track failed IDs by comparing with updated count
-            if (result < batchIds.length) {
-              const updatedUsers = await trx('users')
-                .whereIn('id', batchIds)
-                .select('id')
-
-              const updatedIds = updatedUsers.map((user) => user.id)
-              const missingIds = batchIds.filter(
-                (id) => !updatedIds.includes(id),
-              )
-
-              failedIds.push(...missingIds)
-            }
-          } catch (batchError) {
-            this.log.error(`Error updating user batch: ${batchError}`)
-            throw batchError
-          }
-        }
-      })
-    } catch (error) {
-      this.log.error(`Error in bulk user update transaction: ${error}`)
-      return { updatedCount: 0, failedIds: userIds }
-    }
-
-    this.log.info(
-      `Bulk updated ${updatedCount} users, ${failedIds.length} failed`,
-    )
-    return { updatedCount, failedIds }
-  }
-
-  /**
-   * Retrieves all users in the database
-   *
-   * @returns Promise resolving to an array of all users
-   */
-  async getAllUsers(): Promise<User[]> {
-    const rows = await this.knex('users').select('*').orderBy('name', 'asc')
-
-    return rows.map((row) => ({
-      id: row.id,
-      name: row.name,
-      apprise: row.apprise,
-      alias: row.alias,
-      discord_id: row.discord_id,
-      notify_apprise: Boolean(row.notify_apprise),
-      notify_discord: Boolean(row.notify_discord),
-      notify_tautulli: Boolean(row.notify_tautulli),
-      tautulli_notifier_id: row.tautulli_notifier_id,
-      can_sync: Boolean(row.can_sync),
-      is_primary_token: Boolean(row.is_primary_token),
-      created_at: row.created_at,
-      updated_at: row.updated_at,
-    })) satisfies User[]
-  }
-
-  /**
-   * Retrieves all users with their watchlist item counts
-   *
-   * @returns Promise resolving to array of users with watchlist count property
-   */
-  async getUsersWithWatchlistCount(): Promise<
-    (User & { watchlist_count: number })[]
-  > {
-    const rows = await this.knex('users')
-      .select([
-        'users.*',
-        this.knex.raw('COUNT(watchlist_items.id) as watchlist_count'),
-      ])
-      .leftJoin('watchlist_items', 'users.id', 'watchlist_items.user_id')
-      .groupBy('users.id')
-      .orderBy('users.name', 'asc')
-
-    return rows.map((row) => ({
-      id: row.id,
-      name: row.name,
-      apprise: row.apprise,
-      alias: row.alias,
-      discord_id: row.discord_id,
-      notify_apprise: Boolean(row.notify_apprise),
-      notify_discord: Boolean(row.notify_discord),
-      notify_tautulli: Boolean(row.notify_tautulli),
-      tautulli_notifier_id: row.tautulli_notifier_id,
-      can_sync: Boolean(row.can_sync),
-      is_primary_token: Boolean(row.is_primary_token),
-      created_at: row.created_at,
-      updated_at: row.updated_at,
-      watchlist_count: Number(row.watchlist_count),
-    })) satisfies (User & { watchlist_count: number })[]
-  }
-
-  /**
-   * Retrieves the primary user from the database
-   *
-   * @returns Promise resolving to the primary user if found, undefined otherwise
-   */
-  async getPrimaryUser(): Promise<User | undefined> {
-    try {
-      const primaryUser = await this.knex('users')
-        .where({ is_primary_token: true })
-        .first()
-
-      this.log.debug(
-        { userId: primaryUser?.id, username: primaryUser?.name },
-        'Retrieved primary user',
-      )
-
-      return primaryUser || undefined
-    } catch (error) {
-      this.log.error({ error }, 'Error retrieving primary user')
-      return undefined
-    }
-  }
-
-  /**
-   * Creates a new admin user in the database
-   *
-   * @param userData - Admin user data including email, username, password, and role
-   * @returns Promise resolving to true if created successfully
-   */
-  async createAdminUser(userData: {
-    email: string
-    username: string
-    password: string
-    role: string
-  }): Promise<boolean> {
-    try {
-      await this.knex('admin_users').insert({
-        ...userData,
-        created_at: this.timestamp,
-        updated_at: this.timestamp,
-      })
-      return true
-    } catch (error) {
-      this.log.error('Error creating admin user:', error)
-      return false
-    }
-  }
-
-  /**
-   * Retrieves an admin user by email
-   *
-   * @param email - Email address of the admin user
-   * @returns Promise resolving to the admin user if found, undefined otherwise
-   */
-  async getAdminUser(email: string): Promise<AdminUser | undefined> {
-    return await this.knex('admin_users')
-      .select('id', 'username', 'email', 'password', 'role')
-      .where({ email })
-      .first()
-  }
-
-  /**
-   * Retrieves an admin user by username
-   *
-   * @param username - Username of the admin user
-   * @returns Promise resolving to the admin user if found, undefined otherwise
-   */
-  async getAdminUserByUsername(
-    username: string,
-  ): Promise<AdminUser | undefined> {
-    return await this.knex('admin_users')
-      .select('id', 'username', 'email', 'password', 'role')
-      .where({ username })
-      .first()
-  }
-
-  /**
-   * Checks if any admin users exist in the database
-   *
-   * @returns Promise resolving to true if admin users exist, false otherwise
-   */
-  async hasAdminUsers(): Promise<boolean> {
-    const count = await this.knex('admin_users').count('* as count').first()
-    const numCount = Number(count?.count || 0)
-    return !Number.isNaN(numCount) && numCount > 0
-  }
-
-  /**
-   * Updates an admin user's password
-   *
-   * @param email - Email address of the admin user
-   * @param hashedPassword - New hashed password
-   * @returns Promise resolving to true if password was updated, false otherwise
-   */
-  async updateAdminPassword(
-    email: string,
-    hashedPassword: string,
-  ): Promise<boolean> {
-    try {
-      const updated = await this.knex('admin_users').where({ email }).update({
-        password: hashedPassword,
-        updated_at: this.timestamp,
-      })
-      return updated > 0
-    } catch (error) {
-      this.log.error('Error updating admin password:', error)
-      return false
-    }
-  }
-
-  /**
-   * Checks if any users have sync disabled
-   *
-   * @returns Promise resolving to true if any users have sync disabled, false otherwise
-   */
-  async hasUsersWithSyncDisabled(): Promise<boolean> {
-    try {
-      const count = await this.knex('users')
-        .where({ can_sync: false })
-        .count('* as count')
-        .first()
-
-      return Number(count?.count || 0) > 0
-    } catch (error) {
-      this.log.error('Error checking for users with sync disabled:', error)
-      return true
-    }
-  }
-
-  /**
-   * Sets a user as the primary token user, ensuring only one user has this flag
-   *
-   * This method clears the primary flag from all users before setting it on the specified user,
-   * which ensures database consistency even if the unique constraint is not present.
-   *
-   * @param userId - ID of the user to set as primary
-   * @returns Promise resolving to true if successful
-   */
-  async setPrimaryUser(userId: number): Promise<boolean> {
-    try {
-      await this.knex.transaction(async (trx) => {
-        // Clear existing primary flags
-        await trx('users').where({ is_primary_token: true }).update({
-          is_primary_token: false,
-          updated_at: this.timestamp,
-        })
-
-        // Set the new primary user
-        await trx('users').where({ id: userId }).update({
-          is_primary_token: true,
-          updated_at: this.timestamp,
-        })
-      })
-
-      this.log.info(`Set user ID ${userId} as the primary token user`)
-      return true
-    } catch (error) {
-      this.log.error(`Error setting primary user ${userId}:`, error)
-      return false
-    }
   }
 
   //=============================================================================
@@ -939,7 +572,7 @@ export class DatabaseService {
    * @param defaultValue - The default boolean value to return if value is null/undefined
    * @returns The converted boolean value or the default
    */
-  private toBoolean(value: unknown, defaultValue: boolean): boolean {
+  public toBoolean(value: unknown, defaultValue: boolean): boolean {
     return value == null ? defaultValue : Boolean(value)
   }
 
@@ -1113,7 +746,7 @@ export class DatabaseService {
   }
 
   /** Normalises/validates monitorNewItems, throws on bad input */
-  private normaliseMonitorNewItems(
+  public normaliseMonitorNewItems(
     value: string | undefined | null,
   ): 'all' | 'none' {
     if (value === undefined || value === null) {
@@ -1132,7 +765,7 @@ export class DatabaseService {
    * Validates against allowed values: 'announced', 'inCinemas', 'released'
    * Throws error for invalid values, returns default 'released' for null/undefined
    */
-  private normaliseMinimumAvailability(
+  public normaliseMinimumAvailability(
     value?: string | null,
   ): 'announced' | 'inCinemas' | 'released' {
     const allowed = ['announced', 'inCinemas', 'released'] as const
@@ -1173,7 +806,7 @@ export class DatabaseService {
    * @param serviceName - Service name for error messages (Radarr/Sonarr)
    * @throws Error if default status cannot be changed
    */
-  private async validateInstanceDefaultStatus(
+  public async validateInstanceDefaultStatus(
     trx: Knex.Transaction,
     tableName: 'radarr_instances' | 'sonarr_instances',
     instanceId: number,
@@ -2859,7 +2492,7 @@ export class DatabaseService {
    * @param size - Maximum size of each chunk
    * @returns Array of arrays containing the chunked data
    */
-  private chunkArray<T>(array: T[], size: number): T[][] {
+  public chunkArray<T>(array: T[], size: number): T[][] {
     const chunks: T[][] = []
     for (let i = 0; i < array.length; i += size) {
       chunks.push(array.slice(i, i + size))
@@ -2870,7 +2503,7 @@ export class DatabaseService {
   /**
    * Returns the current timestamp in ISO format
    */
-  private get timestamp() {
+  public get timestamp() {
     return new Date().toISOString()
   }
 
@@ -5731,7 +5364,7 @@ export class DatabaseService {
    * Helper method to format a router rule from the database
    * Ensures proper type conversions for boolean fields and JSON parsing
    */
-  private formatRouterRule(rule: {
+  public formatRouterRule(rule: {
     id: number
     name: string
     type: string
@@ -6038,7 +5671,7 @@ export class DatabaseService {
   }
 
   // Helper to validate condition structure
-  private readonly VALID_OPERATORS = [
+  public readonly VALID_OPERATORS = [
     'equals',
     'notEquals',
     'contains',
@@ -6062,7 +5695,7 @@ export class DatabaseService {
    * @param depth - Current recursion depth (for preventing stack overflow)
    * @returns Object indicating if the condition is valid and any error message
    */
-  private validateCondition(
+  public validateCondition(
     condition: Condition | ConditionGroup,
     depth = 0,
   ): { valid: boolean; error?: string } {
