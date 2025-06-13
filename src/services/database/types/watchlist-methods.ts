@@ -4,7 +4,7 @@ import type {
   Item as WatchlistItem,
 } from '@root/types/plex.types.js'
 
-declare module '../../database.service.js' {
+declare module '@services/database.service.js' {
   interface DatabaseService {
     // WATCHLIST MANAGEMENT
     /**

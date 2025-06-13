@@ -4,7 +4,7 @@ import type {
   CronConfig,
 } from '@root/types/scheduler.types.js'
 
-declare module '../../database.service.js' {
+declare module '@services/database.service.js' {
   interface DatabaseService {
     // SCHEDULER METHODS
     /**

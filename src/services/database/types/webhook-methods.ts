@@ -3,7 +3,7 @@ import type {
   PendingWebhookCreate,
 } from '@root/types/pending-webhooks.types.js'
 
-declare module '../../database.service.js' {
+declare module '@services/database.service.js' {
   interface DatabaseService {
     // PENDING WEBHOOKS METHODS
     /**

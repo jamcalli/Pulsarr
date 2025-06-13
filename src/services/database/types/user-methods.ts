@@ -1,7 +1,7 @@
 import type { User } from '@root/types/config.types.js'
 import type { AdminUser } from '@schemas/auth/auth.js'
 
-declare module '../../database.service.js' {
+declare module '@services/database.service.js' {
   interface DatabaseService {
     // USER MANAGEMENT
     /**

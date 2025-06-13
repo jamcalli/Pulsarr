@@ -1,6 +1,6 @@
 import type { RollingMonitoredShow } from '@root/types/plex-session.types.js'
 
-declare module '../../database.service.js' {
+declare module '@services/database.service.js' {
   interface DatabaseService {
     // PLEX SESSION MONITORING
     /**

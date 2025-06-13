@@ -8,6 +8,7 @@ import type {
   PendingWebhook,
   PendingWebhookCreate,
 } from '@root/types/pending-webhooks.types.js'
+import type { User } from '@root/types/config.types.js'
 import {
   determineNotificationType,
   getPublicContentNotificationFlags,
@@ -36,8 +37,34 @@ export async function processNotifications(
   const watchlistItems = await this.getWatchlistItemsByGuid(mediaInfo.guid)
   const notifications: NotificationResult[] = []
 
+  // Fetch all users in a single query to avoid N+1 queries
+  const userIds = [...new Set(watchlistItems.map((item) => item.user_id))]
+  const userRows = await this.knex('users').whereIn('id', userIds)
+
+  // Create a map of user ID to formatted User object
+  const userMap = new Map(
+    userRows.map((row) => [
+      row.id,
+      {
+        id: row.id,
+        name: row.name,
+        apprise: row.apprise,
+        alias: row.alias,
+        discord_id: row.discord_id,
+        notify_apprise: Boolean(row.notify_apprise),
+        notify_discord: Boolean(row.notify_discord),
+        notify_tautulli: Boolean(row.notify_tautulli),
+        tautulli_notifier_id: row.tautulli_notifier_id,
+        can_sync: Boolean(row.can_sync),
+        is_primary_token: Boolean(row.is_primary_token),
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+      } satisfies User,
+    ]),
+  )
+
   for (const item of watchlistItems) {
-    const user = await this.getUser(item.user_id)
+    const user = userMap.get(item.user_id)
     if (!user) continue
 
     if (
@@ -94,15 +121,18 @@ export async function processNotifications(
       continue
     }
 
-    await this.knex('watchlist_items').where('id', item.id).update({
-      last_notified_at: new Date().toISOString(),
-      status: 'notified',
-    })
+    // Update watchlist item status and record history atomically
+    await this.knex.transaction(async (trx) => {
+      await trx('watchlist_items').where('id', item.id).update({
+        last_notified_at: new Date().toISOString(),
+        status: 'notified',
+      })
 
-    await this.knex('watchlist_status_history').insert({
-      watchlist_item_id: item.id,
-      status: 'notified',
-      timestamp: new Date().toISOString(),
+      await trx('watchlist_status_history').insert({
+        watchlist_item_id: item.id,
+        status: 'notified',
+        timestamp: new Date().toISOString(),
+      })
     })
 
     const notificationTitle = mediaInfo.title || item.title

@@ -233,16 +233,32 @@ export async function getPrimaryUser(
   this: DatabaseService,
 ): Promise<User | undefined> {
   try {
-    const primaryUser = await this.knex('users')
+    const row = await this.knex('users')
       .where({ is_primary_token: true })
       .first()
 
+    if (!row) return undefined
+
     this.log.debug(
-      { userId: primaryUser?.id, username: primaryUser?.name },
+      { userId: row.id, username: row.name },
       'Retrieved primary user',
     )
 
-    return primaryUser || undefined
+    return {
+      id: row.id,
+      name: row.name,
+      apprise: row.apprise,
+      alias: row.alias,
+      discord_id: row.discord_id,
+      notify_apprise: Boolean(row.notify_apprise),
+      notify_discord: Boolean(row.notify_discord),
+      notify_tautulli: Boolean(row.notify_tautulli),
+      tautulli_notifier_id: row.tautulli_notifier_id,
+      can_sync: Boolean(row.can_sync),
+      is_primary_token: Boolean(row.is_primary_token),
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    } satisfies User
   } catch (error) {
     this.log.error({ error }, 'Error retrieving primary user')
     return undefined

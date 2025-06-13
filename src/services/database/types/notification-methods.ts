@@ -3,7 +3,7 @@ import type {
   NotificationResult,
 } from '@root/types/sonarr.types.js'
 
-declare module '../../database.service.js' {
+declare module '@services/database.service.js' {
   interface DatabaseService {
     // NOTIFICATION PROCESSING
     /**

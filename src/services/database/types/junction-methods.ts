@@ -1,6 +1,6 @@
 import type { WatchlistInstanceStatus } from '@root/types/watchlist-status.types.js'
 
-declare module '../../database.service.js' {
+declare module '@services/database.service.js' {
   interface DatabaseService {
     // RADARR JUNCTION TABLE METHODS
     /**

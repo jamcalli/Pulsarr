@@ -90,23 +90,7 @@ export async function createRouterRule(
 
   if (!createdRule) throw new Error('Failed to create router rule')
 
-  return {
-    ...createdRule,
-    enabled: Boolean(createdRule.enabled),
-    criteria:
-      typeof createdRule.criteria === 'string'
-        ? this.safeJsonParse(createdRule.criteria, {}, 'router_rule.criteria')
-        : createdRule.criteria,
-    tags:
-      typeof createdRule.tags === 'string'
-        ? this.safeJsonParse(createdRule.tags, [], 'router_rule.tags')
-        : createdRule.tags || [],
-    metadata: createdRule.metadata
-      ? typeof createdRule.metadata === 'string'
-        ? this.safeJsonParse(createdRule.metadata, null, 'router_rule.metadata')
-        : createdRule.metadata
-      : null,
-  }
+  return this.formatRouterRule(createdRule)
 }
 
 /**
@@ -477,12 +461,11 @@ export async function hasAnyRouterRules(
       .where(function () {
         this.where('enabled', true).orWhereNull('enabled')
       })
-      .limit(1)
-      .select(1)
+      .count('* as count')
       .first()
 
-    // Simply check if result exists
-    return Boolean(result)
+    // Check if count is greater than 0
+    return Number(result?.count || 0) > 0
   } catch (error) {
     this.log.error('Error checking for router rules:', error)
 
