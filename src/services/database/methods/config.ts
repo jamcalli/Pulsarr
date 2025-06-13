@@ -256,7 +256,8 @@ export async function updateConfig(
         key === 'plexTokens' ||
         key === 'plexSessionMonitoring'
       ) {
-        updateData[key] = value !== undefined ? JSON.stringify(value) : null
+        updateData[key] =
+          value !== undefined && value !== null ? JSON.stringify(value) : null
       } else {
         updateData[key] = value
       }

@@ -79,7 +79,7 @@ export async function addWatchlistToRadarrInstance(
   this: DatabaseService,
   watchlistId: number,
   instanceId: number,
-  status = 'pending',
+  status: 'pending' | 'requested' | 'grabbed' | 'notified' = 'pending',
   isPrimary = false,
   syncing = false,
 ): Promise<void> {
@@ -454,7 +454,7 @@ export async function addWatchlistToSonarrInstance(
   this: DatabaseService,
   watchlistId: number,
   instanceId: number,
-  status = 'pending',
+  status: 'pending' | 'requested' | 'grabbed' | 'notified' = 'pending',
   isPrimary = false,
   syncing = false,
 ): Promise<void> {
@@ -636,7 +636,7 @@ export async function bulkAddWatchlistToSonarrInstances(
   junctions: Array<{
     watchlist_id: number
     sonarr_instance_id: number
-    status: string
+    status: 'pending' | 'requested' | 'grabbed' | 'notified'
     is_primary: boolean
     last_notified_at?: string
     syncing?: boolean

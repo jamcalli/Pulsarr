@@ -407,6 +407,23 @@ export class DatabaseService {
   }
 
   /**
+   * Normalises/validates monitorNewItems, throws on bad input
+   */
+  public normaliseMonitorNewItems(
+    value: string | undefined | null,
+  ): 'all' | 'none' {
+    if (value === undefined || value === null) {
+      throw new Error('monitorNewItems must be provided (all|none)')
+    }
+
+    const normalized = value.toLowerCase()
+    if (!['all', 'none'].includes(normalized)) {
+      throw new Error(`Invalid monitorNewItems value: ${value}`)
+    }
+    return normalized as 'all' | 'none'
+  }
+
+  /**
    * Validates whether an instance can have its default status changed
    * Shared helper for both Radarr and Sonarr instances to eliminate duplicated logic
    *

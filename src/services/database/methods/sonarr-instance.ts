@@ -1,5 +1,6 @@
 import type { DatabaseService } from '@services/database.service.js'
 import type { SonarrInstance } from '@root/types/sonarr.types.js'
+import type { SonarrInstanceRow } from '@root/types/database-rows.types.js'
 import type { Knex } from 'knex'
 
 /**
@@ -22,7 +23,7 @@ export async function getAllSonarrInstances(
     qualityProfile: instance.quality_profile,
     rootFolder: instance.root_folder,
     bypassIgnored: Boolean(instance.bypass_ignored),
-    seasonMonitoring: instance.season_monitoring,
+    seasonMonitoring: instance.season_monitoring || 'all',
     monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
     searchOnAdd: this.toBoolean(instance.search_on_add, true),
     createSeasonFolders: this.toBoolean(instance.create_season_folders, false),
@@ -63,7 +64,7 @@ export async function getDefaultSonarrInstance(
     qualityProfile: instance.quality_profile,
     rootFolder: instance.root_folder,
     bypassIgnored: Boolean(instance.bypass_ignored),
-    seasonMonitoring: instance.season_monitoring,
+    seasonMonitoring: instance.season_monitoring || 'all',
     monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
     searchOnAdd: this.toBoolean(instance.search_on_add, true),
     createSeasonFolders: this.toBoolean(instance.create_season_folders, false),
@@ -101,7 +102,7 @@ export async function getSonarrInstance(
     qualityProfile: instance.quality_profile,
     rootFolder: instance.root_folder,
     bypassIgnored: Boolean(instance.bypass_ignored),
-    seasonMonitoring: instance.season_monitoring,
+    seasonMonitoring: instance.season_monitoring || 'all',
     monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
     searchOnAdd: this.toBoolean(instance.search_on_add, true),
     createSeasonFolders: this.toBoolean(instance.create_season_folders, false),
@@ -127,31 +128,47 @@ export async function createSonarrInstance(
   this: DatabaseService,
   instance: Omit<SonarrInstance, 'id'>,
 ): Promise<number> {
-  const [id] = await this.knex('sonarr_instances')
+  if (instance.isDefault) {
+    await this.knex('sonarr_instances')
+      .where('is_default', true)
+      .update('is_default', false)
+  }
+
+  const result = await this.knex('sonarr_instances')
     .insert({
-      name: instance.name,
+      name: instance.name || 'Default Sonarr Instance',
       base_url: instance.baseUrl,
       api_key: instance.apiKey,
       quality_profile: instance.qualityProfile,
       root_folder: instance.rootFolder,
-      bypass_ignored: instance.bypassIgnored || false,
+      bypass_ignored: instance.bypassIgnored,
       season_monitoring: instance.seasonMonitoring,
-      monitor_new_items: instance.monitorNewItems || 'all',
+      monitor_new_items: this.normaliseMonitorNewItems(
+        instance.monitorNewItems,
+      ),
+      search_on_add: instance.searchOnAdd ?? true,
+      create_season_folders: instance.createSeasonFolders ?? false,
       tags: JSON.stringify(instance.tags || []),
-      is_default: instance.isDefault || false,
-      synced_instances: JSON.stringify(instance.syncedInstances || []),
-      search_on_add: instance.searchOnAdd || false,
-      series_type: instance.seriesType || 'standard',
-      create_season_folders: instance.createSeasonFolders || false,
-      data: instance.data ? JSON.stringify(instance.data) : null,
+      is_default: instance.isDefault ?? false,
       is_enabled: true,
+      synced_instances: JSON.stringify(instance.syncedInstances || []),
+      series_type: instance.seriesType || 'standard',
       created_at: this.timestamp,
       updated_at: this.timestamp,
     })
     .returning('id')
 
-  this.log.info(`Sonarr instance created with ID: ${id}`)
-  return id
+  if (!result || !Array.isArray(result) || result.length === 0) {
+    throw new Error('No ID returned from database')
+  }
+
+  const row = result[0]
+  if (typeof row !== 'object' || !('id' in row)) {
+    throw new Error('Invalid ID returned from database')
+  }
+
+  this.log.info(`Sonarr instance created with ID: ${row.id}`)
+  return row.id
 }
 
 /**
@@ -166,65 +183,73 @@ export async function updateSonarrInstance(
   id: number,
   updates: Partial<SonarrInstance>,
 ): Promise<void> {
-  const updateData: Record<string, unknown> = {
-    updated_at: this.timestamp,
+  // Force placeholder instances to be default (regardless of whether isDefault is false or undefined)
+  if (updates.apiKey === 'placeholder' && updates.isDefault !== true) {
+    updates.isDefault = true
+    this.log.warn('Forced placeholder instance to remain default')
   }
 
-  for (const [key, value] of Object.entries(updates)) {
-    if (value !== undefined) {
-      switch (key) {
-        case 'name':
-          updateData.name = value
-          break
-        case 'baseUrl':
-          updateData.base_url = value
-          break
-        case 'apiKey':
-          updateData.api_key = value
-          break
-        case 'qualityProfile':
-          updateData.quality_profile = value
-          break
-        case 'rootFolder':
-          updateData.root_folder = value
-          break
-        case 'bypassIgnored':
-          updateData.bypass_ignored = value
-          break
-        case 'seasonMonitoring':
-          updateData.season_monitoring = value
-          break
-        case 'monitorNewItems':
-          updateData.monitor_new_items = value
-          break
-        case 'searchOnAdd':
-          updateData.search_on_add = value
-          break
-        case 'createSeasonFolders':
-          updateData.create_season_folders = value
-          break
-        case 'tags':
-          updateData.tags = JSON.stringify(value)
-          break
-        case 'isDefault':
-          updateData.is_default = value
-          break
-        case 'syncedInstances':
-          updateData.synced_instances = JSON.stringify(value)
-          break
-        case 'seriesType':
-          updateData.series_type = value
-          break
-        case 'data':
-          updateData.data = value ? JSON.stringify(value) : null
-          break
-        default:
-          updateData[key] = value
-      }
-    }
-  }
+  // Use a transaction to ensure all operations are atomic
+  await this.knex.transaction(async (trx) => {
+    // Validate instance default status using the shared helper
+    await this.validateInstanceDefaultStatus(
+      trx,
+      'sonarr_instances',
+      id,
+      updates.isDefault,
+      'Sonarr',
+    )
 
-  await this.knex('sonarr_instances').where({ id }).update(updateData)
+    // Finally, update the instance with all changes
+    await trx('sonarr_instances')
+      .where('id', id)
+      .update({
+        ...(typeof updates.name !== 'undefined' && { name: updates.name }),
+        ...(typeof updates.baseUrl !== 'undefined' && {
+          base_url: updates.baseUrl,
+        }),
+        ...(typeof updates.apiKey !== 'undefined' && {
+          api_key: updates.apiKey,
+        }),
+        ...(typeof updates.qualityProfile !== 'undefined' && {
+          quality_profile: updates.qualityProfile,
+        }),
+        ...(typeof updates.rootFolder !== 'undefined' && {
+          root_folder: updates.rootFolder,
+        }),
+        ...(typeof updates.bypassIgnored !== 'undefined' && {
+          bypass_ignored: updates.bypassIgnored,
+        }),
+        ...(typeof updates.seasonMonitoring !== 'undefined' && {
+          season_monitoring: updates.seasonMonitoring,
+        }),
+        ...(typeof updates.monitorNewItems !== 'undefined' && {
+          monitor_new_items: this.normaliseMonitorNewItems(
+            updates.monitorNewItems,
+          ),
+        }),
+        ...(typeof updates.searchOnAdd !== 'undefined' && {
+          search_on_add: updates.searchOnAdd,
+        }),
+        ...(typeof updates.createSeasonFolders !== 'undefined' && {
+          create_season_folders: updates.createSeasonFolders,
+        }),
+        ...(typeof updates.seriesType !== 'undefined' && {
+          series_type: updates.seriesType,
+        }),
+        ...(typeof updates.tags !== 'undefined' && {
+          tags: JSON.stringify(updates.tags),
+        }),
+        ...(typeof updates.isDefault !== 'undefined' && {
+          is_default: updates.isDefault,
+        }),
+        ...(typeof updates.syncedInstances !== 'undefined' && {
+          synced_instances: JSON.stringify(updates.syncedInstances),
+        }),
+        updated_at: this.timestamp,
+      })
+  })
+
   this.log.info(`Sonarr instance ${id} updated`)
 }
 
@@ -240,19 +265,66 @@ export async function cleanupDeletedSonarrInstanceReferences(
   deletedId: number,
   trx?: Knex.Transaction,
 ): Promise<void> {
-  const knexInstance = trx || this.knex
+  try {
+    // Use the provided transaction or the regular knex instance
+    const queryBuilder = trx || this.knex
 
-  await knexInstance('watchlist_sonarr_instances')
-    .where('sonarr_instance_id', deletedId)
-    .del()
+    // Clean up junction table references
+    await queryBuilder('watchlist_sonarr_instances')
+      .where('sonarr_instance_id', deletedId)
+      .del()
 
-  await knexInstance('sonarr_genre_routes')
-    .where('sonarrInstanceId', deletedId)
-    .del()
+    // Clean up synced_instances references in other instances
+    const instances = await queryBuilder('sonarr_instances').select(
+      'id',
+      'synced_instances',
+    )
 
-  this.log.info(
-    `Cleaned up references for deleted Sonarr instance ${deletedId}`,
-  )
+    for (const instance of instances) {
+      try {
+        const syncedInstances = this.safeJsonParse<number[]>(
+          instance.synced_instances,
+          [],
+          'synced_instances',
+        )
+
+        if (
+          Array.isArray(syncedInstances) &&
+          syncedInstances.includes(deletedId)
+        ) {
+          const updatedInstances = syncedInstances.filter(
+            (id) => id !== deletedId,
+          )
+
+          await queryBuilder('sonarr_instances')
+            .where('id', instance.id)
+            .update({
+              synced_instances: JSON.stringify(updatedInstances),
+              updated_at: this.timestamp,
+            })
+
+          this.log.debug(
+            `Removed deleted Sonarr instance ${deletedId} from synced_instances of instance ${instance.id}`,
+          )
+        }
+      } catch (parseError) {
+        this.log.error(
+          `Error parsing synced_instances for Sonarr instance ${instance.id}:`,
+          parseError,
+        )
+      }
+    }
+
+    this.log.info(
+      `Cleaned up references for deleted Sonarr instance ${deletedId}`,
+    )
+  } catch (error) {
+    this.log.error(
+      `Error cleaning up references to deleted Sonarr instance ${deletedId}:`,
+      error,
+    )
+    throw error
+  }
 }
 
 /**
@@ -265,12 +337,57 @@ export async function deleteSonarrInstance(
   this: DatabaseService,
   id: number,
 ): Promise<void> {
-  await this.knex.transaction(async (trx) => {
-    await this.cleanupDeletedSonarrInstanceReferences(id, trx)
-    await trx('sonarr_instances').where({ id }).del()
-  })
+  try {
+    // Check if this is a default instance before deleting
+    const instanceToDelete = await this.knex('sonarr_instances')
+      .where('id', id)
+      .first()
 
-  this.log.info(`Sonarr instance ${id} deleted`)
+    if (!instanceToDelete) {
+      this.log.warn(`Sonarr instance ${id} not found for deletion`)
+      return
+    }
+
+    const isDefault =
+      instanceToDelete?.is_default === 1 ||
+      instanceToDelete?.is_default === true
+
+    // Use a transaction to ensure atomicity across all operations
+    await this.knex.transaction(async (trx) => {
+      // First clean up references to this instance with transaction
+      await this.cleanupDeletedSonarrInstanceReferences(id, trx)
+
+      // Delete the instance
+      await trx('sonarr_instances').where('id', id).delete()
+
+      // If this was a default instance, set a new default if any instances remain
+      if (isDefault) {
+        const remainingInstances = await trx('sonarr_instances')
+          .where('is_enabled', true)
+          .orderBy('id')
+          .select('id')
+          .first()
+
+        if (remainingInstances) {
+          await trx('sonarr_instances')
+            .where('id', remainingInstances.id)
+            .update({
+              is_default: true,
+              updated_at: this.timestamp,
+            })
+
+          this.log.info(
+            `Set Sonarr instance ${remainingInstances.id} as new default after deleting instance ${id}`,
+          )
+        }
+      }
+    })
+
+    this.log.info(`Deleted Sonarr instance ${id} and cleaned up references`)
+  } catch (error) {
+    this.log.error(`Error deleting Sonarr instance ${id}:`, error)
+    throw error
+  }
 }
 
 /**
@@ -283,28 +400,7 @@ export async function getSonarrInstanceByIdentifier(
   this: DatabaseService,
   identifier: string | number,
 ): Promise<SonarrInstance | null> {
-  let instance:
-    | {
-        id: number
-        name: string
-        base_url: string
-        api_key: string
-        quality_profile: string | null
-        root_folder: string | null
-        bypass_ignored: boolean | number
-        season_monitoring: string
-        monitor_new_items: string | null
-        search_on_add: boolean | number | null
-        create_season_folders: boolean | number | null
-        tags: string | null
-        is_default: boolean | number
-        synced_instances: string | null
-        series_type: string | null
-        is_enabled: boolean | number
-        created_at: string | Date
-        updated_at: string | Date
-      }
-    | undefined
+  let instance: SonarrInstanceRow | undefined
 
   if (typeof identifier === 'number') {
     instance = await this.knex('sonarr_instances')
@@ -326,7 +422,7 @@ export async function getSonarrInstanceByIdentifier(
     qualityProfile: instance.quality_profile,
     rootFolder: instance.root_folder,
     bypassIgnored: Boolean(instance.bypass_ignored),
-    seasonMonitoring: instance.season_monitoring,
+    seasonMonitoring: instance.season_monitoring || 'all',
     monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
     searchOnAdd: this.toBoolean(instance.search_on_add, true),
     createSeasonFolders: this.toBoolean(instance.create_season_folders, false),
