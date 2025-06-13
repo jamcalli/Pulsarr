@@ -48,7 +48,7 @@ export async function createUser(
  */
 export async function getUser(
   this: DatabaseService,
-  identifier: number | string
+  identifier: number | string,
 ): Promise<User | undefined> {
   const row = await this.knex('users')
     .where(
@@ -143,9 +143,7 @@ export async function bulkUpdateUsers(
               .select('id')
 
             const updatedIds = updatedUsers.map((user) => user.id)
-            const missingIds = batchIds.filter(
-              (id) => !updatedIds.includes(id),
-            )
+            const missingIds = batchIds.filter((id) => !updatedIds.includes(id))
 
             failedIds.push(...missingIds)
           }
@@ -197,7 +195,7 @@ export async function getAllUsers(this: DatabaseService): Promise<User[]> {
  * @returns Promise resolving to array of users with watchlist count property
  */
 export async function getUsersWithWatchlistCount(
-  this: DatabaseService
+  this: DatabaseService,
 ): Promise<(User & { watchlist_count: number })[]> {
   const rows = await this.knex('users')
     .select([
@@ -231,7 +229,9 @@ export async function getUsersWithWatchlistCount(
  *
  * @returns Promise resolving to the primary user if found, undefined otherwise
  */
-export async function getPrimaryUser(this: DatabaseService): Promise<User | undefined> {
+export async function getPrimaryUser(
+  this: DatabaseService,
+): Promise<User | undefined> {
   try {
     const primaryUser = await this.knex('users')
       .where({ is_primary_token: true })
@@ -262,7 +262,7 @@ export async function createAdminUser(
     username: string
     password: string
     role: string
-  }
+  },
 ): Promise<boolean> {
   try {
     await this.knex('admin_users').insert({
@@ -285,7 +285,7 @@ export async function createAdminUser(
  */
 export async function getAdminUser(
   this: DatabaseService,
-  email: string
+  email: string,
 ): Promise<AdminUser | undefined> {
   return await this.knex('admin_users')
     .select('id', 'username', 'email', 'password', 'role')
@@ -349,7 +349,9 @@ export async function updateAdminPassword(
  *
  * @returns Promise resolving to true if any users have sync disabled, false otherwise
  */
-export async function hasUsersWithSyncDisabled(this: DatabaseService): Promise<boolean> {
+export async function hasUsersWithSyncDisabled(
+  this: DatabaseService,
+): Promise<boolean> {
   try {
     const count = await this.knex('users')
       .where({ can_sync: false })
@@ -374,7 +376,7 @@ export async function hasUsersWithSyncDisabled(this: DatabaseService): Promise<b
  */
 export async function setPrimaryUser(
   this: DatabaseService,
-  userId: number
+  userId: number,
 ): Promise<boolean> {
   try {
     await this.knex.transaction(async (trx) => {

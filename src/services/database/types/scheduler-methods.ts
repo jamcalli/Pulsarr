@@ -1,3 +1,9 @@
+import type {
+  DbSchedule,
+  IntervalConfig,
+  CronConfig,
+} from '@root/types/scheduler.types.js'
+
 declare module '../../database.service.js' {
   interface DatabaseService {
     // SCHEDULER METHODS
@@ -18,16 +24,23 @@ declare module '../../database.service.js' {
      * Updates an existing schedule
      * @param name - Name of the schedule to update
      * @param updates - Partial schedule data to update
-     * @returns Promise resolving to the updated schedule
+     * @returns Promise resolving to true if updated, false otherwise
      */
-    updateSchedule(name: string, updates: Partial<{ enabled: boolean, interval_config: IntervalConfig, cron_config: CronConfig, last_run: Date | null, next_run: Date | null }>): Promise<DbSchedule>
+    updateSchedule(
+      name: string,
+      updates: Partial<
+        Omit<DbSchedule, 'id' | 'name' | 'created_at' | 'updated_at'>
+      >,
+    ): Promise<boolean>
 
     /**
      * Creates a new schedule
      * @param schedule - Schedule data excluding auto-generated fields
-     * @returns Promise resolving to the created schedule
+     * @returns Promise resolving to the ID of the created schedule
      */
-    createSchedule(schedule: Omit<DbSchedule, 'id' | 'created_at' | 'updated_at'>): Promise<DbSchedule>
+    createSchedule(
+      schedule: Omit<DbSchedule, 'id' | 'created_at' | 'updated_at'>,
+    ): Promise<number>
 
     /**
      * Deletes a schedule by name

@@ -1,3 +1,9 @@
+import type { WatchlistItemUpdate } from '@root/types/watchlist-status.types.js'
+import type {
+  TokenWatchlistItem,
+  Item as WatchlistItem,
+} from '@root/types/plex.types.js'
+
 declare module '../../database.service.js' {
   interface DatabaseService {
     // WATCHLIST MANAGEMENT
@@ -7,7 +13,10 @@ declare module '../../database.service.js' {
      * @param updates - Fields to update on the watchlist item
      * @returns Promise resolving to void when complete
      */
-    updateWatchlistItem(key: string, updates: WatchlistItemUpdate): Promise<void>
+    updateWatchlistItem(
+      key: string,
+      updates: WatchlistItemUpdate,
+    ): Promise<void>
 
     /**
      * Updates watchlist items by matching GUID
@@ -15,7 +24,13 @@ declare module '../../database.service.js' {
      * @param updates - Fields to update on matching watchlist items
      * @returns Promise resolving to the number of items updated
      */
-    updateWatchlistItemByGuid(guid: string, updates: { sonarr_instance_id?: number | null, radarr_instance_id?: number | null }): Promise<number>
+    updateWatchlistItemByGuid(
+      guid: string,
+      updates: {
+        sonarr_instance_id?: number | null
+        radarr_instance_id?: number | null
+      },
+    ): Promise<number>
 
     /**
      * Retrieves a specific watchlist item for a user
@@ -23,7 +38,10 @@ declare module '../../database.service.js' {
      * @param key - Unique key of the watchlist item
      * @returns Promise resolving to the watchlist item if found, undefined otherwise
      */
-    getWatchlistItem(userId: number, key: string): Promise<WatchlistItem | undefined>
+    getWatchlistItem(
+      userId: number,
+      key: string,
+    ): Promise<WatchlistItem | undefined>
 
     /**
      * Retrieves watchlist items for multiple users and keys
@@ -31,7 +49,10 @@ declare module '../../database.service.js' {
      * @param keys - Optional array of watchlist item keys to filter by
      * @returns Promise resolving to an array of matching watchlist items
      */
-    getBulkWatchlistItems(userIds: number[], keys: string[]): Promise<WatchlistItem[]>
+    getBulkWatchlistItems(
+      userIds: number[],
+      keys: string[],
+    ): Promise<WatchlistItem[]>
 
     /**
      * Retrieves watchlist items by their keys
@@ -45,7 +66,14 @@ declare module '../../database.service.js' {
      * @param updates - Array of watchlist item updates with user ID and key
      * @returns Promise resolving to the number of items updated
      */
-    bulkUpdateWatchlistItems(updates: Array<{ userId: number, key: string, added?: string, status?: 'pending' | 'requested' | 'grabbed' | 'notified' }>): Promise<number>
+    bulkUpdateWatchlistItems(
+      updates: Array<{
+        userId: number
+        key: string
+        added?: string
+        status?: 'pending' | 'requested' | 'grabbed' | 'notified'
+      }>,
+    ): Promise<number>
 
     /**
      * Retrieves all GUIDs from watchlist items in an optimized way
@@ -59,14 +87,19 @@ declare module '../../database.service.js' {
      * @param type - Type of notification to fetch
      * @returns Promise resolving to array of notifications
      */
-    getNotificationsForUser(userId: number, type: string): Promise<Array<{ title: string }>>
+    getNotificationsForUser(
+      userId: number,
+      type: string,
+    ): Promise<Array<{ title: string }>>
 
     /**
      * Gets all watchlist items with their GUIDs for type-based filtering
      * @param types - Optional array of types to filter by (e.g., ['movie', 'show'])
      * @returns Promise resolving to array of items with their guids
      */
-    getAllGuidsFromWatchlist(types?: string[]): Promise<Array<{ id: number; guids: string[] }>>
+    getAllGuidsFromWatchlist(
+      types?: string[],
+    ): Promise<Array<{ id: number; guids: string[] }>>
 
     /**
      * Checks for existing webhook notifications for given titles
@@ -74,7 +107,10 @@ declare module '../../database.service.js' {
      * @param titles - Array of titles to check for existing notifications
      * @returns Promise resolving to a map of title to boolean (true if notification exists)
      */
-    checkExistingWebhooks(userId: number, titles: string[]): Promise<Map<string, boolean>>
+    checkExistingWebhooks(
+      userId: number,
+      titles: string[],
+    ): Promise<Map<string, boolean>>
 
     /**
      * Cross-database compatible GUID extraction
@@ -99,7 +135,9 @@ declare module '../../database.service.js' {
      * Retrieves all genres from the genres table
      * @returns Promise resolving to array of all genres
      */
-    getAllGenres(): Promise<Array<{ id: number; name: string; is_custom: boolean }>>
+    getAllGenres(): Promise<
+      Array<{ id: number; name: string; is_custom: boolean }>
+    >
 
     /**
      * Deletes a custom genre from the genres table
@@ -113,7 +151,14 @@ declare module '../../database.service.js' {
      * @param updates - Array of show status updates
      * @returns Promise resolving to the number of items updated
      */
-    bulkUpdateShowStatuses(updates: Array<{ key: string, userId: number, added?: string, status?: 'pending' | 'requested' | 'grabbed' | 'notified' }>): Promise<number>
+    bulkUpdateShowStatuses(
+      updates: Array<{
+        key: string
+        userId: number
+        added?: string
+        status?: 'pending' | 'requested' | 'grabbed' | 'notified'
+      }>,
+    ): Promise<number>
 
     /**
      * Retrieves all show watchlist items
@@ -133,7 +178,10 @@ declare module '../../database.service.js' {
      * @param options - Configuration options for how to handle conflicts
      * @returns Promise resolving to void when complete
      */
-    createWatchlistItems(items: Omit<WatchlistItem, 'created_at' | 'updated_at'>[], options?: { onConflict?: 'ignore' | 'merge' }): Promise<void>
+    createWatchlistItems(
+      items: Omit<WatchlistItem, 'created_at' | 'updated_at'>[],
+      options?: { onConflict?: 'ignore' | 'merge' },
+    ): Promise<void>
 
     /**
      * Creates temporary RSS items for processing
@@ -141,14 +189,33 @@ declare module '../../database.service.js' {
      * @param source - Source of the items ('self' or 'friends')
      * @returns Promise resolving to void when complete
      */
-    createTempRssItems(items: Array<{ title: string, type: string, thumb?: string, guids: string[] }>, source: 'self' | 'friends'): Promise<void>
+    createTempRssItems(
+      items: Array<{
+        title: string
+        type: string
+        thumb?: string
+        guids: string[]
+      }>,
+      source: 'self' | 'friends',
+    ): Promise<void>
 
     /**
      * Retrieves temporary RSS items
      * @param source - Optional source filter ('self' or 'friends')
      * @returns Promise resolving to array of temporary RSS items
      */
-    getTempRssItems(source?: 'self' | 'friends'): Promise<Array<{ id: number, title: string, type: string, thumb: string | null }>>
+    getTempRssItems(source?: 'self' | 'friends'): Promise<
+      Array<{
+        id: number
+        title: string
+        type: string
+        thumb: string | null
+        guids: string[]
+        genres: string[]
+        source: 'self' | 'friends'
+        created_at: string
+      }>
+    >
 
     /**
      * Deletes specific temporary RSS items by ID
