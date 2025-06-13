@@ -1,5 +1,6 @@
 import type { DatabaseService } from '@services/database.service.js'
 import type { RadarrInstance } from '@root/types/radarr.types.js'
+import type { RadarrInstanceRow } from '@root/types/database-rows.types.js'
 import type { Knex } from 'knex'
 
 /**
@@ -140,14 +141,14 @@ export async function createRadarrInstance(
       .update('is_default', false)
   }
 
-  const [id] = await this.knex('radarr_instances')
+  const result = await this.knex('radarr_instances')
     .insert({
       name: instance.name || 'Default Radarr Instance',
       base_url: instance.baseUrl,
       api_key: instance.apiKey,
       quality_profile: instance.qualityProfile,
       root_folder: instance.rootFolder,
-      bypass_ignored: instance.bypassIgnored || false,
+      bypass_ignored: instance.bypassIgnored,
       search_on_add: instance.searchOnAdd ?? true,
       minimum_availability: this.normaliseMinimumAvailability(
         instance.minimumAvailability,
@@ -161,8 +162,17 @@ export async function createRadarrInstance(
     })
     .returning('id')
 
-  this.log.info(`Radarr instance created with ID: ${id}`)
-  return id
+  if (!result || !Array.isArray(result) || result.length === 0) {
+    throw new Error('No ID returned from database')
+  }
+
+  const row = result[0]
+  if (typeof row !== 'object' || !('id' in row)) {
+    throw new Error('Invalid ID returned from database')
+  }
+
+  this.log.info(`Radarr instance created with ID: ${row.id}`)
+  return row.id
 }
 
 /**
@@ -246,39 +256,66 @@ export async function cleanupDeletedRadarrInstanceReferences(
   deletedId: number,
   trx?: Knex.Transaction,
 ): Promise<void> {
-  const knexInstance = trx || this.knex
+  try {
+    // Use the provided transaction or the regular knex instance
+    const queryBuilder = trx || this.knex
 
-  await knexInstance('watchlist_radarr_instances')
-    .where('radarr_instance_id', deletedId)
-    .del()
+    // Clean up junction table references
+    await queryBuilder('watchlist_radarr_instances')
+      .where('radarr_instance_id', deletedId)
+      .del()
 
-  const instances = await knexInstance('radarr_instances').select(
-    'id',
-    'synced_instances',
-  )
-
-  for (const instance of instances) {
-    const syncedInstances = this.safeJsonParse<number[]>(
-      instance.synced_instances,
-      [],
-      'radarrInstance.syncedInstances',
+    // Clean up synced_instances references in other instances
+    const instances = await queryBuilder('radarr_instances').select(
+      'id',
+      'synced_instances',
     )
 
-    if (Array.isArray(syncedInstances) && syncedInstances.includes(deletedId)) {
-      const updatedInstances = syncedInstances.filter((id) => id !== deletedId)
+    for (const instance of instances) {
+      try {
+        const syncedInstances = this.safeJsonParse<number[]>(
+          instance.synced_instances,
+          [],
+          'synced_instances',
+        )
 
-      await knexInstance('radarr_instances')
-        .where('id', instance.id)
-        .update({
-          synced_instances: JSON.stringify(updatedInstances),
-          updated_at: this.timestamp,
-        })
+        if (
+          Array.isArray(syncedInstances) &&
+          syncedInstances.includes(deletedId)
+        ) {
+          const updatedInstances = syncedInstances.filter(
+            (id) => id !== deletedId,
+          )
+
+          await queryBuilder('radarr_instances')
+            .where('id', instance.id)
+            .update({
+              synced_instances: JSON.stringify(updatedInstances),
+              updated_at: this.timestamp,
+            })
+
+          this.log.debug(
+            `Removed deleted Radarr instance ${deletedId} from synced_instances of instance ${instance.id}`,
+          )
+        }
+      } catch (parseError) {
+        this.log.error(
+          `Error parsing synced_instances for Radarr instance ${instance.id}:`,
+          parseError,
+        )
+      }
     }
-  }
 
-  this.log.info(
-    `Cleaned up references for deleted Radarr instance ${deletedId}`,
-  )
+    this.log.info(
+      `Cleaned up references for deleted Radarr instance ${deletedId}`,
+    )
+  } catch (error) {
+    this.log.error(
+      `Error cleaning up references to deleted Radarr instance ${deletedId}:`,
+      error,
+    )
+    throw error
+  }
 }
 
 /**
@@ -291,41 +328,57 @@ export async function deleteRadarrInstance(
   this: DatabaseService,
   id: number,
 ): Promise<void> {
-  const instanceToDelete = await this.knex('radarr_instances')
-    .where('id', id)
-    .first()
+  try {
+    // Check if this is a default instance before deleting
+    const instanceToDelete = await this.knex('radarr_instances')
+      .where('id', id)
+      .first()
 
-  if (!instanceToDelete) {
-    this.log.warn(`Radarr instance ${id} not found for deletion`)
-    return
-  }
-
-  const isDefault = Boolean(instanceToDelete.is_default)
-
-  await this.knex.transaction(async (trx) => {
-    await this.cleanupDeletedRadarrInstanceReferences(id, trx)
-    await trx('radarr_instances').where({ id }).del()
-
-    if (isDefault) {
-      const remainingInstance = await trx('radarr_instances')
-        .where('is_enabled', true)
-        .orderBy('id')
-        .first()
-
-      if (remainingInstance) {
-        await trx('radarr_instances').where('id', remainingInstance.id).update({
-          is_default: true,
-          updated_at: this.timestamp,
-        })
-
-        this.log.info(
-          `Set Radarr instance ${remainingInstance.id} as new default after deleting instance ${id}`,
-        )
-      }
+    if (!instanceToDelete) {
+      this.log.warn(`Radarr instance ${id} not found for deletion`)
+      return
     }
-  })
 
-  this.log.info(`Radarr instance ${id} deleted`)
+    const isDefault =
+      instanceToDelete?.is_default === 1 ||
+      instanceToDelete?.is_default === true
+
+    // Use a transaction to ensure atomicity across all operations
+    await this.knex.transaction(async (trx) => {
+      // First clean up references to this instance with transaction
+      await this.cleanupDeletedRadarrInstanceReferences(id, trx)
+
+      // Delete the instance
+      await trx('radarr_instances').where('id', id).delete()
+
+      // If this was a default instance, set a new default if any instances remain
+      if (isDefault) {
+        const remainingInstances = await trx('radarr_instances')
+          .where('is_enabled', true)
+          .orderBy('id')
+          .select('id')
+          .first()
+
+        if (remainingInstances) {
+          await trx('radarr_instances')
+            .where('id', remainingInstances.id)
+            .update({
+              is_default: true,
+              updated_at: this.timestamp,
+            })
+
+          this.log.info(
+            `Set Radarr instance ${remainingInstances.id} as new default after deleting instance ${id}`,
+          )
+        }
+      }
+    })
+
+    this.log.info(`Deleted Radarr instance ${id} and cleaned up references`)
+  } catch (error) {
+    this.log.error(`Error deleting Radarr instance ${id}:`, error)
+    throw error
+  }
 }
 
 /**
@@ -338,25 +391,7 @@ export async function getRadarrInstanceByIdentifier(
   this: DatabaseService,
   identifier: string | number,
 ): Promise<RadarrInstance | null> {
-  let instance:
-    | {
-        id: number
-        name: string
-        base_url: string
-        api_key: string
-        quality_profile: string | null
-        root_folder: string | null
-        bypass_ignored: boolean | number
-        tags: string | null
-        is_default: boolean | number
-        synced_instances: string | null
-        search_on_add: boolean | number | null
-        minimum_availability: string | null
-        is_enabled: boolean | number
-        created_at: string | Date
-        updated_at: string | Date
-      }
-    | undefined
+  let instance: RadarrInstanceRow | undefined
 
   if (typeof identifier === 'number') {
     instance = await this.knex('radarr_instances')

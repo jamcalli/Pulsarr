@@ -1,4 +1,3 @@
-import type { Knex } from 'knex'
 import type { WatchlistInstanceStatus } from '@root/types/watchlist-status.types.js'
 
 declare module '../../database.service.js' {
@@ -34,7 +33,7 @@ declare module '../../database.service.js' {
     addWatchlistToRadarrInstance(
       watchlistId: number,
       instanceId: number,
-      status?: string,
+      status?: 'pending' | 'requested' | 'grabbed' | 'notified',
       isPrimary?: boolean,
       syncing?: boolean,
     ): Promise<void>
@@ -163,7 +162,7 @@ declare module '../../database.service.js' {
     addWatchlistToSonarrInstance(
       watchlistId: number,
       instanceId: number,
-      status?: string,
+      status?: 'pending' | 'requested' | 'grabbed' | 'notified',
       isPrimary?: boolean,
       syncing?: boolean,
     ): Promise<void>
@@ -229,7 +228,7 @@ declare module '../../database.service.js' {
       junctions: Array<{
         watchlist_id: number
         sonarr_instance_id: number
-        status: string
+        status: 'pending' | 'requested' | 'grabbed' | 'notified'
         is_primary: boolean
         last_notified_at?: string
         syncing?: boolean
