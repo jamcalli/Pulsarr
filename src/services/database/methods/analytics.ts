@@ -422,8 +422,8 @@ export async function getAverageTimeFromGrabbedToNotified(
       const daysBetween =
         (notifiedDate.getTime() - grabbedDate.getTime()) / (1000 * 60 * 60 * 24)
 
-      // Apply basic filtering
-      if (daysBetween < 0 || daysBetween > 180) continue
+      // Apply basic filtering - exclude negative times and extreme outliers
+      if (daysBetween < 0 || daysBetween > 30) continue // Only include transitions under 30 days
 
       rawTimes.push({
         content_type: String(item.type),
@@ -450,7 +450,7 @@ export async function getAverageTimeFromGrabbedToNotified(
       }
     }
 
-    // Step 5: Apply improved outlier filtering and calculate statistics
+    // Step 5: Apply outlier filtering and calculate statistics
     const results: Array<{
       content_type: string
       avg_days: number
@@ -476,17 +476,75 @@ export async function getAverageTimeFromGrabbedToNotified(
       const q1 = times[q1Index] || times[0]
       const q3 = times[q3Index] || times[times.length - 1]
 
-      // Apply outlier filtering
-      const iqr = q3 - q1
-      const filteredTimes = times.filter(
-        (time) =>
-          time >= p5 &&
-          time <= p95 &&
-          time >= q1 - 2.0 * iqr &&
-          time <= q3 + 2.0 * iqr,
+      // Apply multi-method outlier filtering for time data
+      // Use multiple methods to catch extreme outliers
+
+      // Method 1: Stricter percentile bounds (2nd-98th percentile for initial filtering)
+      const p2Index = Math.floor(times.length * 0.02)
+      const p98Index = Math.floor(times.length * 0.98)
+      const p2 = times[p2Index] || times[0]
+      const p98 = times[p98Index] || times[times.length - 1]
+
+      // Method 2: Modified Z-score approach using median for robustness
+      const median = times[Math.floor(times.length / 2)]
+      const medianAbsoluteDeviations = times.map((time) =>
+        Math.abs(time - median),
       )
+      medianAbsoluteDeviations.sort((a, b) => a - b)
+      const mad =
+        medianAbsoluteDeviations[
+          Math.floor(medianAbsoluteDeviations.length / 2)
+        ]
+
+      // Method 3: Conservative IQR bounds (1.0x multiplier for time data)
+      const iqr = q3 - q1
+
+      const filteredTimes = times.filter((time) => {
+        // Apply all three methods - a value must pass all checks
+        const passesPercentile = time >= p2 && time <= p98
+        const passesMAD = mad === 0 || Math.abs(time - median) <= 3 * mad // Modified Z-score < 3
+        const passesIQR = time >= q1 - 1.0 * iqr && time <= q3 + 1.0 * iqr
+        const passesReasonableBounds = time <= 30 // Nothing should take more than 30 days (in days)
+
+        // Debug logging for extreme values
+        if (time > 7) {
+          this.log.debug(
+            `Value above 7 days detected: ${time.toFixed(2)} days`,
+            {
+              passesPercentile,
+              passesMAD,
+              passesIQR,
+              passesReasonableBounds,
+              median: median.toFixed(2),
+              mad: mad.toFixed(2),
+              q1: q1.toFixed(2),
+              q3: q3.toFixed(2),
+            },
+          )
+        }
+
+        return (
+          passesPercentile && passesMAD && passesIQR && passesReasonableBounds
+        )
+      })
 
       if (filteredTimes.length === 0) continue
+
+      // Log outlier filtering results for debugging
+      if (times.length !== filteredTimes.length) {
+        const removedCount = times.length - filteredTimes.length
+        const percentRemoved = ((removedCount / times.length) * 100).toFixed(1)
+        this.log.debug(
+          `Outlier filtering for ${contentType}: removed ${removedCount}/${times.length} (${percentRemoved}%) data points`,
+          {
+            originalRange: `${Math.min(...times).toFixed(2)} - ${Math.max(...times).toFixed(2)} days`,
+            filteredRange: `${Math.min(...filteredTimes).toFixed(2)} - ${Math.max(...filteredTimes).toFixed(2)} days`,
+            originalMedian: times[Math.floor(times.length / 2)].toFixed(2),
+            filteredMedian:
+              filteredTimes[Math.floor(filteredTimes.length / 2)].toFixed(2),
+          },
+        )
+      }
 
       // Calculate statistics
       const sum = filteredTimes.reduce((acc, time) => acc + time, 0)
@@ -507,7 +565,7 @@ export async function getAverageTimeFromGrabbedToNotified(
     results.sort((a, b) => b.count - a.count)
 
     this.log.debug(
-      `Calculated time metrics for ${results.length} content types with improved outlier filtering`,
+      `Calculated time metrics for ${results.length} content types`,
     )
 
     return results
@@ -560,7 +618,7 @@ export async function getDetailedStatusTransitionMetrics(
       .join('watchlist_items as w', 'h1.watchlist_item_id', 'w.id')
       .whereRaw('h1.status != h2.status')
       .whereRaw(`${this.getDateDiffSQL('h2.timestamp', 'h1.timestamp')} >= 0`)
-      .whereRaw(`${this.getDateDiffSQL('h2.timestamp', 'h1.timestamp')} < 365`)
+      .whereRaw(`${this.getDateDiffSQL('h2.timestamp', 'h1.timestamp')} < 1`)
       .whereNotExists(function () {
         this.select('*')
           .from('watchlist_status_history as h3')
@@ -619,17 +677,62 @@ export async function getDetailedStatusTransitionMetrics(
       const q1 = times[q1Index] || times[0]
       const q3 = times[q3Index] || times[times.length - 1]
 
-      // Apply outlier filtering with improved algorithm
-      const iqr = q3 - q1
-      const filteredTimes = times.filter(
-        (time) =>
-          time >= p5 &&
-          time <= p95 &&
-          time >= q1 - 2.0 * iqr && // More lenient IQR multiplier for time data
-          time <= q3 + 2.0 * iqr,
+      // Apply multi-method outlier filtering for time data
+      // Use multiple methods to catch extreme outliers
+
+      // Method 1: Stricter percentile bounds (2nd-98th percentile for initial filtering)
+      const p2Index = Math.floor(times.length * 0.02)
+      const p98Index = Math.floor(times.length * 0.98)
+      const p2 = times[p2Index] || times[0]
+      const p98 = times[p98Index] || times[times.length - 1]
+
+      // Method 2: Modified Z-score approach using median for robustness
+      const median = times[Math.floor(times.length / 2)]
+      const medianAbsoluteDeviations = times.map((time) =>
+        Math.abs(time - median),
       )
+      medianAbsoluteDeviations.sort((a, b) => a - b)
+      const mad =
+        medianAbsoluteDeviations[
+          Math.floor(medianAbsoluteDeviations.length / 2)
+        ]
+
+      // Method 3: Conservative IQR bounds (1.0x multiplier for time data)
+      const iqr = q3 - q1
+
+      // Method 4: Transition-specific reasonable bounds
+      const maxReasonableDays =
+        fromStatus === 'grabbed' && toStatus === 'notified' ? 90 : 180
+
+      const filteredTimes = times.filter((time) => {
+        // Apply all methods - a value must pass all checks
+        const passesPercentile = time >= p2 && time <= p98
+        const passesMAD = mad === 0 || Math.abs(time - median) <= 3 * mad // Modified Z-score < 3
+        const passesIQR = time >= q1 - 1.0 * iqr && time <= q3 + 1.0 * iqr
+        const passesReasonableBounds = time <= maxReasonableDays
+
+        return (
+          passesPercentile && passesMAD && passesIQR && passesReasonableBounds
+        )
+      })
 
       if (filteredTimes.length === 0) continue
+
+      // Log outlier filtering results for debugging
+      if (times.length !== filteredTimes.length) {
+        const removedCount = times.length - filteredTimes.length
+        const percentRemoved = ((removedCount / times.length) * 100).toFixed(1)
+        this.log.debug(
+          `Outlier filtering for ${fromStatus}->${toStatus} (${contentType}): removed ${removedCount}/${times.length} (${percentRemoved}%) data points`,
+          {
+            originalRange: `${Math.min(...times).toFixed(2)} - ${Math.max(...times).toFixed(2)} days`,
+            filteredRange: `${Math.min(...filteredTimes).toFixed(2)} - ${Math.max(...filteredTimes).toFixed(2)} days`,
+            originalMedian: times[Math.floor(times.length / 2)].toFixed(2),
+            filteredMedian:
+              filteredTimes[Math.floor(filteredTimes.length / 2)].toFixed(2),
+          },
+        )
+      }
 
       // Calculate statistics
       const sum = filteredTimes.reduce((acc, time) => acc + time, 0)
@@ -652,7 +755,7 @@ export async function getDetailedStatusTransitionMetrics(
     results.sort((a, b) => b.count - a.count)
 
     this.log.debug(
-      `Calculated transition metrics for ${results.length} status pairs with improved outlier filtering`,
+      `Calculated transition metrics for ${results.length} status pairs`,
     )
 
     return results
