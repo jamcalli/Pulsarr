@@ -1408,12 +1408,12 @@ export class PlexWatchlistService {
   }
 
   private async ensureRssFeeds() {
-    let config = await this.dbService.getConfig(1)
+    let config = await this.dbService.getConfig()
 
     if (!config?.selfRss && !config?.friendsRss) {
       this.log.info('No RSS feeds found in database, attempting to generate...')
       await this.generateAndSaveRssFeeds()
-      config = await this.dbService.getConfig(1)
+      config = await this.dbService.getConfig()
 
       if (!config?.selfRss && !config?.friendsRss) {
         throw new Error('Unable to generate or retrieve RSS feed URLs')

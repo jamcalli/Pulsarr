@@ -34,7 +34,7 @@ export default fp(
           async () => {
             try {
               // Check if monitoring is enabled
-              const config = await fastify.db.getConfig(1)
+              const config = await fastify.db.getConfig()
               if (!config?.plexSessionMonitoring?.enabled) {
                 fastify.log.debug(
                   'Plex session monitoring is disabled, skipping task',
@@ -75,7 +75,7 @@ export default fp(
           'plex-session-monitor',
         )
         if (schedule?.enabled) {
-          const config = await fastify.db.getConfig(1)
+          const config = await fastify.db.getConfig()
           const intervalMinutes =
             config?.plexSessionMonitoring?.pollingIntervalMinutes || 15
 
@@ -100,7 +100,7 @@ export default fp(
           async () => {
             try {
               // Check if monitoring and auto reset are enabled
-              const config = await fastify.db.getConfig(1)
+              const config = await fastify.db.getConfig()
               const sessionConfig = config?.plexSessionMonitoring
               if (!sessionConfig?.enabled || !sessionConfig?.enableAutoReset) {
                 fastify.log.debug(
@@ -130,7 +130,7 @@ export default fp(
           'plex-rolling-auto-reset',
         )
         if (autoResetSchedule?.enabled) {
-          const config = await fastify.db.getConfig(1)
+          const config = await fastify.db.getConfig()
           const sessionConfig = config?.plexSessionMonitoring
           const intervalHours = sessionConfig?.autoResetIntervalHours || 24
 

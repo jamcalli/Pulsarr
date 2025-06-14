@@ -46,7 +46,6 @@ export const AvailabilityTimeSchema = z.object({
   min_days: z.number(),
   max_days: z.number(),
   count: z.number(),
-  median_days: z.number().optional(),
 })
 
 export const StatusTransitionTimeSchema = z.object({
@@ -72,7 +71,6 @@ export const GrabbedToNotifiedTimeSchema = z.object({
   avg_days: z.number(),
   min_days: z.number(),
   max_days: z.number(),
-  median_days: z.number().optional(),
   count: z.number(),
 })
 

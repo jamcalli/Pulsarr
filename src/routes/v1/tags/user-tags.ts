@@ -31,7 +31,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const config = await fastify.db.getConfig(1)
+        const config = await fastify.db.getConfig()
         if (!config) {
           return reply.notFound('Config not found in database')
         }
@@ -87,7 +87,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         // Safety check: Prevent changing removedTagMode from special-tag to something else
         // if Delete Sync is enabled and set to tag-based mode
-        const currentConfig = await fastify.db.getConfig(1)
+        const currentConfig = await fastify.db.getConfig()
         const deleteSyncSchedule =
           await fastify.db.getScheduleByName('delete-sync')
 
@@ -141,7 +141,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         // Check if database was updated successfully
 
         // Get the updated config
-        const savedConfig = await fastify.db.getConfig(1)
+        const savedConfig = await fastify.db.getConfig()
         if (!savedConfig) {
           return reply.notFound('No configuration found after update')
         }
@@ -192,7 +192,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         // Check config first to avoid unnecessary API calls if tagging is disabled
-        const config = await fastify.db.getConfig(1)
+        const config = await fastify.db.getConfig()
         if (!config) {
           return reply.notFound('Config not found in database')
         }
@@ -304,7 +304,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         // Check config first to see if tagging is enabled at all
-        const config = await fastify.db.getConfig(1)
+        const config = await fastify.db.getConfig()
         if (!config) {
           return reply.notFound('Config not found in database')
         }
@@ -404,7 +404,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         // Check if cleanup is enabled
-        const config = await fastify.db.getConfig(1)
+        const config = await fastify.db.getConfig()
         if (!config) {
           return reply.notFound('Config not found in database')
         }
@@ -477,7 +477,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         // Check if tagging is enabled
-        const config = await fastify.db.getConfig(1)
+        const config = await fastify.db.getConfig()
         if (!config) {
           return reply.notFound('Config not found in database')
         }
