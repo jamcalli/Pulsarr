@@ -372,76 +372,145 @@ export async function getAverageTimeFromGrabbedToNotified(
   try {
     this.log.debug('Calculating average time from grabbed to notified status')
 
-    // Define type for the raw SQL query result
-    type GrabbedToNotifiedRow = {
+    // Step 1: Get grabbed timestamps using Knex
+    const grabbedTimestamps = await this.knex('watchlist_status_history')
+      .select('watchlist_item_id')
+      .min('timestamp as first_grabbed')
+      .where('status', 'grabbed')
+      .groupBy('watchlist_item_id')
+
+    // Step 2: Get notified timestamps using Knex
+    const notifiedTimestamps = await this.knex('watchlist_status_history')
+      .select('watchlist_item_id')
+      .min('timestamp as first_notified')
+      .where('status', 'notified')
+      .groupBy('watchlist_item_id')
+
+    // Step 3: Join the results and calculate time differences
+    const rawTimes: Array<{ content_type: string; days_between: number }> = []
+
+    // Create maps for faster lookup
+    const grabbedMap = new Map<number, string>()
+    const notifiedMap = new Map<number, string>()
+
+    for (const row of grabbedTimestamps) {
+      grabbedMap.set(Number(row.watchlist_item_id), String(row.first_grabbed))
+    }
+
+    for (const row of notifiedTimestamps) {
+      notifiedMap.set(Number(row.watchlist_item_id), String(row.first_notified))
+    }
+
+    // Get watchlist items and calculate time differences
+    const watchlistItems = await this.knex('watchlist_items')
+      .select('id', 'type')
+      .whereIn('type', ['movie', 'show'])
+
+    for (const item of watchlistItems) {
+      const itemId = Number(item.id)
+      const grabbedTime = grabbedMap.get(itemId)
+      const notifiedTime = notifiedMap.get(itemId)
+
+      if (!grabbedTime || !notifiedTime) continue
+
+      // Ensure notified comes after grabbed
+      if (notifiedTime <= grabbedTime) continue
+
+      // Calculate time difference using our helper method
+      const grabbedDate = new Date(grabbedTime)
+      const notifiedDate = new Date(notifiedTime)
+      const daysBetween =
+        (notifiedDate.getTime() - grabbedDate.getTime()) / (1000 * 60 * 60 * 24)
+
+      // Apply basic filtering
+      if (daysBetween < 0 || daysBetween > 180) continue
+
+      rawTimes.push({
+        content_type: String(item.type),
+        days_between: daysBetween,
+      })
+    }
+
+    // Step 4: Group by content type and apply outlier filtering in JavaScript
+    // (This is more database-agnostic than using percentile functions)
+    const groupedTimes = new Map<string, number[]>()
+
+    for (const row of rawTimes) {
+      const contentType = String(row.content_type)
+      const daysBetween = Number(row.days_between)
+
+      if (!Number.isFinite(daysBetween) || daysBetween < 0) continue
+
+      if (!groupedTimes.has(contentType)) {
+        groupedTimes.set(contentType, [])
+      }
+      const timeArray = groupedTimes.get(contentType)
+      if (timeArray) {
+        timeArray.push(daysBetween)
+      }
+    }
+
+    // Step 5: Apply improved outlier filtering and calculate statistics
+    const results: Array<{
       content_type: string
       avg_days: number
       min_days: number
       max_days: number
       count: number
+    }> = []
+
+    for (const [contentType, times] of groupedTimes.entries()) {
+      if (times.length < 5) continue // Minimum sample size
+
+      // Sort for percentile calculations
+      times.sort((a, b) => a - b)
+
+      // Calculate percentiles for outlier detection
+      const p5Index = Math.floor(times.length * 0.05)
+      const p95Index = Math.floor(times.length * 0.95)
+      const q1Index = Math.floor(times.length * 0.25)
+      const q3Index = Math.floor(times.length * 0.75)
+
+      const p5 = times[p5Index] || times[0]
+      const p95 = times[p95Index] || times[times.length - 1]
+      const q1 = times[q1Index] || times[0]
+      const q3 = times[q3Index] || times[times.length - 1]
+
+      // Apply outlier filtering
+      const iqr = q3 - q1
+      const filteredTimes = times.filter(
+        (time) =>
+          time >= p5 &&
+          time <= p95 &&
+          time >= q1 - 2.0 * iqr &&
+          time <= q3 + 2.0 * iqr,
+      )
+
+      if (filteredTimes.length === 0) continue
+
+      // Calculate statistics
+      const sum = filteredTimes.reduce((acc, time) => acc + time, 0)
+      const avgDays = sum / filteredTimes.length
+      const minDays = Math.min(...filteredTimes)
+      const maxDays = Math.max(...filteredTimes)
+
+      results.push({
+        content_type: contentType,
+        avg_days: avgDays,
+        min_days: minDays,
+        max_days: maxDays,
+        count: filteredTimes.length,
+      })
     }
 
-    // Execute raw SQL query with CTEs for better performance and readability
-    const dateDiffFunction = this.getDateDiffSQL(
-      'n.first_notified',
-      'g.first_grabbed',
-    )
-
-    const results = await this.knex.raw(`
-    WITH grabbed_status AS (
-      -- Find the earliest "grabbed" status timestamp for each watchlist item
-      SELECT
-        h.watchlist_item_id,
-        MIN(h.timestamp) AS first_grabbed
-      FROM watchlist_status_history h
-      WHERE h.status = 'grabbed'
-      GROUP BY h.watchlist_item_id
-    ),
-    notified_status AS (
-      -- Find the earliest "notified" status timestamp for each watchlist item
-      SELECT
-        h.watchlist_item_id,
-        MIN(h.timestamp) AS first_notified
-      FROM watchlist_status_history h
-      WHERE h.status = 'notified'
-      GROUP BY h.watchlist_item_id
-    )
-    -- Join these with watchlist items and calculate time differences
-    SELECT
-      w.type AS content_type,
-      AVG(${dateDiffFunction}) AS avg_days,
-      MIN(${dateDiffFunction}) AS min_days,
-      MAX(${dateDiffFunction}) AS max_days,
-      COUNT(*) AS count
-    FROM watchlist_items w
-    JOIN grabbed_status g ON w.id = g.watchlist_item_id
-    JOIN notified_status n ON w.id = n.watchlist_item_id
-    WHERE 
-      -- Ensure notified comes after grabbed (no negative times)
-      n.first_notified > g.first_grabbed
-      -- Filter to just movies and shows
-      AND (
-        (w.type = 'movie') OR
-        (w.type = 'show')
-      )
-    GROUP BY w.type
-  `)
-
-    // Format and return the results
-    const rawResults = this.extractRawQueryRows<GrabbedToNotifiedRow>(results)
-    const formattedResults = rawResults.map((row: GrabbedToNotifiedRow) => ({
-      content_type: String(row.content_type),
-      avg_days: Number(row.avg_days),
-      min_days: Number(row.min_days),
-      max_days: Number(row.max_days),
-      count: Number(row.count),
-    }))
+    // Sort by count descending
+    results.sort((a, b) => b.count - a.count)
 
     this.log.debug(
-      `Calculated time metrics for ${formattedResults.length} content types`,
+      `Calculated time metrics for ${results.length} content types with improved outlier filtering`,
     )
 
-    return formattedResults
+    return results
   } catch (error) {
     this.log.error('Error calculating time from grabbed to notified:', error)
     throw error
@@ -469,126 +538,113 @@ export async function getDetailedStatusTransitionMetrics(
   try {
     this.log.debug('Calculating detailed status transition metrics')
 
-    // Define the type for the raw transitions
-    type RawTransition = {
-      from_status: string
-      to_status: string
-      content_type: string
-      days_between: number | string
-    }
-
-    // First, get all the direct transitions without filtering
-    const transitionDateDiffFunction = this.getDateDiffSQL(
-      'h2.timestamp',
-      'h1.timestamp',
-    )
-
-    const rawTransitions = await this.knex.raw(`
-        WITH status_pairs AS (
-          SELECT 
-            h1.status AS from_status,
-            h2.status AS to_status,
-            w.type AS content_type,
-            ${transitionDateDiffFunction} AS days_between
-          FROM watchlist_status_history h1
-          JOIN watchlist_status_history h2 
-            ON h1.watchlist_item_id = h2.watchlist_item_id 
-            AND h2.timestamp > h1.timestamp
-          JOIN watchlist_items w ON h1.watchlist_item_id = w.id
-          WHERE h1.status != h2.status
-          AND NOT EXISTS (
-            SELECT 1 FROM watchlist_status_history h3
-            WHERE h3.watchlist_item_id = h1.watchlist_item_id
-            AND h3.timestamp > h1.timestamp 
-            AND h3.timestamp < h2.timestamp
-          )
+    // Step 1: Get all direct status transitions using Knex
+    const transitionsQuery = this.knex('watchlist_status_history as h1')
+      .select(
+        'h1.status as from_status',
+        'h2.status as to_status',
+        'w.type as content_type',
+      )
+      .select(
+        this.knex.raw(
+          `${this.getDateDiffSQL('h2.timestamp', 'h1.timestamp')} as days_between`,
+        ),
+      )
+      .join('watchlist_status_history as h2', function () {
+        this.on('h1.watchlist_item_id', '=', 'h2.watchlist_item_id').andOn(
+          'h2.timestamp',
+          '>',
+          'h1.timestamp',
         )
-        SELECT 
-          from_status,
-          to_status,
-          content_type,
-          days_between
-        FROM status_pairs
-      `)
+      })
+      .join('watchlist_items as w', 'h1.watchlist_item_id', 'w.id')
+      .whereRaw('h1.status != h2.status')
+      .whereRaw(`${this.getDateDiffSQL('h2.timestamp', 'h1.timestamp')} >= 0`)
+      .whereRaw(`${this.getDateDiffSQL('h2.timestamp', 'h1.timestamp')} < 365`)
+      .whereNotExists(function () {
+        this.select('*')
+          .from('watchlist_status_history as h3')
+          .whereRaw('h3.watchlist_item_id = h1.watchlist_item_id')
+          .whereRaw('h3.timestamp > h1.timestamp')
+          .whereRaw('h3.timestamp < h2.timestamp')
+      })
 
+    const transitions = await transitionsQuery
+
+    // Step 2: Group transitions by transition type and apply outlier filtering
     const transitionGroups = new Map<string, number[]>()
-    const rawTransitionResults =
-      this.extractRawQueryRows<RawTransition>(rawTransitions)
 
-    // Process and group raw transitions with numeric coercion and validation
-    for (const row of rawTransitionResults) {
+    for (const row of transitions) {
       const key = `${row.from_status}|${row.to_status}|${row.content_type}`
+      const daysBetween = Number(row.days_between)
 
-      const daysBetweenRaw =
-        typeof row.days_between === 'number'
-          ? row.days_between
-          : Number(row.days_between)
-
-      // Skip invalid or negative values
-      if (!Number.isFinite(daysBetweenRaw) || daysBetweenRaw < 0) {
-        this.log.warn(
-          `Skipping invalid days_between value: ${row.days_between}`,
-          {
-            from_status: row.from_status,
-            to_status: row.to_status,
-            content_type: row.content_type,
-          },
-        )
-        continue
-      }
+      if (!Number.isFinite(daysBetween) || daysBetween < 0) continue
 
       if (!transitionGroups.has(key)) {
         transitionGroups.set(key, [])
       }
-      transitionGroups.get(key)?.push(daysBetweenRaw)
+      const timeArray = transitionGroups.get(key)
+      if (timeArray) {
+        timeArray.push(daysBetween)
+      }
     }
 
-    // Process each group to filter outliers and calculate statistics
+    // Step 3: Apply outlier filtering and calculate statistics
     const results: Array<{
       from_status: string
       to_status: string
       content_type: string
-      count: number
       avg_days: number
       min_days: number
       max_days: number
+      count: number
     }> = []
 
-    for (const [key, values] of transitionGroups.entries()) {
-      if (values.length === 0) continue
+    for (const [key, times] of transitionGroups.entries()) {
+      if (times.length < 3) continue // Minimum sample size
 
-      // Values are now guaranteed to be numbers
-      values.sort((a, b) => a - b)
+      const [fromStatus, toStatus, contentType] = key.split('|')
 
-      // Calculate quartiles for IQR
-      const q1Idx = Math.floor(values.length * 0.25)
-      const q3Idx = Math.floor(values.length * 0.75)
-      const q1 = values[q1Idx]
-      const q3 = values[q3Idx]
+      // Sort for percentile calculations
+      times.sort((a, b) => a - b)
+
+      // Calculate percentiles for outlier detection
+      const p5Index = Math.floor(times.length * 0.05)
+      const p95Index = Math.floor(times.length * 0.95)
+      const q1Index = Math.floor(times.length * 0.25)
+      const q3Index = Math.floor(times.length * 0.75)
+
+      const p5 = times[p5Index] || times[0]
+      const p95 = times[p95Index] || times[times.length - 1]
+      const q1 = times[q1Index] || times[0]
+      const q3 = times[q3Index] || times[times.length - 1]
+
+      // Apply outlier filtering with improved algorithm
       const iqr = q3 - q1
-
-      // Filter outliers using IQR method
-      const filteredValues = values.filter(
-        (v) => v >= q1 - 1.5 * iqr && v <= q3 + 1.5 * iqr,
+      const filteredTimes = times.filter(
+        (time) =>
+          time >= p5 &&
+          time <= p95 &&
+          time >= q1 - 2.0 * iqr && // More lenient IQR multiplier for time data
+          time <= q3 + 2.0 * iqr,
       )
 
-      if (filteredValues.length === 0) continue
+      if (filteredTimes.length === 0) continue
 
-      // Calculate statistics with guaranteed numeric values
-      const [from_status, to_status, content_type] = key.split('|')
-      const sum = filteredValues.reduce((acc, val) => acc + val, 0)
-      const avg_days = sum / filteredValues.length
-      const min_days = Math.min(...filteredValues)
-      const max_days = Math.max(...filteredValues)
+      // Calculate statistics
+      const sum = filteredTimes.reduce((acc, time) => acc + time, 0)
+      const avgDays = sum / filteredTimes.length
+      const minDays = Math.min(...filteredTimes)
+      const maxDays = Math.max(...filteredTimes)
 
       results.push({
-        from_status,
-        to_status,
-        content_type,
-        count: filteredValues.length,
-        avg_days,
-        min_days,
-        max_days,
+        from_status: fromStatus,
+        to_status: toStatus,
+        content_type: contentType,
+        avg_days: avgDays,
+        min_days: minDays,
+        max_days: maxDays,
+        count: filteredTimes.length,
       })
     }
 
@@ -596,7 +652,7 @@ export async function getDetailedStatusTransitionMetrics(
     results.sort((a, b) => b.count - a.count)
 
     this.log.debug(
-      `Calculated transition metrics for ${results.length} status pairs`,
+      `Calculated transition metrics for ${results.length} status pairs with improved outlier filtering`,
     )
 
     return results
