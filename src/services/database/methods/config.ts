@@ -2,16 +2,14 @@ import type { DatabaseService } from '@services/database.service.js'
 import type { Config } from '@root/types/config.types.js'
 
 /**
- * Retrieves application configuration by ID
+ * Retrieves application configuration
  *
- * @param id - Configuration ID (always 1)
  * @returns Promise resolving to the configuration if found, undefined otherwise
  */
 export async function getConfig(
   this: DatabaseService,
-  id: number,
 ): Promise<Config | undefined> {
-  const config = await this.knex('configs').where({ id }).first()
+  const config = await this.knex('configs').where({ id: 1 }).first()
   if (!config) return undefined
 
   return {
@@ -73,16 +71,16 @@ export async function getConfig(
     // Handle app configuration
     baseUrl: config.baseUrl || undefined,
     // Handle timing defaults
-    syncIntervalSeconds: config.syncIntervalSeconds || 10,
-    queueProcessDelaySeconds: config.queueProcessDelaySeconds || 60,
+    syncIntervalSeconds: config.syncIntervalSeconds ?? 10,
+    queueProcessDelaySeconds: config.queueProcessDelaySeconds ?? 60,
     // Handle notification timing defaults
-    queueWaitTime: config.queueWaitTime || 120000,
-    newEpisodeThreshold: config.newEpisodeThreshold || 172800000,
-    upgradeBufferTime: config.upgradeBufferTime || 2000,
+    queueWaitTime: config.queueWaitTime ?? 120000,
+    newEpisodeThreshold: config.newEpisodeThreshold ?? 172800000,
+    upgradeBufferTime: config.upgradeBufferTime ?? 2000,
     // Handle pending webhook configuration
-    pendingWebhookRetryInterval: config.pendingWebhookRetryInterval || 20,
-    pendingWebhookMaxAge: config.pendingWebhookMaxAge || 10,
-    pendingWebhookCleanupInterval: config.pendingWebhookCleanupInterval || 60,
+    pendingWebhookRetryInterval: config.pendingWebhookRetryInterval ?? 20,
+    pendingWebhookMaxAge: config.pendingWebhookMaxAge ?? 10,
+    pendingWebhookCleanupInterval: config.pendingWebhookCleanupInterval ?? 60,
     // Handle Apprise configuration
     enableApprise: Boolean(config.enableApprise),
     appriseUrl: config.appriseUrl || '',
@@ -129,7 +127,7 @@ export async function createConfig(
   this: DatabaseService,
   config: Omit<Config, 'created_at' | 'updated_at'>,
 ): Promise<number> {
-  const [id] = await this.knex('configs')
+  const result = await this.knex('configs')
     .insert({
       // Basic fields
       port: config.port,
@@ -142,16 +140,16 @@ export async function createConfig(
       closeGraceDelay: config.closeGraceDelay,
       rateLimitMax: config.rateLimitMax,
       // Timing fields
-      syncIntervalSeconds: config.syncIntervalSeconds || 10,
-      queueProcessDelaySeconds: config.queueProcessDelaySeconds || 60,
+      syncIntervalSeconds: config.syncIntervalSeconds ?? 10,
+      queueProcessDelaySeconds: config.queueProcessDelaySeconds ?? 60,
       // Notification timing fields
-      queueWaitTime: config.queueWaitTime || 120000,
-      newEpisodeThreshold: config.newEpisodeThreshold || 172800000,
-      upgradeBufferTime: config.upgradeBufferTime || 2000,
+      queueWaitTime: config.queueWaitTime ?? 120000,
+      newEpisodeThreshold: config.newEpisodeThreshold ?? 172800000,
+      upgradeBufferTime: config.upgradeBufferTime ?? 2000,
       // Pending webhook configuration
-      pendingWebhookRetryInterval: config.pendingWebhookRetryInterval || 20,
-      pendingWebhookMaxAge: config.pendingWebhookMaxAge || 10,
-      pendingWebhookCleanupInterval: config.pendingWebhookCleanupInterval || 60,
+      pendingWebhookRetryInterval: config.pendingWebhookRetryInterval ?? 20,
+      pendingWebhookMaxAge: config.pendingWebhookMaxAge ?? 10,
+      pendingWebhookCleanupInterval: config.pendingWebhookCleanupInterval ?? 60,
       // Apprise fields
       enableApprise: config.enableApprise || false,
       appriseUrl: config.appriseUrl || '',
@@ -171,7 +169,7 @@ export async function createConfig(
       respectUserSyncSetting: config.respectUserSyncSetting,
       deleteSyncNotify: config.deleteSyncNotify,
       deleteSyncNotifyOnlyOnDeletion: config.deleteSyncNotifyOnlyOnDeletion,
-      maxDeletionPrevention: config.maxDeletionPrevention || 10,
+      maxDeletionPrevention: config.maxDeletionPrevention ?? 10,
       // Plex playlist protection
       enablePlexPlaylistProtection:
         config.enablePlexPlaylistProtection || false,
@@ -211,6 +209,8 @@ export async function createConfig(
       updated_at: this.timestamp,
     })
     .returning('id')
+
+  const id = this.extractId(result)
   this.log.info(`Config created with ID: ${id}`)
   return id
 }

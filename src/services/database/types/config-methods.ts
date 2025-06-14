@@ -4,11 +4,10 @@ declare module '@services/database.service.js' {
   interface DatabaseService {
     // CONFIGURATION MANAGEMENT
     /**
-     * Retrieves application configuration by ID
-     * @param id - Configuration ID (always 1)
+     * Retrieves application configuration
      * @returns Promise resolving to the configuration if found, undefined otherwise
      */
-    getConfig(id: number): Promise<Config | undefined>
+    getConfig(): Promise<Config | undefined>
 
     /**
      * Creates a new configuration entry in the database

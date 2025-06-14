@@ -21,10 +21,7 @@ export async function createUser(
     .returning('id')
 
   // Handle different return formats
-  const id =
-    typeof result[0] === 'object' && result[0] !== null
-      ? result[0].id // Handle case where result is an array of objects
-      : result[0] // Handle case where result is an array of values
+  const id = this.extractId(result)
 
   if (id === undefined || id === null) {
     throw new Error('Failed to create user')
@@ -128,24 +125,40 @@ export async function bulkUpdateUsers(
         const batchIds = userIds.slice(i, i + BATCH_SIZE)
 
         try {
-          // Perform the batch update
-          const result = await trx('users')
-            .whereIn('id', batchIds)
-            .update(updateData)
-
-          // Add successfully updated count
-          updatedCount += result
-
-          // Track failed IDs by comparing with updated count
-          if (result < batchIds.length) {
+          // Use RETURNING if PostgreSQL, otherwise rely on affected rows count
+          if (this.isPostgres) {
+            // PostgreSQL: Use RETURNING to get exact IDs updated in single statement
             const updatedUsers = await trx('users')
               .whereIn('id', batchIds)
-              .select('id')
+              .update(updateData)
+              .returning('id')
 
             const updatedIds = updatedUsers.map((user) => user.id)
-            const missingIds = batchIds.filter((id) => !updatedIds.includes(id))
+            updatedCount += updatedIds.length
 
+            // Find failed IDs by comparing input vs returned IDs
+            const missingIds = batchIds.filter((id) => !updatedIds.includes(id))
             failedIds.push(...missingIds)
+          } else {
+            // SQLite: Use affected rows count (safer within transaction)
+            const result = await trx('users')
+              .whereIn('id', batchIds)
+              .update(updateData)
+
+            updatedCount += result
+
+            // For SQLite, if fewer rows affected than expected,
+            // assume the difference represents non-existent IDs
+            if (result < batchIds.length) {
+              // Rather than re-querying (race condition), we'll log the discrepancy
+              // In practice, this usually means some IDs don't exist in the table
+              const missingCount = batchIds.length - result
+              this.log.warn(
+                `Bulk update: ${missingCount} IDs not found in batch`,
+              )
+              // Note: We can't easily determine which specific IDs failed in SQLite
+              // without the race-condition-prone re-query, so we accept this limitation
+            }
           }
         } catch (batchError) {
           this.log.error(`Error updating user batch: ${batchError}`)

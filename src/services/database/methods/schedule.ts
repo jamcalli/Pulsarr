@@ -60,11 +60,18 @@ export async function getAllSchedules(
         }
       }
 
-      return {
-        ...commonFields,
-        type: 'cron' as const,
-        config: parsedConfig as CronConfig,
+      if (schedule.type === 'cron') {
+        return {
+          ...commonFields,
+          type: 'cron' as const,
+          config: parsedConfig as CronConfig,
+        }
       }
+
+      this.log.warn(
+        `Unknown schedule type "${schedule.type}" for ${schedule.name}`,
+      )
+      throw new Error(`Unsupported schedule type: ${schedule.type}`)
     })
   } catch (error) {
     this.log.error('Error fetching all schedules:', error)
@@ -129,11 +136,18 @@ export async function getScheduleByName(
       }
     }
 
-    return {
-      ...commonFields,
-      type: 'cron' as const,
-      config: parsedConfig as CronConfig,
+    if (schedule.type === 'cron') {
+      return {
+        ...commonFields,
+        type: 'cron' as const,
+        config: parsedConfig as CronConfig,
+      }
     }
+
+    this.log.warn(
+      `Unknown schedule type "${schedule.type}" for ${schedule.name}`,
+    )
+    throw new Error(`Unsupported schedule type: ${schedule.type}`)
   } catch (error) {
     this.log.error(`Error fetching schedule ${name}:`, error)
     return null
@@ -216,9 +230,11 @@ export async function createSchedule(
       updated_at: this.timestamp,
     }
 
-    const [id] = await this.knex('schedules').insert(insertData).returning('id')
+    const result = await this.knex('schedules')
+      .insert(insertData)
+      .returning('id')
 
-    return id
+    return this.extractId(result)
   } catch (error) {
     this.log.error(`Error creating schedule ${schedule.name}:`, error)
     throw error

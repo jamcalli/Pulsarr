@@ -710,7 +710,7 @@ export async function addCustomGenre(
   this: DatabaseService,
   name: string,
 ): Promise<number> {
-  const [id] = await this.knex('genres')
+  const result = await this.knex('genres')
     .insert({
       name: name.trim(),
       is_custom: true,
@@ -721,11 +721,11 @@ export async function addCustomGenre(
     .ignore()
     .returning('id')
 
-  if (!id) {
+  if (!result || result.length === 0) {
     throw new Error('Genre already exists')
   }
 
-  return id
+  return this.extractId(result)
 }
 
 /**
@@ -1030,33 +1030,16 @@ export async function getWatchlistItemsByGuid(
   guid: string,
 ): Promise<TokenWatchlistItem[]> {
   const items = await this.knex('watchlist_items')
-    .whereRaw(
-      this.isPostgreSQL()
-        ? 'jsonb_array_length(guids) > 0'
-        : 'json_array_length(guids) > 0',
-    )
+    .whereJsonSupersetOf('guids', [guid])
     .select('*')
 
-  return items
-    .filter((item) => {
-      const guids = this.safeJsonParse<string[]>(
-        item.guids,
-        [],
-        'watchlist_item.guids',
-      )
-      return guids.includes(guid)
-    })
-    .map((item) => ({
-      ...item,
-      guids: this.safeJsonParse<string[]>(
-        item.guids,
-        [],
-        'watchlist_item.guids',
-      ),
-      genres: this.safeJsonParse<string[]>(
-        item.genres,
-        [],
-        'watchlist_item.genres',
-      ),
-    }))
+  return items.map((item) => ({
+    ...item,
+    guids: this.safeJsonParse<string[]>(item.guids, [], 'watchlist_item.guids'),
+    genres: this.safeJsonParse<string[]>(
+      item.genres,
+      [],
+      'watchlist_item.genres',
+    ),
+  }))
 }

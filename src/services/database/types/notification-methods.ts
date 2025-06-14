@@ -2,6 +2,9 @@ import type {
   SonarrEpisodeSchema,
   NotificationResult,
 } from '@root/types/sonarr.types.js'
+import type { Knex } from 'knex'
+
+export type NotificationType = 'episode' | 'season' | 'movie' | 'watchlist_add'
 
 declare module '@services/database.service.js' {
   interface DatabaseService {
@@ -27,22 +30,26 @@ declare module '@services/database.service.js' {
     /**
      * Creates a notification record in the database
      * @param notification - Notification data to create
-     * @returns Promise resolving to the ID of the created notification
+     * @param trx - Optional transaction to use for the operation
+     * @returns Promise resolving to the ID of the created notification, or null if duplicate was prevented
      */
-    createNotificationRecord(notification: {
-      watchlist_item_id: number | null
-      user_id: number | null
-      type: 'episode' | 'season' | 'movie' | 'watchlist_add'
-      title: string
-      message?: string
-      season_number?: number
-      episode_number?: number
-      sent_to_discord: boolean
-      sent_to_apprise: boolean
-      sent_to_webhook?: boolean
-      sent_to_tautulli?: boolean
-      notification_status?: string
-    }): Promise<number>
+    createNotificationRecord(
+      notification: {
+        watchlist_item_id: number | null
+        user_id: number | null
+        type: 'episode' | 'season' | 'movie' | 'watchlist_add'
+        title: string
+        message?: string
+        season_number?: number
+        episode_number?: number
+        sent_to_discord: boolean
+        sent_to_apprise: boolean
+        sent_to_webhook?: boolean
+        sent_to_tautulli?: boolean
+        notification_status?: string
+      },
+      trx?: Knex.Transaction,
+    ): Promise<number | null>
 
     /**
      * Checks for existing webhook notification
@@ -53,7 +60,7 @@ declare module '@services/database.service.js' {
      */
     getExistingWebhookNotification(
       userId: number,
-      type: string,
+      type: NotificationType,
       title: string,
     ): Promise<{ id: number } | undefined>
 
