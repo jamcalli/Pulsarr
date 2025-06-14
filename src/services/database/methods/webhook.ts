@@ -24,10 +24,7 @@ export async function createPendingWebhook(
       })
       .returning('id')
 
-    const id =
-      typeof result[0] === 'object' && result[0] !== null
-        ? result[0].id
-        : result[0]
+    const id = this.extractId(result)
 
     return {
       id,

@@ -1,8 +1,4 @@
-import type {
-  DbSchedule,
-  IntervalConfig,
-  CronConfig,
-} from '@root/types/scheduler.types.js'
+import type { DbSchedule } from '@root/types/scheduler.types.js'
 
 declare module '@services/database.service.js' {
   interface DatabaseService {

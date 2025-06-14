@@ -367,6 +367,40 @@ export class DatabaseService {
     return new Date().toISOString()
   }
 
+  /**
+   * Extracts ID from Knex returning() result, handling cross-dialect differences
+   *
+   * Knex returning() returns different formats depending on the database:
+   * - PostgreSQL: [{ id: 123 }] (array of objects)
+   * - SQLite: [123] (array of values)
+   *
+   * @param result - Result from knex insert(...).returning('id')
+   * @returns The extracted ID value
+   */
+  public extractId(result: unknown[]): number {
+    if (!result || !Array.isArray(result) || result.length === 0) {
+      throw new Error('No ID returned from database')
+    }
+
+    const firstResult = result[0]
+
+    if (
+      typeof firstResult === 'object' &&
+      firstResult !== null &&
+      'id' in firstResult
+    ) {
+      // PostgreSQL format: { id: 123 }
+      return (firstResult as { id: number }).id
+    }
+
+    if (typeof firstResult === 'number') {
+      // SQLite format: 123
+      return firstResult
+    }
+
+    throw new Error('Invalid ID format returned from database')
+  }
+
   //=============================================================================
   // BUSINESS LOGIC HELPERS
   //=============================================================================

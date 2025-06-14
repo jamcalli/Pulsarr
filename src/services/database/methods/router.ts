@@ -106,22 +106,66 @@ export async function updateRouterRule(
   updates: Partial<Omit<RouterRule, 'id' | 'created_at' | 'updated_at'>>,
 ): Promise<RouterRule> {
   const updateData: Record<string, unknown> = {
-    ...updates,
     updated_at: this.timestamp,
+  }
+
+  // Explicitly whitelist allowed columns to prevent schema drift
+  if (updates.name !== undefined) {
+    updateData.name = updates.name
+  }
+
+  if (updates.type !== undefined) {
+    updateData.type = updates.type
   }
 
   if (updates.criteria !== undefined) {
     updateData.criteria = JSON.stringify(updates.criteria)
   }
 
+  if (updates.target_type !== undefined) {
+    updateData.target_type = updates.target_type
+  }
+
+  if (updates.target_instance_id !== undefined) {
+    updateData.target_instance_id = updates.target_instance_id
+  }
+
+  if (updates.root_folder !== undefined) {
+    updateData.root_folder = updates.root_folder
+  }
+
+  if (updates.quality_profile !== undefined) {
+    updateData.quality_profile = updates.quality_profile
+  }
+
   if (updates.tags !== undefined) {
     updateData.tags = JSON.stringify(updates.tags || [])
+  }
+
+  if (updates.order !== undefined) {
+    updateData.order = updates.order
+  }
+
+  if (updates.enabled !== undefined) {
+    updateData.enabled = updates.enabled
   }
 
   if (updates.metadata !== undefined) {
     updateData.metadata = updates.metadata
       ? JSON.stringify(updates.metadata)
       : null
+  }
+
+  if (updates.search_on_add !== undefined) {
+    updateData.search_on_add = updates.search_on_add
+  }
+
+  if (updates.season_monitoring !== undefined) {
+    updateData.season_monitoring = updates.season_monitoring
+  }
+
+  if (updates.series_type !== undefined) {
+    updateData.series_type = updates.series_type
   }
 
   const [updatedRule] = await this.knex('router_rules')

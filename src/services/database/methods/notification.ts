@@ -9,6 +9,8 @@ import type {
   PendingWebhookCreate,
 } from '@root/types/pending-webhooks.types.js'
 import type { User } from '@root/types/config.types.js'
+import type { NotificationType } from '../types/notification-methods.js'
+import type { Knex } from 'knex'
 import {
   determineNotificationType,
   getPublicContentNotificationFlags,
@@ -93,47 +95,8 @@ export async function processNotifications(
     }
     const { contentType, seasonNumber, episodeNumber } = notificationTypeInfo
 
-    const existingNotification = await this.knex('notifications')
-      .where({
-        user_id: user.id,
-        type: contentType,
-        watchlist_item_id: item.id,
-        notification_status: 'active',
-      })
-      .modify((query) => {
-        if (seasonNumber !== undefined) {
-          query.where('season_number', seasonNumber)
-        }
-        if (episodeNumber !== undefined) {
-          query.where('episode_number', episodeNumber)
-        }
-      })
-      .first()
-
-    if (existingNotification) {
-      this.log.info(
-        `Skipping ${contentType} notification for ${mediaInfo.title}${
-          seasonNumber !== undefined ? ` S${seasonNumber}` : ''
-        }${
-          episodeNumber !== undefined ? `E${episodeNumber}` : ''
-        } - already sent previously to user ${user.name}`,
-      )
-      continue
-    }
-
-    // Update watchlist item status and record history atomically
-    await this.knex.transaction(async (trx) => {
-      await trx('watchlist_items').where('id', item.id).update({
-        last_notified_at: new Date().toISOString(),
-        status: 'notified',
-      })
-
-      await trx('watchlist_status_history').insert({
-        watchlist_item_id: item.id,
-        status: 'notified',
-        timestamp: new Date().toISOString(),
-      })
-    })
+    // Note: Duplicate prevention is now handled by database unique constraint
+    // and ON CONFLICT DO NOTHING in createNotificationRecord method
 
     const notificationTitle = mediaInfo.title || item.title
     const notification: MediaNotification = {
@@ -151,62 +114,86 @@ export async function processNotifications(
     const itemId =
       typeof item.id === 'string' ? Number.parseInt(item.id, 10) : item.id
 
-    if (contentType === 'movie') {
-      await this.createNotificationRecord({
-        watchlist_item_id: !Number.isNaN(itemId) ? itemId : null,
-        user_id: !Number.isNaN(userId) ? userId : null,
-        type: 'movie',
-        title: notificationTitle,
-        sent_to_discord: Boolean(user.notify_discord),
-        sent_to_apprise: Boolean(user.notify_apprise),
-        sent_to_webhook: false,
-        sent_to_tautulli: Boolean(user.notify_tautulli),
+    // Update watchlist item status, record history, and create notification atomically
+    await this.knex.transaction(async (trx) => {
+      await trx('watchlist_items').where('id', item.id).update({
+        last_notified_at: new Date().toISOString(),
+        status: 'notified',
       })
-    } else if (contentType === 'season') {
-      notification.episodeDetails = {
-        seasonNumber: seasonNumber,
+
+      await trx('watchlist_status_history').insert({
+        watchlist_item_id: item.id,
+        status: 'notified',
+        timestamp: new Date().toISOString(),
+      })
+
+      // Create the notification within the same transaction
+      if (contentType === 'movie') {
+        await this.createNotificationRecord(
+          {
+            watchlist_item_id: !Number.isNaN(itemId) ? itemId : null,
+            user_id: !Number.isNaN(userId) ? userId : null,
+            type: 'movie',
+            title: notificationTitle,
+            sent_to_discord: Boolean(user.notify_discord),
+            sent_to_apprise: Boolean(user.notify_apprise),
+            sent_to_webhook: false,
+            sent_to_tautulli: Boolean(user.notify_tautulli),
+          },
+          trx,
+        )
+      } else if (contentType === 'season') {
+        notification.episodeDetails = {
+          seasonNumber: seasonNumber,
+        }
+
+        await this.createNotificationRecord(
+          {
+            watchlist_item_id: !Number.isNaN(itemId) ? itemId : null,
+            user_id: !Number.isNaN(userId) ? userId : null,
+            type: 'season',
+            title: notificationTitle,
+            season_number: seasonNumber,
+            sent_to_discord: Boolean(user.notify_discord),
+            sent_to_apprise: Boolean(user.notify_apprise),
+            sent_to_webhook: false,
+            sent_to_tautulli: Boolean(user.notify_tautulli),
+          },
+          trx,
+        )
+      } else if (
+        contentType === 'episode' &&
+        mediaInfo.episodes &&
+        mediaInfo.episodes.length > 0
+      ) {
+        const episode = mediaInfo.episodes[0]
+
+        notification.episodeDetails = {
+          title: episode.title,
+          ...(episode.overview && { overview: episode.overview }),
+          seasonNumber: episode.seasonNumber,
+          episodeNumber: episode.episodeNumber,
+          airDateUtc: episode.airDateUtc,
+        }
+
+        await this.createNotificationRecord(
+          {
+            watchlist_item_id: !Number.isNaN(itemId) ? itemId : null,
+            user_id: !Number.isNaN(userId) ? userId : null,
+            type: 'episode',
+            title: notificationTitle,
+            message: episode.overview,
+            season_number: episode.seasonNumber,
+            episode_number: episode.episodeNumber,
+            sent_to_discord: Boolean(user.notify_discord),
+            sent_to_apprise: Boolean(user.notify_apprise),
+            sent_to_webhook: false,
+            sent_to_tautulli: Boolean(user.notify_tautulli),
+          },
+          trx,
+        )
       }
-
-      await this.createNotificationRecord({
-        watchlist_item_id: !Number.isNaN(itemId) ? itemId : null,
-        user_id: !Number.isNaN(userId) ? userId : null,
-        type: 'season',
-        title: notificationTitle,
-        season_number: seasonNumber,
-        sent_to_discord: Boolean(user.notify_discord),
-        sent_to_apprise: Boolean(user.notify_apprise),
-        sent_to_webhook: false,
-        sent_to_tautulli: Boolean(user.notify_tautulli),
-      })
-    } else if (
-      contentType === 'episode' &&
-      mediaInfo.episodes &&
-      mediaInfo.episodes.length > 0
-    ) {
-      const episode = mediaInfo.episodes[0]
-
-      notification.episodeDetails = {
-        title: episode.title,
-        ...(episode.overview && { overview: episode.overview }),
-        seasonNumber: episode.seasonNumber,
-        episodeNumber: episode.episodeNumber,
-        airDateUtc: episode.airDateUtc,
-      }
-
-      await this.createNotificationRecord({
-        watchlist_item_id: !Number.isNaN(itemId) ? itemId : null,
-        user_id: !Number.isNaN(userId) ? userId : null,
-        type: 'episode',
-        title: notificationTitle,
-        message: episode.overview,
-        season_number: episode.seasonNumber,
-        episode_number: episode.episodeNumber,
-        sent_to_discord: Boolean(user.notify_discord),
-        sent_to_apprise: Boolean(user.notify_apprise),
-        sent_to_webhook: false,
-        sent_to_tautulli: Boolean(user.notify_tautulli),
-      })
-    }
+    })
 
     notifications.push({
       user: {
@@ -358,7 +345,8 @@ export async function processNotifications(
  * Creates a notification record in the database
  *
  * @param notification - Notification data to create
- * @returns Promise resolving to the ID of the created notification
+ * @param trx - Optional transaction to use for the operation
+ * @returns Promise resolving to the ID of the created notification, or null if duplicate was prevented
  */
 export async function createNotificationRecord(
   this: DatabaseService,
@@ -376,19 +364,42 @@ export async function createNotificationRecord(
     sent_to_tautulli?: boolean
     notification_status?: string
   },
-): Promise<number> {
-  const [id] = await this.knex('notifications')
-    .insert({
-      ...notification,
-      season_number: notification.season_number || null,
-      episode_number: notification.episode_number || null,
-      notification_status: notification.notification_status || 'active',
-      sent_to_webhook: notification.sent_to_webhook || false,
-      created_at: this.timestamp,
-    })
-    .returning('id')
+  trx?: Knex.Transaction,
+): Promise<number | null> {
+  const insertData = {
+    ...notification,
+    season_number: notification.season_number || null,
+    episode_number: notification.episode_number || null,
+    notification_status: notification.notification_status || 'active',
+    sent_to_webhook: notification.sent_to_webhook || false,
+    created_at: this.timestamp,
+  }
 
-  return id
+  try {
+    const query = trx || this.knex
+    const result = await query('notifications')
+      .insert(insertData)
+      .onConflict([
+        'user_id',
+        'watchlist_item_id',
+        'type',
+        'season_number',
+        'episode_number',
+        'notification_status',
+      ])
+      .ignore()
+      .returning('id')
+
+    // If no rows returned, the insert was ignored due to conflict
+    if (!result || result.length === 0) {
+      return null
+    }
+
+    return this.extractId(result)
+  } catch (error) {
+    this.log.error('Error creating notification record:', error)
+    throw error
+  }
 }
 
 /**
@@ -402,7 +413,7 @@ export async function createNotificationRecord(
 export async function getExistingWebhookNotification(
   this: DatabaseService,
   userId: number,
-  type: string,
+  type: NotificationType,
   title: string,
 ): Promise<{ id: number } | undefined> {
   return await this.knex('notifications')
@@ -586,10 +597,7 @@ export async function createPendingWebhook(
     })
     .returning('id')
 
-  const id =
-    typeof result[0] === 'object' && result[0] !== null
-      ? result[0].id
-      : result[0]
+  const id = this.extractId(result)
 
   return {
     id,

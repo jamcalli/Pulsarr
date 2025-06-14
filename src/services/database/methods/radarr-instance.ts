@@ -135,44 +135,38 @@ export async function createRadarrInstance(
   this: DatabaseService,
   instance: Omit<RadarrInstance, 'id'>,
 ): Promise<number> {
-  if (instance.isDefault) {
-    await this.knex('radarr_instances')
-      .where('is_default', true)
-      .update('is_default', false)
-  }
+  return await this.knex.transaction(async (trx) => {
+    if (instance.isDefault) {
+      await trx('radarr_instances')
+        .where('is_default', true)
+        .update('is_default', false)
+    }
 
-  const result = await this.knex('radarr_instances')
-    .insert({
-      name: instance.name || 'Default Radarr Instance',
-      base_url: instance.baseUrl,
-      api_key: instance.apiKey,
-      quality_profile: instance.qualityProfile,
-      root_folder: instance.rootFolder,
-      bypass_ignored: instance.bypassIgnored,
-      search_on_add: instance.searchOnAdd ?? true,
-      minimum_availability: this.normaliseMinimumAvailability(
-        instance.minimumAvailability,
-      ),
-      tags: JSON.stringify(instance.tags || []),
-      is_default: instance.isDefault ?? false,
-      is_enabled: true,
-      synced_instances: JSON.stringify(instance.syncedInstances || []),
-      created_at: this.timestamp,
-      updated_at: this.timestamp,
-    })
-    .returning('id')
+    const result = await trx('radarr_instances')
+      .insert({
+        name: instance.name || 'Default Radarr Instance',
+        base_url: instance.baseUrl,
+        api_key: instance.apiKey,
+        quality_profile: instance.qualityProfile,
+        root_folder: instance.rootFolder,
+        bypass_ignored: instance.bypassIgnored,
+        search_on_add: instance.searchOnAdd ?? true,
+        minimum_availability: this.normaliseMinimumAvailability(
+          instance.minimumAvailability,
+        ),
+        tags: JSON.stringify(instance.tags || []),
+        is_default: instance.isDefault ?? false,
+        is_enabled: true,
+        synced_instances: JSON.stringify(instance.syncedInstances || []),
+        created_at: this.timestamp,
+        updated_at: this.timestamp,
+      })
+      .returning('id')
 
-  if (!result || !Array.isArray(result) || result.length === 0) {
-    throw new Error('No ID returned from database')
-  }
-
-  const row = result[0]
-  if (typeof row !== 'object' || !('id' in row)) {
-    throw new Error('Invalid ID returned from database')
-  }
-
-  this.log.info(`Radarr instance created with ID: ${row.id}`)
-  return row.id
+    const id = this.extractId(result)
+    this.log.info(`Radarr instance created with ID: ${id}`)
+    return id
+  })
 }
 
 /**
@@ -187,8 +181,9 @@ export async function updateRadarrInstance(
   id: number,
   updates: Partial<RadarrInstance>,
 ): Promise<void> {
-  if (updates.apiKey === 'placeholder' && updates.isDefault !== true) {
-    updates.isDefault = true
+  const sanitized = { ...updates }
+  if (sanitized.apiKey === 'placeholder' && sanitized.isDefault !== true) {
+    sanitized.isDefault = true
     this.log.warn('Forced placeholder instance to remain default')
   }
 
@@ -197,45 +192,45 @@ export async function updateRadarrInstance(
       trx,
       'radarr_instances',
       id,
-      updates.isDefault,
+      sanitized.isDefault,
       'Radarr',
     )
 
     await trx('radarr_instances')
       .where('id', id)
       .update({
-        ...(typeof updates.name !== 'undefined' && { name: updates.name }),
-        ...(typeof updates.baseUrl !== 'undefined' && {
-          base_url: updates.baseUrl,
+        ...(typeof sanitized.name !== 'undefined' && { name: sanitized.name }),
+        ...(typeof sanitized.baseUrl !== 'undefined' && {
+          base_url: sanitized.baseUrl,
         }),
-        ...(typeof updates.apiKey !== 'undefined' && {
-          api_key: updates.apiKey,
+        ...(typeof sanitized.apiKey !== 'undefined' && {
+          api_key: sanitized.apiKey,
         }),
-        ...(typeof updates.qualityProfile !== 'undefined' && {
-          quality_profile: updates.qualityProfile,
+        ...(typeof sanitized.qualityProfile !== 'undefined' && {
+          quality_profile: sanitized.qualityProfile,
         }),
-        ...(typeof updates.rootFolder !== 'undefined' && {
-          root_folder: updates.rootFolder,
+        ...(typeof sanitized.rootFolder !== 'undefined' && {
+          root_folder: sanitized.rootFolder,
         }),
-        ...(typeof updates.bypassIgnored !== 'undefined' && {
-          bypass_ignored: updates.bypassIgnored,
+        ...(typeof sanitized.bypassIgnored !== 'undefined' && {
+          bypass_ignored: sanitized.bypassIgnored,
         }),
-        ...(typeof updates.searchOnAdd !== 'undefined' && {
-          search_on_add: updates.searchOnAdd,
+        ...(typeof sanitized.searchOnAdd !== 'undefined' && {
+          search_on_add: sanitized.searchOnAdd,
         }),
-        ...(typeof updates.minimumAvailability !== 'undefined' && {
+        ...(typeof sanitized.minimumAvailability !== 'undefined' && {
           minimum_availability: this.normaliseMinimumAvailability(
-            updates.minimumAvailability,
+            sanitized.minimumAvailability,
           ),
         }),
-        ...(typeof updates.tags !== 'undefined' && {
-          tags: JSON.stringify(updates.tags),
+        ...(typeof sanitized.tags !== 'undefined' && {
+          tags: JSON.stringify(sanitized.tags),
         }),
-        ...(typeof updates.isDefault !== 'undefined' && {
-          is_default: updates.isDefault,
+        ...(typeof sanitized.isDefault !== 'undefined' && {
+          is_default: sanitized.isDefault,
         }),
-        ...(typeof updates.syncedInstances !== 'undefined' && {
-          synced_instances: JSON.stringify(updates.syncedInstances),
+        ...(typeof sanitized.syncedInstances !== 'undefined' && {
+          synced_instances: JSON.stringify(sanitized.syncedInstances),
         }),
         updated_at: this.timestamp,
       })
