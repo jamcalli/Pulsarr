@@ -1,4 +1,7 @@
-import type { WatchlistInstanceStatus } from '@root/types/watchlist-status.types.js'
+import type {
+  WatchlistInstanceStatus,
+  WatchlistStatus,
+} from '@root/types/watchlist-status.types.js'
 
 declare module '@services/database.service.js' {
   interface DatabaseService {
@@ -33,7 +36,7 @@ declare module '@services/database.service.js' {
     addWatchlistToRadarrInstance(
       watchlistId: number,
       instanceId: number,
-      status?: 'pending' | 'requested' | 'grabbed' | 'notified',
+      status?: WatchlistStatus,
       isPrimary?: boolean,
       syncing?: boolean,
     ): Promise<void>
@@ -84,7 +87,7 @@ declare module '@services/database.service.js' {
       Array<{
         watchlist_id: number
         radarr_instance_id: number
-        status: 'pending' | 'requested' | 'grabbed' | 'notified'
+        status: WatchlistStatus
         is_primary: boolean
         syncing: boolean
         last_notified_at: string | null
@@ -93,14 +96,14 @@ declare module '@services/database.service.js' {
 
     /**
      * Bulk adds watchlist items to Radarr instances
-     * @param items - Array of items to add with watchlist ID, instance ID, and optional status
+     * @param junctions - Array of items to add with watchlist ID, instance ID, and optional status
      * @returns Promise resolving to void when complete
      */
     bulkAddWatchlistToRadarrInstances(
       junctions: Array<{
         watchlist_id: number
         radarr_instance_id: number
-        status: 'pending' | 'requested' | 'grabbed' | 'notified'
+        status: WatchlistStatus
         is_primary: boolean
         last_notified_at?: string
         syncing?: boolean
@@ -162,7 +165,7 @@ declare module '@services/database.service.js' {
     addWatchlistToSonarrInstance(
       watchlistId: number,
       instanceId: number,
-      status?: 'pending' | 'requested' | 'grabbed' | 'notified',
+      status?: WatchlistStatus,
       isPrimary?: boolean,
       syncing?: boolean,
     ): Promise<void>
@@ -213,7 +216,7 @@ declare module '@services/database.service.js' {
       Array<{
         watchlist_id: number
         sonarr_instance_id: number
-        status: 'pending' | 'requested' | 'grabbed' | 'notified'
+        status: WatchlistStatus
         is_primary: boolean
         last_notified_at: string | null
       }>
@@ -221,14 +224,14 @@ declare module '@services/database.service.js' {
 
     /**
      * Bulk adds watchlist items to Sonarr instances
-     * @param items - Array of items to add with watchlist ID, instance ID, and optional status
+     * @param junctions - Array of items to add with watchlist ID, instance ID, and optional status
      * @returns Promise resolving to void when complete
      */
     bulkAddWatchlistToSonarrInstances(
       junctions: Array<{
         watchlist_id: number
         sonarr_instance_id: number
-        status: 'pending' | 'requested' | 'grabbed' | 'notified'
+        status: WatchlistStatus
         is_primary: boolean
         last_notified_at?: string
         syncing?: boolean

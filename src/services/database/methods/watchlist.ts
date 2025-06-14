@@ -23,90 +23,92 @@ export async function updateWatchlistItem(
     return
   }
 
-  const item = await this.knex('watchlist_items').where({ key }).first()
+  await this.knex.transaction(async (trx) => {
+    const item = await trx('watchlist_items').where({ key }).first()
 
-  if (!item) {
-    this.log.warn(
-      `Tried to update non-existent watchlist item with key: ${key}`,
-    )
-    return
-  }
-
-  const { radarr_instance_id, sonarr_instance_id, syncing, ...otherUpdates } =
-    updates
-
-  if (Object.keys(otherUpdates).length > 0) {
-    await this.knex('watchlist_items')
-      .where({ key })
-      .update({
-        ...otherUpdates,
-        updated_at: this.timestamp,
-      })
-  }
-
-  if (radarr_instance_id !== undefined) {
-    if (radarr_instance_id === null) {
-      await this.knex('watchlist_radarr_instances')
-        .where({ watchlist_id: item.id })
-        .delete()
-    } else {
-      const existingInstanceIds = await this.getWatchlistRadarrInstanceIds(
-        item.id,
+    if (!item) {
+      this.log.warn(
+        `Tried to update non-existent watchlist item with key: ${key}`,
       )
+      return
+    }
 
-      if (!existingInstanceIds.includes(radarr_instance_id)) {
-        await this.addWatchlistToRadarrInstance(
-          item.id,
-          radarr_instance_id,
-          updates.status || item.status || 'pending',
-          true,
-          syncing || false,
-        )
+    const { radarr_instance_id, sonarr_instance_id, syncing, ...otherUpdates } =
+      updates
+
+    if (Object.keys(otherUpdates).length > 0) {
+      await trx('watchlist_items')
+        .where({ key })
+        .update({
+          ...otherUpdates,
+          updated_at: this.timestamp,
+        })
+    }
+
+    if (radarr_instance_id !== undefined) {
+      if (radarr_instance_id === null) {
+        await trx('watchlist_radarr_instances')
+          .where({ watchlist_id: item.id })
+          .delete()
       } else {
-        await this.setPrimaryRadarrInstance(item.id, radarr_instance_id)
+        const existingInstanceIds = await this.getWatchlistRadarrInstanceIds(
+          item.id,
+        )
 
-        if (syncing !== undefined) {
-          await this.updateRadarrSyncingStatus(
+        if (!existingInstanceIds.includes(radarr_instance_id)) {
+          await this.addWatchlistToRadarrInstance(
             item.id,
             radarr_instance_id,
-            syncing ?? false,
+            updates.status || item.status || 'pending',
+            true,
+            syncing || false,
           )
+        } else {
+          await this.setPrimaryRadarrInstance(item.id, radarr_instance_id)
+
+          if (syncing !== undefined) {
+            await this.updateRadarrSyncingStatus(
+              item.id,
+              radarr_instance_id,
+              syncing ?? false,
+            )
+          }
         }
       }
     }
-  }
 
-  if (sonarr_instance_id !== undefined) {
-    if (sonarr_instance_id === null) {
-      await this.knex('watchlist_sonarr_instances')
-        .where({ watchlist_id: item.id })
-        .delete()
-    } else {
-      const existingInstanceIds = await this.getWatchlistSonarrInstanceIds(
-        item.id,
-      )
-
-      if (!existingInstanceIds.includes(sonarr_instance_id)) {
-        await this.addWatchlistToSonarrInstance(
-          item.id,
-          sonarr_instance_id,
-          updates.status || item.status || 'pending',
-          true,
-          syncing || false,
-        )
+    if (sonarr_instance_id !== undefined) {
+      if (sonarr_instance_id === null) {
+        await trx('watchlist_sonarr_instances')
+          .where({ watchlist_id: item.id })
+          .delete()
       } else {
-        await this.setPrimarySonarrInstance(item.id, sonarr_instance_id)
+        const existingInstanceIds = await this.getWatchlistSonarrInstanceIds(
+          item.id,
+        )
 
-        if (syncing !== undefined) {
-          await this.updateSonarrSyncingStatus(
+        if (!existingInstanceIds.includes(sonarr_instance_id)) {
+          await this.addWatchlistToSonarrInstance(
             item.id,
             sonarr_instance_id,
-            syncing ?? false,
+            updates.status || item.status || 'pending',
+            true,
+            syncing || false,
           )
+        } else {
+          await this.setPrimarySonarrInstance(item.id, sonarr_instance_id)
+
+          if (syncing !== undefined) {
+            await this.updateSonarrSyncingStatus(
+              item.id,
+              sonarr_instance_id,
+              syncing ?? false,
+            )
+          }
         }
       }
     }
-  }
+  })
 }
 
 /**
@@ -1029,9 +1031,20 @@ export async function getWatchlistItemsByGuid(
   this: DatabaseService,
   guid: string,
 ): Promise<TokenWatchlistItem[]> {
-  const items = await this.knex('watchlist_items')
-    .whereJsonSupersetOf('guids', [guid])
-    .select('*')
+  // Use database-specific JSON functions to filter efficiently at database level
+  const items = this.isPostgreSQL()
+    ? await this.knex('watchlist_items')
+        .whereRaw(
+          'EXISTS (SELECT 1 FROM jsonb_array_elements_text(guids) elem WHERE lower(elem) = lower(?))',
+          [guid],
+        )
+        .select('*')
+    : await this.knex('watchlist_items')
+        .whereRaw(
+          'EXISTS (SELECT 1 FROM json_each(guids) WHERE json_each.type = "text" AND lower(json_each.value) = lower(?))',
+          [guid],
+        )
+        .select('*')
 
   return items.map((item) => ({
     ...item,
