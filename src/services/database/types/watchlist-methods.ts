@@ -14,6 +14,7 @@ declare module '@services/database.service.js' {
      * @returns Promise resolving to void when complete
      */
     updateWatchlistItem(
+      this: DatabaseService,
       key: string,
       updates: WatchlistItemUpdate,
     ): Promise<void>
@@ -25,6 +26,7 @@ declare module '@services/database.service.js' {
      * @returns Promise resolving to the number of items updated
      */
     updateWatchlistItemByGuid(
+      this: DatabaseService,
       guid: string,
       updates: {
         sonarr_instance_id?: number | null
@@ -39,6 +41,7 @@ declare module '@services/database.service.js' {
      * @returns Promise resolving to the watchlist item if found, undefined otherwise
      */
     getWatchlistItem(
+      this: DatabaseService,
       userId: number,
       key: string,
     ): Promise<WatchlistItem | undefined>
@@ -50,6 +53,7 @@ declare module '@services/database.service.js' {
      * @returns Promise resolving to an array of matching watchlist items
      */
     getBulkWatchlistItems(
+      this: DatabaseService,
       userIds: number[],
       keys: string[],
     ): Promise<WatchlistItem[]>
@@ -59,7 +63,10 @@ declare module '@services/database.service.js' {
      * @param keys - Array of watchlist item keys to retrieve
      * @returns Promise resolving to an array of matching watchlist items
      */
-    getWatchlistItemsByKeys(keys: string[]): Promise<WatchlistItem[]>
+    getWatchlistItemsByKeys(
+      this: DatabaseService,
+      keys: string[],
+    ): Promise<WatchlistItem[]>
 
     /**
      * Bulk updates multiple watchlist items
@@ -67,6 +74,7 @@ declare module '@services/database.service.js' {
      * @returns Promise resolving to the number of items updated
      */
     bulkUpdateWatchlistItems(
+      this: DatabaseService,
       updates: Array<{
         userId: number
         key: string
@@ -79,7 +87,7 @@ declare module '@services/database.service.js' {
      * Retrieves all GUIDs from watchlist items in an optimized way
      * @returns Promise resolving to array of lowercase GUIDs
      */
-    getAllGuidsMapped(): Promise<string[]>
+    getAllGuidsMapped(this: DatabaseService): Promise<string[]>
 
     /**
      * Gets notifications for a specific user and type
@@ -88,6 +96,7 @@ declare module '@services/database.service.js' {
      * @returns Promise resolving to array of notifications
      */
     getNotificationsForUser(
+      this: DatabaseService,
       userId: number,
       type: string,
     ): Promise<Array<{ title: string }>>
@@ -98,6 +107,7 @@ declare module '@services/database.service.js' {
      * @returns Promise resolving to array of items with their guids
      */
     getAllGuidsFromWatchlist(
+      this: DatabaseService,
       types?: string[],
     ): Promise<Array<{ id: number; guids: string[] }>>
 
@@ -108,6 +118,7 @@ declare module '@services/database.service.js' {
      * @returns Promise resolving to a map of title to boolean (true if notification exists)
      */
     checkExistingWebhooks(
+      this: DatabaseService,
       userId: number,
       titles: string[],
     ): Promise<Map<string, boolean>>
@@ -116,35 +127,35 @@ declare module '@services/database.service.js' {
      * Cross-database compatible GUID extraction
      * @returns Promise resolving to array of lowercase GUIDs
      */
-    getUniqueGuidsRaw(): Promise<string[]>
+    getUniqueGuidsRaw(this: DatabaseService): Promise<string[]>
 
     /**
      * Extracts all unique genres from watchlist items and ensures they exist in the genres table for use in genre routing
      * @returns Promise resolving to void when complete
      */
-    syncGenresFromWatchlist(): Promise<void>
+    syncGenresFromWatchlist(this: DatabaseService): Promise<void>
 
     /**
      * Adds a custom genre to the genres table
      * @param name - Name of the genre to add
      * @returns Promise resolving to the ID of the created genre
      */
-    addCustomGenre(name: string): Promise<number>
+    addCustomGenre(this: DatabaseService, name: string): Promise<number>
 
     /**
      * Retrieves all genres from the genres table
      * @returns Promise resolving to array of all genres
      */
-    getAllGenres(): Promise<
-      Array<{ id: number; name: string; is_custom: boolean }>
-    >
+    getAllGenres(
+      this: DatabaseService,
+    ): Promise<Array<{ id: number; name: string; is_custom: boolean }>>
 
     /**
      * Deletes a custom genre from the genres table
      * @param id - ID of the genre to delete
      * @returns Promise resolving to true if deleted, false otherwise
      */
-    deleteCustomGenre(id: number): Promise<boolean>
+    deleteCustomGenre(this: DatabaseService, id: number): Promise<boolean>
 
     /**
      * Bulk updates the status of show watchlist items
@@ -152,6 +163,7 @@ declare module '@services/database.service.js' {
      * @returns Promise resolving to the number of items updated
      */
     bulkUpdateShowStatuses(
+      this: DatabaseService,
       updates: Array<{
         key: string
         userId: number
@@ -164,13 +176,17 @@ declare module '@services/database.service.js' {
      * Retrieves all show watchlist items
      * @returns Promise resolving to array of all show watchlist items
      */
-    getAllShowWatchlistItems(): Promise<TokenWatchlistItem[]>
+    getAllShowWatchlistItems(
+      this: DatabaseService,
+    ): Promise<TokenWatchlistItem[]>
 
     /**
      * Retrieves all movie watchlist items
      * @returns Promise resolving to array of all movie watchlist items
      */
-    getAllMovieWatchlistItems(): Promise<TokenWatchlistItem[]>
+    getAllMovieWatchlistItems(
+      this: DatabaseService,
+    ): Promise<TokenWatchlistItem[]>
 
     /**
      * Creates multiple watchlist items
@@ -179,6 +195,7 @@ declare module '@services/database.service.js' {
      * @returns Promise resolving to void when complete
      */
     createWatchlistItems(
+      this: DatabaseService,
       items: Omit<WatchlistItem, 'created_at' | 'updated_at'>[],
       options?: { onConflict?: 'ignore' | 'merge' },
     ): Promise<void>
@@ -189,6 +206,7 @@ declare module '@services/database.service.js' {
      * @returns Promise resolving to void when complete
      */
     createTempRssItems(
+      this: DatabaseService,
       items: Array<{
         title: string
         type: string
@@ -204,7 +222,10 @@ declare module '@services/database.service.js' {
      * @param source - Optional source filter ('self' or 'friends')
      * @returns Promise resolving to array of temporary RSS items
      */
-    getTempRssItems(source?: 'self' | 'friends'): Promise<
+    getTempRssItems(
+      this: DatabaseService,
+      source?: 'self' | 'friends',
+    ): Promise<
       Array<{
         id: number
         title: string
@@ -222,14 +243,17 @@ declare module '@services/database.service.js' {
      * @param ids - Array of item IDs to delete
      * @returns Promise resolving to void when complete
      */
-    deleteTempRssItems(ids: number[]): Promise<void>
+    deleteTempRssItems(this: DatabaseService, ids: number[]): Promise<void>
 
     /**
      * Deletes all temporary RSS items
      * @param source - Optional source filter ('self' or 'friends')
      * @returns Promise resolving to void when complete
      */
-    deleteAllTempRssItems(source?: 'self' | 'friends'): Promise<void>
+    deleteAllTempRssItems(
+      this: DatabaseService,
+      source?: 'self' | 'friends',
+    ): Promise<void>
 
     /**
      * Deletes watchlist items for a user
@@ -237,20 +261,30 @@ declare module '@services/database.service.js' {
      * @param keys - Array of watchlist item keys to delete
      * @returns Promise resolving to void when complete
      */
-    deleteWatchlistItems(userId: number, keys: string[]): Promise<void>
+    deleteWatchlistItems(
+      this: DatabaseService,
+      userId: number,
+      keys: string[],
+    ): Promise<void>
 
     /**
      * Retrieves all watchlist items for a specific user
      * @param userId - ID of the user
      * @returns Promise resolving to array of all watchlist items for the user
      */
-    getAllWatchlistItemsForUser(userId: number): Promise<WatchlistItem[]>
+    getAllWatchlistItemsForUser(
+      this: DatabaseService,
+      userId: number,
+    ): Promise<WatchlistItem[]>
 
     /**
      * Retrieves watchlist items that match a specific GUID
      * @param guid - GUID to match against watchlist items
      * @returns Promise resolving to array of matching watchlist items
      */
-    getWatchlistItemsByGuid(guid: string): Promise<TokenWatchlistItem[]>
+    getWatchlistItemsByGuid(
+      this: DatabaseService,
+      guid: string,
+    ): Promise<TokenWatchlistItem[]>
   }
 }
