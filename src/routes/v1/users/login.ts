@@ -46,7 +46,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
         await request.session.save()
 
-        const config = await fastify.db.getConfig(1)
+        const config = await fastify.db.getConfig()
         const hasPlexTokens = Boolean(
           config?.plexTokens &&
             Array.isArray(config.plexTokens) &&

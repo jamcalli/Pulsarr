@@ -24,7 +24,7 @@ export default fp(
 
     const initializeConfig = async () => {
       try {
-        const dbConfig = await dbService.getConfig(1)
+        const dbConfig = await dbService.getConfig()
         const envConfig = { ...fastify.config } as Config
 
         if (dbConfig) {
