@@ -1,3 +1,8 @@
+/**
+ * Shared status type for watchlist items
+ */
+export type WatchlistStatus = 'pending' | 'requested' | 'grabbed' | 'notified'
+
 export interface DatabaseWatchlistItem {
   id?: number
   user_id: number
@@ -8,7 +13,7 @@ export interface DatabaseWatchlistItem {
   added?: string | null
   guids?: string[] | string
   genres?: string[] | string
-  status: 'pending' | 'requested' | 'grabbed' | 'notified'
+  status: WatchlistStatus
   series_status?: 'continuing' | 'ended' | null
   movie_status?: string | null
   sonarr_instance_id?: number
@@ -18,14 +23,14 @@ export interface DatabaseWatchlistItem {
 }
 
 export interface WatchlistInstanceStatus {
-  status: 'pending' | 'requested' | 'grabbed' | 'notified'
+  status: WatchlistStatus
   last_notified_at: string | null
   is_primary: boolean
 }
 
 export interface MainTableField {
   added?: string | null
-  status?: 'pending' | 'requested' | 'grabbed' | 'notified'
+  status?: WatchlistStatus
   series_status?: 'continuing' | 'ended' | null
   movie_status?: 'available' | 'unavailable' | null
   last_notified_at?: string | null

@@ -31,7 +31,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         // Check if user has Plex Pass by verifying RSS feeds exist
-        const config = await fastify.db.getConfig(1)
+        const config = await fastify.db.getConfig()
         if (!config?.selfRss || !config?.friendsRss) {
           return reply.badRequest(
             'Plex Pass is required for Tautulli integration. Please generate RSS feeds first to verify Plex Pass subscription.',
