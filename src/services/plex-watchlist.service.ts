@@ -164,7 +164,7 @@ export class PlexWatchlistService {
       })
 
       this.log.info(
-        `Sent Discord notification to ${username} for "${item.title}"`,
+        `Notified Discord admin endpoints that ${username} added "${item.title}"`,
         { success: discordSent },
       )
     } catch (error) {
@@ -185,7 +185,7 @@ export class PlexWatchlistService {
           })
 
         this.log.info(
-          `Sent Apprise notification to ${username} for "${item.title}"`,
+          `Notified Apprise admin endpoints that ${username} added "${item.title}"`,
           { success: appriseSent },
         )
       } catch (error) {

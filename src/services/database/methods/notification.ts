@@ -22,7 +22,6 @@ import {
  *
  * @param mediaInfo - Information about the media item
  * @param isBulkRelease - Whether this is a bulk release (e.g., full season)
- * @param byGuid - Whether to process by GUID for public content
  * @returns Promise resolving to array of notification results
  */
 export async function processNotifications(
@@ -34,7 +33,6 @@ export async function processNotifications(
     episodes?: SonarrEpisodeSchema[]
   },
   isBulkRelease: boolean,
-  byGuid = false,
 ): Promise<NotificationResult[]> {
   const watchlistItems = await this.getWatchlistItemsByGuid(mediaInfo.guid)
   const notifications: NotificationResult[] = []
@@ -65,16 +63,12 @@ export async function processNotifications(
     ]),
   )
 
+  // Process individual user notifications
   for (const item of watchlistItems) {
     const user = userMap.get(item.user_id)
     if (!user) continue
 
-    if (
-      !byGuid &&
-      !user.notify_discord &&
-      !user.notify_apprise &&
-      !user.notify_tautulli
-    )
+    if (!user.notify_discord && !user.notify_apprise && !user.notify_tautulli)
       continue
 
     if (
@@ -212,7 +206,11 @@ export async function processNotifications(
     })
   }
 
-  if (byGuid) {
+  // Handle public content notifications if enabled and we have users
+  if (
+    this.config.publicContentNotifications.enabled &&
+    watchlistItems.length > 0
+  ) {
     const notificationTypeInfo = determineNotificationType(
       mediaInfo,
       isBulkRelease,
