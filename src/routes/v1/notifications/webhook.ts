@@ -16,7 +16,10 @@ import {
   queuePendingWebhook,
   isEpisodeAlreadyQueued,
 } from '@root/utils/webhookQueue.js'
-import { processContentNotifications } from '@root/utils/notification-processor.js'
+import {
+  processContentNotifications,
+  isWebhookProcessable,
+} from '@root/utils/notification-processor.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.post<{
@@ -109,6 +112,33 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           fastify.log.debug('Received test webhook')
           return { success: true }
         }
+
+        // Apply webhook deduplication
+        if (!isWebhookProcessable(body, fastify.log)) {
+          fastify.log.debug(
+            {
+              instanceName: body.instanceName,
+              eventType: 'eventType' in body ? body.eventType : 'unknown',
+              isUpgrade: 'isUpgrade' in body ? body.isUpgrade : false,
+            },
+            'Webhook skipped by deduplication filter',
+          )
+          return { success: true }
+        }
+
+        fastify.log.info(
+          {
+            instanceName: body.instanceName,
+            eventType: 'eventType' in body ? body.eventType : 'unknown',
+            contentTitle:
+              body.instanceName === 'Radarr' && 'movie' in body
+                ? body.movie.title
+                : body.instanceName === 'Sonarr' && 'series' in body
+                  ? body.series.title
+                  : 'unknown',
+          },
+          'Webhook passed deduplication and will be processed',
+        )
 
         if (body.instanceName === 'Radarr' && 'movie' in body) {
           const tmdbGuid = `tmdb:${body.movie.tmdbId}`
