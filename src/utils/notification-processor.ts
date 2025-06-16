@@ -20,7 +20,7 @@ const webhookCache = new Map<
   string,
   { timestamp: number; contentInfo: string }
 >()
-const WEBHOOK_CACHE_TTL_MS = 5000 // 5 seconds
+const WEBHOOK_CACHE_TTL_MS = 2000 // 2 seconds
 
 /**
  * Creates a hash for webhook deduplication based on content identity
@@ -158,17 +158,15 @@ export function isWebhookProcessable(
     contentInfo,
   })
 
-  // Clean up expired entries periodically
-  if (webhookCache.size > 100) {
-    const expiredKeys: string[] = []
-    for (const [key, entry] of webhookCache.entries()) {
-      if (now - entry.timestamp > WEBHOOK_CACHE_TTL_MS) {
-        expiredKeys.push(key)
-      }
+  // Clean up expired entries
+  const expiredKeys: string[] = []
+  for (const [key, entry] of webhookCache.entries()) {
+    if (now - entry.timestamp > WEBHOOK_CACHE_TTL_MS) {
+      expiredKeys.push(key)
     }
-    for (const key of expiredKeys) {
-      webhookCache.delete(key)
-    }
+  }
+  for (const key of expiredKeys) {
+    webhookCache.delete(key)
   }
 
   logger?.debug(
