@@ -20,7 +20,7 @@ const webhookCache = new Map<
   string,
   { timestamp: number; contentInfo: string }
 >()
-const WEBHOOK_CACHE_TTL_MS = 2000 // 2 seconds
+const WEBHOOK_CACHE_TTL_MS = 10000 // 10 seconds
 
 /**
  * Creates a hash for webhook deduplication based on content identity
