@@ -318,7 +318,7 @@ export async function processQueuedWebhooks(
         hasRecentEpisodes,
         title: queue.title,
       },
-      'Processing queued webhooks with centralized notifications',
+      'Processing queued webhooks',
     )
 
     // Process notifications (including public content) using centralized function
