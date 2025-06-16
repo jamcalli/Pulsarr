@@ -22,7 +22,6 @@ import {
  *
  * @param mediaInfo - Information about the media item
  * @param isBulkRelease - Whether this is a bulk release (e.g., full season)
- * @param byGuid - Whether to process by GUID for public content
  * @returns Promise resolving to array of notification results
  */
 export async function processNotifications(
@@ -34,7 +33,6 @@ export async function processNotifications(
     episodes?: SonarrEpisodeSchema[]
   },
   isBulkRelease: boolean,
-  byGuid = false,
 ): Promise<NotificationResult[]> {
   const watchlistItems = await this.getWatchlistItemsByGuid(mediaInfo.guid)
   const notifications: NotificationResult[] = []
@@ -65,181 +63,154 @@ export async function processNotifications(
     ]),
   )
 
-  // When byGuid = true, only collect users for @mentions, don't create individual notifications
-  if (byGuid) {
-    // Only collect users with Discord IDs for @mentions - no individual notifications at all
-    for (const item of watchlistItems) {
-      const user = userMap.get(item.user_id)
-      if (!user || !user.discord_id || user.discord_id.trim() === '') continue
+  // Process individual user notifications
+  for (const item of watchlistItems) {
+    const user = userMap.get(item.user_id)
+    if (!user) continue
 
-      // Only add this user for Discord ID collection, not for actual notification sending
-      notifications.push({
-        user: {
-          id: user.id,
-          name: user.name,
-          apprise: user.apprise,
-          alias: user.alias,
-          discord_id: user.discord_id,
-          notify_apprise: false, // Explicitly disabled
-          notify_discord: false, // Explicitly disabled
-          notify_tautulli: false, // Explicitly disabled
-          tautulli_notifier_id: user.tautulli_notifier_id,
-          can_sync: user.can_sync,
-        },
-        notification: {
-          type: mediaInfo.type,
-          title: mediaInfo.title || item.title,
-          username: user.name,
-          posterUrl: item.thumb || undefined,
-        },
-      })
+    if (!user.notify_discord && !user.notify_apprise && !user.notify_tautulli)
+      continue
+
+    if (
+      item.type === 'show' &&
+      item.series_status === 'ended' &&
+      item.last_notified_at &&
+      !isBulkRelease
+    ) {
+      continue
     }
-  } else {
-    // Regular individual user notifications when byGuid = false
-    for (const item of watchlistItems) {
-      const user = userMap.get(item.user_id)
-      if (!user) continue
 
-      if (!user.notify_discord && !user.notify_apprise && !user.notify_tautulli)
-        continue
+    const notificationTypeInfo = determineNotificationType(
+      mediaInfo,
+      isBulkRelease,
+    )
+    if (!notificationTypeInfo) {
+      continue
+    }
+    const { contentType, seasonNumber, episodeNumber } = notificationTypeInfo
 
-      if (
-        item.type === 'show' &&
-        item.series_status === 'ended' &&
-        item.last_notified_at &&
-        !isBulkRelease
-      ) {
-        continue
-      }
+    // Note: Duplicate prevention is now handled by database unique constraint
+    // and ON CONFLICT DO NOTHING in createNotificationRecord method
 
-      const notificationTypeInfo = determineNotificationType(
-        mediaInfo,
-        isBulkRelease,
-      )
-      if (!notificationTypeInfo) {
-        continue
-      }
-      const { contentType, seasonNumber, episodeNumber } = notificationTypeInfo
+    const notificationTitle = mediaInfo.title || item.title
+    const notification: MediaNotification = {
+      type: mediaInfo.type,
+      title: notificationTitle,
+      username: user.name,
+      posterUrl: item.thumb || undefined,
+    }
 
-      // Note: Duplicate prevention is now handled by database unique constraint
-      // and ON CONFLICT DO NOTHING in createNotificationRecord method
+    const userId =
+      typeof item.user_id === 'object'
+        ? (item.user_id as { id: number }).id
+        : Number(item.user_id)
 
-      const notificationTitle = mediaInfo.title || item.title
-      const notification: MediaNotification = {
-        type: mediaInfo.type,
-        title: notificationTitle,
-        username: user.name,
-        posterUrl: item.thumb || undefined,
-      }
+    const itemId =
+      typeof item.id === 'string' ? Number.parseInt(item.id, 10) : item.id
 
-      const userId =
-        typeof item.user_id === 'object'
-          ? (item.user_id as { id: number }).id
-          : Number(item.user_id)
+    // Update watchlist item status, record history, and create notification atomically
+    await this.knex.transaction(async (trx) => {
+      await trx('watchlist_items').where('id', item.id).update({
+        last_notified_at: new Date().toISOString(),
+        status: 'notified',
+      })
 
-      const itemId =
-        typeof item.id === 'string' ? Number.parseInt(item.id, 10) : item.id
+      await trx('watchlist_status_history').insert({
+        watchlist_item_id: item.id,
+        status: 'notified',
+        timestamp: new Date().toISOString(),
+      })
 
-      // Update watchlist item status, record history, and create notification atomically
-      await this.knex.transaction(async (trx) => {
-        await trx('watchlist_items').where('id', item.id).update({
-          last_notified_at: new Date().toISOString(),
-          status: 'notified',
-        })
-
-        await trx('watchlist_status_history').insert({
-          watchlist_item_id: item.id,
-          status: 'notified',
-          timestamp: new Date().toISOString(),
-        })
-
-        // Create the notification within the same transaction
-        if (contentType === 'movie') {
-          await this.createNotificationRecord(
-            {
-              watchlist_item_id: !Number.isNaN(itemId) ? itemId : null,
-              user_id: !Number.isNaN(userId) ? userId : null,
-              type: 'movie',
-              title: notificationTitle,
-              sent_to_discord: Boolean(user.notify_discord),
-              sent_to_apprise: Boolean(user.notify_apprise),
-              sent_to_webhook: false,
-              sent_to_tautulli: Boolean(user.notify_tautulli),
-            },
-            trx,
-          )
-        } else if (contentType === 'season') {
-          notification.episodeDetails = {
-            seasonNumber: seasonNumber,
-          }
-
-          await this.createNotificationRecord(
-            {
-              watchlist_item_id: !Number.isNaN(itemId) ? itemId : null,
-              user_id: !Number.isNaN(userId) ? userId : null,
-              type: 'season',
-              title: notificationTitle,
-              season_number: seasonNumber,
-              sent_to_discord: Boolean(user.notify_discord),
-              sent_to_apprise: Boolean(user.notify_apprise),
-              sent_to_webhook: false,
-              sent_to_tautulli: Boolean(user.notify_tautulli),
-            },
-            trx,
-          )
-        } else if (
-          contentType === 'episode' &&
-          mediaInfo.episodes &&
-          mediaInfo.episodes.length > 0
-        ) {
-          const episode = mediaInfo.episodes[0]
-
-          notification.episodeDetails = {
-            title: episode.title,
-            ...(episode.overview && { overview: episode.overview }),
-            seasonNumber: episode.seasonNumber,
-            episodeNumber: episode.episodeNumber,
-            airDateUtc: episode.airDateUtc,
-          }
-
-          await this.createNotificationRecord(
-            {
-              watchlist_item_id: !Number.isNaN(itemId) ? itemId : null,
-              user_id: !Number.isNaN(userId) ? userId : null,
-              type: 'episode',
-              title: notificationTitle,
-              message: episode.overview,
-              season_number: episode.seasonNumber,
-              episode_number: episode.episodeNumber,
-              sent_to_discord: Boolean(user.notify_discord),
-              sent_to_apprise: Boolean(user.notify_apprise),
-              sent_to_webhook: false,
-              sent_to_tautulli: Boolean(user.notify_tautulli),
-            },
-            trx,
-          )
+      // Create the notification within the same transaction
+      if (contentType === 'movie') {
+        await this.createNotificationRecord(
+          {
+            watchlist_item_id: !Number.isNaN(itemId) ? itemId : null,
+            user_id: !Number.isNaN(userId) ? userId : null,
+            type: 'movie',
+            title: notificationTitle,
+            sent_to_discord: Boolean(user.notify_discord),
+            sent_to_apprise: Boolean(user.notify_apprise),
+            sent_to_webhook: false,
+            sent_to_tautulli: Boolean(user.notify_tautulli),
+          },
+          trx,
+        )
+      } else if (contentType === 'season') {
+        notification.episodeDetails = {
+          seasonNumber: seasonNumber,
         }
-      })
 
-      notifications.push({
-        user: {
-          id: user.id,
-          name: user.name,
-          apprise: user.apprise,
-          alias: user.alias,
-          discord_id: user.discord_id,
-          notify_apprise: user.notify_apprise,
-          notify_discord: user.notify_discord,
-          notify_tautulli: user.notify_tautulli,
-          tautulli_notifier_id: user.tautulli_notifier_id,
-          can_sync: user.can_sync,
-        },
-        notification,
-      })
-    }
+        await this.createNotificationRecord(
+          {
+            watchlist_item_id: !Number.isNaN(itemId) ? itemId : null,
+            user_id: !Number.isNaN(userId) ? userId : null,
+            type: 'season',
+            title: notificationTitle,
+            season_number: seasonNumber,
+            sent_to_discord: Boolean(user.notify_discord),
+            sent_to_apprise: Boolean(user.notify_apprise),
+            sent_to_webhook: false,
+            sent_to_tautulli: Boolean(user.notify_tautulli),
+          },
+          trx,
+        )
+      } else if (
+        contentType === 'episode' &&
+        mediaInfo.episodes &&
+        mediaInfo.episodes.length > 0
+      ) {
+        const episode = mediaInfo.episodes[0]
+
+        notification.episodeDetails = {
+          title: episode.title,
+          ...(episode.overview && { overview: episode.overview }),
+          seasonNumber: episode.seasonNumber,
+          episodeNumber: episode.episodeNumber,
+          airDateUtc: episode.airDateUtc,
+        }
+
+        await this.createNotificationRecord(
+          {
+            watchlist_item_id: !Number.isNaN(itemId) ? itemId : null,
+            user_id: !Number.isNaN(userId) ? userId : null,
+            type: 'episode',
+            title: notificationTitle,
+            message: episode.overview,
+            season_number: episode.seasonNumber,
+            episode_number: episode.episodeNumber,
+            sent_to_discord: Boolean(user.notify_discord),
+            sent_to_apprise: Boolean(user.notify_apprise),
+            sent_to_webhook: false,
+            sent_to_tautulli: Boolean(user.notify_tautulli),
+          },
+          trx,
+        )
+      }
+    })
+
+    notifications.push({
+      user: {
+        id: user.id,
+        name: user.name,
+        apprise: user.apprise,
+        alias: user.alias,
+        discord_id: user.discord_id,
+        notify_apprise: user.notify_apprise,
+        notify_discord: user.notify_discord,
+        notify_tautulli: user.notify_tautulli,
+        tautulli_notifier_id: user.tautulli_notifier_id,
+        can_sync: user.can_sync,
+      },
+      notification,
+    })
   }
 
-  if (byGuid && watchlistItems.length > 0) {
+  // Handle public content notifications if enabled and we have users
+  if (
+    this.config.publicContentNotifications.enabled &&
+    watchlistItems.length > 0
+  ) {
     const notificationTypeInfo = determineNotificationType(
       mediaInfo,
       isBulkRelease,

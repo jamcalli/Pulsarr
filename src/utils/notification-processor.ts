@@ -419,22 +419,11 @@ export async function processContentNotifications(
     sequential?: boolean // for webhook.ts which uses for...of instead of Promise.all
   },
 ): Promise<{ matchedCount: number }> {
-  // Get initial notification results
+  // Get notification results (includes both individual user notifications and public notifications)
   const notificationResults = await fastify.db.processNotifications(
     mediaInfo,
     isBulkRelease,
   )
-
-  // If public content is enabled, also get public notification data
-  if (fastify.config.publicContentNotifications.enabled) {
-    const publicNotificationResults = await fastify.db.processNotifications(
-      mediaInfo,
-      isBulkRelease,
-      true, // byGuid = true for public content
-    )
-    // Add public notifications to the existing user notifications
-    notificationResults.push(...publicNotificationResults)
-  }
 
   // Early exit if there are no notifications to process
   if (notificationResults.length === 0) {
