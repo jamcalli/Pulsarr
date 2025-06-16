@@ -109,6 +109,7 @@ export async function processNotifications(
       typeof item.id === 'string' ? Number.parseInt(item.id, 10) : item.id
 
     // Update watchlist item status, record history, and create notification atomically
+    let notificationCreated = false
     await this.knex.transaction(async (trx) => {
       await trx('watchlist_items').where('id', item.id).update({
         last_notified_at: new Date().toISOString(),
@@ -122,8 +123,9 @@ export async function processNotifications(
       })
 
       // Create the notification within the same transaction
+      let notificationResult = null
       if (contentType === 'movie') {
-        await this.createNotificationRecord(
+        notificationResult = await this.createNotificationRecord(
           {
             watchlist_item_id: !Number.isNaN(itemId) ? itemId : null,
             user_id: !Number.isNaN(userId) ? userId : null,
@@ -141,7 +143,7 @@ export async function processNotifications(
           seasonNumber: seasonNumber,
         }
 
-        await this.createNotificationRecord(
+        notificationResult = await this.createNotificationRecord(
           {
             watchlist_item_id: !Number.isNaN(itemId) ? itemId : null,
             user_id: !Number.isNaN(userId) ? userId : null,
@@ -170,7 +172,7 @@ export async function processNotifications(
           airDateUtc: episode.airDateUtc,
         }
 
-        await this.createNotificationRecord(
+        notificationResult = await this.createNotificationRecord(
           {
             watchlist_item_id: !Number.isNaN(itemId) ? itemId : null,
             user_id: !Number.isNaN(userId) ? userId : null,
@@ -187,23 +189,29 @@ export async function processNotifications(
           trx,
         )
       }
+
+      // Only mark as created if the notification record was successfully inserted
+      notificationCreated = notificationResult !== null
     })
 
-    notifications.push({
-      user: {
-        id: user.id,
-        name: user.name,
-        apprise: user.apprise,
-        alias: user.alias,
-        discord_id: user.discord_id,
-        notify_apprise: user.notify_apprise,
-        notify_discord: user.notify_discord,
-        notify_tautulli: user.notify_tautulli,
-        tautulli_notifier_id: user.tautulli_notifier_id,
-        can_sync: user.can_sync,
-      },
-      notification,
-    })
+    // Only add notification to external processing if database record was created
+    if (notificationCreated) {
+      notifications.push({
+        user: {
+          id: user.id,
+          name: user.name,
+          apprise: user.apprise,
+          alias: user.alias,
+          discord_id: user.discord_id,
+          notify_apprise: user.notify_apprise,
+          notify_discord: user.notify_discord,
+          notify_tautulli: user.notify_tautulli,
+          tautulli_notifier_id: user.tautulli_notifier_id,
+          can_sync: user.can_sync,
+        },
+        notification,
+      })
+    }
   }
 
   // Handle public content notifications if enabled and we have users
