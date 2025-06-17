@@ -2,9 +2,11 @@ import type { DatabaseService } from '@services/database.service.js'
 import type { Config } from '@root/types/config.types.js'
 
 /**
- * Retrieves application configuration
+ * Retrieves the application configuration from the database, normalizing and parsing all fields.
  *
- * @returns Promise resolving to the configuration if found, undefined otherwise
+ * Returns a fully constructed configuration object with all fields parsed and defaulted as necessary, or `undefined` if no configuration exists.
+ *
+ * @returns The application configuration object if found, otherwise `undefined`.
  */
 export async function getConfig(
   this: DatabaseService,
@@ -118,10 +120,12 @@ export async function getConfig(
 }
 
 /**
- * Creates a new configuration entry in the database
+ * Inserts a new configuration record into the database, enforcing a single configuration entry.
  *
- * @param config - Configuration data excluding id and timestamps
- * @returns Promise resolving to the ID of the created configuration
+ * Throws an error if a configuration already exists. Serializes JSON fields and applies default values for optional properties. Returns the ID of the newly created configuration.
+ *
+ * @param config - Configuration data excluding `id`, `created_at`, and `updated_at`
+ * @returns The ID of the created configuration
  */
 export async function createConfig(
   this: DatabaseService,
@@ -344,10 +348,12 @@ const JSON_COLUMNS = new Set([
 ])
 
 /**
- * Updates the configuration entry
+ * Updates the application configuration with the provided partial data.
+ *
+ * Only fields included in the allowed columns set are updated. JSON fields are automatically serialized. Returns `true` if the configuration was successfully updated, or `false` if no changes were made or an error occurred.
  *
  * @param config - Partial configuration data to update
- * @returns Promise resolving to true if the configuration was updated, false otherwise
+ * @returns `true` if the configuration was updated, `false` otherwise
  */
 export async function updateConfig(
   this: DatabaseService,

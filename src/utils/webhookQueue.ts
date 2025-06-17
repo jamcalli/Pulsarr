@@ -122,6 +122,18 @@ export function isRecentEpisode(
   }
 }
 
+/**
+ * Determines if a recent upgrade event has occurred for a specific episode within a configured buffer time.
+ *
+ * Tracks webhook events for the given TVDB ID, season, and episode, recording upgrade status and cleaning up expired entries. Waits briefly to allow for concurrent webhook events before evaluating if any recent event indicates an upgrade.
+ *
+ * @param tvdbId - The TVDB ID of the show
+ * @param seasonNumber - The season number of the episode
+ * @param episodeNumber - The episode number to check
+ * @param isUpgrade - Whether the current event is an upgrade
+ * @param instanceId - The instance identifier, or null if not applicable
+ * @returns `true` if an upgrade event was detected within the buffer time; otherwise, `false`
+ */
 export async function checkForUpgrade(
   tvdbId: string,
   seasonNumber: number,
@@ -229,13 +241,10 @@ export async function checkForUpgrade(
 /**
  * Processes and dispatches all queued webhook notifications for a specific TV show season.
  *
- * Validates and processes queued episodes for the given TVDB ID and season. Determines notification eligibility based on episode recency and prior notification status, then sends notifications using a centralized processor. If no watchlist matches are found, queues the webhook as pending for future processing. Cleans up the queue after processing.
+ * Validates the queue for the given TVDB ID and season, determines if notifications should be sent based on episode recency and prior notification status, and dispatches notifications using a centralized processor. If no watchlist matches are found, queues the webhook as pending for future processing. Cleans up the queue after processing.
  *
  * @param tvdbId - The TVDB ID of the show.
  * @param seasonNumber - The season number to process.
- *
- * @remark
- * Public content notifications and global admin user endpoints are included in the centralized notification dispatch.
  */
 export async function processQueuedWebhooks(
   tvdbId: string,

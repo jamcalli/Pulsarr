@@ -4,9 +4,10 @@ import type { SonarrInstanceRow } from '@root/types/database-rows.types.js'
 import type { Knex } from 'knex'
 
 /**
- * Maps a database row to a SonarrInstance object
- * @param row - The database row to map
- * @returns Mapped SonarrInstance object
+ * Converts a SonarrInstanceRow from the database into a SonarrInstance object, applying type conversions, default values, and JSON parsing for relevant fields.
+ *
+ * @param row - The database row representing a Sonarr instance
+ * @returns The corresponding SonarrInstance object
  */
 function mapRowToSonarrInstance(
   this: DatabaseService,
@@ -37,9 +38,9 @@ function mapRowToSonarrInstance(
 }
 
 /**
- * Retrieves all enabled Sonarr instances
+ * Retrieves all enabled Sonarr instances from the database.
  *
- * @returns Promise resolving to an array of all enabled Sonarr instances
+ * @returns A promise that resolves to an array of enabled SonarrInstance objects.
  */
 export async function getAllSonarrInstances(
   this: DatabaseService,
@@ -54,9 +55,9 @@ export async function getAllSonarrInstances(
 }
 
 /**
- * Retrieves the default Sonarr instance
+ * Retrieves the enabled Sonarr instance marked as default.
  *
- * @returns Promise resolving to the default Sonarr instance if found, null otherwise
+ * @returns The default enabled Sonarr instance, or null if none exists.
  */
 export async function getDefaultSonarrInstance(
   this: DatabaseService,
@@ -74,10 +75,10 @@ export async function getDefaultSonarrInstance(
 }
 
 /**
- * Retrieves a specific Sonarr instance by ID
+ * Retrieves a Sonarr instance by its unique ID.
  *
- * @param id - ID of the Sonarr instance to retrieve
- * @returns Promise resolving to the Sonarr instance if found, null otherwise
+ * @param id - The unique identifier of the Sonarr instance.
+ * @returns The Sonarr instance if found, or null if no instance exists with the given ID.
  */
 export async function getSonarrInstance(
   this: DatabaseService,
@@ -91,10 +92,12 @@ export async function getSonarrInstance(
 }
 
 /**
- * Creates a new Sonarr instance
+ * Creates a new Sonarr instance in the database and returns its ID.
  *
- * @param instance - Sonarr instance data excluding ID
- * @returns Promise resolving to the ID of the created instance
+ * If the new instance is marked as default, any existing default instance is unset before insertion.
+ *
+ * @param instance - The Sonarr instance data to create, excluding the ID
+ * @returns The ID of the newly created Sonarr instance
  */
 export async function createSonarrInstance(
   this: DatabaseService,
@@ -142,11 +145,12 @@ export async function createSonarrInstance(
 }
 
 /**
- * Updates an existing Sonarr instance
+ * Updates the specified Sonarr instance with the provided fields.
  *
- * @param id - ID of the Sonarr instance to update
- * @param updates - Partial Sonarr instance data to update
- * @returns Promise resolving to void when complete
+ * If the API key is set to "placeholder", the instance is forced to remain the default. Ensures only one default instance exists and applies partial updates to the instance's properties.
+ *
+ * @param id - The ID of the Sonarr instance to update
+ * @param updates - Fields to update on the Sonarr instance
  */
 export async function updateSonarrInstance(
   this: DatabaseService,
@@ -229,11 +233,10 @@ export async function updateSonarrInstance(
 }
 
 /**
- * Cleans up references to a deleted Sonarr instance
+ * Removes all database references to a deleted Sonarr instance, including entries in related junction tables and synced instance arrays of other Sonarr instances.
  *
- * @param deletedId - ID of the deleted Sonarr instance
- * @param trx - Optional Knex transaction object
- * @returns Promise resolving to void when complete
+ * @param deletedId - The ID of the deleted Sonarr instance to remove references for
+ * @param trx - Optional transaction to use for database operations
  */
 export async function cleanupDeletedSonarrInstanceReferences(
   this: DatabaseService,
@@ -303,10 +306,11 @@ export async function cleanupDeletedSonarrInstanceReferences(
 }
 
 /**
- * Deletes a Sonarr instance and cleans up references to it
+ * Deletes a Sonarr instance by ID and removes all references to it from related tables.
  *
- * @param id - ID of the Sonarr instance to delete
- * @returns Promise resolving to void when complete
+ * If the deleted instance was the default, promotes the next available enabled instance to default.
+ *
+ * @param id - The ID of the Sonarr instance to delete
  */
 export async function deleteSonarrInstance(
   this: DatabaseService,
@@ -366,11 +370,12 @@ export async function deleteSonarrInstance(
 }
 
 /**
- * Retrieves a Sonarr instance by transformed base URL identifier (original behavior)
- * Used for webhook routing where instanceId comes from URL transformation
+ * Retrieves a Sonarr instance matching a normalized base URL identifier.
  *
- * @param instanceId - Transformed base URL identifier (string)
- * @returns Promise resolving to the Sonarr instance if found, null otherwise
+ * The identifier is compared against all stored Sonarr instances after removing protocol, non-alphanumeric characters, and lowercasing the base URL. Used primarily for webhook routing.
+ *
+ * @param instanceId - The normalized base URL identifier to match
+ * @returns A promise resolving to the matching Sonarr instance, or null if none is found
  */
 export async function getSonarrInstanceByIdentifier(
   this: DatabaseService,

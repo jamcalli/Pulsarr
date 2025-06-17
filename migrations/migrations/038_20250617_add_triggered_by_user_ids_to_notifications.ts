@@ -1,15 +1,9 @@
 import type { Knex } from 'knex'
 
 /**
- * Adds a `triggered_by_user_ids` JSON column to the `notifications` table
- * to track which users have items in their watchlist that trigger public notifications.
+ * Migrates the database to add a `triggered_by_user_ids` JSON column to the `notifications` table, tracking user IDs whose watchlist items trigger public notifications.
  *
- * This column stores an array of user IDs and is used by database triggers to:
- * - Auto-add users when they add items to their watchlist
- * - Auto-remove users when they remove items from their watchlist
- * - Auto-delete public notifications when no users have the item in their watchlist
- *
- * This migration supports both PostgreSQL and SQLite.
+ * Populates this column for existing public notifications and creates database triggers to automatically update the array when watchlist items are added or removed. Deletes notifications when no users remain associated. Supports both PostgreSQL and SQLite.
  */
 export async function up(knex: Knex): Promise<void> {
   const isPostgres = knex.client.config.client === 'pg'
@@ -232,7 +226,9 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Drops the triggers, functions, column and index for both PostgreSQL and SQLite.
+ * Reverts the migration by removing the `triggered_by_user_ids` column and associated triggers and functions from the database.
+ *
+ * Drops the triggers and trigger functions for PostgreSQL or triggers for SQLite, and removes the `triggered_by_user_ids` column from the `notifications` table.
  */
 export async function down(knex: Knex): Promise<void> {
   const isPostgres = knex.client.config.client === 'pg'
