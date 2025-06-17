@@ -16,55 +16,56 @@ export async function getTopGenres(
     // Use streaming to process genres in batches to reduce memory usage
     const genreCounts: Record<string, number> = {}
     const batchSize = 1000
-    let offset = 0
+    let lastId = 0
     let processedCount = 0
+    let parseErrors = 0
 
-    // Process in batches instead of loading all at once
+    // Process in batches using cursor-based pagination
     while (true) {
       const batch = await this.knex('watchlist_items')
         .whereNotNull('genres')
         .where('genres', '!=', '[]')
-        .select('genres')
+        .andWhere('id', '>', lastId)
+        .select('id', 'genres')
+        .orderBy('id')
         .limit(batchSize)
-        .offset(offset)
 
       if (batch.length === 0) break
 
-      // Process current batch
+      // Process current batch with optimized JSON parsing
       for (const item of batch) {
+        let parsed: string[]
         try {
-          const parsed = this.safeJsonParse(
+          parsed = this.safeJsonParse(
             item.genres,
             [],
             'watchlist_item.genres',
           ) as string[]
+        } catch (err) {
+          parseErrors++
+          continue
+        }
 
-          if (Array.isArray(parsed)) {
-            for (const genreItem of parsed) {
-              if (
-                typeof genreItem === 'string' &&
-                genreItem.trim().length > 0
-              ) {
-                const normalizedGenre = genreItem.trim()
-                genreCounts[normalizedGenre] =
-                  (genreCounts[normalizedGenre] || 0) + 1
-              }
+        if (Array.isArray(parsed)) {
+          for (const genreItem of parsed) {
+            if (typeof genreItem === 'string' && genreItem.trim().length > 0) {
+              const normalizedGenre = genreItem.trim()
+              genreCounts[normalizedGenre] =
+                (genreCounts[normalizedGenre] || 0) + 1
             }
           }
-        } catch (err) {
-          this.log.debug('Skipping malformed genres JSON:', err)
         }
       }
 
       processedCount += batch.length
-      offset += batchSize
+      lastId = batch[batch.length - 1].id
 
       // Break if we got less than a full batch (reached the end)
       if (batch.length < batchSize) break
     }
 
     this.log.debug(
-      `Processed genres from ${processedCount} watchlist items in batches`,
+      `Processed genres from ${processedCount} watchlist items in batches (${parseErrors} parse errors)`,
     )
 
     // Sort genres by count and limit the results
@@ -193,12 +194,13 @@ export async function getWatchlistStatusDistribution(
     .groupBy('h.status')
     .orderBy('count', 'desc')
 
-  const itemsWithHistory = await this.knex('watchlist_status_history')
-    .distinct('watchlist_item_id')
-    .pluck('watchlist_item_id')
-
   const itemsWithoutHistory = await this.knex('watchlist_items')
-    .whereNotIn('id', itemsWithHistory)
+    .whereNotExists(
+      this.knex
+        .select('*')
+        .from('watchlist_status_history as sh')
+        .whereRaw('sh.watchlist_item_id = watchlist_items.id'),
+    )
     .select('status')
     .count('* as count')
     .groupBy('status')
@@ -419,6 +421,8 @@ export async function getAverageTimeFromGrabbedToNotified(
 
     // Process the data to calculate time differences
     const contentGroups = new Map<string, number[]>()
+    let discardedCount = 0
+    const maxReasonableDays = 365 // Configurable threshold - 1 year seems more reasonable
 
     for (const row of timeData) {
       const grabbedTime = new Date(row.first_grabbed).getTime()
@@ -429,8 +433,11 @@ export async function getAverageTimeFromGrabbedToNotified(
 
       const daysBetween = (notifiedTime - grabbedTime) / (1000 * 60 * 60 * 24)
 
-      // Filter reasonable values
-      if (daysBetween < 0 || daysBetween > 30) continue
+      // Filter unreasonable values (negative already handled above, keep upper bound reasonable)
+      if (daysBetween < 0 || daysBetween > maxReasonableDays) {
+        discardedCount++
+        continue
+      }
 
       const contentType = String(row.content_type)
       if (!contentGroups.has(contentType)) {
@@ -458,7 +465,7 @@ export async function getAverageTimeFromGrabbedToNotified(
     }
 
     this.log.debug(
-      `Calculated time differences for ${rows.length} content types`,
+      `Calculated time differences for ${rows.length} content types (${discardedCount} samples discarded for exceeding ${maxReasonableDays} days)`,
     )
 
     return rows
@@ -560,13 +567,9 @@ export async function getDetailedStatusTransitionMetrics(
       times.sort((a, b) => a - b)
 
       // Calculate percentiles for outlier detection
-      const p5Index = Math.floor(times.length * 0.05)
-      const p95Index = Math.floor(times.length * 0.95)
       const q1Index = Math.floor(times.length * 0.25)
       const q3Index = Math.floor(times.length * 0.75)
 
-      const p5 = times[p5Index] || times[0]
-      const p95 = times[p95Index] || times[times.length - 1]
       const q1 = times[q1Index] || times[0]
       const q3 = times[q3Index] || times[times.length - 1]
 
