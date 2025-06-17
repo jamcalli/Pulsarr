@@ -164,7 +164,7 @@ export class PlexWatchlistService {
       })
 
       this.log.info(
-        `Sent Discord notification to ${username} for "${item.title}"`,
+        `Notified Discord admin endpoints that ${username} added "${item.title}"`,
         { success: discordSent },
       )
     } catch (error) {
@@ -185,7 +185,7 @@ export class PlexWatchlistService {
           })
 
         this.log.info(
-          `Sent Apprise notification to ${username} for "${item.title}"`,
+          `Notified Apprise admin endpoints that ${username} added "${item.title}"`,
           { success: appriseSent },
         )
       } catch (error) {
@@ -360,7 +360,7 @@ export class PlexWatchlistService {
       selfRss: Array.from(watchlistUrls)[0] || '',
       friendsRss: Array.from(watchlistUrls)[1] || '',
     }
-    await this.dbService.updateConfig(1, dbUrls)
+    await this.dbService.updateConfig(dbUrls)
     this.log.info('RSS feed URLs saved to database', dbUrls)
 
     return {
@@ -1408,12 +1408,12 @@ export class PlexWatchlistService {
   }
 
   private async ensureRssFeeds() {
-    let config = await this.dbService.getConfig(1)
+    let config = await this.dbService.getConfig()
 
     if (!config?.selfRss && !config?.friendsRss) {
       this.log.info('No RSS feeds found in database, attempting to generate...')
       await this.generateAndSaveRssFeeds()
-      config = await this.dbService.getConfig(1)
+      config = await this.dbService.getConfig()
 
       if (!config?.selfRss && !config?.friendsRss) {
         throw new Error('Unable to generate or retrieve RSS feed URLs')

@@ -29,7 +29,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     },
     async (request, reply) => {
       try {
-        const config = await fastify.db.getConfig(1)
+        const config = await fastify.db.getConfig()
         if (!config) {
           return reply.notFound('Config not found in database')
         }
@@ -103,7 +103,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         // Validate Plex Pass requirement for Tautulli
         if (safeConfigUpdate.tautulliEnabled === true) {
-          const currentConfig = await fastify.db.getConfig(1)
+          const currentConfig = await fastify.db.getConfig()
           if (!currentConfig?.selfRss || !currentConfig?.friendsRss) {
             reply.status(400)
             return {
@@ -130,7 +130,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
 
         // Now update the database
-        const dbUpdated = await fastify.db.updateConfig(1, safeConfigUpdate)
+        const dbUpdated = await fastify.db.updateConfig(safeConfigUpdate)
         if (!dbUpdated) {
           // Revert runtime config using stored values
           try {
@@ -142,7 +142,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           return { error: 'Failed to update configuration in database' }
         }
 
-        const savedConfig = await fastify.db.getConfig(1)
+        const savedConfig = await fastify.db.getConfig()
         if (!savedConfig) {
           reply.status(404)
           return { error: 'No configuration found after update' }

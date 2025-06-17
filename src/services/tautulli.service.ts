@@ -263,9 +263,9 @@ export class TautulliService {
    * Save Tautulli configuration to database
    */
   private async saveConfig(): Promise<void> {
-    const currentConfig = await this.db.getConfig(1)
+    const currentConfig = await this.db.getConfig()
     if (currentConfig) {
-      await this.db.updateConfig(currentConfig.id, {
+      await this.db.updateConfig({
         tautulliEnabled: this.config.enabled,
         tautulliUrl: this.config.url,
         tautulliApiKey: this.config.apiKey,

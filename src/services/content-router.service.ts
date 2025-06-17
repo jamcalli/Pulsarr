@@ -168,6 +168,9 @@ export class ContentRouterService {
           await this.fastify.radarrManager.routeItemToRadarr(
             item as RadarrItem,
             key,
+            // RSS workflow uses userId=0 for temporary keys during initial content grab
+            // These are filtered out by updateWatchlistItem() before database insertion
+            options.userId || 0,
             options.forcedInstanceId,
             options.syncing,
           )
@@ -175,6 +178,9 @@ export class ContentRouterService {
           await this.fastify.sonarrManager.routeItemToSonarr(
             item as SonarrItem,
             key,
+            // RSS workflow uses userId=0 for temporary keys during initial content grab
+            // These are filtered out by updateWatchlistItem() before database insertion
+            options.userId || 0,
             options.forcedInstanceId,
             options.syncing,
           )
@@ -221,6 +227,9 @@ export class ContentRouterService {
             await this.fastify.radarrManager.routeItemToRadarr(
               item as RadarrItem,
               key,
+              // RSS workflow uses userId=0 for temporary keys during initial content grab
+              // These are filtered out by updateWatchlistItem() before database insertion
+              options.userId || 0,
               options.syncTargetInstanceId,
               options.syncing,
             )
@@ -228,6 +237,9 @@ export class ContentRouterService {
             await this.fastify.sonarrManager.routeItemToSonarr(
               item as SonarrItem,
               key,
+              // RSS workflow uses userId=0 for temporary keys during initial content grab
+              // These are filtered out by updateWatchlistItem() before database insertion
+              options.userId || 0,
               options.syncTargetInstanceId,
               options.syncing,
             )
@@ -251,6 +263,9 @@ export class ContentRouterService {
         item,
         key,
         contentType,
+        // RSS workflow uses userId=0 for temporary keys during initial content grab
+        // These are filtered out by updateWatchlistItem() before database insertion
+        options.userId || 0,
         options.syncing,
       )
       return { routedInstances: defaultRoutedInstances }
@@ -267,15 +282,34 @@ export class ContentRouterService {
     }
 
     // IMPORTANT: Enrich item with metadata before evaluation
-    // Only do this if we have rules that might use the enriched data
+    // Only do this if we have rules that actually need the enriched metadata
     let enrichedItem = item
     if (hasAnyRules) {
+      // Check if any rules require metadata to avoid unnecessary API calls
+      let needsMetadata = false
       try {
-        enrichedItem = await this.enrichItemMetadata(item, context)
-        this.log.debug(`Enriched metadata for "${item.title}"`)
+        needsMetadata = await this.fastify.db.hasMetadataRequiringRules()
       } catch (error) {
-        this.log.error(`Failed to enrich metadata for "${item.title}":`, error)
-        // Continue with original item if enrichment fails
+        this.log.error('Error checking for metadata-requiring rules:', error)
+        // If we can't determine, err on the side of caution and enrich
+        needsMetadata = true
+      }
+
+      if (needsMetadata) {
+        try {
+          enrichedItem = await this.enrichItemMetadata(item, context)
+          this.log.debug(`Enriched metadata for "${item.title}"`)
+        } catch (error) {
+          this.log.error(
+            `Failed to enrich metadata for "${item.title}":`,
+            error,
+          )
+          // Continue with original item if enrichment fails
+        }
+      } else {
+        this.log.debug(
+          `Skipping metadata enrichment for "${item.title}" - no rules require it`,
+        )
       }
     }
 
@@ -322,6 +356,9 @@ export class ContentRouterService {
             await this.fastify.radarrManager.routeItemToRadarr(
               item as RadarrItem,
               key,
+              // RSS workflow uses userId=0 for temporary keys during initial content grab
+              // These are filtered out by updateWatchlistItem() before database insertion
+              options.userId || 0,
               options.syncTargetInstanceId,
               options.syncing,
             )
@@ -329,6 +366,9 @@ export class ContentRouterService {
             await this.fastify.sonarrManager.routeItemToSonarr(
               item as SonarrItem,
               key,
+              // RSS workflow uses userId=0 for temporary keys during initial content grab
+              // These are filtered out by updateWatchlistItem() before database insertion
+              options.userId || 0,
               options.syncTargetInstanceId,
               options.syncing,
             )
@@ -351,6 +391,9 @@ export class ContentRouterService {
           item,
           key,
           contentType,
+          // RSS workflow uses userId=0 for temporary keys during initial content grab
+          // These are filtered out by updateWatchlistItem() before database insertion
+          options.userId || 0,
           options.syncing,
         )
         routedInstances.push(...defaultRoutedInstances)
@@ -394,6 +437,9 @@ export class ContentRouterService {
           await this.fastify.radarrManager.routeItemToRadarr(
             item as RadarrItem,
             key,
+            // RSS workflow uses userId=0 for temporary keys during initial content grab
+            // These are filtered out by updateWatchlistItem() before database insertion
+            options.userId || 0,
             decision.instanceId,
             options.syncing,
             rootFolder,
@@ -410,6 +456,9 @@ export class ContentRouterService {
           await this.fastify.sonarrManager.routeItemToSonarr(
             item as SonarrItem,
             key,
+            // RSS workflow uses userId=0 for temporary keys during initial content grab
+            // These are filtered out by updateWatchlistItem() before database insertion
+            options.userId || 0,
             decision.instanceId,
             options.syncing,
             rootFolder,
@@ -722,6 +771,7 @@ export class ContentRouterService {
    * @param item - The content item to route
    * @param key - Unique identifier for the watchlist item
    * @param contentType - Type of content ('movie' or 'show')
+   * @param userId - ID of the user who owns the watchlist item
    * @param syncing - Whether this is part of a sync operation
    * @returns Promise resolving to array of instance IDs the item was routed to
    */
@@ -729,6 +779,7 @@ export class ContentRouterService {
     item: ContentItem,
     key: string,
     contentType: 'movie' | 'show',
+    userId: number,
     syncing?: boolean,
   ): Promise<number[]> {
     try {
@@ -757,6 +808,7 @@ export class ContentRouterService {
           await this.fastify.radarrManager.routeItemToRadarr(
             item as RadarrItem,
             key,
+            userId,
             defaultInstance.id,
             syncing,
           )
@@ -833,6 +885,7 @@ export class ContentRouterService {
               await this.fastify.radarrManager.routeItemToRadarr(
                 item as RadarrItem,
                 key,
+                userId,
                 syncedId,
                 syncing,
                 rootFolder,
@@ -874,6 +927,7 @@ export class ContentRouterService {
           await this.fastify.sonarrManager.routeItemToSonarr(
             item as SonarrItem,
             key,
+            userId,
             defaultInstance.id,
             syncing,
           )
@@ -939,6 +993,7 @@ export class ContentRouterService {
               await this.fastify.sonarrManager.routeItemToSonarr(
                 item as SonarrItem,
                 key,
+                userId,
                 syncedId,
                 syncing,
                 rootFolder,

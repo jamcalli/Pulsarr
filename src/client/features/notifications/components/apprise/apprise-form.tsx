@@ -37,11 +37,11 @@ const appriseFormSchema = z.object({
 type AppriseFormSchema = z.infer<typeof appriseFormSchema>
 
 /****
- * Displays a form for configuring system-wide Apprise notification service URLs.
+ * Renders a form for configuring system-wide Apprise notification service URLs.
  *
- * Allows users to view the current Apprise server URL (read-only), add or update up to five system Apprise URLs for notifications, or clear them with confirmation. The form provides validation, status feedback, and disables controls when Apprise is not enabled or configuration is not initialized.
+ * Users can view the current Apprise server URL, add or update up to five system Apprise URLs for notifications, or clear them with confirmation. The form includes validation, status feedback, and disables controls when Apprise is not enabled or configuration is not initialized.
  *
- * @param isInitialized - Whether the configuration is ready for editing.
+ * @param isInitialized - Indicates whether the configuration is ready for editing.
  */
 export function AppriseForm({ isInitialized }: AppriseFormProps) {
   const { toast } = useToast()
@@ -175,7 +175,7 @@ export function AppriseForm({ isInitialized }: AppriseFormProps) {
           platforms. The service status is determined at server startup and
           cannot be changed at runtime.{' '}
           <a
-            href="https://github.com/jamcalli/Pulsarr#apprise-notifications"
+            href="https://jamcalli.github.io/Pulsarr/docs/notifications/apprise"
             target="_blank"
             rel="noopener noreferrer"
             className="text-blue-400 hover:text-blue-500 inline-flex items-center gap-1"
