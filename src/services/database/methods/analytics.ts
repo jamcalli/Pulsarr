@@ -11,47 +11,61 @@ export async function getTopGenres(
   limit = 10,
 ): Promise<{ genre: string; count: number }[]> {
   try {
-    // First, retrieve all watchlist items that have genre information
-    const items = await this.knex('watchlist_items')
-      .whereNotNull('genres')
-      .where('genres', '!=', '[]')
-      .select('genres')
+    this.log.debug('Processing genres with streaming approach')
 
-    this.log.debug(`Processing genres from ${items.length} watchlist items`)
-
-    // Count occurrences of each genre
+    // Use streaming to process genres in batches to reduce memory usage
     const genreCounts: Record<string, number> = {}
-    for (const item of items) {
-      try {
-        let genres: string[] = []
+    const batchSize = 1000
+    let offset = 0
+    let processedCount = 0
+
+    // Process in batches instead of loading all at once
+    while (true) {
+      const batch = await this.knex('watchlist_items')
+        .whereNotNull('genres')
+        .where('genres', '!=', '[]')
+        .select('genres')
+        .limit(batchSize)
+        .offset(offset)
+
+      if (batch.length === 0) break
+
+      // Process current batch
+      for (const item of batch) {
         try {
           const parsed = this.safeJsonParse(
             item.genres,
             [],
             'watchlist_item.genres',
-          )
-          if (Array.isArray(parsed)) {
-            genres = parsed
-          }
-        } catch (parseError) {
-          this.log.debug('Skipping malformed genres JSON', {
-            genres: item.genres,
-          })
-          continue
-        }
+          ) as string[]
 
-        // Increment counts for each genre
-        for (const genre of genres) {
-          if (typeof genre === 'string' && genre.trim().length > 0) {
-            const normalizedGenre = genre.trim()
-            genreCounts[normalizedGenre] =
-              (genreCounts[normalizedGenre] || 0) + 1
+          if (Array.isArray(parsed)) {
+            for (const genreItem of parsed) {
+              if (
+                typeof genreItem === 'string' &&
+                genreItem.trim().length > 0
+              ) {
+                const normalizedGenre = genreItem.trim()
+                genreCounts[normalizedGenre] =
+                  (genreCounts[normalizedGenre] || 0) + 1
+              }
+            }
           }
+        } catch (err) {
+          this.log.debug('Skipping malformed genres JSON:', err)
         }
-      } catch (err) {
-        this.log.error('Error processing genre item:', err)
       }
+
+      processedCount += batch.length
+      offset += batchSize
+
+      // Break if we got less than a full batch (reached the end)
+      if (batch.length < batchSize) break
     }
+
+    this.log.debug(
+      `Processed genres from ${processedCount} watchlist items in batches`,
+    )
 
     // Sort genres by count and limit the results
     const sortedGenres = Object.entries(genreCounts)
@@ -139,7 +153,7 @@ export async function getUsersWithMostWatchlistItems(
     .join('users', 'watchlist_items.user_id', '=', 'users.id')
     .select('users.name')
     .count('watchlist_items.id as count')
-    .groupBy('users.id')
+    .groupBy('users.id', 'users.name')
     .orderBy('count', 'desc')
     .limit(limit)
 
@@ -316,7 +330,7 @@ export async function getInstanceActivityStats(this: DatabaseService): Promise<
     .whereNotNull('watchlist_items.sonarr_instance_id')
     .select('sonarr_instances.id as instance_id', 'sonarr_instances.name')
     .count('watchlist_items.id as item_count')
-    .groupBy('sonarr_instances.id')
+    .groupBy('sonarr_instances.id', 'sonarr_instances.name')
 
   const radarrResults = await this.knex('watchlist_items')
     .join(
@@ -328,7 +342,7 @@ export async function getInstanceActivityStats(this: DatabaseService): Promise<
     .whereNotNull('watchlist_items.radarr_instance_id')
     .select('radarr_instances.id as instance_id', 'radarr_instances.name')
     .count('watchlist_items.id as item_count')
-    .groupBy('radarr_instances.id')
+    .groupBy('radarr_instances.id', 'radarr_instances.name')
 
   const sonarrStats = sonarrResults.map((row) => ({
     instance_id: Number(row.instance_id),
