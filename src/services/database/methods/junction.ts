@@ -3,15 +3,12 @@ import type { WatchlistInstanceStatus } from '@root/types/watchlist-status.types
 import type { Knex } from 'knex'
 
 /**
- * Retrieves all Radarr instance IDs associated with a watchlist item
+ * Retrieves all Radarr instance IDs linked to a specific watchlist item.
  *
- * This method queries the watchlist_radarr_instances junction table to find
- * all Radarr instances that a particular watchlist item is associated with.
- * This is essential for multi-instance deployments where content may be
- * distributed across several Radarr instances.
+ * Returns an array of Radarr instance IDs associated with the given watchlist item. If an error occurs, returns an empty array.
  *
- * @param watchlistId - ID of the watchlist item
- * @returns Promise resolving to array of Radarr instance IDs
+ * @param watchlistId - The ID of the watchlist item to query
+ * @returns An array of Radarr instance IDs associated with the watchlist item
  */
 export async function getWatchlistRadarrInstanceIds(
   this: DatabaseService,
@@ -35,14 +32,13 @@ export async function getWatchlistRadarrInstanceIds(
 }
 
 /**
- * Retrieves the instance status for a watchlist item in Radarr
+ * Retrieves the status details for a watchlist item on a specific Radarr instance.
  *
- * Queries the junction table to get detailed status information about how a specific
- * watchlist item is configured in a particular Radarr instance.
+ * Returns the status, last notified timestamp, and primary flag for the given watchlist item and Radarr instance, or null if not found or on error.
  *
- * @param watchlistId - ID of the watchlist item
- * @param instanceId - ID of the Radarr instance
- * @returns Promise resolving to the status information if found, null otherwise
+ * @param watchlistId - The ID of the watchlist item.
+ * @param instanceId - The ID of the Radarr instance.
+ * @returns The status information for the watchlist item on the specified Radarr instance, or null if not found.
  */
 export async function getWatchlistRadarrInstanceStatus(
   this: DatabaseService,
@@ -69,14 +65,15 @@ export async function getWatchlistRadarrInstanceStatus(
 }
 
 /**
- * Adds a watchlist item to a Radarr instance
+ * Associates a watchlist item with a Radarr instance, creating or updating the junction record with status, primary flag, and syncing state.
  *
- * @param watchlistId - ID of the watchlist item
- * @param instanceId - ID of the Radarr instance
- * @param status - Optional initial status
- * @param isPrimary - Whether this instance is primary for the item
- * @param syncing - Whether the item is currently syncing
- * @returns Promise resolving to void when complete
+ * If the association already exists, updates the status, primary flag, syncing flag, and timestamp.
+ *
+ * @param watchlistId - The ID of the watchlist item to associate
+ * @param instanceId - The ID of the Radarr instance
+ * @param status - The initial status for the association (defaults to 'pending')
+ * @param isPrimary - Whether this instance is set as primary for the item (defaults to false)
+ * @param syncing - Whether the item is currently syncing with the instance (defaults to false)
  */
 export async function addWatchlistToRadarrInstance(
   this: DatabaseService,
@@ -115,13 +112,12 @@ export async function addWatchlistToRadarrInstance(
 }
 
 /**
- * Updates the status of a watchlist item in a Radarr instance
+ * Updates the status and optionally the last notified timestamp for a watchlist item on a specific Radarr instance.
  *
- * @param watchlistId - ID of the watchlist item
- * @param instanceId - ID of the Radarr instance
- * @param status - New status to set
- * @param lastNotifiedAt - Optional timestamp when item was last notified
- * @returns Promise resolving to void when complete
+ * @param watchlistId - The ID of the watchlist item
+ * @param instanceId - The ID of the Radarr instance
+ * @param status - The new status to assign
+ * @param lastNotifiedAt - Optional timestamp indicating when the item was last notified
  */
 export async function updateWatchlistRadarrInstanceStatus(
   this: DatabaseService,
@@ -160,11 +156,9 @@ export async function updateWatchlistRadarrInstanceStatus(
 }
 
 /**
- * Removes a watchlist item from a Radarr instance
+ * Deletes the association between a watchlist item and a Radarr instance.
  *
- * @param watchlistId - ID of the watchlist item
- * @param instanceId - ID of the Radarr instance
- * @returns Promise resolving to void when complete
+ * Removes the junction record linking the specified watchlist item to the given Radarr instance.
  */
 export async function removeWatchlistFromRadarrInstance(
   this: DatabaseService,
@@ -192,11 +186,9 @@ export async function removeWatchlistFromRadarrInstance(
 }
 
 /**
- * Sets the primary Radarr instance for a watchlist item
+ * Atomically sets the specified Radarr instance as the primary for a given watchlist item.
  *
- * @param watchlistId - ID of the watchlist item
- * @param primaryInstanceId - ID of the Radarr instance to set as primary
- * @returns Promise resolving to void when complete
+ * Ensures only one Radarr instance is marked as primary for the watchlist item by updating all related records in a single transaction.
  */
 export async function setPrimaryRadarrInstance(
   this: DatabaseService,
@@ -237,10 +229,10 @@ export async function setPrimaryRadarrInstance(
 }
 
 /**
- * Gets all Radarr instance junctions for given watchlist items
+ * Retrieves all Radarr instance junction records for the specified watchlist item IDs.
  *
- * @param watchlistIds - Array of watchlist item IDs
- * @returns Promise resolving to array of junction records
+ * @param watchlistIds - The IDs of the watchlist items to query.
+ * @returns An array of junction records containing Radarr instance associations and their statuses for each watchlist item.
  */
 export async function getAllWatchlistRadarrInstanceJunctions(
   this: DatabaseService,
@@ -261,10 +253,9 @@ export async function getAllWatchlistRadarrInstanceJunctions(
 }
 
 /**
- * Bulk adds watchlist items to Radarr instances
+ * Bulk inserts or updates multiple watchlist-to-Radarr-instance associations.
  *
- * @param junctions - Array of items to add with watchlist ID, instance ID, and optional status
- * @returns Promise resolving to void when complete
+ * For each provided junction, creates or updates the record with the specified status, primary flag, syncing flag, and last notified timestamp. Existing records are merged on conflict.
  */
 export async function bulkAddWatchlistToRadarrInstances(
   this: DatabaseService,
@@ -311,10 +302,9 @@ export async function bulkAddWatchlistToRadarrInstances(
 }
 
 /**
- * Bulk updates watchlist item statuses in Radarr instances
+ * Bulk updates the status and related fields for multiple watchlist items associated with Radarr instances.
  *
- * @param updates - Array of status updates
- * @returns Promise resolving to void when complete
+ * Each update can modify the status, primary flag, and last notified timestamp for a specific watchlist-to-Radarr-instance association. All updates are performed atomically within a transaction. Throws an error if an invalid status value is provided.
  */
 export async function bulkUpdateWatchlistRadarrInstanceStatuses(
   this: DatabaseService,
@@ -365,10 +355,9 @@ export async function bulkUpdateWatchlistRadarrInstanceStatuses(
 }
 
 /**
- * Bulk removes watchlist items from Radarr instances
+ * Removes multiple watchlist-to-Radarr-instance associations in bulk.
  *
- * @param removals - Array of items to remove with watchlist ID and instance ID
- * @returns Promise resolving to void when complete
+ * Processes the removals in chunks for efficiency and deletes each specified junction record from the database.
  */
 export async function bulkRemoveWatchlistFromRadarrInstances(
   this: DatabaseService,
@@ -398,15 +387,12 @@ export async function bulkRemoveWatchlistFromRadarrInstances(
 }
 
 /**
- * Retrieves all Sonarr instance IDs associated with a watchlist item
+ * Retrieves all Sonarr instance IDs linked to a specific watchlist item.
  *
- * This method queries the watchlist_sonarr_instances junction table to find
- * all Sonarr instances that a particular watchlist item is associated with.
- * This is essential for multi-instance deployments where content may be
- * distributed across several Sonarr instances.
+ * Returns an array of Sonarr instance IDs associated with the given watchlist item. If an error occurs, an empty array is returned.
  *
- * @param watchlistId - ID of the watchlist item
- * @returns Promise resolving to array of Sonarr instance IDs
+ * @param watchlistId - The ID of the watchlist item to query.
+ * @returns A promise that resolves to an array of Sonarr instance IDs.
  */
 export async function getWatchlistSonarrInstanceIds(
   this: DatabaseService,
@@ -430,14 +416,13 @@ export async function getWatchlistSonarrInstanceIds(
 }
 
 /**
- * Retrieves the instance status for a watchlist item in Sonarr
+ * Retrieves the status details for a watchlist item on a specific Sonarr instance.
  *
- * Queries the junction table to get detailed status information about how a specific
- * watchlist item is configured in a particular Sonarr instance.
+ * Returns the status, last notified timestamp, and primary flag for the given watchlist item and Sonarr instance, or null if not found or on error.
  *
- * @param watchlistId - ID of the watchlist item
- * @param instanceId - ID of the Sonarr instance
- * @returns Promise resolving to the status information if found, null otherwise
+ * @param watchlistId - The ID of the watchlist item.
+ * @param instanceId - The ID of the Sonarr instance.
+ * @returns The status information for the watchlist item on the specified Sonarr instance, or null if not found.
  */
 export async function getWatchlistSonarrInstanceStatus(
   this: DatabaseService,
@@ -464,14 +449,9 @@ export async function getWatchlistSonarrInstanceStatus(
 }
 
 /**
- * Adds a watchlist item to a Sonarr instance
+ * Associates a watchlist item with a Sonarr instance, creating or updating the junction record with status, primary flag, and syncing state.
  *
- * @param watchlistId - ID of the watchlist item
- * @param instanceId - ID of the Sonarr instance
- * @param status - Optional initial status
- * @param isPrimary - Whether this instance is primary for the item
- * @param syncing - Whether the item is currently syncing
- * @returns Promise resolving to void when complete
+ * If the association already exists, the status, primary flag, syncing flag, and updated timestamp are merged.
  */
 export async function addWatchlistToSonarrInstance(
   this: DatabaseService,
@@ -510,13 +490,12 @@ export async function addWatchlistToSonarrInstance(
 }
 
 /**
- * Updates the status of a watchlist item in a Sonarr instance
+ * Updates the status and optionally the last notified timestamp for a watchlist item on a specific Sonarr instance.
  *
- * @param watchlistId - ID of the watchlist item
- * @param instanceId - ID of the Sonarr instance
- * @param status - New status to set
- * @param lastNotifiedAt - Optional timestamp when item was last notified
- * @returns Promise resolving to void when complete
+ * @param watchlistId - The ID of the watchlist item.
+ * @param instanceId - The ID of the Sonarr instance.
+ * @param status - The new status to assign to the watchlist item.
+ * @param lastNotifiedAt - Optional timestamp indicating when the item was last notified.
  */
 export async function updateWatchlistSonarrInstanceStatus(
   this: DatabaseService,
@@ -555,11 +534,9 @@ export async function updateWatchlistSonarrInstanceStatus(
 }
 
 /**
- * Removes a watchlist item from a Sonarr instance
+ * Deletes the association between a watchlist item and a Sonarr instance.
  *
- * @param watchlistId - ID of the watchlist item
- * @param instanceId - ID of the Sonarr instance
- * @returns Promise resolving to void when complete
+ * Removes the junction record linking the specified watchlist item to the given Sonarr instance.
  */
 export async function removeWatchlistFromSonarrInstance(
   this: DatabaseService,
@@ -587,11 +564,9 @@ export async function removeWatchlistFromSonarrInstance(
 }
 
 /**
- * Sets the primary Sonarr instance for a watchlist item
+ * Sets the specified Sonarr instance as the primary for a given watchlist item, ensuring only one primary per item.
  *
- * @param watchlistId - ID of the watchlist item
- * @param primaryInstanceId - ID of the Sonarr instance to set as primary
- * @returns Promise resolving to void when complete
+ * If a transaction is provided, the update occurs within that transaction; otherwise, a new transaction is used.
  */
 export async function setPrimarySonarrInstance(
   this: DatabaseService,
@@ -632,10 +607,10 @@ export async function setPrimarySonarrInstance(
 }
 
 /**
- * Gets all Sonarr instance junctions for given watchlist items
+ * Retrieves all Sonarr instance junction records for the specified watchlist item IDs.
  *
- * @param watchlistIds - Array of watchlist item IDs
- * @returns Promise resolving to array of junction records
+ * @param watchlistIds - The IDs of the watchlist items to query.
+ * @returns An array of junction records containing Sonarr instance associations and status details for each watchlist item.
  */
 export async function getAllWatchlistSonarrInstanceJunctions(
   this: DatabaseService,
@@ -655,10 +630,9 @@ export async function getAllWatchlistSonarrInstanceJunctions(
 }
 
 /**
- * Bulk adds watchlist items to Sonarr instances
+ * Bulk inserts or updates multiple watchlist-to-Sonarr-instance associations.
  *
- * @param junctions - Array of items to add with watchlist ID, instance ID, and optional status
- * @returns Promise resolving to void when complete
+ * Each entry in the input array specifies a watchlist item, Sonarr instance, status, primary flag, and optional syncing and notification timestamp. Existing records are updated on conflict.
  */
 export async function bulkAddWatchlistToSonarrInstances(
   this: DatabaseService,
@@ -705,10 +679,9 @@ export async function bulkAddWatchlistToSonarrInstances(
 }
 
 /**
- * Bulk updates watchlist item statuses in Sonarr instances
+ * Bulk updates the status and related fields for multiple watchlist items associated with Sonarr instances.
  *
- * @param updates - Array of status updates
- * @returns Promise resolving to void when complete
+ * Each update can modify the status, primary flag, and last notified timestamp for a specific watchlist-to-Sonarr-instance association. All updates are performed atomically within a transaction. Throws an error if an invalid status is provided.
  */
 export async function bulkUpdateWatchlistSonarrInstanceStatuses(
   this: DatabaseService,
@@ -760,10 +733,9 @@ export async function bulkUpdateWatchlistSonarrInstanceStatuses(
 }
 
 /**
- * Bulk removes watchlist items from Sonarr instances
+ * Bulk removes associations between watchlist items and Sonarr instances.
  *
- * @param removals - Array of items to remove with watchlist ID and instance ID
- * @returns Promise resolving to void when complete
+ * Removes multiple records from the `watchlist_sonarr_instances` junction table based on the provided watchlist and instance ID pairs.
  */
 export async function bulkRemoveWatchlistFromSonarrInstances(
   this: DatabaseService,
@@ -793,19 +765,11 @@ export async function bulkRemoveWatchlistFromSonarrInstances(
 }
 
 /**
- * Retrieves detailed content distribution statistics across all instances
+ * Retrieves content distribution statistics for all enabled Radarr and Sonarr instances.
  *
- * This comprehensive method builds a complete breakdown of how content is distributed
- * across all Sonarr and Radarr instances. For each instance, it provides:
- * - Total number of items
- * - Number of items where this instance is the primary
- * - Distribution of items by status (pending, requested, etc.)
- * - Distribution of items by content type (movies, shows, etc.)
+ * For each instance, returns the total number of associated watchlist items, the number of items where the instance is primary, and breakdowns by status and content type.
  *
- * The information is valuable for administrators to understand content allocation
- * and load distribution across instances.
- *
- * @returns Promise resolving to object with instance content breakdown statistics
+ * @returns Promise resolving to an object containing a success flag and an array of instance content breakdowns
  */
 export async function getInstanceContentBreakdown(
   this: DatabaseService,
@@ -951,15 +915,9 @@ export async function getInstanceContentBreakdown(
 }
 
 /**
- * Updates the syncing status of a watchlist item in Radarr
+ * Updates the syncing flag for a watchlist item on a Radarr instance.
  *
- * Sets whether the item is currently being synchronized with the Radarr instance,
- * which helps prevent duplicate operations during content updates.
- *
- * @param watchlistId - ID of the watchlist item
- * @param instanceId - ID of the Radarr instance
- * @param syncing - Boolean indicating whether the item is being synced
- * @returns Promise resolving to void when complete
+ * Marks whether the specified watchlist item is currently being synchronized with the given Radarr instance to coordinate concurrent operations.
  */
 export async function updateRadarrSyncingStatus(
   this: DatabaseService,
@@ -981,15 +939,13 @@ export async function updateRadarrSyncingStatus(
 }
 
 /**
- * Updates the syncing status of a watchlist item in Sonarr
+ * Updates the syncing flag for a watchlist item on a Sonarr instance.
  *
- * Sets whether the item is currently being synchronized with the Sonarr instance,
- * which helps prevent duplicate operations during content updates.
+ * Marks whether the specified watchlist item is currently being synchronized with the given Sonarr instance.
  *
- * @param watchlistId - ID of the watchlist item
- * @param instanceId - ID of the Sonarr instance
- * @param syncing - Boolean indicating whether the item is being synced
- * @returns Promise resolving to void when complete
+ * @param watchlistId - The ID of the watchlist item.
+ * @param instanceId - The ID of the Sonarr instance.
+ * @param syncing - True if the item is currently syncing; false otherwise.
  */
 export async function updateSonarrSyncingStatus(
   this: DatabaseService,
@@ -1011,14 +967,11 @@ export async function updateSonarrSyncingStatus(
 }
 
 /**
- * Checks if a watchlist item is currently syncing with a Radarr instance
+ * Returns whether a watchlist item is currently syncing with a Radarr instance.
  *
- * Determines whether a synchronization operation is in progress for this item,
- * which can be used to prevent concurrent operations that might conflict.
- *
- * @param watchlistId - ID of the watchlist item
- * @param instanceId - ID of the Radarr instance
- * @returns Promise resolving to true if the item is currently syncing, false otherwise
+ * @param watchlistId - The ID of the watchlist item.
+ * @param instanceId - The ID of the Radarr instance.
+ * @returns True if the item is syncing with the instance; otherwise, false.
  */
 export async function isRadarrItemSyncing(
   this: DatabaseService,
@@ -1036,14 +989,9 @@ export async function isRadarrItemSyncing(
 }
 
 /**
- * Checks if a watchlist item is currently syncing with a Sonarr instance
+ * Returns whether a watchlist item is currently syncing with a Sonarr instance.
  *
- * Determines whether a synchronization operation is in progress for this item,
- * which can be used to prevent concurrent operations that might conflict.
- *
- * @param watchlistId - ID of the watchlist item
- * @param instanceId - ID of the Sonarr instance
- * @returns Promise resolving to true if the item is currently syncing, false otherwise
+ * @returns Promise resolving to true if the item is syncing, or false if not syncing or not found.
  */
 export async function isSonarrItemSyncing(
   this: DatabaseService,
