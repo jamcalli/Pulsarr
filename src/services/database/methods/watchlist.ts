@@ -267,7 +267,11 @@ export async function getWatchlistItemsByKeys(
     resultCount: items.length,
   })
 
-  return items
+  return items.map((item) => ({
+    ...item,
+    guids: this.safeJsonParse(item.guids, [], 'watchlist_item.guids'),
+    genres: this.safeJsonParse(item.genres, [], 'watchlist_item.genres'),
+  }))
 }
 
 /**

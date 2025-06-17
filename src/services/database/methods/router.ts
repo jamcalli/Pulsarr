@@ -462,3 +462,56 @@ export async function hasAnyRouterRules(
     return true
   }
 }
+
+/**
+ * Checks if any router rules exist that require metadata enrichment
+ * Only rules with conditions that need API metadata should trigger enrichment
+ *
+ * @returns Promise resolving to true if metadata-requiring rules exist
+ */
+export async function hasMetadataRequiringRules(
+  this: DatabaseService,
+): Promise<boolean> {
+  try {
+    // Check for rules with conditions that require metadata from Radarr/Sonarr APIs
+    // These field types need enriched metadata: year, certification, language, season
+    const result = await this.knex('router_rules')
+      .where(function () {
+        this.where('enabled', true).orWhereNull('enabled')
+      })
+      .where(function () {
+        // Check if conditions contain fields that require metadata
+        // Use database-specific JSON queries
+        if (this.client.config.client === 'pg') {
+          // PostgreSQL JSONB queries
+          this.whereRaw('conditions::text LIKE \'%"field":"year"%\'')
+            .orWhereRaw('conditions::text LIKE \'%"field":"certification"%\'')
+            .orWhereRaw('conditions::text LIKE \'%"field":"language"%\'')
+            .orWhereRaw('conditions::text LIKE \'%"field":"season"%\'')
+        } else {
+          // SQLite JSON queries
+          this.whereRaw(
+            'json_extract(conditions, \'$\') LIKE \'%"field":"year"%\'',
+          )
+            .orWhereRaw(
+              'json_extract(conditions, \'$\') LIKE \'%"field":"certification"%\'',
+            )
+            .orWhereRaw(
+              'json_extract(conditions, \'$\') LIKE \'%"field":"language"%\'',
+            )
+            .orWhereRaw(
+              'json_extract(conditions, \'$\') LIKE \'%"field":"season"%\'',
+            )
+        }
+      })
+      .count('* as count')
+      .first()
+
+    return Number(result?.count || 0) > 0
+  } catch (error) {
+    this.log.error('Error checking for metadata-requiring router rules:', error)
+
+    // In case of error, assume metadata might be needed to be safe
+    return true
+  }
+}
