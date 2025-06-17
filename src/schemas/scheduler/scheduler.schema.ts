@@ -1,4 +1,8 @@
 import { z } from 'zod'
+import { createRequire } from 'node:module'
+
+const require = createRequire(import.meta.url)
+const cronValidate = require('cron-validate').default
 
 // Zod schema for interval configuration
 export const IntervalConfigSchema = z
@@ -23,7 +27,28 @@ export const IntervalConfigSchema = z
 
 // Zod schema for cron configuration
 export const CronConfigSchema = z.object({
-  expression: z.string().min(1, 'Cron expression is required'),
+  expression: z
+    .string()
+    .min(1, 'Cron expression is required')
+    .refine(
+      (expression) => {
+        try {
+          const result = cronValidate(expression, {
+            override: {
+              useSeconds: true,
+            },
+          })
+          return result.isValid()
+        } catch (error) {
+          // If validation fails for any reason, assume invalid
+          return false
+        }
+      },
+      {
+        message:
+          'Invalid 6-field cron expression (format: second minute hour day month weekday)',
+      },
+    ),
 })
 
 // Zod schema for job configuration
