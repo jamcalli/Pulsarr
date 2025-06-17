@@ -49,7 +49,7 @@ export async function getTopGenres(
         if (Array.isArray(parsed)) {
           for (const genreItem of parsed) {
             if (typeof genreItem === 'string' && genreItem.trim().length > 0) {
-              const normalizedGenre = genreItem.trim()
+              const normalizedGenre = genreItem.trim().toLowerCase()
               genreCounts[normalizedGenre] =
                 (genreCounts[normalizedGenre] || 0) + 1
             }
@@ -275,24 +275,23 @@ export async function getRecentActivityStats(
 }> {
   const cutoffDate = new Date()
   cutoffDate.setDate(cutoffDate.getDate() - days)
-  const cutoffDateStr = cutoffDate.toISOString()
 
   this.log.debug(
-    `Calculating recent activity stats for period since ${cutoffDateStr}`,
+    `Calculating recent activity stats for period since ${cutoffDate.toISOString()}`,
   )
 
   const newItems = await this.knex('watchlist_items')
-    .where('added', '>=', cutoffDateStr)
+    .where('added', '>=', cutoffDate)
     .count('* as count')
     .first()
 
   const statusChanges = await this.knex('watchlist_status_history')
-    .where('timestamp', '>=', cutoffDateStr)
+    .where('timestamp', '>=', cutoffDate)
     .count('* as count')
     .first()
 
   const notifications = await this.knex('notifications')
-    .where('created_at', '>=', cutoffDateStr)
+    .where('created_at', '>=', cutoffDate)
     .count('* as count')
     .first()
 
@@ -639,8 +638,9 @@ export async function getDetailedStatusTransitionMetrics(
       // Calculate statistics
       const sum = filteredTimes.reduce((acc, time) => acc + time, 0)
       const avgDays = sum / filteredTimes.length
-      const minDays = Math.min(...filteredTimes)
-      const maxDays = Math.max(...filteredTimes)
+      // arrays are already sorted -> first / last are cheap & safe
+      const minDays = filteredTimes[0]
+      const maxDays = filteredTimes[filteredTimes.length - 1]
 
       results.push({
         from_status: fromStatus,
