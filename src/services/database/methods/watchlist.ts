@@ -7,14 +7,16 @@ import type { WatchlistItemUpdate } from '@root/types/watchlist-status.types.js'
 import { parseGuids } from '@utils/guid-handler.js'
 
 /**
- * Updates a watchlist item by key with given changes
+ * Updates a watchlist item by key with given changes for a specific user
  *
+ * @param userId - ID of the user who owns the watchlist item
  * @param key - Unique key of the watchlist item
  * @param updates - Fields to update on the watchlist item
  * @returns Promise resolving to void when complete
  */
 export async function updateWatchlistItem(
   this: DatabaseService,
+  userId: number,
   key: string,
   updates: WatchlistItemUpdate,
 ): Promise<void> {
@@ -24,11 +26,13 @@ export async function updateWatchlistItem(
   }
 
   await this.knex.transaction(async (trx) => {
-    const item = await trx('watchlist_items').where({ key }).first()
+    const item = await trx('watchlist_items')
+      .where({ user_id: userId, key })
+      .first()
 
     if (!item) {
       this.log.warn(
-        `Tried to update non-existent watchlist item with key: ${key}`,
+        `Tried to update non-existent watchlist item with key: ${key} for user: ${userId}`,
       )
       return
     }
@@ -38,7 +42,7 @@ export async function updateWatchlistItem(
 
     if (Object.keys(otherUpdates).length > 0) {
       await trx('watchlist_items')
-        .where({ key })
+        .where({ user_id: userId, key })
         .update({
           ...otherUpdates,
           updated_at: this.timestamp,
@@ -121,10 +125,7 @@ export async function updateWatchlistItem(
 export async function updateWatchlistItemByGuid(
   this: DatabaseService,
   guid: string,
-  updates: {
-    sonarr_instance_id?: number | null
-    radarr_instance_id?: number | null
-  },
+  updates: WatchlistItemUpdate,
 ): Promise<number> {
   // Use database-specific JSON functions to filter efficiently
   const matchingIds = this.isPostgreSQL()
@@ -172,12 +173,20 @@ export async function getWatchlistItem(
   const numericUserId =
     typeof userId === 'object' ? (userId as { id: number }).id : userId
 
-  return await this.knex('watchlist_items')
+  const result = await this.knex('watchlist_items')
     .where({
       user_id: numericUserId,
       key,
     })
     .first()
+
+  if (!result) return undefined
+
+  return {
+    ...result,
+    guids: this.safeJsonParse(result.guids, [], 'watchlist_item.guids'),
+    genres: this.safeJsonParse(result.genres, [], 'watchlist_item.genres'),
+  }
 }
 
 /**

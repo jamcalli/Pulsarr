@@ -3,14 +3,18 @@ import { z } from 'zod'
 // Zod schema for interval configuration
 export const IntervalConfigSchema = z
   .object({
-    days: z.number().int().nonnegative().max(365).optional(),
-    hours: z.number().int().nonnegative().max(8760).optional(), // Allow up to 1 year in hours
-    minutes: z.number().int().nonnegative().max(525600).optional(), // Allow up to 1 year in minutes
-    seconds: z.number().int().nonnegative().max(31536000).optional(), // Allow up to 1 year in seconds
+    days: z.number().int().positive().max(365).optional(),
+    hours: z.number().int().positive().max(8760).optional(), // Allow up to 1 year in hours
+    minutes: z.number().int().positive().max(525600).optional(), // Allow up to 1 year in minutes
+    seconds: z.number().int().positive().max(31536000).optional(), // Allow up to 1 year in seconds
     runImmediately: z.boolean().optional(),
   })
   .refine(
-    (config) => config.days || config.hours || config.minutes || config.seconds,
+    (config) =>
+      config.days !== undefined ||
+      config.hours !== undefined ||
+      config.minutes !== undefined ||
+      config.seconds !== undefined,
     {
       message:
         'At least one time unit (days, hours, minutes, or seconds) must be specified',

@@ -11,13 +11,15 @@ declare module '@services/database.service.js' {
   interface DatabaseService {
     // WATCHLIST MANAGEMENT
     /**
-     * Updates a watchlist item with new data
+     * Updates a watchlist item with new data for a specific user
+     * @param userId - ID of the user who owns the watchlist item
      * @param key - Unique key of the watchlist item
      * @param updates - Fields to update on the watchlist item
      * @returns Promise resolving to void when complete
      */
     updateWatchlistItem(
       this: DatabaseService,
+      userId: number,
       key: string,
       updates: WatchlistItemUpdate,
     ): Promise<void>
@@ -31,10 +33,7 @@ declare module '@services/database.service.js' {
     updateWatchlistItemByGuid(
       this: DatabaseService,
       guid: string,
-      updates: {
-        sonarr_instance_id?: number | null
-        radarr_instance_id?: number | null
-      },
+      updates: WatchlistItemUpdate,
     ): Promise<number>
 
     /**

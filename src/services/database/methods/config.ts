@@ -215,6 +215,127 @@ export async function createConfig(
   return id
 }
 
+// Define allowed mutable columns to prevent accidental database corruption
+const ALLOWED_COLUMNS = new Set([
+  // Core system configuration
+  'baseUrl',
+  'port',
+  '_isReady',
+
+  // Database configuration
+  'dbType',
+  'dbPath',
+  'dbHost',
+  'dbPort',
+  'dbName',
+  'dbUser',
+  'dbPassword',
+  'dbConnectionString',
+
+  // Security & authentication
+  'cookieSecret',
+  'cookieName',
+  'cookieSecured',
+  'authenticationMethod',
+  'allowIframes',
+
+  // Logging & performance
+  'logLevel',
+  'closeGraceDelay',
+  'rateLimitMax',
+  'syncIntervalSeconds',
+  'queueProcessDelaySeconds',
+
+  // Discord integration
+  'discordWebhookUrl',
+  'discordBotToken',
+  'discordClientId',
+  'discordGuildId',
+
+  // Apprise notifications
+  'enableApprise',
+  'appriseUrl',
+  'systemAppriseUrl',
+
+  // Public content notifications (JSON column)
+  'publicContentNotifications',
+
+  // Tautulli integration
+  'tautulliEnabled',
+  'tautulliUrl',
+  'tautulliApiKey',
+
+  // Notification timing
+  'queueWaitTime',
+  'newEpisodeThreshold',
+  'upgradeBufferTime',
+
+  // Pending webhooks
+  'pendingWebhookRetryInterval',
+  'pendingWebhookMaxAge',
+  'pendingWebhookCleanupInterval',
+
+  // Sonarr configuration
+  'sonarrBaseUrl',
+  'sonarrApiKey',
+  'sonarrQualityProfile',
+  'sonarrRootFolder',
+  'sonarrBypassIgnored',
+  'sonarrSeasonMonitoring',
+  'sonarrMonitorNewItems',
+  'sonarrTags',
+  'sonarrCreateSeasonFolders',
+
+  // Radarr configuration
+  'radarrBaseUrl',
+  'radarrApiKey',
+  'radarrQualityProfile',
+  'radarrRootFolder',
+  'radarrBypassIgnored',
+  'radarrTags',
+
+  // Plex configuration
+  'plexTokens', // JSON column
+  'skipFriendSync',
+  'plexServerUrl',
+  'selfRss',
+  'friendsRss',
+
+  // Content deletion settings
+  'deletionMode',
+  'deleteMovie',
+  'deleteEndedShow',
+  'deleteContinuingShow',
+  'deleteFiles',
+  'respectUserSyncSetting',
+  'deleteSyncNotify',
+  'deleteSyncNotifyOnlyOnDeletion',
+  'maxDeletionPrevention',
+  'enablePlexPlaylistProtection',
+  'plexProtectionPlaylistName',
+
+  // Tagging configuration
+  'tagUsersInSonarr',
+  'tagUsersInRadarr',
+  'cleanupOrphanedTags',
+  'tagPrefix',
+  'removedTagMode',
+  'removedTagPrefix',
+
+  // Plex session monitoring (JSON column)
+  'plexSessionMonitoring',
+
+  // New user defaults
+  'newUserDefaultCanSync',
+])
+
+// JSON columns that need special serialization handling
+const JSON_COLUMNS = new Set([
+  'publicContentNotifications',
+  'plexTokens',
+  'plexSessionMonitoring',
+])
+
 /**
  * Updates the configuration entry
  *
@@ -231,30 +352,8 @@ export async function updateConfig(
     }
 
     for (const [key, value] of Object.entries(config)) {
-      if (value !== undefined) {
-        if (
-          key === 'selfRss' ||
-          key === 'friendsRss' ||
-          key === 'discordWebhookUrl' ||
-          key === 'discordBotToken' ||
-          key === 'discordClientId' ||
-          key === 'discordGuildId' ||
-          key === 'appriseUrl' ||
-          key === 'systemAppriseUrl' ||
-          key === 'tautulliUrl' ||
-          key === 'tautulliApiKey' ||
-          key === 'tagPrefix' ||
-          key === 'removedTagPrefix' ||
-          key === 'removedTagMode' ||
-          key === 'deletionMode' ||
-          key === 'newUserDefaultCanSync'
-        ) {
-          updateData[key] = value
-        } else if (
-          key === 'publicContentNotifications' ||
-          key === 'plexTokens' ||
-          key === 'plexSessionMonitoring'
-        ) {
+      if (value !== undefined && ALLOWED_COLUMNS.has(key)) {
+        if (JSON_COLUMNS.has(key)) {
           updateData[key] =
             value !== undefined && value !== null ? JSON.stringify(value) : null
         } else {

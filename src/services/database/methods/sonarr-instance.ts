@@ -374,8 +374,9 @@ export async function getSonarrInstanceByIdentifier(
     const transformedBaseUrl = instance.base_url
       .replace(/https?:\/\//, '')
       .replace(/[^a-zA-Z0-9]/g, '')
+      .toLowerCase()
 
-    if (transformedBaseUrl === instanceId) {
+    if (transformedBaseUrl === instanceId.toLowerCase()) {
       return mapRowToSonarrInstance.call(this, instance)
     }
   }

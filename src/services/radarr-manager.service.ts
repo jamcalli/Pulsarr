@@ -128,6 +128,7 @@ export class RadarrManagerService {
   async routeItemToRadarr(
     item: RadarrItem,
     key: string,
+    userId: number,
     instanceId?: number,
     syncing = false,
     rootFolder?: string,
@@ -206,7 +207,7 @@ export class RadarrManagerService {
         targetMinimumAvailability,
       )
 
-      await this.fastify.db.updateWatchlistItem(key, {
+      await this.fastify.db.updateWatchlistItem(userId, key, {
         radarr_instance_id: targetInstanceId,
         syncing: syncing,
       })
