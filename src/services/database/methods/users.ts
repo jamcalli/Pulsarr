@@ -3,6 +3,48 @@ import type { AdminUser } from '@schemas/auth/auth.js'
 import type { User } from '@root/types/config.types.js'
 
 /**
+ * Database row representation for users table
+ */
+interface UserRow {
+  id: number
+  name: string
+  apprise: string | null
+  alias: string | null
+  discord_id: string | null
+  notify_apprise: boolean | number
+  notify_discord: boolean | number
+  notify_tautulli: boolean | number
+  tautulli_notifier_id: number | null
+  can_sync: boolean | number
+  is_primary_token: boolean | number
+  created_at: string
+  updated_at: string
+}
+
+/**
+ * Maps a database row to a User object
+ * @param row - The database row to map
+ * @returns Mapped User object
+ */
+function mapRowToUser(row: UserRow): User {
+  return {
+    id: row.id,
+    name: row.name,
+    apprise: row.apprise,
+    alias: row.alias,
+    discord_id: row.discord_id,
+    notify_apprise: Boolean(row.notify_apprise),
+    notify_discord: Boolean(row.notify_discord),
+    notify_tautulli: Boolean(row.notify_tautulli),
+    tautulli_notifier_id: row.tautulli_notifier_id,
+    can_sync: Boolean(row.can_sync),
+    is_primary_token: Boolean(row.is_primary_token),
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  }
+}
+
+/**
  * Creates a new user in the database
  *
  * @param userData - User data excluding id and timestamps
@@ -57,21 +99,7 @@ export async function getUser(
 
   if (!row) return undefined
 
-  return {
-    id: row.id,
-    name: row.name,
-    apprise: row.apprise,
-    alias: row.alias,
-    discord_id: row.discord_id,
-    notify_apprise: Boolean(row.notify_apprise),
-    notify_discord: Boolean(row.notify_discord),
-    notify_tautulli: Boolean(row.notify_tautulli),
-    tautulli_notifier_id: row.tautulli_notifier_id,
-    can_sync: Boolean(row.can_sync),
-    is_primary_token: Boolean(row.is_primary_token),
-    created_at: row.created_at,
-    updated_at: row.updated_at,
-  } satisfies User
+  return mapRowToUser(row)
 }
 
 /**
@@ -185,21 +213,7 @@ export async function bulkUpdateUsers(
 export async function getAllUsers(this: DatabaseService): Promise<User[]> {
   const rows = await this.knex('users').select('*').orderBy('name', 'asc')
 
-  return rows.map((row) => ({
-    id: row.id,
-    name: row.name,
-    apprise: row.apprise,
-    alias: row.alias,
-    discord_id: row.discord_id,
-    notify_apprise: Boolean(row.notify_apprise),
-    notify_discord: Boolean(row.notify_discord),
-    notify_tautulli: Boolean(row.notify_tautulli),
-    tautulli_notifier_id: row.tautulli_notifier_id,
-    can_sync: Boolean(row.can_sync),
-    is_primary_token: Boolean(row.is_primary_token),
-    created_at: row.created_at,
-    updated_at: row.updated_at,
-  })) satisfies User[]
+  return rows.map((row) => mapRowToUser(row))
 }
 
 /**
@@ -220,19 +234,7 @@ export async function getUsersWithWatchlistCount(
     .orderBy('users.name', 'asc')
 
   return rows.map((row) => ({
-    id: row.id,
-    name: row.name,
-    apprise: row.apprise,
-    alias: row.alias,
-    discord_id: row.discord_id,
-    notify_apprise: Boolean(row.notify_apprise),
-    notify_discord: Boolean(row.notify_discord),
-    notify_tautulli: Boolean(row.notify_tautulli),
-    tautulli_notifier_id: row.tautulli_notifier_id,
-    can_sync: Boolean(row.can_sync),
-    is_primary_token: Boolean(row.is_primary_token),
-    created_at: row.created_at,
-    updated_at: row.updated_at,
+    ...mapRowToUser(row),
     watchlist_count: Number(row.watchlist_count),
   })) satisfies (User & { watchlist_count: number })[]
 }
@@ -257,21 +259,7 @@ export async function getPrimaryUser(
       'Retrieved primary user',
     )
 
-    return {
-      id: row.id,
-      name: row.name,
-      apprise: row.apprise,
-      alias: row.alias,
-      discord_id: row.discord_id,
-      notify_apprise: Boolean(row.notify_apprise),
-      notify_discord: Boolean(row.notify_discord),
-      notify_tautulli: Boolean(row.notify_tautulli),
-      tautulli_notifier_id: row.tautulli_notifier_id,
-      can_sync: Boolean(row.can_sync),
-      is_primary_token: Boolean(row.is_primary_token),
-      created_at: row.created_at,
-      updated_at: row.updated_at,
-    } satisfies User
+    return mapRowToUser(row)
   } catch (error) {
     this.log.error({ error }, 'Error retrieving primary user')
     return undefined

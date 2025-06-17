@@ -61,12 +61,13 @@ declare module '@services/database.service.js' {
     deleteSonarrInstance(id: number): Promise<void>
 
     /**
-     * Retrieves a Sonarr instance by ID or name
-     * @param identifier - Instance ID (number) or name (string)
+     * Retrieves a Sonarr instance by transformed base URL identifier
+     * Used for webhook routing where instanceId comes from URL transformation
+     * @param instanceId - Transformed base URL identifier (string)
      * @returns Promise resolving to the Sonarr instance if found, null otherwise
      */
     getSonarrInstanceByIdentifier(
-      identifier: string | number,
+      instanceId: string,
     ): Promise<SonarrInstance | null>
 
     // RADARR INSTANCE MANAGEMENT
@@ -126,12 +127,13 @@ declare module '@services/database.service.js' {
     deleteRadarrInstance(id: number): Promise<void>
 
     /**
-     * Retrieves a Radarr instance by ID or name
-     * @param identifier - Instance ID (number) or name (string)
+     * Retrieves a Radarr instance by transformed base URL identifier
+     * Used for webhook routing where instanceId comes from URL transformation
+     * @param instanceId - Transformed base URL identifier (string)
      * @returns Promise resolving to the Radarr instance if found, null otherwise
      */
     getRadarrInstanceByIdentifier(
-      identifier: string | number,
+      instanceId: string,
     ): Promise<RadarrInstance | null>
   }
 }

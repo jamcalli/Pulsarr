@@ -1,4 +1,7 @@
-import type { WatchlistItemUpdate } from '@root/types/watchlist-status.types.js'
+import type {
+  WatchlistItemUpdate,
+  WatchlistStatus,
+} from '@root/types/watchlist-status.types.js'
 import type {
   TokenWatchlistItem,
   Item as WatchlistItem,
@@ -49,7 +52,7 @@ declare module '@services/database.service.js' {
     /**
      * Retrieves watchlist items for multiple users and keys
      * @param userIds - Array of user IDs
-     * @param keys - Optional array of watchlist item keys to filter by
+     * @param keys - Array of watchlist item keys to filter by
      * @returns Promise resolving to an array of matching watchlist items
      */
     getBulkWatchlistItems(
@@ -79,7 +82,7 @@ declare module '@services/database.service.js' {
         userId: number
         key: string
         added?: string
-        status?: 'pending' | 'requested' | 'grabbed' | 'notified'
+        status?: WatchlistStatus
       }>,
     ): Promise<number>
 
@@ -168,7 +171,7 @@ declare module '@services/database.service.js' {
         key: string
         userId: number
         added?: string
-        status?: 'pending' | 'requested' | 'grabbed' | 'notified'
+        status?: WatchlistStatus
       }>,
     ): Promise<number>
 

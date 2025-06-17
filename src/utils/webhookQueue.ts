@@ -5,6 +5,8 @@ import { processContentNotifications } from '@root/utils/notification-processor.
 
 export const webhookQueue: WebhookQueue = {}
 
+// Upgrade tracker uses config.upgradeBufferTime for TTL
+
 /**
  * Determines whether a specific episode is already present in the webhook queue for a given TVDB ID and season.
  *
@@ -181,6 +183,7 @@ export async function checkForUpgrade(
     currentWebhook,
   ])
 
+  // Clean up expired entries (simple time-based expiry)
   const now = Date.now()
   let cleanedEntries = 0
 

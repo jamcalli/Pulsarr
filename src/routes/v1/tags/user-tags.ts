@@ -126,7 +126,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         // Update the config with the given values
 
         // Update the database
-        const dbUpdated = await fastify.db.updateConfig(1, configUpdate)
+        const dbUpdated = await fastify.db.updateConfig(configUpdate)
 
         if (!dbUpdated) {
           // Revert runtime config using stored values

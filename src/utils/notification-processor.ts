@@ -57,7 +57,7 @@ function createWebhookHash(payload: WebhookPayload): string {
     .createHash('sha256')
     .update(hashString)
     .digest('hex')
-    .substring(0, 16)
+    .substring(0, 32)
 }
 
 /**
@@ -158,7 +158,7 @@ export function isWebhookProcessable(
     contentInfo,
   })
 
-  // Clean up expired entries
+  // Clean up expired entries (simple time-based expiry)
   const expiredKeys: string[] = []
   for (const [key, entry] of webhookCache.entries()) {
     if (now - entry.timestamp > WEBHOOK_CACHE_TTL_MS) {

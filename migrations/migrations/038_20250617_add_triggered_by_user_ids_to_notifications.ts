@@ -16,32 +16,46 @@ export async function up(knex: Knex): Promise<void> {
 
   await knex.schema.alterTable('notifications', (table) => {
     // Add JSON column to store array of user IDs who have this item in their watchlist
-    table.json('triggered_by_user_ids').nullable()
+    table.jsonb('triggered_by_user_ids').nullable()
   })
 
-  // Populate existing public notification records with associated user IDs
-  // Find all public notifications (user_id IS NULL AND watchlist_item_id IS NULL) and populate their triggered_by_user_ids
-  const publicNotifications = await knex('notifications')
-    .select('id', 'title', 'type', 'season_number', 'episode_number')
-    .whereNull('user_id')
-    .whereNull('watchlist_item_id')
-    .where('notification_status', 'active')
-
-  for (const notification of publicNotifications) {
-    // Find all users who have this title in their watchlist
-    const associatedUsers = await knex('watchlist_items')
-      .select('user_id')
-      .where('title', notification.title)
-      .distinct()
-
-    if (associatedUsers.length > 0) {
-      const userIds = associatedUsers.map((u) => u.user_id)
-      await knex('notifications')
-        .where('id', notification.id)
-        .update({
-          triggered_by_user_ids: JSON.stringify(userIds),
-        })
-    }
+  // Populate existing public notification records with associated user IDs in a single set-based operation
+  if (isPostgres) {
+    // PostgreSQL: Use UPDATE ... FROM with jsonb aggregation
+    await knex.raw(`
+      UPDATE notifications 
+      SET triggered_by_user_ids = user_aggregates.user_ids
+      FROM (
+        SELECT 
+          n.id,
+          COALESCE(jsonb_agg(DISTINCT w.user_id), '[]'::jsonb) as user_ids
+        FROM notifications n
+        LEFT JOIN watchlist_items w ON w.title = n.title
+        WHERE n.user_id IS NULL 
+          AND n.watchlist_item_id IS NULL 
+          AND n.notification_status = 'active'
+        GROUP BY n.id
+      ) user_aggregates
+      WHERE notifications.id = user_aggregates.id
+        AND user_aggregates.user_ids != '[]'::jsonb
+    `)
+  } else {
+    // SQLite: Use correlated subquery with json_group_array
+    await knex.raw(`
+      UPDATE notifications 
+      SET triggered_by_user_ids = (
+        SELECT json_group_array(DISTINCT w.user_id)
+        FROM watchlist_items w
+        WHERE w.title = notifications.title
+      )
+      WHERE user_id IS NULL 
+        AND watchlist_item_id IS NULL 
+        AND notification_status = 'active'
+        AND EXISTS (
+          SELECT 1 FROM watchlist_items w2 
+          WHERE w2.title = notifications.title
+        )
+    `)
   }
 
   if (isPostgres) {
@@ -57,9 +71,9 @@ export async function up(knex: Knex): Promise<void> {
           UPDATE notifications 
           SET triggered_by_user_ids = CASE 
               WHEN triggered_by_user_ids IS NULL THEN 
-                  json_build_array(NEW.user_id)::json
-              WHEN NOT (triggered_by_user_ids::jsonb @> json_build_array(NEW.user_id)::jsonb) THEN 
-                  (triggered_by_user_ids::jsonb || json_build_array(NEW.user_id)::jsonb)::json
+                  jsonb_build_array(NEW.user_id)
+              WHEN NOT (triggered_by_user_ids @> jsonb_build_array(NEW.user_id)) THEN 
+                  triggered_by_user_ids || jsonb_build_array(NEW.user_id)
               ELSE 
                   triggered_by_user_ids
           END
@@ -90,9 +104,9 @@ export async function up(knex: Knex): Promise<void> {
           SET triggered_by_user_ids = (
               SELECT CASE 
                   WHEN jsonb_array_length(jsonb_agg(elem)) = 0 THEN NULL
-                  ELSE jsonb_agg(elem)::json
+                  ELSE jsonb_agg(elem)
               END
-              FROM jsonb_array_elements(triggered_by_user_ids::jsonb) AS elem
+              FROM jsonb_array_elements(triggered_by_user_ids) AS elem
               WHERE elem != to_jsonb(OLD.user_id)
           )
           WHERE user_id IS NULL 
@@ -100,7 +114,7 @@ export async function up(knex: Knex): Promise<void> {
             AND title = OLD.title
             AND notification_status = 'active'
             AND triggered_by_user_ids IS NOT NULL
-            AND triggered_by_user_ids::jsonb @> json_build_array(OLD.user_id)::jsonb;
+            AND triggered_by_user_ids @> jsonb_build_array(OLD.user_id);
 
           -- Delete notifications that have no users left
           DELETE FROM notifications
@@ -109,7 +123,7 @@ export async function up(knex: Knex): Promise<void> {
             AND title = OLD.title
             AND notification_status = 'active'
             AND (triggered_by_user_ids IS NULL 
-                 OR triggered_by_user_ids::jsonb = '[]'::jsonb);
+                 OR triggered_by_user_ids = '[]'::jsonb);
 
           RETURN OLD;
       EXCEPTION WHEN OTHERS THEN
@@ -154,7 +168,10 @@ export async function up(knex: Knex): Promise<void> {
           SET triggered_by_user_ids = CASE
               WHEN triggered_by_user_ids IS NULL THEN
                   json_array(NEW.user_id)
-              WHEN NOT (json_extract(triggered_by_user_ids, '$') LIKE '%' || NEW.user_id || '%') THEN
+              WHEN NOT EXISTS (
+                  SELECT 1 FROM json_each(triggered_by_user_ids) 
+                  WHERE value = NEW.user_id
+              ) THEN
                   json_insert(triggered_by_user_ids, '$[#]', NEW.user_id)
               ELSE
                   triggered_by_user_ids
@@ -178,7 +195,10 @@ export async function up(knex: Knex): Promise<void> {
             AND title = OLD.title
             AND notification_status = 'active'
             AND triggered_by_user_ids IS NOT NULL
-            AND json_extract(triggered_by_user_ids, '$') LIKE '%' || OLD.user_id || '%'
+            AND EXISTS (
+                SELECT 1 FROM json_each(triggered_by_user_ids) 
+                WHERE value = OLD.user_id
+            )
       )
       BEGIN
           -- Update notifications by removing the user from the array

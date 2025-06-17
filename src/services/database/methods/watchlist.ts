@@ -136,7 +136,7 @@ export async function updateWatchlistItemByGuid(
         .pluck('id')
     : await this.knex('watchlist_items')
         .whereRaw(
-          'EXISTS (SELECT 1 FROM json_each(guids) WHERE json_each.type = "text" AND lower(json_each.value) = lower(?))',
+          "EXISTS (SELECT 1 FROM json_each(guids) WHERE json_each.type = 'text' AND lower(json_each.value) = lower(?))",
           [guid],
         )
         .pluck('id')
@@ -793,6 +793,7 @@ export async function getAllShowWatchlistItems(
 
   return items.map((item) => ({
     ...item,
+    id: String(item.id),
     guids:
       typeof item.guids === 'string'
         ? this.safeJsonParse(item.guids, [], 'watchlist_item.guids')
@@ -818,6 +819,7 @@ export async function getAllMovieWatchlistItems(
 
   return items.map((item) => ({
     ...item,
+    id: String(item.id),
     guids:
       typeof item.guids === 'string'
         ? this.safeJsonParse(item.guids, [], 'watchlist_item.guids')
@@ -1041,13 +1043,14 @@ export async function getWatchlistItemsByGuid(
         .select('*')
     : await this.knex('watchlist_items')
         .whereRaw(
-          'EXISTS (SELECT 1 FROM json_each(guids) WHERE json_each.type = "text" AND lower(json_each.value) = lower(?))',
+          "EXISTS (SELECT 1 FROM json_each(guids) WHERE json_each.type = 'text' AND lower(json_each.value) = lower(?))",
           [guid],
         )
         .select('*')
 
   return items.map((item) => ({
     ...item,
+    id: String(item.id),
     guids: this.safeJsonParse<string[]>(item.guids, [], 'watchlist_item.guids'),
     genres: this.safeJsonParse<string[]>(
       item.genres,

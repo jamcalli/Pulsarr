@@ -2,9 +2,8 @@ import type {
   SonarrEpisodeSchema,
   NotificationResult,
 } from '@root/types/sonarr.types.js'
+import type { NotificationType } from '@root/types/notification.types.js'
 import type { Knex } from 'knex'
-
-export type NotificationType = 'episode' | 'season' | 'movie' | 'watchlist_add'
 
 declare module '@services/database.service.js' {
   interface DatabaseService {
@@ -37,7 +36,7 @@ declare module '@services/database.service.js' {
       notification: {
         watchlist_item_id: number | null
         user_id: number | null
-        type: 'episode' | 'season' | 'movie' | 'watchlist_add'
+        type: NotificationType
         title: string
         message?: string
         season_number?: number
