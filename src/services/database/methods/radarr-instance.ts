@@ -4,9 +4,10 @@ import type { RadarrInstanceRow } from '@root/types/database-rows.types.js'
 import type { Knex } from 'knex'
 
 /**
- * Maps a database row to a RadarrInstance object
- * @param row - The database row to map
- * @returns Mapped RadarrInstance object
+ * Converts a RadarrInstanceRow from the database into a RadarrInstance object, normalizing and parsing fields as needed.
+ *
+ * @param row - The database row representing a Radarr instance
+ * @returns The corresponding RadarrInstance object
  */
 function mapRowToRadarrInstance(
   this: DatabaseService,
@@ -35,9 +36,9 @@ function mapRowToRadarrInstance(
 }
 
 /**
- * Retrieves all enabled Radarr instances
+ * Retrieves all enabled Radarr instances from the database, ordered by name.
  *
- * @returns Promise resolving to an array of all enabled Radarr instances
+ * @returns A promise that resolves to an array of enabled RadarrInstance objects.
  */
 export async function getAllRadarrInstances(
   this: DatabaseService,
@@ -53,9 +54,9 @@ export async function getAllRadarrInstances(
 }
 
 /**
- * Retrieves the default Radarr instance
+ * Retrieves the enabled Radarr instance marked as default.
  *
- * @returns Promise resolving to the default Radarr instance if found, null otherwise
+ * @returns The default Radarr instance if found, or null if none is set as default and enabled.
  */
 export async function getDefaultRadarrInstance(
   this: DatabaseService,
@@ -70,10 +71,10 @@ export async function getDefaultRadarrInstance(
 }
 
 /**
- * Retrieves a specific Radarr instance by ID
+ * Retrieves a Radarr instance by its unique ID.
  *
- * @param id - ID of the Radarr instance to retrieve
- * @returns Promise resolving to the Radarr instance if found, null otherwise
+ * @param id - The unique identifier of the Radarr instance.
+ * @returns The corresponding Radarr instance if found, or null if no instance exists with the given ID.
  */
 export async function getRadarrInstance(
   this: DatabaseService,
@@ -87,10 +88,12 @@ export async function getRadarrInstance(
 }
 
 /**
- * Creates a new Radarr instance
+ * Creates a new Radarr instance in the database and returns its ID.
  *
- * @param instance - Radarr instance data excluding ID
- * @returns Promise resolving to the ID of the created instance
+ * If the new instance is set as default, any existing default instance is unset. The instance is inserted with provided or default values, and relevant fields are normalized or serialized as needed.
+ *
+ * @param instance - The Radarr instance data to create, excluding the ID
+ * @returns The ID of the newly created Radarr instance
  */
 export async function createRadarrInstance(
   this: DatabaseService,
@@ -135,11 +138,12 @@ export async function createRadarrInstance(
 }
 
 /**
- * Updates an existing Radarr instance
+ * Updates the specified Radarr instance with provided fields.
  *
- * @param id - ID of the Radarr instance to update
- * @param updates - Partial Radarr instance data to update
- * @returns Promise resolving to void when complete
+ * If the API key is set to 'placeholder' and `isDefault` is not explicitly true, the instance is forced to remain the default. Only fields present in the `updates` object are modified.
+ *
+ * @param id - The ID of the Radarr instance to update
+ * @param updates - Fields to update for the Radarr instance
  */
 export async function updateRadarrInstance(
   this: DatabaseService,
@@ -209,11 +213,12 @@ export async function updateRadarrInstance(
 }
 
 /**
- * Cleans up references to a deleted Radarr instance
+ * Removes all references to a deleted Radarr instance from related database tables and synced instance lists.
  *
- * @param deletedId - ID of the deleted Radarr instance
- * @param trx - Optional Knex transaction object
- * @returns Promise resolving to void when complete
+ * Deletes entries in the `watchlist_radarr_instances` junction table and removes the deleted instance ID from the `synced_instances` arrays of all other Radarr instances.
+ *
+ * @param deletedId - The ID of the Radarr instance that was deleted
+ * @param trx - Optional transaction to use for database operations
  */
 export async function cleanupDeletedRadarrInstanceReferences(
   this: DatabaseService,
@@ -283,10 +288,9 @@ export async function cleanupDeletedRadarrInstanceReferences(
 }
 
 /**
- * Deletes a Radarr instance and cleans up references to it
+ * Deletes a Radarr instance by ID and removes all related references from the database.
  *
- * @param id - ID of the Radarr instance to delete
- * @returns Promise resolving to void when complete
+ * If the deleted instance was the default, another enabled instance is promoted to default if available.
  */
 export async function deleteRadarrInstance(
   this: DatabaseService,
@@ -346,11 +350,12 @@ export async function deleteRadarrInstance(
 }
 
 /**
- * Retrieves a Radarr instance by transformed base URL identifier (original behavior)
- * Used for webhook routing where instanceId comes from URL transformation
+ * Retrieves a Radarr instance matching a transformed base URL identifier.
  *
- * @param instanceId - Transformed base URL identifier (string)
- * @returns Promise resolving to the Radarr instance if found, null otherwise
+ * Used for webhook routing, this function compares the provided identifier to a normalized version of each instance's base URL. Returns the matching Radarr instance or null if none is found.
+ *
+ * @param instanceId - The normalized base URL identifier to match against Radarr instances
+ * @returns A promise resolving to the matching Radarr instance, or null if not found
  */
 export async function getRadarrInstanceByIdentifier(
   this: DatabaseService,

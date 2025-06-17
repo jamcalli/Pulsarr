@@ -7,12 +7,13 @@ import type { WatchlistItemUpdate } from '@root/types/watchlist-status.types.js'
 import { parseGuids } from '@utils/guid-handler.js'
 
 /**
- * Updates a watchlist item by key with given changes for a specific user
+ * Updates a watchlist item for a specific user by key with the provided changes.
+ *
+ * Skips updates for temporary RSS items. Updates main watchlist item fields and manages associations with Radarr and Sonarr instances, including syncing status and primary instance designation.
  *
  * @param userId - ID of the user who owns the watchlist item
- * @param key - Unique key of the watchlist item
- * @param updates - Fields to update on the watchlist item
- * @returns Promise resolving to void when complete
+ * @param key - Unique key identifying the watchlist item
+ * @param updates - Fields and associations to update on the watchlist item
  */
 export async function updateWatchlistItem(
   this: DatabaseService,
@@ -122,11 +123,11 @@ export async function updateWatchlistItem(
 }
 
 /**
- * Updates watchlist items by GUID
+ * Updates all watchlist items containing the specified GUID in their GUIDs array.
  *
- * @param guid - GUID to match against watchlist item GUIDs array
- * @param updates - Fields to update on matching watchlist items
- * @returns Promise resolving to the number of items updated
+ * @param guid - The GUID to match within each item's GUIDs array
+ * @param updates - The fields to update on each matching watchlist item
+ * @returns The number of watchlist items updated
  */
 export async function updateWatchlistItemByGuid(
   this: DatabaseService,
@@ -165,11 +166,13 @@ export async function updateWatchlistItemByGuid(
 }
 
 /**
- * Retrieves a watchlist item for a specific user
+ * Retrieves a single watchlist item for a user by key.
  *
- * @param userId - ID of the user
- * @param key - Unique key of the watchlist item
- * @returns Promise resolving to the watchlist item if found, undefined otherwise
+ * Parses the item's GUIDs and genres fields from JSON. Returns undefined if no matching item is found.
+ *
+ * @param userId - The user's ID
+ * @param key - The unique key identifying the watchlist item
+ * @returns The watchlist item if found, or undefined if not found
  */
 export async function getWatchlistItem(
   this: DatabaseService,
@@ -196,11 +199,13 @@ export async function getWatchlistItem(
 }
 
 /**
- * Retrieves multiple watchlist items for multiple users
+ * Retrieves watchlist items for the specified users, optionally filtered by item keys.
  *
- * @param userIds - Array of user IDs
- * @param keys - Optional array of watchlist item keys to filter by
- * @returns Promise resolving to an array of matching watchlist items
+ * Parses the `guids` and `genres` fields for each item to ensure consistent data structure.
+ *
+ * @param userIds - Array of user IDs to retrieve watchlist items for
+ * @param keys - Optional array of watchlist item keys to filter the results
+ * @returns An array of matching watchlist items with parsed `guids` and `genres` fields
  */
 export async function getBulkWatchlistItems(
   this: DatabaseService,
@@ -245,10 +250,12 @@ export async function getBulkWatchlistItems(
 }
 
 /**
- * Retrieves watchlist items by their keys
+ * Retrieves watchlist items matching the specified keys.
  *
- * @param keys - Array of watchlist item keys to retrieve
- * @returns Promise resolving to an array of matching watchlist items
+ * Parses the `guids` and `genres` fields from JSON for each returned item.
+ *
+ * @param keys - The keys identifying the watchlist items to retrieve
+ * @returns An array of watchlist items corresponding to the provided keys
  */
 export async function getWatchlistItemsByKeys(
   this: DatabaseService,
@@ -275,10 +282,12 @@ export async function getWatchlistItemsByKeys(
 }
 
 /**
- * Bulk updates multiple watchlist items
+ * Performs a bulk update of multiple watchlist items, including main item fields and associated Radarr/Sonarr instance relationships.
  *
- * @param updates - Array of watchlist item updates with user ID and key
- * @returns Promise resolving to the number of items updated
+ * Updates are processed in batches within a transaction. Instance associations are created, updated, or deleted as needed, and status changes are recorded in the status history.
+ *
+ * @param updates - List of updates specifying user ID, key, and fields to modify for each watchlist item
+ * @returns The number of watchlist items updated
  */
 export async function bulkUpdateWatchlistItems(
   this: DatabaseService,
@@ -507,9 +516,9 @@ export async function bulkUpdateWatchlistItems(
 }
 
 /**
- * Retrieves all GUIDs from watchlist items in an optimized way
+ * Retrieves all unique GUIDs from watchlist items, returning them as lowercase strings.
  *
- * @returns Promise resolving to array of lowercase GUIDs
+ * @returns An array of unique, lowercased GUIDs extracted from all watchlist items.
  */
 export async function getAllGuidsMapped(
   this: DatabaseService,
@@ -533,11 +542,11 @@ export async function getAllGuidsMapped(
 }
 
 /**
- * Gets all notifications of a specific type for a user
+ * Retrieves distinct active notifications of a specified type that have been sent to a webhook for a given user.
  *
- * @param userId - ID of the user
- * @param type - Type of notification to fetch
- * @returns Promise resolving to array of notifications
+ * @param userId - The ID of the user.
+ * @param type - The notification type to filter by.
+ * @returns An array of objects containing notification titles.
  */
 export async function getNotificationsForUser(
   this: DatabaseService,
@@ -556,10 +565,10 @@ export async function getNotificationsForUser(
 }
 
 /**
- * Gets all watchlist items with their GUIDs for type-based filtering
+ * Retrieves watchlist items with their GUIDs, optionally filtered by type.
  *
- * @param types - Optional array of types to filter by (e.g., ['movie', 'show'])
- * @returns Promise resolving to array of items with their guids
+ * @param types - Optional array of types to filter items (e.g., ['movie', 'show'])
+ * @returns Promise resolving to an array of objects containing item IDs and their parsed GUID arrays
  */
 export async function getAllGuidsFromWatchlist(
   this: DatabaseService,
@@ -583,11 +592,11 @@ export async function getAllGuidsFromWatchlist(
 }
 
 /**
- * Batch check if items have had webhooks sent
+ * Checks which of the specified titles have had 'watchlist_add' webhook notifications sent for a user.
  *
- * @param userId - The user ID to check
- * @param titles - Array of titles to check for existing notifications
- * @returns Promise resolving to a map of title to boolean (true if notification exists)
+ * @param userId - The user ID to check notifications for
+ * @param titles - Array of titles to check for existing webhook notifications
+ * @returns A map where each title is mapped to true if a webhook notification exists, or false otherwise
  */
 export async function checkExistingWebhooks(
   this: DatabaseService,
@@ -622,9 +631,11 @@ export async function checkExistingWebhooks(
 }
 
 /**
- * Cross-database compatible GUID extraction
+ * Retrieves all unique GUIDs from watchlist items in lowercase, using raw SQL compatible with both Postgres and other SQL databases.
  *
- * @returns Promise resolving to array of lowercase GUIDs
+ * Falls back to a mapped extraction method if the raw query fails.
+ *
+ * @returns An array of unique, lowercased GUID strings.
  */
 export async function getUniqueGuidsRaw(
   this: DatabaseService,
@@ -682,9 +693,7 @@ export async function getUniqueGuidsRaw(
 }
 
 /**
- * Synchronizes genres from watchlist items to the genres table
- *
- * @returns Promise resolving to void when complete
+ * Synchronizes all unique genres found in watchlist items into the genres table, inserting new genres as needed and updating timestamps for existing ones.
  */
 export async function syncGenresFromWatchlist(
   this: DatabaseService,
@@ -727,10 +736,12 @@ export async function syncGenresFromWatchlist(
 }
 
 /**
- * Adds a custom genre to the genres table
+ * Adds a new custom genre by name to the genres table.
  *
- * @param name - Name of the genre to add
- * @returns Promise resolving to the ID of the created genre
+ * Trims the provided name, inserts it as a custom genre, and returns the new genre's ID. Throws an error if the genre already exists.
+ *
+ * @param name - The name of the custom genre to add
+ * @returns The ID of the newly created genre
  */
 export async function addCustomGenre(
   this: DatabaseService,
@@ -755,9 +766,9 @@ export async function addCustomGenre(
 }
 
 /**
- * Retrieves all genres from the genres table
+ * Retrieves all genres from the database, ordered alphabetically by name.
  *
- * @returns Promise resolving to array of all genres
+ * @returns An array of genre objects, each containing the genre's ID, name, and whether it is custom.
  */
 export async function getAllGenres(
   this: DatabaseService,
@@ -768,10 +779,10 @@ export async function getAllGenres(
 }
 
 /**
- * Deletes a custom genre from the genres table
+ * Deletes a custom genre by its ID.
  *
- * @param id - ID of the genre to delete
- * @returns Promise resolving to true if deleted, false otherwise
+ * @param id - The ID of the custom genre to delete.
+ * @returns True if the genre was deleted, false if no matching custom genre was found.
  */
 export async function deleteCustomGenre(
   this: DatabaseService,
@@ -784,10 +795,12 @@ export async function deleteCustomGenre(
 }
 
 /**
- * Bulk updates the status of show watchlist items
+ * Performs a bulk update of show watchlist item statuses.
  *
- * @param updates - Array of show status updates
- * @returns Promise resolving to the number of items updated
+ * Calls the underlying bulk update function to modify statuses and series statuses for multiple show watchlist items.
+ *
+ * @param updates - List of updates specifying user, key, and new status values for each show item
+ * @returns The number of watchlist items successfully updated
  */
 export async function bulkUpdateShowStatuses(
   this: DatabaseService,
@@ -804,9 +817,9 @@ export async function bulkUpdateShowStatuses(
 }
 
 /**
- * Retrieves all show watchlist items
+ * Retrieves all watchlist items of type 'show', parsing GUIDs and genres for each item.
  *
- * @returns Promise resolving to array of all show watchlist items
+ * @returns An array of show watchlist items with normalized IDs, GUIDs, and genres.
  */
 export async function getAllShowWatchlistItems(
   this: DatabaseService,
@@ -830,9 +843,9 @@ export async function getAllShowWatchlistItems(
 }
 
 /**
- * Retrieves all movie watchlist items
+ * Retrieves all watchlist items of type 'movie', parsing GUIDs and genres for each item.
  *
- * @returns Promise resolving to array of all movie watchlist items
+ * @returns An array of movie watchlist items with normalized IDs, GUIDs, and genres.
  */
 export async function getAllMovieWatchlistItems(
   this: DatabaseService,
@@ -856,11 +869,10 @@ export async function getAllMovieWatchlistItems(
 }
 
 /**
- * Creates multiple watchlist items in the database
+ * Inserts multiple watchlist items into the database in bulk, with configurable conflict handling.
  *
- * @param items - Array of watchlist items to create
- * @param options - Configuration options for how to handle conflicts
- * @returns Promise resolving to void when complete
+ * @param items - The watchlist items to insert, excluding creation and update timestamps
+ * @param options - Optional settings for conflict resolution: 'ignore' to skip duplicates or 'merge' to update existing entries
  */
 export async function createWatchlistItems(
   this: DatabaseService,
@@ -902,10 +914,11 @@ export async function createWatchlistItems(
 }
 
 /**
- * Creates temporary RSS items for tracking changes between syncs
+ * Creates multiple temporary RSS items in bulk for tracking sync changes.
  *
- * @param items - Array of temporary RSS items to create
- * @returns Promise resolving to void when complete
+ * Each item includes title, type, GUIDs, optional genres and thumbnail, and a source indicator. Items are inserted in batches within a transaction.
+ *
+ * @param items - The temporary RSS items to create
  */
 export async function createTempRssItems(
   this: DatabaseService,
@@ -935,10 +948,10 @@ export async function createTempRssItems(
 }
 
 /**
- * Retrieves temporary RSS items
+ * Retrieves temporary RSS items, optionally filtered by source.
  *
- * @param source - Optional source filter ('self' or 'friends')
- * @returns Promise resolving to array of temporary RSS items
+ * @param source - If provided, filters items by the specified source ('self' or 'friends')
+ * @returns An array of temporary RSS items with parsed GUIDs and genres
  */
 export async function getTempRssItems(
   this: DatabaseService,
@@ -971,10 +984,9 @@ export async function getTempRssItems(
 }
 
 /**
- * Deletes specific temporary RSS items by ID
+ * Deletes temporary RSS items with the specified IDs.
  *
- * @param ids - Array of item IDs to delete
- * @returns Promise resolving to void when complete
+ * @param ids - The IDs of the temporary RSS items to delete.
  */
 export async function deleteTempRssItems(
   this: DatabaseService,
@@ -984,10 +996,9 @@ export async function deleteTempRssItems(
 }
 
 /**
- * Deletes all temporary RSS items
+ * Deletes all temporary RSS items, optionally filtered by source.
  *
- * @param source - Optional source filter ('self' or 'friends')
- * @returns Promise resolving to void when complete
+ * @param source - If provided, only items with this source ('self' or 'friends') are deleted.
  */
 export async function deleteAllTempRssItems(
   this: DatabaseService,
@@ -1001,11 +1012,9 @@ export async function deleteAllTempRssItems(
 }
 
 /**
- * Deletes watchlist items for a specific user
+ * Deletes specified watchlist items for a user.
  *
- * @param userId - ID of the user
- * @param keys - Array of watchlist item keys to delete
- * @returns Promise resolving to void when complete
+ * Removes watchlist items matching the given keys for the provided user ID. If the keys array is empty, no action is taken.
  */
 export async function deleteWatchlistItems(
   this: DatabaseService,
@@ -1024,10 +1033,12 @@ export async function deleteWatchlistItems(
 }
 
 /**
- * Retrieves all watchlist items for a specific user
+ * Retrieves all watchlist items belonging to the specified user.
  *
- * @param userId - ID of the user
- * @returns Promise resolving to array of all watchlist items for the user
+ * Parses the `guids` and `genres` fields from JSON for each item.
+ *
+ * @param userId - The user ID whose watchlist items are to be retrieved
+ * @returns An array of all watchlist items for the user
  */
 export async function getAllWatchlistItemsForUser(
   this: DatabaseService,
@@ -1048,10 +1059,12 @@ export async function getAllWatchlistItemsForUser(
 }
 
 /**
- * Retrieves watchlist items that match a specific GUID
+ * Retrieves all watchlist items containing the specified GUID in their GUIDs array.
  *
- * @param guid - GUID to match against watchlist items
- * @returns Promise resolving to array of matching watchlist items
+ * The GUID comparison is case-insensitive. Returned items have their `id` as a string and their `guids` and `genres` fields parsed as arrays.
+ *
+ * @param guid - The GUID to search for within each item's GUIDs array
+ * @returns An array of matching watchlist items with normalized fields
  */
 export async function getWatchlistItemsByGuid(
   this: DatabaseService,

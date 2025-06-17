@@ -10,9 +10,9 @@ import type {
 } from '@root/types/content-lookup.types.js'
 
 /**
- * Retrieves all router rules
+ * Retrieves all router rules from the database, ordered by priority and ID.
  *
- * @returns Promise resolving to array of all router rules
+ * @returns A promise that resolves to an array of formatted router rules.
  */
 export async function getAllRouterRules(
   this: DatabaseService,
@@ -26,10 +26,10 @@ export async function getAllRouterRules(
 }
 
 /**
- * Retrieves a router rule by ID
+ * Retrieves a router rule by its unique ID.
  *
- * @param id - ID of the router rule to retrieve
- * @returns Promise resolving to the router rule if found, null otherwise
+ * @param id - The unique identifier of the router rule.
+ * @returns The router rule if found, or null if no rule exists with the given ID.
  */
 export async function getRouterRuleById(
   this: DatabaseService,
@@ -43,11 +43,11 @@ export async function getRouterRuleById(
 }
 
 /**
- * Retrieves all router rules of a specific type
+ * Retrieves router rules filtered by type, optionally including only enabled rules.
  *
- * @param type - Type of router rules to retrieve (e.g., 'genre', 'user')
- * @param enabledOnly - Whether to retrieve only enabled rules (default: true)
- * @returns Promise resolving to array of matching router rules
+ * @param type - The type of router rules to retrieve.
+ * @param enabledOnly - If true, only enabled rules are returned (default: true).
+ * @returns A promise that resolves to an array of matching router rules.
  */
 export async function getRouterRulesByType(
   this: DatabaseService,
@@ -66,10 +66,12 @@ export async function getRouterRulesByType(
 }
 
 /**
- * Creates a new router rule
+ * Creates a new router rule in the database.
  *
- * @param rule - Router rule data excluding ID and timestamps
- * @returns Promise resolving to the created router rule
+ * Serializes complex fields and sets creation and update timestamps. Throws an error if creation fails.
+ *
+ * @param rule - The router rule data to insert, excluding ID and timestamps
+ * @returns The newly created router rule
  */
 export async function createRouterRule(
   this: DatabaseService,
@@ -94,11 +96,13 @@ export async function createRouterRule(
 }
 
 /**
- * Updates an existing router rule
+ * Updates an existing router rule with the specified fields.
  *
- * @param id - ID of the router rule to update
- * @param updates - Partial router rule data to update
- * @returns Promise resolving to the updated router rule
+ * Only the provided fields in `updates` are modified. Throws an error if the router rule does not exist or the update fails.
+ *
+ * @param id - The ID of the router rule to update
+ * @param updates - The fields to update in the router rule
+ * @returns The updated router rule
  */
 export async function updateRouterRule(
   this: DatabaseService,
@@ -183,10 +187,10 @@ export async function updateRouterRule(
 }
 
 /**
- * Deletes a router rule
+ * Deletes a router rule by its ID.
  *
- * @param id - ID of the router rule to delete
- * @returns Promise resolving to true if deleted, false otherwise
+ * @param id - The unique identifier of the router rule to delete.
+ * @returns True if a rule was deleted; false if no matching rule was found.
  */
 export async function deleteRouterRule(
   this: DatabaseService,
@@ -197,11 +201,11 @@ export async function deleteRouterRule(
 }
 
 /**
- * Retrieves router rules by target type and instance
+ * Retrieves all enabled router rules for a specific target type and instance.
  *
- * @param targetType - Target type ('sonarr' or 'radarr')
- * @param instanceId - ID of the target instance
- * @returns Promise resolving to array of matching router rules
+ * @param targetType - The type of target ('sonarr' or 'radarr')
+ * @param instanceId - The unique identifier of the target instance
+ * @returns An array of enabled router rules matching the specified target type and instance
  */
 export async function getRouterRulesByTarget(
   this: DatabaseService,
@@ -222,10 +226,10 @@ export async function getRouterRulesByTarget(
 }
 
 /**
- * Retrieves router rules filtered by target type ('sonarr' or 'radarr')
+ * Retrieves all router rules with the specified target type.
  *
- * @param targetType - The target type ('sonarr' or 'radarr')
- * @returns Promise resolving to array of matching router rules
+ * @param targetType - The target type to filter by ('sonarr' or 'radarr')
+ * @returns A promise that resolves to an array of router rules matching the target type
  */
 export async function getRouterRulesByTargetType(
   this: DatabaseService,
@@ -253,11 +257,12 @@ export async function getRouterRulesByTargetType(
 }
 
 /**
- * Toggles the enabled state of a router rule
+ * Updates the enabled state of a router rule by its ID.
  *
- * @param id - ID of the router rule to toggle
- * @param enabled - New enabled state (true to enable, false to disable)
- * @returns Promise resolving to the updated router rule
+ * @param id - The ID of the router rule to update
+ * @param enabled - Whether the rule should be enabled or disabled
+ * @returns The updated router rule
+ * @throws If the router rule is not found or cannot be updated
  */
 export async function toggleRouterRule(
   this: DatabaseService,
@@ -282,10 +287,13 @@ export async function toggleRouterRule(
 }
 
 /**
- * Creates a conditional router rule
+ * Creates a new conditional router rule with the specified condition or condition group.
  *
- * @param rule - Rule data with condition groups
- * @returns Promise resolving to the created router rule
+ * Validates the provided condition, serializes it into the rule's criteria, and inserts the rule into the database with default values for order and enabled state if not specified. Returns the created router rule.
+ *
+ * @param rule - The rule data, including a condition or condition group and optional metadata.
+ * @returns The newly created router rule.
+ * @throws If the condition is invalid or rule creation fails.
  */
 export async function createConditionalRule(
   this: DatabaseService,
@@ -340,11 +348,13 @@ export async function createConditionalRule(
 }
 
 /**
- * Updates a conditional router rule
+ * Updates an existing conditional router rule by ID, including its condition, metadata, and other configurable fields.
  *
- * @param id - ID of the router rule to update
- * @param updates - Partial updates including condition groups
- * @returns Promise resolving to the updated router rule
+ * Validates the provided condition if present, preserves existing criteria fields when updating the condition, and updates the `updated_at` timestamp. Throws an error if the rule is not found, the condition is invalid, or the update fails.
+ *
+ * @param id - The ID of the router rule to update
+ * @param updates - Fields to update, including optional condition, metadata, and other rule properties
+ * @returns The updated router rule
  */
 export async function updateConditionalRule(
   this: DatabaseService,
@@ -432,13 +442,11 @@ export async function updateConditionalRule(
 }
 
 /**
- * Checks if any enabled router rules exist in the database.
+ * Determines whether any enabled router rules exist in the database.
  *
- * This method is used as an optimization to skip router evaluation logic
- * when no rules are defined. It performs a quick count query on the router_rules
- * table, filtering for enabled rules.
+ * Returns `true` if at least one enabled router rule is found; otherwise, returns `false`. If an error occurs during the check, conservatively returns `true`.
  *
- * @returns Promise resolving to a boolean indicating whether any enabled rules exist
+ * @returns Promise resolving to `true` if any enabled router rules exist, otherwise `false`
  */
 export async function hasAnyRouterRules(
   this: DatabaseService,
@@ -464,10 +472,11 @@ export async function hasAnyRouterRules(
 }
 
 /**
- * Checks if any router rules exist that require metadata enrichment
- * Only rules with conditions that need API metadata should trigger enrichment
+ * Determines whether any enabled router rules require metadata enrichment based on their conditions.
  *
- * @returns Promise resolving to true if metadata-requiring rules exist
+ * Returns `true` if at least one enabled router rule contains a condition that references fields such as year, certification, language, or season, which require metadata from external APIs. Returns `true` on error as a conservative fallback.
+ *
+ * @returns Promise resolving to `true` if metadata-requiring rules exist, otherwise `false`
  */
 export async function hasMetadataRequiringRules(
   this: DatabaseService,
