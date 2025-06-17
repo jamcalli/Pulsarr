@@ -117,14 +117,18 @@ export async function createSonarrInstance(
         bypass_ignored: instance.bypassIgnored,
         season_monitoring: instance.seasonMonitoring,
         monitor_new_items: this.normaliseMonitorNewItems(
-          instance.monitorNewItems,
+          instance.monitorNewItems || 'all',
         ),
         search_on_add: instance.searchOnAdd ?? true,
         create_season_folders: instance.createSeasonFolders ?? false,
-        tags: JSON.stringify(instance.tags || []),
+        tags: Array.isArray(instance.tags)
+          ? JSON.stringify(instance.tags)
+          : instance.tags || JSON.stringify([]),
         is_default: instance.isDefault ?? false,
         is_enabled: true,
-        synced_instances: JSON.stringify(instance.syncedInstances || []),
+        synced_instances: Array.isArray(instance.syncedInstances)
+          ? JSON.stringify(instance.syncedInstances)
+          : instance.syncedInstances || JSON.stringify([]),
         series_type: instance.seriesType || 'standard',
         created_at: this.timestamp,
         updated_at: this.timestamp,
@@ -205,13 +209,17 @@ export async function updateSonarrInstance(
           series_type: sanitized.seriesType,
         }),
         ...(typeof sanitized.tags !== 'undefined' && {
-          tags: JSON.stringify(sanitized.tags),
+          tags: Array.isArray(sanitized.tags)
+            ? JSON.stringify(sanitized.tags)
+            : sanitized.tags,
         }),
         ...(typeof sanitized.isDefault !== 'undefined' && {
           is_default: sanitized.isDefault,
         }),
         ...(typeof sanitized.syncedInstances !== 'undefined' && {
-          synced_instances: JSON.stringify(sanitized.syncedInstances),
+          synced_instances: Array.isArray(sanitized.syncedInstances)
+            ? JSON.stringify(sanitized.syncedInstances)
+            : sanitized.syncedInstances,
         }),
         updated_at: this.timestamp,
       })

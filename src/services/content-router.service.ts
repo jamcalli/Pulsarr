@@ -168,7 +168,7 @@ export class ContentRouterService {
           await this.fastify.radarrManager.routeItemToRadarr(
             item as RadarrItem,
             key,
-            options.userId || 0, // Default to 0 if userId not provided
+            options.userId || 0,
             options.forcedInstanceId,
             options.syncing,
           )
@@ -176,7 +176,7 @@ export class ContentRouterService {
           await this.fastify.sonarrManager.routeItemToSonarr(
             item as SonarrItem,
             key,
-            options.userId || 0, // Default to 0 if userId not provided
+            options.userId || 0,
             options.forcedInstanceId,
             options.syncing,
           )
@@ -223,7 +223,7 @@ export class ContentRouterService {
             await this.fastify.radarrManager.routeItemToRadarr(
               item as RadarrItem,
               key,
-              options.userId || 0, // Default to 0 if userId not provided
+              options.userId || 0,
               options.syncTargetInstanceId,
               options.syncing,
             )
@@ -231,7 +231,7 @@ export class ContentRouterService {
             await this.fastify.sonarrManager.routeItemToSonarr(
               item as SonarrItem,
               key,
-              options.userId || 0, // Default to 0 if userId not provided
+              options.userId || 0,
               options.syncTargetInstanceId,
               options.syncing,
             )
@@ -327,7 +327,7 @@ export class ContentRouterService {
             await this.fastify.radarrManager.routeItemToRadarr(
               item as RadarrItem,
               key,
-              options.userId || 0, // Default to 0 if userId not provided
+              options.userId || 0,
               options.syncTargetInstanceId,
               options.syncing,
             )
@@ -335,7 +335,7 @@ export class ContentRouterService {
             await this.fastify.sonarrManager.routeItemToSonarr(
               item as SonarrItem,
               key,
-              options.userId || 0, // Default to 0 if userId not provided
+              options.userId || 0,
               options.syncTargetInstanceId,
               options.syncing,
             )
@@ -402,7 +402,7 @@ export class ContentRouterService {
           await this.fastify.radarrManager.routeItemToRadarr(
             item as RadarrItem,
             key,
-            options.userId || 0, // Default to 0 if userId not provided
+            options.userId || 0,
             decision.instanceId,
             options.syncing,
             rootFolder,
@@ -419,7 +419,7 @@ export class ContentRouterService {
           await this.fastify.sonarrManager.routeItemToSonarr(
             item as SonarrItem,
             key,
-            options.userId || 0, // Default to 0 if userId not provided
+            options.userId || 0,
             decision.instanceId,
             options.syncing,
             rootFolder,
