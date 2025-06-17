@@ -126,6 +126,7 @@ export class SonarrManagerService {
   async routeItemToSonarr(
     item: SonarrItem,
     key: string,
+    userId: number,
     instanceId?: number,
     syncing = false,
     rootFolder?: string,
@@ -288,7 +289,7 @@ export class SonarrManagerService {
         }
       }
 
-      await this.fastify.db.updateWatchlistItem(key, {
+      await this.fastify.db.updateWatchlistItem(userId, key, {
         sonarr_instance_id: targetInstanceId,
         syncing: syncing,
       })
