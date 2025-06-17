@@ -216,7 +216,7 @@ export async function processNotifications(
 
   // Handle public content notifications if enabled and we have users
   if (
-    this.config.publicContentNotifications.enabled &&
+    this.config.publicContentNotifications?.enabled &&
     watchlistItems.length > 0
   ) {
     const notificationTypeInfo = determineNotificationType(
