@@ -1,13 +1,21 @@
 import { z } from 'zod'
 
 // Zod schema for interval configuration
-export const IntervalConfigSchema = z.object({
-  days: z.number().int().nonnegative().optional(),
-  hours: z.number().int().nonnegative().optional(),
-  minutes: z.number().int().nonnegative().optional(),
-  seconds: z.number().int().nonnegative().optional(),
-  runImmediately: z.boolean().optional(),
-})
+export const IntervalConfigSchema = z
+  .object({
+    days: z.number().int().nonnegative().max(365).optional(),
+    hours: z.number().int().nonnegative().max(8760).optional(), // Allow up to 1 year in hours
+    minutes: z.number().int().nonnegative().max(525600).optional(), // Allow up to 1 year in minutes
+    seconds: z.number().int().nonnegative().max(31536000).optional(), // Allow up to 1 year in seconds
+    runImmediately: z.boolean().optional(),
+  })
+  .refine(
+    (config) => config.days || config.hours || config.minutes || config.seconds,
+    {
+      message:
+        'At least one time unit (days, hours, minutes, or seconds) must be specified',
+    },
+  )
 
 // Zod schema for cron configuration
 export const CronConfigSchema = z.object({

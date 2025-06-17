@@ -4,6 +4,39 @@ import type { SonarrInstanceRow } from '@root/types/database-rows.types.js'
 import type { Knex } from 'knex'
 
 /**
+ * Maps a database row to a SonarrInstance object
+ * @param row - The database row to map
+ * @returns Mapped SonarrInstance object
+ */
+function mapRowToSonarrInstance(
+  this: DatabaseService,
+  row: SonarrInstanceRow,
+): SonarrInstance {
+  return {
+    id: row.id,
+    name: row.name,
+    baseUrl: row.base_url,
+    apiKey: row.api_key,
+    qualityProfile: row.quality_profile,
+    rootFolder: row.root_folder,
+    bypassIgnored: Boolean(row.bypass_ignored),
+    seasonMonitoring: row.season_monitoring || 'all',
+    monitorNewItems: (row.monitor_new_items as 'all' | 'none') || 'all',
+    searchOnAdd: this.toBoolean(row.search_on_add, true),
+    createSeasonFolders: this.toBoolean(row.create_season_folders, false),
+    tags: this.safeJsonParse(row.tags, [], 'sonarr.tags'),
+    isDefault: Boolean(row.is_default),
+    syncedInstances: this.safeJsonParse(
+      row.synced_instances,
+      [],
+      'sonarr.synced_instances',
+    ),
+    seriesType:
+      (row.series_type as 'standard' | 'anime' | 'daily') || 'standard',
+  }
+}
+
+/**
  * Retrieves all enabled Sonarr instances
  *
  * @returns Promise resolving to an array of all enabled Sonarr instances
@@ -15,28 +48,9 @@ export async function getAllSonarrInstances(
     .where('is_enabled', true)
     .select('*')
 
-  return instances.map((instance) => ({
-    id: instance.id,
-    name: instance.name,
-    baseUrl: instance.base_url,
-    apiKey: instance.api_key,
-    qualityProfile: instance.quality_profile,
-    rootFolder: instance.root_folder,
-    bypassIgnored: Boolean(instance.bypass_ignored),
-    seasonMonitoring: instance.season_monitoring || 'all',
-    monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
-    searchOnAdd: this.toBoolean(instance.search_on_add, true),
-    createSeasonFolders: this.toBoolean(instance.create_season_folders, false),
-    tags: this.safeJsonParse(instance.tags, [], 'sonarr.tags'),
-    isDefault: Boolean(instance.is_default),
-    syncedInstances: this.safeJsonParse(
-      instance.synced_instances,
-      [],
-      'sonarr.synced_instances',
-    ),
-    seriesType:
-      (instance.series_type as 'standard' | 'anime' | 'daily') || 'standard',
-  }))
+  return instances.map((instance) =>
+    mapRowToSonarrInstance.call(this, instance),
+  )
 }
 
 /**
@@ -56,28 +70,7 @@ export async function getDefaultSonarrInstance(
 
   if (!instance) return null
 
-  return {
-    id: instance.id,
-    name: instance.name,
-    baseUrl: instance.base_url,
-    apiKey: instance.api_key,
-    qualityProfile: instance.quality_profile,
-    rootFolder: instance.root_folder,
-    bypassIgnored: Boolean(instance.bypass_ignored),
-    seasonMonitoring: instance.season_monitoring || 'all',
-    monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
-    searchOnAdd: this.toBoolean(instance.search_on_add, true),
-    createSeasonFolders: this.toBoolean(instance.create_season_folders, false),
-    tags: this.safeJsonParse(instance.tags, [], 'sonarr.tags'),
-    isDefault: Boolean(instance.is_default),
-    syncedInstances: this.safeJsonParse(
-      instance.synced_instances,
-      [],
-      'sonarr.synced_instances',
-    ),
-    seriesType:
-      (instance.series_type as 'standard' | 'anime' | 'daily') || 'standard',
-  }
+  return mapRowToSonarrInstance.call(this, instance)
 }
 
 /**
@@ -94,28 +87,7 @@ export async function getSonarrInstance(
 
   if (!instance) return null
 
-  return {
-    id: instance.id,
-    name: instance.name,
-    baseUrl: instance.base_url,
-    apiKey: instance.api_key,
-    qualityProfile: instance.quality_profile,
-    rootFolder: instance.root_folder,
-    bypassIgnored: Boolean(instance.bypass_ignored),
-    seasonMonitoring: instance.season_monitoring || 'all',
-    monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
-    searchOnAdd: this.toBoolean(instance.search_on_add, true),
-    createSeasonFolders: this.toBoolean(instance.create_season_folders, false),
-    tags: this.safeJsonParse(instance.tags, [], 'sonarr.tags'),
-    isDefault: Boolean(instance.is_default),
-    syncedInstances: this.safeJsonParse(
-      instance.synced_instances,
-      [],
-      'sonarr.synced_instances',
-    ),
-    seriesType:
-      (instance.series_type as 'standard' | 'anime' | 'daily') || 'standard',
-  }
+  return mapRowToSonarrInstance.call(this, instance)
 }
 
 /**
@@ -386,49 +358,27 @@ export async function deleteSonarrInstance(
 }
 
 /**
- * Retrieves a Sonarr instance by ID or name
+ * Retrieves a Sonarr instance by transformed base URL identifier (original behavior)
+ * Used for webhook routing where instanceId comes from URL transformation
  *
- * @param identifier - Instance ID (number) or name (string)
+ * @param instanceId - Transformed base URL identifier (string)
  * @returns Promise resolving to the Sonarr instance if found, null otherwise
  */
 export async function getSonarrInstanceByIdentifier(
   this: DatabaseService,
-  identifier: string | number,
+  instanceId: string,
 ): Promise<SonarrInstance | null> {
-  let instance: SonarrInstanceRow | undefined
+  const instances = await this.knex('sonarr_instances').select()
 
-  if (typeof identifier === 'number') {
-    instance = await this.knex('sonarr_instances')
-      .where({ id: identifier })
-      .first()
-  } else {
-    instance = await this.knex('sonarr_instances')
-      .where({ name: identifier })
-      .first()
+  for (const instance of instances) {
+    const transformedBaseUrl = instance.base_url
+      .replace(/https?:\/\//, '')
+      .replace(/[^a-zA-Z0-9]/g, '')
+
+    if (transformedBaseUrl === instanceId) {
+      return mapRowToSonarrInstance.call(this, instance)
+    }
   }
 
-  if (!instance) return null
-
-  return {
-    id: instance.id,
-    name: instance.name,
-    baseUrl: instance.base_url,
-    apiKey: instance.api_key,
-    qualityProfile: instance.quality_profile,
-    rootFolder: instance.root_folder,
-    bypassIgnored: Boolean(instance.bypass_ignored),
-    seasonMonitoring: instance.season_monitoring || 'all',
-    monitorNewItems: (instance.monitor_new_items as 'all' | 'none') || 'all',
-    searchOnAdd: this.toBoolean(instance.search_on_add, true),
-    createSeasonFolders: this.toBoolean(instance.create_season_folders, false),
-    tags: this.safeJsonParse(instance.tags, [], 'sonarr.tags'),
-    isDefault: Boolean(instance.is_default),
-    syncedInstances: this.safeJsonParse(
-      instance.synced_instances,
-      [],
-      'sonarr.synced_instances',
-    ),
-    seriesType:
-      (instance.series_type as 'standard' | 'anime' | 'daily') || 'standard',
-  }
+  return null
 }

@@ -4,6 +4,37 @@ import type { RadarrInstanceRow } from '@root/types/database-rows.types.js'
 import type { Knex } from 'knex'
 
 /**
+ * Maps a database row to a RadarrInstance object
+ * @param row - The database row to map
+ * @returns Mapped RadarrInstance object
+ */
+function mapRowToRadarrInstance(
+  this: DatabaseService,
+  row: RadarrInstanceRow,
+): RadarrInstance {
+  return {
+    id: row.id,
+    name: row.name,
+    baseUrl: row.base_url,
+    apiKey: row.api_key,
+    qualityProfile: row.quality_profile,
+    rootFolder: row.root_folder,
+    bypassIgnored: Boolean(row.bypass_ignored),
+    searchOnAdd: row.search_on_add === null ? true : Boolean(row.search_on_add),
+    minimumAvailability: this.normaliseMinimumAvailability(
+      row.minimum_availability,
+    ),
+    tags: this.safeJsonParse(row.tags, [], 'radarr.tags'),
+    isDefault: Boolean(row.is_default),
+    syncedInstances: this.safeJsonParse(
+      row.synced_instances,
+      [],
+      'radarr.synced_instances',
+    ),
+  }
+}
+
+/**
  * Retrieves all enabled Radarr instances
  *
  * @returns Promise resolving to an array of all enabled Radarr instances
@@ -16,31 +47,9 @@ export async function getAllRadarrInstances(
     .where('is_enabled', true)
     .orderBy('name')
 
-  return instances.map((instance) => ({
-    ...instance,
-    id: instance.id,
-    name: instance.name,
-    baseUrl: instance.base_url,
-    apiKey: instance.api_key,
-    qualityProfile: instance.quality_profile,
-    rootFolder: instance.root_folder,
-    bypassIgnored: Boolean(instance.bypass_ignored),
-    searchOnAdd: Boolean(instance.search_on_add ?? true),
-    minimumAvailability: this.normaliseMinimumAvailability(
-      instance.minimum_availability,
-    ),
-    tags: this.safeJsonParse<string[]>(
-      instance.tags,
-      [],
-      'radarrInstance.tags',
-    ),
-    isDefault: Boolean(instance.is_default),
-    syncedInstances: this.safeJsonParse<number[]>(
-      instance.synced_instances,
-      [],
-      'radarrInstance.syncedInstances',
-    ),
-  }))
+  return instances.map((instance) =>
+    mapRowToRadarrInstance.call(this, instance),
+  )
 }
 
 /**
@@ -57,31 +66,7 @@ export async function getDefaultRadarrInstance(
 
   if (!instance) return null
 
-  return {
-    ...instance,
-    id: instance.id,
-    name: instance.name,
-    baseUrl: instance.base_url,
-    apiKey: instance.api_key,
-    qualityProfile: instance.quality_profile,
-    rootFolder: instance.root_folder,
-    bypassIgnored: Boolean(instance.bypass_ignored),
-    searchOnAdd: Boolean(instance.search_on_add ?? true),
-    minimumAvailability: this.normaliseMinimumAvailability(
-      instance.minimum_availability,
-    ),
-    tags: this.safeJsonParse<string[]>(
-      instance.tags,
-      [],
-      'radarrInstance.tags',
-    ),
-    isDefault: Boolean(instance.is_default),
-    syncedInstances: this.safeJsonParse<number[]>(
-      instance.synced_instances,
-      [],
-      'radarrInstance.syncedInstances',
-    ),
-  }
+  return mapRowToRadarrInstance.call(this, instance)
 }
 
 /**
@@ -98,31 +83,7 @@ export async function getRadarrInstance(
 
   if (!instance) return null
 
-  return {
-    ...instance,
-    id: instance.id,
-    name: instance.name,
-    baseUrl: instance.base_url,
-    apiKey: instance.api_key,
-    qualityProfile: instance.quality_profile,
-    rootFolder: instance.root_folder,
-    bypassIgnored: Boolean(instance.bypass_ignored),
-    searchOnAdd: Boolean(instance.search_on_add ?? true),
-    minimumAvailability: this.normaliseMinimumAvailability(
-      instance.minimum_availability,
-    ),
-    tags: this.safeJsonParse<string[]>(
-      instance.tags,
-      [],
-      'radarrInstance.tags',
-    ),
-    isDefault: Boolean(instance.is_default),
-    syncedInstances: this.safeJsonParse<number[]>(
-      instance.synced_instances,
-      [],
-      'radarrInstance.syncedInstances',
-    ),
-  }
+  return mapRowToRadarrInstance.call(this, instance)
 }
 
 /**
@@ -377,52 +338,27 @@ export async function deleteRadarrInstance(
 }
 
 /**
- * Retrieves a Radarr instance by ID or name
+ * Retrieves a Radarr instance by transformed base URL identifier (original behavior)
+ * Used for webhook routing where instanceId comes from URL transformation
  *
- * @param identifier - Instance ID (number) or name (string)
+ * @param instanceId - Transformed base URL identifier (string)
  * @returns Promise resolving to the Radarr instance if found, null otherwise
  */
 export async function getRadarrInstanceByIdentifier(
   this: DatabaseService,
-  identifier: string | number,
+  instanceId: string,
 ): Promise<RadarrInstance | null> {
-  let instance: RadarrInstanceRow | undefined
+  const instances = await this.knex('radarr_instances').select()
 
-  if (typeof identifier === 'number') {
-    instance = await this.knex('radarr_instances')
-      .where({ id: identifier })
-      .first()
-  } else {
-    instance = await this.knex('radarr_instances')
-      .where({ name: identifier })
-      .first()
+  for (const instance of instances) {
+    const transformedBaseUrl = instance.base_url
+      .replace(/https?:\/\//, '')
+      .replace(/[^a-zA-Z0-9]/g, '')
+
+    if (transformedBaseUrl === instanceId) {
+      return mapRowToRadarrInstance.call(this, instance)
+    }
   }
 
-  if (!instance) return null
-
-  return {
-    ...instance,
-    id: instance.id,
-    name: instance.name,
-    baseUrl: instance.base_url,
-    apiKey: instance.api_key,
-    qualityProfile: instance.quality_profile,
-    rootFolder: instance.root_folder,
-    bypassIgnored: Boolean(instance.bypass_ignored),
-    searchOnAdd: Boolean(instance.search_on_add ?? true),
-    minimumAvailability: this.normaliseMinimumAvailability(
-      instance.minimum_availability,
-    ),
-    tags: this.safeJsonParse<string[]>(
-      instance.tags,
-      [],
-      'radarrInstance.tags',
-    ),
-    isDefault: Boolean(instance.is_default),
-    syncedInstances: this.safeJsonParse<number[]>(
-      instance.synced_instances,
-      [],
-      'radarrInstance.syncedInstances',
-    ),
-  }
+  return null
 }

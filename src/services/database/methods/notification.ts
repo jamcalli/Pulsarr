@@ -9,7 +9,7 @@ import type {
   PendingWebhookCreate,
 } from '@root/types/pending-webhooks.types.js'
 import type { User } from '@root/types/config.types.js'
-import type { NotificationType } from '../types/notification-methods.js'
+import type { NotificationType } from '@root/types/notification.types.js'
 import type { Knex } from 'knex'
 import {
   determineNotificationType,
@@ -359,7 +359,7 @@ export async function createNotificationRecord(
   notification: {
     watchlist_item_id: number | null
     user_id: number | null
-    type: 'episode' | 'season' | 'movie' | 'watchlist_add'
+    type: NotificationType
     title: string
     message?: string
     season_number?: number
@@ -374,8 +374,14 @@ export async function createNotificationRecord(
 ): Promise<number | null> {
   const insertData = {
     ...notification,
-    season_number: notification.season_number || null,
-    episode_number: notification.episode_number || null,
+    season_number:
+      notification.season_number === undefined
+        ? null
+        : notification.season_number,
+    episode_number:
+      notification.episode_number === undefined
+        ? null
+        : notification.episode_number,
     notification_status: notification.notification_status || 'active',
     sent_to_webhook: notification.sent_to_webhook || false,
     created_at: this.timestamp,
@@ -594,12 +600,13 @@ export async function createPendingWebhook(
   this: DatabaseService,
   webhook: PendingWebhookCreate,
 ): Promise<PendingWebhook> {
+  const { payload, expires_at, ...webhookData } = webhook
   const result = await this.knex('pending_webhooks')
     .insert({
-      ...webhook,
+      ...webhookData,
       received_at: this.timestamp,
-      expires_at: webhook.expires_at.toISOString(),
-      payload: JSON.stringify(webhook.payload),
+      expires_at: expires_at.toISOString(),
+      payload: JSON.stringify(payload),
     })
     .returning('id')
 

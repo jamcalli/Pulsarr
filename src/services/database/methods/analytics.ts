@@ -83,7 +83,7 @@ export async function getMostWatchlistedShows(
     .where('type', 'show')
     .select('title', 'thumb')
     .count('* as count')
-    .groupBy('key', 'title', 'thumb')
+    .groupBy('title', 'thumb')
     .orderBy('count', 'desc')
     .limit(limit)
 
@@ -110,7 +110,7 @@ export async function getMostWatchlistedMovies(
     .where('type', 'movie')
     .select('title', 'thumb')
     .count('* as count')
-    .groupBy('key', 'title', 'thumb')
+    .groupBy('title', 'thumb')
     .orderBy('count', 'desc')
     .limit(limit)
 

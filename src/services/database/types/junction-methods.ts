@@ -52,7 +52,7 @@ declare module '@services/database.service.js' {
     updateWatchlistRadarrInstanceStatus(
       watchlistId: number,
       instanceId: number,
-      status: 'pending' | 'requested' | 'grabbed' | 'notified',
+      status: WatchlistStatus,
       lastNotifiedAt?: string | null,
     ): Promise<void>
 
@@ -119,7 +119,7 @@ declare module '@services/database.service.js' {
       updates: Array<{
         watchlist_id: number
         radarr_instance_id: number
-        status?: 'pending' | 'requested' | 'grabbed' | 'notified'
+        status?: WatchlistStatus
         is_primary?: boolean
         last_notified_at?: string
       }>,
@@ -181,7 +181,7 @@ declare module '@services/database.service.js' {
     updateWatchlistSonarrInstanceStatus(
       watchlistId: number,
       instanceId: number,
-      status: 'pending' | 'requested' | 'grabbed' | 'notified',
+      status: WatchlistStatus,
       lastNotifiedAt?: string | null,
     ): Promise<void>
 
@@ -247,7 +247,7 @@ declare module '@services/database.service.js' {
       updates: Array<{
         watchlist_id: number
         sonarr_instance_id: number
-        status?: 'pending' | 'requested' | 'grabbed' | 'notified'
+        status?: WatchlistStatus
         is_primary?: boolean
         last_notified_at?: string
       }>,

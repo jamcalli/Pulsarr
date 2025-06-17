@@ -120,12 +120,12 @@ export async function getConfig(
 /**
  * Creates a new configuration entry in the database
  *
- * @param config - Configuration data excluding timestamps
+ * @param config - Configuration data excluding id and timestamps
  * @returns Promise resolving to the ID of the created configuration
  */
 export async function createConfig(
   this: DatabaseService,
-  config: Omit<Config, 'created_at' | 'updated_at'>,
+  config: Omit<Config, 'id' | 'created_at' | 'updated_at'>,
 ): Promise<number> {
   const result = await this.knex('configs')
     .insert({
@@ -216,54 +216,59 @@ export async function createConfig(
 }
 
 /**
- * Updates an existing configuration entry
+ * Updates the configuration entry
  *
- * @param id - ID of the configuration to update
  * @param config - Partial configuration data to update
  * @returns Promise resolving to true if the configuration was updated, false otherwise
  */
 export async function updateConfig(
   this: DatabaseService,
-  id: number,
   config: Partial<Config>,
 ): Promise<boolean> {
-  const updateData: Record<string, unknown> = {
-    updated_at: this.timestamp,
-  }
+  try {
+    const updateData: Record<string, unknown> = {
+      updated_at: this.timestamp,
+    }
 
-  for (const [key, value] of Object.entries(config)) {
-    if (value !== undefined) {
-      if (
-        key === 'selfRss' ||
-        key === 'friendsRss' ||
-        key === 'discordWebhookUrl' ||
-        key === 'discordBotToken' ||
-        key === 'discordClientId' ||
-        key === 'discordGuildId' ||
-        key === 'appriseUrl' ||
-        key === 'systemAppriseUrl' ||
-        key === 'tautulliUrl' ||
-        key === 'tautulliApiKey' ||
-        key === 'tagPrefix' ||
-        key === 'removedTagPrefix' ||
-        key === 'removedTagMode' ||
-        key === 'deletionMode' ||
-        key === 'newUserDefaultCanSync'
-      ) {
-        updateData[key] = value
-      } else if (
-        key === 'publicContentNotifications' ||
-        key === 'plexTokens' ||
-        key === 'plexSessionMonitoring'
-      ) {
-        updateData[key] =
-          value !== undefined && value !== null ? JSON.stringify(value) : null
-      } else {
-        updateData[key] = value
+    for (const [key, value] of Object.entries(config)) {
+      if (value !== undefined) {
+        if (
+          key === 'selfRss' ||
+          key === 'friendsRss' ||
+          key === 'discordWebhookUrl' ||
+          key === 'discordBotToken' ||
+          key === 'discordClientId' ||
+          key === 'discordGuildId' ||
+          key === 'appriseUrl' ||
+          key === 'systemAppriseUrl' ||
+          key === 'tautulliUrl' ||
+          key === 'tautulliApiKey' ||
+          key === 'tagPrefix' ||
+          key === 'removedTagPrefix' ||
+          key === 'removedTagMode' ||
+          key === 'deletionMode' ||
+          key === 'newUserDefaultCanSync'
+        ) {
+          updateData[key] = value
+        } else if (
+          key === 'publicContentNotifications' ||
+          key === 'plexTokens' ||
+          key === 'plexSessionMonitoring'
+        ) {
+          updateData[key] =
+            value !== undefined && value !== null ? JSON.stringify(value) : null
+        } else {
+          updateData[key] = value
+        }
       }
     }
-  }
 
-  const updated = await this.knex('configs').where({ id }).update(updateData)
-  return updated > 0
+    const updated = await this.knex('configs')
+      .where({ id: 1 })
+      .update(updateData)
+    return updated > 0
+  } catch (error) {
+    this.log.error('Error updating config:', error)
+    return false
+  }
 }

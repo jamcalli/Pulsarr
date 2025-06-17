@@ -7,93 +7,23 @@ import type {
 } from '@root/types/scheduler.types.js'
 
 /**
- * Retrieves all job schedules from the database
- *
- * @returns Promise resolving to array of all job schedules
+ * Helper function to parse a raw schedule row into a properly typed DbSchedule
  */
-export async function getAllSchedules(
+function parseScheduleRow(
   this: DatabaseService,
-): Promise<DbSchedule[]> {
+  schedule: {
+    id: number
+    name: string
+    type: string
+    config: string | object
+    enabled: boolean | number
+    last_run: string | JobRunInfo | null
+    next_run: string | JobRunInfo | null
+    created_at: string
+    updated_at: string
+  },
+): DbSchedule | null {
   try {
-    const schedules = await this.knex('schedules').select('*')
-
-    return schedules.map((schedule) => {
-      // Parse common fields
-      const commonFields = {
-        id: schedule.id,
-        name: schedule.name,
-        enabled: Boolean(schedule.enabled),
-        last_run: schedule.last_run
-          ? typeof schedule.last_run === 'string'
-            ? this.safeJsonParse<JobRunInfo>(
-                schedule.last_run,
-                {} as JobRunInfo,
-                'schedule.last_run',
-              )
-            : (schedule.last_run as JobRunInfo)
-          : null,
-        next_run: schedule.next_run
-          ? typeof schedule.next_run === 'string'
-            ? this.safeJsonParse<JobRunInfo>(
-                schedule.next_run,
-                {} as JobRunInfo,
-                'schedule.next_run',
-              )
-            : (schedule.next_run as JobRunInfo)
-          : null,
-        created_at: schedule.created_at,
-        updated_at: schedule.updated_at,
-      }
-
-      // Parse the config
-      const parsedConfig =
-        typeof schedule.config === 'string'
-          ? this.safeJsonParse(schedule.config, {}, 'schedule.config')
-          : schedule.config
-
-      // Return properly typed object based on schedule type
-      if (schedule.type === 'interval') {
-        return {
-          ...commonFields,
-          type: 'interval' as const,
-          config: parsedConfig as IntervalConfig,
-        }
-      }
-
-      if (schedule.type === 'cron') {
-        return {
-          ...commonFields,
-          type: 'cron' as const,
-          config: parsedConfig as CronConfig,
-        }
-      }
-
-      this.log.warn(
-        `Unknown schedule type "${schedule.type}" for ${schedule.name}`,
-      )
-      throw new Error(`Unsupported schedule type: ${schedule.type}`)
-    })
-  } catch (error) {
-    this.log.error('Error fetching all schedules:', error)
-    return []
-  }
-}
-
-/**
- * Retrieves a specific job schedule by name
- *
- * @param name - Name of the schedule to retrieve
- * @returns Promise resolving to the schedule if found, null otherwise
- */
-export async function getScheduleByName(
-  this: DatabaseService,
-  name: string,
-): Promise<DbSchedule | null> {
-  try {
-    const schedule = await this.knex('schedules').where({ name }).first()
-
-    if (!schedule) return null
-
     // Parse common fields
     const commonFields = {
       id: schedule.id,
@@ -144,10 +74,50 @@ export async function getScheduleByName(
       }
     }
 
-    this.log.warn(
-      `Unknown schedule type "${schedule.type}" for ${schedule.name}`,
-    )
-    throw new Error(`Unsupported schedule type: ${schedule.type}`)
+    this.log.warn(`Unknown schedule type: ${schedule.type}`)
+    return null
+  } catch (error) {
+    this.log.error(`Error parsing schedule ${schedule.name}:`, error)
+    return null
+  }
+}
+
+/**
+ * Retrieves all job schedules from the database
+ *
+ * @returns Promise resolving to array of all job schedules
+ */
+export async function getAllSchedules(
+  this: DatabaseService,
+): Promise<DbSchedule[]> {
+  try {
+    const schedules = await this.knex('schedules').select('*')
+
+    return schedules
+      .map((schedule) => parseScheduleRow.call(this, schedule))
+      .filter((schedule): schedule is DbSchedule => schedule !== null)
+  } catch (error) {
+    this.log.error('Error fetching all schedules:', error)
+    return []
+  }
+}
+
+/**
+ * Retrieves a specific job schedule by name
+ *
+ * @param name - Name of the schedule to retrieve
+ * @returns Promise resolving to the schedule if found, null otherwise
+ */
+export async function getScheduleByName(
+  this: DatabaseService,
+  name: string,
+): Promise<DbSchedule | null> {
+  try {
+    const schedule = await this.knex('schedules').where({ name }).first()
+
+    if (!schedule) return null
+
+    return parseScheduleRow.call(this, schedule)
   } catch (error) {
     this.log.error(`Error fetching schedule ${name}:`, error)
     return null

@@ -15,10 +15,11 @@ export async function createPendingWebhook(
   webhook: PendingWebhookCreate,
 ): Promise<PendingWebhook> {
   try {
+    const receivedAt = this.timestamp
     const result = await this.knex('pending_webhooks')
       .insert({
         ...webhook,
-        received_at: this.timestamp,
+        received_at: receivedAt,
         expires_at: webhook.expires_at.toISOString(),
         payload: JSON.stringify(webhook.payload),
       })
@@ -29,7 +30,7 @@ export async function createPendingWebhook(
     return {
       id,
       ...webhook,
-      received_at: new Date(this.timestamp),
+      received_at: new Date(receivedAt),
       expires_at: webhook.expires_at,
     }
   } catch (error) {

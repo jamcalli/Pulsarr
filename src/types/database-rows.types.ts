@@ -6,7 +6,7 @@
 /**
  * Base interface for common instance row fields
  */
-interface BaseInstanceRow {
+export interface BaseInstanceRow {
   id: number
   name: string
   base_url: string

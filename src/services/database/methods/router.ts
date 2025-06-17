@@ -179,23 +179,7 @@ export async function updateRouterRule(
     )
   }
 
-  return {
-    ...updatedRule,
-    enabled: Boolean(updatedRule.enabled),
-    criteria:
-      typeof updatedRule.criteria === 'string'
-        ? this.safeJsonParse(updatedRule.criteria, {}, 'router_rule.criteria')
-        : updatedRule.criteria,
-    tags:
-      typeof updatedRule.tags === 'string'
-        ? this.safeJsonParse(updatedRule.tags, [], 'router_rule.tags')
-        : updatedRule.tags || [],
-    metadata: updatedRule.metadata
-      ? typeof updatedRule.metadata === 'string'
-        ? this.safeJsonParse(updatedRule.metadata, null, 'router_rule.metadata')
-        : updatedRule.metadata
-      : null,
-  }
+  return this.formatRouterRule(updatedRule)
 }
 
 /**
@@ -294,23 +278,7 @@ export async function toggleRouterRule(
     )
   }
 
-  return {
-    ...updatedRule,
-    enabled: Boolean(updatedRule.enabled),
-    criteria:
-      typeof updatedRule.criteria === 'string'
-        ? this.safeJsonParse(updatedRule.criteria, {}, 'router_rule.criteria')
-        : updatedRule.criteria,
-    tags:
-      typeof updatedRule.tags === 'string'
-        ? this.safeJsonParse(updatedRule.tags, [], 'router_rule.tags')
-        : updatedRule.tags || [],
-    metadata: updatedRule.metadata
-      ? typeof updatedRule.metadata === 'string'
-        ? this.safeJsonParse(updatedRule.metadata, null, 'router_rule.metadata')
-        : updatedRule.metadata
-      : null,
-  }
+  return this.formatRouterRule(updatedRule)
 }
 
 /**
@@ -368,19 +336,7 @@ export async function createConditionalRule(
 
   if (!createdRule) throw new Error('Failed to create router rule')
 
-  return {
-    ...createdRule,
-    enabled: Boolean(createdRule.enabled),
-    criteria:
-      typeof createdRule.criteria === 'string'
-        ? this.safeJsonParse(createdRule.criteria, {}, 'router_rule.criteria')
-        : createdRule.criteria,
-    metadata: createdRule.metadata
-      ? typeof createdRule.metadata === 'string'
-        ? this.safeJsonParse(createdRule.metadata, null, 'router_rule.metadata')
-        : createdRule.metadata
-      : null,
-  }
+  return this.formatRouterRule(createdRule)
 }
 
 /**
@@ -472,19 +428,7 @@ export async function updateConditionalRule(
     )
   }
 
-  return {
-    ...updatedRule,
-    enabled: Boolean(updatedRule.enabled),
-    criteria:
-      typeof updatedRule.criteria === 'string'
-        ? this.safeJsonParse(updatedRule.criteria, {}, 'router_rule.criteria')
-        : updatedRule.criteria,
-    metadata: updatedRule.metadata
-      ? typeof updatedRule.metadata === 'string'
-        ? this.safeJsonParse(updatedRule.metadata, null, 'router_rule.metadata')
-        : updatedRule.metadata
-      : null,
-  }
+  return this.formatRouterRule(updatedRule)
 }
 
 /**

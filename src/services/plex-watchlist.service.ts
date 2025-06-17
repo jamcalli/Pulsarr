@@ -360,7 +360,7 @@ export class PlexWatchlistService {
       selfRss: Array.from(watchlistUrls)[0] || '',
       friendsRss: Array.from(watchlistUrls)[1] || '',
     }
-    await this.dbService.updateConfig(1, dbUrls)
+    await this.dbService.updateConfig(dbUrls)
     this.log.info('RSS feed URLs saved to database', dbUrls)
 
     return {
