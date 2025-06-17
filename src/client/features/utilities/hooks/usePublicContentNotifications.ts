@@ -121,18 +121,18 @@ export function usePublicContentNotifications() {
   const form = useForm<PublicContentNotificationsFormValues>({
     resolver: zodResolver(publicContentNotificationsSchema),
     defaultValues: {
-      enabled: config?.publicContentNotifications.enabled || false,
+      enabled: config?.publicContentNotifications?.enabled || false,
       discordWebhookUrls:
-        config?.publicContentNotifications.discordWebhookUrls || '',
+        config?.publicContentNotifications?.discordWebhookUrls || '',
       discordWebhookUrlsMovies:
-        config?.publicContentNotifications.discordWebhookUrlsMovies || '',
+        config?.publicContentNotifications?.discordWebhookUrlsMovies || '',
       discordWebhookUrlsShows:
-        config?.publicContentNotifications.discordWebhookUrlsShows || '',
-      appriseUrls: config?.publicContentNotifications.appriseUrls || '',
+        config?.publicContentNotifications?.discordWebhookUrlsShows || '',
+      appriseUrls: config?.publicContentNotifications?.appriseUrls || '',
       appriseUrlsMovies:
-        config?.publicContentNotifications.appriseUrlsMovies || '',
+        config?.publicContentNotifications?.appriseUrlsMovies || '',
       appriseUrlsShows:
-        config?.publicContentNotifications.appriseUrlsShows || '',
+        config?.publicContentNotifications?.appriseUrlsShows || '',
       _generalTested: false,
       _moviesTested: false,
       _showsTested: false,
@@ -144,18 +144,18 @@ export function usePublicContentNotifications() {
   useEffect(() => {
     if (config) {
       const formValues = {
-        enabled: config.publicContentNotifications.enabled || false,
+        enabled: config.publicContentNotifications?.enabled || false,
         discordWebhookUrls:
-          config.publicContentNotifications.discordWebhookUrls || '',
+          config.publicContentNotifications?.discordWebhookUrls || '',
         discordWebhookUrlsMovies:
-          config.publicContentNotifications.discordWebhookUrlsMovies || '',
+          config.publicContentNotifications?.discordWebhookUrlsMovies || '',
         discordWebhookUrlsShows:
-          config.publicContentNotifications.discordWebhookUrlsShows || '',
-        appriseUrls: config.publicContentNotifications.appriseUrls || '',
+          config.publicContentNotifications?.discordWebhookUrlsShows || '',
+        appriseUrls: config.publicContentNotifications?.appriseUrls || '',
         appriseUrlsMovies:
-          config.publicContentNotifications.appriseUrlsMovies || '',
+          config.publicContentNotifications?.appriseUrlsMovies || '',
         appriseUrlsShows:
-          config.publicContentNotifications.appriseUrlsShows || '',
+          config.publicContentNotifications?.appriseUrlsShows || '',
         _generalTested: false,
         _moviesTested: false,
         _showsTested: false,
@@ -513,18 +513,18 @@ export function usePublicContentNotifications() {
   const handleCancel = useCallback(() => {
     if (config) {
       const formValues = {
-        enabled: config.publicContentNotifications.enabled || false,
+        enabled: config.publicContentNotifications?.enabled || false,
         discordWebhookUrls:
-          config.publicContentNotifications.discordWebhookUrls || '',
+          config.publicContentNotifications?.discordWebhookUrls || '',
         discordWebhookUrlsMovies:
-          config.publicContentNotifications.discordWebhookUrlsMovies || '',
+          config.publicContentNotifications?.discordWebhookUrlsMovies || '',
         discordWebhookUrlsShows:
-          config.publicContentNotifications.discordWebhookUrlsShows || '',
-        appriseUrls: config.publicContentNotifications.appriseUrls || '',
+          config.publicContentNotifications?.discordWebhookUrlsShows || '',
+        appriseUrls: config.publicContentNotifications?.appriseUrls || '',
         appriseUrlsMovies:
-          config.publicContentNotifications.appriseUrlsMovies || '',
+          config.publicContentNotifications?.appriseUrlsMovies || '',
         appriseUrlsShows:
-          config.publicContentNotifications.appriseUrlsShows || '',
+          config.publicContentNotifications?.appriseUrlsShows || '',
         _generalTested: false,
         _moviesTested: false,
         _showsTested: false,
