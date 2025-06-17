@@ -53,7 +53,7 @@ export const ConfigSchema = z.object({
   // Public Content Notifications - broadcast ALL content availability to public channels/endpoints
   publicContentNotifications: z
     .object({
-      enabled: z.boolean().default(false),
+      enabled: z.boolean(),
       // Discord webhook URLs for public content announcements (comma-separated)
       discordWebhookUrls: z.string().optional(),
       // Movie-specific Discord webhook URLs (comma-separated)
@@ -67,15 +67,7 @@ export const ConfigSchema = z.object({
       // Show-specific Apprise URLs (comma-separated)
       appriseUrlsShows: z.string().optional(),
     })
-    .default({
-      enabled: false,
-      discordWebhookUrls: undefined,
-      discordWebhookUrlsMovies: undefined,
-      discordWebhookUrlsShows: undefined,
-      appriseUrls: undefined,
-      appriseUrlsMovies: undefined,
-      appriseUrlsShows: undefined,
-    }),
+    .optional(),
   // Tautulli Config
   tautulliEnabled: z.boolean().optional(),
   tautulliUrl: z.string().optional(),
@@ -118,9 +110,9 @@ export const ConfigSchema = z.object({
   // Plex Session Monitoring
   plexSessionMonitoring: z
     .object({
-      enabled: z.boolean().default(false),
-      pollingIntervalMinutes: z.number().min(1).default(15),
-      remainingEpisodes: z.number().min(1).default(2),
+      enabled: z.boolean(),
+      pollingIntervalMinutes: z.number().min(1),
+      remainingEpisodes: z.number().min(1),
       filterUsers: z
         .union([z.string(), z.array(z.string())])
         .optional()
@@ -130,11 +122,11 @@ export const ConfigSchema = z.object({
           return Array.isArray(val) ? val : [val]
         }),
       // Rolling monitoring reset settings
-      enableAutoReset: z.boolean().default(true).optional(),
-      inactivityResetDays: z.number().min(1).max(365).default(7).optional(),
-      autoResetIntervalHours: z.number().min(1).max(168).default(24).optional(),
+      enableAutoReset: z.boolean().optional(),
+      inactivityResetDays: z.number().min(1).max(365).optional(),
+      autoResetIntervalHours: z.number().min(1).max(168).optional(),
       // Progressive cleanup mode - cleans up previous seasons as user progresses
-      enableProgressiveCleanup: z.boolean().default(false).optional(),
+      enableProgressiveCleanup: z.boolean().optional(),
     })
     .optional(),
   // New User Defaults

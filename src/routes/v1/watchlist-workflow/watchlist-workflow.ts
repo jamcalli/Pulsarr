@@ -47,7 +47,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           if (request.body?.autoStart === true) {
             try {
               // Get current config
-              const currentConfig = await fastify.db.getConfig(1)
+              const currentConfig = await fastify.db.getConfig()
               if (currentConfig) {
                 // Update the _isReady flag
                 const configUpdate = {
@@ -56,14 +56,11 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                 }
 
                 // Save the updated config
-                const dbUpdated = await fastify.db.updateConfig(1, configUpdate)
+                const dbUpdated = await fastify.db.updateConfig(configUpdate)
                 if (dbUpdated) {
                   // Update the runtime config if database update was successful
-                  const savedConfig = await fastify.db.getConfig(1)
-                  if (savedConfig) {
-                    await fastify.updateConfig(savedConfig)
-                    fastify.log.info('Updated config _isReady to true')
-                  }
+                  await fastify.updateConfig(configUpdate)
+                  fastify.log.info('Updated config _isReady to true')
                 } else {
                   fastify.log.warn('Failed to update _isReady config value')
                 }

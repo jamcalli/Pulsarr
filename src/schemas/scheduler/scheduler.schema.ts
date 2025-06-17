@@ -1,17 +1,54 @@
 import { z } from 'zod'
+import { createRequire } from 'node:module'
+
+const require = createRequire(import.meta.url)
+const cronValidate = require('cron-validate').default
 
 // Zod schema for interval configuration
-export const IntervalConfigSchema = z.object({
-  days: z.number().int().nonnegative().optional(),
-  hours: z.number().int().nonnegative().optional(),
-  minutes: z.number().int().nonnegative().optional(),
-  seconds: z.number().int().nonnegative().optional(),
-  runImmediately: z.boolean().optional(),
-})
+export const IntervalConfigSchema = z
+  .object({
+    days: z.number().int().positive().max(365).optional(),
+    hours: z.number().int().positive().max(8760).optional(), // Allow up to 1 year in hours
+    minutes: z.number().int().positive().max(525600).optional(), // Allow up to 1 year in minutes
+    seconds: z.number().int().positive().max(31536000).optional(), // Allow up to 1 year in seconds
+    runImmediately: z.boolean().optional(),
+  })
+  .refine(
+    (config) =>
+      config.days !== undefined ||
+      config.hours !== undefined ||
+      config.minutes !== undefined ||
+      config.seconds !== undefined,
+    {
+      message:
+        'At least one time unit (days, hours, minutes, or seconds) must be specified',
+    },
+  )
 
 // Zod schema for cron configuration
 export const CronConfigSchema = z.object({
-  expression: z.string().min(1, 'Cron expression is required'),
+  expression: z
+    .string()
+    .min(1, 'Cron expression is required')
+    .refine(
+      (expression) => {
+        try {
+          const result = cronValidate(expression, {
+            override: {
+              useSeconds: true,
+            },
+          })
+          return result.isValid()
+        } catch (error) {
+          // If validation fails for any reason, assume invalid
+          return false
+        }
+      },
+      {
+        message:
+          'Invalid 6-field cron expression (format: second minute hour day month weekday)',
+      },
+    ),
 })
 
 // Zod schema for job configuration

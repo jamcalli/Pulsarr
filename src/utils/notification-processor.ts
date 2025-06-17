@@ -11,7 +11,177 @@ import type {
 } from '@root/types/sonarr.types.js'
 import type { TokenWatchlistItem } from '@root/types/plex.types.js'
 import type { FastifyInstance, FastifyBaseLogger } from 'fastify'
+import type { WebhookPayload } from '@root/schemas/notifications/webhook.schema.js'
+import crypto from 'node:crypto'
 import pLimit from 'p-limit'
+
+// Webhook deduplication cache
+const webhookCache = new Map<
+  string,
+  { timestamp: number; contentInfo: string }
+>()
+const WEBHOOK_CACHE_TTL_MS = 10000 // 10 seconds
+
+/**
+ * Generates a stable SHA-256 hash (truncated to 32 characters) representing the unique identity of a webhook payload for deduplication purposes.
+ *
+ * The hash is based on key content fields such as instance name, content type, content ID, and title. For Sonarr payloads, episode details are also included. Event type and upgrade status are intentionally excluded to group related events together.
+ *
+ * @returns A 32-character hexadecimal hash string identifying the webhook content.
+ */
+function createWebhookHash(payload: WebhookPayload): string {
+  const hashData: Record<string, string | number> = {
+    instanceName: payload.instanceName,
+  }
+
+  if (payload.instanceName === 'Radarr' && 'movie' in payload) {
+    hashData.contentType = 'movie'
+    hashData.contentId = payload.movie.tmdbId
+    hashData.title = payload.movie.title
+  } else if (
+    payload.instanceName === 'Sonarr' &&
+    'series' in payload &&
+    'episodes' in payload
+  ) {
+    hashData.contentType = 'show'
+    hashData.contentId = payload.series.tvdbId
+    hashData.title = payload.series.title
+
+    // Include episode details for TV shows
+    if (payload.episodes && payload.episodes.length > 0) {
+      const episode = payload.episodes[0]
+      hashData.seasonNumber = episode.seasonNumber
+      hashData.episodeNumber = episode.episodeNumber
+    }
+  }
+
+  const hashString = JSON.stringify(hashData, Object.keys(hashData).sort())
+  return crypto
+    .createHash('sha256')
+    .update(hashString)
+    .digest('hex')
+    .substring(0, 32)
+}
+
+/**
+ * Determines whether a webhook payload should be processed or skipped as a duplicate or invalid event.
+ *
+ * Validates Sonarr and Radarr webhook payloads, ensuring required fields and event types are present, and skips test, upgrade, or incomplete events. Uses a deduplication cache to prevent processing duplicate webhooks within a short time window.
+ *
+ * @returns `true` if the webhook should be processed; `false` if it is a duplicate or invalid.
+ */
+export function isWebhookProcessable(
+  payload: WebhookPayload,
+  logger?: FastifyBaseLogger,
+): boolean {
+  // Skip test webhooks
+  if ('eventType' in payload && payload.eventType === 'Test') {
+    return false
+  }
+
+  // Handle Sonarr webhooks
+  if (payload.instanceName === 'Sonarr') {
+    // Sonarr webhooks must have series, episodes, and eventType
+    if (
+      !('series' in payload) ||
+      !('episodes' in payload) ||
+      !('eventType' in payload)
+    ) {
+      logger?.debug('Skipping invalid Sonarr webhook - missing required fields')
+      return false
+    }
+
+    // Only process Download events
+    const sonarrPayload = payload as { eventType: string }
+    if (sonarrPayload.eventType !== 'Download') {
+      logger?.debug(
+        { eventType: sonarrPayload.eventType },
+        'Skipping webhook - not a Download event',
+      )
+      return false
+    }
+
+    // Skip upgrade events
+    if ('isUpgrade' in payload && payload.isUpgrade === true) {
+      logger?.debug('Skipping webhook - is an upgrade event')
+      return false
+    }
+
+    // Check for file information
+    const hasFileInfo =
+      ('episodeFile' in payload && payload.episodeFile) ||
+      ('episodeFiles' in payload && payload.episodeFiles)
+
+    if (!hasFileInfo) {
+      logger?.debug('Skipping webhook - no file information')
+      return false
+    }
+  }
+
+  // Handle Radarr webhooks
+  if (payload.instanceName === 'Radarr') {
+    // Radarr webhooks must have movie info
+    if (!('movie' in payload)) {
+      logger?.debug('Skipping invalid Radarr webhook - missing movie info')
+      return false
+    }
+  }
+
+  // Check for duplicates
+  const hash = createWebhookHash(payload)
+  const now = Date.now()
+  const existing = webhookCache.get(hash)
+
+  if (existing && now - existing.timestamp < WEBHOOK_CACHE_TTL_MS) {
+    logger?.info(
+      {
+        hash,
+        ageMs: now - existing.timestamp,
+        contentInfo: existing.contentInfo,
+      },
+      'Duplicate webhook detected within deduplication window',
+    )
+    return false
+  }
+
+  // Create content info for logging
+  let contentInfo: string = payload.instanceName
+  if (payload.instanceName === 'Radarr' && 'movie' in payload) {
+    contentInfo = `${payload.movie.title} (${payload.movie.tmdbId})`
+  } else if (
+    payload.instanceName === 'Sonarr' &&
+    'series' in payload &&
+    'episodes' in payload &&
+    payload.episodes.length > 0
+  ) {
+    const episode = payload.episodes[0]
+    contentInfo = `${payload.series.title} S${episode.seasonNumber}E${episode.episodeNumber} (${payload.series.tvdbId})`
+  }
+
+  // Store in cache
+  webhookCache.set(hash, {
+    timestamp: now,
+    contentInfo,
+  })
+
+  // Clean up expired entries (simple time-based expiry)
+  const expiredKeys: string[] = []
+  for (const [key, entry] of webhookCache.entries()) {
+    if (now - entry.timestamp > WEBHOOK_CACHE_TTL_MS) {
+      expiredKeys.push(key)
+    }
+  }
+  for (const key of expiredKeys) {
+    webhookCache.delete(key)
+  }
+
+  logger?.debug(
+    { hash, contentInfo, cacheSize: webhookCache.size },
+    'Webhook marked as processable and cached',
+  )
+
+  return true
+}
 
 /**
  * Parses a comma-separated string into a deduplicated array of valid, trimmed URLs.
@@ -230,14 +400,14 @@ export function createPublicContentNotification(
 }
 
 /**
- * Processes and dispatches notifications for media content updates to both individual users and public channels.
+ * Dispatches notifications for media content updates to users and public channels.
  *
- * Retrieves notification targets from the database, includes public content notifications if enabled, and sends notifications via Discord, Apprise, and Tautulli as configured. Supports sequential or concurrent processing with concurrency limits.
+ * Retrieves notification targets from the database, determines matching watchlist items, and sends notifications via configured services (Discord, Apprise, Tautulli). Supports both sequential and concurrent processing with a concurrency limit.
  *
- * @param mediaInfo - Details of the media content to notify about.
- * @param isBulkRelease - Indicates if the release is a bulk release (e.g., a full season).
+ * @param mediaInfo - Information about the media content being updated.
+ * @param isBulkRelease - Whether the update is a bulk release (such as a full season).
  * @param options - Optional settings for logging and sequential processing.
- * @returns An object containing the count of matched watchlist items.
+ * @returns An object with the count of matched watchlist items.
  */
 export async function processContentNotifications(
   fastify: FastifyInstance,
@@ -253,22 +423,11 @@ export async function processContentNotifications(
     sequential?: boolean // for webhook.ts which uses for...of instead of Promise.all
   },
 ): Promise<{ matchedCount: number }> {
-  // Get initial notification results
+  // Get notification results (includes both individual user notifications and public notifications)
   const notificationResults = await fastify.db.processNotifications(
     mediaInfo,
     isBulkRelease,
   )
-
-  // If public content is enabled, also get public notification data
-  if (fastify.config.publicContentNotifications.enabled) {
-    const publicNotificationResults = await fastify.db.processNotifications(
-      mediaInfo,
-      isBulkRelease,
-      true, // byGuid = true for public content
-    )
-    // Add public notifications to the existing user notifications
-    notificationResults.push(...publicNotificationResults)
-  }
 
   // Early exit if there are no notifications to process
   if (notificationResults.length === 0) {
