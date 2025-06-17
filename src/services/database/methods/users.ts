@@ -22,9 +22,10 @@ interface UserRow {
 }
 
 /**
- * Maps a database row to a User object
- * @param row - The database row to map
- * @returns Mapped User object
+ * Converts a UserRow database record into a User object with proper boolean field mapping.
+ *
+ * @param row - The UserRow database record to convert
+ * @returns The corresponding User object
  */
 function mapRowToUser(row: UserRow): User {
   return {
@@ -45,10 +46,11 @@ function mapRowToUser(row: UserRow): User {
 }
 
 /**
- * Creates a new user in the database
+ * Inserts a new user into the database and returns the created user with assigned ID and timestamps.
  *
- * @param userData - User data excluding id and timestamps
- * @returns Promise resolving to the created user with ID and timestamps
+ * @param userData - User information to be stored, excluding ID and timestamp fields.
+ * @returns The newly created user object, including its database ID and creation/update timestamps.
+ * @throws If the user ID cannot be extracted after insertion.
  */
 export async function createUser(
   this: DatabaseService,
@@ -80,10 +82,10 @@ export async function createUser(
 }
 
 /**
- * Retrieves a user by ID or name
+ * Retrieves a user by numeric ID or username.
  *
- * @param identifier - User ID (number) or username (string)
- * @returns Promise resolving to the user if found, undefined otherwise
+ * @param identifier - The user ID or username to search for.
+ * @returns The user object if found, otherwise undefined.
  */
 export async function getUser(
   this: DatabaseService,
@@ -103,11 +105,11 @@ export async function getUser(
 }
 
 /**
- * Updates a user's information
+ * Updates the specified user's information with the provided data.
  *
- * @param id - ID of the user to update
- * @param data - Partial user data to update
- * @returns Promise resolving to true if the user was updated, false otherwise
+ * @param id - The ID of the user to update
+ * @param data - The fields to update for the user
+ * @returns True if at least one user was updated; false if no matching user was found
  */
 export async function updateUser(
   this: DatabaseService,
@@ -124,11 +126,13 @@ export async function updateUser(
 }
 
 /**
- * Bulk updates multiple users with the same set of changes
+ * Updates multiple users in batches with the specified changes.
  *
- * @param userIds - Array of user IDs to update
- * @param data - Partial user data to apply to all specified users
- * @returns Promise resolving to object with count of updated users and array of failed IDs
+ * Processes user IDs in batches within a transaction, applying the same partial update to each user. Returns the total number of users updated and an array of IDs that could not be updated (precise failed IDs are only available when using PostgreSQL).
+ *
+ * @param userIds - The IDs of users to update
+ * @param data - The partial user data to apply to each user
+ * @returns An object containing the count of updated users and an array of failed user IDs
  */
 export async function bulkUpdateUsers(
   this: DatabaseService,
@@ -206,9 +210,9 @@ export async function bulkUpdateUsers(
 }
 
 /**
- * Retrieves all users in the database
+ * Retrieves all users from the database, ordered by name.
  *
- * @returns Promise resolving to an array of all users
+ * @returns An array of all users.
  */
 export async function getAllUsers(this: DatabaseService): Promise<User[]> {
   const rows = await this.knex('users').select('*').orderBy('name', 'asc')
@@ -217,9 +221,9 @@ export async function getAllUsers(this: DatabaseService): Promise<User[]> {
 }
 
 /**
- * Retrieves all users with their watchlist item counts
+ * Retrieves all users along with the count of their associated watchlist items.
  *
- * @returns Promise resolving to array of users with watchlist count property
+ * @returns An array of user objects, each extended with a `watchlist_count` property indicating the number of watchlist items linked to the user.
  */
 export async function getUsersWithWatchlistCount(
   this: DatabaseService,
@@ -240,9 +244,9 @@ export async function getUsersWithWatchlistCount(
 }
 
 /**
- * Retrieves the primary user from the database
+ * Retrieves the user marked as the primary token user.
  *
- * @returns Promise resolving to the primary user if found, undefined otherwise
+ * @returns The primary user if found, otherwise undefined.
  */
 export async function getPrimaryUser(
   this: DatabaseService,
@@ -267,10 +271,10 @@ export async function getPrimaryUser(
 }
 
 /**
- * Creates a new admin user in the database
+ * Inserts a new admin user into the database.
  *
- * @param userData - Admin user data including email, username, password, and role
- * @returns Promise resolving to true if created successfully
+ * @param userData - Object containing the email, username, password, and role for the new admin user.
+ * @returns True if the admin user was created successfully; otherwise, false.
  */
 export async function createAdminUser(
   this: DatabaseService,
@@ -295,10 +299,10 @@ export async function createAdminUser(
 }
 
 /**
- * Retrieves an admin user by email
+ * Retrieves an admin user matching the specified email address.
  *
- * @param email - Email address of the admin user
- * @returns Promise resolving to the admin user if found, undefined otherwise
+ * @param email - The email address to search for.
+ * @returns The admin user if found, otherwise undefined.
  */
 export async function getAdminUser(
   this: DatabaseService,
@@ -311,10 +315,10 @@ export async function getAdminUser(
 }
 
 /**
- * Retrieves an admin user by username
+ * Retrieves an admin user by their username.
  *
- * @param username - Username of the admin user
- * @returns Promise resolving to the admin user if found, undefined otherwise
+ * @param username - The username to search for.
+ * @returns The admin user if found, otherwise undefined.
  */
 export async function getAdminUserByUsername(
   this: DatabaseService,
@@ -327,9 +331,9 @@ export async function getAdminUserByUsername(
 }
 
 /**
- * Checks if any admin users exist in the database
+ * Determines whether any admin users are present in the database.
  *
- * @returns Promise resolving to true if admin users exist, false otherwise
+ * @returns True if at least one admin user exists; otherwise, false.
  */
 export async function hasAdminUsers(this: DatabaseService): Promise<boolean> {
   const count = await this.knex('admin_users').count('* as count').first()
@@ -338,11 +342,11 @@ export async function hasAdminUsers(this: DatabaseService): Promise<boolean> {
 }
 
 /**
- * Updates an admin user's password
+ * Updates the password of an admin user identified by email.
  *
- * @param email - Email address of the admin user
- * @param hashedPassword - New hashed password
- * @returns Promise resolving to true if password was updated, false otherwise
+ * @param email - The email address of the admin user
+ * @param hashedPassword - The new hashed password to set
+ * @returns True if the password was successfully updated, false otherwise
  */
 export async function updateAdminPassword(
   this: DatabaseService,
@@ -362,9 +366,9 @@ export async function updateAdminPassword(
 }
 
 /**
- * Checks if any users have sync disabled
+ * Determines whether any users have synchronization disabled.
  *
- * @returns Promise resolving to true if any users have sync disabled, false otherwise
+ * Returns `true` if at least one user has `can_sync` set to false, or if an error occurs during the check; otherwise, returns `false`.
  */
 export async function hasUsersWithSyncDisabled(
   this: DatabaseService,
@@ -383,13 +387,12 @@ export async function hasUsersWithSyncDisabled(
 }
 
 /**
- * Sets a user as the primary token user, ensuring only one user has this flag
+ * Sets the specified user as the primary token user, ensuring only one user has this status.
  *
- * This method clears the primary flag from all users before setting it on the specified user,
- * which ensures database consistency even if the unique constraint is not present.
+ * Clears the primary flag from all users before assigning it to the given user to maintain consistency.
  *
- * @param userId - ID of the user to set as primary
- * @returns Promise resolving to true if successful
+ * @param userId - The ID of the user to designate as primary
+ * @returns True if the operation succeeds, false otherwise
  */
 export async function setPrimaryUser(
   this: DatabaseService,

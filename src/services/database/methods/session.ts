@@ -2,10 +2,10 @@ import type { DatabaseService } from '@services/database.service.js'
 import type { RollingMonitoredShow } from '@root/types/plex-session.types.js'
 
 /**
- * Creates a new rolling monitored show entry
+ * Creates a new rolling monitored show record with initial progress and timestamps.
  *
- * @param data - The rolling monitored show data
- * @returns Promise resolving to the created entry ID
+ * @param data - Object containing show identifiers, title, monitoring type, monitored season, and optional user information.
+ * @returns Promise resolving to the ID of the newly created record.
  */
 export async function createRollingMonitoredShow(
   this: DatabaseService,
@@ -47,9 +47,9 @@ export async function createRollingMonitoredShow(
 }
 
 /**
- * Gets all rolling monitored shows
+ * Retrieves all rolling monitored shows ordered by show title.
  *
- * @returns Promise resolving to array of rolling monitored shows
+ * @returns An array of rolling monitored show records, or an empty array if an error occurs.
  */
 export async function getRollingMonitoredShows(
   this: DatabaseService,
@@ -66,10 +66,10 @@ export async function getRollingMonitoredShows(
 }
 
 /**
- * Gets a rolling monitored show by ID
+ * Retrieves a rolling monitored show record by its unique ID.
  *
- * @param id - The rolling monitored show ID
- * @returns Promise resolving to the rolling monitored show or null
+ * @param id - The unique identifier of the rolling monitored show
+ * @returns The matching rolling monitored show record, or null if not found or on error
  */
 export async function getRollingMonitoredShowById(
   this: DatabaseService,
@@ -88,12 +88,14 @@ export async function getRollingMonitoredShowById(
 }
 
 /**
- * Gets a rolling monitored show by TVDB ID or title for a specific user
+ * Retrieves a rolling monitored show by TVDB ID or show title, optionally filtered by Plex user ID.
  *
- * @param tvdbId - The TVDB ID
- * @param title - The show title
- * @param plexUserId - The Plex user ID for per-user tracking
- * @returns Promise resolving to the rolling monitored show or null
+ * If a Plex user ID is provided, returns the per-user entry; otherwise, returns the global (legacy) entry.
+ *
+ * @param tvdbId - The TVDB ID of the show (optional)
+ * @param title - The title of the show (optional)
+ * @param plexUserId - The Plex user ID for per-user tracking (optional)
+ * @returns The matching rolling monitored show, or null if not found or on error
  */
 export async function getRollingMonitoredShow(
   this: DatabaseService,
@@ -128,12 +130,12 @@ export async function getRollingMonitoredShow(
 }
 
 /**
- * Updates rolling show progress
+ * Updates the last watched season and episode for a rolling monitored show.
  *
- * @param id - The rolling monitored show ID
- * @param season - The last watched season
- * @param episode - The last watched episode
- * @returns Promise resolving to boolean indicating success
+ * @param id - The unique identifier of the rolling monitored show
+ * @param season - The season number to set as last watched
+ * @param episode - The episode number to set as last watched
+ * @returns True if the update was successful, false otherwise
  */
 export async function updateRollingShowProgress(
   this: DatabaseService,
@@ -160,11 +162,11 @@ export async function updateRollingShowProgress(
 }
 
 /**
- * Updates the current monitored season for a rolling show
+ * Updates the current monitored season for a rolling monitored show.
  *
- * @param id - The rolling monitored show ID
- * @param season - The new current monitored season
- * @returns Promise resolving to boolean indicating success
+ * @param id - The unique identifier of the rolling monitored show
+ * @param season - The season number to set as the current monitored season
+ * @returns True if the update was successful; otherwise, false
  */
 export async function updateRollingShowMonitoredSeason(
   this: DatabaseService,
@@ -188,10 +190,10 @@ export async function updateRollingShowMonitoredSeason(
 }
 
 /**
- * Deletes a rolling monitored show
+ * Deletes a rolling monitored show by its ID.
  *
- * @param id - The rolling monitored show ID
- * @returns Promise resolving to boolean indicating success
+ * @param id - The unique identifier of the rolling monitored show to delete
+ * @returns True if a record was deleted; false otherwise
  */
 export async function deleteRollingMonitoredShow(
   this: DatabaseService,
@@ -210,11 +212,12 @@ export async function deleteRollingMonitoredShow(
 }
 
 /**
- * Deletes all rolling monitored show entries for a given show
- * (all users watching the same sonarr_series_id + sonarr_instance_id)
+ * Deletes all rolling monitored show entries for a specific show across all users.
  *
- * @param id - The ID of any rolling monitored show entry for the show
- * @returns Promise resolving to number of deleted entries
+ * Removes every entry matching the same `sonarr_series_id` and `sonarr_instance_id` as the provided show ID within a transaction. Returns the number of deleted entries, or 0 if the show is not found or an error occurs.
+ *
+ * @param id - The ID of any rolling monitored show entry for the target show
+ * @returns The number of deleted entries
  */
 export async function deleteAllRollingMonitoredShowEntries(
   this: DatabaseService,
@@ -252,12 +255,10 @@ export async function deleteAllRollingMonitoredShowEntries(
 }
 
 /**
- * Resets a rolling monitored show to its original state:
- * - Removes all user entries
- * - Resets master record to season 1
+ * Resets a rolling monitored show to its original state by deleting all user-specific entries and resetting the master record to season 1 with cleared progress.
  *
  * @param id - The ID of any rolling monitored show entry for the show
- * @returns Promise resolving to number of user entries deleted
+ * @returns The number of user entries deleted
  */
 export async function resetRollingMonitoredShowToOriginal(
   this: DatabaseService,
@@ -312,10 +313,10 @@ export async function resetRollingMonitoredShowToOriginal(
 }
 
 /**
- * Gets rolling monitored shows that haven't been updated recently
+ * Retrieves rolling monitored shows that have not been updated within the specified number of days.
  *
- * @param inactivityDays - Number of days since last update to consider inactive
- * @returns Promise resolving to array of inactive rolling monitored shows
+ * @param inactivityDays - The minimum number of days since the last update for a show to be considered inactive.
+ * @returns An array of rolling monitored shows that are inactive.
  */
 export async function getInactiveRollingMonitoredShows(
   this: DatabaseService,

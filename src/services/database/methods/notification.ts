@@ -18,11 +18,13 @@ import {
 } from '@root/utils/notification-processor.js'
 
 /**
- * Processes notifications for media items
+ * Processes and creates notifications for users and public channels based on a media item's release.
  *
- * @param mediaInfo - Information about the media item
- * @param isBulkRelease - Whether this is a bulk release (e.g., full season)
- * @returns Promise resolving to array of notification results
+ * For each relevant watchlist item, determines user notification preferences and media status, then creates notification records and updates watchlist status within a transaction. Also handles creation of public content notifications if enabled and not previously sent.
+ *
+ * @param mediaInfo - Details about the media item, including type, GUID, title, and optional episode data
+ * @param isBulkRelease - Indicates if the release is a bulk release (such as a full season)
+ * @returns An array of notification results containing user and notification details
  */
 export async function processNotifications(
   this: DatabaseService,
@@ -348,11 +350,13 @@ export async function processNotifications(
 }
 
 /**
- * Creates a notification record in the database
+ * Inserts a notification record into the database, preventing duplicates based on unique constraints.
  *
- * @param notification - Notification data to create
- * @param trx - Optional transaction to use for the operation
- * @returns Promise resolving to the ID of the created notification, or null if duplicate was prevented
+ * If a notification with the same user, watchlist item, type, season, episode, and status already exists, the insertion is ignored.
+ *
+ * @param notification - The notification details to insert
+ * @param trx - Optional database transaction to use for the operation
+ * @returns The ID of the created notification, or null if a duplicate prevented insertion
  */
 export async function createNotificationRecord(
   this: DatabaseService,
@@ -415,12 +419,12 @@ export async function createNotificationRecord(
 }
 
 /**
- * Checks if a webhook notification exists for a particular item and user
+ * Retrieves an existing webhook notification for a user, notification type, and content title.
  *
- * @param userId - ID of the user who would receive the notification
- * @param type - Type of notification to check for
- * @param title - Title of the content item
- * @returns Promise resolving to the notification if found, undefined otherwise
+ * @param userId - The user's ID
+ * @param type - The notification type
+ * @param title - The content title
+ * @returns The notification ID if a matching webhook notification exists, otherwise undefined
  */
 export async function getExistingWebhookNotification(
   this: DatabaseService,
@@ -440,10 +444,12 @@ export async function getExistingWebhookNotification(
 }
 
 /**
- * Resets notification status for content items
+ * Resets the status of active notifications to "reset" based on specified filtering criteria.
  *
- * @param options - Options for filtering which notifications to reset
- * @returns Promise resolving to the number of notifications reset
+ * Updates notifications matching the provided options, such as creation date, watchlist item, user, content type, season, or episode.
+ *
+ * @param options - Criteria for selecting which notifications to reset
+ * @returns The number of notifications that were updated
  */
 export async function resetContentNotifications(
   this: DatabaseService,
@@ -493,10 +499,12 @@ export async function resetContentNotifications(
 }
 
 /**
- * Retrieves comprehensive notification statistics
+ * Gathers notification statistics for the past specified number of days.
  *
- * @param days - Number of days to look back (default: 30)
- * @returns Promise resolving to object with notification statistics
+ * Returns totals for notifications, counts grouped by notification type, notification channel, and user.
+ *
+ * @param days - Number of days to include in the statistics (default: 30)
+ * @returns An object containing total notification count, counts by type, by channel, and by user
  */
 export async function getNotificationStats(
   this: DatabaseService,
@@ -591,10 +599,12 @@ export async function getNotificationStats(
 }
 
 /**
- * Creates a pending webhook notification
+ * Inserts a new pending webhook notification into the database.
  *
- * @param webhook - Pending webhook data to create
- * @returns Promise resolving to the created webhook object
+ * Serializes the payload, sets the received timestamp, and returns the created webhook object with assigned ID and timestamps.
+ *
+ * @param webhook - The pending webhook data to be stored
+ * @returns The created pending webhook object, including its assigned ID and timestamps
  */
 export async function createPendingWebhook(
   this: DatabaseService,
@@ -621,10 +631,10 @@ export async function createPendingWebhook(
 }
 
 /**
- * Retrieves pending webhook notifications
+ * Retrieves active pending webhooks that have not expired, ordered by received time.
  *
- * @param limit - Maximum number of webhooks to retrieve
- * @returns Promise resolving to array of pending webhooks
+ * @param limit - The maximum number of webhooks to return
+ * @returns An array of pending webhook objects with parsed payloads and timestamp fields as Date objects
  */
 export async function getPendingWebhooks(
   this: DatabaseService,
@@ -644,10 +654,10 @@ export async function getPendingWebhooks(
 }
 
 /**
- * Deletes a pending webhook notification
+ * Deletes a pending webhook notification by its ID.
  *
- * @param id - ID of the webhook to delete
- * @returns Promise resolving to true if deleted, false otherwise
+ * @param id - The unique identifier of the pending webhook to delete.
+ * @returns True if a webhook was deleted; false if no matching record was found.
  */
 export async function deletePendingWebhook(
   this: DatabaseService,
@@ -658,9 +668,9 @@ export async function deletePendingWebhook(
 }
 
 /**
- * Cleans up expired pending webhook notifications
+ * Deletes all pending webhooks that have expired.
  *
- * @returns Promise resolving to number of webhooks cleaned up
+ * @returns The number of expired pending webhooks deleted
  */
 export async function cleanupExpiredWebhooks(
   this: DatabaseService,
@@ -673,11 +683,11 @@ export async function cleanupExpiredWebhooks(
 }
 
 /**
- * Retrieves pending webhooks by GUID and media type
+ * Retrieves all non-expired pending webhooks matching the specified GUID and media type.
  *
- * @param guid - GUID to search for
- * @param mediaType - Type of media ('movie' or 'show')
- * @returns Promise resolving to array of matching webhooks
+ * @param guid - The unique identifier of the media item.
+ * @param mediaType - The type of media, either 'movie' or 'show'.
+ * @returns An array of pending webhook objects with parsed payloads and converted timestamps.
  */
 export async function getWebhooksByGuid(
   this: DatabaseService,

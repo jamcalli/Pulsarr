@@ -5,10 +5,10 @@ import type {
 } from '@root/types/pending-webhooks.types.js'
 
 /**
- * Creates a new pending webhook entry
+ * Inserts a new pending webhook record into the database and returns the created entry with its assigned ID.
  *
- * @param webhook - The webhook data to create
- * @returns Promise resolving to the created webhook with its ID
+ * @param webhook - The webhook data to be stored, including expiration and payload information.
+ * @returns The newly created pending webhook, including its generated ID and timestamp fields as Date objects.
  */
 export async function createPendingWebhook(
   this: DatabaseService,
@@ -40,10 +40,12 @@ export async function createPendingWebhook(
 }
 
 /**
- * Gets all pending webhooks that haven't expired
+ * Retrieves all pending webhooks that have not expired, up to a specified limit.
  *
- * @param limit - Optional limit of results (default: 50)
- * @returns Promise resolving to array of pending webhooks
+ * Safely parses each webhook's payload and converts timestamp fields to Date objects. Returns an empty array if an error occurs.
+ *
+ * @param limit - Maximum number of webhooks to retrieve (default: 50)
+ * @returns An array of pending webhook objects
  */
 export async function getPendingWebhooks(
   this: DatabaseService,
@@ -82,10 +84,10 @@ export async function getPendingWebhooks(
 }
 
 /**
- * Deletes a processed webhook
+ * Deletes a pending webhook entry by its ID.
  *
- * @param id - The webhook ID to delete
- * @returns Promise resolving to boolean indicating success
+ * @param id - The ID of the pending webhook to delete
+ * @returns True if a webhook was deleted; false otherwise
  */
 export async function deletePendingWebhook(
   this: DatabaseService,
@@ -102,9 +104,9 @@ export async function deletePendingWebhook(
 }
 
 /**
- * Cleans up expired webhooks
+ * Deletes all expired pending webhooks from the database.
  *
- * @returns Promise resolving to number of deleted webhooks
+ * @returns The number of webhook records that were deleted.
  */
 export async function cleanupExpiredWebhooks(
   this: DatabaseService,
@@ -122,11 +124,13 @@ export async function cleanupExpiredWebhooks(
 }
 
 /**
- * Gets webhooks by GUID and media type
+ * Retrieves non-expired pending webhooks matching the specified GUID and media type.
  *
- * @param guid - The GUID to search for
- * @param mediaType - The media type (movie or show)
- * @returns Promise resolving to array of pending webhooks
+ * Safely parses each webhook's payload and converts timestamp fields to Date objects. Returns an empty array if an error occurs.
+ *
+ * @param guid - The unique identifier to filter webhooks
+ * @param mediaType - The media type to filter by ('movie' or 'show')
+ * @returns An array of matching pending webhooks
  */
 export async function getWebhooksByGuid(
   this: DatabaseService,

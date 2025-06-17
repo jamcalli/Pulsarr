@@ -23,8 +23,11 @@ const webhookCache = new Map<
 const WEBHOOK_CACHE_TTL_MS = 10000 // 10 seconds
 
 /**
- * Creates a hash for webhook deduplication based on content identity
- * Excludes event type and upgrade status to catch all related events
+ * Generates a stable SHA-256 hash (truncated to 32 characters) representing the unique identity of a webhook payload for deduplication purposes.
+ *
+ * The hash is based on key content fields such as instance name, content type, content ID, and title. For Sonarr payloads, episode details are also included. Event type and upgrade status are intentionally excluded to group related events together.
+ *
+ * @returns A 32-character hexadecimal hash string identifying the webhook content.
  */
 function createWebhookHash(payload: WebhookPayload): string {
   const hashData: Record<string, string | number> = {
@@ -61,8 +64,11 @@ function createWebhookHash(payload: WebhookPayload): string {
 }
 
 /**
- * Checks if a webhook should be processed or if it's a duplicate
- * Returns true if webhook should be processed, false if it's a duplicate
+ * Determines whether a webhook payload should be processed or skipped as a duplicate or invalid event.
+ *
+ * Validates Sonarr and Radarr webhook payloads, ensuring required fields and event types are present, and skips test, upgrade, or incomplete events. Uses a deduplication cache to prevent processing duplicate webhooks within a short time window.
+ *
+ * @returns `true` if the webhook should be processed; `false` if it is a duplicate or invalid.
  */
 export function isWebhookProcessable(
   payload: WebhookPayload,
@@ -394,14 +400,14 @@ export function createPublicContentNotification(
 }
 
 /**
- * Processes and dispatches notifications for media content updates to both individual users and public channels.
+ * Dispatches notifications for media content updates to users and public channels.
  *
- * Retrieves notification targets from the database, includes public content notifications if enabled, and sends notifications via Discord, Apprise, and Tautulli as configured. Supports sequential or concurrent processing with concurrency limits.
+ * Retrieves notification targets from the database, determines matching watchlist items, and sends notifications via configured services (Discord, Apprise, Tautulli). Supports both sequential and concurrent processing with a concurrency limit.
  *
- * @param mediaInfo - Details of the media content to notify about.
- * @param isBulkRelease - Indicates if the release is a bulk release (e.g., a full season).
+ * @param mediaInfo - Information about the media content being updated.
+ * @param isBulkRelease - Whether the update is a bulk release (such as a full season).
  * @param options - Optional settings for logging and sequential processing.
- * @returns An object containing the count of matched watchlist items.
+ * @returns An object with the count of matched watchlist items.
  */
 export async function processContentNotifications(
   fastify: FastifyInstance,

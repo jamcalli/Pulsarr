@@ -1,10 +1,12 @@
 import type { DatabaseService } from '@services/database.service.js'
 
 /**
- * Retrieves the top genres across all watchlist items
+ * Returns the most frequently occurring genres across all watchlist items.
+ *
+ * Processes genres in batches to efficiently count and normalize genre occurrences, then returns the top genres by frequency up to the specified limit.
  *
  * @param limit - Maximum number of genres to return (default: 10)
- * @returns Promise resolving to array of genres with their occurrence counts
+ * @returns Array of genres with their occurrence counts, sorted by count descending
  */
 export async function getTopGenres(
   this: DatabaseService,
@@ -85,10 +87,10 @@ export async function getTopGenres(
 }
 
 /**
- * Retrieves the most watchlisted shows
+ * Retrieves the most frequently watchlisted shows, returning their titles, watchlist counts, and thumbnails.
  *
  * @param limit - Maximum number of shows to return (default: 10)
- * @returns Promise resolving to array of shows with title, count, and thumbnail
+ * @returns An array of objects containing the show title, count of watchlist entries, and thumbnail (if available)
  */
 export async function getMostWatchlistedShows(
   this: DatabaseService,
@@ -113,10 +115,12 @@ export async function getMostWatchlistedShows(
 }
 
 /**
- * Retrieves the most watchlisted movies
+ * Retrieves the most frequently watchlisted movies.
+ *
+ * Returns an array of movies with their title, watchlist count, and thumbnail, limited to the specified number of top entries.
  *
  * @param limit - Maximum number of movies to return (default: 10)
- * @returns Promise resolving to array of movies with title, count, and thumbnail
+ * @returns Array of objects containing movie title, count, and thumbnail (nullable)
  */
 export async function getMostWatchlistedMovies(
   this: DatabaseService,
@@ -141,10 +145,10 @@ export async function getMostWatchlistedMovies(
 }
 
 /**
- * Retrieves users with the most watchlist items
+ * Returns the users with the highest number of watchlist items.
  *
- * @param limit - Maximum number of users to return (default: 10)
- * @returns Promise resolving to array of users with name and item count
+ * @param limit - Maximum number of users to include in the result (default: 10)
+ * @returns An array of user names and their corresponding watchlist item counts, sorted by count descending
  */
 export async function getUsersWithMostWatchlistItems(
   this: DatabaseService,
@@ -165,9 +169,11 @@ export async function getUsersWithMostWatchlistItems(
 }
 
 /**
- * Retrieves the distribution of watchlist items by status
+ * Retrieves the distribution of watchlist items by their latest status.
  *
- * @returns Promise resolving to array of statuses with their counts
+ * Combines the most recent status from status history with items lacking any status history to provide a complete count per status.
+ *
+ * @returns Promise resolving to an array of objects, each containing a status and its corresponding count, sorted by count descending.
  */
 export async function getWatchlistStatusDistribution(
   this: DatabaseService,
@@ -231,9 +237,9 @@ export async function getWatchlistStatusDistribution(
 }
 
 /**
- * Retrieves the distribution of watchlist items by content type
+ * Returns the distribution of watchlist items grouped by normalized content type.
  *
- * @returns Promise resolving to array of content types with their counts
+ * @returns An array of objects, each containing a content type and its corresponding item count.
  */
 export async function getContentTypeDistribution(
   this: DatabaseService,
@@ -260,10 +266,10 @@ export async function getContentTypeDistribution(
 }
 
 /**
- * Retrieves recent activity statistics
+ * Retrieves counts of new watchlist items, status changes, and notifications sent within the past specified number of days.
  *
- * @param days - Number of days to look back (default: 30)
- * @returns Promise resolving to object with activity statistics
+ * @param days - Number of days to look back for activity statistics (default: 30)
+ * @returns An object containing counts for new watchlist items, status changes, and notifications sent
  */
 export async function getRecentActivityStats(
   this: DatabaseService,
@@ -307,9 +313,9 @@ export async function getRecentActivityStats(
 }
 
 /**
- * Retrieves activity statistics by instance
+ * Retrieves activity statistics for all Sonarr and Radarr instances, including the number of watchlist items associated with each instance.
  *
- * @returns Promise resolving to array of instance activity statistics
+ * @returns An array of objects containing instance ID, type ('sonarr' or 'radarr'), name, and item count, sorted by item count in descending order.
  */
 export async function getInstanceActivityStats(this: DatabaseService): Promise<
   {
@@ -371,9 +377,11 @@ export async function getInstanceActivityStats(this: DatabaseService): Promise<
 }
 
 /**
- * Retrieves metrics on average time from "grabbed" to "notified" status
+ * Calculates average, minimum, and maximum time in days from "grabbed" to "notified" status for each content type.
  *
- * @returns Promise resolving to array of average time metrics by content type
+ * Only includes content types with at least 5 valid samples and filters out unreasonable time differences (greater than 365 days or negative).
+ *
+ * @returns An array of objects containing content type, average days, minimum days, maximum days, and sample count.
  */
 export async function getAverageTimeFromGrabbedToNotified(
   this: DatabaseService,
@@ -481,9 +489,11 @@ export async function getAverageTimeFromGrabbedToNotified(
 }
 
 /**
- * Retrieves detailed metrics on all status transitions
+ * Retrieves detailed metrics for all direct status transitions between watchlist item statuses.
  *
- * @returns Promise resolving to array of detailed status transition metrics
+ * For each unique (from_status, to_status, content_type) combination, calculates the average, minimum, and maximum number of days between transitions, after applying robust outlier filtering. Only transitions with at least three valid samples are included.
+ *
+ * @returns An array of objects containing transition details and time statistics, sorted by sample count descending.
  */
 export async function getDetailedStatusTransitionMetrics(
   this: DatabaseService,
@@ -671,9 +681,11 @@ export async function getDetailedStatusTransitionMetrics(
 }
 
 /**
- * Retrieves metrics on the average time from addition to availability
+ * Calculates average, minimum, and maximum time in days from when a watchlist item is added to when it becomes available, grouped by content type.
  *
- * @returns Promise resolving to array of time-to-availability metrics by content type
+ * Only includes movies that have reached 'available' status and shows that have reached 'ended' status. Returns an array of metrics for each content type.
+ *
+ * @returns Array of objects containing content type, average days, minimum days, maximum days, and count of items.
  */
 export async function getAverageTimeToAvailability(
   this: DatabaseService,
@@ -766,9 +778,11 @@ export async function getAverageTimeToAvailability(
 }
 
 /**
- * Retrieves data for visualizing status flow (Sankey diagram)
+ * Retrieves aggregated data on direct status transitions between watchlist item statuses for visualization purposes.
  *
- * @returns Promise resolving to array of status flow data points
+ * Returns an array of objects representing each unique status transition (from_status to to_status) per content type, including the count of transitions and the average number of days between them. Suitable for generating status flow diagrams such as Sankey charts.
+ *
+ * @returns Array of status transition data points, each containing from_status, to_status, content_type, count, and avg_days.
  */
 export async function getStatusFlowData(this: DatabaseService): Promise<
   {
