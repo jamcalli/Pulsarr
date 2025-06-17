@@ -93,8 +93,7 @@
                           "type": "object",
                           "properties": {
                             "enabled": {
-                              "type": "boolean",
-                              "default": false
+                              "type": "boolean"
                             },
                             "discordWebhookUrls": {
                               "type": "string"
@@ -115,10 +114,8 @@
                               "type": "string"
                             }
                           },
-                          "additionalProperties": false,
-                          "default": {
-                            "enabled": false
-                          }
+                          "required": ["enabled"],
+                          "additionalProperties": false
                         },
                         "tautulliEnabled": {
                           "type": "boolean"
@@ -228,18 +225,15 @@
                           "type": "object",
                           "properties": {
                             "enabled": {
-                              "type": "boolean",
-                              "default": false
+                              "type": "boolean"
                             },
                             "pollingIntervalMinutes": {
                               "type": "number",
-                              "minimum": 1,
-                              "default": 15
+                              "minimum": 1
                             },
                             "remainingEpisodes": {
                               "type": "number",
-                              "minimum": 1,
-                              "default": 2
+                              "minimum": 1
                             },
                             "filterUsers": {
                               "anyOf": [
@@ -255,26 +249,27 @@
                               ]
                             },
                             "enableAutoReset": {
-                              "type": "boolean",
-                              "default": true
+                              "type": "boolean"
                             },
                             "inactivityResetDays": {
                               "type": "number",
                               "minimum": 1,
-                              "maximum": 365,
-                              "default": 7
+                              "maximum": 365
                             },
                             "autoResetIntervalHours": {
                               "type": "number",
                               "minimum": 1,
-                              "maximum": 168,
-                              "default": 24
+                              "maximum": 168
                             },
                             "enableProgressiveCleanup": {
-                              "type": "boolean",
-                              "default": false
+                              "type": "boolean"
                             }
                           },
+                          "required": [
+                            "enabled",
+                            "pollingIntervalMinutes",
+                            "remainingEpisodes"
+                          ],
                           "additionalProperties": false
                         },
                         "newUserDefaultCanSync": {
@@ -418,8 +413,7 @@
                     "type": "object",
                     "properties": {
                       "enabled": {
-                        "type": "boolean",
-                        "default": false
+                        "type": "boolean"
                       },
                       "discordWebhookUrls": {
                         "type": "string"
@@ -440,10 +434,8 @@
                         "type": "string"
                       }
                     },
-                    "additionalProperties": false,
-                    "default": {
-                      "enabled": false
-                    }
+                    "required": ["enabled"],
+                    "additionalProperties": false
                   },
                   "tautulliEnabled": {
                     "type": "boolean"
@@ -553,18 +545,15 @@
                     "type": "object",
                     "properties": {
                       "enabled": {
-                        "type": "boolean",
-                        "default": false
+                        "type": "boolean"
                       },
                       "pollingIntervalMinutes": {
                         "type": "number",
-                        "minimum": 1,
-                        "default": 15
+                        "minimum": 1
                       },
                       "remainingEpisodes": {
                         "type": "number",
-                        "minimum": 1,
-                        "default": 2
+                        "minimum": 1
                       },
                       "filterUsers": {
                         "anyOf": [
@@ -580,26 +569,27 @@
                         ]
                       },
                       "enableAutoReset": {
-                        "type": "boolean",
-                        "default": true
+                        "type": "boolean"
                       },
                       "inactivityResetDays": {
                         "type": "number",
                         "minimum": 1,
-                        "maximum": 365,
-                        "default": 7
+                        "maximum": 365
                       },
                       "autoResetIntervalHours": {
                         "type": "number",
                         "minimum": 1,
-                        "maximum": 168,
-                        "default": 24
+                        "maximum": 168
                       },
                       "enableProgressiveCleanup": {
-                        "type": "boolean",
-                        "default": false
+                        "type": "boolean"
                       }
                     },
+                    "required": [
+                      "enabled",
+                      "pollingIntervalMinutes",
+                      "remainingEpisodes"
+                    ],
                     "additionalProperties": false
                   },
                   "newUserDefaultCanSync": {
@@ -689,8 +679,7 @@
                           "type": "object",
                           "properties": {
                             "enabled": {
-                              "type": "boolean",
-                              "default": false
+                              "type": "boolean"
                             },
                             "discordWebhookUrls": {
                               "type": "string"
@@ -711,10 +700,8 @@
                               "type": "string"
                             }
                           },
-                          "additionalProperties": false,
-                          "default": {
-                            "enabled": false
-                          }
+                          "required": ["enabled"],
+                          "additionalProperties": false
                         },
                         "tautulliEnabled": {
                           "type": "boolean"
@@ -824,18 +811,15 @@
                           "type": "object",
                           "properties": {
                             "enabled": {
-                              "type": "boolean",
-                              "default": false
+                              "type": "boolean"
                             },
                             "pollingIntervalMinutes": {
                               "type": "number",
-                              "minimum": 1,
-                              "default": 15
+                              "minimum": 1
                             },
                             "remainingEpisodes": {
                               "type": "number",
-                              "minimum": 1,
-                              "default": 2
+                              "minimum": 1
                             },
                             "filterUsers": {
                               "anyOf": [
@@ -851,26 +835,27 @@
                               ]
                             },
                             "enableAutoReset": {
-                              "type": "boolean",
-                              "default": true
+                              "type": "boolean"
                             },
                             "inactivityResetDays": {
                               "type": "number",
                               "minimum": 1,
-                              "maximum": 365,
-                              "default": 7
+                              "maximum": 365
                             },
                             "autoResetIntervalHours": {
                               "type": "number",
                               "minimum": 1,
-                              "maximum": 168,
-                              "default": 24
+                              "maximum": 168
                             },
                             "enableProgressiveCleanup": {
-                              "type": "boolean",
-                              "default": false
+                              "type": "boolean"
                             }
                           },
+                          "required": [
+                            "enabled",
+                            "pollingIntervalMinutes",
+                            "remainingEpisodes"
+                          ],
                           "additionalProperties": false
                         },
                         "newUserDefaultCanSync": {
@@ -7639,19 +7624,27 @@
                             "properties": {
                               "days": {
                                 "type": "integer",
-                                "minimum": 0
+                                "exclusiveMinimum": true,
+                                "minimum": 0,
+                                "maximum": 365
                               },
                               "hours": {
                                 "type": "integer",
-                                "minimum": 0
+                                "exclusiveMinimum": true,
+                                "minimum": 0,
+                                "maximum": 8760
                               },
                               "minutes": {
                                 "type": "integer",
-                                "minimum": 0
+                                "exclusiveMinimum": true,
+                                "minimum": 0,
+                                "maximum": 525600
                               },
                               "seconds": {
                                 "type": "integer",
-                                "minimum": 0
+                                "exclusiveMinimum": true,
+                                "minimum": 0,
+                                "maximum": 31536000
                               },
                               "runImmediately": {
                                 "type": "boolean"
@@ -7864,19 +7857,27 @@
                         "properties": {
                           "days": {
                             "type": "integer",
-                            "minimum": 0
+                            "exclusiveMinimum": true,
+                            "minimum": 0,
+                            "maximum": 365
                           },
                           "hours": {
                             "type": "integer",
-                            "minimum": 0
+                            "exclusiveMinimum": true,
+                            "minimum": 0,
+                            "maximum": 8760
                           },
                           "minutes": {
                             "type": "integer",
-                            "minimum": 0
+                            "exclusiveMinimum": true,
+                            "minimum": 0,
+                            "maximum": 525600
                           },
                           "seconds": {
                             "type": "integer",
-                            "minimum": 0
+                            "exclusiveMinimum": true,
+                            "minimum": 0,
+                            "maximum": 31536000
                           },
                           "runImmediately": {
                             "type": "boolean"
@@ -8009,19 +8010,27 @@
                           "properties": {
                             "days": {
                               "type": "integer",
-                              "minimum": 0
+                              "exclusiveMinimum": true,
+                              "minimum": 0,
+                              "maximum": 365
                             },
                             "hours": {
                               "type": "integer",
-                              "minimum": 0
+                              "exclusiveMinimum": true,
+                              "minimum": 0,
+                              "maximum": 8760
                             },
                             "minutes": {
                               "type": "integer",
-                              "minimum": 0
+                              "exclusiveMinimum": true,
+                              "minimum": 0,
+                              "maximum": 525600
                             },
                             "seconds": {
                               "type": "integer",
-                              "minimum": 0
+                              "exclusiveMinimum": true,
+                              "minimum": 0,
+                              "maximum": 31536000
                             },
                             "runImmediately": {
                               "type": "boolean"
@@ -8246,19 +8255,27 @@
                         "properties": {
                           "days": {
                             "type": "integer",
-                            "minimum": 0
+                            "exclusiveMinimum": true,
+                            "minimum": 0,
+                            "maximum": 365
                           },
                           "hours": {
                             "type": "integer",
-                            "minimum": 0
+                            "exclusiveMinimum": true,
+                            "minimum": 0,
+                            "maximum": 8760
                           },
                           "minutes": {
                             "type": "integer",
-                            "minimum": 0
+                            "exclusiveMinimum": true,
+                            "minimum": 0,
+                            "maximum": 525600
                           },
                           "seconds": {
                             "type": "integer",
-                            "minimum": 0
+                            "exclusiveMinimum": true,
+                            "minimum": 0,
+                            "maximum": 31536000
                           },
                           "runImmediately": {
                             "type": "boolean"
@@ -10476,9 +10493,6 @@
                           },
                           "count": {
                             "type": "number"
-                          },
-                          "median_days": {
-                            "type": "number"
                           }
                         },
                         "required": [
@@ -10506,9 +10520,6 @@
                             "type": "number"
                           },
                           "max_days": {
-                            "type": "number"
-                          },
-                          "median_days": {
                             "type": "number"
                           },
                           "count": {
@@ -11229,9 +11240,6 @@
                       },
                       "count": {
                         "type": "number"
-                      },
-                      "median_days": {
-                        "type": "number"
                       }
                     },
                     "required": [
@@ -11293,9 +11301,6 @@
                         "type": "number"
                       },
                       "max_days": {
-                        "type": "number"
-                      },
-                      "median_days": {
                         "type": "number"
                       },
                       "count": {
