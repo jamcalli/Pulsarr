@@ -452,8 +452,14 @@ export async function getAverageTimeFromGrabbedToNotified(
       if (times.length < 5) continue // Minimum sample size
 
       const avgDays = times.reduce((sum, time) => sum + time, 0) / times.length
-      const minDays = Math.min(...times)
-      const maxDays = Math.max(...times)
+
+      // Find min/max without spreading large arrays to avoid call stack issues
+      let minDays = times[0]
+      let maxDays = times[0]
+      for (let i = 1; i < times.length; i++) {
+        if (times[i] < minDays) minDays = times[i]
+        if (times[i] > maxDays) maxDays = times[i]
+      }
 
       rows.push({
         content_type: contentType,
@@ -621,8 +627,8 @@ export async function getDetailedStatusTransitionMetrics(
         this.log.debug(
           `Outlier filtering for ${fromStatus}->${toStatus} (${contentType}): removed ${removedCount}/${times.length} (${percentRemoved}%) data points`,
           {
-            originalRange: `${Math.min(...times).toFixed(2)} - ${Math.max(...times).toFixed(2)} days`,
-            filteredRange: `${Math.min(...filteredTimes).toFixed(2)} - ${Math.max(...filteredTimes).toFixed(2)} days`,
+            originalRange: `${times[0].toFixed(2)} - ${times[times.length - 1].toFixed(2)} days`,
+            filteredRange: `${filteredTimes[0].toFixed(2)} - ${filteredTimes[filteredTimes.length - 1].toFixed(2)} days`,
             originalMedian: times[Math.floor(times.length / 2)].toFixed(2),
             filteredMedian:
               filteredTimes[Math.floor(filteredTimes.length / 2)].toFixed(2),
