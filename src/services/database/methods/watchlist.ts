@@ -351,8 +351,13 @@ export async function bulkUpdateWatchlistItems(
             })
 
           const numericUpdated = Number(updated)
-          updatedCount +=
-            !Number.isNaN(numericUpdated) && numericUpdated > 0 ? 1 : 0
+          if (!Number.isNaN(numericUpdated) && numericUpdated > 0) {
+            updatedCount += 1
+          }
+
+          // count pure-junction updates as well
+        } else if (Object.keys(junctionFields).length > 0) {
+          updatedCount += 1
         }
 
         // Handle Radarr instance junction updates

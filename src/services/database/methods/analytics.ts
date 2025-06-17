@@ -81,9 +81,10 @@ export async function getMostWatchlistedShows(
 ): Promise<{ title: string; count: number; thumb: string | null }[]> {
   const results = await this.knex('watchlist_items')
     .where('type', 'show')
-    .select('title', 'thumb')
+    .select('title')
+    .select(this.knex.raw('MIN(thumb) as thumb'))
     .count('* as count')
-    .groupBy('title', 'thumb')
+    .groupBy('title')
     .orderBy('count', 'desc')
     .limit(limit)
 
@@ -108,9 +109,10 @@ export async function getMostWatchlistedMovies(
 ): Promise<{ title: string; count: number; thumb: string | null }[]> {
   const results = await this.knex('watchlist_items')
     .where('type', 'movie')
-    .select('title', 'thumb')
+    .select('title')
+    .select(this.knex.raw('MIN(thumb) as thumb'))
     .count('* as count')
-    .groupBy('title', 'thumb')
+    .groupBy('title')
     .orderBy('count', 'desc')
     .limit(limit)
 
@@ -372,203 +374,80 @@ export async function getAverageTimeFromGrabbedToNotified(
   try {
     this.log.debug('Calculating average time from grabbed to notified status')
 
-    // Step 1: Get grabbed timestamps using Knex
-    const grabbedTimestamps = await this.knex('watchlist_status_history')
-      .select('watchlist_item_id')
-      .min('timestamp as first_grabbed')
-      .where('status', 'grabbed')
-      .groupBy('watchlist_item_id')
+    // Optimized approach: join in SQL, calculate in JS for database compatibility
+    const timeData = await this.knex('watchlist_items as wi')
+      .select(
+        'wi.type as content_type',
+        'grabbed.first_grabbed',
+        'notified.first_notified',
+      )
+      .innerJoin(
+        this.knex('watchlist_status_history')
+          .select('watchlist_item_id')
+          .min('timestamp as first_grabbed')
+          .where('status', 'grabbed')
+          .groupBy('watchlist_item_id')
+          .as('grabbed'),
+        'wi.id',
+        'grabbed.watchlist_item_id',
+      )
+      .innerJoin(
+        this.knex('watchlist_status_history')
+          .select('watchlist_item_id')
+          .min('timestamp as first_notified')
+          .where('status', 'notified')
+          .groupBy('watchlist_item_id')
+          .as('notified'),
+        'wi.id',
+        'notified.watchlist_item_id',
+      )
+      .whereIn('wi.type', ['movie', 'show'])
 
-    // Step 2: Get notified timestamps using Knex
-    const notifiedTimestamps = await this.knex('watchlist_status_history')
-      .select('watchlist_item_id')
-      .min('timestamp as first_notified')
-      .where('status', 'notified')
-      .groupBy('watchlist_item_id')
+    // Process the data to calculate time differences
+    const contentGroups = new Map<string, number[]>()
 
-    // Step 3: Join the results and calculate time differences
-    const rawTimes: Array<{ content_type: string; days_between: number }> = []
-
-    // Create maps for faster lookup
-    const grabbedMap = new Map<number, string>()
-    const notifiedMap = new Map<number, string>()
-
-    for (const row of grabbedTimestamps) {
-      grabbedMap.set(Number(row.watchlist_item_id), String(row.first_grabbed))
-    }
-
-    for (const row of notifiedTimestamps) {
-      notifiedMap.set(Number(row.watchlist_item_id), String(row.first_notified))
-    }
-
-    // Get watchlist items and calculate time differences
-    const watchlistItems = await this.knex('watchlist_items')
-      .select('id', 'type')
-      .whereIn('type', ['movie', 'show'])
-
-    for (const item of watchlistItems) {
-      const itemId = Number(item.id)
-      const grabbedTime = grabbedMap.get(itemId)
-      const notifiedTime = notifiedMap.get(itemId)
-
-      if (!grabbedTime || !notifiedTime) continue
+    for (const row of timeData) {
+      const grabbedTime = new Date(row.first_grabbed).getTime()
+      const notifiedTime = new Date(row.first_notified).getTime()
 
       // Ensure notified comes after grabbed
       if (notifiedTime <= grabbedTime) continue
 
-      // Calculate time difference using our helper method
-      const grabbedDate = new Date(grabbedTime)
-      const notifiedDate = new Date(notifiedTime)
-      const daysBetween =
-        (notifiedDate.getTime() - grabbedDate.getTime()) / (1000 * 60 * 60 * 24)
+      const daysBetween = (notifiedTime - grabbedTime) / (1000 * 60 * 60 * 24)
 
-      // Apply basic filtering - exclude negative times and extreme outliers
-      if (daysBetween < 0 || daysBetween > 30) continue // Only include transitions under 30 days
+      // Filter reasonable values
+      if (daysBetween < 0 || daysBetween > 30) continue
 
-      rawTimes.push({
-        content_type: String(item.type),
-        days_between: daysBetween,
-      })
-    }
-
-    // Step 4: Group by content type and apply outlier filtering in JavaScript
-    // (This is more database-agnostic than using percentile functions)
-    const groupedTimes = new Map<string, number[]>()
-
-    for (const row of rawTimes) {
       const contentType = String(row.content_type)
-      const daysBetween = Number(row.days_between)
-
-      if (!Number.isFinite(daysBetween) || daysBetween < 0) continue
-
-      if (!groupedTimes.has(contentType)) {
-        groupedTimes.set(contentType, [])
+      if (!contentGroups.has(contentType)) {
+        contentGroups.set(contentType, [])
       }
-      const timeArray = groupedTimes.get(contentType)
-      if (timeArray) {
-        timeArray.push(daysBetween)
-      }
+      contentGroups.get(contentType)?.push(daysBetween)
     }
 
-    // Step 5: Apply outlier filtering and calculate statistics
-    const results: Array<{
-      content_type: string
-      avg_days: number
-      min_days: number
-      max_days: number
-      count: number
-    }> = []
-
-    for (const [contentType, times] of groupedTimes.entries()) {
+    // Calculate statistics for each content type
+    const rows = []
+    for (const [contentType, times] of contentGroups.entries()) {
       if (times.length < 5) continue // Minimum sample size
 
-      // Sort for percentile calculations
-      times.sort((a, b) => a - b)
+      const avgDays = times.reduce((sum, time) => sum + time, 0) / times.length
+      const minDays = Math.min(...times)
+      const maxDays = Math.max(...times)
 
-      // Calculate percentiles for outlier detection
-      const p5Index = Math.floor(times.length * 0.05)
-      const p95Index = Math.floor(times.length * 0.95)
-      const q1Index = Math.floor(times.length * 0.25)
-      const q3Index = Math.floor(times.length * 0.75)
-
-      const p5 = times[p5Index] || times[0]
-      const p95 = times[p95Index] || times[times.length - 1]
-      const q1 = times[q1Index] || times[0]
-      const q3 = times[q3Index] || times[times.length - 1]
-
-      // Apply multi-method outlier filtering for time data
-      // Use multiple methods to catch extreme outliers
-
-      // Method 1: Stricter percentile bounds (2nd-98th percentile for initial filtering)
-      const p2Index = Math.floor(times.length * 0.02)
-      const p98Index = Math.floor(times.length * 0.98)
-      const p2 = times[p2Index] || times[0]
-      const p98 = times[p98Index] || times[times.length - 1]
-
-      // Method 2: Modified Z-score approach using median for robustness
-      const median = times[Math.floor(times.length / 2)]
-      const medianAbsoluteDeviations = times.map((time) =>
-        Math.abs(time - median),
-      )
-      medianAbsoluteDeviations.sort((a, b) => a - b)
-      const mad =
-        medianAbsoluteDeviations[
-          Math.floor(medianAbsoluteDeviations.length / 2)
-        ]
-
-      // Method 3: Conservative IQR bounds (1.0x multiplier for time data)
-      const iqr = q3 - q1
-
-      const filteredTimes = times.filter((time) => {
-        // Apply all three methods - a value must pass all checks
-        const passesPercentile = time >= p2 && time <= p98
-        const passesMAD = mad === 0 || Math.abs(time - median) <= 3 * mad // Modified Z-score < 3
-        const passesIQR = time >= q1 - 1.0 * iqr && time <= q3 + 1.0 * iqr
-        const passesReasonableBounds = time <= 30 // Nothing should take more than 30 days (in days)
-
-        // Debug logging for extreme values
-        if (time > 7) {
-          this.log.debug(
-            `Value above 7 days detected: ${time.toFixed(2)} days`,
-            {
-              passesPercentile,
-              passesMAD,
-              passesIQR,
-              passesReasonableBounds,
-              median: median.toFixed(2),
-              mad: mad.toFixed(2),
-              q1: q1.toFixed(2),
-              q3: q3.toFixed(2),
-            },
-          )
-        }
-
-        return (
-          passesPercentile && passesMAD && passesIQR && passesReasonableBounds
-        )
-      })
-
-      if (filteredTimes.length === 0) continue
-
-      // Log outlier filtering results for debugging
-      if (times.length !== filteredTimes.length) {
-        const removedCount = times.length - filteredTimes.length
-        const percentRemoved = ((removedCount / times.length) * 100).toFixed(1)
-        this.log.debug(
-          `Outlier filtering for ${contentType}: removed ${removedCount}/${times.length} (${percentRemoved}%) data points`,
-          {
-            originalRange: `${Math.min(...times).toFixed(2)} - ${Math.max(...times).toFixed(2)} days`,
-            filteredRange: `${Math.min(...filteredTimes).toFixed(2)} - ${Math.max(...filteredTimes).toFixed(2)} days`,
-            originalMedian: times[Math.floor(times.length / 2)].toFixed(2),
-            filteredMedian:
-              filteredTimes[Math.floor(filteredTimes.length / 2)].toFixed(2),
-          },
-        )
-      }
-
-      // Calculate statistics
-      const sum = filteredTimes.reduce((acc, time) => acc + time, 0)
-      const avgDays = sum / filteredTimes.length
-      const minDays = Math.min(...filteredTimes)
-      const maxDays = Math.max(...filteredTimes)
-
-      results.push({
+      rows.push({
         content_type: contentType,
-        avg_days: avgDays,
-        min_days: minDays,
-        max_days: maxDays,
-        count: filteredTimes.length,
+        avg_days: Number(avgDays.toFixed(2)),
+        min_days: Number(minDays.toFixed(2)),
+        max_days: Number(maxDays.toFixed(2)),
+        count: times.length,
       })
     }
 
-    // Sort by count descending
-    results.sort((a, b) => b.count - a.count)
-
     this.log.debug(
-      `Calculated time metrics for ${results.length} content types`,
+      `Calculated time differences for ${rows.length} content types`,
     )
 
-    return results
+    return rows
   } catch (error) {
     this.log.error('Error calculating time from grabbed to notified:', error)
     throw error

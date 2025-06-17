@@ -206,20 +206,14 @@ export async function setPrimaryRadarrInstance(
 ): Promise<void> {
   try {
     const executeInTransaction = async (transactionQuery: Knex.Transaction) => {
+      // Atomic update using CASE WHEN to prevent race conditions
       await transactionQuery('watchlist_radarr_instances')
         .where({ watchlist_id: watchlistId })
         .update({
-          is_primary: false,
-          updated_at: this.timestamp,
-        })
-
-      await transactionQuery('watchlist_radarr_instances')
-        .where({
-          watchlist_id: watchlistId,
-          radarr_instance_id: primaryInstanceId,
-        })
-        .update({
-          is_primary: true,
+          is_primary: transactionQuery.raw(
+            'CASE WHEN radarr_instance_id = ? THEN true ELSE false END',
+            [primaryInstanceId],
+          ),
           updated_at: this.timestamp,
         })
     }
@@ -607,20 +601,14 @@ export async function setPrimarySonarrInstance(
 ): Promise<void> {
   try {
     const executeInTransaction = async (transactionQuery: Knex.Transaction) => {
+      // Atomic update using CASE WHEN to prevent race conditions
       await transactionQuery('watchlist_sonarr_instances')
         .where({ watchlist_id: watchlistId })
         .update({
-          is_primary: false,
-          updated_at: this.timestamp,
-        })
-
-      await transactionQuery('watchlist_sonarr_instances')
-        .where({
-          watchlist_id: watchlistId,
-          sonarr_instance_id: primaryInstanceId,
-        })
-        .update({
-          is_primary: true,
+          is_primary: transactionQuery.raw(
+            'CASE WHEN sonarr_instance_id = ? THEN true ELSE false END',
+            [primaryInstanceId],
+          ),
           updated_at: this.timestamp,
         })
     }
