@@ -115,10 +115,14 @@ export async function createRadarrInstance(
         minimum_availability: this.normaliseMinimumAvailability(
           instance.minimumAvailability,
         ),
-        tags: JSON.stringify(instance.tags || []),
+        tags: Array.isArray(instance.tags)
+          ? JSON.stringify(instance.tags)
+          : instance.tags || JSON.stringify([]),
         is_default: instance.isDefault ?? false,
         is_enabled: true,
-        synced_instances: JSON.stringify(instance.syncedInstances || []),
+        synced_instances: Array.isArray(instance.syncedInstances)
+          ? JSON.stringify(instance.syncedInstances)
+          : instance.syncedInstances || JSON.stringify([]),
         created_at: this.timestamp,
         updated_at: this.timestamp,
       })
@@ -185,13 +189,17 @@ export async function updateRadarrInstance(
           ),
         }),
         ...(typeof sanitized.tags !== 'undefined' && {
-          tags: JSON.stringify(sanitized.tags),
+          tags: Array.isArray(sanitized.tags)
+            ? JSON.stringify(sanitized.tags)
+            : sanitized.tags,
         }),
         ...(typeof sanitized.isDefault !== 'undefined' && {
           is_default: sanitized.isDefault,
         }),
         ...(typeof sanitized.syncedInstances !== 'undefined' && {
-          synced_instances: JSON.stringify(sanitized.syncedInstances),
+          synced_instances: Array.isArray(sanitized.syncedInstances)
+            ? JSON.stringify(sanitized.syncedInstances)
+            : sanitized.syncedInstances,
         }),
         updated_at: this.timestamp,
       })

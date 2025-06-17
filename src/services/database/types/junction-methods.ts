@@ -2,6 +2,7 @@ import type {
   WatchlistInstanceStatus,
   WatchlistStatus,
 } from '@root/types/watchlist-status.types.js'
+import type { Knex } from 'knex'
 
 declare module '@services/database.service.js' {
   interface DatabaseService {
@@ -11,7 +12,10 @@ declare module '@services/database.service.js' {
      * @param watchlistId - ID of the watchlist item
      * @returns Promise resolving to array of Radarr instance IDs
      */
-    getWatchlistRadarrInstanceIds(watchlistId: number): Promise<number[]>
+    getWatchlistRadarrInstanceIds(
+      watchlistId: number,
+      trx?: Knex.Transaction,
+    ): Promise<number[]>
 
     /**
      * Gets status of a watchlist item in a specific Radarr instance
@@ -39,6 +43,7 @@ declare module '@services/database.service.js' {
       status?: WatchlistStatus,
       isPrimary?: boolean,
       syncing?: boolean,
+      trx?: Knex.Transaction,
     ): Promise<void>
 
     /**
@@ -76,6 +81,7 @@ declare module '@services/database.service.js' {
     setPrimaryRadarrInstance(
       watchlistId: number,
       instanceId: number,
+      trx?: Knex.Transaction,
     ): Promise<void>
 
     /**
@@ -140,7 +146,10 @@ declare module '@services/database.service.js' {
      * @param watchlistId - ID of the watchlist item
      * @returns Promise resolving to array of Sonarr instance IDs
      */
-    getWatchlistSonarrInstanceIds(watchlistId: number): Promise<number[]>
+    getWatchlistSonarrInstanceIds(
+      watchlistId: number,
+      trx?: Knex.Transaction,
+    ): Promise<number[]>
 
     /**
      * Gets status of a watchlist item in a specific Sonarr instance
@@ -168,6 +177,7 @@ declare module '@services/database.service.js' {
       status?: WatchlistStatus,
       isPrimary?: boolean,
       syncing?: boolean,
+      trx?: Knex.Transaction,
     ): Promise<void>
 
     /**
@@ -205,6 +215,7 @@ declare module '@services/database.service.js' {
     setPrimarySonarrInstance(
       watchlistId: number,
       instanceId: number,
+      trx?: Knex.Transaction,
     ): Promise<void>
 
     /**
@@ -290,6 +301,7 @@ declare module '@services/database.service.js' {
       watchlistId: number,
       instanceId: number,
       syncing: boolean,
+      trx?: Knex.Transaction,
     ): Promise<void>
 
     /**
@@ -303,6 +315,7 @@ declare module '@services/database.service.js' {
       watchlistId: number,
       instanceId: number,
       syncing: boolean,
+      trx?: Knex.Transaction,
     ): Promise<void>
 
     /**

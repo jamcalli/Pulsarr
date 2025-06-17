@@ -1,5 +1,6 @@
 import type { DatabaseService } from '@services/database.service.js'
 import type { WatchlistInstanceStatus } from '@root/types/watchlist-status.types.js'
+import type { Knex } from 'knex'
 
 /**
  * Retrieves all Radarr instance IDs associated with a watchlist item
@@ -15,9 +16,11 @@ import type { WatchlistInstanceStatus } from '@root/types/watchlist-status.types
 export async function getWatchlistRadarrInstanceIds(
   this: DatabaseService,
   watchlistId: number,
+  trx?: Knex.Transaction,
 ): Promise<number[]> {
   try {
-    const result = await this.knex('watchlist_radarr_instances')
+    const query = trx || this.knex
+    const result = await query('watchlist_radarr_instances')
       .select('radarr_instance_id')
       .where({ watchlist_id: watchlistId })
 
@@ -82,9 +85,11 @@ export async function addWatchlistToRadarrInstance(
   status: 'pending' | 'requested' | 'grabbed' | 'notified' = 'pending',
   isPrimary = false,
   syncing = false,
+  trx?: Knex.Transaction,
 ): Promise<void> {
   try {
-    await this.knex('watchlist_radarr_instances')
+    const query = trx || this.knex
+    await query('watchlist_radarr_instances')
       .insert({
         watchlist_id: watchlistId,
         radarr_instance_id: instanceId,
@@ -197,17 +202,18 @@ export async function setPrimaryRadarrInstance(
   this: DatabaseService,
   watchlistId: number,
   primaryInstanceId: number,
+  trx?: Knex.Transaction,
 ): Promise<void> {
   try {
-    await this.knex.transaction(async (trx) => {
-      await trx('watchlist_radarr_instances')
+    const executeInTransaction = async (transactionQuery: Knex.Transaction) => {
+      await transactionQuery('watchlist_radarr_instances')
         .where({ watchlist_id: watchlistId })
         .update({
           is_primary: false,
           updated_at: this.timestamp,
         })
 
-      await trx('watchlist_radarr_instances')
+      await transactionQuery('watchlist_radarr_instances')
         .where({
           watchlist_id: watchlistId,
           radarr_instance_id: primaryInstanceId,
@@ -216,7 +222,13 @@ export async function setPrimaryRadarrInstance(
           is_primary: true,
           updated_at: this.timestamp,
         })
-    })
+    }
+
+    if (trx) {
+      await executeInTransaction(trx)
+    } else {
+      await this.knex.transaction(executeInTransaction)
+    }
 
     this.log.debug(
       `Set Radarr instance ${primaryInstanceId} as primary for watchlist ${watchlistId}`,
@@ -405,9 +417,11 @@ export async function bulkRemoveWatchlistFromRadarrInstances(
 export async function getWatchlistSonarrInstanceIds(
   this: DatabaseService,
   watchlistId: number,
+  trx?: Knex.Transaction,
 ): Promise<number[]> {
   try {
-    const result = await this.knex('watchlist_sonarr_instances')
+    const query = trx || this.knex
+    const result = await query('watchlist_sonarr_instances')
       .select('sonarr_instance_id')
       .where({ watchlist_id: watchlistId })
 
@@ -472,9 +486,11 @@ export async function addWatchlistToSonarrInstance(
   status: 'pending' | 'requested' | 'grabbed' | 'notified' = 'pending',
   isPrimary = false,
   syncing = false,
+  trx?: Knex.Transaction,
 ): Promise<void> {
   try {
-    await this.knex('watchlist_sonarr_instances')
+    const query = trx || this.knex
+    await query('watchlist_sonarr_instances')
       .insert({
         watchlist_id: watchlistId,
         sonarr_instance_id: instanceId,
@@ -587,17 +603,18 @@ export async function setPrimarySonarrInstance(
   this: DatabaseService,
   watchlistId: number,
   primaryInstanceId: number,
+  trx?: Knex.Transaction,
 ): Promise<void> {
   try {
-    await this.knex.transaction(async (trx) => {
-      await trx('watchlist_sonarr_instances')
+    const executeInTransaction = async (transactionQuery: Knex.Transaction) => {
+      await transactionQuery('watchlist_sonarr_instances')
         .where({ watchlist_id: watchlistId })
         .update({
           is_primary: false,
           updated_at: this.timestamp,
         })
 
-      await trx('watchlist_sonarr_instances')
+      await transactionQuery('watchlist_sonarr_instances')
         .where({
           watchlist_id: watchlistId,
           sonarr_instance_id: primaryInstanceId,
@@ -606,7 +623,13 @@ export async function setPrimarySonarrInstance(
           is_primary: true,
           updated_at: this.timestamp,
         })
-    })
+    }
+
+    if (trx) {
+      await executeInTransaction(trx)
+    } else {
+      await this.knex.transaction(executeInTransaction)
+    }
 
     this.log.debug(
       `Set Sonarr instance ${primaryInstanceId} as primary for watchlist ${watchlistId}`,
@@ -955,8 +978,10 @@ export async function updateRadarrSyncingStatus(
   watchlistId: number,
   instanceId: number,
   syncing: boolean,
+  trx?: Knex.Transaction,
 ): Promise<void> {
-  await this.knex('watchlist_radarr_instances')
+  const query = trx || this.knex
+  await query('watchlist_radarr_instances')
     .where({
       watchlist_id: watchlistId,
       radarr_instance_id: instanceId,
@@ -983,8 +1008,10 @@ export async function updateSonarrSyncingStatus(
   watchlistId: number,
   instanceId: number,
   syncing: boolean,
+  trx?: Knex.Transaction,
 ): Promise<void> {
-  await this.knex('watchlist_sonarr_instances')
+  const query = trx || this.knex
+  await query('watchlist_sonarr_instances')
     .where({
       watchlist_id: watchlistId,
       sonarr_instance_id: instanceId,

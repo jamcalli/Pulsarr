@@ -57,6 +57,7 @@ export async function updateWatchlistItem(
       } else {
         const existingInstanceIds = await this.getWatchlistRadarrInstanceIds(
           item.id,
+          trx,
         )
 
         if (!existingInstanceIds.includes(radarr_instance_id)) {
@@ -66,15 +67,17 @@ export async function updateWatchlistItem(
             updates.status || item.status || 'pending',
             true,
             syncing || false,
+            trx,
           )
         } else {
-          await this.setPrimaryRadarrInstance(item.id, radarr_instance_id)
+          await this.setPrimaryRadarrInstance(item.id, radarr_instance_id, trx)
 
           if (syncing !== undefined) {
             await this.updateRadarrSyncingStatus(
               item.id,
               radarr_instance_id,
               syncing ?? false,
+              trx,
             )
           }
         }
@@ -89,6 +92,7 @@ export async function updateWatchlistItem(
       } else {
         const existingInstanceIds = await this.getWatchlistSonarrInstanceIds(
           item.id,
+          trx,
         )
 
         if (!existingInstanceIds.includes(sonarr_instance_id)) {
@@ -98,15 +102,17 @@ export async function updateWatchlistItem(
             updates.status || item.status || 'pending',
             true,
             syncing || false,
+            trx,
           )
         } else {
-          await this.setPrimarySonarrInstance(item.id, sonarr_instance_id)
+          await this.setPrimarySonarrInstance(item.id, sonarr_instance_id, trx)
 
           if (syncing !== undefined) {
             await this.updateSonarrSyncingStatus(
               item.id,
               sonarr_instance_id,
               syncing ?? false,
+              trx,
             )
           }
         }
@@ -128,7 +134,7 @@ export async function updateWatchlistItemByGuid(
   updates: WatchlistItemUpdate,
 ): Promise<number> {
   // Use database-specific JSON functions to filter efficiently
-  const matchingIds = this.isPostgreSQL()
+  const matchingIds = this.isPostgres
     ? await this.knex('watchlist_items')
         .whereRaw(
           'EXISTS (SELECT 1 FROM jsonb_array_elements_text(guids) elem WHERE lower(elem) = lower(?))',
@@ -614,7 +620,7 @@ export async function checkExistingWebhooks(
 export async function getUniqueGuidsRaw(
   this: DatabaseService,
 ): Promise<string[]> {
-  if (this.isPostgreSQL()) {
+  if (this.isPostgres) {
     const result = await this.knex.raw(`
       SELECT DISTINCT lower(guid_element::text) as guid
       FROM watchlist_items,
@@ -1043,7 +1049,7 @@ export async function getWatchlistItemsByGuid(
   guid: string,
 ): Promise<TokenWatchlistItem[]> {
   // Use database-specific JSON functions to filter efficiently at database level
-  const items = this.isPostgreSQL()
+  const items = this.isPostgres
     ? await this.knex('watchlist_items')
         .whereRaw(
           'EXISTS (SELECT 1 FROM jsonb_array_elements_text(guids) elem WHERE lower(elem) = lower(?))',

@@ -327,7 +327,7 @@ export class DatabaseService {
    * @returns SQL expression for date difference in days
    */
   public getDateDiffSQL(date1: string, date2: string, alias?: string): string {
-    const diff = this.isPostgreSQL()
+    const diff = this.isPostgres
       ? `EXTRACT(EPOCH FROM (${date1} - ${date2})) / 86400`
       : `julianday(${date1}) - julianday(${date2})`
 

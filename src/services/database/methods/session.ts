@@ -224,7 +224,7 @@ export async function deleteAllRollingMonitoredShowEntries(
     return await this.knex.transaction(async (trx) => {
       // Get the show details inside the transaction to avoid race conditions
       const rowQuery = trx('rolling_monitored_shows').where({ id })
-      if (this.isPostgreSQL()) rowQuery.forUpdate() // row-level lock only on PG
+      if (this.isPostgres) rowQuery.forUpdate() // row-level lock only on PG
       const show = await rowQuery.first()
 
       if (!show) {
@@ -267,7 +267,7 @@ export async function resetRollingMonitoredShowToOriginal(
     return await this.knex.transaction(async (trx) => {
       // Get the show details inside the transaction to avoid race conditions
       const rowQuery = trx('rolling_monitored_shows').where({ id })
-      if (this.isPostgreSQL()) rowQuery.forUpdate() // row-level lock only on PG
+      if (this.isPostgres) rowQuery.forUpdate() // row-level lock only on PG
       const show = await rowQuery.first()
 
       if (!show) {

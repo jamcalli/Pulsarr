@@ -127,8 +127,15 @@ export async function createConfig(
   this: DatabaseService,
   config: Omit<Config, 'id' | 'created_at' | 'updated_at'>,
 ): Promise<number> {
+  const exists = await this.knex('configs').count('* as c').first()
+  if (Number(exists?.c) > 0) {
+    throw new Error('Configuration already exists – use updateConfig instead')
+  }
+
   const result = await this.knex('configs')
     .insert({
+      // Enforce single config row with id: 1
+      id: 1,
       // Basic fields
       port: config.port,
       dbPath: config.dbPath,

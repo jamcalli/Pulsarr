@@ -798,7 +798,7 @@ export async function getAverageTimeToAvailability(
   // Execute raw SQL query with CTEs for first add and first notification timestamps
   const availabilityDateDiffFunction = this.getDateDiffSQL(
     'n.first_notification',
-    this.isPostgreSQL() ? 'a.added::timestamp' : 'a.added',
+    this.isPostgres ? 'a.added::timestamp' : 'a.added',
   )
 
   const results = await this.knex.raw<AvailabilityStatsRow[]>(`
