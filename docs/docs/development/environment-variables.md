@@ -192,4 +192,4 @@ Variables marked with "dev only" or "development" comments should not be used in
 
 ## Variable Override Behavior
 
-Environment variables in the `.env` file will override settings configured in the web UI **on application restart**. See the [Configuration Guide](../installation/configuration#environment-variable-override-behavior) for details.
+Environment variables in the `.env` file will override settings configured in the web UI **on application restart**. See the [Configuration Guide](../installation/configuration) for details.
