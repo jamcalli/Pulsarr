@@ -282,34 +282,15 @@ export class ContentRouterService {
     }
 
     // IMPORTANT: Enrich item with metadata before evaluation
-    // Only do this if we have rules that actually need the enriched metadata
+    // Only do this if we have rules that might use the enriched data
     let enrichedItem = item
     if (hasAnyRules) {
-      // Check if any rules require metadata to avoid unnecessary API calls
-      let needsMetadata = false
       try {
-        needsMetadata = await this.fastify.db.hasMetadataRequiringRules()
+        enrichedItem = await this.enrichItemMetadata(item, context)
+        this.log.debug(`Enriched metadata for "${item.title}"`)
       } catch (error) {
-        this.log.error('Error checking for metadata-requiring rules:', error)
-        // If we can't determine, err on the side of caution and enrich
-        needsMetadata = true
-      }
-
-      if (needsMetadata) {
-        try {
-          enrichedItem = await this.enrichItemMetadata(item, context)
-          this.log.debug(`Enriched metadata for "${item.title}"`)
-        } catch (error) {
-          this.log.error(
-            `Failed to enrich metadata for "${item.title}":`,
-            error,
-          )
-          // Continue with original item if enrichment fails
-        }
-      } else {
-        this.log.debug(
-          `Skipping metadata enrichment for "${item.title}" - no rules require it`,
-        )
+        this.log.error(`Failed to enrich metadata for "${item.title}":`, error)
+        // Continue with original item if enrichment fails
       }
     }
 
