@@ -33,12 +33,31 @@ export const CronConfigSchema = z.object({
     .refine(
       (expression) => {
         try {
-          const result = cronValidate(expression, {
-            override: {
-              useSeconds: true,
-            },
-          })
-          return result.isValid()
+          // Count fields to determine format
+          const fields = expression.trim().split(/\s+/)
+
+          if (fields.length === 6) {
+            // 6-field format: validate with seconds
+            const result = cronValidate(expression, {
+              override: {
+                useSeconds: true,
+              },
+            })
+            return result.isValid()
+          }
+
+          if (fields.length === 5) {
+            // 5-field format: validate without seconds
+            const result = cronValidate(expression, {
+              override: {
+                useSeconds: false,
+              },
+            })
+            return result.isValid()
+          }
+
+          // Invalid field count
+          return false
         } catch (error) {
           // If validation fails for any reason, assume invalid
           return false
@@ -46,7 +65,7 @@ export const CronConfigSchema = z.object({
       },
       {
         message:
-          'Invalid 6-field cron expression (format: second minute hour day month weekday)',
+          'Invalid cron expression (format: [second] minute hour day month weekday)',
       },
     ),
 })
