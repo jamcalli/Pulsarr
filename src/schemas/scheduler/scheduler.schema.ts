@@ -33,30 +33,17 @@ export const CronConfigSchema = z.object({
     .refine(
       (expression) => {
         try {
-          // Count fields to determine format
           const fields = expression.trim().split(/\s+/)
+          const fieldCount = fields.length
 
-          if (fields.length === 6) {
-            // 6-field format: validate with seconds
-            const result = cronValidate(expression, {
-              override: {
-                useSeconds: true,
-              },
-            })
-            return result.isValid()
+          // Support 5-field (no seconds) and 6-field (seconds) expressions
+          if (fieldCount === 5 || fieldCount === 6) {
+            return cronValidate(expression, {
+              override: { useSeconds: fieldCount === 6 },
+            }).isValid()
           }
 
-          if (fields.length === 5) {
-            // 5-field format: validate without seconds
-            const result = cronValidate(expression, {
-              override: {
-                useSeconds: false,
-              },
-            })
-            return result.isValid()
-          }
-
-          // Invalid field count
+          // Reject everything else (e.g. 7-field expressions with "year")
           return false
         } catch (error) {
           // If validation fails for any reason, assume invalid
