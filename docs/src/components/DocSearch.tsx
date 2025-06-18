@@ -38,7 +38,12 @@ function SearchButton({
   }
 
   return (
-    <button type="button" style={style} onClick={onClick} className={`${className} custom-search-button`}>
+    <button
+      type="button"
+      style={style}
+      onClick={onClick}
+      className={`${className} custom-search-button`}
+    >
       {children}
     </button>
   )
@@ -47,7 +52,9 @@ function SearchButton({
 export function DocSearch() {
   const openSearch = useCallback(() => {
     // This will trigger the Algolia DocSearch modal
-    const searchButton = document.querySelector('.DocSearch-Button') as HTMLButtonElement
+    const searchButton = document.querySelector(
+      '.DocSearch-Button',
+    ) as HTMLButtonElement
     if (searchButton) {
       searchButton.click()
     }
@@ -59,7 +66,7 @@ export function DocSearch() {
       <div style={{ display: 'none' }}>
         <div id="default-search-container" />
       </div>
-      
+
       {/* Our custom search button */}
       <SearchButton onClick={openSearch}>
         <Search size={18} aria-hidden="true" />
