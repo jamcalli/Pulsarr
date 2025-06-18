@@ -442,11 +442,11 @@ export async function updateConditionalRule(
 }
 
 /**
- * Determines whether any enabled router rules exist in the database.
+ * Checks if any enabled router rules exist in the database.
  *
- * Returns `true` if at least one enabled router rule is found; otherwise, returns `false`. If an error occurs during the check, conservatively returns `true`.
+ * Returns `true` if at least one enabled router rule is found, or if an error occurs during the check; otherwise, returns `false`.
  *
- * @returns Promise resolving to `true` if any enabled router rules exist, otherwise `false`
+ * @returns Promise resolving to `true` if any enabled router rules exist or if an error occurs, otherwise `false`
  */
 export async function hasAnyRouterRules(
   this: DatabaseService,
@@ -467,60 +467,6 @@ export async function hasAnyRouterRules(
 
     // In case of error, assume rules might exist to be safe
     // This is more conservative than skipping evaluation on error
-    return true
-  }
-}
-
-/**
- * Determines whether any enabled router rules require metadata enrichment based on their conditions.
- *
- * Returns `true` if at least one enabled router rule contains a condition that references fields such as year, certification, language, or season, which require metadata from external APIs. Returns `true` on error as a conservative fallback.
- *
- * @returns Promise resolving to `true` if metadata-requiring rules exist, otherwise `false`
- */
-export async function hasMetadataRequiringRules(
-  this: DatabaseService,
-): Promise<boolean> {
-  try {
-    // Check for rules with conditions that require metadata from Radarr/Sonarr APIs
-    // These field types need enriched metadata: year, certification, language, season
-    const result = await this.knex('router_rules')
-      .where(function () {
-        this.where('enabled', true).orWhereNull('enabled')
-      })
-      .where(function () {
-        // Check if conditions contain fields that require metadata
-        // Use database-specific JSON queries
-        if (this.client.config.client === 'pg') {
-          // PostgreSQL JSONB queries
-          this.whereRaw('conditions::text LIKE \'%"field":"year"%\'')
-            .orWhereRaw('conditions::text LIKE \'%"field":"certification"%\'')
-            .orWhereRaw('conditions::text LIKE \'%"field":"language"%\'')
-            .orWhereRaw('conditions::text LIKE \'%"field":"season"%\'')
-        } else {
-          // SQLite JSON queries
-          this.whereRaw(
-            'json_extract(conditions, \'$\') LIKE \'%"field":"year"%\'',
-          )
-            .orWhereRaw(
-              'json_extract(conditions, \'$\') LIKE \'%"field":"certification"%\'',
-            )
-            .orWhereRaw(
-              'json_extract(conditions, \'$\') LIKE \'%"field":"language"%\'',
-            )
-            .orWhereRaw(
-              'json_extract(conditions, \'$\') LIKE \'%"field":"season"%\'',
-            )
-        }
-      })
-      .count('* as count')
-      .first()
-
-    return Number(result?.count || 0) > 0
-  } catch (error) {
-    this.log.error('Error checking for metadata-requiring router rules:', error)
-
-    // In case of error, assume metadata might be needed to be safe
     return true
   }
 }

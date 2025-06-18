@@ -136,11 +136,5 @@ declare module '@services/database.service.js' {
      * @returns Promise resolving to true if any rules exist, false otherwise
      */
     hasAnyRouterRules(): Promise<boolean>
-
-    /**
-     * Checks if any router rules exist that require metadata enrichment
-     * @returns Promise resolving to true if metadata-requiring rules exist, false otherwise
-     */
-    hasMetadataRequiringRules(): Promise<boolean>
   }
 }
