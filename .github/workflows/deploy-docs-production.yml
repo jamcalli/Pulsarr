@@ -57,3 +57,6 @@ jobs:
           GIT_USER: ${{ github.actor }}
           GIT_PASS: ${{ secrets.GITHUB_TOKEN }}
           USE_SSH: false
+          ALGOLIA_APP_ID: ${{ secrets.ALGOLIA_APP_ID }}
+          ALGOLIA_SEARCH_API_KEY: ${{ secrets.ALGOLIA_SEARCH_API_KEY }}
+          ALGOLIA_INDEX_NAME: ${{ secrets.ALGOLIA_INDEX_NAME }}
