@@ -2,7 +2,7 @@
 #github-stats-button {
 	display: flex;
 	align-items: center;
-	margin-right: 0.75rem;
+	margin-right: 0;
 	height: 40px;
 	position: relative;
 	isolation: isolate;

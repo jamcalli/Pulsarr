@@ -25,6 +25,9 @@
 /* Import docs styling */
 @import "./docs.css";
 
+/* Import search styling */
+@import "./search.css";
+
 /* Override Infima defaults that conflict with our styles */
 :root {
 	--ifm-font-family-base: "Shuttleblock", system-ui, -apple-system,
