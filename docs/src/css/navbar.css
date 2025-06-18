@@ -2,37 +2,37 @@
  * Custom navbar styling for Docusaurus
  */
 
-/* Set default colors for navbar links */
+/* Force navbar links to always be black */
 .navbar__link {
-	color: var(--text) !important;
+	color: #000 !important;
 	font-weight: 500;
 }
 
-/* Make sure links stay dark on hover, just slightly lighter */
+/* Make sure links stay black on hover, just slightly lighter */
 .navbar__link:hover,
 .navbar__link--active {
-	color: var(--text) !important;
+	color: #000 !important;
 	opacity: 0.8;
 	text-decoration: none;
 }
 
 /* Remove blue color from active link */
 .navbar__link.navbar__link--active {
-	color: var(--text) !important;
+	color: #000 !important;
 	opacity: 0.8;
 }
 
-/* Ensure dark text in both light and dark modes */
+/* Force black text in both light and dark modes */
 html[data-theme="light"] .navbar__link,
 html[data-theme="light"] .navbar__link:hover,
 html[data-theme="light"] .navbar__link--active {
-	color: var(--text) !important;
+	color: #000 !important;
 }
 
 html[data-theme="dark"] .navbar__link,
 html[data-theme="dark"] .navbar__link:hover,
 html[data-theme="dark"] .navbar__link--active {
-	color: var(--text) !important;
+	color: #000 !important;
 }
 
 /* Remove background color from active/hover states */
@@ -41,10 +41,37 @@ html[data-theme="dark"] .navbar__link--active {
 	background-color: transparent !important;
 }
 
-/* Make logo text darker */
-.navbar__title {
-	color: var(--text) !important;
+/* Force logo text to always be black */
+.navbar__title,
+.navbar__brand {
+	color: #000 !important;
 	font-weight: 600;
+}
+
+/* Force brand link to stay black */
+.navbar__brand:hover,
+.navbar__brand:focus {
+	color: #000 !important;
+}
+
+/* Force mobile menu toggle button to be black */
+.navbar__toggle,
+.navbar__toggle svg,
+.navbar-sidebar__brand .navbar__toggle {
+	color: #000 !important;
+}
+
+/* Target the hamburger icon specifically */
+.navbar__toggle:hover,
+.navbar__toggle:focus {
+	color: #000 !important;
+	background-color: transparent !important;
+}
+
+/* Override: Allow mobile sidebar brand text to use theme colors */
+.navbar-sidebar__brand .navbar__title,
+.navbar-sidebar__brand .navbar__brand {
+	color: var(--text) !important;
 }
 
 /* Star reminder text styling */
