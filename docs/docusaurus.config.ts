@@ -3,6 +3,10 @@ import type { Config } from '@docusaurus/types'
 import type * as Preset from '@docusaurus/preset-classic'
 import path from 'node:path'
 import { readFileSync } from 'node:fs'
+import dotenv from 'dotenv'
+
+// Load environment variables
+dotenv.config()
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
@@ -145,6 +149,14 @@ const config: Config = {
       defaultMode: 'dark',
       disableSwitch: false,
       respectPrefersColorScheme: true,
+    },
+    algolia: {
+      appId: process.env.ALGOLIA_APP_ID || '',
+      apiKey: process.env.ALGOLIA_SEARCH_API_KEY || '',
+      indexName: process.env.ALGOLIA_INDEX_NAME || 'pulsarr',
+      contextualSearch: true,
+      searchParameters: {},
+      searchPagePath: 'search',
     },
     navbar: {
       title: 'Pulsarr',
