@@ -1,0 +1,135 @@
+/* Algolia DocSearch Customization */
+
+/* Hide the default search button since we're using our custom one */
+.DocSearch-Button {
+	display: none !important;
+}
+
+/* Force search button text to stay black */
+.custom-search-button,
+.custom-search-button * {
+	color: #000 !important;
+}
+
+/* Modal overlay and container */
+.DocSearch-Modal {
+	background-color: var(--bg) !important;
+	border: 2px solid var(--border) !important;
+	border-radius: 12px !important;
+	box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3) !important;
+}
+
+.DocSearch-Container {
+	background-color: rgba(0, 0, 0, 0.6) !important;
+}
+
+/* Search input */
+.DocSearch-Form {
+	background-color: transparent !important;
+	border-bottom: 2px solid var(--border) !important;
+}
+
+.DocSearch-Input {
+	background-color: transparent !important;
+	color: var(--text) !important;
+	font-family: var(--ifm-font-family-base) !important;
+	font-size: 16px !important;
+}
+
+.DocSearch-Input:focus {
+	outline: none !important;
+	box-shadow: none !important;
+}
+
+/* Search results */
+.DocSearch-Dropdown {
+	background-color: var(--bg) !important;
+}
+
+.DocSearch-Hit {
+	background-color: transparent !important;
+	border-bottom: 1px solid var(--border) !important;
+}
+
+.DocSearch-Hit:hover,
+.DocSearch-Hit[aria-selected="true"] {
+	background-color: var(--ifm-color-primary) !important;
+}
+
+.DocSearch-Hit-title {
+	color: var(--text) !important;
+	font-family: var(--ifm-font-family-base) !important;
+}
+
+.DocSearch-Hit:hover .DocSearch-Hit-title,
+.DocSearch-Hit[aria-selected="true"] .DocSearch-Hit-title {
+	color: white !important;
+}
+
+.DocSearch-Hit-path {
+	color: var(--text) !important;
+	opacity: 0.7 !important;
+}
+
+.DocSearch-Hit:hover .DocSearch-Hit-path,
+.DocSearch-Hit[aria-selected="true"] .DocSearch-Hit-path {
+	color: white !important;
+	opacity: 0.9 !important;
+}
+
+/* Footer */
+.DocSearch-Footer {
+	background-color: var(--bg) !important;
+	border-top: 1px solid var(--border) !important;
+}
+
+.DocSearch-Commands-Key {
+	background-color: var(--border) !important;
+	color: var(--text) !important;
+	border: 1px solid var(--border) !important;
+}
+
+/* Cancel button */
+.DocSearch-Cancel {
+	color: var(--text) !important;
+	background-color: transparent !important;
+	border: 1px solid var(--border) !important;
+	border-radius: 6px !important;
+	padding: 6px 12px !important;
+	font-family: var(--ifm-font-family-base) !important;
+}
+
+.DocSearch-Cancel:hover {
+	background-color: var(--ifm-color-primary) !important;
+	color: white !important;
+	border-color: var(--ifm-color-primary) !important;
+}
+
+/* Start screen */
+.DocSearch-StartScreen .DocSearch-Help {
+	color: var(--text) !important;
+}
+
+/* No results screen */
+.DocSearch-NoResults .DocSearch-Screen-Icon {
+	color: var(--text) !important;
+}
+
+.DocSearch-NoResults .DocSearch-Title {
+	color: var(--text) !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 996px) {
+	.DocSearch-Button {
+		padding: 6px 10px !important;
+	}
+
+	.DocSearch-Button-Placeholder {
+		display: none !important;
+	}
+
+	.DocSearch-Button-Keys {
+		display: none !important;
+	}
+}
