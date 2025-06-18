@@ -26,10 +26,3 @@ jobs:
         run: tsc --noEmit -p src/client/tsconfig.json
       - name: Build
         run: npm run build
-      - name: Contribute List
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop')
-        uses: akhilmhdh/contributors-readme-action@v2.3.10
-        env:
-            GITHUB_TOKEN: ${{ secrets.ADMIN_TOKEN }}
-        with:
-            auto_detect_branch_protection: false
