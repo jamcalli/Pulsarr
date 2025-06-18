@@ -121,6 +121,14 @@ We welcome contributions! Please see our [Contributing Guidelines](https://jamca
 
 Your support helps keep this project active and growing!
 
+## ❤️ Thank You
+
+A big thank you to these amazing contributors who've helped build and maintain this project:
+
+<a href="https://github.com/jamcalli/pulsarr/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=jamcalli/pulsarr" alt="Contributors" />
+</a>
+
 ## 📜 License
 
 Pulsarr is licensed under the GPL. See the [LICENSE](LICENSE) file for details.
