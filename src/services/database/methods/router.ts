@@ -442,11 +442,11 @@ export async function updateConditionalRule(
 }
 
 /**
- * Determines whether any enabled router rules exist in the database.
+ * Checks if any enabled router rules exist in the database.
  *
- * Returns `true` if at least one enabled router rule is found; otherwise, returns `false`. If an error occurs during the check, conservatively returns `true`.
+ * Returns `true` if at least one enabled router rule is found, or if an error occurs during the check; otherwise, returns `false`.
  *
- * @returns Promise resolving to `true` if any enabled router rules exist, otherwise `false`
+ * @returns Promise resolving to `true` if any enabled router rules exist or if an error occurs, otherwise `false`
  */
 export async function hasAnyRouterRules(
   this: DatabaseService,
