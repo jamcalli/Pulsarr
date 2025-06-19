@@ -124,6 +124,9 @@ export const RuleBuilder = {
     search_on_add?: boolean | null
     season_monitoring?: string | null
     series_type?: 'standard' | 'anime' | 'daily' | null
+    always_require_approval?: boolean
+    bypass_user_quotas?: boolean
+    approval_reason?: string | null
   }): Omit<RouterRule, 'id' | 'created_at' | 'updated_at'> {
     const {
       condition,
@@ -135,6 +138,9 @@ export const RuleBuilder = {
       search_on_add,
       season_monitoring,
       series_type,
+      always_require_approval,
+      bypass_user_quotas,
+      approval_reason,
       ...rest
     } = options
 
@@ -151,6 +157,9 @@ export const RuleBuilder = {
       search_on_add,
       season_monitoring,
       series_type,
+      always_require_approval,
+      bypass_user_quotas,
+      approval_reason,
     }
   },
 }

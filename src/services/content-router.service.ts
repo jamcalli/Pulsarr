@@ -383,11 +383,80 @@ export class ContentRouterService {
       return { routedInstances }
     }
 
-    // Step 4: Process decisions from evaluators
+    // Step 4: Check for approval requirements before processing routing decisions
 
-    // Sort decisions by priority (highest first) to ensure we process most important rules first
-    // This is crucial since we only route to each instance once (using the highest priority rule)
-    allDecisions.sort((a, b) => (b.priority || 50) - (a.priority || 50))
+    // If we have routing decisions and user context, check if approval is required
+    if (allDecisions.length > 0 && context.userId) {
+      try {
+        // Sort decisions by priority for approval checking
+        allDecisions.sort((a, b) => (b.priority || 50) - (a.priority || 50))
+
+        // Check if approval is required for these routing decisions
+        const approvalResult = await this.checkApprovalRequirements(
+          enrichedItem,
+          context,
+          allDecisions,
+        )
+
+        if (approvalResult.required) {
+          this.log.info(
+            `Approval required for "${enrichedItem.title}" by user ${context.userName || context.userId}: ${approvalResult.reason}`,
+          )
+
+          // Store the approval request with the highest priority routing decision
+          const primaryDecision = allDecisions[0] // Already sorted by priority
+
+          await this.fastify.approvalService.createApprovalRequest(
+            {
+              id: context.userId,
+              name: context.userName || `User ${context.userId}`,
+            },
+            enrichedItem,
+            {
+              action: 'require_approval',
+              approval: {
+                reason: approvalResult.reason || 'Approval required',
+                triggeredBy: approvalResult.trigger || 'manual_flag',
+                data: approvalResult.data || {},
+                proposedRouting: primaryDecision
+                  ? {
+                      instanceId: primaryDecision.instanceId,
+                      instanceType:
+                        enrichedItem.type === 'movie' ? 'radarr' : 'sonarr',
+                      qualityProfile: primaryDecision.qualityProfile,
+                      rootFolder: primaryDecision.rootFolder,
+                      tags: primaryDecision.tags,
+                      priority: primaryDecision.priority,
+                      searchOnAdd: primaryDecision.searchOnAdd,
+                      seasonMonitoring: primaryDecision.seasonMonitoring,
+                      seriesType: primaryDecision.seriesType,
+                      minimumAvailability: primaryDecision.minimumAvailability,
+                    }
+                  : undefined,
+              },
+            },
+            approvalResult.trigger || 'manual_flag',
+            approvalResult.reason,
+          )
+
+          // Return empty - content will not be routed until approved
+          return { routedInstances: [] }
+        }
+      } catch (error) {
+        this.log.error(
+          `Error checking approval requirements for "${enrichedItem.title}":`,
+          error,
+        )
+        // On error, continue with normal routing
+      }
+    }
+
+    // Step 5: Process decisions from evaluators (normal routing path)
+
+    // Decisions are already sorted by priority from approval check above
+    if (allDecisions.length === 0) {
+      allDecisions.sort((a, b) => (b.priority || 50) - (a.priority || 50))
+    }
 
     let routeCount = 0
 
@@ -1042,5 +1111,121 @@ export class ContentRouterService {
       supportedOperators: evaluator.supportedOperators || {},
       contentType: evaluator.contentType || 'both',
     }))
+  }
+
+  /**
+   * Checks if routing decisions require approval based on router rules and user quotas.
+   * This method evaluates approval criteria like user-based rules ("if user = 'User A' then require approval")
+   * and quota restrictions to determine if content should be held for admin review.
+   *
+   * @param item - The content item being routed
+   * @param context - The routing context with user information
+   * @param routingDecisions - The routing decisions that would be applied
+   * @returns Promise resolving to approval requirement result
+   */
+  private async checkApprovalRequirements(
+    item: ContentItem,
+    context: RoutingContext,
+    routingDecisions: RoutingDecision[],
+  ): Promise<{
+    required: boolean
+    reason?: string
+    trigger?: import('@root/types/approval.types.js').ApprovalTrigger
+    data?: import('@root/types/approval.types.js').ApprovalData
+  }> {
+    if (!context.userId) {
+      return { required: false }
+    }
+
+    try {
+      // Get user information to check user-level approval requirements
+      const user = await this.fastify.db.getUser(context.userId)
+      if (!user) {
+        return { required: false }
+      }
+
+      // Check user-level approval requirement FIRST (highest priority)
+      if (user.requires_approval === true) {
+        return {
+          required: true,
+          reason: `User "${user.name}" requires approval for all content`,
+          trigger: 'manual_flag',
+          data: {
+            criteriaType: 'user_requires_approval',
+            criteriaValue: user.name,
+          },
+        }
+      }
+
+      // Check router rules for both quota bypass and approval requirements
+      const allRouterRules = await this.fastify.db.getAllRouterRules()
+      let quotasBypassedByRule = false
+
+      for (const rule of allRouterRules) {
+        if (!rule.enabled) continue
+
+        // Check if this rule matches the current context
+        if (rule.criteria && typeof rule.criteria === 'object') {
+          try {
+            const condition = rule.criteria.condition as ConditionGroup
+            const matches = this.evaluateCondition(condition, item, context)
+
+            if (matches) {
+              // Check if this rule bypasses quotas
+              if (rule.bypass_user_quotas) {
+                quotasBypassedByRule = true
+              }
+
+              // Check if this rule requires approval
+              if (rule.always_require_approval) {
+                return {
+                  required: true,
+                  reason:
+                    rule.approval_reason ||
+                    `Approval required by router rule: ${rule.name}`,
+                  trigger: 'router_rule',
+                  data: {
+                    ruleId: rule.id,
+                    criteriaType: 'router_rule',
+                    criteriaValue: rule.name,
+                  },
+                }
+              }
+            }
+          } catch (error) {
+            this.log.error(`Error evaluating router rule ${rule.id}:`, error)
+          }
+        }
+      }
+
+      // Check quota status only if not bypassed by rule or user settings
+      const userQuota = await this.fastify.db.getUserQuota(context.userId)
+      const userBypassesQuotas = userQuota?.bypassApproval || false
+
+      if (!quotasBypassedByRule && !userBypassesQuotas) {
+        const quotaStatus = await this.fastify.quotaService.getUserQuotaStatus(
+          context.userId,
+          item.type,
+        )
+
+        if (quotaStatus?.exceeded) {
+          return {
+            required: true,
+            reason: `${quotaStatus.quotaType} quota exceeded (${quotaStatus.currentUsage}/${quotaStatus.quotaLimit})`,
+            trigger: 'quota_exceeded',
+            data: {
+              quotaType: quotaStatus.quotaType,
+              quotaUsage: quotaStatus.currentUsage,
+              quotaLimit: quotaStatus.quotaLimit,
+            },
+          }
+        }
+      }
+
+      return { required: false }
+    } catch (error) {
+      this.log.error('Error checking approval requirements:', error)
+      return { required: false }
+    }
   }
 }

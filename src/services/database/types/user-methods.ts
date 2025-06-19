@@ -109,6 +109,12 @@ declare module '@services/database.service.js' {
     hasUsersWithSyncDisabled(): Promise<boolean>
 
     /**
+     * Checks if any users have approval configuration that requires user-specific processing
+     * @returns Promise resolving to true if any users have quotas, approval flags, or approval router rules
+     */
+    hasUsersWithApprovalConfig(): Promise<boolean>
+
+    /**
      * Sets a user as the primary token user, ensuring only one user has this flag
      * @param userId - ID of the user to set as primary
      * @returns Promise resolving to true if successful
