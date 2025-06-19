@@ -82,6 +82,15 @@ declare module '@services/database.service.js' {
     deleteApprovalRequest(id: number): Promise<boolean>
 
     /**
+     * Creates an approval request, handling expired duplicates atomically
+     * @param data - Approval request data
+     * @returns Promise resolving to the created or existing approval request
+     */
+    createApprovalRequestWithExpiredHandling(
+      data: CreateApprovalRequestData,
+    ): Promise<ApprovalRequest>
+
+    /**
      * Gets pending approval requests with optional filtering and pagination
      * @param userId - Optional user ID to filter by
      * @param limit - Maximum number of results (default: 50)

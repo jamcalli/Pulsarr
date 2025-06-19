@@ -100,19 +100,6 @@ export class ApprovalService {
       }
     }
 
-    // Check if approval request already exists for this user and content (using GUID for duplicate detection)
-    const existingRequest = await this.fastify.db.getApprovalRequestByContent(
-      user.id,
-      duplicateCheckGuid,
-    )
-
-    if (existingRequest && existingRequest.status === 'pending') {
-      this.fastify.log.debug(
-        `Approval request already exists for user ${user.id} and content ${contentKey}`,
-      )
-      return existingRequest
-    }
-
     const data: CreateApprovalRequestData = {
       userId: user.id,
       contentType: content.type,
@@ -129,7 +116,8 @@ export class ApprovalService {
       `Creating approval request with data: userId=${data.userId}, contentTitle="${data.contentTitle}", contentKey="${data.contentKey}"`,
     )
 
-    return this.fastify.db.createApprovalRequest(data)
+    // Use atomic method that handles expired duplicates within a transaction
+    return this.fastify.db.createApprovalRequestWithExpiredHandling(data)
   }
 
   /**
