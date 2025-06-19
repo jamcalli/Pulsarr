@@ -334,6 +334,58 @@ export async function deleteApprovalRequest(
 }
 
 /**
+ * Creates an approval request, handling expired duplicates atomically
+ */
+export async function createApprovalRequestWithExpiredHandling(
+  this: DatabaseService,
+  data: CreateApprovalRequestData,
+): Promise<ApprovalRequest> {
+  return await this.knex.transaction(async (trx) => {
+    // Check for existing request with the same user_id and content_key
+    const existingRow = await trx('approval_requests')
+      .where({
+        user_id: data.userId,
+        content_key: data.contentKey,
+      })
+      .first()
+
+    if (existingRow) {
+      const existing = mapRowToApprovalRequest(existingRow)
+
+      if (existing.status === 'pending') {
+        // Return existing pending request
+        return existing
+      }
+
+      if (existing.status === 'expired') {
+        // Delete expired request to make room for new one
+        await trx('approval_requests').where('id', existing.id).del()
+      }
+      // For approved/rejected, we continue to create a new request
+    }
+
+    // Create new approval request
+    const [insertedRow] = await trx('approval_requests')
+      .insert({
+        user_id: data.userId,
+        content_type: data.contentType,
+        content_title: data.contentTitle,
+        content_key: data.contentKey,
+        content_guids: JSON.stringify(data.contentGuids),
+        router_decision: JSON.stringify(data.routerDecision),
+        router_rule_id: data.routerRuleId,
+        approval_reason: data.approvalReason,
+        triggered_by: data.triggeredBy,
+        expires_at: data.expiresAt,
+        status: 'pending',
+      })
+      .returning('*')
+
+    return mapRowToApprovalRequest(insertedRow)
+  })
+}
+
+/**
  * Cleans up old expired requests
  */
 export async function cleanupExpiredRequests(

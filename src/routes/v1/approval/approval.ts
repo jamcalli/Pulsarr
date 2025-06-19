@@ -218,11 +218,29 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           }
         }
 
-        if (existingRequest.status !== 'pending') {
+        // Validate state transitions
+        const targetStatus = request.body.status
+        const currentStatus = existingRequest.status
+
+        if (currentStatus === 'approved' || currentStatus === 'expired') {
           reply.status(409)
           return {
             success: false,
-            message: 'Can only update pending approval requests',
+            message: `Cannot update ${currentStatus} approval requests`,
+          }
+        }
+
+        // Allow pending → approved/rejected and rejected → approved
+        const validTransitions = {
+          pending: ['approved', 'rejected'],
+          rejected: ['approved'],
+        }
+
+        if (!validTransitions[currentStatus]?.includes(targetStatus)) {
+          reply.status(409)
+          return {
+            success: false,
+            message: `Invalid state transition from ${currentStatus} to ${targetStatus}`,
           }
         }
 
@@ -237,6 +255,18 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
         if (!updatedRequest) {
           throw new Error('Failed to update approval request')
+        }
+
+        // If status changed to approved, process the request
+        if (targetStatus === 'approved' && currentStatus !== 'approved') {
+          const result =
+            await fastify.approvalService.processApprovedRequest(updatedRequest)
+          if (!result.success) {
+            fastify.log.warn(
+              `Failed to process newly approved request ${requestId}: ${result.error}`,
+            )
+            // Note: We don't fail the update, just log the warning
+          }
         }
 
         return {
@@ -330,6 +360,24 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const requestId = Number.parseInt(request.params.id, 10)
         const { rejectedBy, reason } = request.body
 
+        // Check if the request exists and is in pending status
+        const existingRequest = await fastify.db.getApprovalRequest(requestId)
+        if (!existingRequest) {
+          reply.status(404)
+          return {
+            success: false,
+            message: 'Approval request not found',
+          }
+        }
+
+        if (existingRequest.status !== 'pending') {
+          reply.status(409)
+          return {
+            success: false,
+            message: `Cannot reject request that is already ${existingRequest.status}`,
+          }
+        }
+
         // Reject the request using the database method
         const rejectedRequest = await fastify.db.rejectRequest(
           requestId,
@@ -338,11 +386,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         )
 
         if (!rejectedRequest) {
-          reply.status(404)
-          return {
-            success: false,
-            message: 'Approval request not found',
-          }
+          throw new Error('Failed to reject request')
         }
 
         return {
@@ -426,6 +470,27 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const requestId = Number.parseInt(request.params.id, 10)
         const { approvedBy, notes } = request.body
 
+        // Check if the request exists and is in pending status
+        const existingRequest = await fastify.db.getApprovalRequest(requestId)
+        if (!existingRequest) {
+          reply.status(404)
+          return {
+            success: false,
+            message: 'Approval request not found',
+          }
+        }
+
+        if (
+          existingRequest.status === 'approved' ||
+          existingRequest.status === 'expired'
+        ) {
+          reply.status(409)
+          return {
+            success: false,
+            message: `Cannot approve request that is already ${existingRequest.status}`,
+          }
+        }
+
         // Approve the request using the database method
         const approvedRequest = await fastify.db.approveRequest(
           requestId,
@@ -434,11 +499,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         )
 
         if (!approvedRequest) {
-          reply.status(404)
-          return {
-            success: false,
-            message: 'Approval request not found',
-          }
+          throw new Error('Failed to approve request')
         }
 
         // Process the approved request using the approval service
