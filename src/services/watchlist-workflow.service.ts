@@ -896,7 +896,7 @@ export class WatchlistWorkflowService {
 
       // Prepare item for Radarr
       const radarrItem: RadarrItem = {
-        title: `TMDB:${tmdbId}`,
+        title: item.title,
         guids: [tmdbGuid],
         type: 'movie',
         genres: this.safeParseArray<string>(item.genres),
@@ -961,7 +961,7 @@ export class WatchlistWorkflowService {
 
       // Prepare item for Sonarr
       const sonarrItem: SonarrItem = {
-        title: `TVDB:${tvdbId}`,
+        title: item.title,
         guids: [tvdbGuid],
         type: 'show',
         ended: false,
@@ -1130,7 +1130,7 @@ export class WatchlistWorkflowService {
               extractTypedGuid(tempItem.guids, 'tvdb:') || `tvdb:${tvdbId}`
 
             const sonarrItem: SonarrItem = {
-              title: `TVDB:${tvdbId}`,
+              title: tempItem.title,
               guids: [tvdbGuid],
               type: 'show',
               ended: false,
@@ -1174,7 +1174,7 @@ export class WatchlistWorkflowService {
               extractTypedGuid(tempItem.guids, 'tmdb:') || `tmdb:${tmdbId}`
 
             const radarrItem: RadarrItem = {
-              title: `TMDB:${tmdbId}`,
+              title: tempItem.title,
               guids: [tmdbGuid],
               type: 'movie',
               genres: this.safeParseArray<string>(tempItem.genres),

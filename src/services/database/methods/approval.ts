@@ -320,6 +320,20 @@ export async function expireOldRequests(
 }
 
 /**
+ * Deletes an approval request permanently from the database
+ */
+export async function deleteApprovalRequest(
+  this: DatabaseService,
+  id: number,
+): Promise<boolean> {
+  const deletedCount = await this.knex('approval_requests')
+    .where('id', id)
+    .del()
+
+  return deletedCount > 0
+}
+
+/**
  * Cleans up old expired requests
  */
 export async function cleanupExpiredRequests(

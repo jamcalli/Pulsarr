@@ -9,6 +9,7 @@ import type {
 import type { ContentItem } from '@root/types/router.types.js'
 import type { SonarrItem } from '@root/types/sonarr.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
+import { extractTypedGuid } from '@utils/guid-handler.js'
 
 export class ApprovalService {
   constructor(private fastify: FastifyInstance) {}
@@ -61,13 +62,48 @@ export class ApprovalService {
     trigger: ApprovalTrigger,
     reason?: string,
     expiresAt?: Date,
+    plexKey?: string,
   ): Promise<ApprovalRequest> {
-    const contentKey = content.guids[0] || '' // Use first GUID as key
+    this.fastify.log.debug(
+      `ApprovalService.createApprovalRequest called with content.title="${content.title}", content.guids=${JSON.stringify(content.guids)}, plexKey="${plexKey}"`,
+    )
 
-    // Check if approval request already exists for this user and content
+    // Use Plex key for content_key (user association), fall back to GUID if not provided
+    const contentKey = plexKey || content.guids[0] || ''
+
+    // For duplicate detection, use the appropriate GUID for the target ARR type
+    let duplicateCheckGuid = ''
+    if (
+      routerDecision.action === 'require_approval' &&
+      routerDecision.approval?.proposedRouting
+    ) {
+      const instanceType = routerDecision.approval.proposedRouting.instanceType
+      if (instanceType === 'radarr') {
+        // Radarr uses TMDB IDs
+        duplicateCheckGuid =
+          extractTypedGuid(content.guids, 'tmdb:') || content.guids[0] || ''
+      } else if (instanceType === 'sonarr') {
+        // Sonarr uses TVDB IDs
+        duplicateCheckGuid =
+          extractTypedGuid(content.guids, 'tvdb:') || content.guids[0] || ''
+      } else {
+        duplicateCheckGuid = content.guids[0] || ''
+      }
+    } else {
+      // For direct routing decisions, use content type to determine appropriate GUID
+      if (content.type === 'movie') {
+        duplicateCheckGuid =
+          extractTypedGuid(content.guids, 'tmdb:') || content.guids[0] || ''
+      } else {
+        duplicateCheckGuid =
+          extractTypedGuid(content.guids, 'tvdb:') || content.guids[0] || ''
+      }
+    }
+
+    // Check if approval request already exists for this user and content (using GUID for duplicate detection)
     const existingRequest = await this.fastify.db.getApprovalRequestByContent(
       user.id,
-      contentKey,
+      duplicateCheckGuid,
     )
 
     if (existingRequest && existingRequest.status === 'pending') {
@@ -88,6 +124,10 @@ export class ApprovalService {
       approvalReason: reason,
       expiresAt: expiresAt?.toISOString() || null,
     }
+
+    this.fastify.log.debug(
+      `Creating approval request with data: userId=${data.userId}, contentTitle="${data.contentTitle}", contentKey="${data.contentKey}"`,
+    )
 
     return this.fastify.db.createApprovalRequest(data)
   }

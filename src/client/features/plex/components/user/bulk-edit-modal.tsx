@@ -43,7 +43,7 @@ interface BulkEditModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   selectedRows: PlexUserTableRow[]
-  onSave: (userIds: string[], updates: PlexUserUpdates) => Promise<void>
+  onSave: (userIds: number[], updates: PlexUserUpdates) => Promise<void>
   saveStatus: BulkUpdateStatus
 }
 

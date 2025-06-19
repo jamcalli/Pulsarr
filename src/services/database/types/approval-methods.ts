@@ -75,6 +75,13 @@ declare module '@services/database.service.js' {
     ): Promise<ApprovalRequest | null>
 
     /**
+     * Deletes an approval request permanently from the database
+     * @param id - Approval request ID
+     * @returns Promise resolving to true if deleted, false if not found
+     */
+    deleteApprovalRequest(id: number): Promise<boolean>
+
+    /**
      * Gets pending approval requests with optional filtering and pagination
      * @param userId - Optional user ID to filter by
      * @param limit - Maximum number of results (default: 50)

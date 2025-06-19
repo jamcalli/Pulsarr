@@ -42,7 +42,7 @@ export function usePlexUser() {
     setIsEditModalOpen(true)
   }
 
-  const handleUpdateUser = async (userId: string, updates: CreateUser) => {
+  const handleUpdateUser = async (userId: number, updates: CreateUser) => {
     setSaveStatus('loading')
     try {
       const minimumLoadingTime = new Promise((resolve) =>

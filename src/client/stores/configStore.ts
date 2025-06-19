@@ -41,7 +41,7 @@ interface ConfigState {
     totalCount: number
   } | null
   updateUser: (
-    userId: string,
+    userId: number,
     updates: Partial<UserWatchlistInfo>,
   ) => Promise<void>
   setOpenUtilitiesAccordion: (accordionId: string | null) => void
@@ -160,7 +160,7 @@ export const useConfigStore = create<ConfigState>()(
         },
 
         updateUser: async (
-          userId: string,
+          userId: number,
           updates: Partial<UserWatchlistInfo>,
         ) => {
           try {
