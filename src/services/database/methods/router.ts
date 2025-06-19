@@ -66,6 +66,30 @@ export async function getRouterRulesByType(
 }
 
 /**
+ * Retrieves router rules that match a specific action (for approval workflow).
+ * This is used to find rules that trigger approval requirements.
+ *
+ * @param action - The action to filter by (e.g., 'require_approval')
+ * @param enabledOnly - If true, only enabled rules are returned (default: true)
+ * @returns A promise that resolves to an array of matching router rules
+ */
+export async function getRouterRulesByAction(
+  this: DatabaseService,
+  action: string,
+  enabledOnly = true,
+): Promise<RouterRule[]> {
+  const query = this.knex('router_rules').select('*').where('type', action)
+
+  if (enabledOnly) {
+    query.where('enabled', true)
+  }
+
+  const rules = await query.orderBy('order', 'desc').orderBy('id', 'asc')
+
+  return rules.map((rule) => this.formatRouterRule(rule))
+}
+
+/**
  * Creates a new router rule in the database.
  *
  * Serializes complex fields and sets creation and update timestamps. Throws an error if creation fails.
@@ -170,6 +194,19 @@ export async function updateRouterRule(
 
   if (updates.series_type !== undefined) {
     updateData.series_type = updates.series_type
+  }
+
+  // Action fields for approval system
+  if (updates.always_require_approval !== undefined) {
+    updateData.always_require_approval = updates.always_require_approval
+  }
+
+  if (updates.bypass_user_quotas !== undefined) {
+    updateData.bypass_user_quotas = updates.bypass_user_quotas
+  }
+
+  if (updates.approval_reason !== undefined) {
+    updateData.approval_reason = updates.approval_reason
   }
 
   const [updatedRule] = await this.knex('router_rules')

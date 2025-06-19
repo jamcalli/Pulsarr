@@ -10,6 +10,7 @@ export const CreateUserSchema = z.object({
   notify_tautulli: z.boolean().default(false),
   tautulli_notifier_id: z.number().nullable().default(null),
   can_sync: z.boolean().default(true),
+  requires_approval: z.boolean().default(false),
 })
 
 export const CreateUserResponseSchema = z.object({
@@ -26,6 +27,7 @@ export const CreateUserResponseSchema = z.object({
     notify_tautulli: z.boolean(),
     tautulli_notifier_id: z.number().nullable(),
     can_sync: z.boolean(),
+    requires_approval: z.boolean(),
     created_at: z.string(),
     updated_at: z.string(),
   }),
@@ -47,6 +49,7 @@ export const UpdateUserResponseSchema = z.object({
     notify_tautulli: z.boolean(),
     tautulli_notifier_id: z.number().nullable(),
     can_sync: z.boolean(),
+    requires_approval: z.boolean(),
     created_at: z.string(),
     updated_at: z.string(),
   }),

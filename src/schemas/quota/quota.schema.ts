@@ -1,0 +1,143 @@
+import { z } from 'zod'
+
+// Base enums
+export const QuotaTypeSchema = z.enum(['daily', 'weekly_rolling', 'monthly'])
+
+// User quota schemas
+export const CreateUserQuotaSchema = z.object({
+  userId: z.number(),
+  quotaType: QuotaTypeSchema,
+  quotaLimit: z.number().min(1),
+  resetDay: z.number().min(1).max(31).optional(),
+  bypassApproval: z.boolean().default(false),
+})
+
+export const UpdateUserQuotaSchema = z.object({
+  quotaType: QuotaTypeSchema.optional(),
+  quotaLimit: z.number().min(1).optional(),
+  resetDay: z.number().min(1).max(31).optional(),
+  bypassApproval: z.boolean().optional(),
+})
+
+export const UserQuotaResponseSchema = z.object({
+  userId: z.number(),
+  quotaType: QuotaTypeSchema,
+  quotaLimit: z.number(),
+  resetDay: z.number().nullable(),
+  bypassApproval: z.boolean(),
+})
+
+export const QuotaStatusResponseSchema = z.object({
+  quotaType: QuotaTypeSchema,
+  quotaLimit: z.number(),
+  currentUsage: z.number(),
+  exceeded: z.boolean(),
+  resetDate: z.string().datetime().nullable(),
+  bypassApproval: z.boolean(),
+})
+
+export const QuotaUsageResponseSchema = z.object({
+  userId: z.number(),
+  contentType: z.enum(['movie', 'show']),
+  requestDate: z.string(), // YYYY-MM-DD format
+})
+
+export const GetQuotaUsageQuerySchema = z.object({
+  userId: z.coerce.number(),
+  startDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  endDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  contentType: z.enum(['movie', 'show']).optional(),
+  limit: z.coerce.number().min(1).max(100).default(50),
+  offset: z.coerce.number().min(0).default(0),
+})
+
+export const GetDailyStatsQuerySchema = z.object({
+  userId: z.coerce.number(),
+  days: z.coerce.number().min(1).max(365).default(30),
+})
+
+export const DailyStatsResponseSchema = z.object({
+  date: z.string(),
+  movies: z.number(),
+  shows: z.number(),
+  total: z.number(),
+})
+
+export const GetUsersWithQuotasResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  userQuotas: z.array(UserQuotaResponseSchema),
+})
+
+export const UserQuotaCreateResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  userQuota: UserQuotaResponseSchema,
+})
+
+export const UserQuotaUpdateResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  userQuota: UserQuotaResponseSchema,
+})
+
+export const QuotaStatusGetResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  quotaStatus: QuotaStatusResponseSchema.nullable(),
+})
+
+export const QuotaUsageListResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  quotaUsage: z.array(QuotaUsageResponseSchema),
+  total: z.number(),
+  limit: z.number(),
+  offset: z.number(),
+})
+
+export const DailyStatsListResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  dailyStats: z.array(DailyStatsResponseSchema),
+})
+
+export const QuotaErrorSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+})
+
+// Type exports
+export type CreateUserQuota = z.infer<typeof CreateUserQuotaSchema>
+export type UpdateUserQuota = z.infer<typeof UpdateUserQuotaSchema>
+export type UserQuotaResponse = z.infer<typeof UserQuotaResponseSchema>
+export type QuotaStatusResponse = z.infer<typeof QuotaStatusResponseSchema>
+export type QuotaUsageResponse = z.infer<typeof QuotaUsageResponseSchema>
+export type GetQuotaUsageQuery = z.infer<typeof GetQuotaUsageQuerySchema>
+export type GetDailyStatsQuery = z.infer<typeof GetDailyStatsQuerySchema>
+export type DailyStatsResponse = z.infer<typeof DailyStatsResponseSchema>
+export type GetUsersWithQuotasResponse = z.infer<
+  typeof GetUsersWithQuotasResponseSchema
+>
+export type UserQuotaCreateResponse = z.infer<
+  typeof UserQuotaCreateResponseSchema
+>
+export type UserQuotaUpdateResponse = z.infer<
+  typeof UserQuotaUpdateResponseSchema
+>
+export type QuotaStatusGetResponse = z.infer<
+  typeof QuotaStatusGetResponseSchema
+>
+export type QuotaUsageListResponse = z.infer<
+  typeof QuotaUsageListResponseSchema
+>
+export type DailyStatsListResponse = z.infer<
+  typeof DailyStatsListResponseSchema
+>
+export type QuotaError = z.infer<typeof QuotaErrorSchema>

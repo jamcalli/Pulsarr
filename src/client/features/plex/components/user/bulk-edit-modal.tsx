@@ -374,6 +374,52 @@ const FormContent = ({
                 />
               )}
             </div>
+
+            {/* Requires Approval */}
+            <div className="space-y-2">
+              <FormField
+                control={form.control}
+                name="setRequiresApproval"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        disabled={saveStatus !== 'idle'}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="text-text">
+                        Set approval requirement
+                      </FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+              {form.watch('setRequiresApproval') && (
+                <FormField
+                  control={form.control}
+                  name="requiresApprovalValue"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 ml-7">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          disabled={saveStatus !== 'idle'}
+                        />
+                      </FormControl>
+                      <div className="leading-none">
+                        <FormLabel className="text-text">
+                          Require approval for all content
+                        </FormLabel>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              )}
+            </div>
           </div>
         </div>
         <div className="flex justify-end gap-2">
@@ -395,7 +441,8 @@ const FormContent = ({
                 !form.getValues('setAppriseNotify') &&
                 !form.getValues('setDiscordNotify') &&
                 !form.getValues('setTautulliNotify') &&
-                !form.getValues('setCanSync'))
+                !form.getValues('setCanSync') &&
+                !form.getValues('setRequiresApproval'))
             }
             className="min-w-[100px] flex items-center justify-center gap-2"
           >
@@ -456,6 +503,8 @@ export default function BulkEditModal({
       tautulliNotifyValue: false,
       setCanSync: false,
       canSyncValue: true,
+      setRequiresApproval: false,
+      requiresApprovalValue: false,
     },
   })
 
@@ -529,6 +578,10 @@ export default function BulkEditModal({
 
     if (values.setCanSync) {
       updates.can_sync = values.canSyncValue
+    }
+
+    if (values.setRequiresApproval) {
+      updates.requires_approval = values.requiresApprovalValue
     }
 
     try {

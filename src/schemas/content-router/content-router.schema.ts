@@ -132,6 +132,10 @@ export const BaseRouterRuleSchema = z.object({
   // Additional validation happens in the route handlers
   season_monitoring: z.string().nullable().optional(),
   series_type: z.enum(SERIES_TYPES).nullable().optional(),
+  // Actions - approval behavior
+  always_require_approval: z.boolean().optional().default(false),
+  bypass_user_quotas: z.boolean().optional().default(false),
+  approval_reason: z.string().optional(),
 })
 
 // For the ConditionalRouteFormSchema (used in the frontend)

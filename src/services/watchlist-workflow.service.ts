@@ -1322,7 +1322,15 @@ export class WatchlistWorkflowService {
       return this.hasUserField(criteria)
     })
 
-    return hasUsersWithSyncDisabled || hasUserRoutingRules
+    // Check if any users have approval configuration (quotas, requires_approval, approval router rules)
+    const hasUsersWithApprovalConfig =
+      await this.dbService.hasUsersWithApprovalConfig()
+
+    return (
+      hasUsersWithSyncDisabled ||
+      hasUserRoutingRules ||
+      hasUsersWithApprovalConfig
+    )
   }
 
   private safeParseArray<T>(value: unknown): T[] {

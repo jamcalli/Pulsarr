@@ -9,6 +9,7 @@ export interface User {
   notify_tautulli: boolean
   tautulli_notifier_id: number | null
   can_sync: boolean
+  requires_approval?: boolean
   is_primary_token?: boolean
   created_at?: string
   updated_at?: string

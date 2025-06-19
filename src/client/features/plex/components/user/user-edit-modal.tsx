@@ -31,7 +31,7 @@ import type { UserWatchlistInfo } from '@/stores/configStore'
 import { plexUserSchema } from '@/features/plex/store/schemas'
 import type { PlexUserSchema } from '@/features/plex/store/schemas'
 import { useMediaQuery } from '@/hooks/use-media-query'
-import type { UpdateUser } from '@root/schemas/users/users.schema'
+import type { CreateUser } from '@root/schemas/users/users.schema'
 import type { UserStatus } from '@/features/plex/hooks/usePlexUser'
 
 interface FormContentProps {
@@ -242,6 +242,28 @@ const FormContent = React.memo(
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="requires_approval"
+              render={({ field }) => (
+                <FormItem>
+                  <div className="flex items-center justify-between">
+                    <FormLabel className="text-text">
+                      Requires Approval
+                    </FormLabel>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        disabled={saveStatus !== 'idle'}
+                      />
+                    </FormControl>
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
 
           <div className="flex justify-end gap-2">
@@ -284,7 +306,7 @@ interface UserEditModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   user: UserWatchlistInfo | null
-  onSave: (userId: string, updates: UpdateUser) => Promise<void>
+  onSave: (userId: string, updates: CreateUser) => Promise<void>
   saveStatus: UserStatus
 }
 
@@ -321,7 +343,9 @@ export default function UserEditModal({
       notify_apprise: false,
       notify_discord: false,
       notify_tautulli: false,
+      tautulli_notifier_id: null,
       can_sync: false,
+      requires_approval: false,
     },
   })
 
@@ -335,7 +359,9 @@ export default function UserEditModal({
         notify_apprise: user.notify_apprise,
         notify_discord: user.notify_discord,
         notify_tautulli: user.notify_tautulli,
+        tautulli_notifier_id: null,
         can_sync: user.can_sync,
+        requires_approval: user.requires_approval,
       })
     }
   }, [user, form])
@@ -343,19 +369,7 @@ export default function UserEditModal({
   const handleSubmit = async (values: PlexUserSchema) => {
     if (!user) return
 
-    // Convert to UpdateUser type for API compatibility
-    const updates: UpdateUser = {
-      name: values.name,
-      apprise: values.apprise,
-      alias: values.alias,
-      discord_id: values.discord_id,
-      notify_apprise: values.notify_apprise,
-      notify_discord: values.notify_discord,
-      notify_tautulli: values.notify_tautulli,
-      can_sync: values.can_sync,
-    }
-
-    await onSave(user.id, updates)
+    await onSave(user.id, values)
   }
 
   const handleOpenChange = (newOpen: boolean) => {

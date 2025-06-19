@@ -201,6 +201,19 @@ export default function UserTable({
         </div>
       ),
     },
+    {
+      accessorKey: 'requires_approval',
+      header: () => <div>Requires Approval</div>,
+      cell: ({ row }) => (
+        <div className="flex justify-center w-16">
+          {row.getValue('requires_approval') ? (
+            <Check className="h-4 w-4 text-main" />
+          ) : (
+            <X className="h-4 w-4 text-error" />
+          )}
+        </div>
+      ),
+    },
 
     {
       accessorKey: 'watchlist_count',

@@ -42,6 +42,10 @@ export function formatRule(
       season_monitoring:
         rule.season_monitoring !== null ? rule.season_monitoring : undefined,
       series_type: rule.series_type !== null ? rule.series_type : undefined,
+      // Action fields
+      always_require_approval: rule.always_require_approval ?? false,
+      bypass_user_quotas: rule.bypass_user_quotas ?? false,
+      approval_reason: rule.approval_reason || undefined,
       created_at: rule.created_at,
       updated_at: rule.updated_at,
     }
@@ -71,6 +75,10 @@ export function formatRule(
       season_monitoring:
         rule.season_monitoring !== null ? rule.season_monitoring : undefined,
       series_type: rule.series_type !== null ? rule.series_type : undefined,
+      // Action fields
+      always_require_approval: rule.always_require_approval ?? false,
+      bypass_user_quotas: rule.bypass_user_quotas ?? false,
+      approval_reason: rule.approval_reason || undefined,
       created_at: rule.created_at,
       updated_at: rule.updated_at,
     }

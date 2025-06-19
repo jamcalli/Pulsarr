@@ -36,6 +36,17 @@ declare module '@services/database.service.js' {
     ): Promise<RouterRule[]>
 
     /**
+     * Retrieves router rules by action (for approval workflow)
+     * @param action - Action to filter by (e.g., 'require_approval')
+     * @param enabledOnly - Whether to retrieve only enabled rules (default: true)
+     * @returns Promise resolving to array of matching router rules
+     */
+    getRouterRulesByAction(
+      action: string,
+      enabledOnly?: boolean,
+    ): Promise<RouterRule[]>
+
+    /**
      * Creates a new router rule
      * @param rule - Router rule data excluding auto-generated fields
      * @returns Promise resolving to the created router rule

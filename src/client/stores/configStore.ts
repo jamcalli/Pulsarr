@@ -1,21 +1,9 @@
 import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
 import type { Config } from '@root/types/config.types'
+import type { UserWithCount } from '@root/schemas/users/users-list.schema'
 
-export interface UserWatchlistInfo {
-  id: string
-  name: string
-  apprise: string
-  alias: string | null
-  discord_id: string | null
-  notify_apprise: boolean
-  notify_discord: boolean
-  notify_tautulli: boolean
-  can_sync: boolean
-  created_at: string
-  updated_at: string
-  watchlist_count: number
-}
+export type UserWatchlistInfo = UserWithCount
 
 interface UserListResponse {
   success: boolean
@@ -188,6 +176,7 @@ export const useConfigStore = create<ConfigState>()(
                 notify_discord: updates.notify_discord,
                 notify_tautulli: updates.notify_tautulli,
                 can_sync: updates.can_sync,
+                requires_approval: updates.requires_approval,
               }),
             })
 

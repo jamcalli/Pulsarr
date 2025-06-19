@@ -254,6 +254,10 @@ const AccordionRouteCard = ({
                 ? selectedInst.seriesType
                 : undefined)
             : undefined,
+        // Action fields for approval system
+        always_require_approval: routeObj?.always_require_approval || false,
+        bypass_user_quotas: routeObj?.bypass_user_quotas || false,
+        approval_reason: routeObj?.approval_reason || '',
       }
     },
     [getInitialConditionValue],
@@ -548,6 +552,10 @@ const AccordionRouteCard = ({
             contentType === 'sonarr' && data.series_type
               ? data.series_type
               : undefined,
+          // Action fields
+          always_require_approval: data.always_require_approval,
+          bypass_user_quotas: data.bypass_user_quotas,
+          approval_reason: data.approval_reason,
         }
 
         await onSave(routeData)
@@ -575,6 +583,10 @@ const AccordionRouteCard = ({
             contentType === 'sonarr' && data.series_type
               ? data.series_type
               : undefined,
+          // Action fields
+          always_require_approval: data.always_require_approval,
+          bypass_user_quotas: data.bypass_user_quotas,
+          approval_reason: data.approval_reason,
         }
 
         await onSave(updatePayload)
@@ -964,6 +976,103 @@ const AccordionRouteCard = ({
                         </FormItem>
                       )}
                     />
+                  </div>
+
+                  {/* Actions Section - Approval Behavior */}
+                  <div className="space-y-4 border rounded-md p-4 bg-card/30 border-text/20">
+                    <div className="flex items-center space-x-2">
+                      <h3 className="text-sm font-medium text-text">Actions</h3>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="max-w-xs">
+                              Configure special behavior for content that
+                              matches this rule. By default, content is routed
+                              directly. User quotas are checked automatically if
+                              configured.
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <FormField
+                        control={form.control}
+                        name="always_require_approval"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 space-y-0">
+                            <div className="space-y-0.5">
+                              <FormLabel className="text-sm">
+                                Always Require Approval
+                              </FormLabel>
+                              <FormDescription className="text-xs">
+                                Force approval for this rule regardless of
+                                quotas
+                              </FormDescription>
+                            </div>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="bypass_user_quotas"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 space-y-0">
+                            <div className="space-y-0.5">
+                              <FormLabel className="text-sm">
+                                Bypass User Quotas
+                              </FormLabel>
+                              <FormDescription className="text-xs">
+                                Skip quota checks for this rule
+                              </FormDescription>
+                            </div>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    {/* Approval Reason - shown when always_require_approval is enabled */}
+                    {form.watch('always_require_approval') && (
+                      <FormField
+                        control={form.control}
+                        name="approval_reason"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-sm">
+                              Approval Reason
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="e.g., High bandwidth content, Special handling required"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormDescription className="text-xs">
+                              Reason displayed to admins when approval is
+                              required
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
                   </div>
 
                   {/* Instance Selection and Priority Weight */}
