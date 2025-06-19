@@ -85,6 +85,7 @@ const FormContent = React.memo(
                       placeholder="Apprise endpoint"
                       disabled={saveStatus !== 'idle'}
                       {...field}
+                      value={field.value ?? ''}
                     />
                   </FormControl>
                   <FormMessage />
@@ -306,7 +307,7 @@ interface UserEditModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   user: UserWatchlistInfo | null
-  onSave: (userId: string, updates: CreateUser) => Promise<void>
+  onSave: (userId: number, updates: CreateUser) => Promise<void>
   saveStatus: UserStatus
 }
 

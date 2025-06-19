@@ -6,7 +6,6 @@ import UserTable from '@/features/plex/components/user/user-table'
 import UserEditModal from '@/features/plex/components/user/user-edit-modal'
 import BulkEditModal from '@/features/plex/components/user/bulk-edit-modal'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
-import type { PlexUserUpdates } from '@/features/plex/store/types'
 
 export default function UserTableSection() {
   const {
@@ -58,15 +57,6 @@ export default function UserTableSection() {
     }
   }, [isInitialized, minLoadingComplete])
 
-  const handleBulkUpdateWithStringIds = async (
-    userIds: string[],
-    updates: PlexUserUpdates,
-  ) => {
-    // Convert string IDs to numbers
-    const numericUserIds = userIds.map((id) => Number(id))
-    return handleBulkUpdate(numericUserIds, updates)
-  }
-
   return (
     <div>
       <div className="flex items-center justify-between">
@@ -98,7 +88,7 @@ export default function UserTableSection() {
               open={bulkEditModalOpen}
               onOpenChange={setBulkEditModalOpen}
               selectedRows={selectedRows}
-              onSave={handleBulkUpdateWithStringIds}
+              onSave={handleBulkUpdate}
               saveStatus={bulkUpdateStatus}
             />
           </>

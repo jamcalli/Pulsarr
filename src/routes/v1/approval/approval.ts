@@ -251,7 +251,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     },
   )
 
-  // Delete approval request
+  // Delete approval request (hard delete from database)
   fastify.delete<{
     Params: { id: string }
     Reply: z.infer<typeof ApprovalErrorSchema>
@@ -261,7 +261,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       schema: {
         summary: 'Delete approval request',
         operationId: 'deleteApprovalRequest',
-        description: 'Delete an approval request',
+        description: 'Permanently delete an approval request from database',
         params: z.object({
           id: z.string(),
         }),
@@ -276,12 +276,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       try {
         const requestId = Number.parseInt(request.params.id, 10)
 
-        // Since there's no delete method in the database interface,
-        // we'll update the status to 'rejected' instead
-        const deleted = await fastify.db.updateApprovalRequest(requestId, {
-          status: 'rejected',
-          approvalNotes: 'Request deleted via API',
-        })
+        // Actually delete the approval request from the database
+        const deleted = await fastify.db.deleteApprovalRequest(requestId)
 
         if (!deleted) {
           reply.status(404)
@@ -298,6 +294,64 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       } catch (error) {
         fastify.log.error('Error deleting approval request:', error)
         return reply.internalServerError('Failed to delete approval request')
+      }
+    },
+  )
+
+  // Reject approval request (marks as rejected, keeps in database)
+  fastify.post<{
+    Params: { id: string }
+    Body: { rejectedBy: number; reason?: string }
+    Reply: z.infer<typeof ApprovalErrorSchema>
+  }>(
+    '/requests/:id/reject',
+    {
+      schema: {
+        summary: 'Reject approval request',
+        operationId: 'rejectApprovalRequest',
+        description: 'Reject an approval request (marks as rejected)',
+        params: z.object({
+          id: z.string(),
+        }),
+        body: z.object({
+          rejectedBy: z.number(),
+          reason: z.string().optional(),
+        }),
+        response: {
+          200: ApprovalErrorSchema,
+          404: ApprovalErrorSchema,
+          409: ApprovalErrorSchema,
+        },
+        tags: ['Approval'],
+      },
+    },
+    async (request, reply) => {
+      try {
+        const requestId = Number.parseInt(request.params.id, 10)
+        const { rejectedBy, reason } = request.body
+
+        // Reject the request using the database method
+        const rejectedRequest = await fastify.db.rejectRequest(
+          requestId,
+          rejectedBy,
+          reason,
+        )
+
+        if (!rejectedRequest) {
+          reply.status(404)
+          return {
+            success: false,
+            message: 'Approval request not found',
+          }
+        }
+
+        return {
+          success: true,
+          message: 'Approval request rejected successfully',
+        }
+      } catch (error) {
+        fastify.log.error('Error rejecting approval request:', error)
+        return reply.internalServerError('Failed to reject approval request')
       }
     },
   )
