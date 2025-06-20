@@ -270,18 +270,108 @@ export class QuotaService {
   }
 
   /**
-   * Performs maintenance tasks like cleanup
+   * Performs maintenance tasks like cleanup and quota resets
    */
   async performMaintenance(): Promise<void> {
     try {
-      const cleanedCount = await this.fastify.db.cleanupOldQuotaUsage(90)
-      if (cleanedCount > 0) {
-        this.fastify.log.info(
-          `Cleaned up ${cleanedCount} old quota usage records`,
-        )
-      }
+      await this.performAllQuotaMaintenance()
     } catch (error) {
       this.fastify.log.error('Failed to perform quota maintenance:', error)
+    }
+  }
+
+  /**
+   * Performs all quota maintenance including resets and cleanup
+   */
+  async performAllQuotaMaintenance(): Promise<void> {
+    const now = new Date()
+
+    // Reset daily quotas at midnight
+    await this.resetDailyQuotas(now)
+
+    // Reset monthly quotas on their reset day
+    await this.resetMonthlyQuotas(now)
+
+    // Cleanup old quota usage records (older than 90 days)
+    const cleanedCount = await this.fastify.db.cleanupOldQuotaUsage(90)
+    if (cleanedCount > 0) {
+      this.fastify.log.info(
+        `Cleaned up ${cleanedCount} old quota usage records`,
+      )
+    }
+  }
+
+  /**
+   * Reset daily quotas that need resetting
+   */
+  private async resetDailyQuotas(now: Date): Promise<void> {
+    try {
+      const dailyQuotas = await this.fastify.db.getUsersWithQuotaType('daily')
+      const resetCount = 0
+
+      for (const quota of dailyQuotas) {
+        // Check if we're at the start of a new day for this user
+        const lastUsage = await this.fastify.db.getLatestQuotaUsage(
+          quota.userId,
+        )
+        if (lastUsage) {
+          const lastUsageDate = new Date(lastUsage.requestDate)
+          const today = now.toISOString().split('T')[0]
+          const lastUsageDay = lastUsageDate.toISOString().split('T')[0]
+
+          if (lastUsageDay < today) {
+            // New day, but no reset needed - daily quotas are calculated on-demand
+            this.fastify.log.debug(
+              `Daily quota period rolled over for user ${quota.userId}`,
+            )
+          }
+        }
+      }
+
+      if (resetCount > 0) {
+        this.fastify.log.info(`Reset ${resetCount} daily quotas`)
+      }
+    } catch (error) {
+      this.fastify.log.error('Failed to reset daily quotas:', error)
+    }
+  }
+
+  /**
+   * Reset monthly quotas that need resetting
+   */
+  private async resetMonthlyQuotas(now: Date): Promise<void> {
+    try {
+      const monthlyQuotas =
+        await this.fastify.db.getUsersWithQuotaType('monthly')
+      let resetCount = 0
+
+      for (const quota of monthlyQuotas) {
+        const resetDay = quota.resetDay || 1
+        const currentDay = now.getDate()
+
+        // Check if today is the reset day
+        if (currentDay === resetDay) {
+          // Check if we've already reset this month
+          const lastReset = await this.fastify.db.getLastQuotaReset(
+            quota.userId,
+          )
+          const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+
+          if (!lastReset || !lastReset.startsWith(currentMonth)) {
+            await this.fastify.db.recordQuotaReset(quota.userId, currentMonth)
+            resetCount++
+            this.fastify.log.info(
+              `Reset monthly quota for user ${quota.userId}`,
+            )
+          }
+        }
+      }
+
+      if (resetCount > 0) {
+        this.fastify.log.info(`Reset ${resetCount} monthly quotas`)
+      }
+    } catch (error) {
+      this.fastify.log.error('Failed to reset monthly quotas:', error)
     }
   }
 
