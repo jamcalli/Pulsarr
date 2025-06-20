@@ -374,6 +374,14 @@ export class DatabaseService {
   }
 
   /**
+   * Returns a date in YYYY-MM-DD format using server's local timezone
+   * Respects the TZ environment variable set in Docker
+   */
+  public getLocalDateString(date: Date = new Date()): string {
+    return date.toLocaleDateString('sv-SE') // 'sv-SE' gives YYYY-MM-DD format in local timezone
+  }
+
+  /**
    * Extracts ID from Knex returning() result, handling cross-dialect differences
    *
    * Knex returning() returns different formats depending on the database:

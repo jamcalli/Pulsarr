@@ -38,9 +38,12 @@ function mapRowToQuotaUsage(row: QuotaUsageRow): QuotaUsage {
 /**
  * Gets date range for quota calculations based on quota type
  */
-function getDateRange(quotaType: QuotaType): { start: string; end: string } {
+function getDateRange(
+  this: DatabaseService,
+  quotaType: QuotaType,
+): { start: string; end: string } {
   const now = new Date()
-  const end = now.toISOString().split('T')[0]
+  const end = this.getLocalDateString(now)
   let start: string
 
   switch (quotaType) {
@@ -51,12 +54,12 @@ function getDateRange(quotaType: QuotaType): { start: string; end: string } {
     case 'weekly_rolling': {
       const weekStart = new Date(now)
       weekStart.setDate(now.getDate() - 6) // Last 7 days
-      start = weekStart.toISOString().split('T')[0]
+      start = this.getLocalDateString(weekStart)
       break
     }
     case 'monthly': {
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-      start = monthStart.toISOString().split('T')[0]
+      start = this.getLocalDateString(monthStart)
       break
     }
     default: {
@@ -189,7 +192,7 @@ export async function recordQuotaUsage(
   contentType: 'movie' | 'show',
   requestDate: Date = new Date(),
 ): Promise<QuotaUsage> {
-  const dateString = requestDate.toISOString().split('T')[0] // YYYY-MM-DD
+  const dateString = this.getLocalDateString(requestDate) // YYYY-MM-DD in local timezone
 
   await this.knex('quota_usage').insert({
     user_id: userId,
@@ -214,7 +217,7 @@ export async function getCurrentQuotaUsage(
   quotaType: QuotaType,
   contentType?: 'movie' | 'show',
 ): Promise<number> {
-  const dateRange = getDateRange(quotaType)
+  const dateRange = getDateRange.call(this, quotaType)
   let query = this.knex('quota_usage')
     .where('user_id', userId)
     .where('request_date', '>=', dateRange.start)
@@ -303,7 +306,7 @@ export async function getBulkQuotaStatus(
   const usageResults = new Map<number, number>()
 
   for (const [quotaType, quotasOfType] of quotasByType.entries()) {
-    const dateRange = getDateRange(quotaType)
+    const dateRange = getDateRange.call(this, quotaType)
     const userIdsForType = quotasOfType.map((q) => q.userId)
 
     let query = this.knex('quota_usage')
@@ -413,16 +416,12 @@ export async function getQuotaUsageHistory(
     query = query.where(
       'request_date',
       '>=',
-      startDate.toISOString().split('T')[0],
+      this.getLocalDateString(startDate),
     )
   }
 
   if (endDate) {
-    query = query.where(
-      'request_date',
-      '<=',
-      endDate.toISOString().split('T')[0],
-    )
+    query = query.where('request_date', '<=', this.getLocalDateString(endDate))
   }
 
   if (contentType) {
@@ -445,8 +444,8 @@ export async function getDailyUsageStats(
   const startDate = new Date()
   startDate.setDate(endDate.getDate() - days)
 
-  const startDateString = startDate.toISOString().split('T')[0]
-  const endDateString = endDate.toISOString().split('T')[0]
+  const startDateString = this.getLocalDateString(startDate)
+  const endDateString = this.getLocalDateString(endDate)
 
   const usage = await this.knex('quota_usage')
     .select('request_date', 'content_type')
@@ -466,7 +465,7 @@ export async function getDailyUsageStats(
   for (let i = 0; i < days; i++) {
     const date = new Date(endDate)
     date.setDate(date.getDate() - i)
-    const dateString = date.toISOString().split('T')[0]
+    const dateString = this.getLocalDateString(date)
     statsMap.set(dateString, {
       date: dateString,
       movies: 0,
@@ -505,7 +504,7 @@ export async function cleanupOldQuotaUsage(
 ): Promise<number> {
   const cutoffDate = new Date()
   cutoffDate.setDate(cutoffDate.getDate() - olderThanDays)
-  const cutoffString = cutoffDate.toISOString().split('T')[0]
+  const cutoffString = this.getLocalDateString(cutoffDate)
 
   const deletedCount = await this.knex('quota_usage')
     .where('request_date', '<', cutoffString)
