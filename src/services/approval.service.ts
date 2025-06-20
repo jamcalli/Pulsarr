@@ -121,6 +121,59 @@ export class ApprovalService {
   }
 
   /**
+   * Checks for pending requests for the same content and auto-approves them
+   */
+  async handleCrossUserContentFulfillment(
+    contentGuids: string[],
+    contentType: 'movie' | 'show',
+    excludeUserId: number,
+    approvedBy: number,
+  ): Promise<void> {
+    try {
+      // Find all pending requests for the same content from other users
+      const relatedRequests = await this.fastify.db.getApprovalHistory(
+        undefined, // userId - get all users
+        'pending', // status
+        undefined, // limit
+        undefined, // offset
+        contentType,
+      )
+
+      // Filter for matching content and different users
+      const matchingRequests = relatedRequests.filter(
+        (req) =>
+          req.userId !== excludeUserId &&
+          req.contentGuids.some((guid) => contentGuids.includes(guid)),
+      )
+
+      if (matchingRequests.length > 0) {
+        this.fastify.log.info(
+          `Found ${matchingRequests.length} pending requests for same content, auto-approving them`,
+        )
+
+        // Auto-approve all matching requests
+        for (const matchingRequest of matchingRequests) {
+          await this.fastify.db.updateApprovalRequest(matchingRequest.id, {
+            status: 'approved',
+            approvedBy: approvedBy,
+            approvalNotes: `Auto-approved: Content already added to system by another user's request`,
+          })
+
+          this.fastify.log.info(
+            `Auto-approved request ${matchingRequest.id} for user ${matchingRequest.userId}: ${matchingRequest.contentTitle} (content already available)`,
+          )
+        }
+      }
+    } catch (error) {
+      this.fastify.log.error(
+        'Error handling cross-user content fulfillment:',
+        error,
+      )
+      // Don't throw - this is a nice-to-have feature
+    }
+  }
+
+  /**
    * Processes an approved request by executing the stored router decision
    */
   async processApprovedRequest(
@@ -201,6 +254,14 @@ export class ApprovalService {
 
         this.fastify.log.info(
           `Successfully routed approved request ${request.id} for user ${request.userId}: ${request.contentTitle} to ${instanceType} instance ${instanceId}`,
+        )
+
+        // Handle cross-user content fulfillment
+        await this.handleCrossUserContentFulfillment(
+          request.contentGuids,
+          request.contentType,
+          request.userId,
+          request.approvedBy || 0, // Use the same approver or system user
         )
 
         return { success: true }

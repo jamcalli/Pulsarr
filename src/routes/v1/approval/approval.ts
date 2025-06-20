@@ -222,6 +222,14 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const targetStatus = request.body.status
         const currentStatus = existingRequest.status
 
+        if (!targetStatus) {
+          reply.status(400)
+          return {
+            success: false,
+            message: 'Status is required',
+          }
+        }
+
         if (currentStatus === 'approved' || currentStatus === 'expired') {
           reply.status(409)
           return {
@@ -231,7 +239,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
 
         // Allow pending → approved/rejected and rejected → approved
-        const validTransitions = {
+        const validTransitions: Record<string, string[]> = {
           pending: ['approved', 'rejected'],
           rejected: ['approved'],
         }
@@ -258,7 +266,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
 
         // If status changed to approved, process the request
-        if (targetStatus === 'approved' && currentStatus !== 'approved') {
+        if (targetStatus === 'approved') {
           const result =
             await fastify.approvalService.processApprovedRequest(updatedRequest)
           if (!result.success) {

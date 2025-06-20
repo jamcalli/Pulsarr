@@ -371,13 +371,15 @@ export async function createApprovalRequestWithExpiredHandling(
         content_type: data.contentType,
         content_title: data.contentTitle,
         content_key: data.contentKey,
-        content_guids: JSON.stringify(data.contentGuids),
+        content_guids: JSON.stringify(data.contentGuids || []),
         router_decision: JSON.stringify(data.routerDecision),
         router_rule_id: data.routerRuleId,
         approval_reason: data.approvalReason,
         triggered_by: data.triggeredBy,
         expires_at: data.expiresAt,
         status: 'pending',
+        created_at: this.timestamp,
+        updated_at: this.timestamp,
       })
       .returning('*')
 
