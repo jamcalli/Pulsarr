@@ -407,3 +407,67 @@ export async function cleanupOldQuotaUsage(
 
   return deletedCount
 }
+
+/**
+ * Gets users with a specific quota type
+ */
+export async function getUsersWithQuotaType(
+  this: DatabaseService,
+  quotaType: QuotaType,
+): Promise<UserQuotaConfig[]> {
+  const rows = await this.knex('user_quotas')
+    .where('quota_type', quotaType)
+    .select('*')
+  return rows.map(mapRowToUserQuotaConfig)
+}
+
+/**
+ * Gets the latest quota usage for a user
+ */
+export async function getLatestQuotaUsage(
+  this: DatabaseService,
+  userId: number,
+): Promise<QuotaUsage | null> {
+  const row = await this.knex('quota_usage')
+    .where('user_id', userId)
+    .orderBy('request_date', 'desc')
+    .first()
+
+  return row ? mapRowToQuotaUsage(row) : null
+}
+
+/**
+ * Gets the last quota reset date for a user
+ */
+export async function getLastQuotaReset(
+  this: DatabaseService,
+  userId: number,
+): Promise<string | null> {
+  // For now, we'll use a simple approach by checking if there's usage in the current month
+  // In a more robust implementation, you might want a separate quota_resets table
+  const now = new Date()
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+
+  const row = await this.knex('quota_usage')
+    .where('user_id', userId)
+    .where('request_date', 'like', `${currentMonth}%`)
+    .orderBy('request_date', 'desc')
+    .first()
+
+  return row ? row.request_date : null
+}
+
+/**
+ * Records a quota reset for a user
+ */
+export async function recordQuotaReset(
+  this: DatabaseService,
+  userId: number,
+  resetPeriod: string,
+): Promise<void> {
+  // For now, we'll just log the reset
+  // In a more robust implementation, you might want a separate quota_resets table
+  this.log.info(
+    `Recording quota reset for user ${userId} in period ${resetPeriod}`,
+  )
+}
