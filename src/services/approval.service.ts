@@ -22,13 +22,7 @@ export class ApprovalService {
     reason?: string
     trigger?: ApprovalTrigger
   }> {
-    const userId = context.user.id
-
-    // Check if user bypasses approval
-    const quota = await this.fastify.db.getUserQuota(userId)
-    if (quota?.bypassApproval) {
-      return { required: false }
-    }
+    // Note: User bypass is now handled via auto-approval rather than skipping approval entirely
 
     // Check if quota is exceeded
     if (context.quotaStatus?.exceeded) {

@@ -93,6 +93,17 @@ export const QuotaStatusGetResponseSchema = z.object({
   quotaStatus: QuotaStatusResponseSchema.nullable(),
 })
 
+export const BulkQuotaStatusResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  quotaStatuses: z.array(
+    z.object({
+      userId: z.number(),
+      quotaStatus: QuotaStatusResponseSchema.nullable(),
+    }),
+  ),
+})
+
 export const QuotaUsageListResponseSchema = z.object({
   success: z.boolean(),
   message: z.string(),
@@ -133,6 +144,9 @@ export type UserQuotaUpdateResponse = z.infer<
 >
 export type QuotaStatusGetResponse = z.infer<
   typeof QuotaStatusGetResponseSchema
+>
+export type BulkQuotaStatusResponse = z.infer<
+  typeof BulkQuotaStatusResponseSchema
 >
 export type QuotaUsageListResponse = z.infer<
   typeof QuotaUsageListResponseSchema

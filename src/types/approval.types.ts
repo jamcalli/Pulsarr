@@ -92,6 +92,7 @@ export interface ApprovalData {
   criteriaType?: string
   criteriaValue?: unknown
   ruleId?: number
+  autoApprove?: boolean
 }
 
 // Service types
@@ -139,7 +140,7 @@ export interface QuotaStatus {
   quotaLimit: number
   currentUsage: number
   exceeded: boolean
-  resetDate?: Date
+  resetDate: string | null
   bypassApproval: boolean
 }
 

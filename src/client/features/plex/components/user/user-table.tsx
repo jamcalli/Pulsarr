@@ -47,12 +47,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type { UserWatchlistInfo } from '@/stores/configStore'
+import type { UserWithQuotaInfo } from '@/stores/configStore'
 import type { PlexUserTableRow } from '@/features/plex/store/types'
 import { UserWatchlistSheet } from '@/features/plex/components/user/user-watchlist-sheet'
 import { useUserWatchlist } from '@/features/plex/hooks/useUserWatchlist'
 import { toast } from '@/hooks/use-toast'
 import { TableSkeleton } from '@/components/ui/table-skeleton'
+import { QuotaStatusBadge } from '@/features/plex/components/user/quota-status-badge'
+import { formatQuotaType } from '@/features/plex/components/user/quota-utils'
 
 interface ColumnMetaType {
   className?: string
@@ -60,8 +62,9 @@ interface ColumnMetaType {
 }
 
 interface UserTableProps {
-  users: UserWatchlistInfo[]
-  onEditUser: (user: UserWatchlistInfo) => void
+  users: UserWithQuotaInfo[]
+  onEditUser: (user: UserWithQuotaInfo) => void
+  onEditQuota: (user: UserWithQuotaInfo) => void
   isLoading?: boolean
   onBulkEdit?: (selectedRows: PlexUserTableRow[]) => void
 }
@@ -73,9 +76,11 @@ interface UserTableProps {
  *
  * @remark If a user's ID is invalid when attempting to view their watchlist, an error is logged and a destructive toast notification is shown; the modal will not open.
  */
+
 export default function UserTable({
   users,
   onEditUser,
+  onEditQuota,
   isLoading = false,
   onBulkEdit,
 }: UserTableProps) {
@@ -98,7 +103,7 @@ export default function UserTable({
     handleClose,
   } = useUserWatchlist()
 
-  const columns: ColumnDef<UserWatchlistInfo>[] = [
+  const columns: ColumnDef<UserWithQuotaInfo>[] = [
     {
       id: 'select',
       header: ({ table }) => (
@@ -214,7 +219,69 @@ export default function UserTable({
         </div>
       ),
     },
-
+    {
+      accessorKey: 'quotaStatus.quotaType',
+      header: () => <div>Quota Type</div>,
+      cell: ({ row }) => {
+        const quotaStatus = row.original.quotaStatus
+        if (!quotaStatus) {
+          return (
+            <div className="flex justify-center w-20">
+              <span className="text-sm text-muted-foreground">None</span>
+            </div>
+          )
+        }
+        return (
+          <div className="flex justify-center w-20">
+            <span className="text-sm font-medium">
+              {formatQuotaType(quotaStatus.quotaType)}
+            </span>
+          </div>
+        )
+      },
+    },
+    {
+      accessorKey: 'quotaStatus.quotaLimit',
+      header: () => <div>Quota Limit</div>,
+      cell: ({ row }) => {
+        const quotaStatus = row.original.quotaStatus
+        if (!quotaStatus) {
+          return (
+            <div className="flex justify-center w-20">
+              <span className="text-sm text-muted-foreground">-</span>
+            </div>
+          )
+        }
+        if (quotaStatus.bypassApproval) {
+          return (
+            <div className="flex justify-center w-20">
+              <span className="text-sm font-medium text-blue-600">
+                Unlimited
+              </span>
+            </div>
+          )
+        }
+        return (
+          <div className="flex justify-center w-20">
+            <span className="text-sm font-medium">
+              {quotaStatus.quotaLimit}
+            </span>
+          </div>
+        )
+      },
+    },
+    {
+      accessorKey: 'quotaStatus.currentUsage',
+      header: () => <div>Usage</div>,
+      cell: ({ row }) => {
+        const quotaStatus = row.original.quotaStatus
+        return (
+          <div className="flex justify-center w-24">
+            <QuotaStatusBadge quotaStatus={quotaStatus} />
+          </div>
+        )
+      },
+    },
     {
       accessorKey: 'watchlist_count',
       header: ({ column }) => {
@@ -258,6 +325,9 @@ export default function UserTable({
                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                 <DropdownMenuItem onClick={() => onEditUser(user)}>
                   Edit user
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onEditQuota(user)}>
+                  Edit quotas
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={(e) => {
@@ -391,6 +461,10 @@ export default function UserTable({
               { type: 'icon' },
               { type: 'icon' },
               { type: 'icon' },
+              { type: 'icon' },
+              { type: 'text', width: 'w-20' },
+              { type: 'text', width: 'w-20' },
+              { type: 'badge', width: 'w-24' },
               { type: 'text', width: 'w-16' },
               { type: 'button', width: 'w-8', className: 'text-right' },
             ]}

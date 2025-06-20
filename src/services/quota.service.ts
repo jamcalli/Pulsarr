@@ -157,7 +157,7 @@ export class QuotaService {
 
     let displayText = `${status.currentUsage}/${status.quotaLimit} used`
     if (status.resetDate) {
-      displayText += ` (resets ${status.resetDate.toLocaleDateString()})`
+      displayText += ` (resets ${new Date(status.resetDate).toLocaleDateString()})`
     }
 
     let warningLevel: 'none' | 'warning' | 'danger' = 'none'
