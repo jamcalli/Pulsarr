@@ -146,17 +146,19 @@ export function useQuotaManagement() {
             // Update existing quota
             await updateQuota(user.id, quotaData)
             return 'Quota updated successfully'
-          } else {
-            // Create new quota
-            await createQuota(user.id, {
-              userId: user.id,
-              ...quotaData,
-            })
-            return 'Quota created successfully'
           }
+          // Create new quota
+          await createQuota(user.id, {
+            userId: user.id,
+            ...quotaData,
+          })
+          return 'Quota created successfully'
         }
 
-        const [message] = await Promise.all([quotaOperation(), minimumLoadingTime])
+        const [message] = await Promise.all([
+          quotaOperation(),
+          minimumLoadingTime,
+        ])
 
         // Refresh quota data from the store
         await refreshQuotaData()
@@ -172,7 +174,9 @@ export function useQuotaManagement() {
         })
 
         // Show success state then close
-        await new Promise((resolve) => setTimeout(resolve, MIN_LOADING_DELAY / 2))
+        await new Promise((resolve) =>
+          setTimeout(resolve, MIN_LOADING_DELAY / 2),
+        )
         onSuccess?.()
       } catch (error) {
         console.error('Error saving quota:', error)
