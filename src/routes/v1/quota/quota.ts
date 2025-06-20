@@ -7,6 +7,7 @@ import {
   UserQuotaUpdateResponseSchema,
   GetUsersWithQuotasResponseSchema,
   QuotaStatusGetResponseSchema,
+  BulkQuotaStatusResponseSchema,
   QuotaUsageListResponseSchema,
   DailyStatsListResponseSchema,
   GetQuotaUsageQuerySchema,
@@ -311,6 +312,62 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       } catch (error) {
         fastify.log.error('Error getting quota status:', error)
         return reply.internalServerError('Failed to retrieve quota status')
+      }
+    },
+  )
+
+  // Get quota status for multiple users
+  fastify.post<{
+    Body: { userIds: number[]; contentType?: 'movie' | 'show' }
+    Reply:
+      | z.infer<typeof BulkQuotaStatusResponseSchema>
+      | z.infer<typeof QuotaErrorSchema>
+  }>(
+    '/users/status/bulk',
+    {
+      schema: {
+        summary: 'Get quota status for multiple users',
+        operationId: 'getBulkUserQuotaStatus',
+        description:
+          'Get current quota status for multiple users in a single request',
+        body: z.object({
+          userIds: z.array(z.number()),
+          contentType: z.enum(['movie', 'show']).optional(),
+        }),
+        response: {
+          200: BulkQuotaStatusResponseSchema,
+          400: QuotaErrorSchema,
+          500: QuotaErrorSchema,
+        },
+        tags: ['Quota'],
+      },
+    },
+    async (request, reply) => {
+      try {
+        const { userIds, contentType } = request.body
+
+        if (!userIds || userIds.length === 0) {
+          reply.status(400)
+          return {
+            success: false,
+            message: 'User IDs array cannot be empty',
+          }
+        }
+
+        // Use bulk method to fetch quota status for all users efficiently
+        const quotaStatuses = await fastify.db.getBulkQuotaStatus(
+          userIds,
+          contentType,
+        )
+
+        return {
+          success: true,
+          message: 'Bulk quota status retrieved successfully',
+          quotaStatuses,
+        }
+      } catch (error) {
+        fastify.log.error('Error getting bulk quota status:', error)
+        return reply.internalServerError('Failed to retrieve bulk quota status')
       }
     },
   )

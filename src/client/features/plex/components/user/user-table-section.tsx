@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react'
-import { useConfigStore } from '@/stores/configStore'
+import { useConfigStore, type UserWithQuotaInfo } from '@/stores/configStore'
 import { usePlexUser } from '@/features/plex/hooks/usePlexUser'
 import { usePlexBulkUpdate } from '@/features/plex/hooks/usePlexBulkUpdate'
+import { useQuotaManagement } from '@/features/plex/hooks/useQuotaManagement'
 import UserTable from '@/features/plex/components/user/user-table'
 import UserEditModal from '@/features/plex/components/user/user-edit-modal'
 import BulkEditModal from '@/features/plex/components/user/bulk-edit-modal'
+import { QuotaEditModal } from '@/features/plex/components/user/quota-edit-modal'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 
 export default function UserTableSection() {
   const {
-    users,
     selectedUser,
     isEditModalOpen,
     setIsEditModalOpen,
@@ -27,9 +28,21 @@ export default function UserTableSection() {
     handleBulkUpdate,
   } = usePlexBulkUpdate()
 
+  const {
+    saveStatus: quotaSaveStatus,
+    saveQuota,
+    setSaveStatus: setQuotaSaveStatus,
+  } = useQuotaManagement()
+
+  // Quota modal state
+  const [isQuotaModalOpen, setIsQuotaModalOpen] = useState(false)
+  const [selectedQuotaUser, setSelectedQuotaUser] =
+    useState<UserWithQuotaInfo | null>(null)
+
   const [isLoading, setIsLoading] = useState(true)
   const [minLoadingComplete, setMinLoadingComplete] = useState(false)
   const isInitialized = useConfigStore((state) => state.isInitialized)
+  const usersWithQuota = useConfigStore((state) => state.usersWithQuota)
   const hasUserData = useConfigStore((state) => Boolean(state.users?.length))
 
   // Setup minimum loading time
@@ -57,6 +70,36 @@ export default function UserTableSection() {
     }
   }, [isInitialized, minLoadingComplete])
 
+  // Quota handlers
+  const handleEditQuota = (user: UserWithQuotaInfo) => {
+    setSelectedQuotaUser(user)
+    setIsQuotaModalOpen(true)
+    setQuotaSaveStatus({ type: 'idle' })
+  }
+
+  const handleQuotaModalClose = (open: boolean) => {
+    if (!open) {
+      setIsQuotaModalOpen(false)
+      setSelectedQuotaUser(null)
+      setQuotaSaveStatus({ type: 'idle' })
+    }
+  }
+
+  const handleSaveQuota = async (formData: {
+    hasQuota: boolean
+    quotaType?: 'daily' | 'weekly_rolling' | 'monthly'
+    quotaLimit?: number
+    resetDay?: number
+    bypassApproval: boolean
+  }) => {
+    if (!selectedQuotaUser) return
+
+    await saveQuota(selectedQuotaUser, formData, () => {
+      setIsQuotaModalOpen(false)
+      setSelectedQuotaUser(null)
+    })
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between">
@@ -70,8 +113,9 @@ export default function UserTableSection() {
         ) : (
           <>
             <UserTable
-              users={users || []}
+              users={usersWithQuota || []}
               onEditUser={handleEditUser}
+              onEditQuota={handleEditQuota}
               isLoading={isLoading}
               onBulkEdit={handleOpenBulkEditModal}
             />
@@ -82,6 +126,14 @@ export default function UserTableSection() {
               user={selectedUser}
               onSave={handleUpdateUser}
               saveStatus={saveStatus}
+            />
+            {/* Quota edit modal */}
+            <QuotaEditModal
+              isOpen={isQuotaModalOpen}
+              onOpenChange={handleQuotaModalClose}
+              user={selectedQuotaUser}
+              onSave={handleSaveQuota}
+              saveStatus={quotaSaveStatus}
             />
             {/* Bulk edit modal */}
             <BulkEditModal

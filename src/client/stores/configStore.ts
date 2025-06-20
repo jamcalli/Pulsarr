@@ -2,8 +2,16 @@ import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
 import type { Config } from '@root/types/config.types'
 import type { UserWithCount } from '@root/schemas/users/users-list.schema'
+import type {
+  QuotaStatusResponse,
+  BulkQuotaStatusResponse,
+} from '@root/schemas/quota/quota.schema'
 
 export type UserWatchlistInfo = UserWithCount
+
+export type UserWithQuotaInfo = UserWatchlistInfo & {
+  quotaStatus: QuotaStatusResponse | null
+}
 
 interface UserListResponse {
   success: boolean
@@ -22,6 +30,8 @@ interface ConfigState {
   error: string | null
   isInitialized: boolean
   users: UserWatchlistInfo[] | null
+  usersWithQuota: UserWithQuotaInfo[] | null
+  quotaStatusMap: Map<number, QuotaStatusResponse | null>
   selfWatchlistCount: number | null
   othersWatchlistInfo: {
     userCount: number
@@ -35,6 +45,8 @@ interface ConfigState {
   refreshRssFeeds: () => Promise<void>
 
   fetchUserData: () => Promise<void>
+  fetchQuotaData: () => Promise<void>
+  refreshQuotaData: () => Promise<void>
   getSelfWatchlistInfo: () => UserWatchlistInfo | null
   getOthersWatchlistInfo: () => {
     users: UserWatchlistInfo[]
@@ -56,6 +68,8 @@ export const useConfigStore = create<ConfigState>()(
         error: null,
         isInitialized: false,
         users: null,
+        usersWithQuota: null,
+        quotaStatusMap: new Map(),
         selfWatchlistCount: null,
         othersWatchlistInfo: null,
         openUtilitiesAccordion: null,
@@ -150,6 +164,9 @@ export const useConfigStore = create<ConfigState>()(
                       }
                     : null,
               })
+
+              // Fetch quota data after user data is loaded
+              await get().fetchQuotaData()
             } else {
               throw new Error('Failed to fetch user data')
             }
@@ -157,6 +174,57 @@ export const useConfigStore = create<ConfigState>()(
             set({ error: 'Failed to fetch user data' })
             console.error('User data fetch error:', err)
           }
+        },
+
+        fetchQuotaData: async () => {
+          try {
+            const state = get()
+            if (!state.users || state.users.length === 0) {
+              return
+            }
+
+            // Use bulk endpoint to fetch quota status for all users in a single request
+            const userIds = state.users.map((user) => user.id)
+            const response = await fetch('/v1/quota/users/status/bulk', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userIds }),
+            })
+
+            const data: BulkQuotaStatusResponse = await response.json()
+
+            if (!response.ok || !data.success) {
+              throw new Error(
+                data.message || 'Failed to fetch bulk quota status',
+              )
+            }
+
+            // Convert to Map for easy lookup
+            const quotaStatusMap = new Map<number, QuotaStatusResponse | null>()
+            for (const { userId, quotaStatus } of data.quotaStatuses) {
+              quotaStatusMap.set(userId, quotaStatus)
+            }
+
+            // Create users with quota data
+            const usersWithQuota: UserWithQuotaInfo[] = state.users.map(
+              (user) => ({
+                ...user,
+                quotaStatus: quotaStatusMap.get(user.id) || null,
+              }),
+            )
+
+            set({
+              quotaStatusMap,
+              usersWithQuota,
+            })
+          } catch (err) {
+            console.error('Quota data fetch error:', err)
+            // Don't set error state for quota failures, just log
+          }
+        },
+
+        refreshQuotaData: async () => {
+          await get().fetchQuotaData()
         },
 
         updateUser: async (

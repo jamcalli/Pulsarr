@@ -356,30 +356,62 @@ export class ContentRouterService {
                 this.log.debug(
                   `Creating approval request with userId=${context.userId}, item.title="${item.title}", item.guids=${JSON.stringify(item.guids)}, context.itemKey=${context.itemKey}`,
                 )
-                await this.fastify.approvalService.createApprovalRequest(
-                  {
-                    id: context.userId,
-                    name: context.userName || `User ${context.userId}`,
-                  },
-                  item,
-                  {
-                    action: 'require_approval',
-                    approval: {
-                      reason: approvalResult.reason || 'Approval required',
-                      triggeredBy: approvalResult.trigger || 'manual_flag',
-                      data: approvalResult.data || {},
-                      proposedRouting: {
-                        ...defaultRoutingDecisions[0],
-                        instanceType:
-                          contentType === 'movie' ? 'radarr' : 'sonarr',
+                const approvalRequest =
+                  await this.fastify.approvalService.createApprovalRequest(
+                    {
+                      id: context.userId,
+                      name: context.userName || `User ${context.userId}`,
+                    },
+                    item,
+                    {
+                      action: 'require_approval',
+                      approval: {
+                        reason: approvalResult.reason || 'Approval required',
+                        triggeredBy: approvalResult.trigger || 'manual_flag',
+                        data: approvalResult.data || {},
+                        proposedRouting: {
+                          ...defaultRoutingDecisions[0],
+                          instanceType:
+                            contentType === 'movie' ? 'radarr' : 'sonarr',
+                        },
                       },
                     },
-                  },
-                  approvalResult.trigger || 'manual_flag',
-                  approvalResult.reason,
-                  undefined,
-                  context.itemKey,
-                )
+                    approvalResult.trigger || 'manual_flag',
+                    approvalResult.reason,
+                    undefined,
+                    context.itemKey,
+                  )
+
+                // Auto-approve if bypass is enabled
+                if (approvalResult.data?.autoApprove) {
+                  this.log.info(
+                    `Auto-approving request ${approvalRequest.id} for user ${context.userId} due to bypass setting`,
+                  )
+
+                  // First approve the request
+                  const approvedRequest = await this.fastify.db.approveRequest(
+                    approvalRequest.id,
+                    context.userId,
+                    'Auto-approved (bypass enabled)',
+                  )
+
+                  if (approvedRequest) {
+                    // Then process the approved request
+                    await this.fastify.approvalService.processApprovedRequest(
+                      approvedRequest,
+                    )
+                  }
+
+                  // Continue with normal routing flow since it's been auto-approved
+                  const defaultRoutedInstances = await this.routeUsingDefault(
+                    item,
+                    key,
+                    contentType,
+                    context.userId,
+                    options.syncing,
+                  )
+                  return { routedInstances: defaultRoutedInstances }
+                }
               }
 
               // Return empty - content will not be routed until approved
@@ -551,40 +583,67 @@ export class ContentRouterService {
           // Store the approval request with the highest priority routing decision
           const primaryDecision = allDecisions[0] // Already sorted by priority
 
-          await this.fastify.approvalService.createApprovalRequest(
-            {
-              id: context.userId,
-              name: context.userName || `User ${context.userId}`,
-            },
-            enrichedItem,
-            {
-              action: 'require_approval',
-              approval: {
-                reason: approvalResult.reason || 'Approval required',
-                triggeredBy: approvalResult.trigger || 'manual_flag',
-                data: approvalResult.data || {},
-                proposedRouting: primaryDecision
-                  ? {
-                      instanceId: primaryDecision.instanceId,
-                      instanceType:
-                        enrichedItem.type === 'movie' ? 'radarr' : 'sonarr',
-                      qualityProfile: primaryDecision.qualityProfile,
-                      rootFolder: primaryDecision.rootFolder,
-                      tags: primaryDecision.tags,
-                      priority: primaryDecision.priority,
-                      searchOnAdd: primaryDecision.searchOnAdd,
-                      seasonMonitoring: primaryDecision.seasonMonitoring,
-                      seriesType: primaryDecision.seriesType,
-                      minimumAvailability: primaryDecision.minimumAvailability,
-                    }
-                  : undefined,
+          const approvalRequest =
+            await this.fastify.approvalService.createApprovalRequest(
+              {
+                id: context.userId,
+                name: context.userName || `User ${context.userId}`,
               },
-            },
-            approvalResult.trigger || 'manual_flag',
-            approvalResult.reason,
-            undefined,
-            context.itemKey,
-          )
+              enrichedItem,
+              {
+                action: 'require_approval',
+                approval: {
+                  reason: approvalResult.reason || 'Approval required',
+                  triggeredBy: approvalResult.trigger || 'manual_flag',
+                  data: approvalResult.data || {},
+                  proposedRouting: primaryDecision
+                    ? {
+                        instanceId: primaryDecision.instanceId,
+                        instanceType:
+                          enrichedItem.type === 'movie' ? 'radarr' : 'sonarr',
+                        qualityProfile: primaryDecision.qualityProfile,
+                        rootFolder: primaryDecision.rootFolder,
+                        tags: primaryDecision.tags,
+                        priority: primaryDecision.priority,
+                        searchOnAdd: primaryDecision.searchOnAdd,
+                        seasonMonitoring: primaryDecision.seasonMonitoring,
+                        seriesType: primaryDecision.seriesType,
+                        minimumAvailability:
+                          primaryDecision.minimumAvailability,
+                      }
+                    : undefined,
+                },
+              },
+              approvalResult.trigger || 'manual_flag',
+              approvalResult.reason,
+              undefined,
+              context.itemKey,
+            )
+
+          // Auto-approve if bypass is enabled
+          if (approvalResult.data?.autoApprove) {
+            this.log.info(
+              `Auto-approving request ${approvalRequest.id} for user ${context.userId} due to bypass setting`,
+            )
+
+            // First approve the request
+            const approvedRequest = await this.fastify.db.approveRequest(
+              approvalRequest.id,
+              context.userId,
+              'Auto-approved (bypass enabled)',
+            )
+
+            if (approvedRequest) {
+              // Then process the approved request
+              await this.fastify.approvalService.processApprovedRequest(
+                approvedRequest,
+              )
+            }
+
+            // Continue with normal routing flow since it's been auto-approved
+            const routedInstanceIds = allDecisions.map((d) => d.instanceId)
+            return { routedInstances: routedInstanceIds }
+          }
 
           // Return empty - content will not be routed until approved
           return { routedInstances: [] }
@@ -1203,27 +1262,31 @@ export class ContentRouterService {
         }
       }
 
-      // Check quota status only if not bypassed by rule or user settings
+      // Always check quota status, but handle bypasses with auto-approval
       const userQuota = await this.fastify.db.getUserQuota(context.userId)
       const userBypassesQuotas = userQuota?.bypassApproval || false
 
-      if (!quotasBypassedByRule && !userBypassesQuotas) {
-        const quotaStatus = await this.fastify.quotaService.getUserQuotaStatus(
-          context.userId,
-          item.type,
-        )
+      const quotaStatus = await this.fastify.quotaService.getUserQuotaStatus(
+        context.userId,
+        item.type,
+      )
 
-        if (quotaStatus?.exceeded) {
-          return {
-            required: true,
-            reason: `${quotaStatus.quotaType} quota exceeded (${quotaStatus.currentUsage}/${quotaStatus.quotaLimit})`,
-            trigger: 'quota_exceeded',
-            data: {
-              quotaType: quotaStatus.quotaType,
-              quotaUsage: quotaStatus.currentUsage,
-              quotaLimit: quotaStatus.quotaLimit,
-            },
-          }
+      if (quotaStatus?.exceeded) {
+        // Determine if this should be auto-approved due to bypass settings
+        const shouldAutoApprove = quotasBypassedByRule || userBypassesQuotas
+
+        return {
+          required: true,
+          reason: shouldAutoApprove
+            ? `${quotaStatus.quotaType} quota exceeded (auto-approved due to bypass)`
+            : `${quotaStatus.quotaType} quota exceeded (${quotaStatus.currentUsage}/${quotaStatus.quotaLimit})`,
+          trigger: 'quota_exceeded',
+          data: {
+            quotaType: quotaStatus.quotaType,
+            quotaUsage: quotaStatus.currentUsage,
+            quotaLimit: quotaStatus.quotaLimit,
+            autoApprove: shouldAutoApprove,
+          },
         }
       }
 

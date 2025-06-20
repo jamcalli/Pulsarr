@@ -255,9 +255,115 @@ export async function getQuotaStatus(
     quotaLimit: quota.quotaLimit,
     currentUsage,
     exceeded,
-    resetDate,
+    resetDate: resetDate ? resetDate.toISOString() : null,
     bypassApproval: quota.bypassApproval,
   }
+}
+
+/**
+ * Gets quota status for multiple users in a single optimized query
+ */
+export async function getBulkQuotaStatus(
+  this: DatabaseService,
+  userIds: number[],
+  contentType?: 'movie' | 'show',
+): Promise<Array<{ userId: number; quotaStatus: QuotaStatus | null }>> {
+  if (userIds.length === 0) {
+    return []
+  }
+
+  // Get all quota configurations for the requested users
+  const quotaRows = await this.knex('user_quotas')
+    .whereIn('user_id', userIds)
+    .select('*')
+
+  const quotaMap = new Map<number, UserQuotaConfig>()
+  for (const row of quotaRows) {
+    quotaMap.set(row.user_id, mapRowToUserQuotaConfig(row))
+  }
+
+  // Build usage queries for each quota type to minimize database hits
+  const quotasByType = new Map<
+    QuotaType,
+    Array<{ userId: number; quota: UserQuotaConfig }>
+  >()
+
+  // Group quotas by type for efficient batch processing
+  for (const userId of userIds) {
+    const quota = quotaMap.get(userId)
+    if (quota) {
+      if (!quotasByType.has(quota.quotaType)) {
+        quotasByType.set(quota.quotaType, [])
+      }
+      quotasByType.get(quota.quotaType)?.push({ userId, quota })
+    }
+  }
+
+  // Create optimized queries for each quota type
+  const usageResults = new Map<number, number>()
+
+  for (const [quotaType, quotasOfType] of quotasByType.entries()) {
+    const dateRange = getDateRange(quotaType)
+    const userIdsForType = quotasOfType.map((q) => q.userId)
+
+    let query = this.knex('quota_usage')
+      .select('user_id')
+      .count('* as count')
+      .whereIn('user_id', userIdsForType)
+      .where('request_date', '>=', dateRange.start)
+      .where('request_date', '<=', dateRange.end)
+      .groupBy('user_id')
+
+    if (contentType) {
+      query = query.where('content_type', contentType)
+    }
+
+    const usageRows = await query
+
+    // Map results
+    for (const row of usageRows) {
+      usageResults.set(
+        Number(row.user_id),
+        Number.parseInt(row.count as string, 10) || 0,
+      )
+    }
+
+    // Set zero usage for users with no records
+    for (const { userId } of quotasOfType) {
+      if (!usageResults.has(userId)) {
+        usageResults.set(userId, 0)
+      }
+    }
+  }
+
+  // Build final results
+  const results: Array<{ userId: number; quotaStatus: QuotaStatus | null }> = []
+
+  for (const userId of userIds) {
+    const quota = quotaMap.get(userId)
+    if (!quota) {
+      results.push({ userId, quotaStatus: null })
+      continue
+    }
+
+    const currentUsage = usageResults.get(userId) || 0
+    const exceeded = currentUsage >= quota.quotaLimit
+    const resetDate = getNextResetDate(quota.quotaType, quota.resetDay)
+
+    results.push({
+      userId,
+      quotaStatus: {
+        quotaType: quota.quotaType,
+        quotaLimit: quota.quotaLimit,
+        currentUsage,
+        exceeded,
+        resetDate: resetDate ? resetDate.toISOString() : null,
+        bypassApproval: quota.bypassApproval,
+      },
+    })
+  }
+
+  return results
 }
 
 /**

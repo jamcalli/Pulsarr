@@ -81,6 +81,17 @@ declare module '@services/database.service.js' {
     ): Promise<QuotaStatus | null>
 
     /**
+     * Gets quota status for multiple users in a single optimized query
+     * @param userIds - Array of user IDs
+     * @param contentType - Optional content type filter
+     * @returns Promise resolving to array of user quota statuses
+     */
+    getBulkQuotaStatus(
+      userIds: number[],
+      contentType?: 'movie' | 'show',
+    ): Promise<Array<{ userId: number; quotaStatus: QuotaStatus | null }>>
+
+    /**
      * Checks if a user's quota is exceeded
      * @param userId - User ID
      * @param contentType - Optional content type filter
