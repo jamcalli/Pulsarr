@@ -1127,6 +1127,29 @@ export class ContentRouterService {
         }
       }
 
+      // Record quota usage if user has quotas enabled and routing was successful
+      if (userId && routedInstances.length > 0) {
+        try {
+          const userQuota = await this.fastify.db.getUserQuota(userId)
+          if (userQuota) {
+            await this.fastify.db.recordQuotaUsage(
+              userId,
+              contentType,
+              new Date(),
+            )
+            this.log.info(
+              `Recorded quota usage for user ${userId}: ${item.title}`,
+            )
+          }
+        } catch (error) {
+          this.log.error(
+            `Error recording quota usage for user ${userId}:`,
+            error,
+          )
+          // Don't fail the routing if quota recording fails
+        }
+      }
+
       return routedInstances
     } catch (error) {
       this.log.error(`Error in default routing for ${item.title}:`, error)
@@ -1190,7 +1213,7 @@ export class ContentRouterService {
   private async checkApprovalRequirements(
     item: ContentItem,
     context: RoutingContext,
-    routingDecisions: RoutingDecision[],
+    _routingDecisions: RoutingDecision[],
   ): Promise<{
     required: boolean
     reason?: string
