@@ -8,14 +8,12 @@ export const CreateUserQuotaSchema = z.object({
   userId: z.number(),
   quotaType: QuotaTypeSchema,
   quotaLimit: z.number().min(1),
-  resetDay: z.number().min(1).max(31).optional(),
   bypassApproval: z.boolean().default(false),
 })
 
 export const UpdateUserQuotaSchema = z.object({
   quotaType: QuotaTypeSchema.optional(),
   quotaLimit: z.number().min(1).optional(),
-  resetDay: z.number().min(1).max(31).optional(),
   bypassApproval: z.boolean().optional(),
 })
 
@@ -23,7 +21,6 @@ export const UserQuotaResponseSchema = z.object({
   userId: z.number(),
   quotaType: QuotaTypeSchema,
   quotaLimit: z.number(),
-  resetDay: z.number().nullable(),
   bypassApproval: z.boolean(),
 })
 

@@ -16,7 +16,6 @@ interface QuotaFormData {
   hasQuota: boolean
   quotaType?: 'daily' | 'weekly_rolling' | 'monthly'
   quotaLimit?: number
-  resetDay?: number
   bypassApproval: boolean
 }
 
@@ -137,8 +136,6 @@ export function useQuotaManagement() {
           const quotaData = {
             quotaType: formData.quotaType,
             quotaLimit: formData.quotaLimit,
-            resetDay:
-              formData.quotaType === 'monthly' ? formData.resetDay : undefined,
             bypassApproval: formData.bypassApproval,
           }
 

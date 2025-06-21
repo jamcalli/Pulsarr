@@ -36,7 +36,6 @@ import {
 } from '@/components/ui/form'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { QuotaStatusCard } from '@/features/plex/components/user/quota-status-card'
-import { formatQuotaType } from '@/features/plex/components/user/quota-utils'
 import type { UserWithQuotaInfo } from '@/stores/configStore'
 import { z } from 'zod'
 
@@ -45,7 +44,6 @@ const QuotaFormSchema = z.object({
   hasQuota: z.boolean(),
   quotaType: z.enum(['daily', 'weekly_rolling', 'monthly']).optional(),
   quotaLimit: z.coerce.number().min(1).max(1000).optional(),
-  resetDay: z.coerce.number().min(1).max(31).optional(),
   bypassApproval: z.boolean().default(false),
 })
 
@@ -75,7 +73,6 @@ const FormContent = React.memo(
     user,
   }: FormContentProps) => {
     const hasQuota = form.watch('hasQuota')
-    const quotaType = form.watch('quotaType')
 
     return (
       <Form {...form}>
@@ -159,30 +156,6 @@ const FormContent = React.memo(
                     </FormItem>
                   )}
                 />
-
-                {/* Reset Day - Only show for monthly quotas */}
-                {quotaType === 'monthly' && (
-                  <FormField
-                    control={form.control}
-                    name="resetDay"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-text">Reset Day</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            placeholder="1"
-                            min="1"
-                            max="31"
-                            disabled={saveStatus.type !== 'idle'}
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
 
                 {/* Auto-Approve Exceeded Quotas */}
                 <FormField
@@ -285,7 +258,6 @@ export function QuotaEditModal({
       hasQuota: false,
       quotaType: 'monthly',
       quotaLimit: 10,
-      resetDay: 1,
       bypassApproval: false,
     },
   })
@@ -298,7 +270,6 @@ export function QuotaEditModal({
         hasQuota,
         quotaType: user.quotaStatus?.quotaType || 'monthly',
         quotaLimit: user.quotaStatus?.quotaLimit || 10,
-        resetDay: user.quotaStatus?.quotaType === 'monthly' ? 1 : undefined,
         bypassApproval: user.quotaStatus?.bypassApproval || false,
       })
     }

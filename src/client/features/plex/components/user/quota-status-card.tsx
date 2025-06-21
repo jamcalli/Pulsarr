@@ -1,4 +1,5 @@
 import type { QuotaStatusResponse } from '@root/schemas/quota/quota.schema'
+import { formatQuotaType } from '@/features/plex/components/user/quota-utils'
 
 interface QuotaStatusCardProps {
   quotaStatus?: QuotaStatusResponse | null
@@ -36,9 +37,9 @@ export function QuotaStatusCard({ quotaStatus }: QuotaStatusCardProps) {
           </span>
         </div>
         <p className="text-sm text-text">
-          This user has a {quotaStatus.quotaType} quota with auto-approval
-          enabled. When quota limits are exceeded, requests will be
-          automatically approved instead of requiring manual approval. Quota
+          This user has a {formatQuotaType(quotaStatus.quotaType)} quota with
+          auto-approval enabled. When quota limits are exceeded, requests will
+          be automatically approved instead of requiring manual approval. Quota
           usage is still tracked and displayed for monitoring purposes.
           {quotaStatus.resetDate && (
             <>
@@ -104,7 +105,8 @@ export function QuotaStatusCard({ quotaStatus }: QuotaStatusCardProps) {
         </span>
       </div>
       <p className="text-sm text-text">
-        {statusInfo.description} This is a {quotaStatus.quotaType} quota cycle.
+        {statusInfo.description} This is a{' '}
+        {formatQuotaType(quotaStatus.quotaType)} quota cycle.
         {quotaStatus.resetDate && (
           <>
             {' '}

@@ -14,7 +14,6 @@ export interface UserQuotaRow {
   user_id: number
   quota_type: QuotaType
   quota_limit: number
-  reset_day?: number
   bypass_approval: boolean
   created_at: string
   updated_at: string
@@ -100,7 +99,6 @@ export interface UserQuotaConfig {
   userId: number
   quotaType: QuotaType
   quotaLimit: number
-  resetDay?: number
   bypassApproval: boolean
 }
 
@@ -175,14 +173,12 @@ export interface CreateUserQuotaData {
   userId: number
   quotaType: QuotaType
   quotaLimit: number
-  resetDay?: number
   bypassApproval?: boolean
 }
 
 export interface UpdateUserQuotaData {
   quotaType?: QuotaType
   quotaLimit?: number
-  resetDay?: number
   bypassApproval?: boolean
 }
 

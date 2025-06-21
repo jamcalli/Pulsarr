@@ -169,5 +169,17 @@ declare module '@services/database.service.js' {
      * @returns Promise that resolves when the reset is recorded
      */
     recordQuotaReset(userId: number, resetPeriod: string): Promise<void>
+
+    /**
+     * Gets the next scheduled maintenance run time from the quota-maintenance schedule
+     * @returns Promise resolving to the next maintenance run date if available, undefined otherwise
+     */
+    getNextMaintenanceRun(): Promise<Date | undefined>
+
+    /**
+     * Gets the start date for weekly rolling quotas based on the most recent reset
+     * @returns Promise resolving to the start date for weekly rolling quotas
+     */
+    getWeeklyRollingStartDate(): Promise<Date>
   }
 }
