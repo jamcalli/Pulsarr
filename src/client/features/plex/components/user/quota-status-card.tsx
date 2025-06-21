@@ -44,8 +44,7 @@ export function QuotaStatusCard({ quotaStatus }: QuotaStatusCardProps) {
           {quotaStatus.resetDate && (
             <>
               {' '}
-              Next reset: {new Date(quotaStatus.resetDate).toLocaleDateString()}
-              .
+              Next reset: {new Date(quotaStatus.resetDate).toLocaleString()}.
             </>
           )}
         </p>
@@ -108,10 +107,7 @@ export function QuotaStatusCard({ quotaStatus }: QuotaStatusCardProps) {
         {statusInfo.description} This is a{' '}
         {formatQuotaType(quotaStatus.quotaType)} quota cycle.
         {quotaStatus.resetDate && (
-          <>
-            {' '}
-            Next reset: {new Date(quotaStatus.resetDate).toLocaleDateString()}.
-          </>
+          <> Next reset: {new Date(quotaStatus.resetDate).toLocaleString()}.</>
         )}
       </p>
     </div>
