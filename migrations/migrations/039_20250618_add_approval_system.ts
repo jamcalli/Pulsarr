@@ -26,7 +26,6 @@ export async function up(knex: Knex): Promise<void> {
       .enum('quota_type', ['daily', 'weekly_rolling', 'monthly'])
       .notNullable()
     table.integer('quota_limit').notNullable()
-    table.integer('reset_day').nullable() // For monthly (1-31), weekly_rolling (0-6 day of week)
     table.boolean('bypass_approval').defaultTo(false)
     table.timestamp('created_at').defaultTo(knex.fn.now())
     table.timestamp('updated_at').defaultTo(knex.fn.now())

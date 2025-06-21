@@ -59,6 +59,7 @@ import { formatQuotaType } from '@/features/plex/components/user/quota-utils'
 interface ColumnMetaType {
   className?: string
   headerClassName?: string
+  displayName?: string
 }
 
 interface UserTableProps {
@@ -130,6 +131,9 @@ export default function UserTable({
     },
     {
       accessorKey: 'name',
+      meta: {
+        displayName: 'Username',
+      },
       header: ({ column }) => {
         return (
           <Button
@@ -156,9 +160,12 @@ export default function UserTable({
     },
     {
       accessorKey: 'notify_apprise',
-      header: () => <div>Apprise</div>,
+      meta: {
+        displayName: 'Apprise Notifications',
+      },
+      header: () => <div className="text-center">Apprise</div>,
       cell: ({ row }) => (
-        <div className="flex justify-center w-16">
+        <div className="flex justify-center">
           {row.getValue('notify_apprise') ? (
             <Check className="h-4 w-4 text-main" />
           ) : (
@@ -169,9 +176,12 @@ export default function UserTable({
     },
     {
       accessorKey: 'notify_discord',
-      header: () => <div>Discord</div>,
+      meta: {
+        displayName: 'Discord Notifications',
+      },
+      header: () => <div className="text-center">Discord</div>,
       cell: ({ row }) => (
-        <div className="flex justify-center w-16">
+        <div className="flex justify-center">
           {row.getValue('notify_discord') ? (
             <Check className="h-4 w-4 text-main" />
           ) : (
@@ -182,9 +192,12 @@ export default function UserTable({
     },
     {
       accessorKey: 'notify_tautulli',
-      header: () => <div>Tautulli</div>,
+      meta: {
+        displayName: 'Tautulli Notifications',
+      },
+      header: () => <div className="text-center">Tautulli</div>,
       cell: ({ row }) => (
-        <div className="flex justify-center w-16">
+        <div className="flex justify-center">
           {row.getValue('notify_tautulli') ? (
             <Check className="h-4 w-4 text-main" />
           ) : (
@@ -195,9 +208,12 @@ export default function UserTable({
     },
     {
       accessorKey: 'can_sync',
-      header: () => <div>Can Sync</div>,
+      meta: {
+        displayName: 'Can Sync',
+      },
+      header: () => <div className="text-center">Can Sync</div>,
       cell: ({ row }) => (
-        <div className="flex justify-center w-16">
+        <div className="flex justify-center">
           {row.getValue('can_sync') ? (
             <Check className="h-4 w-4 text-main" />
           ) : (
@@ -208,9 +224,12 @@ export default function UserTable({
     },
     {
       accessorKey: 'requires_approval',
-      header: () => <div>Requires Approval</div>,
+      meta: {
+        displayName: 'Requires Approval',
+      },
+      header: () => <div className="text-center">Approval</div>,
       cell: ({ row }) => (
-        <div className="flex justify-center w-16">
+        <div className="flex justify-center">
           {row.getValue('requires_approval') ? (
             <Check className="h-4 w-4 text-main" />
           ) : (
@@ -221,18 +240,21 @@ export default function UserTable({
     },
     {
       accessorKey: 'quotaStatus.quotaType',
-      header: () => <div>Quota Type</div>,
+      meta: {
+        displayName: 'Quota Type',
+      },
+      header: () => <div className="text-center">Quota Type</div>,
       cell: ({ row }) => {
         const quotaStatus = row.original.quotaStatus
         if (!quotaStatus) {
           return (
-            <div className="flex justify-center w-20">
+            <div className="text-center">
               <span className="text-sm text-muted-foreground">None</span>
             </div>
           )
         }
         return (
-          <div className="flex justify-center w-20">
+          <div className="text-center">
             <span className="text-sm font-medium">
               {formatQuotaType(quotaStatus.quotaType)}
             </span>
@@ -242,19 +264,22 @@ export default function UserTable({
     },
     {
       accessorKey: 'quotaStatus.quotaLimit',
-      header: () => <div>Quota Limit</div>,
+      meta: {
+        displayName: 'Quota Limit',
+      },
+      header: () => <div className="text-center">Quota Limit</div>,
       cell: ({ row }) => {
         const quotaStatus = row.original.quotaStatus
         if (!quotaStatus) {
           return (
-            <div className="flex justify-center w-20">
+            <div className="text-center">
               <span className="text-sm text-muted-foreground">-</span>
             </div>
           )
         }
         if (quotaStatus.bypassApproval) {
           return (
-            <div className="flex justify-center w-20">
+            <div className="text-center">
               <span className="text-sm font-medium text-blue-600">
                 Unlimited
               </span>
@@ -262,7 +287,7 @@ export default function UserTable({
           )
         }
         return (
-          <div className="flex justify-center w-20">
+          <div className="text-center">
             <span className="text-sm font-medium">
               {quotaStatus.quotaLimit}
             </span>
@@ -272,11 +297,14 @@ export default function UserTable({
     },
     {
       accessorKey: 'quotaStatus.currentUsage',
-      header: () => <div>Usage</div>,
+      meta: {
+        displayName: 'Quota Usage',
+      },
+      header: () => <div className="text-center">Usage</div>,
       cell: ({ row }) => {
         const quotaStatus = row.original.quotaStatus
         return (
-          <div className="flex justify-center w-24">
+          <div className="text-center">
             <QuotaStatusBadge quotaStatus={quotaStatus} />
           </div>
         )
@@ -284,23 +312,30 @@ export default function UserTable({
     },
     {
       accessorKey: 'watchlist_count',
+      meta: {
+        displayName: 'Watchlist Items',
+      },
       header: ({ column }) => {
         return (
-          <Button
-            variant="noShadow"
-            size="sm"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-            className="whitespace-nowrap"
-          >
-            Items
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
+          <div className="text-center">
+            <Button
+              variant="noShadow"
+              size="sm"
+              onClick={() =>
+                column.toggleSorting(column.getIsSorted() === 'asc')
+              }
+              className="whitespace-nowrap"
+            >
+              Items
+              <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
         )
       },
       cell: ({ row }) => {
         const count = Number(row.getValue('watchlist_count'))
         return (
-          <div className="text-right font-medium w-16">
+          <div className="text-center font-medium">
             {count.toLocaleString()}
           </div>
         )
@@ -409,7 +444,8 @@ export default function UserTable({
                         column.toggleVisibility(!!value)
                       }
                     >
-                      {column.id}
+                      {(column.columnDef.meta as ColumnMetaType)?.displayName ||
+                        column.id}
                     </DropdownMenuCheckboxItem>
                   )
                 })}

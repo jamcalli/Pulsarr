@@ -19,7 +19,6 @@ function mapRowToUserQuotaConfig(row: UserQuotaRow): UserQuotaConfig {
     userId: row.user_id,
     quotaType: row.quota_type,
     quotaLimit: row.quota_limit,
-    resetDay: row.reset_day,
     bypassApproval: Boolean(row.bypass_approval),
   }
 }
@@ -38,10 +37,10 @@ function mapRowToQuotaUsage(row: QuotaUsageRow): QuotaUsage {
 /**
  * Gets date range for quota calculations based on quota type
  */
-function getDateRange(
+async function getDateRange(
   this: DatabaseService,
   quotaType: QuotaType,
-): { start: string; end: string } {
+): Promise<{ start: string; end: string }> {
   const now = new Date()
   const end = this.getLocalDateString(now)
   let start: string
@@ -52,8 +51,8 @@ function getDateRange(
       break
     }
     case 'weekly_rolling': {
-      const weekStart = new Date(now)
-      weekStart.setDate(now.getDate() - 6) // Last 7 days
+      // Weekly rolling quotas reset every 7 days starting from the most recent quota reset
+      const weekStart = await this.getWeeklyRollingStartDate()
       start = this.getLocalDateString(weekStart)
       break
     }
@@ -71,38 +70,23 @@ function getDateRange(
 }
 
 /**
- * Gets the next reset date for a quota type
+ * Gets the next reset date for a quota type based on the maintenance schedule
  */
-function getNextResetDate(
+async function getNextResetDate(
+  this: DatabaseService,
   quotaType: QuotaType,
-  resetDay?: number,
-): Date | undefined {
-  const now = new Date()
-
+): Promise<Date | undefined> {
   switch (quotaType) {
-    case 'daily': {
-      const tomorrow = new Date(now)
-      tomorrow.setDate(now.getDate() + 1)
-      tomorrow.setHours(0, 0, 0, 0)
-      return tomorrow
+    case 'daily':
+    case 'monthly': {
+      // Both daily and monthly quotas reset when maintenance runs
+      // Use the actual maintenance schedule from the database
+      return await this.getNextMaintenanceRun()
     }
 
     case 'weekly_rolling': {
-      // Rolling window, no fixed reset
-      return undefined
-    }
-
-    case 'monthly': {
-      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1)
-      if (resetDay && resetDay >= 1 && resetDay <= 31) {
-        const daysInMonth = new Date(
-          nextMonth.getFullYear(),
-          nextMonth.getMonth() + 1,
-          0,
-        ).getDate()
-        nextMonth.setDate(Math.min(resetDay, daysInMonth))
-      }
-      return nextMonth
+      // Weekly rolling quotas reset every 7 days when maintenance runs
+      return await this.getNextMaintenanceRun()
     }
 
     default: {
@@ -123,7 +107,6 @@ export async function createUserQuota(
       user_id: data.userId,
       quota_type: data.quotaType,
       quota_limit: data.quotaLimit,
-      reset_day: data.resetDay,
       bypass_approval: data.bypassApproval || false,
       created_at: this.timestamp,
       updated_at: this.timestamp,
@@ -158,7 +141,6 @@ export async function updateUserQuota(
 
   if (data.quotaType !== undefined) updateData.quota_type = data.quotaType
   if (data.quotaLimit !== undefined) updateData.quota_limit = data.quotaLimit
-  if (data.resetDay !== undefined) updateData.reset_day = data.resetDay
   if (data.bypassApproval !== undefined)
     updateData.bypass_approval = data.bypassApproval
 
@@ -217,7 +199,7 @@ export async function getCurrentQuotaUsage(
   quotaType: QuotaType,
   contentType?: 'movie' | 'show',
 ): Promise<number> {
-  const dateRange = getDateRange.call(this, quotaType)
+  const dateRange = await getDateRange.call(this, quotaType)
   let query = this.knex('quota_usage')
     .where('user_id', userId)
     .where('request_date', '>=', dateRange.start)
@@ -251,7 +233,7 @@ export async function getQuotaStatus(
   )
 
   const exceeded = currentUsage >= quota.quotaLimit
-  const resetDate = getNextResetDate(quota.quotaType, quota.resetDay)
+  const resetDate = await getNextResetDate.call(this, quota.quotaType)
 
   return {
     quotaType: quota.quotaType,
@@ -306,7 +288,7 @@ export async function getBulkQuotaStatus(
   const usageResults = new Map<number, number>()
 
   for (const [quotaType, quotasOfType] of quotasByType.entries()) {
-    const dateRange = getDateRange.call(this, quotaType)
+    const dateRange = await getDateRange.call(this, quotaType)
     const userIdsForType = quotasOfType.map((q) => q.userId)
 
     let query = this.knex('quota_usage')
@@ -339,6 +321,17 @@ export async function getBulkQuotaStatus(
     }
   }
 
+  // Get reset dates for all quota types (cached to avoid multiple calls)
+  const resetDateCache = new Map<QuotaType, Date | undefined>()
+  const uniqueQuotaTypes = new Set<QuotaType>()
+  for (const quota of quotaMap.values()) {
+    uniqueQuotaTypes.add(quota.quotaType)
+  }
+  for (const quotaType of uniqueQuotaTypes) {
+    const resetDate = await getNextResetDate.call(this, quotaType)
+    resetDateCache.set(quotaType, resetDate)
+  }
+
   // Build final results
   const results: Array<{ userId: number; quotaStatus: QuotaStatus | null }> = []
 
@@ -351,7 +344,7 @@ export async function getBulkQuotaStatus(
 
     const currentUsage = usageResults.get(userId) || 0
     const exceeded = currentUsage >= quota.quotaLimit
-    const resetDate = getNextResetDate(quota.quotaType, quota.resetDay)
+    const resetDate = resetDateCache.get(quota.quotaType)
 
     results.push({
       userId,
@@ -511,6 +504,66 @@ export async function cleanupOldQuotaUsage(
     .del()
 
   return deletedCount
+}
+
+/**
+ * Gets the next scheduled maintenance run time from the quota-maintenance schedule
+ */
+export async function getNextMaintenanceRun(
+  this: DatabaseService,
+): Promise<Date | undefined> {
+  const schedule = await this.getScheduleByName('quota-maintenance')
+  if (!schedule || !schedule.enabled) {
+    return undefined
+  }
+
+  // Return the next_run time if available
+  if (
+    schedule.next_run &&
+    typeof schedule.next_run === 'object' &&
+    schedule.next_run.time
+  ) {
+    return new Date(schedule.next_run.time)
+  }
+
+  return undefined
+}
+
+/**
+ * Gets the start date for weekly rolling quotas based on the most recent reset
+ */
+export async function getWeeklyRollingStartDate(
+  this: DatabaseService,
+): Promise<Date> {
+  // Get any weekly rolling user and find the most recent reset
+  const weeklyQuotas = await this.getUsersWithQuotaType('weekly_rolling')
+  if (weeklyQuotas.length === 0) {
+    // No weekly rolling users, return fallback
+    const fallbackDate = new Date()
+    fallbackDate.setDate(fallbackDate.getDate() - 6)
+    return fallbackDate
+  }
+
+  // Find the most recent reset among all weekly rolling users
+  let mostRecentReset: Date | null = null
+  for (const quota of weeklyQuotas) {
+    const lastReset = await this.getLastQuotaReset(quota.userId)
+    if (lastReset) {
+      const resetDate = new Date(lastReset)
+      if (!mostRecentReset || resetDate > mostRecentReset) {
+        mostRecentReset = resetDate
+      }
+    }
+  }
+
+  if (mostRecentReset) {
+    return mostRecentReset
+  }
+
+  // If no reset found, start from 7 days ago as fallback
+  const fallbackDate = new Date()
+  fallbackDate.setDate(fallbackDate.getDate() - 6)
+  return fallbackDate
 }
 
 /**

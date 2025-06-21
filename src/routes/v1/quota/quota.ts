@@ -64,7 +64,6 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           userId: request.body.userId,
           quotaType: request.body.quotaType,
           quotaLimit: request.body.quotaLimit,
-          resetDay: request.body.resetDay,
           bypassApproval: request.body.bypassApproval,
         })
 
@@ -170,7 +169,6 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const userQuota = await fastify.db.updateUserQuota(userId, {
           quotaType: request.body.quotaType,
           quotaLimit: request.body.quotaLimit,
-          resetDay: request.body.resetDay,
           bypassApproval: request.body.bypassApproval,
         })
 

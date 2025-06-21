@@ -6,7 +6,7 @@ export function formatQuotaType(quotaType: string): string {
     case 'daily':
       return 'Daily'
     case 'weekly_rolling':
-      return 'Weekly'
+      return 'Weekly Rolling'
     case 'monthly':
       return 'Monthly'
     default:
