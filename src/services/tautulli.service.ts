@@ -346,6 +346,10 @@ export class TautulliService {
         await this.db.updateUser(user.id, {
           tautulli_notifier_id: existingNotifier.id,
         })
+        this.fastify.log.debug(
+          { username: user.username, notifierId: existingNotifier.id },
+          'Updated database with existing Tautulli notifier ID',
+        )
       }
       return existingNotifier.id
     }
@@ -382,7 +386,27 @@ export class TautulliService {
         )
       const users = response?.response?.data || []
 
+      this.fastify.log.debug(
+        {
+          requestedUsername: username,
+          availableUsers: users.map((u) => u.username),
+          totalUsers: users.length,
+        },
+        'Searching for Plex user in Tautulli user list',
+      )
+
       const user = users.find((u) => u.username === username)
+
+      if (!user) {
+        this.fastify.log.warn(
+          {
+            requestedUsername: username,
+            availableUsers: users.map((u) => u.username),
+          },
+          'Username not found in Tautulli user list - this is likely the cause of agent creation failure',
+        )
+      }
+
       return user?.user_id || null
     } catch (error) {
       this.fastify.log.error(
@@ -397,24 +421,39 @@ export class TautulliService {
    * Create a new notification agent for a user
    */
   private async createUserNotifier(user: TautulliEnabledUser): Promise<number> {
+    this.fastify.log.debug(
+      { user: user.username },
+      'Starting Tautulli notifier creation process',
+    )
+
     // Get the Plex user ID from Tautulli
     const plexUserId = await this.getPlexUserId(user.username)
 
     if (!plexUserId) {
-      throw new Error(
-        `Could not find Plex user ID for username: ${user.username}`,
-      )
+      const error = `Could not find Plex user ID for username: ${user.username}`
+      this.fastify.log.error({ user: user.username }, error)
+      throw new Error(error)
     }
+
+    this.fastify.log.debug(
+      { user: user.username, plexUserId },
+      'Found Plex user ID, creating basic notifier',
+    )
 
     // Create the notifier and get ID
     const notifierId = await this.createBasicNotifier(user.username)
 
+    this.fastify.log.debug(
+      { user: user.username, notifierId },
+      'Basic notifier created, configuring settings',
+    )
+
     // Configure the notifier with user settings
     await this.configureNotifier(notifierId, user.username, plexUserId)
 
-    this.fastify.log.info(
-      { user: user.username, notifierId },
-      'Created Tautulli notifier for user',
+    this.fastify.log.debug(
+      { user: user.username, notifierId, plexUserId },
+      'Successfully created and configured Tautulli notifier for user',
     )
     return notifierId
   }
@@ -631,7 +670,21 @@ export class TautulliService {
     const existingNotifiers = await this.getNotifiers()
 
     for (const user of interestedUsers) {
-      if (!user.notifierId || user.notifierId === 0) {
+      // Check if user has a notifier ID and if it actually exists in Tautulli
+      const hasValidNotifierId = user.notifierId && user.notifierId !== 0
+      const notifierExists =
+        hasValidNotifierId &&
+        existingNotifiers.some((n) => n.id === user.notifierId)
+
+      if (!hasValidNotifierId || !notifierExists) {
+        if (hasValidNotifierId && !notifierExists) {
+          this.log.warn(
+            { user: user.username, invalidNotifierId: user.notifierId },
+            'User has invalid Tautulli notifier ID - will create new one',
+          )
+          // Clear the invalid notifier ID from the database
+          await this.db.updateUser(user.userId, { tautulli_notifier_id: null })
+        }
         this.log.info(
           { user: user.username },
           'User has no Tautulli notifier for queueing, creating one now',
@@ -652,15 +705,25 @@ export class TautulliService {
               ...user,
               notifierId,
             })
+            this.log.info(
+              { user: user.username, notifierId },
+              'Created Tautulli notifier for user',
+            )
+
+            // Give Tautulli a moment to process the new agent before using it
+            await new Promise((resolve) => setTimeout(resolve, 2000))
           } else {
             this.log.warn(
               { user: user.username },
-              'Failed to create Tautulli notifier for user, skipping notification',
+              'Failed to create Tautulli notifier for user - ensureUserNotifier returned null, skipping notification',
             )
           }
         } catch (error) {
           this.log.error(
-            { error, user: user.username },
+            {
+              error: error instanceof Error ? error.message : error,
+              user: user.username,
+            },
             'Error creating Tautulli notifier for user',
           )
         }
@@ -676,6 +739,79 @@ export class TautulliService {
       return
     }
 
+    // Try immediate notification first for users with newly created agents
+    const immediateResults: Array<{ username: string; success: boolean }> = []
+    const usersNeedingQueue: typeof validUsers = []
+
+    for (const user of validUsers) {
+      // Try to find the content immediately in Tautulli's recently added
+      try {
+        const recentItems = await this.getRecentlyAdded(50)
+        const mockNotification: PendingNotification = {
+          guid: this.normalizeGuid(guid),
+          mediaType,
+          watchlistItemId: metadata.watchlistItemId,
+          watchlistItemKey: metadata.watchlistItemKey,
+          interestedUsers: [user],
+          title: metadata.title,
+          seasonNumber: metadata.seasonNumber,
+          episodeNumber: metadata.episodeNumber,
+          addedAt: Date.now(),
+          attempts: 1,
+          maxAttempts: this.MAX_ATTEMPTS,
+        }
+
+        const matchingItem = await this.findMatchingItem(
+          mockNotification,
+          recentItems,
+        )
+
+        if (matchingItem) {
+          this.log.debug(
+            { user: user.username, title: metadata.title },
+            'Found content immediately after agent creation, sending notification now',
+          )
+
+          const success = await this.sendTautulliNotification(
+            user.notifierId,
+            matchingItem.rating_key,
+          )
+
+          immediateResults.push({ username: user.username, success })
+
+          if (success) {
+            this.log.debug(
+              { user: user.username, title: metadata.title },
+              'Successfully sent immediate Tautulli notification after agent creation',
+            )
+            continue // Don't queue this user
+          }
+        }
+      } catch (error) {
+        this.log.debug(
+          { error, user: user.username },
+          'Failed immediate notification attempt, will queue instead',
+        )
+      }
+
+      // If immediate notification failed or content not found, queue for polling
+      usersNeedingQueue.push(user)
+    }
+
+    // If all users were handled immediately, we're done
+    if (usersNeedingQueue.length === 0) {
+      this.log.debug(
+        {
+          title: metadata.title,
+          immediateSuccesses: immediateResults.filter((r) => r.success).length,
+          immediateFails: immediateResults.filter((r) => !r.success).length,
+        },
+        'All Tautulli notifications sent immediately, no queuing needed',
+      )
+      return
+    }
+
+    // Queue remaining users who need polling
     const normalizedGuid = this.normalizeGuid(guid)
     const key = this.generateNotificationKey(normalizedGuid, metadata)
 
@@ -683,7 +819,7 @@ export class TautulliService {
     const existing = this.pendingNotifications.get(key)
     if (existing) {
       // Add any new users to the existing notification
-      for (const user of interestedUsers) {
+      for (const user of usersNeedingQueue) {
         if (!existing.interestedUsers.some((u) => u.userId === user.userId)) {
           existing.interestedUsers.push(user)
         }
@@ -700,7 +836,7 @@ export class TautulliService {
       mediaType,
       watchlistItemId: metadata.watchlistItemId,
       watchlistItemKey: metadata.watchlistItemKey,
-      interestedUsers: validUsers,
+      interestedUsers: usersNeedingQueue,
       title: metadata.title,
       seasonNumber: metadata.seasonNumber,
       episodeNumber: metadata.episodeNumber,
@@ -716,11 +852,12 @@ export class TautulliService {
         guid: normalizedGuid,
         mediaType,
         title: metadata.title,
-        users: interestedUsers.map((u) => u.username),
+        users: usersNeedingQueue.map((u) => u.username),
         seasonNumber: metadata.seasonNumber,
         episodeNumber: metadata.episodeNumber,
+        immediateNotifications: immediateResults.length,
       },
-      'Queued Tautulli notification',
+      'Queued Tautulli notification for remaining users',
     )
 
     // Start polling if not already running
@@ -1216,13 +1353,39 @@ export class TautulliService {
     notifierId: number,
     ratingKey: string,
   ): Promise<boolean> {
-    // ✅ Use Tautulli's notify_recently_added API - let Tautulli handle everything!
-    const response = await this.apiCall('notify_recently_added', {
-      rating_key: ratingKey,
-      notifier_id: notifierId,
-    })
+    try {
+      // ✅ Use Tautulli's notify_recently_added API - let Tautulli handle everything!
+      const response = await this.apiCall('notify_recently_added', {
+        rating_key: ratingKey,
+        notifier_id: notifierId,
+      })
 
-    return response?.response?.result === 'success'
+      const isSuccess = response?.response?.result === 'success'
+
+      if (!isSuccess) {
+        this.log.warn(
+          {
+            notifierId,
+            ratingKey,
+            response: response?.response,
+            message: response?.response?.message,
+          },
+          'Tautulli notification API call failed',
+        )
+      }
+
+      return isSuccess
+    } catch (error) {
+      this.log.error(
+        {
+          error: error instanceof Error ? error.message : error,
+          notifierId,
+          ratingKey,
+        },
+        'Exception during Tautulli notification API call',
+      )
+      throw error
+    }
   }
 
   /**
