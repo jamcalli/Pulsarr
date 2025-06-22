@@ -2,11 +2,22 @@ import { useEffect, useRef, useState } from 'react'
 import { useApprovalsStore } from '@/features/plex/store/approvalsStore'
 import { Button } from '@/components/ui/button'
 import { RefreshCw } from 'lucide-react'
+import { useToast } from '@/hooks/use-toast'
+import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 import { ApprovalTable } from './approval-table'
 import { ApprovalActionDialogs } from './approval-action-dialogs'
 import ApprovalStatsHeader from './approval-stats-header'
 import ApprovalActionsModal from './approval-actions-modal'
-import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
+import BulkApprovalModal from './bulk-approval-modal'
+import type {
+  ApprovalRequestResponse,
+  BulkApprovalRequest,
+  BulkRejectRequest,
+  BulkDeleteRequest,
+  BulkOperationResponse,
+} from '@root/schemas/approval/approval.schema'
+
+type BulkActionStatus = 'idle' | 'loading' | 'success' | 'error'
 
 /**
  * Table-based approvals section component that manages the approval queue interface.
@@ -38,6 +49,16 @@ export default function ApprovalTableSection() {
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [viewModalOpen, setViewModalOpen] = useState(false)
+  const [bulkModalOpen, setBulkModalOpen] = useState(false)
+  const [selectedBulkRequests, setSelectedBulkRequests] = useState<
+    ApprovalRequestResponse[]
+  >([])
+  const [bulkActionStatus, setBulkActionStatus] =
+    useState<BulkActionStatus>('idle')
+  const [currentBulkAction, setCurrentBulkAction] = useState<
+    'approve' | 'reject' | 'delete' | null
+  >(null)
+  const { toast } = useToast()
 
   useEffect(() => {
     if (!hasInitializedRef.current) {
@@ -96,6 +117,216 @@ export default function ApprovalTableSection() {
   const closeViewModal = () => {
     setViewModalOpen(false)
     setSelectedRequest(null)
+  }
+
+  const handleBulkActions = (selectedRequests: ApprovalRequestResponse[]) => {
+    setSelectedBulkRequests(selectedRequests)
+    setBulkModalOpen(true)
+  }
+
+  const closeBulkModal = (newOpen: boolean) => {
+    if (bulkActionStatus === 'loading') {
+      return
+    }
+    if (!newOpen) {
+      setBulkModalOpen(false)
+      setSelectedBulkRequests([])
+      setCurrentBulkAction(null)
+    }
+  }
+
+  const handleBulkApprove = async (requestIds: string[]) => {
+    setCurrentBulkAction('approve')
+    setBulkActionStatus('loading')
+    try {
+      const minimumLoadingTime = new Promise((resolve) =>
+        setTimeout(resolve, MIN_LOADING_DELAY),
+      )
+
+      const requestBody: BulkApprovalRequest = {
+        requestIds: requestIds.map((id) => Number.parseInt(id, 10)),
+        notes: undefined, // Optional notes field
+      }
+
+      const [response] = await Promise.all([
+        fetch('/v1/approval/requests/bulk/approve', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        }),
+        minimumLoadingTime,
+      ])
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Failed to approve requests')
+      }
+
+      const result: BulkOperationResponse = await response.json()
+
+      setBulkActionStatus('success')
+      toast({
+        description:
+          result.message ||
+          `Successfully approved ${requestIds.length} approval requests`,
+        variant: 'default',
+      })
+
+      // Refresh data
+      await handleActionComplete()
+
+      // Show success state then close
+      await new Promise((resolve) => setTimeout(resolve, MIN_LOADING_DELAY / 2))
+      setBulkModalOpen(false)
+
+      // Reset status
+      setTimeout(() => {
+        setBulkActionStatus('idle')
+        setCurrentBulkAction(null)
+      }, 500)
+    } catch (error) {
+      console.error('Bulk approve error:', error)
+      setBulkActionStatus('error')
+      toast({
+        description:
+          error instanceof Error ? error.message : 'Failed to approve requests',
+        variant: 'destructive',
+      })
+      await new Promise((resolve) => setTimeout(resolve, MIN_LOADING_DELAY))
+      setBulkActionStatus('idle')
+      setCurrentBulkAction(null)
+    }
+  }
+
+  const handleBulkReject = async (requestIds: string[]) => {
+    setCurrentBulkAction('reject')
+    setBulkActionStatus('loading')
+    try {
+      const minimumLoadingTime = new Promise((resolve) =>
+        setTimeout(resolve, MIN_LOADING_DELAY),
+      )
+
+      const requestBody: BulkRejectRequest = {
+        requestIds: requestIds.map((id) => Number.parseInt(id, 10)),
+        reason: undefined, // Optional reason field
+      }
+
+      const [response] = await Promise.all([
+        fetch('/v1/approval/requests/bulk/reject', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        }),
+        minimumLoadingTime,
+      ])
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Failed to reject requests')
+      }
+
+      const result: BulkOperationResponse = await response.json()
+
+      setBulkActionStatus('success')
+      toast({
+        description:
+          result.message ||
+          `Successfully rejected ${requestIds.length} approval requests`,
+        variant: 'default',
+      })
+
+      // Refresh data
+      await handleActionComplete()
+
+      // Show success state then close
+      await new Promise((resolve) => setTimeout(resolve, MIN_LOADING_DELAY / 2))
+      setBulkModalOpen(false)
+
+      // Reset status
+      setTimeout(() => {
+        setBulkActionStatus('idle')
+        setCurrentBulkAction(null)
+      }, 500)
+    } catch (error) {
+      console.error('Bulk reject error:', error)
+      setBulkActionStatus('error')
+      toast({
+        description:
+          error instanceof Error ? error.message : 'Failed to reject requests',
+        variant: 'destructive',
+      })
+      await new Promise((resolve) => setTimeout(resolve, MIN_LOADING_DELAY))
+      setBulkActionStatus('idle')
+      setCurrentBulkAction(null)
+    }
+  }
+
+  const handleBulkDelete = async (requestIds: string[]) => {
+    setCurrentBulkAction('delete')
+    setBulkActionStatus('loading')
+    try {
+      const minimumLoadingTime = new Promise((resolve) =>
+        setTimeout(resolve, MIN_LOADING_DELAY),
+      )
+
+      const requestBody: BulkDeleteRequest = {
+        requestIds: requestIds.map((id) => Number.parseInt(id, 10)),
+      }
+
+      const [response] = await Promise.all([
+        fetch('/v1/approval/requests/bulk/delete', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        }),
+        minimumLoadingTime,
+      ])
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Failed to delete requests')
+      }
+
+      const result: BulkOperationResponse = await response.json()
+
+      setBulkActionStatus('success')
+      toast({
+        description:
+          result.message ||
+          `Successfully deleted ${requestIds.length} approval requests`,
+        variant: 'default',
+      })
+
+      // Refresh data
+      await handleActionComplete()
+
+      // Show success state then close
+      await new Promise((resolve) => setTimeout(resolve, MIN_LOADING_DELAY / 2))
+      setBulkModalOpen(false)
+
+      // Reset status
+      setTimeout(() => {
+        setBulkActionStatus('idle')
+        setCurrentBulkAction(null)
+      }, 500)
+    } catch (error) {
+      console.error('Bulk delete error:', error)
+      setBulkActionStatus('error')
+      toast({
+        description:
+          error instanceof Error ? error.message : 'Failed to delete requests',
+        variant: 'destructive',
+      })
+      await new Promise((resolve) => setTimeout(resolve, MIN_LOADING_DELAY))
+      setBulkActionStatus('idle')
+      setCurrentBulkAction(null)
+    }
   }
 
   if (!isInitialized) {
@@ -187,6 +418,7 @@ export default function ApprovalTableSection() {
         onReject={handleReject}
         onView={handleView}
         onDelete={handleDelete}
+        onBulkActions={handleBulkActions}
         isLoading={approvalsLoading}
       />
 
@@ -226,6 +458,18 @@ export default function ApprovalTableSection() {
           onUpdate={handleActionComplete}
         />
       )}
+
+      {/* Bulk actions modal */}
+      <BulkApprovalModal
+        open={bulkModalOpen}
+        onOpenChange={closeBulkModal}
+        selectedRequests={selectedBulkRequests}
+        onBulkApprove={handleBulkApprove}
+        onBulkReject={handleBulkReject}
+        onBulkDelete={handleBulkDelete}
+        actionStatus={bulkActionStatus}
+        currentAction={currentBulkAction}
+      />
     </div>
   )
 }

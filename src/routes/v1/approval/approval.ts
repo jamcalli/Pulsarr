@@ -1,6 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
-import type { ApprovalRequest } from '@root/types/approval.types.js'
 import {
   CreateApprovalRequestSchema,
   UpdateApprovalRequestSchema,
@@ -10,6 +9,14 @@ import {
   ApprovalStatsResponseSchema,
   GetApprovalRequestsQuerySchema,
   ApprovalErrorSchema,
+  BulkApprovalRequestSchema,
+  BulkRejectRequestSchema,
+  BulkDeleteRequestSchema,
+  BulkOperationResponseSchema,
+  type BulkApprovalRequest,
+  type BulkRejectRequest,
+  type BulkDeleteRequest,
+  type BulkOperationResponse,
 } from '@schemas/approval/approval.schema.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
@@ -44,11 +51,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         )
 
         if (existingRequest && existingRequest.status === 'pending') {
-          reply.status(409)
-          return {
-            success: false,
-            message: 'Approval request already exists for this content',
-          }
+          return reply.conflict(
+            'Approval request already exists for this content',
+          )
         }
 
         const approvalRequest = await fastify.db.createApprovalRequest({
@@ -64,12 +69,18 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           expiresAt: request.body.expiresAt || null,
         })
 
-        reply.status(201)
-        return {
+        return reply.code(201).send({
           success: true,
           message: 'Approval request created successfully',
-          approvalRequest,
-        }
+          approvalRequest: {
+            ...approvalRequest,
+            routerRuleId: approvalRequest.routerRuleId ?? null,
+            approvedBy: approvalRequest.approvedBy ?? null,
+            approvalNotes: approvalRequest.approvalNotes ?? null,
+            approvalReason: approvalRequest.approvalReason ?? null,
+            expiresAt: approvalRequest.expiresAt ?? null,
+          },
+        })
       } catch (error) {
         fastify.log.error('Error creating approval request:', error)
         return reply.internalServerError('Failed to create approval request')
@@ -119,7 +130,14 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         return {
           success: true,
           message: 'Approval requests retrieved successfully',
-          approvalRequests: requests,
+          approvalRequests: requests.map((request) => ({
+            ...request,
+            routerRuleId: request.routerRuleId ?? null,
+            approvedBy: request.approvedBy ?? null,
+            approvalNotes: request.approvalNotes ?? null,
+            approvalReason: request.approvalReason ?? null,
+            expiresAt: request.expiresAt ?? null,
+          })),
           total,
           limit,
           offset,
@@ -160,17 +178,20 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const approvalRequest = await fastify.db.getApprovalRequest(requestId)
 
         if (!approvalRequest) {
-          reply.status(404)
-          return {
-            success: false,
-            message: 'Approval request not found',
-          }
+          return reply.notFound('Approval request not found')
         }
 
         return {
           success: true,
           message: 'Approval request retrieved successfully',
-          approvalRequest,
+          approvalRequest: {
+            ...approvalRequest,
+            routerRuleId: approvalRequest.routerRuleId ?? null,
+            approvedBy: approvalRequest.approvedBy ?? null,
+            approvalNotes: approvalRequest.approvalNotes ?? null,
+            approvalReason: approvalRequest.approvalReason ?? null,
+            expiresAt: approvalRequest.expiresAt ?? null,
+          },
         }
       } catch (error) {
         fastify.log.error('Error getting approval request:', error)
@@ -223,19 +244,13 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const currentStatus = existingRequest.status
 
         if (!targetStatus) {
-          reply.status(400)
-          return {
-            success: false,
-            message: 'Status is required',
-          }
+          return reply.badRequest('Status is required')
         }
 
         if (currentStatus === 'approved' || currentStatus === 'expired') {
-          reply.status(409)
-          return {
-            success: false,
-            message: `Cannot update ${currentStatus} approval requests`,
-          }
+          return reply.conflict(
+            `Cannot update ${currentStatus} approval requests`,
+          )
         }
 
         // Allow pending → approved/rejected and rejected → approved
@@ -245,11 +260,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         }
 
         if (!validTransitions[currentStatus]?.includes(targetStatus)) {
-          reply.status(409)
-          return {
-            success: false,
-            message: `Invalid state transition from ${currentStatus} to ${targetStatus}`,
-          }
+          return reply.conflict(
+            `Invalid state transition from ${currentStatus} to ${targetStatus}`,
+          )
         }
 
         const updatedRequest = await fastify.db.updateApprovalRequest(
@@ -281,7 +294,14 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         return {
           success: true,
           message: 'Approval request updated successfully',
-          approvalRequest: updatedRequest,
+          approvalRequest: {
+            ...updatedRequest,
+            routerRuleId: updatedRequest.routerRuleId ?? null,
+            approvedBy: updatedRequest.approvedBy ?? null,
+            approvalNotes: updatedRequest.approvalNotes ?? null,
+            approvalReason: updatedRequest.approvalReason ?? null,
+            expiresAt: updatedRequest.expiresAt ?? null,
+          },
         }
       } catch (error) {
         fastify.log.error('Error updating approval request:', error)
@@ -319,11 +339,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const deleted = await fastify.db.deleteApprovalRequest(requestId)
 
         if (!deleted) {
-          reply.status(404)
-          return {
-            success: false,
-            message: 'Approval request not found',
-          }
+          return reply.notFound('Approval request not found')
         }
 
         return {
@@ -372,19 +388,13 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         // Check if the request exists and is in pending status
         const existingRequest = await fastify.db.getApprovalRequest(requestId)
         if (!existingRequest) {
-          reply.status(404)
-          return {
-            success: false,
-            message: 'Approval request not found',
-          }
+          return reply.notFound('Approval request not found')
         }
 
         if (existingRequest.status !== 'pending') {
-          reply.status(409)
-          return {
-            success: false,
-            message: `Cannot reject request that is already ${existingRequest.status}`,
-          }
+          return reply.conflict(
+            `Cannot reject request that is already ${existingRequest.status}`,
+          )
         }
 
         // Reject the request using the database method
@@ -482,22 +492,16 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         // Check if the request exists and is in pending status
         const existingRequest = await fastify.db.getApprovalRequest(requestId)
         if (!existingRequest) {
-          reply.status(404)
-          return {
-            success: false,
-            message: 'Approval request not found',
-          }
+          return reply.notFound('Approval request not found')
         }
 
         if (
           existingRequest.status === 'approved' ||
           existingRequest.status === 'expired'
         ) {
-          reply.status(409)
-          return {
-            success: false,
-            message: `Cannot approve request that is already ${existingRequest.status}`,
-          }
+          return reply.conflict(
+            `Cannot approve request that is already ${existingRequest.status}`,
+          )
         }
 
         // Approve the request using the database method
@@ -516,11 +520,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           await fastify.approvalService.processApprovedRequest(approvedRequest)
 
         if (!result.success) {
-          reply.status(409)
-          return {
-            success: false,
-            message: result.error || 'Failed to process approved request',
-          }
+          return reply.conflict(
+            result.error || 'Failed to process approved request',
+          )
         }
 
         return {
@@ -532,6 +534,152 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         return reply.internalServerError(
           'Failed to approve and execute request',
         )
+      }
+    },
+  )
+
+  // Bulk approve requests
+  fastify.post<{ Body: BulkApprovalRequest; Reply: BulkOperationResponse }>(
+    '/requests/bulk/approve',
+    {
+      schema: {
+        summary: 'Bulk approve requests',
+        operationId: 'bulkApproveRequests',
+        description: 'Approve multiple approval requests in batch',
+        body: BulkApprovalRequestSchema,
+        response: {
+          200: BulkOperationResponseSchema,
+          400: ApprovalErrorSchema,
+        },
+        tags: ['Approval'],
+      },
+    },
+    async (request, reply) => {
+      try {
+        const { requestIds, notes } = request.body
+        const userId = 1 // TODO: Get from authenticated user context
+
+        const result = await fastify.approvalService.batchApprove(
+          requestIds,
+          userId,
+          notes,
+        )
+
+        return {
+          success: true,
+          message: `Bulk approve completed: ${result.approved} successful, ${result.failed.length} failed`,
+          result: {
+            successful: result.approved,
+            failed: result.failed,
+            errors: result.errors,
+            total: requestIds.length,
+          },
+        }
+      } catch (error) {
+        fastify.log.error('Error in bulk approve:', error)
+        return reply.internalServerError('Failed to bulk approve requests')
+      }
+    },
+  )
+
+  // Bulk reject requests
+  fastify.post<{ Body: BulkRejectRequest; Reply: BulkOperationResponse }>(
+    '/requests/bulk/reject',
+    {
+      schema: {
+        summary: 'Bulk reject requests',
+        operationId: 'bulkRejectRequests',
+        description: 'Reject multiple approval requests in batch',
+        body: BulkRejectRequestSchema,
+        response: {
+          200: BulkOperationResponseSchema,
+          400: ApprovalErrorSchema,
+        },
+        tags: ['Approval'],
+      },
+    },
+    async (request, reply) => {
+      try {
+        const { requestIds, reason } = request.body
+        const userId = 1 // TODO: Get from authenticated user context
+
+        const result = await fastify.approvalService.batchReject(
+          requestIds,
+          userId,
+          reason,
+        )
+
+        return {
+          success: true,
+          message: `Bulk reject completed: ${result.rejected} successful, ${result.failed.length} failed`,
+          result: {
+            successful: result.rejected,
+            failed: result.failed,
+            errors: result.errors,
+            total: requestIds.length,
+          },
+        }
+      } catch (error) {
+        fastify.log.error('Error in bulk reject:', error)
+        return reply.internalServerError('Failed to bulk reject requests')
+      }
+    },
+  )
+
+  // Bulk delete requests
+  fastify.delete<{ Body: BulkDeleteRequest; Reply: BulkOperationResponse }>(
+    '/requests/bulk/delete',
+    {
+      schema: {
+        summary: 'Bulk delete requests',
+        operationId: 'bulkDeleteRequests',
+        description: 'Delete multiple approval requests in batch',
+        body: BulkDeleteRequestSchema,
+        response: {
+          200: BulkOperationResponseSchema,
+          400: ApprovalErrorSchema,
+        },
+        tags: ['Approval'],
+      },
+    },
+    async (request, reply) => {
+      try {
+        const { requestIds } = request.body
+        let successCount = 0
+        const failed: number[] = []
+        const errors: string[] = []
+
+        // Process each delete individually (since there's no batch delete in service)
+        for (const id of requestIds) {
+          try {
+            const result = await fastify.db.deleteApprovalRequest(id)
+            if (result) {
+              successCount++
+            } else {
+              failed.push(id)
+              errors.push(`Request ${id} not found`)
+            }
+          } catch (error) {
+            failed.push(id)
+            errors.push(
+              `Request ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            )
+          }
+        }
+
+        return {
+          success: true,
+          message: `Bulk delete completed: ${successCount} successful, ${failed.length} failed`,
+          result: {
+            successful: successCount,
+            failed,
+            errors,
+            total: requestIds.length,
+          },
+        }
+      } catch (error) {
+        fastify.log.error('Error in bulk delete:', error)
+        return reply.internalServerError('Failed to bulk delete requests')
       }
     },
   )

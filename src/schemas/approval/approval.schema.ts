@@ -162,6 +162,32 @@ export const ApprovalErrorSchema = z.object({
   message: z.string(),
 })
 
+// Bulk operation schemas
+export const BulkApprovalRequestSchema = z.object({
+  requestIds: z.array(z.number()).min(1, 'At least one request ID is required'),
+  notes: z.string().optional(),
+})
+
+export const BulkRejectRequestSchema = z.object({
+  requestIds: z.array(z.number()).min(1, 'At least one request ID is required'),
+  reason: z.string().optional(),
+})
+
+export const BulkDeleteRequestSchema = z.object({
+  requestIds: z.array(z.number()).min(1, 'At least one request ID is required'),
+})
+
+export const BulkOperationResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  result: z.object({
+    successful: z.number(),
+    failed: z.array(z.number()),
+    errors: z.array(z.string()),
+    total: z.number(),
+  }),
+})
+
 // Type exports
 export type CreateApprovalRequest = z.infer<typeof CreateApprovalRequestSchema>
 export type UpdateApprovalRequest = z.infer<typeof UpdateApprovalRequestSchema>
@@ -182,3 +208,9 @@ export type ApprovalRequestUpdateResponse = z.infer<
 >
 export type ApprovalStatsResponse = z.infer<typeof ApprovalStatsResponseSchema>
 export type ApprovalError = z.infer<typeof ApprovalErrorSchema>
+
+// Bulk operation types
+export type BulkApprovalRequest = z.infer<typeof BulkApprovalRequestSchema>
+export type BulkRejectRequest = z.infer<typeof BulkRejectRequestSchema>
+export type BulkDeleteRequest = z.infer<typeof BulkDeleteRequestSchema>
+export type BulkOperationResponse = z.infer<typeof BulkOperationResponseSchema>
