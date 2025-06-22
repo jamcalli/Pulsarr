@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Loader2, Check } from 'lucide-react'
 import {
   Credenza,
   CredenzaContent,
@@ -39,7 +40,15 @@ export function ApprovalActionDialogs({
 }: ApprovalActionDialogsProps) {
   const [approveNotes, setApproveNotes] = useState('')
   const [rejectReason, setRejectReason] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [approveStatus, setApproveStatus] = useState<
+    'idle' | 'loading' | 'success'
+  >('idle')
+  const [rejectStatus, setRejectStatus] = useState<
+    'idle' | 'loading' | 'success'
+  >('idle')
+  const [deleteStatus, setDeleteStatus] = useState<
+    'idle' | 'loading' | 'success'
+  >('idle')
   const { toast } = useToast()
   const { approveRequest, rejectRequest, deleteApprovalRequest } =
     useApprovalsStore()
@@ -48,89 +57,126 @@ export function ApprovalActionDialogs({
   // Currently the system only supports one admin user with ID 1
   const currentAdminId = 1
 
+  // Helper function to manage minimum loading duration
+  const withMinLoadingDuration = async (
+    action: () => Promise<void>,
+    setStatus: (status: 'idle' | 'loading' | 'success') => void,
+  ) => {
+    setStatus('loading')
+    const startTime = Date.now()
+
+    try {
+      await action()
+      setStatus('success')
+
+      // Ensure minimum 500ms loading duration
+      const elapsed = Date.now() - startTime
+      const remainingTime = Math.max(500 - elapsed, 0)
+
+      setTimeout(() => {
+        setStatus('idle')
+      }, remainingTime + 1000) // Show success for 1 second after minimum duration
+    } catch (error) {
+      // Ensure minimum duration even on error
+      const elapsed = Date.now() - startTime
+      const remainingTime = Math.max(500 - elapsed, 0)
+
+      setTimeout(() => {
+        setStatus('idle')
+      }, remainingTime)
+      throw error
+    }
+  }
+
   const handleApprove = async () => {
     if (!selectedRequest) return
 
-    setLoading(true)
     try {
-      await approveRequest(
-        selectedRequest.id,
-        currentAdminId,
-        approveNotes.trim() || undefined,
-      )
+      await withMinLoadingDuration(async () => {
+        await approveRequest(
+          selectedRequest.id,
+          currentAdminId,
+          approveNotes.trim() || undefined,
+        )
+        await onActionComplete()
+      }, setApproveStatus)
+
       toast({
         title: 'Success',
         description: 'Approval request approved and processed successfully',
       })
       setApproveNotes('')
       onApproveDialogClose()
-      await onActionComplete()
     } catch (error) {
       toast({
         title: 'Error',
         description: 'Failed to approve request',
         variant: 'destructive',
       })
-    } finally {
-      setLoading(false)
     }
   }
 
   const handleReject = async () => {
     if (!selectedRequest) return
 
-    setLoading(true)
     try {
-      await rejectRequest(
-        selectedRequest.id,
-        currentAdminId,
-        rejectReason.trim() || undefined,
-      )
+      await withMinLoadingDuration(async () => {
+        await rejectRequest(
+          selectedRequest.id,
+          currentAdminId,
+          rejectReason.trim() || undefined,
+        )
+        await onActionComplete()
+      }, setRejectStatus)
+
       toast({
         title: 'Success',
         description: 'Approval request rejected successfully',
       })
       setRejectReason('')
       onRejectDialogClose()
-      await onActionComplete()
     } catch (error) {
       toast({
         title: 'Error',
         description: 'Failed to reject request',
         variant: 'destructive',
       })
-    } finally {
-      setLoading(false)
     }
   }
 
   const handleDelete = async () => {
     if (!selectedRequest) return
 
-    setLoading(true)
     try {
-      await deleteApprovalRequest(selectedRequest.id)
+      await withMinLoadingDuration(async () => {
+        await deleteApprovalRequest(selectedRequest.id)
+        await onActionComplete()
+      }, setDeleteStatus)
+
       toast({
         title: 'Success',
         description: 'Approval request deleted successfully',
       })
       onDeleteDialogClose()
-      await onActionComplete()
     } catch (error) {
       toast({
         title: 'Error',
         description: 'Failed to delete approval request',
         variant: 'destructive',
       })
-    } finally {
-      setLoading(false)
     }
   }
 
   return (
     <>
       {/* Approve Dialog */}
-      <Credenza open={approveDialogOpen} onOpenChange={onApproveDialogClose}>
+      <Credenza
+        open={approveDialogOpen}
+        onOpenChange={(open) => {
+          if (approveStatus === 'loading') return
+          if (!open) onApproveDialogClose()
+        }}
+      >
         <CredenzaContent>
           <CredenzaHeader>
             <CredenzaTitle className="text-text">Approve Request</CredenzaTitle>
@@ -159,12 +205,13 @@ export function ApprovalActionDialogs({
                   value={approveNotes}
                   onChange={(e) => setApproveNotes(e.target.value)}
                   rows={3}
+                  disabled={approveStatus !== 'idle'}
                 />
               </div>
             </div>
             <CredenzaFooter>
               <CredenzaClose asChild>
-                <Button variant="neutral" disabled={loading}>
+                <Button variant="neutral" disabled={approveStatus !== 'idle'}>
                   Cancel
                 </Button>
               </CredenzaClose>
@@ -172,9 +219,22 @@ export function ApprovalActionDialogs({
                 onClick={() => {
                   handleApprove()
                 }}
-                disabled={loading}
+                disabled={approveStatus !== 'idle'}
+                className="min-w-[100px] flex items-center justify-center gap-2"
               >
-                {loading ? 'Approving...' : 'Approve'}
+                {approveStatus === 'loading' ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Approving...
+                  </>
+                ) : approveStatus === 'success' ? (
+                  <>
+                    <Check className="h-4 w-4" />
+                    Approved
+                  </>
+                ) : (
+                  'Approve'
+                )}
               </Button>
             </CredenzaFooter>
           </CredenzaBody>
@@ -182,7 +242,13 @@ export function ApprovalActionDialogs({
       </Credenza>
 
       {/* Reject Dialog */}
-      <Credenza open={rejectDialogOpen} onOpenChange={onRejectDialogClose}>
+      <Credenza
+        open={rejectDialogOpen}
+        onOpenChange={(open) => {
+          if (rejectStatus === 'loading') return
+          if (!open) onRejectDialogClose()
+        }}
+      >
         <CredenzaContent>
           <CredenzaHeader>
             <CredenzaTitle className="text-text">Reject Request</CredenzaTitle>
@@ -211,12 +277,13 @@ export function ApprovalActionDialogs({
                   value={rejectReason}
                   onChange={(e) => setRejectReason(e.target.value)}
                   rows={3}
+                  disabled={rejectStatus !== 'idle'}
                 />
               </div>
             </div>
             <CredenzaFooter>
               <CredenzaClose asChild>
-                <Button variant="neutral" disabled={loading}>
+                <Button variant="neutral" disabled={rejectStatus !== 'idle'}>
                   Cancel
                 </Button>
               </CredenzaClose>
@@ -225,9 +292,22 @@ export function ApprovalActionDialogs({
                 onClick={() => {
                   handleReject()
                 }}
-                disabled={loading}
+                disabled={rejectStatus !== 'idle'}
+                className="min-w-[100px] flex items-center justify-center gap-2"
               >
-                {loading ? 'Rejecting...' : 'Reject'}
+                {rejectStatus === 'loading' ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Rejecting...
+                  </>
+                ) : rejectStatus === 'success' ? (
+                  <>
+                    <Check className="h-4 w-4" />
+                    Rejected
+                  </>
+                ) : (
+                  'Reject'
+                )}
               </Button>
             </CredenzaFooter>
           </CredenzaBody>
@@ -235,7 +315,13 @@ export function ApprovalActionDialogs({
       </Credenza>
 
       {/* Delete Dialog */}
-      <Credenza open={deleteDialogOpen} onOpenChange={onDeleteDialogClose}>
+      <Credenza
+        open={deleteDialogOpen}
+        onOpenChange={(open) => {
+          if (deleteStatus === 'loading') return
+          if (!open) onDeleteDialogClose()
+        }}
+      >
         <CredenzaContent>
           <CredenzaHeader>
             <CredenzaTitle className="text-text">
@@ -254,7 +340,7 @@ export function ApprovalActionDialogs({
           <CredenzaBody>
             <CredenzaFooter>
               <CredenzaClose asChild>
-                <Button variant="neutral" disabled={loading}>
+                <Button variant="neutral" disabled={deleteStatus !== 'idle'}>
                   Cancel
                 </Button>
               </CredenzaClose>
@@ -263,9 +349,22 @@ export function ApprovalActionDialogs({
                 onClick={() => {
                   handleDelete()
                 }}
-                disabled={loading}
+                disabled={deleteStatus !== 'idle'}
+                className="min-w-[100px] flex items-center justify-center gap-2"
               >
-                {loading ? 'Deleting...' : 'Delete'}
+                {deleteStatus === 'loading' ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : deleteStatus === 'success' ? (
+                  <>
+                    <Check className="h-4 w-4" />
+                    Deleted
+                  </>
+                ) : (
+                  'Delete'
+                )}
               </Button>
             </CredenzaFooter>
           </CredenzaBody>
