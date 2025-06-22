@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useApprovalsStore } from '@/features/plex/store/approvalsStore'
 import { Button } from '@/components/ui/button'
-import { RefreshCw } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useApprovalPageEvents } from '@/hooks/useApprovalEvents'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
@@ -145,14 +144,6 @@ export default function ApprovalTableSection() {
     onApprovalRejected: handleApprovalRejectedCallback,
     onApprovalDeleted: handleApprovalDeletedCallback,
   })
-
-  const handleRefresh = async () => {
-    try {
-      await refreshApprovalRequests()
-    } catch (error) {
-      console.error('Failed to refresh approval requests:', error)
-    }
-  }
 
   const handleApprove = (request: ApprovalRequestResponse) => {
     setSelectedRequest(request)
@@ -455,19 +446,6 @@ export default function ApprovalTableSection() {
       {/* Header with stats */}
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-text">Approval Management</h2>
-        <div className="flex gap-2">
-          <Button
-            variant="noShadow"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={approvalsLoading}
-          >
-            <RefreshCw
-              className={`h-4 w-4 mr-2 ${approvalsLoading ? 'animate-spin' : ''}`}
-            />
-            Refresh
-          </Button>
-        </div>
       </div>
 
       {/* Stats overview */}
