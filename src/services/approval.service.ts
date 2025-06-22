@@ -9,10 +9,49 @@ import type {
 import type { ContentItem } from '@root/types/router.types.js'
 import type { SonarrItem } from '@root/types/sonarr.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
+import type { ApprovalMetadata } from '@root/types/progress.types.js'
 import { extractTypedGuid } from '@utils/guid-handler.js'
 
 export class ApprovalService {
   constructor(private fastify: FastifyInstance) {}
+
+  /**
+   * Emits SSE event for approval actions
+   */
+  private emitApprovalEvent(
+    action: ApprovalMetadata['action'],
+    request: ApprovalRequest,
+    userName: string,
+  ): void {
+    if (this.fastify.progress?.hasActiveConnections()) {
+      // Always prefer the userName from the database request object if available
+      const finalUserName =
+        request.userName || userName || `User ${request.userId}`
+
+      this.fastify.log.debug(
+        `Emitting approval SSE event: action=${action}, requestId=${request.id}, userName="${userName}", request.userName="${request.userName}", finalUserName="${finalUserName}"`,
+      )
+
+      const metadata: ApprovalMetadata = {
+        action,
+        requestId: request.id,
+        userId: request.userId,
+        userName: finalUserName,
+        contentTitle: request.contentTitle,
+        contentType: request.contentType,
+        status: request.status,
+      }
+
+      this.fastify.progress.emit({
+        operationId: `approval-${request.id}`,
+        type: 'approval',
+        phase: action,
+        progress: 100, // Approval events are instant
+        message: `${action} approval request for "${request.contentTitle}" by ${finalUserName}`,
+        metadata,
+      })
+    }
+  }
 
   /**
    * Determines if content requires approval based on user quotas and router decisions
@@ -65,35 +104,6 @@ export class ApprovalService {
     // Use Plex key for content_key (user association), fall back to GUID if not provided
     const contentKey = plexKey || content.guids[0] || ''
 
-    // For duplicate detection, use the appropriate GUID for the target ARR type
-    let duplicateCheckGuid = ''
-    if (
-      routerDecision.action === 'require_approval' &&
-      routerDecision.approval?.proposedRouting
-    ) {
-      const instanceType = routerDecision.approval.proposedRouting.instanceType
-      if (instanceType === 'radarr') {
-        // Radarr uses TMDB IDs
-        duplicateCheckGuid =
-          extractTypedGuid(content.guids, 'tmdb:') || content.guids[0] || ''
-      } else if (instanceType === 'sonarr') {
-        // Sonarr uses TVDB IDs
-        duplicateCheckGuid =
-          extractTypedGuid(content.guids, 'tvdb:') || content.guids[0] || ''
-      } else {
-        duplicateCheckGuid = content.guids[0] || ''
-      }
-    } else {
-      // For direct routing decisions, use content type to determine appropriate GUID
-      if (content.type === 'movie') {
-        duplicateCheckGuid =
-          extractTypedGuid(content.guids, 'tmdb:') || content.guids[0] || ''
-      } else {
-        duplicateCheckGuid =
-          extractTypedGuid(content.guids, 'tvdb:') || content.guids[0] || ''
-      }
-    }
-
     const data: CreateApprovalRequestData = {
       userId: user.id,
       contentType: content.type,
@@ -111,7 +121,13 @@ export class ApprovalService {
     )
 
     // Use atomic method that handles expired duplicates within a transaction
-    return this.fastify.db.createApprovalRequestWithExpiredHandling(data)
+    const createdRequest =
+      await this.fastify.db.createApprovalRequestWithExpiredHandling(data)
+
+    // Emit SSE event for new approval request
+    this.emitApprovalEvent('created', createdRequest, user.name)
+
+    return createdRequest
   }
 
   /**
@@ -347,6 +363,60 @@ export class ApprovalService {
   }
 
   /**
+   * Approves a single request
+   */
+  async approveRequest(
+    requestId: number,
+    approvedBy: number,
+    notes?: string,
+  ): Promise<ApprovalRequest | null> {
+    try {
+      const result = await this.fastify.db.approveRequest(
+        requestId,
+        approvedBy,
+        notes,
+      )
+
+      if (result) {
+        // Emit SSE event for approved request
+        this.emitApprovalEvent('approved', result, result.userName)
+      }
+
+      return result
+    } catch (error) {
+      this.fastify.log.error(`Error approving request ${requestId}:`, error)
+      return null
+    }
+  }
+
+  /**
+   * Rejects a single request
+   */
+  async rejectRequest(
+    requestId: number,
+    rejectedBy: number,
+    reason?: string,
+  ): Promise<ApprovalRequest | null> {
+    try {
+      const result = await this.fastify.db.rejectRequest(
+        requestId,
+        rejectedBy,
+        reason,
+      )
+
+      if (result) {
+        // Emit SSE event for rejected request
+        this.emitApprovalEvent('rejected', result, result.userName)
+      }
+
+      return result
+    } catch (error) {
+      this.fastify.log.error(`Error rejecting request ${requestId}:`, error)
+      return null
+    }
+  }
+
+  /**
    * Approves multiple requests in batch
    */
   async batchApprove(
@@ -369,6 +439,9 @@ export class ApprovalService {
         )
         if (result) {
           results.approved++
+
+          // Emit SSE event for approved request
+          this.emitApprovalEvent('approved', result, result.userName)
 
           // Process the approved request
           const processResult = await this.processApprovedRequest(result)
@@ -415,6 +488,71 @@ export class ApprovalService {
         )
         if (result) {
           results.rejected++
+
+          // Emit SSE event for rejected request
+          this.emitApprovalEvent('rejected', result, result.userName)
+        } else {
+          results.failed.push(id)
+          results.errors.push(`Request ${id} not found`)
+        }
+      } catch (error) {
+        results.failed.push(id)
+        results.errors.push(
+          `Request ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        )
+      }
+    }
+
+    return results
+  }
+
+  /**
+   * Deletes a single approval request
+   */
+  async deleteApprovalRequest(requestId: number): Promise<boolean> {
+    try {
+      // Get the request before deletion for SSE event
+      const requestToDelete =
+        await this.fastify.db.getApprovalRequest(requestId)
+
+      const deleted = await this.fastify.db.deleteApprovalRequest(requestId)
+
+      if (deleted && requestToDelete) {
+        // Emit SSE event for deleted request
+        this.emitApprovalEvent(
+          'deleted',
+          requestToDelete,
+          requestToDelete.userName,
+        )
+      }
+
+      return deleted
+    } catch (error) {
+      this.fastify.log.error(
+        `Error deleting approval request ${requestId}:`,
+        error,
+      )
+      return false
+    }
+  }
+
+  /**
+   * Deletes multiple requests in batch
+   */
+  async batchDelete(
+    requestIds: number[],
+  ): Promise<{ deleted: number; failed: number[]; errors: string[] }> {
+    const results = {
+      deleted: 0,
+      failed: [] as number[],
+      errors: [] as string[],
+    }
+
+    for (const id of requestIds) {
+      try {
+        const success = await this.deleteApprovalRequest(id)
+        if (success) {
+          results.deleted++
         } else {
           results.failed.push(id)
           results.errors.push(`Request ${id} not found`)
