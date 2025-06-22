@@ -25,7 +25,7 @@ export function useWatchlistStatus() {
       const workflowStatus = event.message.replace('Watchlist workflow status:', '').trim()
       setStatus(workflowStatus)
       
-      if (event.metadata) {
+      if (event.metadata && 'syncMode' in event.metadata && 'rssAvailable' in event.metadata) {
         setSyncMode(event.metadata.syncMode)
         setRssAvailable(event.metadata.rssAvailable)
       }

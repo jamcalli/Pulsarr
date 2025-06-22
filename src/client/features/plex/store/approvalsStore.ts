@@ -58,6 +58,11 @@ export interface ApprovalsState {
   // Utility actions
   setQuery: (query: Partial<GetApprovalRequestsQuery>) => void
   clearError: () => void
+
+  // SSE event handlers
+  handleApprovalCreated: (request: ApprovalRequestResponse) => void
+  handleApprovalUpdated: (request: ApprovalRequestResponse) => void
+  handleApprovalDeleted: (requestId: number) => void
 }
 
 export const useApprovalsStore = create<ApprovalsState>()(
@@ -325,6 +330,60 @@ export const useApprovalsStore = create<ApprovalsState>()(
 
     clearError: () => {
       set({ error: null })
+    },
+
+    // SSE event handlers
+    handleApprovalCreated: (request: ApprovalRequestResponse) => {
+      set((state) => {
+        // Insert new request at the beginning (most recent first)
+        // Check if it already exists to prevent duplicates
+        const exists = state.approvalRequests.some((r) => r.id === request.id)
+        if (exists) return state
+
+        return {
+          approvalRequests: [request, ...state.approvalRequests],
+          total: state.total + 1,
+        }
+      })
+    },
+
+    handleApprovalUpdated: (request: ApprovalRequestResponse) => {
+      set((state) => {
+        const index = state.approvalRequests.findIndex(
+          (r) => r.id === request.id,
+        )
+        if (index === -1) {
+          // Request not in current list, check if it should be added based on current filters
+          // For now, just ignore unknown requests to avoid complexity
+          return state
+        }
+
+        // Update the existing request
+        const updatedRequests = [...state.approvalRequests]
+        updatedRequests[index] = request
+
+        return {
+          approvalRequests: updatedRequests,
+        }
+      })
+    },
+
+    handleApprovalDeleted: (requestId: number) => {
+      set((state) => {
+        const filteredRequests = state.approvalRequests.filter(
+          (r) => r.id !== requestId,
+        )
+
+        // Only update if we actually removed something
+        if (filteredRequests.length === state.approvalRequests.length) {
+          return state
+        }
+
+        return {
+          approvalRequests: filteredRequests,
+          total: Math.max(0, state.total - 1),
+        }
+      })
     },
   })),
 )

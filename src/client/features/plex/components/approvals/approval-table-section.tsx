@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useApprovalsStore } from '@/features/plex/store/approvalsStore'
 import { Button } from '@/components/ui/button'
 import { RefreshCw } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
+import { useApprovalPageEvents } from '@/hooks/useApprovalEvents'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 import { ApprovalTable } from './approval-table'
 import { ApprovalActionDialogs } from './approval-action-dialogs'
@@ -16,6 +17,10 @@ import type {
   BulkDeleteRequest,
   BulkOperationResponse,
 } from '@root/schemas/approval/approval.schema'
+import type {
+  ProgressEvent,
+  ApprovalMetadata,
+} from '@root/types/progress.types'
 
 type BulkActionStatus = 'idle' | 'loading' | 'success' | 'error'
 
@@ -38,6 +43,9 @@ export default function ApprovalTableSection() {
     initialize,
     refreshApprovalRequests,
     clearError,
+    handleApprovalCreated,
+    handleApprovalDeleted,
+    fetchStats,
   } = useApprovalsStore()
 
   const hasInitializedRef = useRef(false)
@@ -66,6 +74,77 @@ export default function ApprovalTableSection() {
       hasInitializedRef.current = true
     }
   }, [initialize])
+
+  // Memoize callback functions to prevent infinite re-renders
+  const handleApprovalCreatedCallback = useCallback(
+    (_: ProgressEvent, metadata: ApprovalMetadata) => {
+      // Convert metadata to ApprovalRequestResponse format
+      const newRequest: ApprovalRequestResponse = {
+        id: metadata.requestId,
+        userId: metadata.userId,
+        userName: metadata.userName,
+        contentType: metadata.contentType,
+        contentTitle: metadata.contentTitle,
+        status: metadata.status,
+        // Set other required fields to defaults - they'll be fetched properly later
+        contentKey: '',
+        contentGuids: [],
+        proposedRouterDecision: { action: 'route', routing: undefined },
+        routerRuleId: null,
+        triggeredBy: 'manual_flag',
+        approvalReason: null,
+        approvedBy: null,
+        approvalNotes: null,
+        expiresAt: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }
+      handleApprovalCreated(newRequest)
+      fetchStats()
+    },
+    [handleApprovalCreated, fetchStats],
+  )
+
+  const handleApprovalUpdatedCallback = useCallback(
+    (_event: ProgressEvent, _metadata: ApprovalMetadata) => {
+      refreshApprovalRequests()
+      fetchStats()
+    },
+    [refreshApprovalRequests, fetchStats],
+  )
+
+  const handleApprovalApprovedCallback = useCallback(
+    (_event: ProgressEvent, _metadata: ApprovalMetadata) => {
+      refreshApprovalRequests()
+      fetchStats()
+    },
+    [refreshApprovalRequests, fetchStats],
+  )
+
+  const handleApprovalRejectedCallback = useCallback(
+    (_event: ProgressEvent, _metadata: ApprovalMetadata) => {
+      refreshApprovalRequests()
+      fetchStats()
+    },
+    [refreshApprovalRequests, fetchStats],
+  )
+
+  const handleApprovalDeletedCallback = useCallback(
+    (_event: ProgressEvent, metadata: ApprovalMetadata) => {
+      handleApprovalDeleted(metadata.requestId)
+      fetchStats()
+    },
+    [handleApprovalDeleted, fetchStats],
+  )
+
+  // Set up SSE event handling for real-time updates (page-specific, no toasts)
+  useApprovalPageEvents({
+    onApprovalCreated: handleApprovalCreatedCallback,
+    onApprovalUpdated: handleApprovalUpdatedCallback,
+    onApprovalApproved: handleApprovalApprovedCallback,
+    onApprovalRejected: handleApprovalRejectedCallback,
+    onApprovalDeleted: handleApprovalDeletedCallback,
+  })
 
   const handleRefresh = async () => {
     try {

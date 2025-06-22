@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import WindowedLayout from './window'
 import { useProgressStore } from '@/stores/progressStore'
 import { useVersionCheck } from '@/hooks/useVersionCheck'
+import { useApprovalToasts } from '@/hooks/useApprovalEvents'
 
 interface AuthenticatedLayoutProps {
   children: ReactNode
@@ -16,6 +17,9 @@ export default function AuthenticatedLayout({
   const initialized = useRef(false)
 
   useVersionCheck('jamcalli', 'Pulsarr')
+
+  // Enable global approval toast notifications throughout authenticated app
+  useApprovalToasts()
 
   useEffect(() => {
     if (!initialized.current) {

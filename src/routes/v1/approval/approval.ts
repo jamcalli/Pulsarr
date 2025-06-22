@@ -335,8 +335,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       try {
         const requestId = Number.parseInt(request.params.id, 10)
 
-        // Actually delete the approval request from the database
-        const deleted = await fastify.db.deleteApprovalRequest(requestId)
+        // Use the approval service to delete the request (handles SSE events)
+        const deleted =
+          await fastify.approvalService.deleteApprovalRequest(requestId)
 
         if (!deleted) {
           return reply.notFound('Approval request not found')
@@ -397,8 +398,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           )
         }
 
-        // Reject the request using the database method
-        const rejectedRequest = await fastify.db.rejectRequest(
+        // Reject the request using the approval service (handles SSE events)
+        const rejectedRequest = await fastify.approvalService.rejectRequest(
           requestId,
           rejectedBy,
           reason,
@@ -504,8 +505,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           )
         }
 
-        // Approve the request using the database method
-        const approvedRequest = await fastify.db.approveRequest(
+        // Approve the request using the approval service (handles SSE events)
+        const approvedRequest = await fastify.approvalService.approveRequest(
           requestId,
           approvedBy,
           notes,
@@ -645,35 +646,17 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         const { requestIds } = request.body
-        let successCount = 0
-        const failed: number[] = []
-        const errors: string[] = []
 
-        // Process each delete individually (since there's no batch delete in service)
-        for (const id of requestIds) {
-          try {
-            const result = await fastify.db.deleteApprovalRequest(id)
-            if (result) {
-              successCount++
-            } else {
-              failed.push(id)
-              errors.push(`Request ${id} not found`)
-            }
-          } catch (error) {
-            failed.push(id)
-            errors.push(
-              `Request ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-            )
-          }
-        }
+        // Use the approval service batch delete method (handles SSE events)
+        const result = await fastify.approvalService.batchDelete(requestIds)
 
         return {
           success: true,
-          message: `Bulk delete completed: ${successCount} successful, ${failed.length} failed`,
+          message: `Bulk delete completed: ${result.deleted} successful, ${result.failed.length} failed`,
           result: {
-            successful: successCount,
-            failed,
-            errors,
+            successful: result.deleted,
+            failed: result.failed,
+            errors: result.errors,
             total: requestIds.length,
           },
         }
