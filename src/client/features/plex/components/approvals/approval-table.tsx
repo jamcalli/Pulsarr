@@ -39,6 +39,7 @@ interface ApprovalTableProps {
   onView: (request: ApprovalRequestResponse) => void
   onDelete: (request: ApprovalRequestResponse) => void
   isLoading?: boolean
+  onBulkActions?: (selectedRows: ApprovalRequestResponse[]) => void
 }
 
 export function ApprovalTable({
@@ -48,6 +49,7 @@ export function ApprovalTable({
   onView,
   onDelete,
   isLoading = false,
+  onBulkActions,
 }: ApprovalTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'createdAt', desc: true },
@@ -116,17 +118,9 @@ export function ApprovalTable({
             table={table}
             isFiltered={isTableFiltered}
             onResetFilters={handleResetFilters}
+            onBulkActions={onBulkActions}
           />
         </div>
-
-        {table.getFilteredSelectedRowModel().rows.length > 0 && (
-          <div className="pb-4">
-            <span className="text-sm text-muted-foreground">
-              {table.getFilteredSelectedRowModel().rows.length} of{' '}
-              {table.getFilteredRowModel().rows.length} row(s) selected
-            </span>
-          </div>
-        )}
       </div>
 
       <div className="rounded-md">

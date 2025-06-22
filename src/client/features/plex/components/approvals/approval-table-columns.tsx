@@ -118,7 +118,14 @@ export const createApprovalColumns = (
     },
     cell: ({ row }) => {
       const userName = row.getValue('userName') as string
-      return <div className="font-medium">{userName}</div>
+      return (
+        <div className="font-medium">
+          <span className="hidden sm:inline">{userName}</span>
+          <span className="sm:hidden text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full">
+            1
+          </span>
+        </div>
+      )
     },
     enableSorting: true,
     filterFn: (row, id, value) => {
