@@ -194,47 +194,62 @@ export class ApprovalService {
 
       if (proposedRouting) {
         // Route the content using the stored decision
-        // Actually execute the routing to Radarr/Sonarr
+        // Execute routing to both primary and synced instances
 
-        const { instanceType, instanceId } = proposedRouting
+        const { instanceType, instanceId, syncedInstances } = proposedRouting
+        const allInstanceIds = [instanceId, ...(syncedInstances || [])]
+
+        this.fastify.log.info(
+          `Processing approval routing to ${allInstanceIds.length} instances: ${allInstanceIds.join(', ')} (primary: ${instanceId}, synced: ${syncedInstances?.join(', ') || 'none'})`,
+        )
 
         if (instanceType === 'radarr') {
-          // Route to Radarr
-          await this.fastify.radarrManager.routeItemToRadarr(
-            {
-              title: request.contentTitle,
-              type: 'movie',
-              guids: request.contentGuids,
-            } as RadarrItem,
-            request.contentKey,
-            request.userId,
-            instanceId,
-            false, // Not a sync operation
-            proposedRouting.rootFolder || undefined,
-            proposedRouting.qualityProfile,
-            proposedRouting.tags || [],
-            proposedRouting.searchOnAdd,
-            proposedRouting.minimumAvailability,
-          )
+          // Route to all Radarr instances (primary + synced)
+          for (const targetInstanceId of allInstanceIds) {
+            const isPrimary = targetInstanceId === instanceId
+
+            // Use stored settings for primary instance, undefined for synced instances (to use their defaults)
+            await this.fastify.radarrManager.routeItemToRadarr(
+              {
+                title: request.contentTitle,
+                type: 'movie',
+                guids: request.contentGuids,
+              } as RadarrItem,
+              request.contentKey,
+              request.userId,
+              targetInstanceId,
+              !isPrimary, // Mark as sync operation if not primary
+              isPrimary ? proposedRouting.rootFolder || undefined : undefined,
+              isPrimary ? proposedRouting.qualityProfile : undefined,
+              isPrimary ? proposedRouting.tags || [] : undefined,
+              isPrimary ? proposedRouting.searchOnAdd : undefined,
+              isPrimary ? proposedRouting.minimumAvailability : undefined,
+            )
+          }
         } else if (instanceType === 'sonarr') {
-          // Route to Sonarr
-          await this.fastify.sonarrManager.routeItemToSonarr(
-            {
-              title: request.contentTitle,
-              type: 'show',
-              guids: request.contentGuids,
-            } as SonarrItem,
-            request.contentKey,
-            request.userId,
-            instanceId,
-            false, // Not a sync operation
-            proposedRouting.rootFolder || undefined,
-            proposedRouting.qualityProfile,
-            proposedRouting.tags || [],
-            proposedRouting.searchOnAdd,
-            proposedRouting.seasonMonitoring,
-            proposedRouting.seriesType,
-          )
+          // Route to all Sonarr instances (primary + synced)
+          for (const targetInstanceId of allInstanceIds) {
+            const isPrimary = targetInstanceId === instanceId
+
+            // Use stored settings for primary instance, undefined for synced instances (to use their defaults)
+            await this.fastify.sonarrManager.routeItemToSonarr(
+              {
+                title: request.contentTitle,
+                type: 'show',
+                guids: request.contentGuids,
+              } as SonarrItem,
+              request.contentKey,
+              request.userId,
+              targetInstanceId,
+              !isPrimary, // Mark as sync operation if not primary
+              isPrimary ? proposedRouting.rootFolder || undefined : undefined,
+              isPrimary ? proposedRouting.qualityProfile : undefined,
+              isPrimary ? proposedRouting.tags || [] : undefined,
+              isPrimary ? proposedRouting.searchOnAdd : undefined,
+              isPrimary ? proposedRouting.seasonMonitoring : undefined,
+              isPrimary ? proposedRouting.seriesType : undefined,
+            )
+          }
         } else {
           return { success: false, error: 'Unknown instance type' }
         }

@@ -25,8 +25,8 @@ export interface ApprovalRequestRow {
   content_type: 'movie' | 'show'
   content_title: string
   content_key: string
-  content_guids: string[] // JSON array in DB
-  router_decision: RouterDecision // JSON object in DB
+  content_guids: string | string[] // JSON array in DB
+  router_decision: string | RouterDecision // JSON object in DB
   router_rule_id?: number
   approval_reason?: string
   triggered_by: ApprovalTrigger
@@ -71,6 +71,7 @@ export interface RouterDecision {
     seasonMonitoring?: string | null
     seriesType?: 'standard' | 'anime' | 'daily' | null
     minimumAvailability?: 'announced' | 'inCinemas' | 'released'
+    syncedInstances?: number[]
   }
 
   // Approval-specific fields (when action === 'require_approval')
@@ -105,6 +106,7 @@ export interface UserQuotaConfig {
 export interface ApprovalRequest {
   id: number
   userId: number
+  userName: string
   contentType: 'movie' | 'show'
   contentTitle: string
   contentKey: string
@@ -167,6 +169,7 @@ export interface UpdateApprovalRequestData {
   status?: ApprovalStatus
   approvedBy?: number
   approvalNotes?: string
+  proposedRouterDecision?: RouterDecision
 }
 
 export interface CreateUserQuotaData {

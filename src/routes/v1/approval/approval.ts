@@ -258,6 +258,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             status: request.body.status,
             approvedBy: request.body.approvedBy,
             approvalNotes: request.body.approvalNotes,
+            proposedRouterDecision: request.body.proposedRouterDecision,
           },
         )
 
