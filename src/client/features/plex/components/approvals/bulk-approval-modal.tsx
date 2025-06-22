@@ -5,6 +5,7 @@ import {
   Clock,
   CheckCircle,
   XCircle,
+  Trash2,
 } from 'lucide-react'
 import {
   Dialog,
@@ -161,7 +162,10 @@ const FormContent = ({
                   Approved
                 </>
               ) : (
-                `Bulk Approve (${pendingCount + rejectedCount})`
+                <>
+                  <CheckCircle className="h-4 w-4" />
+                  Bulk Approve ({pendingCount + rejectedCount})
+                </>
               )}
             </Button>
           )}
@@ -184,7 +188,10 @@ const FormContent = ({
                   Rejected
                 </>
               ) : (
-                `Bulk Reject (${pendingCount})`
+                <>
+                  <XCircle className="h-4 w-4" />
+                  Bulk Reject ({pendingCount})
+                </>
               )}
             </Button>
           )}
@@ -206,7 +213,10 @@ const FormContent = ({
                 Deleted
               </>
             ) : (
-              `Bulk Delete (${selectedRequests.length})`
+              <>
+                <Trash2 className="h-4 w-4" />
+                Bulk Delete ({selectedRequests.length})
+              </>
             )}
           </Button>
         </div>
@@ -326,7 +336,7 @@ export default function BulkApprovalModal({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="sm:max-w-lg max-h-[90vh] overflow-y-auto"
+        className="sm:max-w-xl max-h-[90vh] overflow-y-auto"
         onPointerDownOutside={(e) => {
           if (actionStatus === 'loading') {
             e.preventDefault()

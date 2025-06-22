@@ -22,6 +22,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
 
 interface ApprovalTableActions {
@@ -231,26 +237,92 @@ export const createApprovalColumns = (
       const trigger = row.getValue('triggeredBy') as string
       const request = row.original
 
-      const getTriggerBadge = () => {
+      const getTriggerBadge = (hasTooltip = false) => {
+        const badgeClass = hasTooltip ? 'cursor-help' : ''
         switch (trigger) {
           case 'quota_exceeded': {
             // Extract numbers from approvalReason like "weekly_rolling quota exceeded (8/5)"
             const quotaMatch = request.approvalReason?.match(/\((\d+\/\d+)\)/)
             const quotaNumbers = quotaMatch ? `${quotaMatch[1]} ` : ''
-            return <Badge variant="neutral">{quotaNumbers}Quota Exceeded</Badge>
+            return (
+              <Badge variant="neutral" className={badgeClass}>
+                {quotaNumbers}Quota Exceeded
+              </Badge>
+            )
           }
           case 'router_rule':
-            return <Badge variant="default">Router Rule</Badge>
+            return (
+              <Badge variant="default" className={badgeClass}>
+                Router Rule
+              </Badge>
+            )
           case 'manual_flag':
-            return <Badge variant="neutral">Manual Flag</Badge>
+            return (
+              <Badge variant="neutral" className={badgeClass}>
+                Manual Flag
+              </Badge>
+            )
           case 'content_criteria':
-            return <Badge variant="neutral">Content Criteria</Badge>
+            return (
+              <Badge variant="neutral" className={badgeClass}>
+                Content Criteria
+              </Badge>
+            )
           default:
-            return <Badge variant="neutral">{trigger}</Badge>
+            return (
+              <Badge variant="neutral" className={badgeClass}>
+                {trigger}
+              </Badge>
+            )
         }
       }
 
-      return <div className="max-w-[200px]">{getTriggerBadge()}</div>
+      const getTooltipContent = () => {
+        const parts = []
+
+        // Always show the full approval reason if available
+        if (request.approvalReason) {
+          parts.push(`Reason: ${request.approvalReason}`)
+        }
+
+        // Add router rule ID for router rule triggers
+        if (trigger === 'router_rule' && request.routerRuleId) {
+          parts.push(`Rule ID: ${request.routerRuleId}`)
+        }
+
+        // Add proposed routing information if available
+        if (request.proposedRouterDecision?.routing) {
+          const routing = request.proposedRouterDecision.routing
+          const instanceType =
+            routing.instanceType?.charAt(0).toUpperCase() +
+            routing.instanceType?.slice(1)
+          parts.push(`→ ${instanceType} Instance ${routing.instanceId}`)
+        }
+
+        return parts.length > 0 ? parts.join('\n') : null
+      }
+
+      const tooltipContent = getTooltipContent()
+      const badge = getTriggerBadge(!!tooltipContent)
+
+      if (!tooltipContent) {
+        return <div className="max-w-[200px]">{badge}</div>
+      }
+
+      return (
+        <div className="max-w-[200px]">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>{badge}</TooltipTrigger>
+              <TooltipContent side="top" className="max-w-xs">
+                <div className="text-xs whitespace-pre-line">
+                  {tooltipContent}
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      )
     },
     enableSorting: true,
     filterFn: (row, id, value) => {
@@ -342,32 +414,59 @@ export const createApprovalColumns = (
         <div className="flex items-center gap-1">
           {canTakeAction && !isExpired && (
             <>
-              <Button
-                variant="approveNoShadow"
-                size="sm"
-                onClick={() => actions.onApprove(request)}
-                className="h-8 px-2"
-              >
-                <CheckCircle className="h-3 w-3" />
-              </Button>
-              <Button
-                variant="rejectNoShadow"
-                size="sm"
-                onClick={() => actions.onReject(request)}
-                className="h-8 px-2"
-              >
-                <XCircle className="h-3 w-3" />
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="approveNoShadow"
+                      size="sm"
+                      onClick={() => actions.onApprove(request)}
+                      className="h-8 px-2"
+                    >
+                      <CheckCircle className="h-3 w-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <p className="text-xs">Approve request</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="rejectNoShadow"
+                      size="sm"
+                      onClick={() => actions.onReject(request)}
+                      className="h-8 px-2"
+                    >
+                      <XCircle className="h-3 w-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <p className="text-xs">Reject request</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </>
           )}
 
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="noShadow" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="noShadow" className="h-8 w-8 p-0">
+                      <span className="sr-only">Open menu</span>
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent side="top">
+                  <p className="text-xs">More actions</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => actions.onView(request)}>
                 <Eye className="mr-2 h-4 w-4" />

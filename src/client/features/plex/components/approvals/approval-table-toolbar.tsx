@@ -85,8 +85,47 @@ export function ApprovalTableToolbar({
         />
       </div>
 
-      {/* Second row - Filter buttons and columns */}
-      <div className="flex flex-col gap-2">
+      {/* Second row - Bulk actions */}
+      <div className="flex items-center justify-start gap-2">
+        {/* Bulk actions button */}
+        {table.getFilteredSelectedRowModel().rows.length > 0 &&
+          onBulkActions && (
+            <Button
+              variant="blue"
+              size="sm"
+              className="flex items-center gap-2 h-10"
+              onClick={() => {
+                const selectedRequests = table
+                  .getFilteredSelectedRowModel()
+                  .rows.map((row) => row.original)
+                onBulkActions(selectedRequests)
+              }}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="lucide lucide-edit"
+                aria-labelledby="editIconTitle"
+              >
+                <title id="editIconTitle">Edit Icon</title>
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+              Bulk Actions ({table.getFilteredSelectedRowModel().rows.length})
+            </Button>
+          )}
+      </div>
+
+      {/* Third row - Filters and action buttons */}
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        {/* Left side - Filter buttons */}
         <div className="flex items-center gap-2 flex-wrap">
           {/* Status filter */}
           {table.getColumn('status') && (
@@ -133,89 +172,48 @@ export function ApprovalTableToolbar({
           )}
         </div>
 
-        {/* Reset and Columns buttons row */}
-        <div className="flex items-center justify-between gap-2">
-          {/* Bulk actions button - left side */}
-          <div>
-            {table.getFilteredSelectedRowModel().rows.length > 0 &&
-              onBulkActions && (
-                <Button
-                  variant="blue"
-                  size="sm"
-                  className="flex items-center gap-2 h-10"
-                  onClick={() => {
-                    const selectedRequests = table
-                      .getFilteredSelectedRowModel()
-                      .rows.map((row) => row.original)
-                    onBulkActions(selectedRequests)
-                  }}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="lucide lucide-edit"
-                    aria-labelledby="editIconTitle"
-                  >
-                    <title id="editIconTitle">Edit Icon</title>
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                  </svg>
-                  Bulk Actions (
-                  {table.getFilteredSelectedRowModel().rows.length})
-                </Button>
-              )}
-          </div>
+        {/* Right side - Reset and Columns buttons */}
+        <div className="flex items-center gap-2">
+          {/* Reset filters button */}
+          {isFiltered && (
+            <Button
+              variant="error"
+              onClick={onResetFilters}
+              className="h-10 px-2 lg:px-3"
+            >
+              Reset
+              <X className="ml-2 h-4 w-4" />
+            </Button>
+          )}
 
-          {/* Reset and Columns buttons - right side */}
-          <div className="flex items-center gap-2">
-            {/* Reset filters button */}
-            {isFiltered && (
-              <Button
-                variant="error"
-                onClick={onResetFilters}
-                className="h-10 px-2 lg:px-3"
-              >
-                Reset
-                <X className="ml-2 h-4 w-4" />
+          {/* Columns button */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="noShadow" className="h-10 px-2 lg:px-3">
+                Columns <ChevronDown className="ml-2 h-4 w-4" />
               </Button>
-            )}
-
-            {/* Columns button */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="noShadow" className="h-10 px-2 lg:px-3">
-                  Columns <ChevronDown className="ml-2 h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {table
-                  .getAllColumns()
-                  .filter((column) => column.getCanHide())
-                  .map((column) => {
-                    return (
-                      <DropdownMenuCheckboxItem
-                        key={column.id}
-                        className="capitalize"
-                        checked={column.getIsVisible()}
-                        onCheckedChange={(value) =>
-                          column.toggleVisibility(!!value)
-                        }
-                      >
-                        {(column.columnDef.meta as { displayName?: string })
-                          ?.displayName || column.id}
-                      </DropdownMenuCheckboxItem>
-                    )
-                  })}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {table
+                .getAllColumns()
+                .filter((column) => column.getCanHide())
+                .map((column) => {
+                  return (
+                    <DropdownMenuCheckboxItem
+                      key={column.id}
+                      className="capitalize"
+                      checked={column.getIsVisible()}
+                      onCheckedChange={(value) =>
+                        column.toggleVisibility(!!value)
+                      }
+                    >
+                      {(column.columnDef.meta as { displayName?: string })
+                        ?.displayName || column.id}
+                    </DropdownMenuCheckboxItem>
+                  )
+                })}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </div>
