@@ -13,10 +13,13 @@ import type {
 /**
  * Maps a database row to an ApprovalRequest object
  */
-function mapRowToApprovalRequest(row: ApprovalRequestRow): ApprovalRequest {
+function mapRowToApprovalRequest(
+  row: ApprovalRequestRow & { user_name?: string },
+): ApprovalRequest {
   return {
     id: row.id,
     userId: row.user_id,
+    userName: row.user_name || 'Unknown',
     contentType: row.content_type,
     contentTitle: row.content_title,
     contentKey: row.content_key,
@@ -64,7 +67,14 @@ export async function createApprovalRequest(
     })
     .returning('*')
 
-  return mapRowToApprovalRequest(row)
+  // Get the inserted row with username
+  const rowWithUsername = await this.knex('approval_requests')
+    .select('approval_requests.*', 'users.name as user_name')
+    .leftJoin('users', 'approval_requests.user_id', 'users.id')
+    .where('approval_requests.id', row.id)
+    .first()
+
+  return mapRowToApprovalRequest(rowWithUsername)
 }
 
 /**
@@ -74,7 +84,11 @@ export async function getApprovalRequest(
   this: DatabaseService,
   id: number,
 ): Promise<ApprovalRequest | null> {
-  const row = await this.knex('approval_requests').where('id', id).first()
+  const row = await this.knex('approval_requests')
+    .select('approval_requests.*', 'users.name as user_name')
+    .leftJoin('users', 'approval_requests.user_id', 'users.id')
+    .where('approval_requests.id', id)
+    .first()
   return row ? mapRowToApprovalRequest(row) : null
 }
 
@@ -87,7 +101,12 @@ export async function getApprovalRequestByContent(
   contentKey: string,
 ): Promise<ApprovalRequest | null> {
   const row = await this.knex('approval_requests')
-    .where({ user_id: userId, content_key: contentKey })
+    .select('approval_requests.*', 'users.name as user_name')
+    .leftJoin('users', 'approval_requests.user_id', 'users.id')
+    .where({
+      'approval_requests.user_id': userId,
+      'approval_requests.content_key': contentKey,
+    })
     .first()
   return row ? mapRowToApprovalRequest(row) : null
 }
@@ -108,13 +127,24 @@ export async function updateApprovalRequest(
   if (data.approvedBy !== undefined) updateData.approved_by = data.approvedBy
   if (data.approvalNotes !== undefined)
     updateData.approval_notes = data.approvalNotes
+  if (data.proposedRouterDecision !== undefined)
+    updateData.router_decision = JSON.stringify(data.proposedRouterDecision)
 
   const [row] = await this.knex('approval_requests')
     .where('id', id)
     .update(updateData)
     .returning('*')
 
-  return row ? mapRowToApprovalRequest(row) : null
+  if (!row) return null
+
+  // Get the updated row with username
+  const updatedRow = await this.knex('approval_requests')
+    .select('approval_requests.*', 'users.name as user_name')
+    .leftJoin('users', 'approval_requests.user_id', 'users.id')
+    .where('approval_requests.id', id)
+    .first()
+
+  return updatedRow ? mapRowToApprovalRequest(updatedRow) : null
 }
 
 /**
@@ -158,14 +188,17 @@ export async function getPendingApprovalRequests(
   limit = 50,
   offset = 0,
 ): Promise<ApprovalRequest[]> {
-  let query = this.knex('approval_requests').where('status', 'pending')
+  let query = this.knex('approval_requests')
+    .select('approval_requests.*', 'users.name as user_name')
+    .leftJoin('users', 'approval_requests.user_id', 'users.id')
+    .where('approval_requests.status', 'pending')
 
   if (userId) {
-    query = query.where('user_id', userId)
+    query = query.where('approval_requests.user_id', userId)
   }
 
   const rows = await query
-    .orderBy('created_at', 'desc')
+    .orderBy('approval_requests.created_at', 'desc')
     .limit(limit)
     .offset(offset)
 
@@ -185,25 +218,27 @@ export async function getApprovalHistory(
   triggeredBy?: import('@root/types/approval.types.js').ApprovalTrigger,
 ): Promise<ApprovalRequest[]> {
   let query = this.knex('approval_requests')
+    .select('approval_requests.*', 'users.name as user_name')
+    .leftJoin('users', 'approval_requests.user_id', 'users.id')
 
   if (userId) {
-    query = query.where('user_id', userId)
+    query = query.where('approval_requests.user_id', userId)
   }
 
   if (status) {
-    query = query.where('status', status)
+    query = query.where('approval_requests.status', status)
   }
 
   if (contentType) {
-    query = query.where('content_type', contentType)
+    query = query.where('approval_requests.content_type', contentType)
   }
 
   if (triggeredBy) {
-    query = query.where('triggered_by', triggeredBy)
+    query = query.where('approval_requests.triggered_by', triggeredBy)
   }
 
   const rows = await query
-    .orderBy('updated_at', 'desc')
+    .orderBy('approval_requests.updated_at', 'desc')
     .limit(limit)
     .offset(offset)
 
@@ -343,9 +378,11 @@ export async function createApprovalRequestWithExpiredHandling(
   return await this.knex.transaction(async (trx) => {
     // Check for existing request with the same user_id and content_key
     const existingRow = await trx('approval_requests')
+      .select('approval_requests.*', 'users.name as user_name')
+      .leftJoin('users', 'approval_requests.user_id', 'users.id')
       .where({
-        user_id: data.userId,
-        content_key: data.contentKey,
+        'approval_requests.user_id': data.userId,
+        'approval_requests.content_key': data.contentKey,
       })
       .first()
 
@@ -383,7 +420,14 @@ export async function createApprovalRequestWithExpiredHandling(
       })
       .returning('*')
 
-    return mapRowToApprovalRequest(insertedRow)
+    // Get the inserted row with username
+    const rowWithUsername = await trx('approval_requests')
+      .select('approval_requests.*', 'users.name as user_name')
+      .leftJoin('users', 'approval_requests.user_id', 'users.id')
+      .where('approval_requests.id', insertedRow.id)
+      .first()
+
+    return mapRowToApprovalRequest(rowWithUsername)
   })
 }
 

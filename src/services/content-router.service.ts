@@ -21,6 +21,7 @@ import type {
   RadarrMovieLookupResponse,
   SonarrSeriesLookupResponse,
 } from '@root/types/content-lookup.types.js'
+import type { RouterDecision } from '@root/types/approval.types.js'
 import {
   extractTmdbId,
   extractTvdbId,
@@ -369,11 +370,11 @@ export class ContentRouterService {
                         reason: approvalResult.reason || 'Approval required',
                         triggeredBy: approvalResult.trigger || 'manual_flag',
                         data: approvalResult.data || {},
-                        proposedRouting: {
-                          ...defaultRoutingDecisions[0],
-                          instanceType:
-                            contentType === 'movie' ? 'radarr' : 'sonarr',
-                        },
+                        proposedRouting:
+                          await this.createProposedRoutingDecision(
+                            defaultRoutingDecisions,
+                            contentType,
+                          ),
                       },
                     },
                     approvalResult.trigger || 'manual_flag',
@@ -1557,6 +1558,40 @@ export class ContentRouterService {
         error,
       )
       return []
+    }
+  }
+
+  /**
+   * Creates a proposed routing decision that includes primary instance and synced instances
+   */
+  private async createProposedRoutingDecision(
+    routingDecisions: RoutingDecision[],
+    contentType: 'movie' | 'show',
+  ): Promise<NonNullable<RouterDecision['approval']>['proposedRouting']> {
+    if (routingDecisions.length === 0) {
+      return undefined
+    }
+
+    // Use the primary routing decision (first one) as the base
+    const primaryDecision = routingDecisions[0]
+
+    // Extract synced instance IDs from the routing decisions (skip the first one which is primary)
+    const syncedInstances = routingDecisions
+      .slice(1)
+      .map((decision) => decision.instanceId)
+
+    return {
+      instanceId: primaryDecision.instanceId,
+      instanceType: contentType === 'movie' ? 'radarr' : 'sonarr',
+      qualityProfile: primaryDecision.qualityProfile,
+      rootFolder: primaryDecision.rootFolder,
+      tags: primaryDecision.tags,
+      priority: primaryDecision.priority,
+      searchOnAdd: primaryDecision.searchOnAdd,
+      seasonMonitoring: primaryDecision.seasonMonitoring,
+      seriesType: primaryDecision.seriesType,
+      minimumAvailability: primaryDecision.minimumAvailability,
+      syncedInstances: syncedInstances.length > 0 ? syncedInstances : undefined,
     }
   }
 

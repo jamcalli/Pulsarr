@@ -32,6 +32,7 @@ export const RouterDecisionSchema = z.object({
       minimumAvailability: z
         .enum(['announced', 'inCinemas', 'released'])
         .optional(),
+      syncedInstances: z.array(z.number()).optional(),
     })
     .optional(),
   approval: z
@@ -45,6 +46,7 @@ export const RouterDecisionSchema = z.object({
         criteriaType: z.string().optional(),
         criteriaValue: z.unknown().optional(),
         ruleId: z.number().optional(),
+        autoApprove: z.boolean().optional(),
       }),
       proposedRouting: z
         .object({
@@ -65,6 +67,7 @@ export const RouterDecisionSchema = z.object({
           minimumAvailability: z
             .enum(['announced', 'inCinemas', 'released'])
             .optional(),
+          syncedInstances: z.array(z.number()).optional(),
         })
         .optional(),
     })
@@ -89,11 +92,13 @@ export const UpdateApprovalRequestSchema = z.object({
   status: ApprovalStatusSchema.optional(),
   approvedBy: z.number().optional(),
   approvalNotes: z.string().optional(),
+  proposedRouterDecision: RouterDecisionSchema.optional(),
 })
 
 export const ApprovalRequestResponseSchema = z.object({
   id: z.number(),
   userId: z.number(),
+  userName: z.string(),
   contentType: z.enum(['movie', 'show']),
   contentTitle: z.string(),
   contentKey: z.string(),
