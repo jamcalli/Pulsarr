@@ -12,7 +12,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { CheckCircle, XCircle, Trash2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { useApprovalsStore } from '@/features/plex/store/approvalsStore'
 import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
@@ -170,7 +169,6 @@ export function ApprovalActionDialogs({
                 </Button>
               </CredenzaClose>
               <Button
-                variant="clear"
                 onClick={() => {
                   handleApprove()
                 }}
