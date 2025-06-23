@@ -266,21 +266,29 @@ export class QuotaService {
    *
    * This runs on the admin-configured schedule and handles:
    * - Daily quota resets (every time maintenance runs)
-   * - Monthly quota resets (on the 1st of each month when maintenance runs)
-   * - Cleanup of old usage records
+   * - Monthly quota resets (based on configuration)
+   * - Weekly rolling quota resets (based on configuration)
+   * - Cleanup of old usage records (if enabled in configuration)
    */
   async performAllQuotaMaintenance(): Promise<void> {
     const now = new Date()
+    const config = this.fastify.config?.quotaSettings
 
-    // Handle quota resets based on current date
+    // Handle quota resets based on current date and configuration
     await this.handleQuotaResets(now)
 
-    // Cleanup old quota usage records (older than 90 days)
-    const cleanedCount = await this.fastify.db.cleanupOldQuotaUsage(90)
-    if (cleanedCount > 0) {
-      this.fastify.log.info(
-        `Cleaned up ${cleanedCount} old quota usage records`,
-      )
+    // Cleanup old quota usage records based on configuration
+    if (config?.cleanup?.enabled !== false) {
+      const retentionDays = config?.cleanup?.retentionDays || 90
+      const cleanedCount =
+        await this.fastify.db.cleanupOldQuotaUsage(retentionDays)
+      if (cleanedCount > 0) {
+        this.fastify.log.info(
+          `Cleaned up ${cleanedCount} old quota usage records (retention: ${retentionDays} days)`,
+        )
+      }
+    } else {
+      this.fastify.log.debug('Quota cleanup disabled by configuration')
     }
   }
 
@@ -288,10 +296,12 @@ export class QuotaService {
    * Handles quota resets based on current date and quota types
    *
    * Daily quotas: Reset tracking every time maintenance runs (admin controls frequency)
-   * Monthly quotas: Reset only on 1st of month when maintenance runs
+   * Weekly rolling quotas: Reset based on configurable day period
+   * Monthly quotas: Reset based on configurable day of month with month-end handling
    */
   private async handleQuotaResets(now: Date): Promise<void> {
     try {
+      const config = this.fastify.config?.quotaSettings
       let totalResets = 0
 
       // Handle daily quota resets - reset every time maintenance runs
@@ -307,36 +317,45 @@ export class QuotaService {
         }
       }
 
-      // Handle weekly rolling quota resets - reset every 7 days
+      // Handle weekly rolling quota resets - configurable reset period
       const weeklyQuotas =
         await this.fastify.db.getUsersWithQuotaType('weekly_rolling')
       if (weeklyQuotas.length > 0) {
-        // Check if it's been 7 days since the last weekly reset
+        const resetDays = config?.weeklyRolling?.resetDays || 7
         const lastWeeklyReset = await this.getLastWeeklyReset()
         const daysSinceReset = lastWeeklyReset
           ? Math.floor(
               (now.getTime() - lastWeeklyReset.getTime()) /
                 (1000 * 60 * 60 * 24),
             )
-          : 7 // Force reset if no previous reset
+          : resetDays // Force reset if no previous reset
 
-        if (daysSinceReset >= 7) {
-          // Record reset for weekly rolling quotas using the standard method
+        if (daysSinceReset >= resetDays) {
           const resetPeriod = now.toISOString().split('T')[0]
           for (const quota of weeklyQuotas) {
             await this.fastify.db.recordQuotaReset(quota.userId, resetPeriod)
             totalResets++
             this.fastify.log.info(
-              `Reset weekly rolling quota for user ${quota.userId}`,
+              `Reset weekly rolling quota for user ${quota.userId} (${resetDays}-day period)`,
             )
           }
         }
       }
 
-      // Handle monthly quota resets - only on 1st of month
-      if (now.getDate() === 1) {
+      // Handle monthly quota resets - configurable reset day with month-end handling
+      const shouldResetMonthly = this.shouldResetMonthlyQuotas(now, config)
+      if (shouldResetMonthly) {
+        const resetDay = config?.monthly?.resetDay || 1
+        const handleMonthEnd = config?.monthly?.handleMonthEnd || 'last-day'
         const monthlyQuotas =
           await this.fastify.db.getUsersWithQuotaType('monthly')
+
+        if (monthlyQuotas.length > 0) {
+          this.fastify.log.debug(
+            `Monthly quota reset triggered: resetDay=${resetDay}, handleMonthEnd=${handleMonthEnd}, currentDate=${now.getDate()}`,
+          )
+        }
+
         for (const quota of monthlyQuotas) {
           const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
           const lastReset = await this.fastify.db.getLastQuotaReset(
@@ -347,7 +366,7 @@ export class QuotaService {
             await this.fastify.db.recordQuotaReset(quota.userId, currentMonth)
             totalResets++
             this.fastify.log.info(
-              `Reset monthly quota for user ${quota.userId}`,
+              `Reset monthly quota for user ${quota.userId} (resetDay: ${resetDay})`,
             )
           }
         }
@@ -385,6 +404,54 @@ export class QuotaService {
     }
 
     return mostRecentReset
+  }
+
+  /**
+   * Determines if monthly quotas should be reset based on current date and configuration
+   */
+  private shouldResetMonthlyQuotas(
+    now: Date,
+    config?: {
+      monthly?: {
+        resetDay?: number
+        handleMonthEnd?: 'last-day' | 'skip-month' | 'next-month'
+      }
+    },
+  ): boolean {
+    const resetDay = config?.monthly?.resetDay || 1
+    const handleMonthEnd = config?.monthly?.handleMonthEnd || 'last-day'
+    const currentDay = now.getDate()
+
+    // Get the last day of the current month
+    const lastDayOfMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0,
+    ).getDate()
+
+    // If reset day is within the current month, check if today matches
+    if (resetDay <= lastDayOfMonth) {
+      return currentDay === resetDay
+    }
+
+    // Reset day exceeds days in current month - handle based on configuration
+    switch (handleMonthEnd) {
+      case 'last-day':
+        // Reset on the last day of the month
+        return currentDay === lastDayOfMonth
+
+      case 'skip-month':
+        // Don't reset this month, wait for a month where resetDay exists
+        return false
+
+      case 'next-month':
+        // Reset on the 1st of next month (only if we're currently on the 1st)
+        return currentDay === 1
+
+      default:
+        // Default to last-day behavior
+        return currentDay === lastDayOfMonth
+    }
   }
 
   /**

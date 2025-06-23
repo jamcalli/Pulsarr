@@ -27,6 +27,28 @@ const DEFAULT_PUBLIC_CONTENT_NOTIFICATIONS = {
   appriseUrlsShows: '',
 }
 
+const DEFAULT_QUOTA_SETTINGS = {
+  cleanup: {
+    enabled: true,
+    retentionDays: 90,
+  },
+  weeklyRolling: {
+    resetDays: 7,
+  },
+  monthly: {
+    resetDay: 1,
+    handleMonthEnd: 'last-day' as const,
+  },
+}
+
+const DEFAULT_APPROVAL_EXPIRATION = {
+  enabled: false,
+  defaultExpirationHours: 72,
+  expirationAction: 'expire' as const,
+  maintenanceCronExpression: '0 */4 * * *',
+  cleanupExpiredDays: 30,
+}
+
 const schema = {
   type: 'object',
   required: ['port'],
@@ -354,6 +376,16 @@ const schema = {
       type: 'boolean',
       default: false,
     },
+    // Quota System Configuration
+    quotaSettings: {
+      type: 'string',
+      default: JSON.stringify(DEFAULT_QUOTA_SETTINGS),
+    },
+    // Approval System Configuration
+    approvalExpiration: {
+      type: 'string',
+      default: JSON.stringify(DEFAULT_APPROVAL_EXPIRATION),
+    },
   },
 }
 
@@ -421,6 +453,20 @@ export default fp(
             'publicContentNotifications',
           )
         : DEFAULT_PUBLIC_CONTENT_NOTIFICATIONS,
+      quotaSettings: rawConfig.quotaSettings
+        ? safeJsonParse(
+            rawConfig.quotaSettings as string,
+            DEFAULT_QUOTA_SETTINGS,
+            'quotaSettings',
+          )
+        : DEFAULT_QUOTA_SETTINGS,
+      approvalExpiration: rawConfig.approvalExpiration
+        ? safeJsonParse(
+            rawConfig.approvalExpiration as string,
+            DEFAULT_APPROVAL_EXPIRATION,
+            'approvalExpiration',
+          )
+        : DEFAULT_APPROVAL_EXPIRATION,
       _isReady: false,
     }
 

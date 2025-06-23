@@ -54,6 +54,46 @@ export class ApprovalService {
   }
 
   /**
+   * Calculates expiration date based on trigger type and configuration
+   */
+  private calculateExpirationDate(trigger: ApprovalTrigger): Date | null {
+    const config = this.fastify.config?.approvalExpiration
+
+    // Return null if expiration is disabled
+    if (!config?.enabled) {
+      return null
+    }
+
+    let expirationHours = config.defaultExpirationHours
+
+    // Check for trigger-specific overrides
+    switch (trigger) {
+      case 'quota_exceeded':
+        expirationHours = config.quotaExceededExpirationHours || expirationHours
+        break
+      case 'router_rule':
+        expirationHours = config.routerRuleExpirationHours || expirationHours
+        break
+      case 'manual_flag':
+        expirationHours = config.manualFlagExpirationHours || expirationHours
+        break
+      case 'content_criteria':
+        expirationHours =
+          config.contentCriteriaExpirationHours || expirationHours
+        break
+    }
+
+    const expirationDate = new Date()
+    expirationDate.setHours(expirationDate.getHours() + expirationHours)
+
+    this.fastify.log.debug(
+      `Calculated expiration date for trigger "${trigger}": ${expirationDate.toISOString()} (${expirationHours} hours from now)`,
+    )
+
+    return expirationDate
+  }
+
+  /**
    * Determines if content requires approval based on user quotas and router decisions
    */
   async requiresApproval(context: ApprovalContext): Promise<{
@@ -104,6 +144,10 @@ export class ApprovalService {
     // Use Plex key for content_key (user association), fall back to GUID if not provided
     const contentKey = plexKey || content.guids[0] || ''
 
+    // Calculate expiration date based on configuration
+    const calculatedExpiresAt =
+      expiresAt || this.calculateExpirationDate(trigger)
+
     const data: CreateApprovalRequestData = {
       userId: user.id,
       contentType: content.type,
@@ -113,7 +157,7 @@ export class ApprovalService {
       routerDecision,
       triggeredBy: trigger,
       approvalReason: reason,
-      expiresAt: expiresAt?.toISOString() || null,
+      expiresAt: calculatedExpiresAt?.toISOString() || null,
     }
 
     this.fastify.log.debug(
@@ -310,15 +354,37 @@ export class ApprovalService {
    */
   async performMaintenance(): Promise<void> {
     try {
+      const config = this.fastify.config?.approvalExpiration
+
+      // Only run maintenance if approval expiration is enabled
+      if (!config?.enabled) {
+        this.fastify.log.debug(
+          'Approval expiration disabled, skipping maintenance',
+        )
+        return
+      }
+
+      // Expire requests that have passed their expiration date
       const expiredCount = await this.fastify.db.expireOldRequests()
       if (expiredCount > 0) {
         this.fastify.log.info(`Expired ${expiredCount} old approval requests`)
+
+        // Handle expiration action (auto-approve or just expire)
+        if (config.expirationAction === 'auto_approve') {
+          // TODO: Implement auto-approval logic for expired requests
+          this.fastify.log.info(
+            'Auto-approval on expiration not yet implemented',
+          )
+        }
       }
 
-      const cleanedCount = await this.fastify.db.cleanupExpiredRequests(30)
+      // Cleanup old expired requests based on configuration
+      const cleanupDays = config.cleanupExpiredDays || 30
+      const cleanedCount =
+        await this.fastify.db.cleanupExpiredRequests(cleanupDays)
       if (cleanedCount > 0) {
         this.fastify.log.info(
-          `Cleaned up ${cleanedCount} expired approval requests`,
+          `Cleaned up ${cleanedCount} expired approval requests (retention: ${cleanupDays} days)`,
         )
       }
     } catch (error) {
