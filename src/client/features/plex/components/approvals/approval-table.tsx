@@ -27,8 +27,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { ApprovalTableToolbar } from './approval-table-toolbar'
-import { createApprovalColumns } from './approval-table-columns'
+import { ApprovalTableToolbar } from '@/features/plex/components/approvals/approval-table-toolbar'
+import { createApprovalColumns } from '@/features/plex/components/approvals/approval-table-columns'
 import { TableSkeleton } from '@/components/ui/table-skeleton'
 import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
 
