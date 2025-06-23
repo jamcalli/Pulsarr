@@ -182,6 +182,39 @@ export interface Config {
   }
   // New User Defaults
   newUserDefaultCanSync?: boolean
+  // Quota System Configuration
+  quotaSettings?: {
+    // Cleanup configuration
+    cleanup: {
+      enabled: boolean
+      retentionDays: number
+    }
+    // Weekly rolling quota configuration
+    weeklyRolling: {
+      resetDays: number
+    }
+    // Monthly quota configuration
+    monthly: {
+      resetDay: number
+      handleMonthEnd: 'last-day' | 'skip-month' | 'next-month'
+    }
+  }
+  // Approval System Configuration
+  approvalExpiration?: {
+    enabled: boolean
+    // Default expiration time in hours for approval requests
+    defaultExpirationHours: number
+    // What happens when approvals expire
+    expirationAction: 'expire' | 'auto_approve'
+    // Per-trigger expiration overrides
+    quotaExceededExpirationHours?: number
+    routerRuleExpirationHours?: number
+    manualFlagExpirationHours?: number
+    contentCriteriaExpirationHours?: number
+    // Maintenance settings
+    maintenanceCronExpression: string
+    cleanupExpiredDays: number
+  }
   // Security Config
   allowIframes: boolean
   // Ready state
@@ -195,5 +228,9 @@ export type RawConfig = {
       ? string
       : K extends 'publicContentNotifications'
         ? string
-        : Config[K]
+        : K extends 'quotaSettings'
+          ? string
+          : K extends 'approvalExpiration'
+            ? string
+            : Config[K]
 }

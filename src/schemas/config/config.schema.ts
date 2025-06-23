@@ -131,6 +131,45 @@ export const ConfigSchema = z.object({
     .optional(),
   // New User Defaults
   newUserDefaultCanSync: z.boolean().optional(),
+  // Quota System Configuration
+  quotaSettings: z
+    .object({
+      // Cleanup configuration
+      cleanup: z.object({
+        enabled: z.boolean().default(true),
+        retentionDays: z.number().min(1).max(3650).default(90), // 1 day to 10 years
+      }),
+      // Weekly rolling quota configuration
+      weeklyRolling: z.object({
+        resetDays: z.number().min(1).max(365).default(7), // 1 day to 1 year
+      }),
+      // Monthly quota configuration
+      monthly: z.object({
+        resetDay: z.number().min(1).max(31).default(1), // 1st to 31st
+        handleMonthEnd: z
+          .enum(['last-day', 'skip-month', 'next-month'])
+          .default('last-day'),
+      }),
+    })
+    .optional(),
+  // Approval System Configuration
+  approvalExpiration: z
+    .object({
+      enabled: z.boolean(),
+      // Default expiration time in hours for approval requests
+      defaultExpirationHours: z.number().min(1).max(8760), // 1 hour to 1 year
+      // What happens when approvals expire
+      expirationAction: z.enum(['expire', 'auto_approve']),
+      // Per-trigger expiration overrides
+      quotaExceededExpirationHours: z.number().min(1).max(8760).optional(),
+      routerRuleExpirationHours: z.number().min(1).max(8760).optional(),
+      manualFlagExpirationHours: z.number().min(1).max(8760).optional(),
+      contentCriteriaExpirationHours: z.number().min(1).max(8760).optional(),
+      // Maintenance settings
+      maintenanceCronExpression: z.string().default('0 */4 * * *'), // Default every 4 hours
+      cleanupExpiredDays: z.number().min(1).max(365).default(30),
+    })
+    .optional(),
 })
 
 export const ConfigResponseSchema = z.object({

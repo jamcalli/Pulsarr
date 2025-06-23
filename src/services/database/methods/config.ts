@@ -61,6 +61,56 @@ export async function getConfig(
           appriseUrlsMovies: '',
           appriseUrlsShows: '',
         },
+    quotaSettings: config.quotaSettings
+      ? this.safeJsonParse(
+          config.quotaSettings,
+          {
+            cleanup: {
+              enabled: true,
+              retentionDays: 90,
+            },
+            weeklyRolling: {
+              resetDays: 7,
+            },
+            monthly: {
+              resetDay: 1,
+              handleMonthEnd: 'last-day' as const,
+            },
+          },
+          'config.quotaSettings',
+        )
+      : {
+          cleanup: {
+            enabled: true,
+            retentionDays: 90,
+          },
+          weeklyRolling: {
+            resetDays: 7,
+          },
+          monthly: {
+            resetDay: 1,
+            handleMonthEnd: 'last-day' as const,
+          },
+        },
+    approvalExpiration: config.approvalExpiration
+      ? this.safeJsonParse(
+          config.approvalExpiration,
+          {
+            enabled: false,
+            defaultExpirationHours: 72,
+            expirationAction: 'expire' as const,
+            maintenanceCronExpression: '0 */4 * * *',
+            cleanupExpiredDays: 30,
+          },
+          'config.approvalExpiration',
+        )
+      : {
+          enabled: false,
+          defaultExpirationHours: 72,
+          expirationAction: 'expire' as const,
+          maintenanceCronExpression: '0 */4 * * *',
+          cleanupExpiredDays: 30,
+        },
     newUserDefaultCanSync: Boolean(config.newUserDefaultCanSync ?? true),
     // Handle optional RSS fields
     selfRss: config.selfRss || undefined,
@@ -211,6 +261,14 @@ export async function createConfig(
       publicContentNotifications: config.publicContentNotifications
         ? JSON.stringify(config.publicContentNotifications)
         : null,
+      // Quota Settings
+      quotaSettings: config.quotaSettings
+        ? JSON.stringify(config.quotaSettings)
+        : null,
+      // Approval Expiration
+      approvalExpiration: config.approvalExpiration
+        ? JSON.stringify(config.approvalExpiration)
+        : null,
       // New User Defaults
       newUserDefaultCanSync: config.newUserDefaultCanSync ?? true,
       // Ready state
@@ -336,6 +394,12 @@ const ALLOWED_COLUMNS = new Set([
   // Plex session monitoring (JSON column)
   'plexSessionMonitoring',
 
+  // Quota settings (JSON column)
+  'quotaSettings',
+
+  // Approval expiration (JSON column)
+  'approvalExpiration',
+
   // New user defaults
   'newUserDefaultCanSync',
 ])
@@ -345,6 +409,8 @@ const JSON_COLUMNS = new Set([
   'publicContentNotifications',
   'plexTokens',
   'plexSessionMonitoring',
+  'quotaSettings',
+  'approvalExpiration',
 ])
 
 /**
