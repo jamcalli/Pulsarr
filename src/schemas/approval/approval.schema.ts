@@ -189,6 +189,10 @@ export const BulkOperationResponseSchema = z.object({
 })
 
 // Type exports
+export type RouterDecision = z.infer<typeof RouterDecisionSchema>
+export type ProposedRouting = NonNullable<
+  NonNullable<RouterDecision['approval']>['proposedRouting']
+>
 export type CreateApprovalRequest = z.infer<typeof CreateApprovalRequestSchema>
 export type UpdateApprovalRequest = z.infer<typeof UpdateApprovalRequestSchema>
 export type ApprovalRequestResponse = z.infer<

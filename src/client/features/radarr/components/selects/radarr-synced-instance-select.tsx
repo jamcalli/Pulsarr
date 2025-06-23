@@ -22,11 +22,13 @@ function SyncedInstancesSelect({
   instances,
   currentInstanceId,
   isDefault,
+  disabled = false,
 }: {
   field: ControllerRenderProps<RadarrInstanceSchema, 'syncedInstances'>
   instances: RadarrInstance[]
   currentInstanceId: number
   isDefault: boolean
+  disabled?: boolean
 }) {
   if (!isDefault) {
     return (
@@ -64,6 +66,7 @@ function SyncedInstancesSelect({
       placeholder="Select instances to sync with"
       variant="default"
       maxCount={1}
+      disabled={disabled}
     />
   )
 }

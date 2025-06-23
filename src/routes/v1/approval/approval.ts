@@ -239,30 +239,37 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           }
         }
 
-        // Validate state transitions
+        // Validate state transitions only if status is being changed
         const targetStatus = request.body.status
         const currentStatus = existingRequest.status
 
-        if (!targetStatus) {
-          return reply.badRequest('Status is required')
-        }
+        if (targetStatus) {
+          // Only validate transitions if status is being updated
+          if (currentStatus === 'approved' || currentStatus === 'expired') {
+            return reply.conflict(
+              `Cannot update ${currentStatus} approval requests`,
+            )
+          }
 
-        if (currentStatus === 'approved' || currentStatus === 'expired') {
-          return reply.conflict(
-            `Cannot update ${currentStatus} approval requests`,
-          )
-        }
+          // Allow pending → approved/rejected and rejected → approved
+          const validTransitions: Record<string, string[]> = {
+            pending: ['approved', 'rejected'],
+            rejected: ['approved'],
+          }
 
-        // Allow pending → approved/rejected and rejected → approved
-        const validTransitions: Record<string, string[]> = {
-          pending: ['approved', 'rejected'],
-          rejected: ['approved'],
-        }
-
-        if (!validTransitions[currentStatus]?.includes(targetStatus)) {
-          return reply.conflict(
-            `Invalid state transition from ${currentStatus} to ${targetStatus}`,
-          )
+          if (!validTransitions[currentStatus]?.includes(targetStatus)) {
+            return reply.conflict(
+              `Invalid state transition from ${currentStatus} to ${targetStatus}`,
+            )
+          }
+        } else {
+          // If no status provided, we're just updating other fields (like routing)
+          // Still prevent updates to finalized requests
+          if (currentStatus === 'approved' || currentStatus === 'expired') {
+            return reply.conflict(
+              `Cannot modify routing for ${currentStatus} approval requests`,
+            )
+          }
         }
 
         const updatedRequest = await fastify.db.updateApprovalRequest(
