@@ -20,13 +20,18 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import {
   CheckCircle,
   XCircle,
   User,
   Calendar,
   Monitor,
   Tv,
-  Settings,
   AlertCircle,
   Clock,
   Loader2,
@@ -37,6 +42,8 @@ import { useToast } from '@/hooks/use-toast'
 import { useConfigStore } from '@/stores/configStore'
 import { useApprovalsStore } from '@/features/plex/store/approvalsStore'
 import { useMediaQuery } from '@/hooks/use-media-query'
+import { ApprovalSonarrRoutingCard } from '@/features/plex/components/approvals/approval-sonarr-routing-card'
+import { ApprovalRadarrRoutingCard } from '@/features/plex/components/approvals/approval-radarr-routing-card'
 import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
 
 interface ApprovalActionsModalProps {
@@ -72,10 +79,15 @@ export default function ApprovalActionsModal({
   const [deleteStatus, setDeleteStatus] = useState<
     'idle' | 'loading' | 'success'
   >('idle')
+  const [editRoutingMode, setEditRoutingMode] = useState(false)
   const submitSectionRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
-  const { approveRequest, rejectRequest, deleteApprovalRequest } =
-    useApprovalsStore()
+  const {
+    approveRequest,
+    rejectRequest,
+    deleteApprovalRequest,
+    updateApprovalRequest,
+  } = useApprovalsStore()
   const users = useConfigStore((state) => state.users)
   const isMobile = useMediaQuery('(max-width: 768px)')
   const isDesktop = !isMobile
@@ -248,6 +260,53 @@ export default function ApprovalActionsModal({
     }
   }
 
+  const handleRoutingSave = async (updatedRouting: {
+    instanceId: number
+    instanceType: 'radarr' | 'sonarr'
+    qualityProfile?: string | number | null
+    rootFolder?: string | null
+    tags?: string[]
+    priority: number
+    searchOnAdd?: boolean | null
+    seasonMonitoring?: string | null
+    seriesType?: 'standard' | 'anime' | 'daily' | null
+    minimumAvailability?: 'announced' | 'inCinemas' | 'released'
+    syncedInstances?: number[]
+  }) => {
+    const updatedRequest = {
+      ...request,
+      proposedRouterDecision: {
+        ...request.proposedRouterDecision,
+        approval: {
+          ...request.proposedRouterDecision.approval,
+          proposedRouting: updatedRouting,
+        },
+      },
+    }
+
+    // Update only the routing without changing status
+    await updateApprovalRequest(request.id, {
+      proposedRouterDecision: {
+        ...updatedRequest.proposedRouterDecision,
+        approval: {
+          ...updatedRequest.proposedRouterDecision.approval,
+          data: updatedRequest.proposedRouterDecision.approval?.data || {},
+          reason: updatedRequest.proposedRouterDecision.approval?.reason || '',
+          triggeredBy:
+            updatedRequest.proposedRouterDecision.approval?.triggeredBy ||
+            request.triggeredBy,
+        },
+      },
+    })
+
+    if (onUpdate) {
+      await onUpdate()
+    }
+
+    // Don't exit edit mode here - let the routing card handle the timing
+    // The routing card will call onCancel after its success state completes
+  }
+
   const isExpired =
     request.expiresAt && new Date(request.expiresAt) < new Date()
 
@@ -342,59 +401,6 @@ export default function ApprovalActionsModal({
     return triggerLabels[request.triggeredBy] || request.triggeredBy
   }
 
-  const getRoutingInfo = () => {
-    const routing = request.proposedRouterDecision.approval?.proposedRouting
-    if (!routing) return null
-
-    return (
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <Settings className="w-4 h-4" />
-          <span className="font-medium">
-            {routing.instanceType.charAt(0).toUpperCase() +
-              routing.instanceType.slice(1)}{' '}
-            Instance {routing.instanceId}
-          </span>
-        </div>
-        {routing.qualityProfile && (
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            Quality Profile: {routing.qualityProfile}
-          </div>
-        )}
-        {routing.rootFolder && (
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            Root Folder: {routing.rootFolder}
-          </div>
-        )}
-        {routing.tags && routing.tags.length > 0 && (
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            Tags: {routing.tags.join(', ')}
-          </div>
-        )}
-        {routing.searchOnAdd !== undefined && (
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            Search on Add: {routing.searchOnAdd ? 'Yes' : 'No'}
-          </div>
-        )}
-        {routing.seasonMonitoring && (
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            Season Monitoring: {routing.seasonMonitoring}
-          </div>
-        )}
-        {routing.seriesType && (
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            Series Type: {routing.seriesType}
-          </div>
-        )}
-        {routing.minimumAvailability && (
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            Minimum Availability: {routing.minimumAvailability}
-          </div>
-        )}
-      </div>
-    )
-  }
-
   const renderContent = () => (
     <div className="space-y-6">
       {/* Request Information */}
@@ -469,14 +475,74 @@ export default function ApprovalActionsModal({
 
       {/* Proposed Routing */}
       <div>
-        <h3 className="text-lg font-semibold text-text mb-4">
-          Proposed Routing
-        </h3>
-        {getRoutingInfo() || (
-          <p className="text-gray-500 dark:text-gray-400">
-            No routing information available
-          </p>
-        )}
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-text">Proposed Routing</h3>
+          {!editRoutingMode && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div>
+                    <Button
+                      onClick={() => setEditRoutingMode(true)}
+                      variant="neutral"
+                      size="sm"
+                      disabled={
+                        isAnyActionInProgress ||
+                        request.status === 'approved' ||
+                        request.status === 'expired'
+                      }
+                    >
+                      Edit Routing
+                    </Button>
+                  </div>
+                </TooltipTrigger>
+                {(request.status === 'approved' ||
+                  request.status === 'expired') && (
+                  <TooltipContent>
+                    <p>Cannot edit routing for {request.status} requests</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
+
+        <div className="space-y-4">
+          {request.proposedRouterDecision?.approval?.proposedRouting ? (
+            request.proposedRouterDecision.approval.proposedRouting
+              .instanceType === 'sonarr' ? (
+              <ApprovalSonarrRoutingCard
+                routing={
+                  request.proposedRouterDecision.approval.proposedRouting
+                }
+                instanceId={
+                  request.proposedRouterDecision.approval.proposedRouting
+                    .instanceId
+                }
+                onSave={handleRoutingSave}
+                onCancel={() => setEditRoutingMode(false)}
+                disabled={!editRoutingMode || isAnyActionInProgress}
+              />
+            ) : (
+              <ApprovalRadarrRoutingCard
+                routing={
+                  request.proposedRouterDecision.approval.proposedRouting
+                }
+                instanceId={
+                  request.proposedRouterDecision.approval.proposedRouting
+                    .instanceId
+                }
+                onSave={handleRoutingSave}
+                onCancel={() => setEditRoutingMode(false)}
+                disabled={!editRoutingMode || isAnyActionInProgress}
+              />
+            )
+          ) : (
+            <p className="text-gray-500 dark:text-gray-400">
+              No routing information available
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Approval History */}

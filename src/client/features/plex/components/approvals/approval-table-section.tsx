@@ -14,7 +14,6 @@ import type {
   BulkApprovalRequest,
   BulkRejectRequest,
   BulkDeleteRequest,
-  BulkOperationResponse,
 } from '@root/schemas/approval/approval.schema'
 import type {
   ProgressEvent,
@@ -166,7 +165,20 @@ export default function ApprovalTableSection() {
   }
 
   const handleActionComplete = async () => {
+    const selectedId = selectedRequest?.id
+
+    // Refresh the approvals list
     await refreshApprovalRequests()
+
+    // If we have a selected request, update it with fresh data
+    if (selectedId) {
+      // Get fresh state from the store after refresh
+      const freshRequests = useApprovalsStore.getState().approvalRequests
+      const updatedRequest = freshRequests.find((req) => req.id === selectedId)
+      if (updatedRequest) {
+        setSelectedRequest(updatedRequest)
+      }
+    }
   }
 
   const closeApproveDialog = () => {

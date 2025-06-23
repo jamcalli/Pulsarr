@@ -25,6 +25,7 @@ interface SelectsProps {
       rootFolders?: Array<{ path: string }>
     }
   }>
+  disabled?: boolean
 }
 
 export function QualityProfileSelect({
@@ -32,6 +33,7 @@ export function QualityProfileSelect({
   isConnectionValid,
   selectedInstance,
   instances,
+  disabled = false,
 }: {
   field: SelectFieldProps
 } & SelectsProps) {
@@ -50,7 +52,7 @@ export function QualityProfileSelect({
     <Select
       onValueChange={field.onChange}
       value={field.value || ''}
-      disabled={!isConnectionValid}
+      disabled={disabled || !isConnectionValid}
     >
       <FormControl>
         <SelectTrigger className={!field.value ? 'text-muted-foreground' : ''}>
@@ -88,6 +90,7 @@ export function RootFolderSelect({
   isConnectionValid,
   selectedInstance,
   instances,
+  disabled = false,
 }: {
   field: SelectFieldProps
 } & SelectsProps) {
@@ -106,7 +109,7 @@ export function RootFolderSelect({
     <Select
       onValueChange={field.onChange}
       value={field.value || ''}
-      disabled={!isConnectionValid}
+      disabled={disabled || !isConnectionValid}
     >
       <FormControl>
         <SelectTrigger className={!field.value ? 'text-muted-foreground' : ''}>
