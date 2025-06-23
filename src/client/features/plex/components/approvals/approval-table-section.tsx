@@ -4,11 +4,11 @@ import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { useApprovalPageEvents } from '@/hooks/useApprovalEvents'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
-import { ApprovalTable } from './approval-table'
-import { ApprovalActionDialogs } from './approval-action-dialogs'
-import ApprovalStatsHeader from './approval-stats-header'
-import ApprovalActionsModal from './approval-actions-modal'
-import BulkApprovalModal from './bulk-approval-modal'
+import { ApprovalTable } from '@/features/plex/components/approvals/approval-table'
+import { ApprovalActionDialogs } from '@/features/plex/components/approvals/approval-action-dialogs'
+import ApprovalStatsHeader from '@/features/plex/components/approvals/approval-stats-header'
+import ApprovalActionsModal from '@/features/plex/components/approvals/approval-actions-modal'
+import BulkApprovalModal from '@/features/plex/components/approvals/bulk-approval-modal'
 import type {
   ApprovalRequestResponse,
   BulkApprovalRequest,
@@ -234,15 +234,9 @@ export default function ApprovalTableSection() {
         throw new Error(errorData.message || 'Failed to approve requests')
       }
 
-      const result: BulkOperationResponse = await response.json()
+      await response.json() // Consume response but don't need result
 
       setBulkActionStatus('success')
-      toast({
-        description:
-          result.message ||
-          `Successfully approved ${requestIds.length} approval requests`,
-        variant: 'default',
-      })
 
       // Refresh data
       await handleActionComplete()
@@ -299,15 +293,9 @@ export default function ApprovalTableSection() {
         throw new Error(errorData.message || 'Failed to reject requests')
       }
 
-      const result: BulkOperationResponse = await response.json()
+      await response.json() // Consume response but don't need result
 
       setBulkActionStatus('success')
-      toast({
-        description:
-          result.message ||
-          `Successfully rejected ${requestIds.length} approval requests`,
-        variant: 'default',
-      })
 
       // Refresh data
       await handleActionComplete()
@@ -363,15 +351,9 @@ export default function ApprovalTableSection() {
         throw new Error(errorData.message || 'Failed to delete requests')
       }
 
-      const result: BulkOperationResponse = await response.json()
+      await response.json() // Consume response but don't need result
 
       setBulkActionStatus('success')
-      toast({
-        description:
-          result.message ||
-          `Successfully deleted ${requestIds.length} approval requests`,
-        variant: 'default',
-      })
 
       // Refresh data
       await handleActionComplete()

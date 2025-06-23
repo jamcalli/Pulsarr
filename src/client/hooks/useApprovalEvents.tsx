@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef } from 'react'
+import { useEffect, useCallback, useRef, useState } from 'react'
 import { useToast } from '@/hooks/use-toast'
 import { useProgressStore } from '@/stores/progressStore'
 import type { ProgressEvent, ApprovalMetadata } from '@root/types/progress.types'
@@ -12,16 +12,141 @@ interface UseApprovalEventsOptions {
   showToasts?: boolean
 }
 
+interface QueuedToast {
+  action: 'created' | 'approved' | 'rejected' | 'deleted'
+  metadata: ApprovalMetadata
+  timestamp: number
+}
+
 /**
- * Hook for subscribing to approval-related SSE events
+ * Hook for subscribing to approval-related SSE events with toast queueing
  */
 export function useApprovalEvents(options: UseApprovalEventsOptions = {}) {
   const { toast } = useToast()
   const { subscribeToType } = useProgressStore()
   
+  // Toast queueing state
+  const [, setToastQueue] = useState<Map<string, QueuedToast[]>>(new Map())
+  const queueTimerRef = useRef<Map<string, NodeJS.Timeout>>(new Map())
+  
   // Use refs to store callback references to avoid dependency issues
   const optionsRef = useRef(options)
   optionsRef.current = options
+
+  // Process queued toasts for a specific action type
+  const processQueuedToasts = useCallback((action: string) => {
+    setToastQueue(prev => {
+      const actionQueue = prev.get(action)
+      if (!actionQueue || actionQueue.length === 0) return prev
+      
+      // Show single toast for individual actions, batched toast for multiple
+      if (actionQueue.length === 1) {
+        const { metadata } = actionQueue[0]
+        switch (action) {
+          case 'created':
+            toast({
+              title: '📝 New Approval Request',
+              description: `${metadata.userName} requested ${metadata.contentTitle} (${metadata.contentType})`,
+              variant: 'default',
+            })
+            break
+          case 'approved':
+            toast({
+              title: '✅ Request Approved',
+              description: `${metadata.contentTitle} has been approved for ${metadata.userName}`,
+              variant: 'default',
+            })
+            break
+          case 'rejected':
+            toast({
+              title: '❌ Request Rejected',
+              description: `${metadata.userName}'s request for ${metadata.contentTitle} was rejected`,
+              variant: 'destructive',
+            })
+            break
+          case 'deleted':
+            toast({
+              title: '🗑️ Request Deleted',
+              description: `Request for ${metadata.contentTitle} by ${metadata.userName} was deleted`,
+              variant: 'default',
+            })
+            break
+        }
+      } else {
+        // Show batched toast for multiple actions
+        const count = actionQueue.length
+        switch (action) {
+          case 'created':
+            toast({
+              title: '📝 New Approval Requests',
+              description: `${count} new approval requests have been received`,
+              variant: 'default',
+            })
+            break
+          case 'approved':
+            toast({
+              title: '✅ Requests Approved',
+              description: `${count} approval requests have been approved`,
+              variant: 'default',
+            })
+            break
+          case 'rejected':
+            toast({
+              title: '❌ Requests Rejected',
+              description: `${count} approval requests have been rejected`,
+              variant: 'destructive',
+            })
+            break
+          case 'deleted':
+            toast({
+              title: '🗑️ Requests Deleted',
+              description: `${count} approval requests have been deleted`,
+              variant: 'default',
+            })
+            break
+        }
+      }
+      
+      // Clear the processed queue
+      const newQueue = new Map(prev)
+      newQueue.delete(action)
+      return newQueue
+    })
+    
+    // Clear the timer for this action
+    const timer = queueTimerRef.current.get(action)
+    if (timer) {
+      clearTimeout(timer)
+      queueTimerRef.current.delete(action)
+    }
+  }, [toast])
+
+  // Add toast to queue and set/reset timer
+  const queueToast = useCallback((action: string, metadata: ApprovalMetadata) => {
+    const queuedToast: QueuedToast = {
+      action: action as 'created' | 'approved' | 'rejected' | 'deleted',
+      metadata,
+      timestamp: Date.now()
+    }
+    
+    setToastQueue(prev => {
+      const newQueue = new Map(prev)
+      const actionQueue = newQueue.get(action) || []
+      actionQueue.push(queuedToast)
+      newQueue.set(action, actionQueue)
+      return newQueue
+    })
+    
+    // Clear existing timer and set new one
+    const existingTimer = queueTimerRef.current.get(action)
+    if (existingTimer) {
+      clearTimeout(existingTimer)
+    }
+    
+    // Process queue after 500ms of no new events of this type
+    const timer = setTimeout(() => processQueuedToasts(action), 500)
+    queueTimerRef.current.set(action, timer)
+  }, [processQueuedToasts])
 
   const handleApprovalEvent = useCallback((event: ProgressEvent) => {
     if (event.type !== 'approval') return
@@ -38,38 +163,9 @@ export function useApprovalEvents(options: UseApprovalEventsOptions = {}) {
       showToasts = true,
     } = optionsRef.current
 
-    // Show toast notifications
-    if (showToasts) {
-      switch (metadata.action) {
-        case 'created':
-          toast({
-            title: '📝 New Approval Request',
-            description: `${metadata.userName} requested ${metadata.contentTitle} (${metadata.contentType})`,
-            variant: 'default',
-          })
-          break
-        case 'approved':
-          toast({
-            title: '✅ Request Approved',
-            description: `${metadata.contentTitle} has been approved for ${metadata.userName}`,
-            variant: 'default',
-          })
-          break
-        case 'rejected':
-          toast({
-            title: '❌ Request Rejected',
-            description: `${metadata.userName}'s request for ${metadata.contentTitle} was rejected`,
-            variant: 'destructive',
-          })
-          break
-        case 'deleted':
-          toast({
-            title: '🗑️ Request Deleted',
-            description: `Request for ${metadata.contentTitle} by ${metadata.userName} was deleted`,
-            variant: 'default',
-          })
-          break
-      }
+    // Queue toast notifications instead of showing immediately
+    if (showToasts && ['created', 'approved', 'rejected', 'deleted'].includes(metadata.action)) {
+      queueToast(metadata.action, metadata)
     }
 
     // Call specific handlers
@@ -90,7 +186,15 @@ export function useApprovalEvents(options: UseApprovalEventsOptions = {}) {
         onApprovalDeleted?.(event, metadata)
         break
     }
-  }, [toast])
+  }, [queueToast])
+  
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      queueTimerRef.current.forEach(timer => clearTimeout(timer))
+      queueTimerRef.current.clear()
+    }
+  }, [])
 
   useEffect(() => {
     // Subscribe to approval events

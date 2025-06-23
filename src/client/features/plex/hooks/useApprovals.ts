@@ -46,10 +46,6 @@ export function useApprovals() {
       try {
         const currentUserId = getCurrentUserId()
         await approveRequest(requestId, currentUserId, notes)
-        toast({
-          title: 'Success',
-          description: 'Approval request approved and processed successfully',
-        })
       } catch (error) {
         toast({
           title: 'Error',
@@ -67,10 +63,6 @@ export function useApprovals() {
       try {
         const currentUserId = getCurrentUserId()
         await rejectRequest(requestId, currentUserId, reason)
-        toast({
-          title: 'Success',
-          description: 'Approval request rejected successfully',
-        })
       } catch (error) {
         toast({
           title: 'Error',
@@ -107,10 +99,6 @@ export function useApprovals() {
     async (requestId: number) => {
       try {
         await deleteApprovalRequest(requestId)
-        toast({
-          title: 'Success',
-          description: 'Approval request deleted successfully',
-        })
       } catch (error) {
         toast({
           title: 'Error',

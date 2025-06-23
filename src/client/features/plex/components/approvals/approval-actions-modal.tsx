@@ -128,11 +128,6 @@ export default function ApprovalActionsModal({
         }
       }, setApproveStatus)
 
-      toast({
-        title: 'Success',
-        description: 'Approval request approved and processed successfully',
-      })
-
       // Close modal after success state
       setTimeout(() => {
         onOpenChange(false)
@@ -186,11 +181,6 @@ export default function ApprovalActionsModal({
         }
       }, setRejectStatus)
 
-      toast({
-        title: 'Success',
-        description: 'Approval request rejected successfully',
-      })
-
       // Close modal after success state
       setTimeout(() => {
         onOpenChange(false)
@@ -238,11 +228,6 @@ export default function ApprovalActionsModal({
           await onUpdate()
         }
       }, setDeleteStatus)
-
-      toast({
-        title: 'Success',
-        description: 'Approval request deleted successfully',
-      })
 
       // Close modal after success state
       setTimeout(() => {

@@ -101,10 +101,6 @@ export function ApprovalActionDialogs({
         await onActionComplete()
       }, setApproveStatus)
 
-      toast({
-        title: 'Success',
-        description: 'Approval request approved and processed successfully',
-      })
       setApproveNotes('')
       onApproveDialogClose()
     } catch (error) {
@@ -129,10 +125,6 @@ export function ApprovalActionDialogs({
         await onActionComplete()
       }, setRejectStatus)
 
-      toast({
-        title: 'Success',
-        description: 'Approval request rejected successfully',
-      })
       setRejectReason('')
       onRejectDialogClose()
     } catch (error) {
@@ -153,10 +145,6 @@ export function ApprovalActionDialogs({
         await onActionComplete()
       }, setDeleteStatus)
 
-      toast({
-        title: 'Success',
-        description: 'Approval request deleted successfully',
-      })
       onDeleteDialogClose()
     } catch (error) {
       toast({
