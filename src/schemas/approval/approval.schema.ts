@@ -111,6 +111,11 @@ export const ApprovalRequestResponseSchema = z.object({
   approvedBy: z.number().nullable(),
   approvalNotes: z.string().nullable(),
   expiresAt: z.string().datetime().nullable(),
+  // Dynamic expiration fields based on current config
+  isExpired: z.boolean().optional(),
+  expirationStatus: z.enum(['active', 'expiring_soon', 'expired']).optional(),
+  expirationDisplayText: z.string().optional(),
+  timeUntilExpiration: z.number().nullable().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 })

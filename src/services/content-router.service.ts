@@ -1226,26 +1226,13 @@ export class ContentRouterService {
     }
 
     try {
-      // Get user information to check user-level approval requirements
+      // Get user information for later checks
       const user = await this.fastify.db.getUser(context.userId)
       if (!user) {
         return { required: false }
       }
 
-      // Check user-level approval requirement FIRST (highest priority)
-      if (user.requires_approval === true) {
-        return {
-          required: true,
-          reason: `User "${user.name}" requires approval for all content`,
-          trigger: 'manual_flag',
-          data: {
-            criteriaType: 'user_requires_approval',
-            criteriaValue: user.name,
-          },
-        }
-      }
-
-      // Check router rules for both quota bypass and approval requirements
+      // PRIORITY 1: Router Rules (absolute content policy - always checked first)
       const allRouterRules = await this.fastify.db.getAllRouterRules()
       let quotasBypassedByRule = false
 
@@ -1259,12 +1246,12 @@ export class ContentRouterService {
             const matches = this.evaluateCondition(condition, item, context)
 
             if (matches) {
-              // Check if this rule bypasses quotas
+              // Track quota bypass for later use
               if (rule.bypass_user_quotas) {
                 quotasBypassedByRule = true
               }
 
-              // Check if this rule requires approval
+              // Router rule approval requirement trumps everything else
               if (rule.always_require_approval) {
                 return {
                   required: true,
@@ -1286,7 +1273,20 @@ export class ContentRouterService {
         }
       }
 
-      // Always check quota status, but handle bypasses with auto-approval
+      // PRIORITY 2: User requires_approval (user-level restriction)
+      if (user.requires_approval === true) {
+        return {
+          required: true,
+          reason: `User "${user.name}" requires approval for all content`,
+          trigger: 'manual_flag',
+          data: {
+            criteriaType: 'user_requires_approval',
+            criteriaValue: user.name,
+          },
+        }
+      }
+
+      // PRIORITY 3: Quota exceeded (resource management)
       const userQuota = await this.fastify.db.getUserQuota(context.userId)
       const userBypassesQuotas = userQuota?.bypassApproval || false
 
@@ -1295,22 +1295,31 @@ export class ContentRouterService {
         item.type,
       )
 
-      if (quotaStatus?.exceeded) {
-        // Determine if this should be auto-approved due to bypass settings
-        const shouldAutoApprove = quotasBypassedByRule || userBypassesQuotas
+      if (quotaStatus) {
+        // Check if adding this item would exceed quota (predictive check)
+        const wouldExceedAfterAddition =
+          quotaStatus.currentUsage + 1 > quotaStatus.quotaLimit
 
-        return {
-          required: true,
-          reason: shouldAutoApprove
-            ? `${quotaStatus.quotaType} quota exceeded (auto-approved due to bypass)`
-            : `${quotaStatus.quotaType} quota exceeded (${quotaStatus.currentUsage}/${quotaStatus.quotaLimit})`,
-          trigger: 'quota_exceeded',
-          data: {
-            quotaType: quotaStatus.quotaType,
-            quotaUsage: quotaStatus.currentUsage,
-            quotaLimit: quotaStatus.quotaLimit,
-            autoApprove: shouldAutoApprove,
-          },
+        if (wouldExceedAfterAddition) {
+          // Determine if this should be auto-approved due to bypass settings
+          const shouldAutoApprove = quotasBypassedByRule || userBypassesQuotas
+
+          // Show the "would-be" usage count (current + 1)
+          const wouldBeUsage = quotaStatus.currentUsage + 1
+
+          return {
+            required: true,
+            reason: shouldAutoApprove
+              ? `${quotaStatus.quotaType} quota would be exceeded (auto-approved due to bypass)`
+              : `${quotaStatus.quotaType} quota exceeded (${wouldBeUsage}/${quotaStatus.quotaLimit})`,
+            trigger: 'quota_exceeded',
+            data: {
+              quotaType: quotaStatus.quotaType,
+              quotaUsage: wouldBeUsage,
+              quotaLimit: quotaStatus.quotaLimit,
+              autoApprove: shouldAutoApprove,
+            },
+          }
         }
       }
 

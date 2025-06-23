@@ -1,6 +1,7 @@
 import { useEffect, useCallback, useRef, useState } from 'react'
 import { useToast } from '@/hooks/use-toast'
 import { useProgressStore } from '@/stores/progressStore'
+import { FileText, CheckCircle, XCircle, Trash2 } from 'lucide-react'
 import type { ProgressEvent, ApprovalMetadata } from '@root/types/progress.types'
 
 interface UseApprovalEventsOptions {
@@ -45,28 +46,48 @@ export function useApprovalEvents(options: UseApprovalEventsOptions = {}) {
         switch (action) {
           case 'created':
             toast({
-              title: '📝 New Approval Request',
+              title: (
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  New Approval Request
+                </div>
+              ),
               description: `${metadata.userName} requested ${metadata.contentTitle} (${metadata.contentType})`,
               variant: 'default',
             })
             break
           case 'approved':
             toast({
-              title: '✅ Request Approved',
+              title: (
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4" />
+                  Request Approved
+                </div>
+              ),
               description: `${metadata.contentTitle} has been approved for ${metadata.userName}`,
               variant: 'default',
             })
             break
           case 'rejected':
             toast({
-              title: '❌ Request Rejected',
+              title: (
+                <div className="flex items-center gap-2">
+                  <XCircle className="h-4 w-4" />
+                  Request Rejected
+                </div>
+              ),
               description: `${metadata.userName}'s request for ${metadata.contentTitle} was rejected`,
               variant: 'destructive',
             })
             break
           case 'deleted':
             toast({
-              title: '🗑️ Request Deleted',
+              title: (
+                <div className="flex items-center gap-2">
+                  <Trash2 className="h-4 w-4" />
+                  Request Deleted
+                </div>
+              ),
               description: `Request for ${metadata.contentTitle} by ${metadata.userName} was deleted`,
               variant: 'default',
             })
@@ -78,28 +99,48 @@ export function useApprovalEvents(options: UseApprovalEventsOptions = {}) {
         switch (action) {
           case 'created':
             toast({
-              title: '📝 New Approval Requests',
+              title: (
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  New Approval Requests
+                </div>
+              ),
               description: `${count} new approval requests have been received`,
               variant: 'default',
             })
             break
           case 'approved':
             toast({
-              title: '✅ Requests Approved',
+              title: (
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4" />
+                  Requests Approved
+                </div>
+              ),
               description: `${count} approval requests have been approved`,
               variant: 'default',
             })
             break
           case 'rejected':
             toast({
-              title: '❌ Requests Rejected',
+              title: (
+                <div className="flex items-center gap-2">
+                  <XCircle className="h-4 w-4" />
+                  Requests Rejected
+                </div>
+              ),
               description: `${count} approval requests have been rejected`,
               variant: 'destructive',
             })
             break
           case 'deleted':
             toast({
-              title: '🗑️ Requests Deleted',
+              title: (
+                <div className="flex items-center gap-2">
+                  <Trash2 className="h-4 w-4" />
+                  Requests Deleted
+                </div>
+              ),
               description: `${count} approval requests have been deleted`,
               variant: 'default',
             })

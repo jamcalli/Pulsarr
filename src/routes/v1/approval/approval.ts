@@ -20,6 +20,60 @@ import {
 } from '@schemas/approval/approval.schema.js'
 
 const plugin: FastifyPluginAsync = async (fastify) => {
+  /**
+   * Calculates dynamic expiration info based on current config settings
+   */
+  const getExpirationInfo = (
+    request: { expiresAt?: string | null },
+    currentConfig: { approvalExpiration?: { enabled?: boolean } },
+  ): {
+    expiresAt: string | null
+    isExpired: boolean
+    timeUntilExpiration: number | null
+    expirationStatus: 'active' | 'expiring_soon' | 'expired'
+    displayText: string
+  } => {
+    const config = currentConfig?.approvalExpiration
+
+    // If expiration is disabled, return null values
+    if (!config?.enabled || !request.expiresAt) {
+      return {
+        expiresAt: request.expiresAt ?? null,
+        isExpired: false,
+        timeUntilExpiration: null,
+        expirationStatus: 'active',
+        displayText: request.expiresAt
+          ? new Date(request.expiresAt).toLocaleString()
+          : 'No expiration',
+      }
+    }
+
+    const now = new Date()
+    const expiresAt = new Date(request.expiresAt)
+    const timeUntilExpiration = expiresAt.getTime() - now.getTime()
+    const hoursUntilExpiration = timeUntilExpiration / (1000 * 60 * 60)
+
+    const isExpired = timeUntilExpiration <= 0
+    let expirationStatus: 'active' | 'expiring_soon' | 'expired' = 'active'
+
+    if (isExpired) {
+      expirationStatus = 'expired'
+    } else if (hoursUntilExpiration <= 24) {
+      expirationStatus = 'expiring_soon'
+    }
+
+    const displayText = isExpired
+      ? `Expired ${Math.abs(Math.floor(hoursUntilExpiration))} hours ago`
+      : `Expires: ${expiresAt.toLocaleDateString()}, ${expiresAt.toLocaleTimeString()}`
+
+    return {
+      expiresAt: expiresAt.toISOString(),
+      isExpired,
+      timeUntilExpiration,
+      expirationStatus,
+      displayText,
+    }
+  }
   // Create approval request
   fastify.post<{
     Body: z.infer<typeof CreateApprovalRequestSchema>
@@ -130,14 +184,21 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         return {
           success: true,
           message: 'Approval requests retrieved successfully',
-          approvalRequests: requests.map((request) => ({
-            ...request,
-            routerRuleId: request.routerRuleId ?? null,
-            approvedBy: request.approvedBy ?? null,
-            approvalNotes: request.approvalNotes ?? null,
-            approvalReason: request.approvalReason ?? null,
-            expiresAt: request.expiresAt ?? null,
-          })),
+          approvalRequests: requests.map((request) => {
+            const expirationInfo = getExpirationInfo(request, fastify.config)
+            return {
+              ...request,
+              routerRuleId: request.routerRuleId ?? null,
+              approvedBy: request.approvedBy ?? null,
+              approvalNotes: request.approvalNotes ?? null,
+              approvalReason: request.approvalReason ?? null,
+              expiresAt: expirationInfo.expiresAt,
+              isExpired: expirationInfo.isExpired,
+              expirationStatus: expirationInfo.expirationStatus,
+              expirationDisplayText: expirationInfo.displayText,
+              timeUntilExpiration: expirationInfo.timeUntilExpiration,
+            }
+          }),
           total,
           limit,
           offset,
@@ -181,6 +242,11 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           return reply.notFound('Approval request not found')
         }
 
+        const expirationInfo = getExpirationInfo(
+          approvalRequest,
+          fastify.config,
+        )
+
         return {
           success: true,
           message: 'Approval request retrieved successfully',
@@ -190,7 +256,11 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             approvedBy: approvalRequest.approvedBy ?? null,
             approvalNotes: approvalRequest.approvalNotes ?? null,
             approvalReason: approvalRequest.approvalReason ?? null,
-            expiresAt: approvalRequest.expiresAt ?? null,
+            expiresAt: expirationInfo.expiresAt,
+            isExpired: expirationInfo.isExpired,
+            expirationStatus: expirationInfo.expirationStatus,
+            expirationDisplayText: expirationInfo.displayText,
+            timeUntilExpiration: expirationInfo.timeUntilExpiration,
           },
         }
       } catch (error) {
