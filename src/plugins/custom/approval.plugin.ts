@@ -5,7 +5,7 @@ import { ApprovalService } from '@services/approval.service.js'
 /**
  * Plugin to register the approval workflow service
  */
-const approvalPlugin: FastifyPluginAsync = async (fastify, opts) => {
+const approvalPlugin: FastifyPluginAsync = async (fastify) => {
   // Create the approval service
   const approvalService = new ApprovalService(fastify)
 
@@ -52,6 +52,12 @@ const approvalPlugin: FastifyPluginAsync = async (fastify, opts) => {
         await approvalService.performMaintenance()
       },
     )
+  })
+
+  // Add shutdown hook to flush pending notifications
+  fastify.addHook('onClose', async () => {
+    fastify.log.debug('Flushing pending approval notifications on shutdown')
+    await approvalService.flushPendingNotifications()
   })
 }
 
