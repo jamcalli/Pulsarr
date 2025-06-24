@@ -466,7 +466,7 @@ export class SchedulerService {
         }
       }
 
-      await this.fastify.db.updateSchedule(name, updates)
+      const updateResult = await this.fastify.db.updateSchedule(name, updates)
 
       // Get job and handler
       const jobData = this.jobs.get(name)
@@ -574,7 +574,7 @@ export class SchedulerService {
     nextRun.setSeconds(0)
     nextRun.setMilliseconds(0)
 
-    // Parse the cron expression and ignore seconds if present
+    // Parse the cron expression
     const parts = expression
       .split(' ')
       .map((p) => p.trim())
@@ -621,13 +621,49 @@ export class SchedulerService {
 
     // Set hour and minute
     if (hour !== '*') {
-      nextRun.setHours(Number.parseInt(hour, 10))
+      if (hour.startsWith('*/')) {
+        // Handle interval syntax like */4 (every 4 hours)
+        const interval = Number.parseInt(hour.slice(2), 10)
+        const currentHour = now.getHours()
+
+        // Calculate next hour that's a multiple of the interval
+        let nextHourInterval =
+          Math.ceil((currentHour + 1) / interval) * interval
+
+        // Handle day rollover
+        if (nextHourInterval >= 24) {
+          nextRun.setDate(nextRun.getDate() + 1)
+          nextHourInterval = nextHourInterval % 24
+        }
+
+        nextRun.setHours(nextHourInterval)
+      } else {
+        nextRun.setHours(Number.parseInt(hour, 10))
+      }
     } else {
       nextRun.setHours(0) // Default to midnight if wildcard
     }
 
     if (minute !== '*') {
-      nextRun.setMinutes(Number.parseInt(minute, 10))
+      if (minute.startsWith('*/')) {
+        // Handle interval syntax like */15 (every 15 minutes)
+        const interval = Number.parseInt(minute.slice(2), 10)
+        const currentMinute = now.getMinutes()
+
+        // Calculate next minute that's a multiple of the interval
+        let nextMinuteInterval =
+          Math.ceil((currentMinute + 1) / interval) * interval
+
+        // Handle hour rollover
+        if (nextMinuteInterval >= 60) {
+          nextRun.setHours(nextRun.getHours() + 1)
+          nextMinuteInterval = nextMinuteInterval % 60
+        }
+
+        nextRun.setMinutes(nextMinuteInterval)
+      } else {
+        nextRun.setMinutes(Number.parseInt(minute, 10))
+      }
     } else {
       nextRun.setMinutes(0) // Default to 0 minutes if wildcard
     }

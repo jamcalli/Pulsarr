@@ -245,7 +245,7 @@ export const createApprovalColumns = (
             const quotaMatch = request.approvalReason?.match(/\((\d+\/\d+)\)/)
             const quotaNumbers = quotaMatch ? `${quotaMatch[1]} ` : ''
             return (
-              <Badge variant="neutral" className={badgeClass}>
+              <Badge variant="warn" className={badgeClass}>
                 {quotaNumbers}Quota Exceeded
               </Badge>
             )

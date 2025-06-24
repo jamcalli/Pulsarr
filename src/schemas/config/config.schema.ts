@@ -98,7 +98,7 @@ export const ConfigSchema = z.object({
   deletionMode: DeletionModeEnum.optional(),
   removedTagPrefix: z.string().optional(),
   // Tag removal mode
-  removedTagMode: z.enum(['remove', 'keep', 'special-tag']).default('remove'),
+  removedTagMode: z.enum(['remove', 'keep', 'special-tag']).optional(),
   // Plex Playlist Protection
   enablePlexPlaylistProtection: z.boolean().optional(),
   plexProtectionPlaylistName: z.string().optional(),
@@ -135,39 +135,44 @@ export const ConfigSchema = z.object({
   quotaSettings: z
     .object({
       // Cleanup configuration
-      cleanup: z.object({
-        enabled: z.boolean().default(true),
-        retentionDays: z.number().min(1).max(3650).default(90), // 1 day to 10 years
-      }),
+      cleanup: z
+        .object({
+          enabled: z.boolean().optional(),
+          retentionDays: z.number().min(1).max(3650).optional(), // 1 day to 10 years
+        })
+        .optional(),
       // Weekly rolling quota configuration
-      weeklyRolling: z.object({
-        resetDays: z.number().min(1).max(365).default(7), // 1 day to 1 year
-      }),
+      weeklyRolling: z
+        .object({
+          resetDays: z.number().min(1).max(365).optional(), // 1 day to 1 year
+        })
+        .optional(),
       // Monthly quota configuration
-      monthly: z.object({
-        resetDay: z.number().min(1).max(31).default(1), // 1st to 31st
-        handleMonthEnd: z
-          .enum(['last-day', 'skip-month', 'next-month'])
-          .default('last-day'),
-      }),
+      monthly: z
+        .object({
+          resetDay: z.number().min(1).max(31).optional(), // 1st to 31st
+          handleMonthEnd: z
+            .enum(['last-day', 'skip-month', 'next-month'])
+            .optional(),
+        })
+        .optional(),
     })
     .optional(),
   // Approval System Configuration
   approvalExpiration: z
     .object({
-      enabled: z.boolean(),
+      enabled: z.boolean().optional(),
       // Default expiration time in hours for approval requests
-      defaultExpirationHours: z.number().min(1).max(8760), // 1 hour to 1 year
+      defaultExpirationHours: z.number().min(1).max(8760).optional(), // 1 hour to 1 year
       // What happens when approvals expire
-      expirationAction: z.enum(['expire', 'auto_approve']),
+      expirationAction: z.enum(['expire', 'auto_approve']).optional(),
       // Per-trigger expiration overrides
       quotaExceededExpirationHours: z.number().min(1).max(8760).optional(),
       routerRuleExpirationHours: z.number().min(1).max(8760).optional(),
       manualFlagExpirationHours: z.number().min(1).max(8760).optional(),
       contentCriteriaExpirationHours: z.number().min(1).max(8760).optional(),
       // Maintenance settings
-      maintenanceCronExpression: z.string().default('0 */4 * * *'), // Default every 4 hours
-      cleanupExpiredDays: z.number().min(1).max(365).default(30),
+      cleanupExpiredDays: z.number().min(1).max(365).optional(),
     })
     .optional(),
 })

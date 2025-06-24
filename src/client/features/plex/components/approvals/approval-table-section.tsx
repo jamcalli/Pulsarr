@@ -9,6 +9,7 @@ import { ApprovalActionDialogs } from '@/features/plex/components/approvals/appr
 import ApprovalStatsHeader from '@/features/plex/components/approvals/approval-stats-header'
 import ApprovalActionsModal from '@/features/plex/components/approvals/approval-actions-modal'
 import BulkApprovalModal from '@/features/plex/components/approvals/bulk-approval-modal'
+import { ApprovalConfigurationSection } from '@/features/plex/components/approvals/approval-configuration-section'
 import type {
   ApprovalRequestResponse,
   BulkApprovalRequest,
@@ -444,6 +445,9 @@ export default function ApprovalTableSection() {
 
       {/* Stats overview */}
       <ApprovalStatsHeader stats={stats} loading={approvalsLoading} />
+
+      {/* Configuration section */}
+      <ApprovalConfigurationSection />
 
       {/* Results summary */}
       <div className="flex justify-between items-center text-sm text-gray-600 dark:text-gray-400">
