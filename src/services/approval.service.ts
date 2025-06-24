@@ -10,6 +10,7 @@ import type { ContentItem } from '@root/types/router.types.js'
 import type { SonarrItem } from '@root/types/sonarr.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { ApprovalMetadata } from '@root/types/progress.types.js'
+import type { DiscordEmbed } from '@root/types/discord.types.js'
 import { hasMatchingGuids } from '@utils/guid-handler.js'
 
 export class ApprovalService {
@@ -719,20 +720,69 @@ export class ApprovalService {
 
     // Set new timer to send batched notification
     this.notificationTimer = setTimeout(async () => {
-      await this.sendBatchedDiscordApprovalNotification()
+      await this.sendBatchedApprovalNotifications()
       this.notificationQueue.clear()
       this.notificationTimer = null
     }, this.NOTIFICATION_DEBOUNCE_MS)
   }
 
   /**
-   * Send batched Discord notification for all queued approval requests
+   * Send batched approval notifications to all configured channels
    */
-  private async sendBatchedDiscordApprovalNotification(): Promise<void> {
+  private async sendBatchedApprovalNotifications(): Promise<void> {
     if (this.notificationQueue.size === 0) {
       return
     }
 
+    // Get notification preference from config
+    const notifySetting = this.fastify.config?.approvalNotify || 'none'
+
+    if (notifySetting === 'none') {
+      this.fastify.log.debug('Approval notifications disabled, skipping')
+      return
+    }
+
+    // Determine which notifications to send
+    const sendWebhook = [
+      'all',
+      'discord-only',
+      'webhook-only',
+      'discord-webhook',
+      'discord-both',
+    ].includes(notifySetting)
+
+    const sendDM = [
+      'all',
+      'discord-only',
+      'dm-only',
+      'discord-message',
+      'discord-both',
+    ].includes(notifySetting)
+
+    const sendApprise = ['all', 'apprise-only'].includes(notifySetting)
+
+    // Send notifications in parallel
+    const promises = []
+
+    if (sendDM) {
+      promises.push(this.sendBatchedDiscordDMNotification())
+    }
+
+    if (sendWebhook) {
+      promises.push(this.sendBatchedDiscordWebhookNotifications())
+    }
+
+    if (sendApprise) {
+      promises.push(this.sendBatchedAppriseNotifications())
+    }
+
+    await Promise.allSettled(promises)
+  }
+
+  /**
+   * Send batched Discord DM notification (existing functionality)
+   */
+  private async sendBatchedDiscordDMNotification(): Promise<void> {
     try {
       // Check if Discord service is available and running
       const discordService = this.fastify.discord
@@ -893,6 +943,255 @@ export class ApprovalService {
   }
 
   /**
+   * Send individual Discord webhook notifications for each queued approval
+   */
+  private async sendBatchedDiscordWebhookNotifications(): Promise<void> {
+    try {
+      const discordService = this.fastify.discord
+      if (!discordService) {
+        this.fastify.log.debug(
+          'Discord service not available, skipping webhook notifications',
+        )
+        return
+      }
+
+      // Get all pending approvals and the queued requests
+      const pendingApprovals =
+        await this.fastify.db.getPendingApprovalRequests()
+      const totalPending = pendingApprovals.length
+      const queuedRequestIds = Array.from(this.notificationQueue)
+
+      const queuedRequests = pendingApprovals.filter((approval) =>
+        queuedRequestIds.includes(approval.id),
+      )
+
+      if (queuedRequests.length === 0) {
+        this.fastify.log.debug(
+          'No queued requests found for webhook notifications',
+        )
+        return
+      }
+
+      // Send individual webhook notification for each approval
+      for (const request of queuedRequests) {
+        await this.sendIndividualDiscordWebhookNotification(
+          request,
+          totalPending,
+        )
+      }
+
+      this.fastify.log.info(
+        {
+          queuedRequestIds,
+          count: queuedRequests.length,
+        },
+        'Sent Discord webhook notifications for approval requests',
+      )
+    } catch (error) {
+      this.fastify.log.error(
+        { error, queuedRequestIds: Array.from(this.notificationQueue) },
+        'Error sending Discord webhook approval notifications',
+      )
+    }
+  }
+
+  /**
+   * Send individual Apprise notifications for each queued approval
+   */
+  private async sendBatchedAppriseNotifications(): Promise<void> {
+    try {
+      const appriseService = this.fastify.apprise
+      if (!appriseService || !appriseService.isEnabled()) {
+        this.fastify.log.debug(
+          'Apprise service not available, skipping notifications',
+        )
+        return
+      }
+
+      // Get all pending approvals and the queued requests
+      const pendingApprovals =
+        await this.fastify.db.getPendingApprovalRequests()
+      const totalPending = pendingApprovals.length
+      const queuedRequestIds = Array.from(this.notificationQueue)
+
+      const queuedRequests = pendingApprovals.filter((approval) =>
+        queuedRequestIds.includes(approval.id),
+      )
+
+      if (queuedRequests.length === 0) {
+        this.fastify.log.debug(
+          'No queued requests found for Apprise notifications',
+        )
+        return
+      }
+
+      // Send individual Apprise notification for each approval
+      for (const request of queuedRequests) {
+        await this.sendIndividualAppriseNotification(request, totalPending)
+      }
+
+      this.fastify.log.info(
+        {
+          queuedRequestIds,
+          count: queuedRequests.length,
+        },
+        'Sent Apprise notifications for approval requests',
+      )
+    } catch (error) {
+      this.fastify.log.error(
+        { error, queuedRequestIds: Array.from(this.notificationQueue) },
+        'Error sending Apprise approval notifications',
+      )
+    }
+  }
+
+  /**
+   * Send individual Discord webhook notification for a single approval
+   */
+  private async sendIndividualDiscordWebhookNotification(
+    request: ApprovalRequest,
+    totalPending: number,
+  ): Promise<void> {
+    try {
+      const discordService = this.fastify.discord
+      if (!discordService) return
+
+      // Get poster image from watchlist item
+      let posterUrl: string | undefined
+      try {
+        const watchlistItems = await this.fastify.db.getWatchlistItemsByKeys([
+          request.contentKey,
+        ])
+        if (watchlistItems.length > 0 && watchlistItems[0].thumb) {
+          posterUrl = watchlistItems[0].thumb
+        }
+      } catch (error) {
+        this.fastify.log.debug(
+          'Could not fetch poster for approval notification',
+        )
+      }
+
+      // Create embed with same format as Discord DM
+      const embed: DiscordEmbed = {
+        title: 'New Approval Request',
+        description: `**${request.contentTitle}**`,
+        color: 0xff9500,
+        timestamp: new Date().toISOString(),
+        fields: [
+          {
+            name: '📋 Pending Approvals',
+            value: `**${totalPending}** requests awaiting review`,
+            inline: false,
+          },
+          {
+            name: '👤 Requested by',
+            value: request.userName || `User ${request.userId}`,
+            inline: true,
+          },
+          {
+            name: '📋 Content Type',
+            value:
+              request.contentType.charAt(0).toUpperCase() +
+              request.contentType.slice(1),
+            inline: true,
+          },
+          {
+            name: '🔍 Reason',
+            value: this.formatTriggerReason(
+              request.triggeredBy,
+              request.approvalReason || null,
+            ),
+            inline: false,
+          },
+          {
+            name: '💻 Action Required',
+            value:
+              'Visit the Pulsarr UI to review and handle this approval request.',
+            inline: false,
+          },
+        ],
+        footer: {
+          text: `Request ID: ${request.id}`,
+        },
+      }
+
+      if (posterUrl) {
+        embed.image = { url: posterUrl }
+      }
+
+      const payload = {
+        embeds: [embed],
+        username: 'Pulsarr Approvals',
+        avatar_url:
+          'https://raw.githubusercontent.com/jamcalli/Pulsarr/master/src/client/assets/images/pulsarr.png',
+      }
+
+      await discordService.sendNotification(payload)
+    } catch (error) {
+      this.fastify.log.error(
+        { error, approvalId: request.id },
+        'Error sending individual Discord webhook notification',
+      )
+    }
+  }
+
+  /**
+   * Send individual Apprise notification for a single approval
+   */
+  private async sendIndividualAppriseNotification(
+    request: ApprovalRequest,
+    totalPending: number,
+  ): Promise<void> {
+    try {
+      const appriseService = this.fastify.apprise
+      if (!appriseService) return
+
+      // Create text-based notification for Apprise
+      const contentType =
+        request.contentType.charAt(0).toUpperCase() +
+        request.contentType.slice(1)
+      const requester = request.userName || `User ${request.userId}`
+      const reason = this.formatTriggerReason(
+        request.triggeredBy,
+        request.approvalReason || null,
+      )
+
+      const title = `New Approval Request: ${request.contentTitle}`
+
+      // Send system notification via Apprise (same pattern as delete sync)
+      const systemNotification = {
+        type: 'system' as const,
+        username: 'Approval System',
+        title,
+        embedFields: [
+          { name: 'Content', value: request.contentTitle, inline: false },
+          { name: 'Type', value: contentType, inline: true },
+          { name: 'Requested by', value: requester, inline: true },
+          { name: 'Reason', value: reason, inline: false },
+          {
+            name: 'Total pending',
+            value: `${totalPending} requests`,
+            inline: false,
+          },
+          {
+            name: 'Action Required',
+            value:
+              'Visit the Pulsarr UI to review and handle this approval request.',
+            inline: false,
+          },
+        ],
+      }
+
+      await appriseService.sendSystemNotification(systemNotification)
+    } catch (error) {
+      this.fastify.log.error(
+        { error, approvalId: request.id },
+        'Error sending individual Apprise notification',
+      )
+    }
+  }
+
+  /**
    * Format trigger reason for display
    */
   private formatTriggerReason(trigger: string, reason: string | null): string {
@@ -917,7 +1216,7 @@ export class ApprovalService {
     }
 
     if (this.notificationQueue.size > 0) {
-      await this.sendBatchedDiscordApprovalNotification()
+      await this.sendBatchedApprovalNotifications()
       this.notificationQueue.clear()
     }
   }

@@ -152,6 +152,7 @@ export async function getConfig(
     deleteSyncNotifyOnlyOnDeletion: Boolean(
       config.deleteSyncNotifyOnlyOnDeletion,
     ),
+    approvalNotify: config.approvalNotify || 'none',
     // Plex playlist protection
     enablePlexPlaylistProtection: Boolean(config.enablePlexPlaylistProtection),
     plexProtectionPlaylistName:
@@ -230,6 +231,7 @@ export async function createConfig(
       respectUserSyncSetting: config.respectUserSyncSetting,
       deleteSyncNotify: config.deleteSyncNotify,
       deleteSyncNotifyOnlyOnDeletion: config.deleteSyncNotifyOnlyOnDeletion,
+      approvalNotify: config.approvalNotify,
       maxDeletionPrevention: config.maxDeletionPrevention ?? 10,
       // Plex playlist protection
       enablePlexPlaylistProtection:
@@ -379,6 +381,7 @@ const ALLOWED_COLUMNS = new Set([
   'respectUserSyncSetting',
   'deleteSyncNotify',
   'deleteSyncNotifyOnlyOnDeletion',
+  'approvalNotify',
   'maxDeletionPrevention',
   'enablePlexPlaylistProtection',
   'plexProtectionPlaylistName',

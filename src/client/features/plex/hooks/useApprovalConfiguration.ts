@@ -10,6 +10,7 @@ import { ConfigSchema } from '@root/schemas/config/config.schema'
 const approvalConfigurationSchema = z.object({
   approvalExpiration: ConfigSchema.shape.approvalExpiration,
   quotaSettings: ConfigSchema.shape.quotaSettings,
+  approvalNotify: ConfigSchema.shape.approvalNotify,
   scheduleInterval: z.number().min(1).max(12).optional(),
   scheduleTime: z.date().optional(),
   dayOfWeek: z.string().optional(),
@@ -58,6 +59,7 @@ export function useApprovalConfiguration() {
           handleMonthEnd: 'last-day',
         },
       },
+      approvalNotify: 'none',
       scheduleInterval: undefined,
       scheduleTime: undefined,
       dayOfWeek: '*',
@@ -68,57 +70,85 @@ export function useApprovalConfiguration() {
   // Load configuration when config changes
   useEffect(() => {
     if (config) {
-      const formData: ApprovalConfigurationFormData = {}
-
-      if (config.approvalExpiration) {
-        formData.approvalExpiration = {
-          enabled: config.approvalExpiration.enabled ?? false,
-          defaultExpirationHours:
-            config.approvalExpiration.defaultExpirationHours ?? 72,
-          expirationAction:
-            config.approvalExpiration.expirationAction ?? 'expire',
-          quotaExceededExpirationHours:
-            config.approvalExpiration.quotaExceededExpirationHours,
-          routerRuleExpirationHours:
-            config.approvalExpiration.routerRuleExpirationHours,
-          manualFlagExpirationHours:
-            config.approvalExpiration.manualFlagExpirationHours,
-          contentCriteriaExpirationHours:
-            config.approvalExpiration.contentCriteriaExpirationHours,
-          cleanupExpiredDays:
-            config.approvalExpiration.cleanupExpiredDays ?? 30,
-        }
-      }
-
-      if (config.quotaSettings) {
-        formData.quotaSettings = {
-          cleanup: {
-            enabled: config.quotaSettings.cleanup?.enabled ?? true,
-            retentionDays: config.quotaSettings.cleanup?.retentionDays ?? 90,
-          },
-          weeklyRolling: {
-            resetDays: config.quotaSettings.weeklyRolling?.resetDays ?? 7,
-          },
-          monthly: {
-            resetDay: config.quotaSettings.monthly?.resetDay ?? 1,
-            handleMonthEnd:
-              config.quotaSettings.monthly?.handleMonthEnd ?? 'last-day',
-          },
-        }
-      }
+      // Ensure notification value is one of the valid enum values
+      const notifyValue = config.approvalNotify || 'none'
 
       // Preserve current schedule field values when resetting config data
       const currentScheduleInterval = form.getValues('scheduleInterval')
       const currentScheduleTime = form.getValues('scheduleTime')
       const currentDayOfWeek = form.getValues('dayOfWeek')
 
-      form.reset({
-        ...formData,
-        // Keep existing schedule values if they exist
-        scheduleInterval: currentScheduleInterval,
-        scheduleTime: currentScheduleTime,
-        dayOfWeek: currentDayOfWeek ?? '*',
-      })
+      form.reset(
+        {
+          approvalExpiration: config.approvalExpiration
+            ? {
+                enabled: config.approvalExpiration.enabled ?? false,
+                defaultExpirationHours:
+                  config.approvalExpiration.defaultExpirationHours ?? 72,
+                expirationAction:
+                  config.approvalExpiration.expirationAction ?? 'expire',
+                quotaExceededExpirationHours:
+                  config.approvalExpiration.quotaExceededExpirationHours,
+                routerRuleExpirationHours:
+                  config.approvalExpiration.routerRuleExpirationHours,
+                manualFlagExpirationHours:
+                  config.approvalExpiration.manualFlagExpirationHours,
+                contentCriteriaExpirationHours:
+                  config.approvalExpiration.contentCriteriaExpirationHours,
+                cleanupExpiredDays:
+                  config.approvalExpiration.cleanupExpiredDays ?? 30,
+              }
+            : {
+                enabled: false,
+                defaultExpirationHours: 72,
+                expirationAction: 'expire',
+                cleanupExpiredDays: 30,
+              },
+          quotaSettings: config.quotaSettings
+            ? {
+                cleanup: {
+                  enabled: config.quotaSettings.cleanup?.enabled ?? true,
+                  retentionDays:
+                    config.quotaSettings.cleanup?.retentionDays ?? 90,
+                },
+                weeklyRolling: {
+                  resetDays: config.quotaSettings.weeklyRolling?.resetDays ?? 7,
+                },
+                monthly: {
+                  resetDay: config.quotaSettings.monthly?.resetDay ?? 1,
+                  handleMonthEnd:
+                    config.quotaSettings.monthly?.handleMonthEnd ?? 'last-day',
+                },
+              }
+            : {
+                cleanup: {
+                  enabled: true,
+                  retentionDays: 90,
+                },
+                weeklyRolling: {
+                  resetDays: 7,
+                },
+                monthly: {
+                  resetDay: 1,
+                  handleMonthEnd: 'last-day',
+                },
+              },
+          approvalNotify: notifyValue,
+          // Keep existing schedule values if they exist
+          scheduleInterval: currentScheduleInterval,
+          scheduleTime: currentScheduleTime,
+          dayOfWeek: currentDayOfWeek ?? '*',
+        },
+        { keepDirty: false },
+      )
+
+      // Add the timeout fallback like delete sync form
+      setTimeout(() => {
+        if (form.getValues('approvalNotify') !== notifyValue) {
+          form.setValue('approvalNotify', notifyValue, { shouldDirty: false })
+        }
+        form.reset(form.getValues(), { keepDirty: false })
+      }, 0)
     }
   }, [config, form])
 
@@ -145,6 +175,9 @@ export function useApprovalConfiguration() {
       if (data.quotaSettings) {
         updatePayload.quotaSettings = data.quotaSettings
       }
+
+      // Add approval notification settings (always include with default)
+      updatePayload.approvalNotify = data.approvalNotify || 'none'
 
       // Schedule fields should NOT be sent to config - they need to be handled by scheduler
       // Remove schedule fields from config update payload
@@ -193,59 +226,79 @@ export function useApprovalConfiguration() {
   }
 
   const handleCancel = () => {
-    // Reset form to last saved values
+    // Reset form to last saved values using the same pattern as the useEffect
     if (config) {
-      const formData: ApprovalConfigurationFormData = {}
-
-      if (config.approvalExpiration) {
-        formData.approvalExpiration = {
-          enabled: config.approvalExpiration.enabled ?? false,
-          defaultExpirationHours:
-            config.approvalExpiration.defaultExpirationHours ?? 72,
-          expirationAction:
-            config.approvalExpiration.expirationAction ?? 'expire',
-          quotaExceededExpirationHours:
-            config.approvalExpiration.quotaExceededExpirationHours,
-          routerRuleExpirationHours:
-            config.approvalExpiration.routerRuleExpirationHours,
-          manualFlagExpirationHours:
-            config.approvalExpiration.manualFlagExpirationHours,
-          contentCriteriaExpirationHours:
-            config.approvalExpiration.contentCriteriaExpirationHours,
-          cleanupExpiredDays:
-            config.approvalExpiration.cleanupExpiredDays ?? 30,
-        }
-      }
-
-      if (config.quotaSettings) {
-        formData.quotaSettings = {
-          cleanup: {
-            enabled: config.quotaSettings.cleanup?.enabled ?? true,
-            retentionDays: config.quotaSettings.cleanup?.retentionDays ?? 90,
-          },
-          weeklyRolling: {
-            resetDays: config.quotaSettings.weeklyRolling?.resetDays ?? 7,
-          },
-          monthly: {
-            resetDay: config.quotaSettings.monthly?.resetDay ?? 1,
-            handleMonthEnd:
-              config.quotaSettings.monthly?.handleMonthEnd ?? 'last-day',
-          },
-        }
-      }
+      // Ensure notification value is one of the valid enum values
+      const notifyValue = config.approvalNotify || 'none'
 
       // Preserve current schedule field values when resetting config data
       const currentScheduleInterval = form.getValues('scheduleInterval')
       const currentScheduleTime = form.getValues('scheduleTime')
       const currentDayOfWeek = form.getValues('dayOfWeek')
 
-      form.reset({
-        ...formData,
-        // Keep existing schedule values if they exist
-        scheduleInterval: currentScheduleInterval,
-        scheduleTime: currentScheduleTime,
-        dayOfWeek: currentDayOfWeek ?? '*',
-      })
+      form.reset(
+        {
+          approvalExpiration: config.approvalExpiration
+            ? {
+                enabled: config.approvalExpiration.enabled ?? false,
+                defaultExpirationHours:
+                  config.approvalExpiration.defaultExpirationHours ?? 72,
+                expirationAction:
+                  config.approvalExpiration.expirationAction ?? 'expire',
+                quotaExceededExpirationHours:
+                  config.approvalExpiration.quotaExceededExpirationHours,
+                routerRuleExpirationHours:
+                  config.approvalExpiration.routerRuleExpirationHours,
+                manualFlagExpirationHours:
+                  config.approvalExpiration.manualFlagExpirationHours,
+                contentCriteriaExpirationHours:
+                  config.approvalExpiration.contentCriteriaExpirationHours,
+                cleanupExpiredDays:
+                  config.approvalExpiration.cleanupExpiredDays ?? 30,
+              }
+            : {
+                enabled: false,
+                defaultExpirationHours: 72,
+                expirationAction: 'expire',
+                cleanupExpiredDays: 30,
+              },
+          quotaSettings: config.quotaSettings
+            ? {
+                cleanup: {
+                  enabled: config.quotaSettings.cleanup?.enabled ?? true,
+                  retentionDays:
+                    config.quotaSettings.cleanup?.retentionDays ?? 90,
+                },
+                weeklyRolling: {
+                  resetDays: config.quotaSettings.weeklyRolling?.resetDays ?? 7,
+                },
+                monthly: {
+                  resetDay: config.quotaSettings.monthly?.resetDay ?? 1,
+                  handleMonthEnd:
+                    config.quotaSettings.monthly?.handleMonthEnd ?? 'last-day',
+                },
+              }
+            : {
+                cleanup: {
+                  enabled: true,
+                  retentionDays: 90,
+                },
+                weeklyRolling: {
+                  resetDays: 7,
+                },
+                monthly: {
+                  resetDay: 1,
+                  handleMonthEnd: 'last-day',
+                },
+              },
+          approvalNotify: notifyValue,
+          // Keep existing schedule values if they exist
+          scheduleInterval: currentScheduleInterval,
+          scheduleTime: currentScheduleTime,
+          dayOfWeek: currentDayOfWeek ?? '*',
+        },
+        { keepDirty: false },
+      )
     }
   }
 

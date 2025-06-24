@@ -9,6 +9,7 @@ import { ConfigSchema } from '@root/schemas/config/config.schema'
 const approvalConfigurationSchema = z.object({
   approvalExpiration: ConfigSchema.shape.approvalExpiration,
   quotaSettings: ConfigSchema.shape.quotaSettings,
+  approvalNotify: ConfigSchema.shape.approvalNotify,
   scheduleInterval: z.number().min(1).max(12).optional(),
   scheduleTime: z.date().optional(),
   dayOfWeek: z.string().optional(),
