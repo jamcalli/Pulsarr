@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useApprovalsStore } from '@/features/plex/store/approvalsStore'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useToast } from '@/hooks/use-toast'
 import { useApprovalPageEvents } from '@/hooks/useApprovalEvents'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
@@ -400,24 +401,16 @@ export default function ApprovalTableSection() {
   if (approvalsLoading && approvalRequests.length === 0) {
     return (
       <div className="grid gap-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded mb-4" />
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            {['stat1', 'stat2', 'stat3', 'stat4'].map((stat) => (
-              <div
-                key={`stats-loading-${stat}`}
-                className="h-20 bg-gray-200 dark:bg-gray-700 rounded"
-              />
-            ))}
-          </div>
-          <div className="space-y-4">
-            {['header', 'body', 'pagination'].map((section) => (
-              <div
-                key={`table-loading-${section}`}
-                className="h-16 bg-gray-200 dark:bg-gray-700 rounded"
-              />
-            ))}
-          </div>
+        <Skeleton className="h-8 mb-4" />
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          {['stat1', 'stat2', 'stat3', 'stat4'].map((stat) => (
+            <Skeleton key={`stats-loading-${stat}`} className="h-20" />
+          ))}
+        </div>
+        <div className="space-y-4">
+          {['header', 'body', 'pagination'].map((section) => (
+            <Skeleton key={`table-loading-${section}`} className="h-16" />
+          ))}
         </div>
       </div>
     )

@@ -5,6 +5,7 @@ import {
   AlertCircle,
   BarChart3,
 } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 import type { ApprovalStatsResponse } from '@root/schemas/approval/approval.schema'
 
 interface ApprovalStatsHeaderProps {
@@ -27,16 +28,13 @@ export default function ApprovalStatsHeader({
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
         {['pending', 'approved', 'rejected', 'expired', 'total'].map((type) => (
-          <div
-            key={`skeleton-${type}`}
-            className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-md animate-pulse"
-          >
+          <div key={`skeleton-${type}`} className="bg-card p-4 rounded-md">
             <div className="flex items-center justify-between mb-3">
-              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-16" />
-              <div className="h-4 w-4 bg-gray-200 dark:bg-gray-700 rounded" />
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-4 w-4" />
             </div>
-            <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-12 mb-1" />
-            <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-20" />
+            <Skeleton className="h-8 w-12 mb-1" />
+            <Skeleton className="h-3 w-20" />
           </div>
         ))}
       </div>
