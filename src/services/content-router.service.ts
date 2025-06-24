@@ -545,6 +545,83 @@ export class ContentRouterService {
         this.log.info(
           `No matching routing rules for "${item.title}", using default routing`,
         )
+
+        // Check for approval requirements before default routing
+        if (options.userId) {
+          const context: RoutingContext = {
+            userId: options.userId,
+            userName: options.userName,
+            itemKey: key,
+            contentType,
+            syncing: options.syncing,
+            syncTargetInstanceId: options.syncTargetInstanceId,
+          }
+
+          try {
+            // Get all default routing decisions that would be made
+            const defaultRoutingDecisions =
+              await this.getDefaultRoutingDecisions(contentType)
+
+            if (defaultRoutingDecisions.length > 0) {
+              const approvalResult = await this.checkApprovalRequirements(
+                item,
+                context,
+                defaultRoutingDecisions,
+              )
+
+              if (approvalResult.required) {
+                this.log.info(
+                  `Approval required for default routing of "${item.title}" by user ${context.userName || context.userId}: ${approvalResult.reason}`,
+                )
+
+                // Create approval request for default routing
+                if (context.userId) {
+                  const approvalRequest =
+                    await this.fastify.approvalService.createApprovalRequest(
+                      {
+                        id: context.userId,
+                        name: context.userName || `User ${context.userId}`,
+                      },
+                      item,
+                      {
+                        action: 'require_approval',
+                        approval: {
+                          reason: approvalResult.reason || 'Approval required',
+                          triggeredBy: approvalResult.trigger || 'manual_flag',
+                          data: approvalResult.data || {},
+                          proposedRouting:
+                            await this.createProposedRoutingDecision(
+                              defaultRoutingDecisions,
+                              contentType,
+                            ),
+                        },
+                      },
+                      approvalResult.trigger || 'manual_flag',
+                      approvalResult.reason,
+                      undefined,
+                      context.itemKey,
+                    )
+
+                  if (approvalRequest) {
+                    this.log.info(
+                      `New approval request created for "${item.title}" by user ${context.userId}`,
+                    )
+                  }
+                }
+
+                // Return empty - content will not be routed until approved
+                return { routedInstances: [] }
+              }
+            }
+          } catch (error) {
+            this.log.error(
+              `Error checking approval requirements for default routing of "${item.title}":`,
+              error,
+            )
+            // Continue with normal routing on error
+          }
+        }
+
         // Default routing will handle routing to default instance and any synced instances
         const defaultRoutedInstances = await this.routeUsingDefault(
           item,
