@@ -37,11 +37,15 @@ export function useApprovalSystem() {
     if (scheduleHook.approvalInterval !== null && formHook.form) {
       const currentFormInterval = formHook.form.getValues('scheduleInterval')
       if (currentFormInterval !== scheduleHook.approvalInterval) {
-        formHook.form.setValue(
-          'scheduleInterval',
-          scheduleHook.approvalInterval,
-          { shouldDirty: false },
-        )
+        // Get all current form values
+        const currentValues = formHook.form.getValues()
+        // Update with the scheduler interval
+        const updatedValues = {
+          ...currentValues,
+          scheduleInterval: scheduleHook.approvalInterval,
+        }
+        // Reset the form with the updated values to clear dirty state
+        formHook.form.reset(updatedValues)
       }
     }
   }, [scheduleHook.approvalInterval, formHook.form])

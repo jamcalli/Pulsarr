@@ -38,7 +38,6 @@ export default function ApprovalTableSection() {
     approvalsLoading,
     error,
     total,
-    currentQuery,
     initialize,
     refreshApprovalRequests,
     clearError,
@@ -448,23 +447,6 @@ export default function ApprovalTableSection() {
 
       {/* Configuration section */}
       <ApprovalConfigurationSection />
-
-      {/* Results summary */}
-      <div className="flex justify-between items-center text-sm text-gray-600 dark:text-gray-400">
-        <span>
-          Showing {approvalRequests.length} of {total} approval requests
-          {currentQuery.status && (
-            <span className="ml-1">(filtered by: {currentQuery.status})</span>
-          )}
-        </span>
-        {currentQuery.limit && currentQuery.limit < total && (
-          <span>
-            Page{' '}
-            {Math.floor((currentQuery.offset || 0) / currentQuery.limit) + 1} of{' '}
-            {Math.ceil(total / currentQuery.limit)}
-          </span>
-        )}
-      </div>
 
       {/* Approval requests table */}
       <ApprovalTable

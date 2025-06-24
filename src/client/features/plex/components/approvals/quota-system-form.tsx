@@ -223,12 +223,6 @@ export function QuotaSystemForm() {
                       ? 'every day'
                       : `on ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][Number.parseInt(isSaving ? form.getValues('dayOfWeek') || '0' : quotaDayOfWeek || '0')] || 'Unknown'}`}
                   </p>
-                  {quotaMaintenanceJob.config.expression && (
-                    <p className="text-muted-foreground mt-1">
-                      <strong>Cron expression:</strong>{' '}
-                      {quotaMaintenanceJob.config.expression}
-                    </p>
-                  )}
                 </div>
               )}
           </div>

@@ -208,12 +208,6 @@ export function ApprovalSystemForm() {
                         ? `Every ${approvalInterval} hour${approvalInterval !== 1 ? 's' : ''}`
                         : 'Not configured'}
                   </p>
-                  {approvalMaintenanceJob.config.expression && (
-                    <p className="text-muted-foreground mt-1">
-                      <strong>Cron expression:</strong>{' '}
-                      {approvalMaintenanceJob.config.expression}
-                    </p>
-                  )}
                 </div>
               )}
           </div>
