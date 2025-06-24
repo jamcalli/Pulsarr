@@ -46,49 +46,49 @@ export function useApprovalEvents(options: UseApprovalEventsOptions = {}) {
         switch (action) {
           case 'created':
             toast({
-              title: (
+              title: 'New Approval Request',
+              description: (
                 <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  New Approval Request
+                  <FileText className="h-4 w-4 flex-shrink-0" />
+                  <span>{metadata.userName} requested {metadata.contentTitle} ({metadata.contentType})</span>
                 </div>
               ),
-              description: `${metadata.userName} requested ${metadata.contentTitle} (${metadata.contentType})`,
               variant: 'default',
             })
             break
           case 'approved':
             toast({
-              title: (
+              title: 'Request Approved',
+              description: (
                 <div className="flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4" />
-                  Request Approved
+                  <CheckCircle className="h-4 w-4 flex-shrink-0" />
+                  <span>{metadata.contentTitle} has been approved for {metadata.userName}</span>
                 </div>
               ),
-              description: `${metadata.contentTitle} has been approved for ${metadata.userName}`,
               variant: 'default',
             })
             break
           case 'rejected':
             toast({
-              title: (
+              title: 'Request Rejected',
+              description: (
                 <div className="flex items-center gap-2">
-                  <XCircle className="h-4 w-4" />
-                  Request Rejected
+                  <XCircle className="h-4 w-4 flex-shrink-0" />
+                  <span>{metadata.userName}'s request for {metadata.contentTitle} was rejected</span>
                 </div>
               ),
-              description: `${metadata.userName}'s request for ${metadata.contentTitle} was rejected`,
               variant: 'destructive',
             })
             break
           case 'deleted':
             toast({
-              title: (
+              title: 'Request Deleted',
+              description: (
                 <div className="flex items-center gap-2">
-                  <Trash2 className="h-4 w-4" />
-                  Request Deleted
+                  <Trash2 className="h-4 w-4 flex-shrink-0" />
+                  <span>Request for {metadata.contentTitle} by {metadata.userName} was deleted</span>
                 </div>
               ),
-              description: `Request for ${metadata.contentTitle} by ${metadata.userName} was deleted`,
               variant: 'default',
             })
             break
@@ -99,49 +99,49 @@ export function useApprovalEvents(options: UseApprovalEventsOptions = {}) {
         switch (action) {
           case 'created':
             toast({
-              title: (
+              title: 'New Approval Requests',
+              description: (
                 <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  New Approval Requests
+                  <FileText className="h-4 w-4 flex-shrink-0" />
+                  <span>{count} new approval requests have been received</span>
                 </div>
               ),
-              description: `${count} new approval requests have been received`,
               variant: 'default',
             })
             break
           case 'approved':
             toast({
-              title: (
+              title: 'Requests Approved',
+              description: (
                 <div className="flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4" />
-                  Requests Approved
+                  <CheckCircle className="h-4 w-4 flex-shrink-0" />
+                  <span>{count} approval requests have been approved</span>
                 </div>
               ),
-              description: `${count} approval requests have been approved`,
               variant: 'default',
             })
             break
           case 'rejected':
             toast({
-              title: (
+              title: 'Requests Rejected',
+              description: (
                 <div className="flex items-center gap-2">
-                  <XCircle className="h-4 w-4" />
-                  Requests Rejected
+                  <XCircle className="h-4 w-4 flex-shrink-0" />
+                  <span>{count} approval requests have been rejected</span>
                 </div>
               ),
-              description: `${count} approval requests have been rejected`,
               variant: 'destructive',
             })
             break
           case 'deleted':
             toast({
-              title: (
+              title: 'Requests Deleted',
+              description: (
                 <div className="flex items-center gap-2">
-                  <Trash2 className="h-4 w-4" />
-                  Requests Deleted
+                  <Trash2 className="h-4 w-4 flex-shrink-0" />
+                  <span>{count} approval requests have been deleted</span>
                 </div>
               ),
-              description: `${count} approval requests have been deleted`,
               variant: 'default',
             })
             break

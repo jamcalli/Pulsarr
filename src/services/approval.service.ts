@@ -64,7 +64,7 @@ export class ApprovalService {
       return null
     }
 
-    let expirationHours = config.defaultExpirationHours
+    let expirationHours = config.defaultExpirationHours ?? 72
 
     // Check for trigger-specific overrides
     switch (trigger) {
@@ -364,18 +364,77 @@ export class ApprovalService {
         return
       }
 
-      // Expire requests that have passed their expiration date
+      // Handle expiration action (auto-approve or just expire)
+      if (config.expirationAction === 'auto_approve') {
+        // Get requests that are about to expire BEFORE marking them as expired
+        const requestsToAutoApprove = await this.fastify.db.getApprovalHistory(
+          undefined, // userId - get all users
+          'pending', // only pending requests
+          undefined, // no limit
+          undefined, // no offset
+          undefined, // any content type
+        )
+
+        // Filter to only those that are expired
+        const now = new Date()
+        const expiredRequests = requestsToAutoApprove.filter(
+          (request) => request.expiresAt && new Date(request.expiresAt) < now,
+        )
+
+        if (expiredRequests.length > 0) {
+          this.fastify.log.info(
+            `Auto-approving ${expiredRequests.length} expired approval requests`,
+          )
+
+          // Auto-approve each expired request
+          for (const request of expiredRequests) {
+            try {
+              // Approve the request with system user (ID 0)
+              const approvedRequest = await this.fastify.db.approveRequest(
+                request.id,
+                0, // System user
+                'Auto-approved: Request expired with auto-approval enabled',
+              )
+
+              if (approvedRequest) {
+                // Emit SSE event for approved request
+                this.emitApprovalEvent(
+                  'approved',
+                  approvedRequest,
+                  approvedRequest.userName,
+                )
+
+                // Process the approved request (route to Radarr/Sonarr)
+                const processResult =
+                  await this.processApprovedRequest(approvedRequest)
+                if (processResult.success) {
+                  this.fastify.log.info(
+                    `Successfully auto-approved and processed expired request ${request.id} for user ${request.userId}: ${request.contentTitle}`,
+                  )
+                } else {
+                  this.fastify.log.warn(
+                    `Auto-approved expired request ${request.id} but failed to process: ${processResult.error}`,
+                  )
+                }
+              }
+            } catch (error) {
+              this.fastify.log.error(
+                `Failed to auto-approve expired request ${request.id}:`,
+                error,
+              )
+            }
+          }
+        }
+      }
+
+      // Expire requests that have passed their expiration date (this will now handle remaining pending requests)
       const expiredCount = await this.fastify.db.expireOldRequests()
       if (expiredCount > 0) {
-        this.fastify.log.info(`Expired ${expiredCount} old approval requests`)
-
-        // Handle expiration action (auto-approve or just expire)
-        if (config.expirationAction === 'auto_approve') {
-          // TODO: Implement auto-approval logic for expired requests
-          this.fastify.log.info(
-            'Auto-approval on expiration not yet implemented',
-          )
-        }
+        const action =
+          config.expirationAction === 'auto_approve'
+            ? 'processed/expired'
+            : 'expired'
+        this.fastify.log.info(`${action} ${expiredCount} old approval requests`)
       }
 
       // Cleanup old expired requests based on configuration

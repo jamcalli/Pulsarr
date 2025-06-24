@@ -7,7 +7,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 
 interface TimeSelectorProps {
   value?: Date;
@@ -53,7 +53,7 @@ export function TimeSelector({
 }: TimeSelectorProps) {
   // Format the time value as "HH:MM"
   const formatTimeValue = (date?: Date): string => {
-    if (!date) return "00:00";
+    if (!date || !isValid(date)) return "00:00";
     return format(date, "HH:mm");
   };
   

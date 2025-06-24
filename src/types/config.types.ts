@@ -185,35 +185,34 @@ export interface Config {
   // Quota System Configuration
   quotaSettings?: {
     // Cleanup configuration
-    cleanup: {
-      enabled: boolean
-      retentionDays: number
+    cleanup?: {
+      enabled?: boolean
+      retentionDays?: number
     }
     // Weekly rolling quota configuration
-    weeklyRolling: {
-      resetDays: number
+    weeklyRolling?: {
+      resetDays?: number
     }
     // Monthly quota configuration
-    monthly: {
-      resetDay: number
-      handleMonthEnd: 'last-day' | 'skip-month' | 'next-month'
+    monthly?: {
+      resetDay?: number
+      handleMonthEnd?: 'last-day' | 'skip-month' | 'next-month'
     }
   }
   // Approval System Configuration
   approvalExpiration?: {
-    enabled: boolean
+    enabled?: boolean
     // Default expiration time in hours for approval requests
-    defaultExpirationHours: number
+    defaultExpirationHours?: number
     // What happens when approvals expire
-    expirationAction: 'expire' | 'auto_approve'
+    expirationAction?: 'expire' | 'auto_approve'
     // Per-trigger expiration overrides
     quotaExceededExpirationHours?: number
     routerRuleExpirationHours?: number
     manualFlagExpirationHours?: number
     contentCriteriaExpirationHours?: number
     // Maintenance settings
-    maintenanceCronExpression: string
-    cleanupExpiredDays: number
+    cleanupExpiredDays?: number
   }
   // Security Config
   allowIframes: boolean
