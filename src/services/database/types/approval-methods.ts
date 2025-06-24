@@ -84,11 +84,11 @@ declare module '@services/database.service.js' {
     /**
      * Creates an approval request, handling expired duplicates atomically
      * @param data - Approval request data
-     * @returns Promise resolving to the created or existing approval request
+     * @returns Promise resolving to the created or existing approval request with creation status
      */
     createApprovalRequestWithExpiredHandling(
       data: CreateApprovalRequestData,
-    ): Promise<ApprovalRequest>
+    ): Promise<{ request: ApprovalRequest; isNewlyCreated: boolean }>
 
     /**
      * Gets pending approval requests with optional filtering and pagination

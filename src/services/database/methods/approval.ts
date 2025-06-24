@@ -374,7 +374,7 @@ export async function deleteApprovalRequest(
 export async function createApprovalRequestWithExpiredHandling(
   this: DatabaseService,
   data: CreateApprovalRequestData,
-): Promise<ApprovalRequest> {
+): Promise<{ request: ApprovalRequest; isNewlyCreated: boolean }> {
   return await this.knex.transaction(async (trx) => {
     // Check for existing request with the same user_id and content_key
     const existingRow = await trx('approval_requests')
@@ -391,7 +391,7 @@ export async function createApprovalRequestWithExpiredHandling(
 
       if (existing.status === 'pending') {
         // Return existing pending request
-        return existing
+        return { request: existing, isNewlyCreated: false }
       }
 
       if (existing.status === 'expired') {
@@ -427,7 +427,10 @@ export async function createApprovalRequestWithExpiredHandling(
       .where('approval_requests.id', insertedRow.id)
       .first()
 
-    return mapRowToApprovalRequest(rowWithUsername)
+    return {
+      request: mapRowToApprovalRequest(rowWithUsername),
+      isNewlyCreated: true,
+    }
   })
 }
 

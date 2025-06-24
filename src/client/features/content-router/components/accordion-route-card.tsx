@@ -1004,22 +1004,48 @@ const AccordionRouteCard = ({
                         control={form.control}
                         name="always_require_approval"
                         render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 space-y-0">
-                            <div className="space-y-0.5">
-                              <FormLabel className="text-sm">
+                          <FormItem>
+                            <div className="flex items-center space-x-2">
+                              <FormLabel className="text-text">
                                 Always Require Approval
                               </FormLabel>
-                              <FormDescription className="text-xs">
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <div className="max-w-xs">
+                                      <p className="mb-2">
+                                        When enabled, all content matching this
+                                        rule will require approval before being
+                                        processed, regardless of user quotas or
+                                        other settings.
+                                      </p>
+                                      <p className="text-xs text-muted-foreground">
+                                        Useful for high-priority content,
+                                        special genres, or content that needs
+                                        manual review.
+                                      </p>
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
+                            <div className="flex h-10 items-center gap-2 px-3 py-2">
+                              <FormControl>
+                                <Switch
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                  aria-label="Always Require Approval"
+                                />
+                              </FormControl>
+                              <span className="text-sm text-text text-muted-foreground">
                                 Force approval for this rule regardless of
                                 quotas
-                              </FormDescription>
+                              </span>
                             </div>
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
+                            <FormMessage />
                           </FormItem>
                         )}
                       />
@@ -1028,21 +1054,46 @@ const AccordionRouteCard = ({
                         control={form.control}
                         name="bypass_user_quotas"
                         render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 space-y-0">
-                            <div className="space-y-0.5">
-                              <FormLabel className="text-sm">
+                          <FormItem>
+                            <div className="flex items-center space-x-2">
+                              <FormLabel className="text-text">
                                 Bypass User Quotas
                               </FormLabel>
-                              <FormDescription className="text-xs">
-                                Skip quota checks for this rule
-                              </FormDescription>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <div className="max-w-xs">
+                                      <p className="mb-2">
+                                        When enabled, content matching this rule
+                                        will skip all user quota restrictions
+                                        and be processed immediately.
+                                      </p>
+                                      <p className="text-xs text-muted-foreground">
+                                        Useful for VIP users, special content,
+                                        or time-sensitive requests that should
+                                        not be limited by quotas.
+                                      </p>
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             </div>
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
+                            <div className="flex h-10 items-center gap-2 px-3 py-2">
+                              <FormControl>
+                                <Switch
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                  aria-label="Bypass User Quotas"
+                                />
+                              </FormControl>
+                              <span className="text-sm text-text text-muted-foreground">
+                                Skip quota checks for this rule
+                              </span>
+                            </div>
+                            <FormMessage />
                           </FormItem>
                         )}
                       />
@@ -1055,7 +1106,7 @@ const AccordionRouteCard = ({
                         name="approval_reason"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-sm">
+                            <FormLabel className="text-text">
                               Approval Reason
                             </FormLabel>
                             <FormControl>

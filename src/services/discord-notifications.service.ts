@@ -137,7 +137,10 @@ export class DiscordNotificationService {
         )
         this.log.info('Cleared old guild-specific commands')
       } catch (error) {
-        this.log.warn({ error }, 'Failed to clear old guild commands (may not exist)')
+        this.log.warn(
+          { error },
+          'Failed to clear old guild commands (may not exist)',
+        )
       }
 
       // Register commands globally for DM support

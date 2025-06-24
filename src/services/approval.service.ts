@@ -170,16 +170,27 @@ export class ApprovalService {
     )
 
     // Use atomic method that handles expired duplicates within a transaction
-    const createdRequest =
+    const result =
       await this.fastify.db.createApprovalRequestWithExpiredHandling(data)
 
-    // Emit SSE event for new approval request
-    this.emitApprovalEvent('created', createdRequest, user.name)
+    // Only emit events and send notifications for newly created requests
+    if (result.isNewlyCreated) {
+      // Emit SSE event for new approval request
+      this.emitApprovalEvent('created', result.request, user.name)
 
-    // Queue Discord notification to primary admin if Discord bot is available
-    this.queueDiscordApprovalNotification(createdRequest)
+      // Queue Discord notification to primary admin if Discord bot is available
+      this.queueDiscordApprovalNotification(result.request)
 
-    return createdRequest
+      this.fastify.log.info(
+        `New approval request created for "${result.request.contentTitle}" by user ${user.id}`,
+      )
+    } else {
+      this.fastify.log.debug(
+        `Found existing pending approval request for "${result.request.contentTitle}" by user ${user.id}, skipping notifications`,
+      )
+    }
+
+    return result.request
   }
 
   /**
