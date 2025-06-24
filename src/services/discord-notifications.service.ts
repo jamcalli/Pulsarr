@@ -129,6 +129,17 @@ export class DiscordNotificationService {
         cmd.data.toJSON(),
       )
 
+      // Clear old guild commands first (cleanup from previous registration method)
+      try {
+        await rest.put(
+          Routes.applicationGuildCommands(config.clientId, config.guildId),
+          { body: [] },
+        )
+        this.log.info('Cleared old guild-specific commands')
+      } catch (error) {
+        this.log.warn({ error }, 'Failed to clear old guild commands (may not exist)')
+      }
+
       // Register commands globally for DM support
       await rest.put(Routes.applicationCommands(config.clientId), {
         body: commandsData,

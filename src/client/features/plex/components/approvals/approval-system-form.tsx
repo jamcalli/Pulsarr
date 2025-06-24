@@ -353,6 +353,85 @@ export function ApprovalSystemForm() {
                     </FormItem>
                   )}
                 />
+
+                <FormField
+                  control={form.control}
+                  name="approvalNotify"
+                  render={({ field }) => (
+                    <FormItem className="space-y-2">
+                      <div className="flex flex-col space-y-2">
+                        <div className="flex items-center">
+                          <FormLabel className="text-text m-0">
+                            Notifications
+                          </FormLabel>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="max-w-xs">
+                                  <p>
+                                    Controls how approval request notifications
+                                    are sent:
+                                  </p>
+                                  <ul className="list-disc pl-4 text-sm mt-1">
+                                    <li>
+                                      All Channels: Send to all notification
+                                      methods
+                                    </li>
+                                    <li>Apprise Only: Only use Apprise</li>
+                                    <li>
+                                      Discord (Webhook + DM): Send to both
+                                      Discord webhook and DMs
+                                    </li>
+                                    <li>
+                                      Discord (DM Only): Send only to Discord
+                                      DMs
+                                    </li>
+                                    <li>
+                                      Discord (Webhook Only): Send only to
+                                      Discord webhook
+                                    </li>
+                                    <li>None: No notifications</li>
+                                  </ul>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          disabled={isSaving}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select notification type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="all">All Channels</SelectItem>
+                            <SelectItem value="apprise-only">
+                              Apprise Only
+                            </SelectItem>
+                            <SelectItem value="discord-both">
+                              Discord (Webhook + DM)
+                            </SelectItem>
+                            <SelectItem value="dm-only">
+                              Discord (DM Only)
+                            </SelectItem>
+                            <SelectItem value="webhook-only">
+                              Discord (Webhook Only)
+                            </SelectItem>
+                            <SelectItem value="none">None</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
             </div>
 

@@ -323,6 +323,21 @@ const schema = {
       type: 'boolean',
       default: false,
     },
+    approvalNotify: {
+      type: 'string',
+      enum: [
+        'none',
+        'all',
+        'discord-only',
+        'apprise-only',
+        'webhook-only',
+        'dm-only',
+        'discord-webhook',
+        'discord-message',
+        'discord-both',
+      ],
+      default: 'none',
+    },
     maxDeletionPrevention: {
       type: 'number',
       default: 10,
