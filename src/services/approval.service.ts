@@ -10,9 +10,13 @@ import type { ContentItem } from '@root/types/router.types.js'
 import type { SonarrItem } from '@root/types/sonarr.types.js'
 import type { Item as RadarrItem } from '@root/types/radarr.types.js'
 import type { ApprovalMetadata } from '@root/types/progress.types.js'
-import { extractTypedGuid } from '@utils/guid-handler.js'
+import { hasMatchingGuids } from '@utils/guid-handler.js'
 
 export class ApprovalService {
+  private notificationQueue: Set<number> = new Set()
+  private notificationTimer: NodeJS.Timeout | null = null
+  private readonly NOTIFICATION_DEBOUNCE_MS = 3000 // 3 seconds
+
   constructor(private fastify: FastifyInstance) {}
 
   /**
@@ -171,6 +175,9 @@ export class ApprovalService {
     // Emit SSE event for new approval request
     this.emitApprovalEvent('created', createdRequest, user.name)
 
+    // Queue Discord notification to primary admin if Discord bot is available
+    this.queueDiscordApprovalNotification(createdRequest)
+
     return createdRequest
   }
 
@@ -197,7 +204,7 @@ export class ApprovalService {
       const matchingRequests = relatedRequests.filter(
         (req) =>
           req.userId !== excludeUserId &&
-          req.contentGuids.some((guid) => contentGuids.includes(guid)),
+          hasMatchingGuids(req.contentGuids, contentGuids),
       )
 
       if (matchingRequests.length > 0) {
@@ -691,5 +698,227 @@ export class ApprovalService {
     }
 
     return results
+  }
+
+  /**
+   * Queue Discord notification with debouncing to batch multiple requests
+   */
+  private queueDiscordApprovalNotification(request: ApprovalRequest): void {
+    // Add request to the queue
+    this.notificationQueue.add(request.id)
+
+    this.fastify.log.debug(
+      { approvalId: request.id, queueSize: this.notificationQueue.size },
+      'Queued approval notification',
+    )
+
+    // Clear existing timer if one exists
+    if (this.notificationTimer) {
+      clearTimeout(this.notificationTimer)
+    }
+
+    // Set new timer to send batched notification
+    this.notificationTimer = setTimeout(async () => {
+      await this.sendBatchedDiscordApprovalNotification()
+      this.notificationQueue.clear()
+      this.notificationTimer = null
+    }, this.NOTIFICATION_DEBOUNCE_MS)
+  }
+
+  /**
+   * Send batched Discord notification for all queued approval requests
+   */
+  private async sendBatchedDiscordApprovalNotification(): Promise<void> {
+    if (this.notificationQueue.size === 0) {
+      return
+    }
+
+    try {
+      // Check if Discord service is available and running
+      const discordService = this.fastify.discord
+      if (!discordService || discordService.getBotStatus() !== 'running') {
+        this.fastify.log.debug(
+          'Discord bot not available, skipping batched approval notification',
+        )
+        return
+      }
+
+      // Get primary admin user
+      const primaryUser = await this.fastify.db.getPrimaryUser()
+      if (!primaryUser?.discord_id) {
+        this.fastify.log.debug(
+          'Primary user has no Discord ID, skipping batched approval notification',
+        )
+        return
+      }
+
+      // Get all pending approvals and the queued requests
+      const pendingApprovals =
+        await this.fastify.db.getPendingApprovalRequests()
+      const totalPending = pendingApprovals.length
+      const queuedRequestIds = Array.from(this.notificationQueue)
+
+      // Find the queued requests in the pending approvals
+      const queuedRequests = pendingApprovals.filter((approval) =>
+        queuedRequestIds.includes(approval.id),
+      )
+
+      if (queuedRequests.length === 0) {
+        this.fastify.log.debug('No queued requests found in pending approvals')
+        return
+      }
+
+      // Determine notification title and content based on queue size
+      const isMultiple = queuedRequests.length > 1
+      const title = isMultiple
+        ? `${queuedRequests.length} New Approval Requests`
+        : 'New Approval Request'
+
+      const embedFields = [
+        {
+          name: '📋 Pending Approvals',
+          value: `**${totalPending}** requests awaiting review`,
+          inline: false,
+        },
+        {
+          name: '',
+          value: '',
+          inline: false,
+        },
+      ]
+
+      if (isMultiple) {
+        // Show summary for multiple requests
+        const movieCount = queuedRequests.filter(
+          (r) => r.contentType === 'movie',
+        ).length
+        const showCount = queuedRequests.filter(
+          (r) => r.contentType === 'show',
+        ).length
+
+        const contentSummary = []
+        if (movieCount > 0)
+          contentSummary.push(`${movieCount} movie${movieCount > 1 ? 's' : ''}`)
+        if (showCount > 0)
+          contentSummary.push(`${showCount} show${showCount > 1 ? 's' : ''}`)
+
+        embedFields.push({
+          name: '🎬 New Requests',
+          value: `**${contentSummary.join(' and ')}** added to queue`,
+          inline: false,
+        })
+
+        // Show first few titles as examples
+        const exampleTitles = queuedRequests
+          .slice(0, 3)
+          .map((r) => `• ${r.contentTitle}`)
+          .join('\n')
+
+        const moreText =
+          queuedRequests.length > 3
+            ? `\n... and ${queuedRequests.length - 3} more`
+            : ''
+
+        embedFields.push({
+          name: '📝 Examples',
+          value: exampleTitles + moreText,
+          inline: false,
+        })
+      } else {
+        // Show details for single request (existing format)
+        const request = queuedRequests[0]
+        embedFields.push(
+          {
+            name: '🎬 Latest Request',
+            value: `**${request.contentTitle}**`,
+            inline: false,
+          },
+          {
+            name: '👤 Requested by',
+            value: request.userName || `User ${request.userId}`,
+            inline: true,
+          },
+          {
+            name: '📋 Content Type',
+            value:
+              request.contentType.charAt(0).toUpperCase() +
+              request.contentType.slice(1),
+            inline: true,
+          },
+          {
+            name: '',
+            value: '',
+            inline: false,
+          },
+          {
+            name: '🔍 Reason',
+            value: this.formatTriggerReason(
+              request.triggeredBy,
+              request.approvalReason || null,
+            ),
+            inline: false,
+          },
+        )
+      }
+
+      // Send batched DM to primary admin with review button
+      await discordService.sendDirectMessage(primaryUser.discord_id, {
+        type: 'system',
+        username: 'Approval System',
+        title,
+        embedFields,
+        actionButton: {
+          label: '📋 Review Approvals',
+          customId: `review_approvals_${Date.now()}`,
+          style: 'Primary',
+        },
+      })
+
+      // Log successful batched notification
+      this.fastify.log.info(
+        {
+          queuedRequestIds,
+          queueSize: queuedRequests.length,
+          adminDiscordId: primaryUser.discord_id,
+          totalPending,
+        },
+        'Sent batched Discord notification for approval requests',
+      )
+    } catch (error) {
+      this.fastify.log.error(
+        { error, queuedRequestIds: Array.from(this.notificationQueue) },
+        'Error sending batched Discord approval notification',
+      )
+    }
+  }
+
+  /**
+   * Format trigger reason for display
+   */
+  private formatTriggerReason(trigger: string, reason: string | null): string {
+    const triggerMap: Record<string, string> = {
+      manual_flag: '🚩 Manual Flag',
+      quota_exceeded: '📊 Quota Exceeded',
+      user_request: '👤 User Request',
+      system_flag: '🤖 System Flag',
+    }
+
+    const triggerText = triggerMap[trigger] || `🔍 ${trigger}`
+    return reason ? `${triggerText}\n${reason}` : triggerText
+  }
+
+  /**
+   * Force send any pending batched notifications (useful for shutdown)
+   */
+  async flushPendingNotifications(): Promise<void> {
+    if (this.notificationTimer) {
+      clearTimeout(this.notificationTimer)
+      this.notificationTimer = null
+    }
+
+    if (this.notificationQueue.size > 0) {
+      await this.sendBatchedDiscordApprovalNotification()
+      this.notificationQueue.clear()
+    }
   }
 }
