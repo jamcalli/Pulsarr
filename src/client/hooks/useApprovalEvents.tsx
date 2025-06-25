@@ -20,7 +20,11 @@ interface QueuedToast {
 }
 
 /**
- * Hook for subscribing to approval-related SSE events with toast queueing
+ * Subscribes to approval-related server-sent events (SSE) and manages toast notifications with batching and optional event callbacks.
+ *
+ * This hook listens for approval events such as creation, update, approval, rejection, and deletion. It can queue and batch toast notifications to avoid spamming users, and invokes optional callbacks for each approval action. Toast notifications can be enabled or disabled via the `showToasts` option.
+ *
+ * @param options - Optional callbacks for each approval action and a flag to enable or disable toast notifications.
  */
 export function useApprovalEvents(options: UseApprovalEventsOptions = {}) {
   const { toast } = useToast()
@@ -237,16 +241,20 @@ export function useApprovalEvents(options: UseApprovalEventsOptions = {}) {
 }
 
 /**
- * Simplified hook that only shows toast notifications for approval events
- * This should be used at a high level (like authenticated app) to show toasts everywhere
+ * Subscribes to approval events and displays toast notifications globally.
+ *
+ * Intended for use at the top level of the application to provide approval-related toasts across all pages.
  */
 export function useApprovalToasts() {
   useApprovalEvents({ showToasts: true })
 }
 
 /**
- * Hook for approval page data management - handles SSE events to update local state
- * This should only be used on the approval management page
+ * Subscribes to approval-related SSE events and invokes provided callbacks for each action, without displaying toast notifications.
+ *
+ * Intended for use on the approval management page to update local state in response to approval events.
+ *
+ * @param options - Optional callbacks for handling approval creation, update, approval, rejection, and deletion events.
  */
 export function useApprovalPageEvents(options: {
   onApprovalCreated?: (event: ProgressEvent, metadata: ApprovalMetadata) => void

@@ -71,9 +71,9 @@ interface UserTableProps {
 }
 
 /**
- * Renders an interactive table for managing user watchlist data, supporting sorting, filtering by username, pagination, column visibility toggling, row selection, and both individual and bulk editing.
+ * Displays an interactive user management table with sorting, filtering, pagination, column visibility controls, row selection, and editing features.
  *
- * Users can edit individual user details, perform bulk edits on selected rows, and open a modal to view a user's watchlist. The table adapts to loading state, disables controls as needed, and displays visual indicators for notification and sync statuses.
+ * Supports editing individual user details and quotas, bulk editing of selected users, and viewing a user's watchlist in a modal. The table adapts to loading states, disables controls as appropriate, and visually indicates notification, sync, and quota statuses.
  *
  * @remark If a user's ID is invalid when attempting to view their watchlist, an error is logged and a destructive toast notification is shown; the modal will not open.
  */

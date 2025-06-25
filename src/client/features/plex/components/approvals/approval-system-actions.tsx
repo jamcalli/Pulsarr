@@ -15,10 +15,9 @@ interface ApprovalSystemActionsProps {
 }
 
 /**
- * Approval System Actions Component
+ * Renders operational controls for managing the approval maintenance schedule, including enable/disable and immediate run actions.
  *
- * Provides operational controls for the approval maintenance schedule.
- * Follows the utilities pattern for enable/disable and run now controls.
+ * Displays the current job status with a badge, provides buttons to toggle the schedule and run maintenance, and shows a warning if the schedule is disabled.
  */
 export function ApprovalSystemActions({
   isScheduleEnabled,

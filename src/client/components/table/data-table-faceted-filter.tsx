@@ -37,6 +37,21 @@ interface DataTableFacetedFilterProps<TData, TValue> {
   showSearch?: boolean
 }
 
+/**
+ * Renders a faceted filter popover for a data table column, allowing users to filter rows by selecting one or more options.
+ *
+ * Displays a button with a filter icon, title, and badges indicating selected filters. When opened, shows a searchable list of filter options with checkboxes, optional icons, and counts of matching rows. Supports custom filter logic and clearing all selected filters.
+ *
+ * @param column - The table column to apply the filter to.
+ * @param title - The filter title displayed in the UI.
+ * @param icon - Optional icon component for the filter button; defaults to a filter icon.
+ * @param options - Array of selectable filter options, each with a label, value, and optional icon.
+ * @param filterFn - Optional custom filter function to override the column's default filtering behavior.
+ * @param showSearch - Whether to display a search input for filtering options within the popover.
+ *
+ * @template TData - The type of the table data.
+ * @template TValue - The type of the filter option values.
+ */
 export function DataTableFacetedFilter<TData, TValue>({
   column,
   title,

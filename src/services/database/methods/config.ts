@@ -2,11 +2,11 @@ import type { DatabaseService } from '@services/database.service.js'
 import type { Config } from '@root/types/config.types.js'
 
 /**
- * Retrieves the application configuration from the database, normalizing and parsing all fields.
+ * Retrieves and normalizes the application configuration from the database.
  *
- * Returns a fully constructed configuration object with all fields parsed and defaulted as necessary, or `undefined` if no configuration exists.
+ * Fetches the configuration record with `id: 1` from the `configs` table, parsing and defaulting all fields as needed. JSON fields are safely parsed with fallback defaults, optional string fields are normalized to `undefined` if empty, and all configuration options are returned as a fully constructed `Config` object. Returns `undefined` if no configuration exists.
  *
- * @returns The application configuration object if found, otherwise `undefined`.
+ * @returns The normalized application configuration object if found, otherwise `undefined`.
  */
 export async function getConfig(
   this: DatabaseService,
@@ -171,12 +171,12 @@ export async function getConfig(
 }
 
 /**
- * Inserts a new configuration record into the database, enforcing a single configuration entry.
+ * Creates a new configuration record in the database, ensuring only one configuration entry exists.
  *
- * Throws an error if a configuration already exists. Serializes JSON fields and applies default values for optional properties. Returns the ID of the newly created configuration.
+ * Throws an error if a configuration already exists. Serializes JSON fields and applies default values for optional properties. Returns the ID of the created configuration.
  *
- * @param config - Configuration data excluding `id`, `created_at`, and `updated_at`
- * @returns The ID of the created configuration
+ * @param config - The configuration data to insert, excluding `id`, `created_at`, and `updated_at`
+ * @returns The ID of the newly created configuration
  */
 export async function createConfig(
   this: DatabaseService,

@@ -21,6 +21,13 @@ interface QuotaFormData {
   showBypassApproval: boolean
 }
 
+/**
+ * Provides quota management functionality for users, including saving, updating, deleting, and retrieving quota settings for movies and shows.
+ *
+ * Returns state and functions to manage user quotas, including tracking the status of save operations, performing quota updates or deletions based on form data, and fetching current quota status.
+ *
+ * @returns An object containing the current save status, a function to save quota settings, a setter for save status, and a function to retrieve quota status for a user.
+ */
 export function useQuotaManagement() {
   const refreshQuotaData = useConfigStore((state) => state.refreshQuotaData)
   const [saveStatus, setSaveStatus] = useState<QuotaEditStatus>({

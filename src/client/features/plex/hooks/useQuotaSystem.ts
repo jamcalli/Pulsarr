@@ -17,10 +17,9 @@ const approvalConfigurationSchema = z.object({
 type ApprovalConfigurationFormData = z.infer<typeof approvalConfigurationSchema>
 
 /**
- * Main Quota System Hook
+ * Provides an integrated interface for managing quota system configuration and scheduling.
  *
- * Combines form management and scheduler functionality for the quota system.
- * Follows the utilities pattern of composing specialized hooks into a main interface.
+ * Combines approval configuration form management with operational scheduling controls, synchronizing schedule state with form values and handling coordinated updates to both configuration and schedule. Returns state, handlers, and status flags for both form and scheduler management.
  */
 export function useQuotaSystem() {
   // Form management hook for business logic configuration
