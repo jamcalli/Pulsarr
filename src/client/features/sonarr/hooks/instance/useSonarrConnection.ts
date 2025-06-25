@@ -7,6 +7,7 @@ import type {
 } from '@/features/sonarr/types/types'
 import type { UseFormReturn } from 'react-hook-form'
 import type { SonarrInstanceSchema } from '@/features/sonarr/store/schemas'
+import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
 
 /**
  * Checks if a Sonarr instance is missing required configuration fields.
@@ -28,14 +29,11 @@ function checkNeedsConfiguration(instance: SonarrInstance) {
 /**
  * React hook for managing the connection, validation, and configuration state of a Sonarr instance.
  *
- * Provides state and functions to test the connection, track connection and save statuses, determine if the instance requires additional configuration, and reset the connection state. Handles instance creation, updating, and data fetching as part of the connection workflow.
+ * Provides state and functions to test and reset the connection, track connection and save statuses, determine if the instance requires additional configuration, and handle instance creation, updating, and data fetching as part of the connection workflow.
  *
  * @param instance - The Sonarr instance to manage.
  * @param setShowInstanceCard - Optional callback to control the visibility of the instance card UI.
  * @returns An object containing connection and configuration state, status setters, refs, and functions for testing and resetting the connection.
- *
- * @remark
- * The `needsConfiguration` state is true if the instance is missing a quality profile or root folder, indicating further setup is required after a successful connection.
  */
 export function useSonarrConnection(
   instance: SonarrInstance,
@@ -102,7 +100,7 @@ export function useSonarrConnection(
 
       const hasInstanceData =
         instance.data?.rootFolders && instance.data?.qualityProfiles
-      const isPlaceholderKey = instance.apiKey === 'placeholder'
+      const isPlaceholderKey = instance.apiKey === API_KEY_PLACEHOLDER
 
       if (instance.id === -1) {
         return

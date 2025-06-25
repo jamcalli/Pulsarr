@@ -7,6 +7,7 @@ import type {
 } from '@/features/radarr/types/types'
 import type { UseFormReturn } from 'react-hook-form'
 import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
+import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
 
 /**
  * Checks if a Radarr instance is missing required configuration fields.
@@ -28,7 +29,7 @@ function checkNeedsConfiguration(instance: RadarrInstance) {
 /**
  * React hook for managing the connection state, configuration requirements, and lifecycle of a Radarr instance.
  *
- * Provides connection testing, initialization, and validation for a Radarr instance, including UI state tracking for connection and save operations. Exposes functions to test and reset the connection, and determines if additional configuration is required.
+ * Handles connection testing, initialization, and validation for a Radarr instance, including tracking UI state for connection and save operations. Provides functions to test and reset the connection, determines if additional configuration is required, and integrates with Radarr store and UI notifications.
  *
  * @param instance - The Radarr instance to manage.
  * @param setShowInstanceCard - Optional callback to control the visibility of the instance card UI.
@@ -99,7 +100,7 @@ export function useRadarrConnection(
 
       const hasInstanceData =
         instance.data?.rootFolders && instance.data?.qualityProfiles
-      const isPlaceholderKey = instance.apiKey === 'placeholder'
+      const isPlaceholderKey = instance.apiKey === API_KEY_PLACEHOLDER
 
       if (instance.id === -1) {
         return

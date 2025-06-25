@@ -133,6 +133,28 @@ publicContentNotifications='{"enabled":false,"discordWebhookUrls":"","discordWeb
 
 # New User Defaults
 newUserDefaultCanSync=true             # Default sync permission for new users
+
+# Quota System Configuration
+quotaSettings='{"cleanup":{"enabled":true,"retentionDays":90},"weeklyRolling":{"resetDays":7},"monthly":{"resetDay":1,"handleMonthEnd":"last-day"}}'  # JSON config for quota system
+# Quota configuration (JSON format):
+# - cleanup.enabled: Enable cleanup of old quota usage records (default: true)
+# - cleanup.retentionDays: Days to keep quota usage history (default: 90, range: 1-3650)
+# - weeklyRolling.resetDays: Days between weekly rolling quota resets (default: 7, range: 1-365)
+# - monthly.resetDay: Day of month for monthly quota resets (default: 1, range: 1-31)
+# - monthly.handleMonthEnd: How to handle months without resetDay: 'last-day', 'skip-month', 'next-month' (default: last-day)
+
+# Approval System Configuration
+approvalExpiration='{"enabled":false,"defaultExpirationHours":72,"expirationAction":"expire","maintenanceCronExpression":"0 */4 * * *","cleanupExpiredDays":30}'  # JSON config for approval expiration
+# Approval expiration configuration (JSON format):
+# - enabled: Enable automatic approval expiration (default: false)
+# - defaultExpirationHours: Default hours before approval expires (range: 1-8760)
+# - expirationAction: What happens when approval expires: 'expire', 'auto_approve' (default: expire)
+# - quotaExceededExpirationHours: Override expiration for quota exceeded triggers (optional, range: 1-8760)
+# - routerRuleExpirationHours: Override expiration for router rule triggers (optional, range: 1-8760)
+# - manualFlagExpirationHours: Override expiration for manual flag triggers (optional, range: 1-8760)
+# - contentCriteriaExpirationHours: Override expiration for content criteria triggers (optional, range: 1-8760)
+# - maintenanceCronExpression: Cron expression for maintenance frequency (default: "0 */4 * * *" - every 4 hours)
+# - cleanupExpiredDays: Days to keep expired approval records (default: 30, range: 1-365)
 ```
 
 ## Authentication Configuration Details
@@ -185,6 +207,10 @@ The `requiredExceptLocal` setting bypasses authentication for all connections fr
 - `delete*` variables - Automated deletion settings
 - `plexSessionMonitoring` - JSON configuration for session monitoring
 - `pending*` variables - Notification queue settings
+
+### Quota & Approval Systems
+- `quotaSettings` - JSON configuration for quota management and cleanup
+- `approvalExpiration` - JSON configuration for approval workflow expiration
 
 :::warning Development Only
 Variables marked with "dev only" or "development" comments should not be used in production environments. They are intended for testing and development setup only.

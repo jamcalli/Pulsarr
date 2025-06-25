@@ -12,7 +12,8 @@ declare module '@services/database.service.js' {
      * Processes notifications for media availability
      * @param mediaInfo - Information about the media item
      * @param isBulkRelease - Whether this is a bulk release (e.g., full season)
-     * @param byGuid - Whether to match by guid (optional, defaults to false)
+     * @param instanceId - Optional instance ID for junction table updates
+     * @param instanceType - Optional instance type for junction table updates
      * @returns Promise resolving to array of notification results
      */
     processNotifications(
@@ -23,7 +24,8 @@ declare module '@services/database.service.js' {
         episodes?: SonarrEpisodeSchema[]
       },
       isBulkRelease: boolean,
-      byGuid?: boolean,
+      instanceId?: number,
+      instanceType?: 'sonarr' | 'radarr',
     ): Promise<NotificationResult[]>
 
     /**
@@ -87,5 +89,18 @@ declare module '@services/database.service.js' {
       by_channel: { channel: string; count: number }[]
       by_user: { user_name: string; count: number }[]
     }>
+
+    /**
+     * Adds a status history entry for backfilling missing transitions
+     * @param watchlistItemId - The ID of the watchlist item
+     * @param status - The status to record
+     * @param timestamp - The timestamp when this status should have been recorded
+     * @returns Promise that resolves when the entry is added
+     */
+    addStatusHistoryEntry(
+      watchlistItemId: number,
+      status: 'pending' | 'requested' | 'grabbed' | 'notified',
+      timestamp: string,
+    ): Promise<void>
   }
 }

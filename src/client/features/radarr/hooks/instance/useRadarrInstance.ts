@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { useRadarrStore } from '@/features/radarr/store/radarrStore'
+import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
 import { useToast } from '@/hooks/use-toast'
 import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
 import type { UseFormReturn } from 'react-hook-form'
@@ -7,12 +8,10 @@ import type { UseFormReturn } from 'react-hook-form'
 /**
  * React hook for managing a Radarr instance by its ID.
  *
- * Returns the current instance, all instances, and functions to update, delete, and fetch instance data. If the last real instance is deleted, the configuration is reset to a default placeholder instance.
+ * Provides access to the specified Radarr instance, all instances, and functions to update, delete, and fetch instance data. If the last real instance is deleted, the configuration resets to a default placeholder instance.
  *
  * @param instanceId - The ID of the Radarr instance to manage.
  * @returns An object containing the current instance, all instances, and functions to update, delete, and fetch instance data.
- *
- * @remark When the last real instance is deleted, a default placeholder instance is created and set as the default.
  */
 export function useRadarrInstance(instanceId: number) {
   const { toast } = useToast()
@@ -57,14 +56,14 @@ export function useRadarrInstance(instanceId: number) {
       setTestStatus: (status: 'idle' | 'loading' | 'success' | 'error') => void,
     ) => {
       const isLastRealInstance =
-        instances.filter((i) => i.apiKey !== 'placeholder').length === 1
+        instances.filter((i) => i.apiKey !== API_KEY_PLACEHOLDER).length === 1
 
       try {
         if (isLastRealInstance) {
           const defaultInstance: RadarrInstanceSchema = {
             name: 'Default Radarr Instance',
             baseUrl: 'http://localhost:7878',
-            apiKey: 'placeholder',
+            apiKey: API_KEY_PLACEHOLDER,
             qualityProfile: '',
             rootFolder: '',
             bypassIgnored: false,

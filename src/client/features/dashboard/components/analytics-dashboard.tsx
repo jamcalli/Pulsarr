@@ -22,8 +22,9 @@ interface ChartConfigItem {
 
 const CHART_CONFIG: Record<ChartType, ChartConfigItem> = {
   [CHARTS.STATUS_TRANSITIONS]: {
-    label: 'Request to Notify',
-    description: 'Time taken from request to notification (in minutes)',
+    label: 'Grabbed to Notify',
+    description:
+      'Time taken from content being grabbed to notification (in minutes)',
   },
   [CHARTS.NOTIFICATIONS]: {
     label: 'Notifications',

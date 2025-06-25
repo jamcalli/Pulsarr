@@ -27,6 +27,10 @@ export interface RouterRule {
   search_on_add?: boolean | null
   season_monitoring?: string | null
   series_type?: 'standard' | 'anime' | 'daily' | null
+  // Actions - approval behavior
+  always_require_approval?: boolean
+  bypass_user_quotas?: boolean
+  approval_reason?: string | null
   created_at: string
   updated_at: string
 }

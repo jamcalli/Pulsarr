@@ -31,7 +31,7 @@ import type { UserWatchlistInfo } from '@/stores/configStore'
 import { plexUserSchema } from '@/features/plex/store/schemas'
 import type { PlexUserSchema } from '@/features/plex/store/schemas'
 import { useMediaQuery } from '@/hooks/use-media-query'
-import type { UpdateUser } from '@root/schemas/users/users.schema'
+import type { CreateUser } from '@root/schemas/users/users.schema'
 import type { UserStatus } from '@/features/plex/hooks/usePlexUser'
 
 interface FormContentProps {
@@ -85,6 +85,7 @@ const FormContent = React.memo(
                       placeholder="Apprise endpoint"
                       disabled={saveStatus !== 'idle'}
                       {...field}
+                      value={field.value ?? ''}
                     />
                   </FormControl>
                   <FormMessage />
@@ -242,6 +243,28 @@ const FormContent = React.memo(
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="requires_approval"
+              render={({ field }) => (
+                <FormItem>
+                  <div className="flex items-center justify-between">
+                    <FormLabel className="text-text">
+                      Requires Approval
+                    </FormLabel>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        disabled={saveStatus !== 'idle'}
+                      />
+                    </FormControl>
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
 
           <div className="flex justify-end gap-2">
@@ -284,23 +307,20 @@ interface UserEditModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   user: UserWatchlistInfo | null
-  onSave: (userId: string, updates: UpdateUser) => Promise<void>
+  onSave: (userId: number, updates: CreateUser) => Promise<void>
   saveStatus: UserStatus
 }
 
 /**
- * Displays a modal for editing Plex user information and notification preferences.
+ * Renders a responsive modal for editing Plex user details and notification preferences.
  *
- * Renders a responsive modal form that allows updating user details such as Apprise endpoint, alias, notification settings (Apprise, Discord, Tautulli), and watchlist sync. The modal adapts to mobile or desktop layouts and prevents closing while a save operation is in progress.
+ * Provides a form to update user information such as Apprise endpoint, alias, Discord ID, notification settings, watchlist sync, and approval requirements. The modal adapts its layout for mobile and desktop screens and prevents closing or editing while a save operation is in progress.
  *
- * @param open - Whether the modal is open.
- * @param onOpenChange - Callback to handle modal open state changes.
- * @param user - The Plex user to edit, or `undefined` for no user.
- * @param onSave - Callback invoked with user ID and updated values when the form is submitted.
- * @param saveStatus - Current save operation status (`idle`, `loading`, or `success`).
- *
- * @remark
- * The modal disables closing actions and form inputs while saving. Notification toggles are conditionally enabled based on their prerequisites.
+ * @param open - Whether the modal is visible.
+ * @param onOpenChange - Callback to handle changes in modal open state.
+ * @param user - The Plex user to edit, or null if no user is selected.
+ * @param onSave - Callback invoked with the user ID and updated values when the form is submitted.
+ * @param saveStatus - The current status of the save operation.
  */
 export default function UserEditModal({
   open,
@@ -321,7 +341,9 @@ export default function UserEditModal({
       notify_apprise: false,
       notify_discord: false,
       notify_tautulli: false,
+      tautulli_notifier_id: null,
       can_sync: false,
+      requires_approval: false,
     },
   })
 
@@ -335,7 +357,9 @@ export default function UserEditModal({
         notify_apprise: user.notify_apprise,
         notify_discord: user.notify_discord,
         notify_tautulli: user.notify_tautulli,
+        tautulli_notifier_id: null,
         can_sync: user.can_sync,
+        requires_approval: user.requires_approval,
       })
     }
   }, [user, form])
@@ -343,19 +367,7 @@ export default function UserEditModal({
   const handleSubmit = async (values: PlexUserSchema) => {
     if (!user) return
 
-    // Convert to UpdateUser type for API compatibility
-    const updates: UpdateUser = {
-      name: values.name,
-      apprise: values.apprise,
-      alias: values.alias,
-      discord_id: values.discord_id,
-      notify_apprise: values.notify_apprise,
-      notify_discord: values.notify_discord,
-      notify_tautulli: values.notify_tautulli,
-      can_sync: values.can_sync,
-    }
-
-    await onSave(user.id, updates)
+    await onSave(user.id, values)
   }
 
   const handleOpenChange = (newOpen: boolean) => {

@@ -421,12 +421,16 @@ export async function processContentNotifications(
   options?: {
     logger?: FastifyBaseLogger
     sequential?: boolean // for webhook.ts which uses for...of instead of Promise.all
+    instanceId?: number // Pass through instance ID from webhook
+    instanceType?: 'sonarr' | 'radarr' // Pass through instance type
   },
 ): Promise<{ matchedCount: number }> {
   // Get notification results (includes both individual user notifications and public notifications)
   const notificationResults = await fastify.db.processNotifications(
     mediaInfo,
     isBulkRelease,
+    options?.instanceId,
+    options?.instanceType,
   )
 
   // Early exit if there are no notifications to process

@@ -3,7 +3,20 @@ export type WorkflowMetadata = {
   rssAvailable: boolean
 }
 
-export type ProgressMetadata = WorkflowMetadata | Record<string, never>
+export type ApprovalMetadata = {
+  action: 'created' | 'updated' | 'approved' | 'rejected' | 'deleted'
+  requestId: number
+  userId: number
+  userName: string
+  contentTitle: string
+  contentType: 'movie' | 'show'
+  status: 'pending' | 'approved' | 'rejected' | 'expired'
+}
+
+export type ProgressMetadata =
+  | WorkflowMetadata
+  | ApprovalMetadata
+  | Record<string, never>
 
 export interface ProgressEvent {
   operationId: string
@@ -17,6 +30,7 @@ export interface ProgressEvent {
     | 'radarr-tagging'
     | 'sonarr-tag-removal'
     | 'radarr-tag-removal'
+    | 'approval'
   phase: string
   progress: number
   message: string
