@@ -5,10 +5,7 @@ import { useConfigStore } from '@/stores/configStore'
 import type { QuotaEditStatus } from '@/features/plex/components/user/quota-edit-modal'
 import type { UserWithQuotaInfo } from '@/stores/configStore'
 import type {
-  CreateUserQuota,
-  UpdateUserQuota,
   UpdateSeparateQuotas,
-  UserQuotaCreateResponse,
   UserQuotaUpdateResponse,
   QuotaStatusGetResponse,
 } from '@root/schemas/quota/quota.schema'
@@ -29,54 +26,6 @@ export function useQuotaManagement() {
   const [saveStatus, setSaveStatus] = useState<QuotaEditStatus>({
     type: 'idle',
   })
-
-  const createQuota = useCallback(
-    async (_userId: number, quotaData: CreateUserQuota) => {
-      const response = await fetch('/v1/quota/users', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(quotaData),
-      })
-
-      if (!response.ok) {
-        throw new Error(`Failed to create quota: ${response.status}`)
-      }
-
-      const result: UserQuotaCreateResponse = await response.json()
-      if (!result.success) {
-        throw new Error(result.message)
-      }
-
-      return result.userQuotas
-    },
-    [],
-  )
-
-  const updateQuota = useCallback(
-    async (userId: number, quotaData: UpdateUserQuota) => {
-      const response = await fetch(`/v1/quota/users/${userId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(quotaData),
-      })
-
-      if (!response.ok) {
-        throw new Error(`Failed to update quota: ${response.status}`)
-      }
-
-      const result: UserQuotaUpdateResponse = await response.json()
-      if (!result.success) {
-        throw new Error(result.message)
-      }
-
-      return result.userQuotas
-    },
-    [],
-  )
 
   const updateSeparateQuotas = useCallback(
     async (userId: number, quotaData: UpdateSeparateQuotas) => {

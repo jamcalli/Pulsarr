@@ -106,7 +106,10 @@ export function useQuotaSystem() {
       } catch (err) {
         // Schedule update failed, but config was already saved successfully
         // Don't throw the error to avoid confusing users about the save status
-        console.error('Schedule update failed after successful config save:', err)
+        console.error(
+          'Schedule update failed after successful config save:',
+          err,
+        )
         // Consider showing a non-blocking warning to the user about the schedule update failure
       }
     }
