@@ -35,6 +35,8 @@ export async function processNotifications(
     episodes?: SonarrEpisodeSchema[]
   },
   isBulkRelease: boolean,
+  instanceId?: number,
+  instanceType?: 'sonarr' | 'radarr',
 ): Promise<NotificationResult[]> {
   const watchlistItems = await this.getWatchlistItemsByGuid(mediaInfo.guid)
   const notifications: NotificationResult[] = []
@@ -111,20 +113,30 @@ export async function processNotifications(
     const itemId =
       typeof item.id === 'string' ? Number.parseInt(item.id, 10) : item.id
 
-    // Update watchlist item status, record history, and create notification atomically
+    // Update watchlist item status using proper updateWatchlistItem method
+    // This will record status history and update junction tables properly
+    const updateData: {
+      status: 'notified'
+      last_notified_at: string
+      radarr_instance_id?: number
+      sonarr_instance_id?: number
+    } = {
+      status: 'notified',
+      last_notified_at: new Date().toISOString(),
+    }
+
+    // Add instance ID to update if provided
+    if (instanceId && instanceType === 'radarr') {
+      updateData.radarr_instance_id = instanceId
+    } else if (instanceId && instanceType === 'sonarr') {
+      updateData.sonarr_instance_id = instanceId
+    }
+
+    await this.updateWatchlistItem(item.user_id, item.key, updateData)
+
+    // Create notification record atomically
     let notificationCreated = false
     await this.knex.transaction(async (trx) => {
-      await trx('watchlist_items').where('id', item.id).update({
-        last_notified_at: new Date().toISOString(),
-        status: 'notified',
-      })
-
-      await trx('watchlist_status_history').insert({
-        watchlist_item_id: item.id,
-        status: 'notified',
-        timestamp: new Date().toISOString(),
-      })
-
       // Create the notification within the same transaction
       let notificationResult = null
       if (contentType === 'movie') {
@@ -681,6 +693,56 @@ export async function cleanupExpiredWebhooks(
     .delete()
 
   return deleted
+}
+
+/**
+ * Adds a status history entry for a watchlist item with a specific timestamp.
+ *
+ * This is used for backfilling missing status transitions when sync detects
+ * that an item should have had a status recorded but didn't due to timing issues.
+ *
+ * @param watchlistItemId - The ID of the watchlist item
+ * @param status - The status to record
+ * @param timestamp - The timestamp when this status should have been recorded
+ */
+export async function addStatusHistoryEntry(
+  this: DatabaseService,
+  watchlistItemId: number,
+  status: 'pending' | 'requested' | 'grabbed' | 'notified',
+  timestamp: string,
+): Promise<void> {
+  try {
+    // Check if this status entry already exists to avoid duplicates
+    const existing = await this.knex('watchlist_status_history')
+      .where({
+        watchlist_item_id: watchlistItemId,
+        status: status,
+      })
+      .first()
+
+    if (existing) {
+      this.log.debug(
+        `Status '${status}' already exists for watchlist item ${watchlistItemId}, skipping`,
+      )
+      return
+    }
+
+    await this.knex('watchlist_status_history').insert({
+      watchlist_item_id: watchlistItemId,
+      status: status,
+      timestamp: timestamp,
+    })
+
+    this.log.debug(
+      `Added status history entry: watchlist_item_id=${watchlistItemId}, status='${status}', timestamp='${timestamp}'`,
+    )
+  } catch (error) {
+    this.log.error(
+      `Error adding status history entry for watchlist item ${watchlistItemId}:`,
+      error,
+    )
+    throw error
+  }
 }
 
 /**

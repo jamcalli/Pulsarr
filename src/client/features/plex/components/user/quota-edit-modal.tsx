@@ -320,7 +320,11 @@ const FormContent = React.memo(
             <Button
               type="submit"
               variant="default"
-              disabled={saveStatus.type !== 'idle' || !isFormDirty}
+              disabled={
+                saveStatus.type !== 'idle' ||
+                !isFormDirty ||
+                !form.formState.isValid
+              }
               className="min-w-[100px] flex items-center justify-center gap-2"
             >
               {saveStatus.type === 'loading' ? (

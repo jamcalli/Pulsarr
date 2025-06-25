@@ -44,6 +44,17 @@ export function useTopGenresData() {
   }
 }
 
+// This hook provides grabbed to notified times data
+export function useGrabbedToNotifiedData() {
+  const { grabbedToNotifiedTimes, loading, errors } = useDashboardStore()
+
+  return {
+    data: grabbedToNotifiedTimes || [],
+    isLoading: loading.all,
+    error: errors.all,
+  }
+}
+
 // This hook provides instance content breakdown data
 export function useInstanceContentData() {
   const { instanceContentBreakdown, loading, errors } = useDashboardStore()

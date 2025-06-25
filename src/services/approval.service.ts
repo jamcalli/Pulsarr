@@ -1113,42 +1113,29 @@ export class ApprovalService {
         )
       }
 
-      // Create embed with same format as Discord DM
+      // Create embed with clean, professional format
       const embed: DiscordEmbed = {
-        title: 'New Approval Request',
-        description: `**${request.contentTitle}**`,
+        title: 'Content Approval Required',
+        description: `**${request.contentTitle}** (${request.contentType.charAt(0).toUpperCase() + request.contentType.slice(1)})`,
         color: 0xff9500,
         timestamp: new Date().toISOString(),
         fields: [
           {
-            name: '📋 Pending Approvals',
-            value: `**${totalPending}** requests awaiting review`,
-            inline: false,
-          },
-          {
-            name: '👤 Requested by',
+            name: 'Requested by',
             value: request.userName || `User ${request.userId}`,
             inline: true,
           },
           {
-            name: '📋 Content Type',
-            value:
-              request.contentType.charAt(0).toUpperCase() +
-              request.contentType.slice(1),
+            name: 'Pending requests',
+            value: `${totalPending} awaiting review`,
             inline: true,
           },
           {
-            name: '🔍 Reason',
+            name: 'Reason for approval',
             value: this.formatTriggerReason(
               request.triggeredBy,
               request.approvalReason || null,
             ),
-            inline: false,
-          },
-          {
-            name: '💻 Action Required',
-            value:
-              'Visit the Pulsarr UI to review and handle this approval request.',
             inline: false,
           },
         ],
@@ -1188,6 +1175,21 @@ export class ApprovalService {
       const appriseService = this.fastify.apprise
       if (!appriseService) return
 
+      // Get poster image from watchlist item (same pattern as Discord)
+      let posterUrl: string | undefined
+      try {
+        const watchlistItems = await this.fastify.db.getWatchlistItemsByKeys([
+          request.contentKey,
+        ])
+        if (watchlistItems.length > 0 && watchlistItems[0].thumb) {
+          posterUrl = watchlistItems[0].thumb
+        }
+      } catch (error) {
+        this.fastify.log.debug(
+          'Could not fetch poster for Apprise approval notification',
+        )
+      }
+
       // Create text-based notification for Apprise
       const contentType =
         request.contentType.charAt(0).toUpperCase() +
@@ -1222,6 +1224,7 @@ export class ApprovalService {
             inline: false,
           },
         ],
+        posterUrl,
       }
 
       await appriseService.sendSystemNotification(systemNotification)

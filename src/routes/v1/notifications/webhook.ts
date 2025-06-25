@@ -214,6 +214,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
           await processContentNotifications(fastify, mediaInfo, false, {
             sequential: true,
+            instanceId: instance?.id,
+            instanceType: 'radarr',
           })
 
           return { success: true }
@@ -295,6 +297,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
 
                 await processContentNotifications(fastify, mediaInfo, false, {
                   sequential: true,
+                  instanceId: instance?.id,
+                  instanceType: 'sonarr',
                 })
               } else {
                 if (!webhookQueue[tvdbId].seasons[seasonNumber]) {
@@ -425,6 +429,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
                 recentEpisodes.length > 1,
                 {
                   sequential: true,
+                  instanceId: instance?.id,
+                  instanceType: 'sonarr',
                 },
               )
             }
