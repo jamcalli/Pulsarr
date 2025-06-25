@@ -12,6 +12,14 @@ interface QuotaStatusBadgeProps {
   userQuotas?: UserQuotas | null
 }
 
+/**
+ * Displays a quota usage badge for either movies or shows, indicating current usage, quota status, or special conditions.
+ *
+ * Renders a colored badge with an initial ("M" for movie, "S" for show) and usage information. If no quota is set, shows "None"; if approval is bypassed, shows "Auto". Badge color reflects usage severity.
+ *
+ * @param type - The quota type, either 'movie' or 'show'
+ * @param quota - The quota data object or null if no quota is set
+ */
 function SingleQuotaBadge({
   type,
   quota,
@@ -62,7 +70,9 @@ function SingleQuotaBadge({
 }
 
 /**
- * Renders separate quota status badges for movies and shows
+ * Displays quota usage badges for movies and shows based on the provided user quota data.
+ *
+ * If no quota data is available, renders a neutral badge labeled "No Quota". Otherwise, shows individual badges for each quota type present.
  */
 export function QuotaStatusBadge({ userQuotas }: QuotaStatusBadgeProps) {
   if (!userQuotas || (!userQuotas.movieQuota && !userQuotas.showQuota)) {

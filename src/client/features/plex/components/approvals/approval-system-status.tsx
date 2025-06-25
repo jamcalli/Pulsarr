@@ -9,10 +9,9 @@ interface ApprovalSystemStatusProps {
 }
 
 /**
- * Approval System Status Component
+ * Displays the current status and scheduling information for the approval system's maintenance tasks.
  *
- * Displays current schedule status, last run, and next run information
- * specifically for the approval system maintenance.
+ * Renders a system status panel describing how old approval requests are expired, optionally auto-approved, and cleaned up to optimize database performance.
  */
 export function ApprovalSystemStatus(props: ApprovalSystemStatusProps) {
   return (

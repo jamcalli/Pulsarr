@@ -1,12 +1,9 @@
 import type { Knex } from 'knex'
 
 /**
- * Adds approval action fields to the router_rules table for controlling approval behavior.
+ * Alters the `router_rules` table by adding approval-related columns and indexes.
  *
- * This migration adds three new fields:
- * - always_require_approval: Forces approval for this rule regardless of quotas
- * - bypass_user_quotas: Skips quota checks for this rule
- * - approval_reason: Optional reason displayed when approval is required
+ * Adds the `always_require_approval` and `bypass_user_quotas` boolean columns (both defaulting to false) and the nullable `approval_reason` string column. Indexes are created on the two boolean columns to optimize query performance.
  */
 export async function up(knex: Knex): Promise<void> {
   await knex.schema.alterTable('router_rules', (table) => {
@@ -22,7 +19,7 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Reverts the migration by dropping the approval action fields from the router_rules table.
+ * Reverts the migration by removing the approval-related columns and their indexes from the `router_rules` table.
  */
 export async function down(knex: Knex): Promise<void> {
   await knex.schema.alterTable('router_rules', (table) => {

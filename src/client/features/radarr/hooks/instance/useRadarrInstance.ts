@@ -8,12 +8,10 @@ import type { UseFormReturn } from 'react-hook-form'
 /**
  * React hook for managing a Radarr instance by its ID.
  *
- * Returns the current instance, all instances, and functions to update, delete, and fetch instance data. If the last real instance is deleted, the configuration is reset to a default placeholder instance.
+ * Provides access to the specified Radarr instance, all instances, and functions to update, delete, and fetch instance data. If the last real instance is deleted, the configuration resets to a default placeholder instance.
  *
  * @param instanceId - The ID of the Radarr instance to manage.
  * @returns An object containing the current instance, all instances, and functions to update, delete, and fetch instance data.
- *
- * @remark When the last real instance is deleted, a default placeholder instance is created and set as the default.
  */
 export function useRadarrInstance(instanceId: number) {
   const { toast } = useToast()

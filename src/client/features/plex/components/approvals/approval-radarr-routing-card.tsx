@@ -68,6 +68,18 @@ interface ApprovalRadarrRoutingCardProps {
   disabled?: boolean
 }
 
+/**
+ * Renders a form card for configuring Radarr routing settings within an approval workflow.
+ *
+ * Displays and manages form fields for quality profile, root folder, search and monitoring options, tags, synced instances, and priority for a specific Radarr instance. Fetches instance data as needed, validates connection, and provides tag creation and refresh functionality. On submission, updates the routing configuration via the provided callback and displays user feedback for success or failure. Inputs and actions are conditionally enabled based on connection validity and component state.
+ *
+ * @param routing - The current routing configuration to edit.
+ * @param instanceId - The ID of the Radarr instance being configured.
+ * @param onSave - Callback invoked with updated routing data on form submission.
+ * @param onCancel - Callback invoked to cancel editing and close the form.
+ * @param disabled - Optional flag to disable all form inputs and actions.
+ * @returns The rendered approval routing form card for Radarr.
+ */
 export function ApprovalRadarrRoutingCard({
   routing,
   instanceId,

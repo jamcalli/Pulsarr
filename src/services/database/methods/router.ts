@@ -43,11 +43,11 @@ export async function getRouterRuleById(
 }
 
 /**
- * Retrieves router rules filtered by type, optionally including only enabled rules.
+ * Retrieves router rules of a specified type, optionally filtering for only enabled rules.
  *
- * @param type - The type of router rules to retrieve.
- * @param enabledOnly - If true, only enabled rules are returned (default: true).
- * @returns A promise that resolves to an array of matching router rules.
+ * @param type - The router rule type to filter by.
+ * @param enabledOnly - Whether to include only enabled rules (default: true).
+ * @returns A promise resolving to an array of formatted router rules matching the criteria.
  */
 export async function getRouterRulesByType(
   this: DatabaseService,
@@ -66,12 +66,13 @@ export async function getRouterRulesByType(
 }
 
 /**
- * Retrieves router rules that match a specific action (for approval workflow).
- * This is used to find rules that trigger approval requirements.
+ * Retrieves router rules that match a specific action, such as requiring approval or bypassing quotas.
  *
- * @param action - The action to filter by (e.g., 'require_approval')
- * @param enabledOnly - If true, only enabled rules are returned (default: true)
- * @returns A promise that resolves to an array of matching router rules
+ * For the 'require_approval' action, returns rules with `always_require_approval` set to true. For 'bypass_quotas', returns rules with `bypass_user_quotas` set to true. For other actions, filters by the rule's `type` field. Optionally restricts results to enabled rules.
+ *
+ * @param action - The action to filter rules by (e.g., 'require_approval', 'bypass_quotas', or a rule type)
+ * @param enabledOnly - Whether to return only enabled rules (default: true)
+ * @returns A promise that resolves to an array of router rules matching the specified action
  */
 export async function getRouterRulesByAction(
   this: DatabaseService,
@@ -132,10 +133,10 @@ export async function createRouterRule(
 /**
  * Updates an existing router rule with the specified fields.
  *
- * Only the provided fields in `updates` are modified. Throws an error if the router rule does not exist or the update fails.
+ * Only the fields provided in `updates` are modified. Throws an error if the router rule does not exist or the update fails.
  *
- * @param id - The ID of the router rule to update
- * @param updates - The fields to update in the router rule
+ * @param id - The unique identifier of the router rule to update
+ * @param updates - Partial set of fields to update on the router rule
  * @returns The updated router rule
  */
 export async function updateRouterRule(

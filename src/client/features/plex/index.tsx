@@ -8,6 +8,11 @@ import ApprovalTableSection from '@/features/plex/components/approvals/approval-
 import SetupModal from '@/features/plex/components/setup/setup-modal'
 import { usePlexSetup } from '@/features/plex/hooks/usePlexSetup'
 
+/**
+ * Renders the Plex configuration page with connection settings, user management, and approval management in a tabbed interface.
+ *
+ * Displays a setup modal if Plex tokens are missing from the configuration.
+ */
 export default function PlexConfigPage() {
   const config = useConfigStore((state) => state.config)
   const initialize = useConfigStore((state) => state.initialize)
