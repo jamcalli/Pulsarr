@@ -868,8 +868,8 @@ export class ApprovalService {
 
       const embedFields = [
         {
-          name: '📋 Pending Approvals',
-          value: `**${totalPending}** requests awaiting review`,
+          name: 'Pending Approvals',
+          value: `${totalPending} awaiting review`,
           inline: false,
         },
         {
@@ -895,8 +895,8 @@ export class ApprovalService {
           contentSummary.push(`${showCount} show${showCount > 1 ? 's' : ''}`)
 
         embedFields.push({
-          name: '🎬 New Requests',
-          value: `**${contentSummary.join(' and ')}** added to queue`,
+          name: 'New Requests',
+          value: `${contentSummary.join(' and ')} added to queue`,
           inline: false,
         })
 
@@ -912,7 +912,7 @@ export class ApprovalService {
             : ''
 
         embedFields.push({
-          name: '📝 Examples',
+          name: 'Recent Requests',
           value: exampleTitles + moreText,
           inline: false,
         })
@@ -921,29 +921,17 @@ export class ApprovalService {
         const request = queuedRequests[0]
         embedFields.push(
           {
-            name: '🎬 Latest Request',
-            value: `**${request.contentTitle}**`,
+            name: 'Latest Request',
+            value: `${request.contentTitle} (${request.contentType.charAt(0).toUpperCase() + request.contentType.slice(1)})`,
             inline: false,
           },
           {
-            name: '👤 Requested by',
+            name: 'Requested by',
             value: request.userName || `User ${request.userId}`,
             inline: true,
           },
           {
-            name: '📋 Content Type',
-            value:
-              request.contentType.charAt(0).toUpperCase() +
-              request.contentType.slice(1),
-            inline: true,
-          },
-          {
-            name: '',
-            value: '',
-            inline: false,
-          },
-          {
-            name: '🔍 Reason',
+            name: 'Reason for approval',
             value: this.formatTriggerReason(
               request.triggeredBy,
               request.approvalReason || null,
@@ -960,7 +948,7 @@ export class ApprovalService {
         title,
         embedFields,
         actionButton: {
-          label: '📋 Review Approvals',
+          label: 'Review Approvals',
           customId: `review_approvals_${Date.now()}`,
           style: 'Primary',
         },
@@ -1241,13 +1229,13 @@ export class ApprovalService {
    */
   private formatTriggerReason(trigger: string, reason: string | null): string {
     const triggerMap: Record<string, string> = {
-      manual_flag: '🚩 Manual Flag',
-      quota_exceeded: '📊 Quota Exceeded',
-      user_request: '👤 User Request',
-      system_flag: '🤖 System Flag',
+      manual_flag: 'Manual Flag',
+      quota_exceeded: 'Quota Exceeded',
+      user_request: 'User Request',
+      system_flag: 'System Flag',
     }
 
-    const triggerText = triggerMap[trigger] || `🔍 ${trigger}`
+    const triggerText = triggerMap[trigger] || trigger
     return reason ? `${triggerText}\n${reason}` : triggerText
   }
 

@@ -152,7 +152,7 @@ export const ConfigSchema = z.object({
       cleanup: z
         .object({
           enabled: z.boolean().optional(),
-          retentionDays: z.number().min(1).max(3650).optional(), // 1 day to 10 years
+          retentionDays: z.number().min(1).max(365).optional(), // 1 day to 1 year
         })
         .optional(),
       // Weekly rolling quota configuration

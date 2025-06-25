@@ -303,14 +303,23 @@ export async function getBulkQuotaStatus(
     return []
   }
 
-  // Get all quota configurations for the requested users
-  const quotaRows = await this.knex('user_quotas')
+  // Get quota configurations for the requested users, filtered by content type if specified
+  const quotaQuery = this.knex('user_quotas')
     .whereIn('user_id', userIds)
     .select('*')
 
+  if (contentType) {
+    quotaQuery.where('content_type', contentType)
+  }
+
+  const quotaRows = await quotaQuery
+
   const quotaMap = new Map<number, UserQuotaConfig>()
   for (const row of quotaRows) {
-    quotaMap.set(row.user_id, mapRowToUserQuotaConfig(row))
+    // If contentType is specified, only map matching quotas
+    if (!contentType || row.content_type === contentType) {
+      quotaMap.set(row.user_id, mapRowToUserQuotaConfig(row))
+    }
   }
 
   // Build usage queries for each quota type to minimize database hits

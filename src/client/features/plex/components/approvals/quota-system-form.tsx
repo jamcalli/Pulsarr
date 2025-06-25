@@ -36,6 +36,51 @@ import {
 import { TimeSelector } from '@/components/ui/time-input'
 import { useQuotaSystem } from '@/features/plex/hooks/useQuotaSystem'
 import { useMediaQuery } from '@/hooks/use-media-query'
+import type { UseFormReturn } from 'react-hook-form'
+import type { ApprovalConfigurationFormData } from '@/features/plex/hooks/useApprovalConfiguration'
+
+/**
+ * Helper function to get day name from day index
+ */
+const getDayName = (dayIndex: number) => {
+  const days = [
+    'Sunday',
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+  ]
+  return days[dayIndex] || 'Unknown'
+}
+
+/**
+ * Helper function to format schedule display
+ */
+const formatScheduleDisplay = (
+  isSaving: boolean,
+  form: UseFormReturn<ApprovalConfigurationFormData>,
+  quotaScheduleTime: Date | null | undefined,
+  quotaDayOfWeek: string | null,
+) => {
+  const time = isSaving ? form.getValues('scheduleTime') : quotaScheduleTime
+  const day = isSaving ? form.getValues('dayOfWeek') : quotaDayOfWeek
+
+  const timeStr =
+    time && !Number.isNaN(time.getTime())
+      ? new Intl.DateTimeFormat('en-US', {
+          hour: 'numeric',
+          minute: 'numeric',
+          hour12: true,
+        }).format(time)
+      : 'Not set'
+
+  const dayStr =
+    day === '*' ? 'every day' : `on ${getDayName(Number.parseInt(day || '0'))}`
+
+  return `${timeStr} ${dayStr}`
+}
 
 /**
  * Quota System Configuration Form
@@ -203,25 +248,12 @@ export function QuotaSystemForm() {
                 <div className="mt-2 text-xs text-text">
                   <p>
                     Current schedule:{' '}
-                    {isSaving && form.getValues('scheduleTime')
-                      ? new Intl.DateTimeFormat('en-US', {
-                          hour: 'numeric',
-                          minute: 'numeric',
-                          hour12: true,
-                        }).format(form.getValues('scheduleTime'))
-                      : quotaScheduleTime &&
-                          !Number.isNaN(quotaScheduleTime.getTime())
-                        ? new Intl.DateTimeFormat('en-US', {
-                            hour: 'numeric',
-                            minute: 'numeric',
-                            hour12: true,
-                          }).format(quotaScheduleTime)
-                        : 'Not set'}{' '}
-                    {(isSaving
-                      ? form.getValues('dayOfWeek')
-                      : quotaDayOfWeek) === '*'
-                      ? 'every day'
-                      : `on ${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][Number.parseInt(isSaving ? form.getValues('dayOfWeek') || '0' : quotaDayOfWeek || '0')] || 'Unknown'}`}
+                    {formatScheduleDisplay(
+                      isSaving,
+                      form,
+                      quotaScheduleTime,
+                      quotaDayOfWeek,
+                    )}
                   </p>
                 </div>
               )}
