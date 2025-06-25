@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef, useState } from 'react'
+import { useEffect, useCallback, useRef } from 'react'
 import { useToast } from '@/hooks/use-toast'
 import { useProgressStore } from '@/stores/progressStore'
 import { FileText, CheckCircle, XCircle, Trash2 } from 'lucide-react'
@@ -26,8 +26,8 @@ export function useApprovalEvents(options: UseApprovalEventsOptions = {}) {
   const { toast } = useToast()
   const { subscribeToType } = useProgressStore()
   
-  // Toast queueing state
-  const [, setToastQueue] = useState<Map<string, QueuedToast[]>>(new Map())
+  // Toast queueing refs
+  const toastQueueRef = useRef<Map<string, QueuedToast[]>>(new Map())
   const queueTimerRef = useRef<Map<string, NodeJS.Timeout>>(new Map())
   
   // Use refs to store callback references to avoid dependency issues
@@ -36,12 +36,11 @@ export function useApprovalEvents(options: UseApprovalEventsOptions = {}) {
 
   // Process queued toasts for a specific action type
   const processQueuedToasts = useCallback((action: string) => {
-    setToastQueue(prev => {
-      const actionQueue = prev.get(action)
-      if (!actionQueue || actionQueue.length === 0) return prev
-      
-      // Show single toast for individual actions, batched toast for multiple
-      if (actionQueue.length === 1) {
+    const actionQueue = toastQueueRef.current.get(action)
+    if (!actionQueue || actionQueue.length === 0) return
+    
+    // Show single toast for individual actions, batched toast for multiple
+    if (actionQueue.length === 1) {
         const { metadata } = actionQueue[0]
         switch (action) {
           case 'created':
@@ -149,10 +148,7 @@ export function useApprovalEvents(options: UseApprovalEventsOptions = {}) {
       }
       
       // Clear the processed queue
-      const newQueue = new Map(prev)
-      newQueue.delete(action)
-      return newQueue
-    })
+      toastQueueRef.current.delete(action)
     
     // Clear the timer for this action
     const timer = queueTimerRef.current.get(action)
@@ -170,13 +166,9 @@ export function useApprovalEvents(options: UseApprovalEventsOptions = {}) {
       timestamp: Date.now()
     }
     
-    setToastQueue(prev => {
-      const newQueue = new Map(prev)
-      const actionQueue = newQueue.get(action) || []
-      actionQueue.push(queuedToast)
-      newQueue.set(action, actionQueue)
-      return newQueue
-    })
+    const actionQueue = toastQueueRef.current.get(action) || []
+    actionQueue.push(queuedToast)
+    toastQueueRef.current.set(action, actionQueue)
     
     // Clear existing timer and set new one
     const existingTimer = queueTimerRef.current.get(action)

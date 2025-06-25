@@ -661,9 +661,9 @@ export class DatabaseService {
       search_on_add:
         rule.search_on_add == null ? null : Boolean(rule.search_on_add),
       // Action fields
-      always_require_approval: Boolean(rule.always_require_approval || false),
-      bypass_user_quotas: Boolean(rule.bypass_user_quotas || false),
-      approval_reason: rule.approval_reason || null,
+      always_require_approval: Boolean(rule.always_require_approval ?? false),
+      bypass_user_quotas: Boolean(rule.bypass_user_quotas ?? false),
+      approval_reason: rule.approval_reason ?? null,
       criteria:
         typeof rule.criteria === 'string'
           ? this.safeJsonParse(rule.criteria, {}, 'router_rule.criteria')

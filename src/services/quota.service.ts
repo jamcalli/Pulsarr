@@ -25,7 +25,7 @@ export class QuotaService {
       bypassApproval: false,
     }
 
-    // Note: reset days are no longer used - quotas reset based on maintenance schedule
+    // Reset timing is controlled by global maintenance schedule, not per-user settings
 
     return this.fastify.db.createUserQuota(data)
   }
@@ -228,14 +228,15 @@ export class QuotaService {
           continue // No usage to reset
         }
 
-        // For actual reset, we would need a delete method in the database
-        // This is a placeholder implementation
+        // Delete quota usage records for this user
+        const deletedCount =
+          await this.fastify.db.deleteQuotaUsageByUser(userId)
         this.fastify.log.info(
-          `Would reset ${history.length} quota usage records for user ${userId}`,
+          `Reset ${deletedCount} quota usage records for user ${userId}`,
         )
 
         usersProcessed++
-        totalRecordsDeleted += history.length
+        totalRecordsDeleted += deletedCount
       } catch (error) {
         errors.push(
           `User ${userId}: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -468,10 +469,11 @@ export class QuotaService {
       currentUsage: number
     }>
   }> {
-    const usersWithQuotas = await this.fastify.db.getUsersWithQuotas()
+    const [allUsers, usersWithQuotas] = await Promise.all([
+      this.fastify.db.getAllUsers(),
+      this.fastify.db.getUsersWithQuotas(),
+    ])
 
-    // This would need additional database methods for full analytics
-    // For now, return basic stats
     const totalQuotaLimit = usersWithQuotas.reduce(
       (sum, quota) => sum + quota.quotaLimit,
       0,
@@ -479,11 +481,72 @@ export class QuotaService {
     const averageQuotaLimit =
       usersWithQuotas.length > 0 ? totalQuotaLimit / usersWithQuotas.length : 0
 
+    // Get top quota users with current usage and user names
+    const topQuotaUsers: Array<{
+      userId: number
+      userName: string
+      quotaLimit: number
+      currentUsage: number
+    }> = []
+
+    if (usersWithQuotas.length > 0) {
+      const userIds = usersWithQuotas.map((quota) => quota.userId)
+      const quotaStatuses = await this.fastify.db.getBulkQuotaStatus(userIds)
+
+      for (const { userId, quotaStatus } of quotaStatuses) {
+        if (quotaStatus) {
+          const user = await this.fastify.db.getUser(userId)
+          if (user) {
+            topQuotaUsers.push({
+              userId,
+              userName: user.name,
+              quotaLimit: quotaStatus.quotaLimit,
+              currentUsage: quotaStatus.currentUsage,
+            })
+          }
+        }
+      }
+
+      // Sort by quota limit descending and take top 10
+      topQuotaUsers.sort((a, b) => b.quotaLimit - a.quotaLimit)
+      topQuotaUsers.splice(10) // Keep only top 10
+    }
+
     return {
-      totalUsers: 0, // Would need to get total user count
+      totalUsers: allUsers.length,
       usersWithQuotas: usersWithQuotas.length,
       averageQuotaLimit: Math.round(averageQuotaLimit * 100) / 100,
-      topQuotaUsers: [], // Would need additional queries
+      topQuotaUsers,
+    }
+  }
+
+  /**
+   * Records quota usage for a user
+   * This is the proper service layer method for recording quota usage
+   */
+  async recordUsage(
+    userId: number,
+    contentType: 'movie' | 'show',
+    requestDate: Date = new Date(),
+  ): Promise<boolean> {
+    try {
+      // Check if user has quotas configured
+      const userQuota = await this.fastify.db.getUserQuota(userId)
+      if (!userQuota) {
+        // No quota configured for user, don't record
+        return false
+      }
+
+      // Record the usage
+      await this.fastify.db.recordQuotaUsage(userId, contentType, requestDate)
+      return true
+    } catch (error) {
+      // Log error but don't throw - quota recording failures shouldn't break routing
+      this.fastify.log.error(
+        `Error recording quota usage for user ${userId}:`,
+        error,
+      )
+      return false
     }
   }
 }

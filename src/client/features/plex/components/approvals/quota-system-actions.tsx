@@ -35,11 +35,13 @@ export function QuotaSystemActions({
         variant="neutral"
         className={cn(
           'px-2 py-0.5 h-7 text-sm',
-          job?.enabled
-            ? 'bg-green-500 hover:bg-green-500 text-white'
-            : job?.last_run?.status === 'failed'
-              ? 'bg-yellow-500 hover:bg-yellow-500 text-white'
-              : 'bg-red-500 hover:bg-red-500 text-white',
+          !job
+            ? 'bg-gray-500 hover:bg-gray-500 text-white'
+            : !job.enabled
+              ? 'bg-red-500 hover:bg-red-500 text-white'
+              : job.last_run?.status === 'failed'
+                ? 'bg-yellow-500 hover:bg-yellow-500 text-white'
+                : 'bg-green-500 hover:bg-green-500 text-white',
         )}
       >
         {!job

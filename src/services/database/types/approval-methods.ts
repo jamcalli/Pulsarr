@@ -123,6 +123,27 @@ declare module '@services/database.service.js' {
     ): Promise<ApprovalRequest[]>
 
     /**
+     * Gets the total count of approval history records with optional filtering
+     * @param userId - Optional user ID to filter by
+     * @param status - Optional status to filter by
+     * @param contentType - Optional content type to filter by ('movie' or 'show')
+     * @param triggeredBy - Optional trigger type to filter by
+     * @returns Promise resolving to the total count of matching records
+     */
+    getApprovalHistoryCount(
+      userId?: number,
+      status?: ApprovalStatus,
+      contentType?: 'movie' | 'show',
+      triggeredBy?: import('@root/types/approval.types.js').ApprovalTrigger,
+    ): Promise<number>
+
+    /**
+     * Gets pending approval requests that have expired
+     * @returns Promise resolving to array of expired pending requests
+     */
+    getExpiredPendingRequests(): Promise<ApprovalRequest[]>
+
+    /**
      * Gets overall approval statistics
      * @returns Promise resolving to approval statistics
      */

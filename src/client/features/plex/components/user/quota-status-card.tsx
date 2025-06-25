@@ -24,7 +24,10 @@ export function QuotaStatusCard({ quotaStatus }: QuotaStatusCardProps) {
   }
 
   if (quotaStatus.bypassApproval) {
-    const percentage = (quotaStatus.currentUsage / quotaStatus.quotaLimit) * 100
+    const percentage =
+      quotaStatus.quotaLimit > 0
+        ? (quotaStatus.currentUsage / quotaStatus.quotaLimit) * 100
+        : 0
     return (
       <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-md">
         <div className="flex items-center justify-between mb-2">
@@ -52,7 +55,10 @@ export function QuotaStatusCard({ quotaStatus }: QuotaStatusCardProps) {
     )
   }
 
-  const percentage = (quotaStatus.currentUsage / quotaStatus.quotaLimit) * 100
+  const percentage =
+    quotaStatus.quotaLimit > 0
+      ? (quotaStatus.currentUsage / quotaStatus.quotaLimit) * 100
+      : 0
   const isExceeded = percentage >= 100
   const isWarning = percentage >= 80
   const isCaution = percentage >= 60

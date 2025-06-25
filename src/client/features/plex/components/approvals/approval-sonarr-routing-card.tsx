@@ -24,7 +24,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { SONARR_MONITORING_OPTIONS } from '@/features/sonarr/store/constants'
+import {
+  SONARR_MONITORING_OPTIONS,
+  API_KEY_PLACEHOLDER,
+} from '@/features/sonarr/store/constants'
 import { isRollingMonitoringOption } from '@root/types/sonarr/rolling.js'
 import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
 import {
@@ -211,10 +214,15 @@ export function ApprovalSonarrRoutingCard({
       }
     } catch (error) {
       console.error('Error refreshing tags:', error)
+      toast({
+        title: 'Error',
+        description: 'Failed to refresh tags. Please try again.',
+        variant: 'destructive',
+      })
     }
   }
 
-  const isConnectionValid = targetInstance?.apiKey !== 'placeholder'
+  const isConnectionValid = targetInstance?.apiKey !== API_KEY_PLACEHOLDER
 
   return (
     <>

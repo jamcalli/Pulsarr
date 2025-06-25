@@ -4,6 +4,7 @@ import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
 import { MultiSelect } from '@/components/ui/multi-select'
 import { Computer } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
 
 /**
  * Displays a multi-select UI for choosing Radarr instances to sync with, available only for the default instance.
@@ -40,7 +41,8 @@ function SyncedInstancesSelect({
 
   const availableInstances = instances
     .filter(
-      (inst) => inst.id !== currentInstanceId && inst.apiKey !== 'placeholder',
+      (inst) =>
+        inst.id !== currentInstanceId && inst.apiKey !== API_KEY_PLACEHOLDER,
     )
     .map((instance) => ({
       value: instance.id.toString(),

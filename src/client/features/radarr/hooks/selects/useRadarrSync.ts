@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import type { RadarrInstance } from '@/features/radarr/store/radarrStore'
+import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
 import { Computer } from 'lucide-react'
 
 export function useRadarrSync(
@@ -11,7 +12,8 @@ export function useRadarrSync(
       instances
         .filter(
           (inst) =>
-            inst.id !== currentInstanceId && inst.apiKey !== 'placeholder',
+            inst.id !== currentInstanceId &&
+            inst.apiKey !== API_KEY_PLACEHOLDER,
         )
         .map((instance) => ({
           value: instance.id.toString(),

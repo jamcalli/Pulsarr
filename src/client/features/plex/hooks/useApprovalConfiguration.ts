@@ -1,6 +1,6 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useToast } from '@/hooks/use-toast'
 import { z } from 'zod'
 import { useConfigStore } from '@/stores/configStore'
@@ -67,90 +67,99 @@ export function useApprovalConfiguration() {
     mode: 'onChange',
   })
 
+  const createFormResetData = useCallback(
+    (
+      config: z.infer<typeof ConfigSchema>,
+      currentScheduleInterval?: number,
+      currentScheduleTime?: Date,
+      currentDayOfWeek?: string,
+    ): ApprovalConfigurationFormData => {
+      const notifyValue = config.approvalNotify || 'none'
+
+      // Parse and validate the data through the form schema to ensure correct types
+      const formData = {
+        approvalExpiration: config.approvalExpiration
+          ? {
+              enabled: config.approvalExpiration.enabled ?? false,
+              defaultExpirationHours:
+                config.approvalExpiration.defaultExpirationHours ?? 72,
+              expirationAction:
+                config.approvalExpiration.expirationAction ?? 'expire',
+              quotaExceededExpirationHours:
+                config.approvalExpiration.quotaExceededExpirationHours,
+              routerRuleExpirationHours:
+                config.approvalExpiration.routerRuleExpirationHours,
+              manualFlagExpirationHours:
+                config.approvalExpiration.manualFlagExpirationHours,
+              contentCriteriaExpirationHours:
+                config.approvalExpiration.contentCriteriaExpirationHours,
+              cleanupExpiredDays:
+                config.approvalExpiration.cleanupExpiredDays ?? 30,
+            }
+          : {
+              enabled: false,
+              defaultExpirationHours: 72,
+              expirationAction: 'expire',
+              cleanupExpiredDays: 30,
+            },
+        quotaSettings: config.quotaSettings
+          ? {
+              cleanup: {
+                enabled: config.quotaSettings.cleanup?.enabled ?? true,
+                retentionDays:
+                  config.quotaSettings.cleanup?.retentionDays ?? 90,
+              },
+              weeklyRolling: {
+                resetDays: config.quotaSettings.weeklyRolling?.resetDays ?? 7,
+              },
+              monthly: {
+                resetDay: config.quotaSettings.monthly?.resetDay ?? 1,
+                handleMonthEnd:
+                  config.quotaSettings.monthly?.handleMonthEnd ?? 'last-day',
+              },
+            }
+          : {
+              cleanup: { enabled: true, retentionDays: 90 },
+              weeklyRolling: { resetDays: 7 },
+              monthly: { resetDay: 1, handleMonthEnd: 'last-day' },
+            },
+        approvalNotify: notifyValue,
+        scheduleInterval: currentScheduleInterval,
+        scheduleTime: currentScheduleTime,
+        dayOfWeek: currentDayOfWeek ?? '*',
+      }
+
+      // Validate and parse through the form schema to ensure correct types
+      return approvalConfigurationSchema.parse(formData)
+    },
+    [],
+  )
+
   // Load configuration when config changes
   useEffect(() => {
     if (config) {
-      // Ensure notification value is one of the valid enum values
-      const notifyValue = config.approvalNotify || 'none'
-
-      // Preserve current schedule field values when resetting config data
       const currentScheduleInterval = form.getValues('scheduleInterval')
       const currentScheduleTime = form.getValues('scheduleTime')
       const currentDayOfWeek = form.getValues('dayOfWeek')
 
-      form.reset(
-        {
-          approvalExpiration: config.approvalExpiration
-            ? {
-                enabled: config.approvalExpiration.enabled ?? false,
-                defaultExpirationHours:
-                  config.approvalExpiration.defaultExpirationHours ?? 72,
-                expirationAction:
-                  config.approvalExpiration.expirationAction ?? 'expire',
-                quotaExceededExpirationHours:
-                  config.approvalExpiration.quotaExceededExpirationHours,
-                routerRuleExpirationHours:
-                  config.approvalExpiration.routerRuleExpirationHours,
-                manualFlagExpirationHours:
-                  config.approvalExpiration.manualFlagExpirationHours,
-                contentCriteriaExpirationHours:
-                  config.approvalExpiration.contentCriteriaExpirationHours,
-                cleanupExpiredDays:
-                  config.approvalExpiration.cleanupExpiredDays ?? 30,
-              }
-            : {
-                enabled: false,
-                defaultExpirationHours: 72,
-                expirationAction: 'expire',
-                cleanupExpiredDays: 30,
-              },
-          quotaSettings: config.quotaSettings
-            ? {
-                cleanup: {
-                  enabled: config.quotaSettings.cleanup?.enabled ?? true,
-                  retentionDays:
-                    config.quotaSettings.cleanup?.retentionDays ?? 90,
-                },
-                weeklyRolling: {
-                  resetDays: config.quotaSettings.weeklyRolling?.resetDays ?? 7,
-                },
-                monthly: {
-                  resetDay: config.quotaSettings.monthly?.resetDay ?? 1,
-                  handleMonthEnd:
-                    config.quotaSettings.monthly?.handleMonthEnd ?? 'last-day',
-                },
-              }
-            : {
-                cleanup: {
-                  enabled: true,
-                  retentionDays: 90,
-                },
-                weeklyRolling: {
-                  resetDays: 7,
-                },
-                monthly: {
-                  resetDay: 1,
-                  handleMonthEnd: 'last-day',
-                },
-              },
-          approvalNotify: notifyValue,
-          // Keep existing schedule values if they exist
-          scheduleInterval: currentScheduleInterval,
-          scheduleTime: currentScheduleTime,
-          dayOfWeek: currentDayOfWeek ?? '*',
-        },
-        { keepDirty: false },
+      const resetData = createFormResetData(
+        config,
+        currentScheduleInterval,
+        currentScheduleTime,
+        currentDayOfWeek,
       )
+      form.reset(resetData, { keepDirty: false })
 
       // Add the timeout fallback like delete sync form
       setTimeout(() => {
+        const notifyValue = config.approvalNotify || 'none'
         if (form.getValues('approvalNotify') !== notifyValue) {
           form.setValue('approvalNotify', notifyValue, { shouldDirty: false })
         }
         form.reset(form.getValues(), { keepDirty: false })
       }, 0)
     }
-  }, [config, form])
+  }, [config, form, createFormResetData])
 
   const onSubmit = async (data: ApprovalConfigurationFormData) => {
     // Set loading state and store submitted values - matching delete sync pattern
@@ -228,77 +237,17 @@ export function useApprovalConfiguration() {
   const handleCancel = () => {
     // Reset form to last saved values using the same pattern as the useEffect
     if (config) {
-      // Ensure notification value is one of the valid enum values
-      const notifyValue = config.approvalNotify || 'none'
-
-      // Preserve current schedule field values when resetting config data
       const currentScheduleInterval = form.getValues('scheduleInterval')
       const currentScheduleTime = form.getValues('scheduleTime')
       const currentDayOfWeek = form.getValues('dayOfWeek')
 
-      form.reset(
-        {
-          approvalExpiration: config.approvalExpiration
-            ? {
-                enabled: config.approvalExpiration.enabled ?? false,
-                defaultExpirationHours:
-                  config.approvalExpiration.defaultExpirationHours ?? 72,
-                expirationAction:
-                  config.approvalExpiration.expirationAction ?? 'expire',
-                quotaExceededExpirationHours:
-                  config.approvalExpiration.quotaExceededExpirationHours,
-                routerRuleExpirationHours:
-                  config.approvalExpiration.routerRuleExpirationHours,
-                manualFlagExpirationHours:
-                  config.approvalExpiration.manualFlagExpirationHours,
-                contentCriteriaExpirationHours:
-                  config.approvalExpiration.contentCriteriaExpirationHours,
-                cleanupExpiredDays:
-                  config.approvalExpiration.cleanupExpiredDays ?? 30,
-              }
-            : {
-                enabled: false,
-                defaultExpirationHours: 72,
-                expirationAction: 'expire',
-                cleanupExpiredDays: 30,
-              },
-          quotaSettings: config.quotaSettings
-            ? {
-                cleanup: {
-                  enabled: config.quotaSettings.cleanup?.enabled ?? true,
-                  retentionDays:
-                    config.quotaSettings.cleanup?.retentionDays ?? 90,
-                },
-                weeklyRolling: {
-                  resetDays: config.quotaSettings.weeklyRolling?.resetDays ?? 7,
-                },
-                monthly: {
-                  resetDay: config.quotaSettings.monthly?.resetDay ?? 1,
-                  handleMonthEnd:
-                    config.quotaSettings.monthly?.handleMonthEnd ?? 'last-day',
-                },
-              }
-            : {
-                cleanup: {
-                  enabled: true,
-                  retentionDays: 90,
-                },
-                weeklyRolling: {
-                  resetDays: 7,
-                },
-                monthly: {
-                  resetDay: 1,
-                  handleMonthEnd: 'last-day',
-                },
-              },
-          approvalNotify: notifyValue,
-          // Keep existing schedule values if they exist
-          scheduleInterval: currentScheduleInterval,
-          scheduleTime: currentScheduleTime,
-          dayOfWeek: currentDayOfWeek ?? '*',
-        },
-        { keepDirty: false },
+      const resetData = createFormResetData(
+        config,
+        currentScheduleInterval,
+        currentScheduleTime,
+        currentDayOfWeek,
       )
+      form.reset(resetData, { keepDirty: false })
     }
   }
 

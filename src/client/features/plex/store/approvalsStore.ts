@@ -14,6 +14,7 @@ export interface ApprovalsState {
 
   // State management
   isInitialized: boolean
+  isInitializing: boolean
   approvalsLoading: boolean
   statsLoading: boolean
   error: string | null
@@ -41,16 +42,8 @@ export interface ApprovalsState {
     updates: UpdateApprovalRequest,
   ) => Promise<void>
   deleteApprovalRequest: (id: number) => Promise<void>
-  approveRequest: (
-    id: number,
-    approvedBy: number,
-    notes?: string,
-  ) => Promise<void>
-  rejectRequest: (
-    id: number,
-    rejectedBy: number,
-    reason?: string,
-  ) => Promise<void>
+  approveRequest: (id: number, notes?: string) => Promise<void>
+  rejectRequest: (id: number, reason?: string) => Promise<void>
 
   // Stats operations
   fetchStats: () => Promise<void>
@@ -71,6 +64,7 @@ export const useApprovalsStore = create<ApprovalsState>()(
     approvalRequests: [],
     stats: null,
     isInitialized: false,
+    isInitializing: false,
     approvalsLoading: false,
     statsLoading: false,
     error: null,
@@ -110,7 +104,9 @@ export const useApprovalsStore = create<ApprovalsState>()(
 
     initialize: async (force = false) => {
       const state = get()
-      if (!state.isInitialized || force) {
+      if ((!state.isInitialized || force) && !state.isInitializing) {
+        set({ isInitializing: true })
+
         if (state.isInitialMount) {
           state.setLoadingWithMinDuration(true)
         }
@@ -120,12 +116,14 @@ export const useApprovalsStore = create<ApprovalsState>()(
 
           set({
             isInitialized: true,
+            isInitializing: false,
             error: null,
           })
         } catch (error) {
           set({
             error: 'Failed to initialize approvals',
             isInitialized: false,
+            isInitializing: false,
           })
           console.error('Approvals initialization error:', error)
         } finally {
@@ -152,8 +150,10 @@ export const useApprovalsStore = create<ApprovalsState>()(
         const response = await fetch(`/v1/approval/requests?${queryParams}`)
 
         if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}))
           throw new Error(
-            `Failed to fetch approval requests: ${response.statusText}`,
+            errorData.message ||
+              `Failed to fetch approval requests: ${response.statusText}`,
           )
         }
 
@@ -171,7 +171,12 @@ export const useApprovalsStore = create<ApprovalsState>()(
           throw new Error(data.message || 'Failed to fetch approval requests')
         }
       } catch (error) {
-        set({ error: 'Failed to fetch approval requests' })
+        set({
+          error:
+            error instanceof Error
+              ? error.message
+              : 'Failed to fetch approval requests',
+        })
         console.error('Error fetching approval requests:', error)
         throw error
       }
@@ -252,12 +257,12 @@ export const useApprovalsStore = create<ApprovalsState>()(
       }
     },
 
-    approveRequest: async (id: number, approvedBy: number, notes?: string) => {
+    approveRequest: async (id: number, notes?: string) => {
       try {
         const response = await fetch(`/v1/approval/requests/${id}/approve`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ approvedBy, notes }),
+          body: JSON.stringify({ notes }),
         })
 
         if (!response.ok) {
@@ -273,12 +278,12 @@ export const useApprovalsStore = create<ApprovalsState>()(
       }
     },
 
-    rejectRequest: async (id: number, rejectedBy: number, reason?: string) => {
+    rejectRequest: async (id: number, reason?: string) => {
       try {
         const response = await fetch(`/v1/approval/requests/${id}/reject`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ rejectedBy, reason }),
+          body: JSON.stringify({ reason }),
         })
 
         if (!response.ok) {

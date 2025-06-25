@@ -444,16 +444,22 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const { userId, startDate, endDate, contentType, limit, offset } =
           request.query
 
-        const quotaUsage = await fastify.db.getQuotaUsageHistory(
-          userId,
-          startDate ? new Date(startDate) : undefined,
-          endDate ? new Date(endDate) : undefined,
-          contentType,
-        )
-
-        // For total count, we'd need to modify the service method to return count
-        // For now, return the current results length as total
-        const total = quotaUsage.length
+        const [quotaUsage, total] = await Promise.all([
+          fastify.db.getQuotaUsageHistory(
+            userId,
+            startDate ? new Date(startDate) : undefined,
+            endDate ? new Date(endDate) : undefined,
+            contentType,
+            limit,
+            offset,
+          ),
+          fastify.db.getQuotaUsageHistoryCount(
+            userId,
+            startDate ? new Date(startDate) : undefined,
+            endDate ? new Date(endDate) : undefined,
+            contentType,
+          ),
+        ])
 
         return {
           success: true,

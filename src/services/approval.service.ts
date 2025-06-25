@@ -282,62 +282,104 @@ export class ApprovalService {
           `Processing approval routing to ${allInstanceIds.length} instances: ${allInstanceIds.join(', ')} (primary: ${instanceId}, synced: ${syncedInstances?.join(', ') || 'none'})`,
         )
 
+        const routingResults: {
+          succeeded: number[]
+          failed: Array<{ instanceId: number; error: unknown }>
+        } = { succeeded: [], failed: [] }
+
         if (instanceType === 'radarr') {
           // Route to all Radarr instances (primary + synced)
           for (const targetInstanceId of allInstanceIds) {
             const isPrimary = targetInstanceId === instanceId
 
-            // Use stored settings for primary instance, undefined for synced instances (to use their defaults)
-            await this.fastify.radarrManager.routeItemToRadarr(
-              {
-                title: request.contentTitle,
-                type: 'movie',
-                guids: request.contentGuids,
-              } as RadarrItem,
-              request.contentKey,
-              request.userId,
-              targetInstanceId,
-              !isPrimary, // Mark as sync operation if not primary
-              isPrimary ? proposedRouting.rootFolder || undefined : undefined,
-              isPrimary ? proposedRouting.qualityProfile : undefined,
-              isPrimary ? proposedRouting.tags || [] : undefined,
-              isPrimary ? proposedRouting.searchOnAdd : undefined,
-              isPrimary ? proposedRouting.minimumAvailability : undefined,
-            )
+            try {
+              // Use stored settings for primary instance, undefined for synced instances (to use their defaults)
+              await this.fastify.radarrManager.routeItemToRadarr(
+                {
+                  title: request.contentTitle,
+                  type: 'movie',
+                  guids: request.contentGuids,
+                } as RadarrItem,
+                request.contentKey,
+                request.userId,
+                targetInstanceId,
+                !isPrimary, // Mark as sync operation if not primary
+                isPrimary ? proposedRouting.rootFolder || undefined : undefined,
+                isPrimary ? proposedRouting.qualityProfile : undefined,
+                isPrimary ? proposedRouting.tags || [] : undefined,
+                isPrimary ? proposedRouting.searchOnAdd : undefined,
+                isPrimary ? proposedRouting.minimumAvailability : undefined,
+              )
+              routingResults.succeeded.push(targetInstanceId)
+            } catch (error) {
+              this.fastify.log.error(
+                `Failed to route to Radarr instance ${targetInstanceId}:`,
+                error,
+              )
+              routingResults.failed.push({
+                instanceId: targetInstanceId,
+                error,
+              })
+              if (isPrimary) {
+                // Primary instance failure should fail the entire operation
+                throw error
+              }
+            }
           }
         } else if (instanceType === 'sonarr') {
           // Route to all Sonarr instances (primary + synced)
           for (const targetInstanceId of allInstanceIds) {
             const isPrimary = targetInstanceId === instanceId
 
-            // Use stored settings for primary instance, undefined for synced instances (to use their defaults)
-            await this.fastify.sonarrManager.routeItemToSonarr(
-              {
-                title: request.contentTitle,
-                type: 'show',
-                guids: request.contentGuids,
-              } as SonarrItem,
-              request.contentKey,
-              request.userId,
-              targetInstanceId,
-              !isPrimary, // Mark as sync operation if not primary
-              isPrimary ? proposedRouting.rootFolder || undefined : undefined,
-              isPrimary ? proposedRouting.qualityProfile : undefined,
-              isPrimary ? proposedRouting.tags || [] : undefined,
-              isPrimary ? proposedRouting.searchOnAdd : undefined,
-              isPrimary ? proposedRouting.seasonMonitoring : undefined,
-              isPrimary ? proposedRouting.seriesType : undefined,
-            )
+            try {
+              // Use stored settings for primary instance, undefined for synced instances (to use their defaults)
+              await this.fastify.sonarrManager.routeItemToSonarr(
+                {
+                  title: request.contentTitle,
+                  type: 'show',
+                  guids: request.contentGuids,
+                } as SonarrItem,
+                request.contentKey,
+                request.userId,
+                targetInstanceId,
+                !isPrimary, // Mark as sync operation if not primary
+                isPrimary ? proposedRouting.rootFolder || undefined : undefined,
+                isPrimary ? proposedRouting.qualityProfile : undefined,
+                isPrimary ? proposedRouting.tags || [] : undefined,
+                isPrimary ? proposedRouting.searchOnAdd : undefined,
+                isPrimary ? proposedRouting.seasonMonitoring : undefined,
+                isPrimary ? proposedRouting.seriesType : undefined,
+              )
+              routingResults.succeeded.push(targetInstanceId)
+            } catch (error) {
+              this.fastify.log.error(
+                `Failed to route to Sonarr instance ${targetInstanceId}:`,
+                error,
+              )
+              routingResults.failed.push({
+                instanceId: targetInstanceId,
+                error,
+              })
+              if (isPrimary) {
+                // Primary instance failure should fail the entire operation
+                throw error
+              }
+            }
           }
         } else {
           return { success: false, error: 'Unknown instance type' }
         }
 
+        if (routingResults.failed.length > 0) {
+          this.fastify.log.warn(
+            `Partial routing failure: ${routingResults.failed.length} of ${allInstanceIds.length} instances failed`,
+          )
+        }
+
         // Record quota usage after successful routing
-        await this.fastify.db.recordQuotaUsage(
+        await this.fastify.quotaService.recordUsage(
           request.userId,
           request.contentType,
-          new Date(),
         )
 
         this.fastify.log.info(
@@ -385,20 +427,9 @@ export class ApprovalService {
 
       // Handle expiration action (auto-approve or just expire)
       if (config.expirationAction === 'auto_approve') {
-        // Get requests that are about to expire BEFORE marking them as expired
-        const requestsToAutoApprove = await this.fastify.db.getApprovalHistory(
-          undefined, // userId - get all users
-          'pending', // only pending requests
-          undefined, // no limit
-          undefined, // no offset
-          undefined, // any content type
-        )
-
-        // Filter to only those that are expired
-        const now = new Date()
-        const expiredRequests = requestsToAutoApprove.filter(
-          (request) => request.expiresAt && new Date(request.expiresAt) < now,
-        )
+        // Get expired pending requests atomically from database
+        const expiredRequests =
+          await this.fastify.db.getExpiredPendingRequests()
 
         if (expiredRequests.length > 0) {
           this.fastify.log.info(

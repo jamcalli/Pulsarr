@@ -94,12 +94,19 @@ export function ApprovalTable({
       dateRange: (row, columnId, filterValue) => {
         if (!filterValue) return true
         const date = new Date(row.getValue(columnId) as string)
+        if (Number.isNaN(date.getTime())) return true
+
         const [start, end] = filterValue.split(' to ')
         const startDate = start ? new Date(start) : null
         const endDate = end ? new Date(end) : null
 
-        if (startDate && date < startDate) return false
-        if (endDate && date > endDate) return false
+        if (
+          startDate &&
+          (Number.isNaN(startDate.getTime()) || date < startDate)
+        )
+          return false
+        if (endDate && (Number.isNaN(endDate.getTime()) || date > endDate))
+          return false
         return true
       },
     },

@@ -78,7 +78,17 @@ export async function getRouterRulesByAction(
   action: string,
   enabledOnly = true,
 ): Promise<RouterRule[]> {
-  const query = this.knex('router_rules').select('*').where('type', action)
+  let query = this.knex('router_rules').select('*')
+
+  // Filter by approval actions
+  if (action === 'require_approval') {
+    query = query.where('always_require_approval', true)
+  } else if (action === 'bypass_quotas') {
+    query = query.where('bypass_user_quotas', true)
+  } else {
+    // For other actions, filter by type as fallback
+    query = query.where('type', action)
+  }
 
   if (enabledOnly) {
     query.where('enabled', true)

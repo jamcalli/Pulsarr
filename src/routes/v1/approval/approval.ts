@@ -178,8 +178,13 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           triggeredBy,
         )
 
-        // For now, return requests length as total (would need separate count query for accurate total)
-        const total = requests.length
+        // Get the total count with the same filters but without pagination
+        const total = await fastify.db.getApprovalHistoryCount(
+          userId,
+          status,
+          contentType,
+          triggeredBy,
+        )
 
         return {
           success: true,
@@ -434,7 +439,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   // Reject approval request (marks as rejected, keeps in database)
   fastify.post<{
     Params: { id: string }
-    Body: { rejectedBy: number; reason?: string }
+    Body: { reason?: string }
     Reply: z.infer<typeof ApprovalErrorSchema>
   }>(
     '/requests/:id/reject',
@@ -447,7 +452,6 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           id: z.string(),
         }),
         body: z.object({
-          rejectedBy: z.number(),
           reason: z.string().optional(),
         }),
         response: {
@@ -461,7 +465,11 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         const requestId = Number.parseInt(request.params.id, 10)
-        const { rejectedBy, reason } = request.body
+        const { reason } = request.body
+        const rejectedBy = request.session.user?.id
+        if (!rejectedBy) {
+          return reply.unauthorized('User not authenticated')
+        }
 
         // Check if the request exists and is in pending status
         const existingRequest = await fastify.db.getApprovalRequest(requestId)
@@ -537,7 +545,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   // Approve request and execute routing
   fastify.post<{
     Params: { id: string }
-    Body: { approvedBy: number; notes?: string }
+    Body: { notes?: string }
     Reply: z.infer<typeof ApprovalErrorSchema>
   }>(
     '/requests/:id/approve',
@@ -551,7 +559,6 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           id: z.string(),
         }),
         body: z.object({
-          approvedBy: z.number(),
           notes: z.string().optional(),
         }),
         response: {
@@ -565,7 +572,11 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         const requestId = Number.parseInt(request.params.id, 10)
-        const { approvedBy, notes } = request.body
+        const { notes } = request.body
+        const approvedBy = request.session.user?.id
+        if (!approvedBy) {
+          return reply.unauthorized('User not authenticated')
+        }
 
         // Check if the request exists and is in pending status
         const existingRequest = await fastify.db.getApprovalRequest(requestId)
@@ -635,7 +646,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         const { requestIds, notes } = request.body
-        const userId = 1 // TODO: Get from authenticated user context
+        const userId = request.session.user?.id
+        if (!userId) {
+          return reply.unauthorized('User not authenticated')
+        }
 
         const result = await fastify.approvalService.batchApprove(
           requestIds,
@@ -679,7 +693,10 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         const { requestIds, reason } = request.body
-        const userId = 1 // TODO: Get from authenticated user context
+        const userId = request.session.user?.id
+        if (!userId) {
+          return reply.unauthorized('User not authenticated')
+        }
 
         const result = await fastify.approvalService.batchReject(
           requestIds,

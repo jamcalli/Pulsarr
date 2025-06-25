@@ -114,6 +114,8 @@ declare module '@services/database.service.js' {
      * @param startDate - Optional start date filter
      * @param endDate - Optional end date filter
      * @param contentType - Optional content type filter
+     * @param limit - Number of records to return (default: 50)
+     * @param offset - Number of records to skip (default: 0)
      * @returns Promise resolving to array of quota usage records
      */
     getQuotaUsageHistory(
@@ -121,7 +123,24 @@ declare module '@services/database.service.js' {
       startDate?: Date,
       endDate?: Date,
       contentType?: 'movie' | 'show',
+      limit?: number,
+      offset?: number,
     ): Promise<QuotaUsage[]>
+
+    /**
+     * Gets total count of quota usage history records for a user
+     * @param userId - User ID
+     * @param startDate - Optional start date filter
+     * @param endDate - Optional end date filter
+     * @param contentType - Optional content type filter
+     * @returns Promise resolving to total count of matching records
+     */
+    getQuotaUsageHistoryCount(
+      userId: number,
+      startDate?: Date,
+      endDate?: Date,
+      contentType?: 'movie' | 'show',
+    ): Promise<number>
 
     /**
      * Gets daily usage statistics for a user
@@ -140,6 +159,13 @@ declare module '@services/database.service.js' {
      * @returns Promise resolving to the number of deleted records
      */
     cleanupOldQuotaUsage(olderThanDays?: number): Promise<number>
+
+    /**
+     * Deletes all quota usage records for a specific user
+     * @param userId - User ID
+     * @returns Promise resolving to the number of deleted records
+     */
+    deleteQuotaUsageByUser(userId: number): Promise<number>
 
     /**
      * Gets users with a specific quota type

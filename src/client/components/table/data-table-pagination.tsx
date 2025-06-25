@@ -26,7 +26,7 @@ export function DataTablePagination<TData>({
     <div className="flex items-center justify-between px-2">
       <div className="flex items-center space-x-2">
         <div className="text-sm text-muted-foreground text-center">
-          {table.getFilteredSelectedRowModel().rows.length > 0 ? (
+          {table.getFilteredSelectedRowModel().rows.length > 0 && (
             <>
               <span className="hidden md:inline">
                 {table.getFilteredSelectedRowModel().rows.length} of{' '}
@@ -37,11 +37,6 @@ export function DataTablePagination<TData>({
                 selected.
               </span>
             </>
-          ) : (
-            <span className="hidden md:inline">
-              {table.getFilteredSelectedRowModel().rows.length} of{' '}
-              {table.getFilteredRowModel().rows.length} row(s) selected.
-            </span>
           )}
         </div>
       </div>

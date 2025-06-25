@@ -164,7 +164,8 @@ const FormContent = ({
               ) : (
                 <>
                   <CheckCircle className="h-4 w-4" />
-                  Bulk Approve ({pendingCount + rejectedCount})
+                  Bulk Approve ({pendingCount}
+                  {rejectedCount > 0 ? ` + ${rejectedCount} rejected` : ''})
                 </>
               )}
             </Button>
