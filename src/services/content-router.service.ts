@@ -737,8 +737,8 @@ export class ContentRouterService {
 
     // Step 5: Process decisions from evaluators (normal routing path)
 
-    // Decisions are already sorted by priority from approval check above
-    if (allDecisions.length === 0) {
+    // Sort decisions by priority if not already sorted from approval check
+    if (allDecisions.length > 0) {
       allDecisions.sort((a, b) => (b.priority || 50) - (a.priority || 50))
     }
 
@@ -828,6 +828,25 @@ export class ContentRouterService {
     this.log.info(
       `Successfully routed "${item.title}" to ${routeCount} instances`,
     )
+
+    // Record quota usage if user has quotas enabled and routing was successful
+    // Only count once per content item regardless of how many instances it was routed to
+    if (
+      options.userId &&
+      options.userId > 0 &&
+      !options.syncing &&
+      routedInstances.length > 0
+    ) {
+      const recorded = await this.fastify.quotaService.recordUsage(
+        options.userId,
+        contentType,
+      )
+      if (recorded) {
+        this.log.info(
+          `Recorded quota usage for user ${options.userId}: ${item.title}`,
+        )
+      }
+    }
 
     return { routedInstances }
   }
@@ -1095,6 +1114,111 @@ export class ContentRouterService {
   }
 
   /**
+   * Generic routing method that handles both movie and show routing to multiple instances.
+   * Fetches appropriate instances, maps them by ID, and routes the item using the correct manager.
+   *
+   * @param contentType - Type of content ('movie' or 'show')
+   * @param item - The content item to route
+   * @param key - Unique identifier for the watchlist item
+   * @param userId - ID of the user who owns the watchlist item
+   * @param instanceIds - Array of instance IDs to route to
+   * @param syncing - Whether this is part of a sync operation
+   * @returns Promise resolving to array of instance IDs the item was successfully routed to
+   */
+  private async routeToInstances(
+    contentType: 'movie' | 'show',
+    item: ContentItem,
+    key: string,
+    userId: number,
+    instanceIds: number[],
+    syncing?: boolean,
+  ): Promise<number[]> {
+    const routedInstances: number[] = []
+
+    if (contentType === 'movie') {
+      const allInstances = await this.fastify.db.getAllRadarrInstances()
+      const instanceMap = new Map(
+        allInstances.map((instance) => [instance.id, instance]),
+      )
+
+      for (const instanceId of instanceIds) {
+        const instance = instanceMap.get(instanceId)
+        if (!instance) {
+          this.log.warn(`Radarr instance ${instanceId} not found – skipping`)
+          continue
+        }
+
+        try {
+          // Get the root folder for this instance (handling null case)
+          const rootFolder =
+            instance.rootFolder === null ? undefined : instance.rootFolder
+
+          // Route to the instance with its specific settings
+          await this.fastify.radarrManager.routeItemToRadarr(
+            item as RadarrItem,
+            key,
+            userId,
+            instanceId,
+            syncing,
+            rootFolder,
+            instance.qualityProfile,
+            instance.tags,
+            instance.searchOnAdd,
+            instance.minimumAvailability,
+          )
+          routedInstances.push(instanceId)
+        } catch (error) {
+          this.log.error(
+            `Error routing "${item.title}" to Radarr instance ${instanceId}:`,
+            error,
+          )
+          // Continue with other instances even if one fails
+        }
+      }
+    } else {
+      const allInstances = await this.fastify.db.getAllSonarrInstances()
+      const instanceMap = new Map(
+        allInstances.map((instance) => [instance.id, instance]),
+      )
+
+      for (const instanceId of instanceIds) {
+        const instance = instanceMap.get(instanceId)
+        if (!instance) {
+          this.log.warn(`Sonarr instance ${instanceId} not found – skipping`)
+          continue
+        }
+
+        try {
+          const rootFolder =
+            instance.rootFolder === null ? undefined : instance.rootFolder
+
+          await this.fastify.sonarrManager.routeItemToSonarr(
+            item as SonarrItem,
+            key,
+            userId,
+            instanceId,
+            syncing,
+            rootFolder,
+            instance.qualityProfile,
+            instance.tags,
+            instance.searchOnAdd,
+            instance.seasonMonitoring,
+          )
+          routedInstances.push(instanceId)
+        } catch (error) {
+          this.log.error(
+            `Error routing "${item.title}" to Sonarr instance ${instanceId}:`,
+            error,
+          )
+          // Continue with other instances even if one fails
+        }
+      }
+    }
+
+    return routedInstances
+  }
+
+  /**
    * Default routing method used when no evaluator rules match.
    * Routes content to the default instance for its type (Radarr/Sonarr),
    * and also to any instances that are configured as "synced instances" for the default.
@@ -1123,110 +1247,15 @@ export class ContentRouterService {
         return []
       }
 
-      const routedInstances: number[] = []
-
-      if (contentType === 'movie') {
-        const allInstances = await this.fastify.db.getAllRadarrInstances()
-        const instanceMap = new Map(
-          allInstances.map((instance) => [instance.id, instance]),
-        )
-
-        for (const instanceId of instanceIds) {
-          const instance = instanceMap.get(instanceId)
-          if (!instance) {
-            this.log.warn(`Radarr instance ${instanceId} not found – skipping`)
-            continue
-          }
-
-          try {
-            // Get the root folder for this instance (handling null case)
-            const rootFolder =
-              instance.rootFolder === null ? undefined : instance.rootFolder
-
-            // Route to the instance with its specific settings
-            await this.fastify.radarrManager.routeItemToRadarr(
-              item as RadarrItem,
-              key,
-              userId,
-              instanceId,
-              syncing,
-              rootFolder,
-              instance.qualityProfile,
-              instance.tags,
-              instance.searchOnAdd,
-              instance.minimumAvailability,
-            )
-            routedInstances.push(instanceId)
-          } catch (error) {
-            this.log.error(
-              `Error routing "${item.title}" to Radarr instance ${instanceId}:`,
-              error,
-            )
-            // Continue with other instances even if one fails
-          }
-        }
-      } else {
-        const allInstances = await this.fastify.db.getAllSonarrInstances()
-        const instanceMap = new Map(
-          allInstances.map((instance) => [instance.id, instance]),
-        )
-
-        for (const instanceId of instanceIds) {
-          const instance = instanceMap.get(instanceId)
-          if (!instance) {
-            this.log.warn(`Sonarr instance ${instanceId} not found – skipping`)
-            continue
-          }
-
-          try {
-            const rootFolder =
-              instance.rootFolder === null ? undefined : instance.rootFolder
-
-            await this.fastify.sonarrManager.routeItemToSonarr(
-              item as SonarrItem,
-              key,
-              userId,
-              instanceId,
-              syncing,
-              rootFolder,
-              instance.qualityProfile,
-              instance.tags,
-              instance.searchOnAdd,
-              instance.seasonMonitoring,
-            )
-            routedInstances.push(instanceId)
-          } catch (error) {
-            this.log.error(
-              `Error routing "${item.title}" to Sonarr instance ${instanceId}:`,
-              error,
-            )
-            // Continue with other instances even if one fails
-          }
-        }
-      }
-
-      // Record quota usage if user has quotas enabled and routing was successful
-      if (userId && routedInstances.length > 0) {
-        try {
-          const userQuota = await this.fastify.db.getUserQuota(userId)
-          if (userQuota) {
-            await this.fastify.db.recordQuotaUsage(
-              userId,
-              contentType,
-              new Date(),
-            )
-            this.log.info(
-              `Recorded quota usage for user ${userId}: ${item.title}`,
-            )
-          }
-        } catch (error) {
-          this.log.error(
-            `Error recording quota usage for user ${userId}:`,
-            error,
-          )
-          // Don't fail the routing if quota recording fails
-        }
-      }
+      // Use the generic routing method
+      const routedInstances = await this.routeToInstances(
+        contentType,
+        item,
+        key,
+        userId,
+        instanceIds,
+        syncing,
+      )
 
       return routedInstances
     } catch (error) {

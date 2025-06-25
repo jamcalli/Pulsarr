@@ -101,6 +101,8 @@ export async function up(knex: Knex): Promise<void> {
       .inTable('users')
       .onDelete('CASCADE')
     table.enum('content_type', ['movie', 'show']).notNullable()
+    // Use date (not timestamp) for quota calculations to align with calendar days
+    // This ensures quotas reset at midnight regardless of request timing
     table.date('request_date').notNullable()
     table.timestamp('created_at').defaultTo(knex.fn.now())
 

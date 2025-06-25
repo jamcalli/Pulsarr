@@ -53,10 +53,6 @@ export function ApprovalActionDialogs({
   const { approveRequest, rejectRequest, deleteApprovalRequest } =
     useApprovalsStore()
 
-  // TODO: Replace with actual current user ID when multi-admin support is added
-  // Currently the system only supports one admin user with ID 1
-  const currentAdminId = 1
-
   // Helper function to manage minimum loading duration
   const withMinLoadingDuration = async (
     action: () => Promise<void>,
@@ -95,7 +91,6 @@ export function ApprovalActionDialogs({
       await withMinLoadingDuration(async () => {
         await approveRequest(
           selectedRequest.id,
-          currentAdminId,
           approveNotes.trim() || undefined,
         )
         await onActionComplete()
@@ -119,7 +114,6 @@ export function ApprovalActionDialogs({
       await withMinLoadingDuration(async () => {
         await rejectRequest(
           selectedRequest.id,
-          currentAdminId,
           rejectReason.trim() || undefined,
         )
         await onActionComplete()

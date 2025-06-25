@@ -35,17 +35,10 @@ export function useApprovals() {
     clearError,
   } = useApprovalsStore()
 
-  // Mock current user ID - in real app this would come from auth context
-  const getCurrentUserId = useCallback(() => {
-    // This should be replaced with actual auth context
-    return 1
-  }, [])
-
   const handleApproveRequest = useCallback(
     async (requestId: number, notes?: string) => {
       try {
-        const currentUserId = getCurrentUserId()
-        await approveRequest(requestId, currentUserId, notes)
+        await approveRequest(requestId, notes)
       } catch (error) {
         toast({
           title: 'Error',
@@ -55,14 +48,13 @@ export function useApprovals() {
         throw error
       }
     },
-    [approveRequest, getCurrentUserId, toast],
+    [approveRequest, toast],
   )
 
   const handleRejectRequest = useCallback(
     async (requestId: number, reason?: string) => {
       try {
-        const currentUserId = getCurrentUserId()
-        await rejectRequest(requestId, currentUserId, reason)
+        await rejectRequest(requestId, reason)
       } catch (error) {
         toast({
           title: 'Error',
@@ -72,7 +64,7 @@ export function useApprovals() {
         throw error
       }
     },
-    [rejectRequest, getCurrentUserId, toast],
+    [rejectRequest, toast],
   )
 
   const handleUpdateRequest = useCallback(
@@ -229,7 +221,6 @@ export function useApprovals() {
     getRequestsByStatus,
     getRequestsByUser,
     getExpiredRequests,
-    getCurrentUserId,
 
     // Computed values
     hasPendingRequests: getPendingRequests().length > 0,

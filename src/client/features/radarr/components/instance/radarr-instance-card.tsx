@@ -48,6 +48,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
 
 interface InstanceCardProps {
   instance: RadarrInstance
@@ -273,7 +274,7 @@ export function InstanceCard({
         onConfirm={handleDelete}
         instanceName={instance.name}
         isLastInstance={
-          instances.filter((i) => i.apiKey !== 'placeholder').length === 1
+          instances.filter((i) => i.apiKey !== API_KEY_PLACEHOLDER).length === 1
         }
       />
       <RadarrSyncModal

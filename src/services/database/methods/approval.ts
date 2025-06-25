@@ -6,7 +6,6 @@ import type {
   UpdateApprovalRequestData,
   ApprovalStats,
   UserApprovalStats,
-  RouterDecision,
   ApprovalStatus,
 } from '@root/types/approval.types.js'
 
@@ -23,13 +22,8 @@ function mapRowToApprovalRequest(
     contentType: row.content_type,
     contentTitle: row.content_title,
     contentKey: row.content_key,
-    contentGuids: Array.isArray(row.content_guids)
-      ? row.content_guids
-      : JSON.parse(row.content_guids as string),
-    proposedRouterDecision:
-      typeof row.router_decision === 'object'
-        ? (row.router_decision as RouterDecision)
-        : JSON.parse(row.router_decision as string),
+    contentGuids: JSON.parse(row.content_guids),
+    proposedRouterDecision: JSON.parse(row.router_decision),
     routerRuleId: row.router_rule_id,
     triggeredBy: row.triggered_by,
     approvalReason: row.approval_reason,
@@ -246,6 +240,55 @@ export async function getApprovalHistory(
 }
 
 /**
+ * Gets the total count of approval history records with optional filters
+ */
+export async function getApprovalHistoryCount(
+  this: DatabaseService,
+  userId?: number,
+  status?: ApprovalStatus,
+  contentType?: 'movie' | 'show',
+  triggeredBy?: import('@root/types/approval.types.js').ApprovalTrigger,
+): Promise<number> {
+  let query = this.knex('approval_requests')
+
+  if (userId) {
+    query = query.where('approval_requests.user_id', userId)
+  }
+
+  if (status) {
+    query = query.where('approval_requests.status', status)
+  }
+
+  if (contentType) {
+    query = query.where('approval_requests.content_type', contentType)
+  }
+
+  if (triggeredBy) {
+    query = query.where('approval_requests.triggered_by', triggeredBy)
+  }
+
+  const result = await query.count('* as count').first()
+  return Number.parseInt(result?.count as string, 10) || 0
+}
+
+/**
+ * Gets pending approval requests that have expired
+ */
+export async function getExpiredPendingRequests(
+  this: DatabaseService,
+): Promise<ApprovalRequest[]> {
+  const rows = await this.knex('approval_requests')
+    .select('approval_requests.*', 'users.name as user_name')
+    .leftJoin('users', 'approval_requests.user_id', 'users.id')
+    .where('approval_requests.status', 'pending')
+    .where('approval_requests.expires_at', '<', this.timestamp)
+    .whereNotNull('approval_requests.expires_at')
+    .orderBy('approval_requests.expires_at', 'asc')
+
+  return rows.map(mapRowToApprovalRequest)
+}
+
+/**
  * Gets overall approval statistics
  */
 export async function getApprovalStats(
@@ -345,7 +388,7 @@ export async function expireOldRequests(
 ): Promise<number> {
   const expiredCount = await this.knex('approval_requests')
     .where('status', 'pending')
-    .where('expires_at', '<', new Date().toISOString())
+    .where('expires_at', '<', this.timestamp)
     .update({
       status: 'expired',
       updated_at: this.timestamp,

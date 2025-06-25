@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import type { RootFolder, QualityProfile } from '@root/types/radarr.types'
 import type { ContentRouterRule } from '@root/schemas/content-router/content-router.schema'
+import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
 
 export interface RadarrInstance {
   id: number
@@ -188,7 +189,7 @@ export const useRadarrStore = create<RadarrState>()(
       try {
         await state.fetchInstances()
         const validInstances = state.instances.filter(
-          (inst) => inst.apiKey && inst.apiKey !== 'placeholder',
+          (inst) => inst.apiKey && inst.apiKey !== API_KEY_PLACEHOLDER,
         )
         await Promise.all(
           validInstances.map((instance) =>

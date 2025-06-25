@@ -51,7 +51,11 @@ import {
 } from '@/components/ui/tag-multi-select'
 import { useConfigStore } from '@/stores/configStore'
 import { TagCreationDialog } from '@/components/ui/tag-creation-dialog'
-import { SONARR_SERIES_TYPES, SERIES_TYPE_LABELS } from '../../constants'
+import {
+  SONARR_SERIES_TYPES,
+  SERIES_TYPE_LABELS,
+} from '@/features/sonarr/constants'
+import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
 
 interface InstanceCardProps {
   instance: SonarrInstance
@@ -281,7 +285,7 @@ export function InstanceCard({
         onConfirm={handleDelete}
         instanceName={instance.name}
         isLastInstance={
-          instances.filter((i) => i.apiKey !== 'placeholder').length === 1
+          instances.filter((i) => i.apiKey !== API_KEY_PLACEHOLDER).length === 1
         }
       />
       <SonarrSyncModal

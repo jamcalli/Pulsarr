@@ -25,8 +25,8 @@ export interface ApprovalRequestRow {
   content_type: 'movie' | 'show'
   content_title: string
   content_key: string
-  content_guids: string | string[] // JSON array in DB
-  router_decision: string | RouterDecision // JSON object in DB
+  content_guids: string // JSON array string in DB
+  router_decision: string // JSON object string in DB
   router_rule_id?: number
   approval_reason?: string
   triggered_by: ApprovalTrigger
@@ -57,7 +57,7 @@ export type ApprovalTrigger =
 
 // Extended Router Decision type - builds on existing RoutingDecision
 export interface RouterDecision {
-  action: 'route' | 'require_approval' | 'reject' | 'continue'
+  action: 'route' | 'require_approval' | 'reject' | 'continue' // 'continue' = skip this rule and evaluate next router rule
 
   // Standard routing decision (when action === 'route')
   routing?: {

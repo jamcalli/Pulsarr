@@ -651,8 +651,10 @@ export class SchedulerService {
         const currentMinute = now.getMinutes()
 
         // Calculate next minute that's a multiple of the interval
-        let nextMinuteInterval =
-          Math.ceil((currentMinute + 1) / interval) * interval
+        const shouldAdvance = now.getSeconds() > 0
+        let nextMinuteInterval = shouldAdvance
+          ? Math.ceil((currentMinute + 1) / interval) * interval
+          : Math.ceil(currentMinute / interval) * interval
 
         // Handle hour rollover
         if (nextMinuteInterval >= 60) {

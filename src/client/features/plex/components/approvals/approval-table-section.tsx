@@ -42,7 +42,6 @@ export default function ApprovalTableSection() {
     initialize,
     refreshApprovalRequests,
     clearError,
-    handleApprovalCreated,
     handleApprovalDeleted,
     fetchStats,
   } = useApprovalsStore()
@@ -76,32 +75,12 @@ export default function ApprovalTableSection() {
 
   // Memoize callback functions to prevent infinite re-renders
   const handleApprovalCreatedCallback = useCallback(
-    (_: ProgressEvent, metadata: ApprovalMetadata) => {
-      // Convert metadata to ApprovalRequestResponse format
-      const newRequest: ApprovalRequestResponse = {
-        id: metadata.requestId,
-        userId: metadata.userId,
-        userName: metadata.userName,
-        contentType: metadata.contentType,
-        contentTitle: metadata.contentTitle,
-        status: metadata.status,
-        // Set other required fields to defaults - they'll be fetched properly later
-        contentKey: '',
-        contentGuids: [],
-        proposedRouterDecision: { action: 'route', routing: undefined },
-        routerRuleId: null,
-        triggeredBy: 'manual_flag',
-        approvalReason: null,
-        approvedBy: null,
-        approvalNotes: null,
-        expiresAt: null,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      }
-      handleApprovalCreated(newRequest)
+    (_: ProgressEvent, _metadata: ApprovalMetadata) => {
+      // Refresh approval list to get complete data instead of constructing partial objects
+      refreshApprovalRequests()
       fetchStats()
     },
-    [handleApprovalCreated, fetchStats],
+    [refreshApprovalRequests, fetchStats],
   )
 
   const handleApprovalUpdatedCallback = useCallback(

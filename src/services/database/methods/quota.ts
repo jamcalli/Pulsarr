@@ -402,6 +402,8 @@ export async function getQuotaUsageHistory(
   startDate?: Date,
   endDate?: Date,
   contentType?: 'movie' | 'show',
+  limit = 50,
+  offset = 0,
 ): Promise<QuotaUsage[]> {
   let query = this.knex('quota_usage').where('user_id', userId)
 
@@ -421,8 +423,43 @@ export async function getQuotaUsageHistory(
     query = query.where('content_type', contentType)
   }
 
-  const rows = await query.orderBy('request_date', 'desc')
+  const rows = await query
+    .orderBy('request_date', 'desc')
+    .limit(limit)
+    .offset(offset)
   return rows.map(mapRowToQuotaUsage)
+}
+
+/**
+ * Gets total count of quota usage history records for a user
+ */
+export async function getQuotaUsageHistoryCount(
+  this: DatabaseService,
+  userId: number,
+  startDate?: Date,
+  endDate?: Date,
+  contentType?: 'movie' | 'show',
+): Promise<number> {
+  let query = this.knex('quota_usage').where('user_id', userId)
+
+  if (startDate) {
+    query = query.where(
+      'request_date',
+      '>=',
+      this.getLocalDateString(startDate),
+    )
+  }
+
+  if (endDate) {
+    query = query.where('request_date', '<=', this.getLocalDateString(endDate))
+  }
+
+  if (contentType) {
+    query = query.where('content_type', contentType)
+  }
+
+  const result = await query.count('* as count').first()
+  return Number.parseInt(result?.count as string, 10) || 0
 }
 
 /**
@@ -501,6 +538,17 @@ export async function cleanupOldQuotaUsage(
 
   const deletedCount = await this.knex('quota_usage')
     .where('request_date', '<', cutoffString)
+    .del()
+
+  return deletedCount
+}
+
+export async function deleteQuotaUsageByUser(
+  this: DatabaseService,
+  userId: number,
+): Promise<number> {
+  const deletedCount = await this.knex('quota_usage')
+    .where('user_id', userId)
     .del()
 
   return deletedCount

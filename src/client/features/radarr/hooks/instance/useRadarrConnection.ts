@@ -7,6 +7,7 @@ import type {
 } from '@/features/radarr/types/types'
 import type { UseFormReturn } from 'react-hook-form'
 import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
+import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
 
 /**
  * Checks if a Radarr instance is missing required configuration fields.
@@ -99,7 +100,7 @@ export function useRadarrConnection(
 
       const hasInstanceData =
         instance.data?.rootFolders && instance.data?.qualityProfiles
-      const isPlaceholderKey = instance.apiKey === 'placeholder'
+      const isPlaceholderKey = instance.apiKey === API_KEY_PLACEHOLDER
 
       if (instance.id === -1) {
         return

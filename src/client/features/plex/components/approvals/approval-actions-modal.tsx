@@ -92,10 +92,6 @@ export default function ApprovalActionsModal({
   const isMobile = useMediaQuery('(max-width: 768px)')
   const isDesktop = !isMobile
 
-  // TODO: Replace with actual current user ID when multi-admin support is added
-  // Currently the system only supports one admin user with ID 1
-  const currentAdminId = 1
-
   const getUserName = (userId: number) => {
     const user = users?.find((u) => u.id === userId)
     return user?.name || `User ${userId}`
@@ -130,11 +126,7 @@ export default function ApprovalActionsModal({
   const handleApprove = async () => {
     try {
       await withMinLoadingDuration(async () => {
-        await approveRequest(
-          request.id,
-          currentAdminId,
-          notes.trim() || undefined,
-        )
+        await approveRequest(request.id, notes.trim() || undefined)
         if (onUpdate) {
           await onUpdate()
         }
@@ -183,11 +175,7 @@ export default function ApprovalActionsModal({
   const handleReject = async () => {
     try {
       await withMinLoadingDuration(async () => {
-        await rejectRequest(
-          request.id,
-          currentAdminId,
-          notes.trim() || undefined,
-        )
+        await rejectRequest(request.id, notes.trim() || undefined)
         if (onUpdate) {
           await onUpdate()
         }

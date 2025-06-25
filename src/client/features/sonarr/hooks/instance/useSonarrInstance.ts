@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
+import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
 import { useToast } from '@/hooks/use-toast'
 import type { SonarrInstanceSchema } from '@/features/sonarr/store/schemas'
 import type { UseFormReturn } from 'react-hook-form'
@@ -43,14 +44,14 @@ export function useSonarrInstance(instanceId: number) {
       setTestStatus: (status: 'idle' | 'loading' | 'success' | 'error') => void,
     ) => {
       const isLastRealInstance =
-        instances.filter((i) => i.apiKey !== 'placeholder').length === 1
+        instances.filter((i) => i.apiKey !== API_KEY_PLACEHOLDER).length === 1
 
       try {
         if (isLastRealInstance) {
           const defaultInstance: SonarrInstanceSchema = {
             name: 'Default Sonarr Instance',
             baseUrl: 'http://localhost:8989',
-            apiKey: 'placeholder',
+            apiKey: API_KEY_PLACEHOLDER,
             qualityProfile: '',
             rootFolder: '',
             bypassIgnored: false,

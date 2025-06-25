@@ -7,6 +7,7 @@ import type {
 } from '@/features/sonarr/types/types'
 import type { UseFormReturn } from 'react-hook-form'
 import type { SonarrInstanceSchema } from '@/features/sonarr/store/schemas'
+import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
 
 /**
  * Checks if a Sonarr instance is missing required configuration fields.
@@ -102,7 +103,7 @@ export function useSonarrConnection(
 
       const hasInstanceData =
         instance.data?.rootFolders && instance.data?.qualityProfiles
-      const isPlaceholderKey = instance.apiKey === 'placeholder'
+      const isPlaceholderKey = instance.apiKey === API_KEY_PLACEHOLDER
 
       if (instance.id === -1) {
         return

@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useRadarrStore } from '@/features/radarr/store/radarrStore'
+import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
 import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
 import {
   QualityProfileSelect,
@@ -207,7 +208,7 @@ export function ApprovalRadarrRoutingCard({
     }
   }
 
-  const isConnectionValid = targetInstance?.apiKey !== 'placeholder'
+  const isConnectionValid = targetInstance?.apiKey !== API_KEY_PLACEHOLDER
 
   return (
     <>

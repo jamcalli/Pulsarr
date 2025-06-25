@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { useRadarrStore } from '@/features/radarr/store/radarrStore'
+import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
 import { useToast } from '@/hooks/use-toast'
 import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
 import type { UseFormReturn } from 'react-hook-form'
@@ -57,14 +58,14 @@ export function useRadarrInstance(instanceId: number) {
       setTestStatus: (status: 'idle' | 'loading' | 'success' | 'error') => void,
     ) => {
       const isLastRealInstance =
-        instances.filter((i) => i.apiKey !== 'placeholder').length === 1
+        instances.filter((i) => i.apiKey !== API_KEY_PLACEHOLDER).length === 1
 
       try {
         if (isLastRealInstance) {
           const defaultInstance: RadarrInstanceSchema = {
             name: 'Default Radarr Instance',
             baseUrl: 'http://localhost:7878',
-            apiKey: 'placeholder',
+            apiKey: API_KEY_PLACEHOLDER,
             qualityProfile: '',
             rootFolder: '',
             bypassIgnored: false,

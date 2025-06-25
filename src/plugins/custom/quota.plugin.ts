@@ -42,14 +42,20 @@ const quotaPlugin: FastifyPluginAsync = async (fastify, opts) => {
     await fastify.scheduler.scheduleJob(
       'quota-maintenance',
       async (jobName) => {
-        const currentSchedule =
-          await fastify.db.getScheduleByName('quota-maintenance')
-        if (!currentSchedule || !currentSchedule.enabled) {
-          return
-        }
+        try {
+          const currentSchedule =
+            await fastify.db.getScheduleByName('quota-maintenance')
+          if (!currentSchedule || !currentSchedule.enabled) {
+            fastify.log.debug(`Skipping disabled job: ${jobName}`)
+            return
+          }
 
-        fastify.log.info(`Running scheduled job: ${jobName}`)
-        await quotaService.performAllQuotaMaintenance()
+          fastify.log.info(`Running scheduled job: ${jobName}`)
+          await quotaService.performAllQuotaMaintenance()
+          fastify.log.info(`Completed scheduled job: ${jobName}`)
+        } catch (error) {
+          fastify.log.error(`Error in scheduled job ${jobName}:`, error)
+        }
       },
     )
   })
