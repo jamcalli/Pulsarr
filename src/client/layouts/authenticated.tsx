@@ -9,6 +9,13 @@ interface AuthenticatedLayoutProps {
   children: ReactNode
 }
 
+/**
+ * Provides the authenticated application layout, initializing progress tracking, version checks, and global approval toast notifications.
+ *
+ * Wraps its children with the main windowed layout and ensures setup and cleanup of progress state on mount and unmount.
+ *
+ * @param children - The content to render within the authenticated layout
+ */
 export default function AuthenticatedLayout({
   children,
 }: AuthenticatedLayoutProps) {

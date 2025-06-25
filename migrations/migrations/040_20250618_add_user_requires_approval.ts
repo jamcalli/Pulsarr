@@ -1,15 +1,9 @@
 import type { Knex } from 'knex'
 
 /**
- * Adds requires_approval field to users table for user-level approval requirements.
+ * Adds a boolean `requires_approval` column to the `users` table to indicate if a user requires approval for all content requests.
  *
- * This migration adds a requires_approval boolean field to the users table,
- * allowing admins to flag specific users as requiring approval for ALL content
- * requests, regardless of quotas or router rules.
- *
- * This works alongside the existing bypass_approval field in user_quotas:
- * - requires_approval (users table): Does this user need approval for ALL requests?
- * - bypass_approval (user_quotas table): Can this user exceed their quota limits?
+ * The new column defaults to `false` and is indexed to optimize queries filtering by approval requirement. This migration enables user-level approval enforcement, independent of quota or router rules.
  */
 export async function up(knex: Knex): Promise<void> {
   // Add requires_approval field to users table
@@ -19,6 +13,9 @@ export async function up(knex: Knex): Promise<void> {
   })
 }
 
+/**
+ * Reverts the migration by removing the `requires_approval` column and its index from the `users` table.
+ */
 export async function down(knex: Knex): Promise<void> {
   // Remove requires_approval field from users table
   await knex.schema.alterTable('users', (table) => {

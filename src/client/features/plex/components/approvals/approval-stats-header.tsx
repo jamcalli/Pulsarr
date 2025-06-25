@@ -14,11 +14,13 @@ interface ApprovalStatsHeaderProps {
 }
 
 /**
- * Stats overview header component displaying approval request statistics.
+ * Displays an overview of approval request statistics in a card-based grid layout.
  *
- * Shows key metrics including pending, approved, rejected, and expired requests
- * in a visually appealing card layout. Includes loading states and handles
- * empty data gracefully.
+ * Renders key metrics for pending, approved, rejected, expired, and total requests, each with an icon and color styling. Handles loading and empty data states with appropriate placeholders or messages.
+ *
+ * @param stats - The approval statistics data to display, or null if unavailable.
+ * @param loading - Optional flag indicating whether the data is currently loading.
+ * @returns A React element showing the statistics cards, loading skeletons, or an error message.
  */
 export default function ApprovalStatsHeader({
   stats,

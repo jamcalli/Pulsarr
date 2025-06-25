@@ -5,11 +5,11 @@ import { useToast } from '@/hooks/use-toast'
 import type { JobStatus } from '@root/schemas/scheduler/scheduler.schema'
 
 /**
- * Hook for managing approval and quota maintenance schedules
+ * React hook for managing approval and quota maintenance job schedules.
  *
- * Provides comprehensive scheduler integration for both approval-maintenance and quota-maintenance jobs,
- * including schedule status display, time configuration, enable/disable functionality, and run now capabilities.
- * Follows the same patterns as the delete sync scheduler UI for consistency.
+ * Provides state and handlers for displaying, configuring, enabling/disabling, and running approval-maintenance (interval-based) and quota-maintenance (time-based) jobs. Integrates with a scheduler backend to fetch, update, and control job schedules, including parsing and generating cron expressions, formatting run times, and managing loading and error states. Exposes all necessary data and actions for use in scheduling UI components.
+ *
+ * @returns An object containing job data, schedule configuration states, loading and error states, formatting utilities, and action handlers for interacting with approval and quota maintenance schedules.
  */
 export function useApprovalScheduler() {
   const {

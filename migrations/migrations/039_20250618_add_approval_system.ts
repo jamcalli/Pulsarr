@@ -1,16 +1,9 @@
 import type { Knex } from 'knex'
 
 /**
- * Creates tables for the approval system including user quotas, approval requests, and quota usage tracking.
+ * Creates the database tables required for the approval system, including user quotas, approval requests, and quota usage tracking.
  *
- * This migration adds three new tables:
- * - user_quotas: Configurable quota settings per user (daily, weekly rolling, monthly)
- * - approval_requests: Pending content requests requiring admin approval
- * - quota_usage: Rolling window tracking of user request history
- *
- * The approval system integrates with the content router to interrupt the normal flow
- * when quotas are exceeded or specific criteria are met, storing the router's decision
- * for later execution upon approval.
+ * Sets up the `user_quotas` table for per-user quota configurations, the `approval_requests` table for tracking content requests requiring admin approval, and the `quota_usage` table for recording user request history to support rolling window quota enforcement. Adds appropriate constraints, indexes, and foreign key relationships to ensure data integrity and efficient querying.
  */
 export async function up(knex: Knex): Promise<void> {
   // Create user_quotas table
@@ -114,7 +107,7 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Reverts the approval system migration by dropping the approval-related tables.
+ * Drops the tables created for the approval system, removing `quota_usage`, `approval_requests`, and `user_quotas` from the database.
  */
 export async function down(knex: Knex): Promise<void> {
   // Drop tables in reverse dependency order

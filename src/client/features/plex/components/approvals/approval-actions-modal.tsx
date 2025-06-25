@@ -54,11 +54,15 @@ interface ApprovalActionsModalProps {
 }
 
 /**
- * Sheet/Drawer component for viewing and taking actions on approval requests.
+ * Displays a modal for viewing and managing an approval request, allowing users to approve, reject, delete, or edit routing details.
  *
- * Provides detailed view of approval request information and allows users
- * to approve or reject requests with optional notes. Shows comprehensive
- * routing information and request history. Uses Sheet on desktop and Drawer on mobile.
+ * Adapts its UI for desktop (Sheet) and mobile (Drawer), presenting comprehensive request information, routing configuration, approval history, and action workflows. Supports optional notes for actions and manages loading and success states for each operation. Integrates with external stores for user and approval data, and invokes an optional update callback after actions.
+ *
+ * @param request - The approval request to display and manage
+ * @param open - Whether the modal is visible
+ * @param onOpenChange - Callback to control modal visibility
+ * @param onUpdate - Optional callback invoked after an action to refresh data
+ * @returns The modal UI for approval request actions
  */
 export default function ApprovalActionsModal({
   request,

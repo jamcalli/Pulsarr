@@ -15,11 +15,9 @@ import { useApprovalsStore } from '@/features/plex/store/approvalsStore'
 import type { GetApprovalRequestsQuery } from '@root/schemas/approval/approval.schema'
 
 /**
- * Filtering and search component for approval requests.
+ * Renders a UI component for filtering and searching approval requests.
  *
- * Provides comprehensive filtering options including status, content type,
- * trigger type, and user-based filtering. Includes search functionality
- * and quick filter presets for common use cases.
+ * Provides quick filter buttons, advanced filter controls (status, content type, trigger type, user ID), and a search input for content title. Synchronizes local filter state with a global store, applies or clears filters, and displays active filter badges. Disables controls during loading to prevent concurrent actions.
  */
 export default function ApprovalFilters() {
   const { currentQuery, setQuery, fetchApprovalRequests, approvalsLoading } =

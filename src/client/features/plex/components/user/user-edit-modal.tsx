@@ -312,18 +312,15 @@ interface UserEditModalProps {
 }
 
 /**
- * Displays a modal for editing Plex user information and notification preferences.
+ * Renders a responsive modal for editing Plex user details and notification preferences.
  *
- * Renders a responsive modal form that allows updating user details such as Apprise endpoint, alias, notification settings (Apprise, Discord, Tautulli), and watchlist sync. The modal adapts to mobile or desktop layouts and prevents closing while a save operation is in progress.
+ * Provides a form to update user information such as Apprise endpoint, alias, Discord ID, notification settings, watchlist sync, and approval requirements. The modal adapts its layout for mobile and desktop screens and prevents closing or editing while a save operation is in progress.
  *
- * @param open - Whether the modal is open.
- * @param onOpenChange - Callback to handle modal open state changes.
- * @param user - The Plex user to edit, or `undefined` for no user.
- * @param onSave - Callback invoked with user ID and updated values when the form is submitted.
- * @param saveStatus - Current save operation status (`idle`, `loading`, or `success`).
- *
- * @remark
- * The modal disables closing actions and form inputs while saving. Notification toggles are conditionally enabled based on their prerequisites.
+ * @param open - Whether the modal is visible.
+ * @param onOpenChange - Callback to handle changes in modal open state.
+ * @param user - The Plex user to edit, or null if no user is selected.
+ * @param onSave - Callback invoked with the user ID and updated values when the form is submitted.
+ * @param saveStatus - The current status of the save operation.
  */
 export default function UserEditModal({
   open,

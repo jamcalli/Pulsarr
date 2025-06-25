@@ -359,18 +359,15 @@ interface QuotaEditModalProps {
 }
 
 /**
- * Displays a modal for editing user quota information and approval settings.
+ * Renders a responsive modal for editing a user's movie and show quota settings.
  *
- * Renders a responsive modal form that allows updating quota details such as quota type, limits, reset days, and bypass approval settings. The modal adapts to mobile or desktop layouts and prevents closing while a save operation is in progress.
+ * Displays a form allowing quota enablement, type, limit, and approval bypass configuration for movies and shows. The modal adapts to mobile or desktop layouts and prevents closing or interaction while a save operation is in progress.
  *
  * @param isOpen - Whether the modal is open.
- * @param onOpenChange - Callback to handle modal open state changes.
- * @param user - The user with quota info to edit, or `null` for no user.
- * @param onSave - Callback invoked with quota data when the form is submitted.
- * @param saveStatus - Current save operation status.
- *
- * @remark
- * The modal disables closing actions and form inputs while saving. Quota configuration fields are conditionally shown based on whether quotas are enabled.
+ * @param onOpenChange - Callback to update the modal's open state.
+ * @param user - The user whose quota settings are being edited, or `null` if none.
+ * @param onSave - Callback invoked with the updated quota data upon form submission.
+ * @param saveStatus - The current status of the save operation.
  */
 export function QuotaEditModal({
   isOpen,
