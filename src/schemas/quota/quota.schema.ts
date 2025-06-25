@@ -27,18 +27,22 @@ export const UpdateSpecificQuotaSchema = z.object({
 
 // Schema for updating separate movie and show quotas
 export const UpdateSeparateQuotasSchema = z.object({
-  movieQuota: z.object({
-    enabled: z.boolean(),
-    quotaType: QuotaTypeSchema.optional(),
-    quotaLimit: z.number().min(1).optional(),
-    bypassApproval: z.boolean().optional(),
-  }).optional(),
-  showQuota: z.object({
-    enabled: z.boolean(),
-    quotaType: QuotaTypeSchema.optional(),
-    quotaLimit: z.number().min(1).optional(),
-    bypassApproval: z.boolean().optional(),
-  }).optional(),
+  movieQuota: z
+    .object({
+      enabled: z.boolean(),
+      quotaType: QuotaTypeSchema.optional(),
+      quotaLimit: z.number().min(1).optional(),
+      bypassApproval: z.boolean().optional(),
+    })
+    .optional(),
+  showQuota: z
+    .object({
+      enabled: z.boolean(),
+      quotaType: QuotaTypeSchema.optional(),
+      quotaLimit: z.number().min(1).optional(),
+      bypassApproval: z.boolean().optional(),
+    })
+    .optional(),
 })
 
 export const UserQuotaResponseSchema = z.object({

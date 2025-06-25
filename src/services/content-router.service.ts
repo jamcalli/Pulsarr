@@ -1454,6 +1454,123 @@ export class ContentRouterService {
   }
 
   /**
+   * Parses synced instances from various input formats
+   */
+  private parseSyncedInstances(
+    syncedInstances: number[] | string | null | undefined,
+  ): number[] {
+    if (Array.isArray(syncedInstances)) {
+      return syncedInstances
+    }
+    if (typeof syncedInstances === 'string') {
+      try {
+        return JSON.parse(syncedInstances || '[]')
+      } catch (e) {
+        this.log.error('Invalid syncedInstances JSON:', e)
+        return []
+      }
+    }
+    return []
+  }
+
+  /**
+   * Validates and filters synced instance IDs against available instances
+   */
+  private validateSyncedInstances<T extends { id: number }>(
+    syncedIds: number[],
+    allInstances: T[],
+    existingIds: number[],
+  ): number[] {
+    const instanceMap = new Map(
+      allInstances.map((instance) => [instance.id, instance]),
+    )
+    const validIds: number[] = []
+
+    for (const rawId of syncedIds) {
+      const syncedId = Number(rawId)
+      if (Number.isNaN(syncedId)) {
+        this.log.warn(`Invalid synced instance ID "${rawId}" – skipping`)
+        continue
+      }
+
+      // Skip if we've already included this instance
+      if (existingIds.includes(syncedId)) continue
+
+      // Check if the instance exists
+      const instance = instanceMap.get(syncedId)
+      if (!instance) {
+        this.log.warn(`Synced instance ${syncedId} not found – skipping`)
+        continue
+      }
+
+      validIds.push(syncedId)
+    }
+
+    return validIds
+  }
+
+  /**
+   * Gets default instance IDs for a specific content type
+   */
+  private async getDefaultInstanceIds(
+    contentType: 'movie' | 'show',
+  ): Promise<{ instanceIds: number[]; error?: string }> {
+    try {
+      const instanceIds: number[] = []
+
+      if (contentType === 'movie') {
+        const defaultInstance = await this.fastify.db.getDefaultRadarrInstance()
+        if (!defaultInstance) {
+          return { instanceIds: [], error: 'No default Radarr instance found' }
+        }
+
+        instanceIds.push(defaultInstance.id)
+        const syncedIds = this.parseSyncedInstances(
+          defaultInstance.syncedInstances,
+        )
+
+        if (syncedIds.length > 0) {
+          const allInstances = await this.fastify.db.getAllRadarrInstances()
+          const validSyncedIds = this.validateSyncedInstances(
+            syncedIds,
+            allInstances,
+            instanceIds,
+          )
+          instanceIds.push(...validSyncedIds)
+        }
+      } else {
+        const defaultInstance = await this.fastify.db.getDefaultSonarrInstance()
+        if (!defaultInstance) {
+          return { instanceIds: [], error: 'No default Sonarr instance found' }
+        }
+
+        instanceIds.push(defaultInstance.id)
+        const syncedIds = this.parseSyncedInstances(
+          defaultInstance.syncedInstances,
+        )
+
+        if (syncedIds.length > 0) {
+          const allInstances = await this.fastify.db.getAllSonarrInstances()
+          const validSyncedIds = this.validateSyncedInstances(
+            syncedIds,
+            allInstances,
+            instanceIds,
+          )
+          instanceIds.push(...validSyncedIds)
+        }
+      }
+
+      return { instanceIds }
+    } catch (error) {
+      this.log.error(`Error getting default ${contentType} instances:`, error)
+      return {
+        instanceIds: [],
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }
+    }
+  }
+
+  /**
    * Gets all instances that would be used for default routing (default + synced instances)
    * without actually executing the routing. This is a shared helper used by both
    * actual routing and approval checking to ensure identical behavior.
@@ -1465,153 +1582,11 @@ export class ContentRouterService {
     contentType: 'movie' | 'show',
   ): Promise<number[]> {
     try {
-      const instanceIds: number[] = []
-
-      if (contentType === 'movie') {
-        // Step 1: Get the default Radarr instance
-        let defaultInstance: RadarrInstance | null = null
-        try {
-          defaultInstance = await this.fastify.db.getDefaultRadarrInstance()
-          if (!defaultInstance) {
-            this.log.warn('No default Radarr instance found for routing')
-            return []
-          }
-        } catch (error) {
-          this.log.error(
-            'Database error getting default Radarr instance:',
-            error,
-          )
-          return []
-        }
-
-        // Step 2: Add the default instance
-        instanceIds.push(defaultInstance.id)
-
-        // Step 3: Check for and add synced instances
-        const syncedInstanceIds = Array.isArray(defaultInstance.syncedInstances)
-          ? defaultInstance.syncedInstances
-          : typeof defaultInstance.syncedInstances === 'string'
-            ? (() => {
-                try {
-                  return JSON.parse(defaultInstance.syncedInstances || '[]')
-                } catch (e) {
-                  this.log.error(
-                    `Invalid syncedInstances JSON for instance ${defaultInstance.id}:`,
-                    e,
-                  )
-                  return []
-                }
-              })()
-            : []
-
-        // Only proceed if there are synced instances
-        if (syncedInstanceIds.length > 0) {
-          // Get all Radarr instances to look up details
-          let allInstances: RadarrInstance[] = []
-          try {
-            allInstances = await this.fastify.db.getAllRadarrInstances()
-          } catch (error) {
-            this.log.error('Failed to retrieve all Radarr instances:', error)
-            // Continue with empty list if we can't get instances
-          }
-
-          const instanceMap = new Map(
-            allInstances.map((instance) => [instance.id, instance]),
-          )
-
-          // Process each synced instance
-          for (const rawId of syncedInstanceIds) {
-            const syncedId = Number(rawId)
-            if (Number.isNaN(syncedId)) {
-              this.log.warn(`Invalid synced instance ID "${rawId}" – skipping`)
-              continue
-            }
-
-            // Skip if we've already routed to this instance
-            if (instanceIds.includes(syncedId)) continue
-
-            // Get the synced instance details
-            const syncedInstance = instanceMap.get(syncedId)
-            if (!syncedInstance) {
-              this.log.warn(`Synced instance ${syncedId} not found – skipping`)
-              continue
-            }
-
-            instanceIds.push(syncedId)
-          }
-        }
-      } else {
-        // TV shows - Similar implementation as movies but using Sonarr
-        // Step 1: Get the default Sonarr instance
-        let defaultInstance: SonarrInstance | null = null
-        try {
-          defaultInstance = await this.fastify.db.getDefaultSonarrInstance()
-          if (!defaultInstance) {
-            this.log.warn('No default Sonarr instance found for routing')
-            return []
-          }
-        } catch (error) {
-          this.log.error(
-            'Database error getting default Sonarr instance:',
-            error,
-          )
-          return []
-        }
-
-        // Step 2: Add the default instance
-        instanceIds.push(defaultInstance.id)
-
-        // Step 3: Handle synced instances like with Radarr
-        const syncedInstanceIds = Array.isArray(defaultInstance.syncedInstances)
-          ? defaultInstance.syncedInstances
-          : typeof defaultInstance.syncedInstances === 'string'
-            ? (() => {
-                try {
-                  return JSON.parse(defaultInstance.syncedInstances || '[]')
-                } catch (e) {
-                  this.log.error(
-                    `Invalid syncedInstances JSON for instance ${defaultInstance.id}:`,
-                    e,
-                  )
-                  return []
-                }
-              })()
-            : []
-
-        if (syncedInstanceIds.length > 0) {
-          let allInstances: SonarrInstance[] = []
-          try {
-            allInstances = await this.fastify.db.getAllSonarrInstances()
-          } catch (error) {
-            this.log.error('Failed to retrieve all Sonarr instances:', error)
-            // Continue with empty list if we can't get instances
-          }
-
-          const instanceMap = new Map(
-            allInstances.map((instance) => [instance.id, instance]),
-          )
-
-          for (const rawId of syncedInstanceIds) {
-            const syncedId = Number(rawId)
-            if (Number.isNaN(syncedId)) {
-              this.log.warn(`Invalid synced instance ID "${rawId}" – skipping`)
-              continue
-            }
-
-            if (instanceIds.includes(syncedId)) continue
-
-            const syncedInstance = instanceMap.get(syncedId)
-            if (!syncedInstance) {
-              this.log.warn(`Synced instance ${syncedId} not found – skipping`)
-              continue
-            }
-
-            instanceIds.push(syncedId)
-          }
-        }
+      const result = await this.getDefaultInstanceIds(contentType)
+      if (result.error) {
+        this.log.warn(result.error)
       }
-
-      return instanceIds
+      return result.instanceIds
     } catch (error) {
       this.log.error(
         `Error in getting default routing instances for ${contentType}:`,

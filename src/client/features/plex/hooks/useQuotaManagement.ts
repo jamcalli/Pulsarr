@@ -241,7 +241,7 @@ export function useQuotaManagement() {
         setSaveStatus({ type: 'idle' })
       }
     },
-    [createQuota, updateSeparateQuotas, deleteQuota, refreshQuotaData],
+    [updateSeparateQuotas, deleteQuota, refreshQuotaData],
   )
 
   return {
