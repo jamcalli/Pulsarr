@@ -341,6 +341,8 @@ export async function processQueuedWebhooks(
       isBulkRelease,
       {
         logger: fastify.log,
+        instanceId: seasonQueue.instanceId ?? undefined,
+        instanceType: 'sonarr',
       },
     )
 

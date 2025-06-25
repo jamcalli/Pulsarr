@@ -10,6 +10,19 @@ const LogLevelEnum = z.enum([
   'silent',
 ])
 
+const NotifyOptionEnum = z.enum([
+  'none', // No notifications
+  'all', // All available notification channels
+  'discord-only', // Only Discord (both webhook and DM if configured)
+  'apprise-only', // Only Apprise
+  'webhook-only', // Only Discord webhook (no DMs)
+  'dm-only', // Only Discord DMs (no webhook)
+  'discord-webhook', // Same as webhook-only for backward compatibility
+  'discord-message', // Same as dm-only for backward compatibility
+  'discord-both', // Both Discord webhook and DMs but no Apprise
+])
+
+// Legacy enum for backward compatibility
 const DeleteSyncNotifyOptionEnum = z.enum([
   'none', // No notifications
   'message', // Legacy option for DM
@@ -92,13 +105,14 @@ export const ConfigSchema = z.object({
   deleteFiles: z.boolean().optional(),
   respectUserSyncSetting: z.boolean().optional(),
   deleteSyncNotify: DeleteSyncNotifyOptionEnum.optional(),
+  approvalNotify: NotifyOptionEnum.optional(),
   deleteSyncNotifyOnlyOnDeletion: z.boolean().optional(),
   maxDeletionPrevention: z.number().optional(),
   // Deletion mode
   deletionMode: DeletionModeEnum.optional(),
   removedTagPrefix: z.string().optional(),
   // Tag removal mode
-  removedTagMode: z.enum(['remove', 'keep', 'special-tag']).default('remove'),
+  removedTagMode: z.enum(['remove', 'keep', 'special-tag']).optional(),
   // Plex Playlist Protection
   enablePlexPlaylistProtection: z.boolean().optional(),
   plexProtectionPlaylistName: z.string().optional(),
@@ -131,6 +145,50 @@ export const ConfigSchema = z.object({
     .optional(),
   // New User Defaults
   newUserDefaultCanSync: z.boolean().optional(),
+  // Quota System Configuration
+  quotaSettings: z
+    .object({
+      // Cleanup configuration
+      cleanup: z
+        .object({
+          enabled: z.boolean().optional(),
+          retentionDays: z.number().min(1).max(365).optional(), // 1 day to 1 year
+        })
+        .optional(),
+      // Weekly rolling quota configuration
+      weeklyRolling: z
+        .object({
+          resetDays: z.number().min(1).max(365).optional(), // 1 day to 1 year
+        })
+        .optional(),
+      // Monthly quota configuration
+      monthly: z
+        .object({
+          resetDay: z.number().min(1).max(31).optional(), // 1st to 31st
+          handleMonthEnd: z
+            .enum(['last-day', 'skip-month', 'next-month'])
+            .optional(),
+        })
+        .optional(),
+    })
+    .optional(),
+  // Approval System Configuration
+  approvalExpiration: z
+    .object({
+      enabled: z.boolean().optional(),
+      // Default expiration time in hours for approval requests
+      defaultExpirationHours: z.number().min(1).max(8760).optional(), // 1 hour to 1 year
+      // What happens when approvals expire
+      expirationAction: z.enum(['expire', 'auto_approve']).optional(),
+      // Per-trigger expiration overrides
+      quotaExceededExpirationHours: z.number().min(1).max(8760).optional(),
+      routerRuleExpirationHours: z.number().min(1).max(8760).optional(),
+      manualFlagExpirationHours: z.number().min(1).max(8760).optional(),
+      contentCriteriaExpirationHours: z.number().min(1).max(8760).optional(),
+      // Maintenance settings
+      cleanupExpiredDays: z.number().min(1).max(365).optional(),
+    })
+    .optional(),
 })
 
 export const ConfigResponseSchema = z.object({

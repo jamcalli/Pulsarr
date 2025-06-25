@@ -14,9 +14,9 @@ import { ChartContainer } from '@/components/ui/chart'
 import { useStatusTransitionData } from '@/features/dashboard/hooks/useChartData'
 
 /**
- * Renders a vertical bar chart visualizing the average, minimum, and maximum time (in minutes) for status transitions from "requested" to "notified" for movies and shows.
+ * Displays a vertical bar chart showing the average, minimum, and maximum time (in minutes) for status transitions from "grabbed" to "notified" for movies and shows.
  *
- * Displays a loading indicator while data is being fetched. The chart includes error bars for min/max ranges, reference lines for min/max values, and a legend for content types and value types.
+ * While data is loading, a loading indicator is shown. The chart includes error bars for min/max ranges, reference lines for min/max values, and a legend distinguishing movies and shows by color and line style.
  */
 export function StatusTransitionsChart() {
   const { data: statusTransitions, isLoading } = useStatusTransitionData()
@@ -39,10 +39,10 @@ export function StatusTransitionsChart() {
 
   // Request to Notify chart data
   const requestToNotifyData = useMemo(() => {
-    // Filter the data to only include requested → notified transitions
+    // Filter the data to only include grabbed → notified transitions
     const filteredData = statusTransitions.filter(
       (transition) =>
-        transition.from_status === 'requested' &&
+        transition.from_status === 'grabbed' &&
         transition.to_status === 'notified',
     )
 

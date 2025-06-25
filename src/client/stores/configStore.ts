@@ -1,20 +1,16 @@
 import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
 import type { Config } from '@root/types/config.types'
+import type { UserWithCount } from '@root/schemas/users/users-list.schema'
+import type { UserQuotasResponseSchema } from '@root/schemas/quota/quota.schema'
+import type { z } from 'zod'
 
-export interface UserWatchlistInfo {
-  id: string
-  name: string
-  apprise: string
-  alias: string | null
-  discord_id: string | null
-  notify_apprise: boolean
-  notify_discord: boolean
-  notify_tautulli: boolean
-  can_sync: boolean
-  created_at: string
-  updated_at: string
-  watchlist_count: number
+export type UserWatchlistInfo = UserWithCount
+
+export type UserQuotas = z.infer<typeof UserQuotasResponseSchema>
+
+export type UserWithQuotaInfo = UserWatchlistInfo & {
+  userQuotas: UserQuotas | null
 }
 
 interface UserListResponse {
@@ -34,6 +30,8 @@ interface ConfigState {
   error: string | null
   isInitialized: boolean
   users: UserWatchlistInfo[] | null
+  usersWithQuota: UserWithQuotaInfo[] | null
+  userQuotasMap: Map<number, UserQuotas | null>
   selfWatchlistCount: number | null
   othersWatchlistInfo: {
     userCount: number
@@ -47,13 +45,15 @@ interface ConfigState {
   refreshRssFeeds: () => Promise<void>
 
   fetchUserData: () => Promise<void>
+  fetchQuotaData: () => Promise<void>
+  refreshQuotaData: () => Promise<void>
   getSelfWatchlistInfo: () => UserWatchlistInfo | null
   getOthersWatchlistInfo: () => {
     users: UserWatchlistInfo[]
     totalCount: number
   } | null
   updateUser: (
-    userId: string,
+    userId: number,
     updates: Partial<UserWatchlistInfo>,
   ) => Promise<void>
   setOpenUtilitiesAccordion: (accordionId: string | null) => void
@@ -68,6 +68,8 @@ export const useConfigStore = create<ConfigState>()(
         error: null,
         isInitialized: false,
         users: null,
+        usersWithQuota: null,
+        userQuotasMap: new Map(),
         selfWatchlistCount: null,
         othersWatchlistInfo: null,
         openUtilitiesAccordion: null,
@@ -162,6 +164,9 @@ export const useConfigStore = create<ConfigState>()(
                       }
                     : null,
               })
+
+              // Fetch quota data after user data is loaded
+              await get().fetchQuotaData()
             } else {
               throw new Error('Failed to fetch user data')
             }
@@ -171,8 +176,121 @@ export const useConfigStore = create<ConfigState>()(
           }
         },
 
+        fetchQuotaData: async () => {
+          try {
+            const state = get()
+            if (!state.users || state.users.length === 0) {
+              return
+            }
+
+            // Fetch quota data for each user individually to get both config and status
+            const userQuotasMap = new Map<number, UserQuotas | null>()
+
+            for (const user of state.users) {
+              try {
+                // Fetch user quota configuration
+                const quotaResponse = await fetch(`/v1/quota/users/${user.id}`)
+                if (quotaResponse.ok) {
+                  const quotaData = await quotaResponse.json()
+                  if (quotaData.success && quotaData.userQuotas) {
+                    const userQuotas = quotaData.userQuotas
+
+                    // Fetch current usage status for movie quota
+                    if (userQuotas.movieQuota) {
+                      try {
+                        const movieStatusResponse = await fetch(
+                          `/v1/quota/users/${user.id}/status?contentType=movie`,
+                        )
+                        if (movieStatusResponse.ok) {
+                          const movieStatusData =
+                            await movieStatusResponse.json()
+                          if (
+                            movieStatusData.success &&
+                            movieStatusData.quotaStatus
+                          ) {
+                            userQuotas.movieQuota.currentUsage =
+                              movieStatusData.quotaStatus.currentUsage
+                            userQuotas.movieQuota.exceeded =
+                              movieStatusData.quotaStatus.exceeded
+                            userQuotas.movieQuota.resetDate =
+                              movieStatusData.quotaStatus.resetDate
+                          }
+                        }
+                      } catch (e) {
+                        console.warn(
+                          'Failed to fetch movie quota status for user',
+                          user.id,
+                          e,
+                        )
+                      }
+                    }
+
+                    // Fetch current usage status for show quota
+                    if (userQuotas.showQuota) {
+                      try {
+                        const showStatusResponse = await fetch(
+                          `/v1/quota/users/${user.id}/status?contentType=show`,
+                        )
+                        if (showStatusResponse.ok) {
+                          const showStatusData = await showStatusResponse.json()
+                          if (
+                            showStatusData.success &&
+                            showStatusData.quotaStatus
+                          ) {
+                            userQuotas.showQuota.currentUsage =
+                              showStatusData.quotaStatus.currentUsage
+                            userQuotas.showQuota.exceeded =
+                              showStatusData.quotaStatus.exceeded
+                            userQuotas.showQuota.resetDate =
+                              showStatusData.quotaStatus.resetDate
+                          }
+                        }
+                      } catch (e) {
+                        console.warn(
+                          'Failed to fetch show quota status for user',
+                          user.id,
+                          e,
+                        )
+                      }
+                    }
+
+                    userQuotasMap.set(user.id, userQuotas)
+                  } else {
+                    userQuotasMap.set(user.id, null)
+                  }
+                } else {
+                  userQuotasMap.set(user.id, null)
+                }
+              } catch (e) {
+                console.warn('Failed to fetch quota data for user', user.id, e)
+                userQuotasMap.set(user.id, null)
+              }
+            }
+
+            // Create users with quota data
+            const usersWithQuota: UserWithQuotaInfo[] = state.users.map(
+              (user) => ({
+                ...user,
+                userQuotas: userQuotasMap.get(user.id) || null,
+              }),
+            )
+
+            set({
+              userQuotasMap,
+              usersWithQuota,
+            })
+          } catch (err) {
+            console.error('Quota data fetch error:', err)
+            // Don't set error state for quota failures, just log
+          }
+        },
+
+        refreshQuotaData: async () => {
+          await get().fetchQuotaData()
+        },
+
         updateUser: async (
-          userId: string,
+          userId: number,
           updates: Partial<UserWatchlistInfo>,
         ) => {
           try {
@@ -188,6 +306,7 @@ export const useConfigStore = create<ConfigState>()(
                 notify_discord: updates.notify_discord,
                 notify_tautulli: updates.notify_tautulli,
                 can_sync: updates.can_sync,
+                requires_approval: updates.requires_approval,
               }),
             })
 

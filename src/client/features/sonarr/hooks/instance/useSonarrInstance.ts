@@ -1,18 +1,18 @@
 import { useCallback } from 'react'
 import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
+import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
 import { useToast } from '@/hooks/use-toast'
 import type { SonarrInstanceSchema } from '@/features/sonarr/store/schemas'
 import type { UseFormReturn } from 'react-hook-form'
 
 /**
- * Provides Sonarr instance data and management handlers for a specific instance ID.
+ * React hook that provides Sonarr instance data and management handlers for a given instance ID.
  *
  * Returns the current Sonarr instance, all instances, and functions to update, delete, and fetch data for the specified instance.
+ * If the last real Sonarr instance is deleted, it is replaced with a default placeholder configuration instead of being removed.
  *
- * @param instanceId - The ID of the Sonarr instance to manage.
+ * @param instanceId - The Sonarr instance ID to manage.
  * @returns An object containing the current instance, all instances, and handlers for updating, deleting, and fetching instance data.
- *
- * @remark If the last real Sonarr instance is deleted, it is replaced with a default placeholder configuration (including `seriesType: 'standard'` and `createSeasonFolders: false`) instead of being removed.
  */
 export function useSonarrInstance(instanceId: number) {
   const { toast } = useToast()
@@ -43,14 +43,14 @@ export function useSonarrInstance(instanceId: number) {
       setTestStatus: (status: 'idle' | 'loading' | 'success' | 'error') => void,
     ) => {
       const isLastRealInstance =
-        instances.filter((i) => i.apiKey !== 'placeholder').length === 1
+        instances.filter((i) => i.apiKey !== API_KEY_PLACEHOLDER).length === 1
 
       try {
         if (isLastRealInstance) {
           const defaultInstance: SonarrInstanceSchema = {
             name: 'Default Sonarr Instance',
             baseUrl: 'http://localhost:8989',
-            apiKey: 'placeholder',
+            apiKey: API_KEY_PLACEHOLDER,
             qualityProfile: '',
             rootFolder: '',
             bypassIgnored: false,

@@ -56,10 +56,12 @@ import type {
   ConditionGroup,
 } from '@root/types/router.types.js'
 import './database/types/analytics-methods.js'
+import './database/types/approval-methods.js'
 import './database/types/config-methods.js'
 import './database/types/instance-methods.js'
 import './database/types/junction-methods.js'
 import './database/types/notification-methods.js'
+import './database/types/quota-methods.js'
 import './database/types/router-methods.js'
 import './database/types/scheduler-methods.js'
 import './database/types/session-methods.js'
@@ -67,9 +69,11 @@ import './database/types/user-methods.js'
 import './database/types/watchlist-methods.js'
 import './database/types/webhook-methods.js'
 import * as analyticsMethods from './database/methods/analytics.js'
+import * as approvalMethods from './database/methods/approval.js'
 import * as configMethods from './database/methods/config.js'
 import * as junctionMethods from './database/methods/junction.js'
 import * as notificationMethods from './database/methods/notification.js'
+import * as quotaMethods from './database/methods/quota.js'
 import * as radarrInstanceMethods from './database/methods/radarr-instance.js'
 import * as routerMethods from './database/methods/router.js'
 import * as schedulerMethods from './database/methods/schedule.js'
@@ -180,9 +184,11 @@ export class DatabaseService {
   private bindMethods(): void {
     const methodModules = [
       analyticsMethods,
+      approvalMethods,
       configMethods,
       junctionMethods,
       notificationMethods,
+      quotaMethods,
       radarrInstanceMethods,
       routerMethods,
       schedulerMethods,
@@ -365,6 +371,14 @@ export class DatabaseService {
    */
   public get timestamp() {
     return new Date().toISOString()
+  }
+
+  /**
+   * Returns a date in YYYY-MM-DD format using server's local timezone
+   * Respects the TZ environment variable set in Docker
+   */
+  public getLocalDateString(date: Date = new Date()): string {
+    return date.toLocaleDateString('sv-SE') // 'sv-SE' gives YYYY-MM-DD format in local timezone
   }
 
   /**
@@ -633,6 +647,10 @@ export class DatabaseService {
     metadata?: string | null
     search_on_add?: number | boolean | null
     season_monitoring?: string | null
+    // Action fields
+    always_require_approval?: number | boolean
+    bypass_user_quotas?: number | boolean
+    approval_reason?: string | null
     created_at: string
     updated_at: string
     [key: string]: unknown
@@ -642,6 +660,10 @@ export class DatabaseService {
       enabled: Boolean(rule.enabled),
       search_on_add:
         rule.search_on_add == null ? null : Boolean(rule.search_on_add),
+      // Action fields
+      always_require_approval: Boolean(rule.always_require_approval ?? false),
+      bypass_user_quotas: Boolean(rule.bypass_user_quotas ?? false),
+      approval_reason: rule.approval_reason ?? null,
       criteria:
         typeof rule.criteria === 'string'
           ? this.safeJsonParse(rule.criteria, {}, 'router_rule.criteria')

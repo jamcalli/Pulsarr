@@ -320,6 +320,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           search_on_add: ruleData.search_on_add,
           season_monitoring: ruleData.season_monitoring,
           series_type: ruleData.series_type,
+          always_require_approval: ruleData.always_require_approval,
+          bypass_user_quotas: ruleData.bypass_user_quotas,
+          approval_reason: ruleData.approval_reason,
         })
 
         // Prepare the rule for database insertion, ensuring required fields have values
@@ -341,6 +344,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           search_on_add: ruleData.search_on_add,
           season_monitoring: ruleData.season_monitoring,
           series_type: ruleData.series_type,
+          always_require_approval: ruleData.always_require_approval,
+          bypass_user_quotas: ruleData.bypass_user_quotas,
+          approval_reason: ruleData.approval_reason,
         }
 
         const createdRule = await fastify.db.createRouterRule(formattedRuleData)
@@ -437,6 +443,13 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           updatesAsRouterRule.season_monitoring = updates.season_monitoring
         if (updates.series_type !== undefined)
           updatesAsRouterRule.series_type = updates.series_type
+        if (updates.always_require_approval !== undefined)
+          updatesAsRouterRule.always_require_approval =
+            updates.always_require_approval
+        if (updates.bypass_user_quotas !== undefined)
+          updatesAsRouterRule.bypass_user_quotas = updates.bypass_user_quotas
+        if (updates.approval_reason !== undefined)
+          updatesAsRouterRule.approval_reason = updates.approval_reason
 
         // Handle quality profile conversion
         if (updates.quality_profile !== undefined) {

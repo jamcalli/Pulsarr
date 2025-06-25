@@ -6,8 +6,12 @@ import {
   type SlashCommandBuilder,
   type InteractionReplyOptions,
   type ChatInputCommandInteraction,
+  type ButtonInteraction,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  MessageFlags,
 } from 'discord.js'
-import { MessageFlags } from 'discord-api-types/v10'
 import type { FastifyBaseLogger, FastifyInstance } from 'fastify'
 import type {
   MediaNotification,
@@ -22,6 +26,10 @@ import {
   handlePlexUsernameModal,
   handleProfileEditModal,
 } from '@root/utils/discord-commands/notifications-command.js'
+import {
+  approvalCommand,
+  handleApprovalButtons,
+} from '@root/utils/discord-commands/approval-command.js'
 
 type BotStatus = 'stopped' | 'starting' | 'running' | 'stopping'
 type CommandHandler = (
@@ -89,15 +97,30 @@ export class DiscordNotificationService {
           })
         },
       })
-      this.log.info('Notification commands initialized')
+
+      this.commands.set('approvals', {
+        data: approvalCommand.data,
+        execute: async (interaction) => {
+          this.log.debug(
+            { userId: interaction.user.id },
+            'Executing approvals command',
+          )
+          await approvalCommand.execute(interaction, {
+            fastify: this.fastify,
+            log: this.log,
+          })
+        },
+      })
+
+      this.log.info('Discord bot commands initialized')
     } catch (error) {
-      this.log.error({ error }, 'Failed to initialize notification commands')
+      this.log.error({ error }, 'Failed to initialize bot commands')
       throw error
     }
   }
 
   private async registerCommands(): Promise<boolean> {
-    this.log.info('Registering Discord application commands')
+    this.log.info('Registering Discord application commands globally')
     try {
       const config = this.botConfig
       const rest = new REST().setToken(config.token)
@@ -106,15 +129,29 @@ export class DiscordNotificationService {
         cmd.data.toJSON(),
       )
 
-      await rest.put(
-        Routes.applicationGuildCommands(config.clientId, config.guildId),
-        { body: commandsData },
-      )
+      // Clear old guild commands first (cleanup from previous registration method)
+      try {
+        await rest.put(
+          Routes.applicationGuildCommands(config.clientId, config.guildId),
+          { body: [] },
+        )
+        this.log.info('Cleared old guild-specific commands')
+      } catch (error) {
+        this.log.warn(
+          { error },
+          'Failed to clear old guild commands (may not exist)',
+        )
+      }
 
-      this.log.info('Successfully registered application commands')
+      // Register commands globally for DM support
+      await rest.put(Routes.applicationCommands(config.clientId), {
+        body: commandsData,
+      })
+
+      this.log.info('Successfully registered global application commands')
       return true
     } catch (error) {
-      this.log.error({ error }, 'Failed to register commands')
+      this.log.error({ error }, 'Failed to register global commands')
       return false
     }
   }
@@ -230,12 +267,24 @@ export class DiscordNotificationService {
         } else if (interaction.isButton()) {
           this.log.debug(
             { buttonId: interaction.customId },
-            'Handling notification button interaction',
+            'Handling button interaction',
           )
-          await handleNotificationButtons(interaction, {
-            fastify: this.fastify,
-            log: this.log,
-          })
+
+          // Route button interactions based on prefix
+          if (interaction.customId.startsWith('approval_')) {
+            await handleApprovalButtons(interaction, {
+              fastify: this.fastify,
+              log: this.log,
+            })
+          } else if (interaction.customId.startsWith('review_approvals_')) {
+            // Handle "Review Approvals" button - trigger the approvals flow
+            await this.handleReviewApprovalsButton(interaction)
+          } else {
+            await handleNotificationButtons(interaction, {
+              fastify: this.fastify,
+              log: this.log,
+            })
+          }
         } else if (interaction.isModalSubmit()) {
           this.log.debug(
             { modalId: interaction.customId },
@@ -705,10 +754,31 @@ export class DiscordNotificationService {
         return false
       }
 
-      await user.send({
+      // Prepare message payload
+      const messagePayload: {
+        content: string
+        embeds: DiscordEmbed[]
+        components?: ActionRowBuilder<ButtonBuilder>[]
+      } = {
         content: `Hey ${user}! 👋`,
         embeds: [embed],
-      })
+      }
+
+      // Add action button if present (only for system notifications)
+      if (notification.type === 'system' && notification.actionButton) {
+        const button = new ButtonBuilder()
+          .setCustomId(notification.actionButton.customId)
+          .setLabel(notification.actionButton.label)
+          .setStyle(ButtonStyle[notification.actionButton.style])
+
+        const actionRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+          button,
+        )
+
+        messagePayload.components = [actionRow]
+      }
+
+      await user.send(messagePayload)
 
       this.log.info(
         `Discord notification sent successfully to ${user.username} for "${notification.title}"`,
@@ -718,6 +788,68 @@ export class DiscordNotificationService {
     } catch (error) {
       this.log.error({ error, discordId }, 'Failed to send direct message')
       return false
+    }
+  }
+
+  /**
+   * Handle "Review Approvals" button click - triggers the approval flow
+   */
+  private async handleReviewApprovalsButton(
+    interaction: ButtonInteraction,
+  ): Promise<void> {
+    try {
+      // Check if user is primary admin
+      const users = await this.fastify.db.getAllUsers()
+      const user = users.find((u) => u.discord_id === interaction.user.id)
+
+      if (!user?.is_primary_token) {
+        await interaction.reply({
+          content: '❌ You are not authorized to review approvals.',
+          flags: MessageFlags.Ephemeral,
+        })
+        return
+      }
+
+      this.log.debug(
+        { userId: interaction.user.id },
+        'Primary admin clicked Review Approvals button',
+      )
+
+      // Get all pending approval requests
+      const pendingApprovals =
+        await this.fastify.db.getPendingApprovalRequests()
+
+      if (pendingApprovals.length === 0) {
+        await interaction.reply({
+          content: '✅ No pending approval requests found!',
+          flags: MessageFlags.Ephemeral,
+        })
+        return
+      }
+
+      // Import and use the showApprovalAtIndex function directly
+      const { showApprovalAtIndex } = await import(
+        '@root/utils/discord-commands/approval-command.js'
+      )
+
+      // Start with the first approval (index 0) - make it ephemeral
+      await showApprovalAtIndex(
+        interaction,
+        0,
+        pendingApprovals,
+        this.fastify,
+        this.log,
+        true,
+      )
+    } catch (error) {
+      this.log.error({ error }, 'Error handling review approvals button')
+
+      if (!interaction.replied) {
+        await interaction.reply({
+          content: '❌ Error starting approval review',
+          flags: MessageFlags.Ephemeral,
+        })
+      }
     }
   }
 

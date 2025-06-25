@@ -16,16 +16,19 @@ interface UserRow {
   notify_tautulli: boolean | number
   tautulli_notifier_id: number | null
   can_sync: boolean | number
+  requires_approval: boolean | number
   is_primary_token: boolean | number
   created_at: string
   updated_at: string
 }
 
 /**
- * Converts a UserRow database record into a User object with proper boolean field mapping.
+ * Converts a UserRow database record into a User object, normalizing boolean fields.
+ *
+ * Ensures that fields such as notification flags, sync permissions, approval requirements, and primary token status are represented as booleans in the returned User object.
  *
  * @param row - The UserRow database record to convert
- * @returns The corresponding User object
+ * @returns The corresponding User object with normalized fields
  */
 function mapRowToUser(row: UserRow): User {
   return {
@@ -39,6 +42,7 @@ function mapRowToUser(row: UserRow): User {
     notify_tautulli: Boolean(row.notify_tautulli),
     tautulli_notifier_id: row.tautulli_notifier_id,
     can_sync: Boolean(row.can_sync),
+    requires_approval: Boolean(row.requires_approval),
     is_primary_token: Boolean(row.is_primary_token),
     created_at: row.created_at,
     updated_at: row.updated_at,
@@ -366,7 +370,7 @@ export async function updateAdminPassword(
 }
 
 /**
- * Determines whether any users have synchronization disabled.
+ * Checks if any user has synchronization disabled.
  *
  * Returns `true` if at least one user has `can_sync` set to false, or if an error occurs during the check; otherwise, returns `false`.
  */
@@ -383,6 +387,53 @@ export async function hasUsersWithSyncDisabled(
   } catch (error) {
     this.log.error('Error checking for users with sync disabled:', error)
     return true
+  }
+}
+
+/**
+ * Determines whether any users or system configurations require approval or quota processing.
+ *
+ * Returns `true` if at least one user has `requires_approval` enabled, if any user quotas exist, or if any router rules are configured to require approval or bypass user quotas. Returns `true` on error as a conservative default.
+ *
+ * @returns `true` if approval or quota configuration is present; otherwise, `false`.
+ */
+export async function hasUsersWithApprovalConfig(
+  this: DatabaseService,
+): Promise<boolean> {
+  try {
+    // Check if any users have requires_approval = true
+    const usersRequiringApproval = await this.knex('users')
+      .where({ requires_approval: true })
+      .count('* as count')
+      .first()
+
+    if (Number(usersRequiringApproval?.count || 0) > 0) {
+      return true
+    }
+
+    // Check if any user quotas exist
+    const quotaCount = await this.knex('user_quotas')
+      .count('* as count')
+      .first()
+
+    if (Number(quotaCount?.count || 0) > 0) {
+      return true
+    }
+
+    // Check if any router rules have approval actions enabled
+    const approvalRulesCount = await this.knex('router_rules')
+      .where({ always_require_approval: true })
+      .orWhere({ bypass_user_quotas: true })
+      .count('* as count')
+      .first()
+
+    return Number(approvalRulesCount?.count || 0) > 0
+  } catch (error) {
+    this.log.error(
+      'Error checking for users with approval configuration:',
+      error,
+    )
+    return true // Conservative: assume we have approval config on error
   }
 }
 

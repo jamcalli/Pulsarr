@@ -27,6 +27,8 @@ const buttonVariants = cva(
             'text-mtext bg-blue border-2 border-border',
         cancel:
             'text-mtext bg-fun border-2 border-border',
+        approveNoShadow: 'text-black bg-green-500 border-2 border-border',
+        rejectNoShadow: 'text-black bg-red-500 border-2 border-border',
       },
       size: {
         default: 'h-10 px-4 py-2',
