@@ -1,6 +1,7 @@
 import type { DatabaseService } from '@services/database.service.js'
 import type {
   UserQuotaConfig,
+  UserQuotaConfigs,
   UserQuotaRow,
   QuotaUsage,
   QuotaUsageRow,
@@ -17,6 +18,7 @@ import type {
 function mapRowToUserQuotaConfig(row: UserQuotaRow): UserQuotaConfig {
   return {
     userId: row.user_id,
+    contentType: row.content_type,
     quotaType: row.quota_type,
     quotaLimit: row.quota_limit,
     bypassApproval: Boolean(row.bypass_approval),
@@ -105,6 +107,7 @@ export async function createUserQuota(
   const [row] = await this.knex('user_quotas')
     .insert({
       user_id: data.userId,
+      content_type: data.contentType,
       quota_type: data.quotaType,
       quota_limit: data.quotaLimit,
       bypass_approval: data.bypassApproval || false,
@@ -117,28 +120,55 @@ export async function createUserQuota(
 }
 
 /**
- * Gets a user's quota configuration
+ * Gets a user's quota configuration for specific content type
  */
 export async function getUserQuota(
   this: DatabaseService,
   userId: number,
+  contentType: 'movie' | 'show',
 ): Promise<UserQuotaConfig | null> {
-  const row = await this.knex('user_quotas').where('user_id', userId).first()
+  const row = await this.knex('user_quotas')
+    .where('user_id', userId)
+    .where('content_type', contentType)
+    .first()
   return row ? mapRowToUserQuotaConfig(row) : null
 }
 
 /**
- * Updates a user's quota configuration
+ * Gets all quota configurations for a user (both movie and show)
+ */
+export async function getUserQuotas(
+  this: DatabaseService,
+  userId: number,
+): Promise<UserQuotaConfigs> {
+  const rows = await this.knex('user_quotas')
+    .where('user_id', userId)
+    .select('*')
+
+  const movieQuota = rows.find((row) => row.content_type === 'movie')
+  const showQuota = rows.find((row) => row.content_type === 'show')
+
+  return {
+    userId,
+    movieQuota: movieQuota ? mapRowToUserQuotaConfig(movieQuota) : undefined,
+    showQuota: showQuota ? mapRowToUserQuotaConfig(showQuota) : undefined,
+  }
+}
+
+/**
+ * Updates a user's quota configuration for specific content type
  */
 export async function updateUserQuota(
   this: DatabaseService,
   userId: number,
+  contentType: 'movie' | 'show',
   data: UpdateUserQuotaData,
 ): Promise<UserQuotaConfig | null> {
   const updateData: Partial<UserQuotaRow> = {
     updated_at: this.timestamp,
   }
 
+  if (data.contentType !== undefined) updateData.content_type = data.contentType
   if (data.quotaType !== undefined) updateData.quota_type = data.quotaType
   if (data.quotaLimit !== undefined) updateData.quota_limit = data.quotaLimit
   if (data.bypassApproval !== undefined)
@@ -146,6 +176,7 @@ export async function updateUserQuota(
 
   const [row] = await this.knex('user_quotas')
     .where('user_id', userId)
+    .where('content_type', contentType)
     .update(updateData)
     .returning('*')
 
@@ -153,9 +184,24 @@ export async function updateUserQuota(
 }
 
 /**
- * Deletes a user's quota configuration
+ * Deletes a user's quota configuration for specific content type
  */
 export async function deleteUserQuota(
+  this: DatabaseService,
+  userId: number,
+  contentType: 'movie' | 'show',
+): Promise<boolean> {
+  const deletedCount = await this.knex('user_quotas')
+    .where('user_id', userId)
+    .where('content_type', contentType)
+    .del()
+  return deletedCount > 0
+}
+
+/**
+ * Deletes all quota configurations for a user
+ */
+export async function deleteAllUserQuotas(
   this: DatabaseService,
   userId: number,
 ): Promise<boolean> {
@@ -219,9 +265,9 @@ export async function getCurrentQuotaUsage(
 export async function getQuotaStatus(
   this: DatabaseService,
   userId: number,
-  contentType?: 'movie' | 'show',
+  contentType: 'movie' | 'show',
 ): Promise<QuotaStatus | null> {
-  const quota = await this.getUserQuota(userId)
+  const quota = await this.getUserQuota(userId, contentType)
   if (!quota) {
     return null
   }
@@ -370,6 +416,10 @@ export async function checkQuotaExceeded(
   userId: number,
   contentType?: 'movie' | 'show',
 ): Promise<QuotaExceeded | null> {
+  if (!contentType) {
+    return null
+  }
+
   const status = await this.getQuotaStatus(userId, contentType)
   if (!status || !status.exceeded) {
     return null
@@ -578,40 +628,15 @@ export async function getNextMaintenanceRun(
 }
 
 /**
- * Gets the start date for weekly rolling quotas based on the most recent reset
+ * Gets the start date for weekly rolling quotas (7 days ago)
  */
 export async function getWeeklyRollingStartDate(
   this: DatabaseService,
 ): Promise<Date> {
-  // Get any weekly rolling user and find the most recent reset
-  const weeklyQuotas = await this.getUsersWithQuotaType('weekly_rolling')
-  if (weeklyQuotas.length === 0) {
-    // No weekly rolling users, return fallback
-    const fallbackDate = new Date()
-    fallbackDate.setDate(fallbackDate.getDate() - 6)
-    return fallbackDate
-  }
-
-  // Find the most recent reset among all weekly rolling users
-  let mostRecentReset: Date | null = null
-  for (const quota of weeklyQuotas) {
-    const lastReset = await this.getLastQuotaReset(quota.userId)
-    if (lastReset) {
-      const resetDate = new Date(lastReset)
-      if (!mostRecentReset || resetDate > mostRecentReset) {
-        mostRecentReset = resetDate
-      }
-    }
-  }
-
-  if (mostRecentReset) {
-    return mostRecentReset
-  }
-
-  // If no reset found, start from 7 days ago as fallback
-  const fallbackDate = new Date()
-  fallbackDate.setDate(fallbackDate.getDate() - 6)
-  return fallbackDate
+  // Weekly rolling quotas use a simple 7-day rolling window
+  const startDate = new Date()
+  startDate.setDate(startDate.getDate() - 6) // 7 days total including today
+  return startDate
 }
 
 /**
@@ -640,40 +665,4 @@ export async function getLatestQuotaUsage(
     .first()
 
   return row ? mapRowToQuotaUsage(row) : null
-}
-
-/**
- * Gets the last quota reset date for a user
- */
-export async function getLastQuotaReset(
-  this: DatabaseService,
-  userId: number,
-): Promise<string | null> {
-  // For now, we'll use a simple approach by checking if there's usage in the current month
-  // In a more robust implementation, you might want a separate quota_resets table
-  const now = new Date()
-  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-
-  const row = await this.knex('quota_usage')
-    .where('user_id', userId)
-    .where('request_date', 'like', `${currentMonth}%`)
-    .orderBy('request_date', 'desc')
-    .first()
-
-  return row ? row.request_date : null
-}
-
-/**
- * Records a quota reset for a user
- */
-export async function recordQuotaReset(
-  this: DatabaseService,
-  userId: number,
-  resetPeriod: string,
-): Promise<void> {
-  // For now, we'll just log the reset
-  // In a more robust implementation, you might want a separate quota_resets table
-  this.log.info(
-    `Recording quota reset for user ${userId} in period ${resetPeriod}`,
-  )
 }

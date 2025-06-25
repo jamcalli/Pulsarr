@@ -35,16 +35,20 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { useMediaQuery } from '@/hooks/use-media-query'
-import { QuotaStatusCard } from '@/features/plex/components/user/quota-status-card'
 import type { UserWithQuotaInfo } from '@/stores/configStore'
 import { z } from 'zod'
 
-// Form schema that handles both create and update scenarios
+// Form schema for dual quota configuration
 const QuotaFormSchema = z.object({
-  hasQuota: z.boolean(),
-  quotaType: z.enum(['daily', 'weekly_rolling', 'monthly']).optional(),
-  quotaLimit: z.coerce.number().min(1).max(1000).optional(),
-  bypassApproval: z.boolean().default(false),
+  hasMovieQuota: z.boolean(),
+  movieQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']).optional(),
+  movieQuotaLimit: z.coerce.number().min(1).max(1000).optional(),
+  movieBypassApproval: z.boolean().default(false),
+
+  hasShowQuota: z.boolean(),
+  showQuotaType: z.enum(['daily', 'weekly_rolling', 'monthly']).optional(),
+  showQuotaLimit: z.coerce.number().min(1).max(1000).optional(),
+  showBypassApproval: z.boolean().default(false),
 })
 
 type QuotaFormData = z.infer<typeof QuotaFormSchema>
@@ -70,117 +74,238 @@ const FormContent = React.memo(
     handleOpenChange,
     saveStatus,
     isFormDirty,
-    user,
+    user: _user,
   }: FormContentProps) => {
-    const hasQuota = form.watch('hasQuota')
+    const hasMovieQuota = form.watch('hasMovieQuota')
+    const hasShowQuota = form.watch('hasShowQuota')
 
     return (
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
           <div className="space-y-4">
-            {/* Current Status Display */}
-            <QuotaStatusCard quotaStatus={user?.quotaStatus} />
+            {/* Movie Quota Section */}
+            <div
+              className="space-y-4 border-l-2 pl-4"
+              style={{ borderColor: 'var(--color-movie)' }}
+            >
+              <h4 className="font-medium text-text">Movie Quotas</h4>
 
-            {/* Enable/Disable Quota */}
-            <FormField
-              control={form.control}
-              name="hasQuota"
-              render={({ field }) => (
-                <FormItem>
-                  <div className="flex items-center justify-between">
-                    <FormLabel className="text-text">Enable Quota</FormLabel>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        disabled={saveStatus.type !== 'idle'}
-                      />
-                    </FormControl>
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Quota Configuration - Only show if hasQuota is enabled */}
-            {hasQuota && (
-              <>
-                {/* Quota Type */}
-                <FormField
-                  control={form.control}
-                  name="quotaType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-text">Quota Type</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value}
-                        disabled={saveStatus.type !== 'idle'}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select quota type" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="daily">Daily</SelectItem>
-                          <SelectItem value="weekly_rolling">
-                            Weekly Rolling
-                          </SelectItem>
-                          <SelectItem value="monthly">Monthly</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {/* Quota Limit */}
-                <FormField
-                  control={form.control}
-                  name="quotaLimit"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-text">Quota Limit</FormLabel>
+              {/* Enable/Disable Movie Quota */}
+              <FormField
+                control={form.control}
+                name="hasMovieQuota"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex items-center justify-between">
+                      <FormLabel className="text-text">
+                        Enable Movie Quota
+                      </FormLabel>
                       <FormControl>
-                        <Input
-                          type="number"
-                          placeholder="10"
-                          min="1"
-                          max="1000"
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
                           disabled={saveStatus.type !== 'idle'}
-                          {...field}
                         />
                       </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                {/* Auto-Approve Exceeded Quotas */}
-                <FormField
-                  control={form.control}
-                  name="bypassApproval"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="flex items-center justify-between">
+              {/* Movie Quota Configuration */}
+              {hasMovieQuota && (
+                <>
+                  <FormField
+                    control={form.control}
+                    name="movieQuotaType"
+                    render={({ field }) => (
+                      <FormItem>
                         <FormLabel className="text-text">
-                          Auto-Approve When Exceeded
+                          Movie Quota Type
+                        </FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          disabled={saveStatus.type !== 'idle'}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select quota type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="daily">Daily</SelectItem>
+                            <SelectItem value="weekly_rolling">
+                              Weekly Rolling
+                            </SelectItem>
+                            <SelectItem value="monthly">Monthly</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="movieQuotaLimit"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-text">
+                          Movie Quota Limit
                         </FormLabel>
                         <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
+                          <Input
+                            type="number"
+                            placeholder="10"
+                            min="1"
+                            max="1000"
                             disabled={saveStatus.type !== 'idle'}
+                            {...field}
                           />
                         </FormControl>
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </>
-            )}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="movieBypassApproval"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center justify-between">
+                          <FormLabel className="text-text">
+                            Auto-Approve Movies When Exceeded
+                          </FormLabel>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              disabled={saveStatus.type !== 'idle'}
+                            />
+                          </FormControl>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </>
+              )}
+            </div>
+
+            {/* Show Quota Section */}
+            <div
+              className="space-y-4 border-l-2 pl-4"
+              style={{ borderColor: 'var(--color-show)' }}
+            >
+              <h4 className="font-medium text-text">Show Quotas</h4>
+
+              {/* Enable/Disable Show Quota */}
+              <FormField
+                control={form.control}
+                name="hasShowQuota"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex items-center justify-between">
+                      <FormLabel className="text-text">
+                        Enable Show Quota
+                      </FormLabel>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          disabled={saveStatus.type !== 'idle'}
+                        />
+                      </FormControl>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Show Quota Configuration */}
+              {hasShowQuota && (
+                <>
+                  <FormField
+                    control={form.control}
+                    name="showQuotaType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-text">
+                          Show Quota Type
+                        </FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          disabled={saveStatus.type !== 'idle'}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select quota type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="daily">Daily</SelectItem>
+                            <SelectItem value="weekly_rolling">
+                              Weekly Rolling
+                            </SelectItem>
+                            <SelectItem value="monthly">Monthly</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="showQuotaLimit"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-text">
+                          Show Quota Limit
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="10"
+                            min="1"
+                            max="1000"
+                            disabled={saveStatus.type !== 'idle'}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="showBypassApproval"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center justify-between">
+                          <FormLabel className="text-text">
+                            Auto-Approve Shows When Exceeded
+                          </FormLabel>
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                              disabled={saveStatus.type !== 'idle'}
+                            />
+                          </FormControl>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </>
+              )}
+            </div>
           </div>
 
           <div className="flex justify-end gap-2">
@@ -255,22 +380,32 @@ export function QuotaEditModal({
   const form = useForm<QuotaFormData>({
     resolver: zodResolver(QuotaFormSchema),
     defaultValues: {
-      hasQuota: false,
-      quotaType: 'monthly',
-      quotaLimit: 10,
-      bypassApproval: false,
+      hasMovieQuota: false,
+      movieQuotaType: 'monthly',
+      movieQuotaLimit: 10,
+      movieBypassApproval: false,
+      hasShowQuota: false,
+      showQuotaType: 'monthly',
+      showQuotaLimit: 10,
+      showBypassApproval: false,
     },
   })
 
   // Reset form when user changes or modal opens
   useEffect(() => {
     if (user && isOpen) {
-      const hasQuota = !!user.quotaStatus
+      const movieQuota = user.userQuotas?.movieQuota
+      const showQuota = user.userQuotas?.showQuota
+
       form.reset({
-        hasQuota,
-        quotaType: user.quotaStatus?.quotaType || 'monthly',
-        quotaLimit: user.quotaStatus?.quotaLimit || 10,
-        bypassApproval: user.quotaStatus?.bypassApproval || false,
+        hasMovieQuota: !!movieQuota,
+        movieQuotaType: movieQuota?.quotaType || 'monthly',
+        movieQuotaLimit: movieQuota?.quotaLimit || 10,
+        movieBypassApproval: movieQuota?.bypassApproval || false,
+        hasShowQuota: !!showQuota,
+        showQuotaType: showQuota?.quotaType || 'monthly',
+        showQuotaLimit: showQuota?.quotaLimit || 10,
+        showBypassApproval: showQuota?.bypassApproval || false,
       })
     }
   }, [user, isOpen, form])
@@ -310,7 +445,8 @@ export function QuotaEditModal({
           <SheetHeader>
             <SheetTitle className="text-text">Edit Quota Settings</SheetTitle>
             <SheetDescription>
-              Configure usage limits and approval settings for {user.name}
+              Configure separate usage limits for movies and shows for{' '}
+              {user.name}
             </SheetDescription>
           </SheetHeader>
           <div className="mt-6">
@@ -332,7 +468,7 @@ export function QuotaEditModal({
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="sm:max-w-md"
+        className="sm:max-w-2xl"
         onPointerDownOutside={(e) => {
           if (saveStatus.type === 'loading') {
             e.preventDefault()

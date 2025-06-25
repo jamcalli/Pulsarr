@@ -85,7 +85,7 @@ export const CreateApprovalRequestSchema = z.object({
   routerRuleId: z.number().optional(),
   approvalReason: z.string().optional(),
   triggeredBy: ApprovalTriggerSchema,
-  expiresAt: z.string().datetime().optional(),
+  expiresAt: z.string().optional(),
 })
 
 export const UpdateApprovalRequestSchema = z.object({
@@ -110,14 +110,14 @@ export const ApprovalRequestResponseSchema = z.object({
   status: ApprovalStatusSchema,
   approvedBy: z.number().nullable(),
   approvalNotes: z.string().nullable(),
-  expiresAt: z.string().datetime().nullable(),
+  expiresAt: z.string().nullable(),
   // Dynamic expiration fields based on current config
   isExpired: z.boolean().optional(),
   expirationStatus: z.enum(['active', 'expiring_soon', 'expired']).optional(),
   expirationDisplayText: z.string().optional(),
   timeUntilExpiration: z.number().nullable().optional(),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
 })
 
 export const GetApprovalRequestsQuerySchema = z.object({

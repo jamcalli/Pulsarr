@@ -86,11 +86,14 @@ export default function UserTableSection() {
   }
 
   const handleSaveQuota = async (formData: {
-    hasQuota: boolean
-    quotaType?: 'daily' | 'weekly_rolling' | 'monthly'
-    quotaLimit?: number
-    resetDay?: number
-    bypassApproval: boolean
+    hasMovieQuota: boolean
+    movieQuotaType?: 'daily' | 'weekly_rolling' | 'monthly'
+    movieQuotaLimit?: number
+    movieBypassApproval: boolean
+    hasShowQuota: boolean
+    showQuotaType?: 'daily' | 'weekly_rolling' | 'monthly'
+    showQuotaLimit?: number
+    showBypassApproval: boolean
   }) => {
     if (!selectedQuotaUser) return
 

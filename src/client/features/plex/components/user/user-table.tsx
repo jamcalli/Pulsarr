@@ -239,45 +239,54 @@ export default function UserTable({
       ),
     },
     {
-      accessorKey: 'quotaStatus.quotaType',
+      accessorKey: 'userQuotas.movieQuota.quotaType',
       meta: {
         displayName: 'Quota Type',
       },
       header: () => <div className="text-center">Quota Type</div>,
       cell: ({ row }) => {
-        const quotaStatus = row.original.quotaStatus
-        if (!quotaStatus) {
+        const userQuotas = row.original.userQuotas
+        if (!userQuotas || (!userQuotas.movieQuota && !userQuotas.showQuota)) {
           return (
             <div className="text-center">
               <span className="text-sm text-muted-foreground">None</span>
             </div>
           )
         }
+
+        const types = []
+        if (userQuotas.movieQuota)
+          types.push(`M:${formatQuotaType(userQuotas.movieQuota.quotaType)}`)
+        if (userQuotas.showQuota)
+          types.push(`S:${formatQuotaType(userQuotas.showQuota.quotaType)}`)
+
         return (
           <div className="text-center">
-            <span className="text-sm font-medium">
-              {formatQuotaType(quotaStatus.quotaType)}
-            </span>
+            <span className="text-sm font-medium">{types.join(', ')}</span>
           </div>
         )
       },
     },
     {
-      accessorKey: 'quotaStatus.quotaLimit',
+      accessorKey: 'userQuotas.movieQuota.quotaLimit',
       meta: {
         displayName: 'Quota Limit',
       },
       header: () => <div className="text-center">Quota Limit</div>,
       cell: ({ row }) => {
-        const quotaStatus = row.original.quotaStatus
-        if (!quotaStatus) {
+        const userQuotas = row.original.userQuotas
+        if (!userQuotas || (!userQuotas.movieQuota && !userQuotas.showQuota)) {
           return (
             <div className="text-center">
               <span className="text-sm text-muted-foreground">-</span>
             </div>
           )
         }
-        if (quotaStatus.bypassApproval) {
+
+        const hasAutoApprove =
+          userQuotas.movieQuota?.bypassApproval ||
+          userQuotas.showQuota?.bypassApproval
+        if (hasAutoApprove) {
           return (
             <div className="text-center">
               <span className="text-sm font-medium text-blue-600">
@@ -286,26 +295,31 @@ export default function UserTable({
             </div>
           )
         }
+
+        const limits = []
+        if (userQuotas.movieQuota)
+          limits.push(`M:${userQuotas.movieQuota.quotaLimit}`)
+        if (userQuotas.showQuota)
+          limits.push(`S:${userQuotas.showQuota.quotaLimit}`)
+
         return (
           <div className="text-center">
-            <span className="text-sm font-medium">
-              {quotaStatus.quotaLimit}
-            </span>
+            <span className="text-sm font-medium">{limits.join(', ')}</span>
           </div>
         )
       },
     },
     {
-      accessorKey: 'quotaStatus.currentUsage',
+      accessorKey: 'userQuotas.movieQuota.currentUsage',
       meta: {
         displayName: 'Quota Usage',
       },
       header: () => <div className="text-center">Usage</div>,
       cell: ({ row }) => {
-        const quotaStatus = row.original.quotaStatus
+        const userQuotas = row.original.userQuotas
         return (
           <div className="text-center">
-            <QuotaStatusBadge quotaStatus={quotaStatus} />
+            <QuotaStatusBadge userQuotas={userQuotas} />
           </div>
         )
       },

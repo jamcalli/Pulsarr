@@ -1257,6 +1257,20 @@ export class ContentRouterService {
         syncing,
       )
 
+      // Record quota usage if user has quotas enabled and routing was successful
+      // Only count once per content item regardless of how many instances it was routed to
+      if (userId && userId > 0 && !syncing && routedInstances.length > 0) {
+        const recorded = await this.fastify.quotaService.recordUsage(
+          userId,
+          contentType,
+        )
+        if (recorded) {
+          this.log.info(
+            `Recorded quota usage for user ${userId}: ${item.title}`,
+          )
+        }
+      }
+
       return routedInstances
     } catch (error) {
       this.log.error(`Error in default routing for ${item.title}:`, error)
@@ -1393,7 +1407,10 @@ export class ContentRouterService {
       }
 
       // PRIORITY 3: Quota exceeded (resource management)
-      const userQuota = await this.fastify.db.getUserQuota(context.userId)
+      const userQuota = await this.fastify.db.getUserQuota(
+        context.userId,
+        item.type,
+      )
       const userBypassesQuotas = userQuota?.bypassApproval || false
 
       const quotaStatus = await this.fastify.quotaService.getUserQuotaStatus(

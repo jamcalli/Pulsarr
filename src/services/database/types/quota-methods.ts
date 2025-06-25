@@ -1,5 +1,6 @@
 import type {
   UserQuotaConfig,
+  UserQuotaConfigs,
   QuotaUsage,
   QuotaStatus,
   QuotaType,
@@ -19,29 +20,53 @@ declare module '@services/database.service.js' {
     createUserQuota(data: CreateUserQuotaData): Promise<UserQuotaConfig>
 
     /**
-     * Gets a user's quota configuration
+     * Gets a user's quota configuration for specific content type
      * @param userId - User ID
+     * @param contentType - Content type (movie or show)
      * @returns Promise resolving to the quota config if found, null otherwise
      */
-    getUserQuota(userId: number): Promise<UserQuotaConfig | null>
+    getUserQuota(
+      userId: number,
+      contentType: 'movie' | 'show',
+    ): Promise<UserQuotaConfig | null>
 
     /**
-     * Updates a user's quota configuration
+     * Gets all quota configurations for a user (both movie and show)
      * @param userId - User ID
+     * @returns Promise resolving to both quota configs
+     */
+    getUserQuotas(userId: number): Promise<UserQuotaConfigs>
+
+    /**
+     * Updates a user's quota configuration for specific content type
+     * @param userId - User ID
+     * @param contentType - Content type (movie or show)
      * @param data - Update data
      * @returns Promise resolving to the updated quota config if found, null otherwise
      */
     updateUserQuota(
       userId: number,
+      contentType: 'movie' | 'show',
       data: UpdateUserQuotaData,
     ): Promise<UserQuotaConfig | null>
 
     /**
-     * Deletes a user's quota configuration
+     * Deletes a user's quota configuration for specific content type
+     * @param userId - User ID
+     * @param contentType - Content type (movie or show)
+     * @returns Promise resolving to true if deleted, false if not found
+     */
+    deleteUserQuota(
+      userId: number,
+      contentType: 'movie' | 'show',
+    ): Promise<boolean>
+
+    /**
+     * Deletes all quota configurations for a user
      * @param userId - User ID
      * @returns Promise resolving to true if deleted, false if not found
      */
-    deleteUserQuota(userId: number): Promise<boolean>
+    deleteAllUserQuotas(userId: number): Promise<boolean>
 
     /**
      * Records quota usage for a user
@@ -72,12 +97,12 @@ declare module '@services/database.service.js' {
     /**
      * Gets quota status for a user including current usage and limits
      * @param userId - User ID
-     * @param contentType - Optional content type filter
+     * @param contentType - Content type (movie or show)
      * @returns Promise resolving to quota status if user has quotas, null otherwise
      */
     getQuotaStatus(
       userId: number,
-      contentType?: 'movie' | 'show',
+      contentType: 'movie' | 'show',
     ): Promise<QuotaStatus | null>
 
     /**
@@ -182,28 +207,13 @@ declare module '@services/database.service.js' {
     getLatestQuotaUsage(userId: number): Promise<QuotaUsage | null>
 
     /**
-     * Gets the last quota reset date for a user
-     * @param userId - User ID
-     * @returns Promise resolving to the last reset date string if found, null otherwise
-     */
-    getLastQuotaReset(userId: number): Promise<string | null>
-
-    /**
-     * Records a quota reset for a user
-     * @param userId - User ID
-     * @param resetPeriod - The reset period identifier (e.g., "2025-01")
-     * @returns Promise that resolves when the reset is recorded
-     */
-    recordQuotaReset(userId: number, resetPeriod: string): Promise<void>
-
-    /**
      * Gets the next scheduled maintenance run time from the quota-maintenance schedule
      * @returns Promise resolving to the next maintenance run date if available, undefined otherwise
      */
     getNextMaintenanceRun(): Promise<Date | undefined>
 
     /**
-     * Gets the start date for weekly rolling quotas based on the most recent reset
+     * Gets the start date for weekly rolling quotas (7 days ago)
      * @returns Promise resolving to the start date for weekly rolling quotas
      */
     getWeeklyRollingStartDate(): Promise<Date>

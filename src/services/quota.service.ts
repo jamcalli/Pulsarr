@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import type {
   UserQuotaConfig,
+  UserQuotaConfigs,
   QuotaStatus,
   QuotaType,
   CreateUserQuotaData,
@@ -11,23 +12,42 @@ export class QuotaService {
   constructor(private fastify: FastifyInstance) {}
 
   /**
-   * Sets up default quota for a new user
+   * Sets up default quotas for a new user (both movie and show)
    */
-  async setupDefaultQuota(
+  async setupDefaultQuotas(
     userId: number,
     quotaType: QuotaType = 'monthly',
-    quotaLimit = 10,
-  ): Promise<UserQuotaConfig> {
-    const data: CreateUserQuotaData = {
+    movieQuotaLimit = 10,
+    showQuotaLimit = 10,
+  ): Promise<UserQuotaConfigs> {
+    const movieData: CreateUserQuotaData = {
       userId,
+      contentType: 'movie',
       quotaType,
-      quotaLimit,
+      quotaLimit: movieQuotaLimit,
+      bypassApproval: false,
+    }
+
+    const showData: CreateUserQuotaData = {
+      userId,
+      contentType: 'show',
+      quotaType,
+      quotaLimit: showQuotaLimit,
       bypassApproval: false,
     }
 
     // Reset timing is controlled by global maintenance schedule, not per-user settings
 
-    return this.fastify.db.createUserQuota(data)
+    const [movieQuota, showQuota] = await Promise.all([
+      this.fastify.db.createUserQuota(movieData),
+      this.fastify.db.createUserQuota(showData),
+    ])
+
+    return {
+      userId,
+      movieQuota,
+      showQuota,
+    }
   }
 
   /**
@@ -61,7 +81,7 @@ export class QuotaService {
    */
   async getUserQuotaStatus(
     userId: number,
-    contentType?: 'movie' | 'show',
+    contentType: 'movie' | 'show',
   ): Promise<QuotaStatus | null> {
     return this.fastify.db.getQuotaStatus(userId, contentType)
   }
@@ -71,7 +91,7 @@ export class QuotaService {
    */
   async wouldExceedQuota(
     userId: number,
-    contentType?: 'movie' | 'show',
+    contentType: 'movie' | 'show',
   ): Promise<boolean> {
     const status = await this.fastify.db.getQuotaStatus(userId, contentType)
     if (!status) {
@@ -92,6 +112,10 @@ export class QuotaService {
     userId: number,
     contentType?: 'movie' | 'show',
   ): Promise<number> {
+    if (!contentType) {
+      return Number.POSITIVE_INFINITY // No content type specified
+    }
+
     const status = await this.fastify.db.getQuotaStatus(userId, contentType)
     if (!status) {
       return Number.POSITIVE_INFINITY // No quota configured
@@ -115,6 +139,14 @@ export class QuotaService {
     displayText: string
     warningLevel: 'none' | 'warning' | 'danger'
   }> {
+    if (!contentType) {
+      return {
+        status: null,
+        displayText: 'No content type specified',
+        warningLevel: 'none',
+      }
+    }
+
     const status = await this.fastify.db.getQuotaStatus(userId, contentType)
 
     if (!status) {
@@ -183,12 +215,21 @@ export class QuotaService {
 
     for (const userId of userIds) {
       try {
-        const result = await this.fastify.db.updateUserQuota(userId, updates)
-        if (result) {
+        // Update both movie and show quotas
+        const [movieResult, showResult] = await Promise.all([
+          this.fastify.db
+            .updateUserQuota(userId, 'movie', updates)
+            .catch(() => null),
+          this.fastify.db
+            .updateUserQuota(userId, 'show', updates)
+            .catch(() => null),
+        ])
+
+        if (movieResult || showResult) {
           results.updated++
         } else {
           results.failed.push(userId)
-          results.errors.push(`User ${userId} quota not found`)
+          results.errors.push(`User ${userId} quotas not found`)
         }
       } catch (error) {
         results.failed.push(userId)
@@ -252,7 +293,7 @@ export class QuotaService {
   }
 
   /**
-   * Performs maintenance tasks like cleanup and quota resets
+   * Performs maintenance tasks like cleanup of old quota usage records
    */
   async performMaintenance(): Promise<void> {
     try {
@@ -263,20 +304,20 @@ export class QuotaService {
   }
 
   /**
-   * Performs all quota maintenance including resets and cleanup
+   * Performs quota maintenance - primarily cleanup of old usage records
    *
    * This runs on the admin-configured schedule and handles:
-   * - Daily quota resets (every time maintenance runs)
-   * - Monthly quota resets (based on configuration)
-   * - Weekly rolling quota resets (based on configuration)
    * - Cleanup of old usage records (if enabled in configuration)
+   * - Logging of quota status for monitoring
+   *
+   * Note: Quotas automatically "reset" via date range calculations, no manual reset needed.
    */
   async performAllQuotaMaintenance(): Promise<void> {
     const now = new Date()
     const config = this.fastify.config?.quotaSettings
 
-    // Handle quota resets based on current date and configuration
-    await this.handleQuotaResets(now)
+    // Log quota status for monitoring
+    await this.logQuotaStatus(now)
 
     // Cleanup old quota usage records based on configuration
     if (config?.cleanup?.enabled !== false) {
@@ -294,164 +335,28 @@ export class QuotaService {
   }
 
   /**
-   * Handles quota resets based on current date and quota types
-   *
-   * Daily quotas: Reset tracking every time maintenance runs (admin controls frequency)
-   * Weekly rolling quotas: Reset based on configurable day period
-   * Monthly quotas: Reset based on configurable day of month with month-end handling
+   * Logs quota maintenance run for monitoring purposes
    */
-  private async handleQuotaResets(now: Date): Promise<void> {
+  private async logQuotaStatus(now: Date): Promise<void> {
     try {
-      const config = this.fastify.config?.quotaSettings
-      let totalResets = 0
+      const [dailyQuotas, weeklyQuotas, monthlyQuotas] = await Promise.all([
+        this.fastify.db.getUsersWithQuotaType('daily'),
+        this.fastify.db.getUsersWithQuotaType('weekly_rolling'),
+        this.fastify.db.getUsersWithQuotaType('monthly'),
+      ])
 
-      // Handle daily quota resets - reset every time maintenance runs
-      const dailyQuotas = await this.fastify.db.getUsersWithQuotaType('daily')
-      for (const quota of dailyQuotas) {
-        const today = now.toISOString().split('T')[0]
-        const lastReset = await this.fastify.db.getLastQuotaReset(quota.userId)
+      const totalQuotas =
+        dailyQuotas.length + weeklyQuotas.length + monthlyQuotas.length
 
-        if (!lastReset || !lastReset.startsWith(today)) {
-          await this.fastify.db.recordQuotaReset(quota.userId, today)
-          totalResets++
-          this.fastify.log.debug(`Reset daily quota for user ${quota.userId}`)
-        }
-      }
-
-      // Handle weekly rolling quota resets - configurable reset period
-      const weeklyQuotas =
-        await this.fastify.db.getUsersWithQuotaType('weekly_rolling')
-      if (weeklyQuotas.length > 0) {
-        const resetDays = config?.weeklyRolling?.resetDays || 7
-        const lastWeeklyReset = await this.getLastWeeklyReset()
-        const daysSinceReset = lastWeeklyReset
-          ? Math.floor(
-              (now.getTime() - lastWeeklyReset.getTime()) /
-                (1000 * 60 * 60 * 24),
-            )
-          : resetDays // Force reset if no previous reset
-
-        if (daysSinceReset >= resetDays) {
-          const resetPeriod = now.toISOString().split('T')[0]
-          for (const quota of weeklyQuotas) {
-            await this.fastify.db.recordQuotaReset(quota.userId, resetPeriod)
-            totalResets++
-            this.fastify.log.info(
-              `Reset weekly rolling quota for user ${quota.userId} (${resetDays}-day period)`,
-            )
-          }
-        }
-      }
-
-      // Handle monthly quota resets - configurable reset day with month-end handling
-      const shouldResetMonthly = this.shouldResetMonthlyQuotas(now, config)
-      if (shouldResetMonthly) {
-        const resetDay = config?.monthly?.resetDay || 1
-        const handleMonthEnd = config?.monthly?.handleMonthEnd || 'last-day'
-        const monthlyQuotas =
-          await this.fastify.db.getUsersWithQuotaType('monthly')
-
-        if (monthlyQuotas.length > 0) {
-          this.fastify.log.debug(
-            `Monthly quota reset triggered: resetDay=${resetDay}, handleMonthEnd=${handleMonthEnd}, currentDate=${now.getDate()}`,
-          )
-        }
-
-        for (const quota of monthlyQuotas) {
-          const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-          const lastReset = await this.fastify.db.getLastQuotaReset(
-            quota.userId,
-          )
-
-          if (!lastReset || !lastReset.startsWith(currentMonth)) {
-            await this.fastify.db.recordQuotaReset(quota.userId, currentMonth)
-            totalResets++
-            this.fastify.log.info(
-              `Reset monthly quota for user ${quota.userId} (resetDay: ${resetDay})`,
-            )
-          }
-        }
-      }
-
-      if (totalResets > 0) {
+      if (totalQuotas > 0) {
         this.fastify.log.info(
-          `Completed quota maintenance: ${totalResets} quota resets processed`,
+          `Quota maintenance completed: ${dailyQuotas.length} daily, ${weeklyQuotas.length} weekly, ${monthlyQuotas.length} monthly quotas active`,
         )
+      } else {
+        this.fastify.log.debug('No active quotas found during maintenance')
       }
     } catch (error) {
-      this.fastify.log.error('Failed to handle quota resets:', error)
-    }
-  }
-
-  /**
-   * Gets the most recent weekly rolling quota reset date
-   */
-  private async getLastWeeklyReset(): Promise<Date | null> {
-    // Get any weekly rolling user and check their last reset
-    const weeklyQuotas =
-      await this.fastify.db.getUsersWithQuotaType('weekly_rolling')
-    if (weeklyQuotas.length === 0) return null
-
-    // Check the most recent reset date among all weekly rolling users
-    let mostRecentReset: Date | null = null
-    for (const quota of weeklyQuotas) {
-      const lastReset = await this.fastify.db.getLastQuotaReset(quota.userId)
-      if (lastReset) {
-        const resetDate = new Date(lastReset)
-        if (!mostRecentReset || resetDate > mostRecentReset) {
-          mostRecentReset = resetDate
-        }
-      }
-    }
-
-    return mostRecentReset
-  }
-
-  /**
-   * Determines if monthly quotas should be reset based on current date and configuration
-   */
-  private shouldResetMonthlyQuotas(
-    now: Date,
-    config?: {
-      monthly?: {
-        resetDay?: number
-        handleMonthEnd?: 'last-day' | 'skip-month' | 'next-month'
-      }
-    },
-  ): boolean {
-    const resetDay = config?.monthly?.resetDay || 1
-    const handleMonthEnd = config?.monthly?.handleMonthEnd || 'last-day'
-    const currentDay = now.getDate()
-
-    // Get the last day of the current month
-    const lastDayOfMonth = new Date(
-      now.getFullYear(),
-      now.getMonth() + 1,
-      0,
-    ).getDate()
-
-    // If reset day is within the current month, check if today matches
-    if (resetDay <= lastDayOfMonth) {
-      return currentDay === resetDay
-    }
-
-    // Reset day exceeds days in current month - handle based on configuration
-    switch (handleMonthEnd) {
-      case 'last-day':
-        // Reset on the last day of the month
-        return currentDay === lastDayOfMonth
-
-      case 'skip-month':
-        // Don't reset this month, wait for a month where resetDay exists
-        return false
-
-      case 'next-month':
-        // Reset on the 1st of next month (only if we're currently on the 1st)
-        return currentDay === 1
-
-      default:
-        // Default to last-day behavior
-        return currentDay === lastDayOfMonth
+      this.fastify.log.error('Failed to log quota status:', error)
     }
   }
 
@@ -530,8 +435,8 @@ export class QuotaService {
     requestDate: Date = new Date(),
   ): Promise<boolean> {
     try {
-      // Check if user has quotas configured
-      const userQuota = await this.fastify.db.getUserQuota(userId)
+      // Check if user has quota configured for this content type
+      const userQuota = await this.fastify.db.getUserQuota(userId, contentType)
       if (!userQuota) {
         // No quota configured for user, don't record
         return false
