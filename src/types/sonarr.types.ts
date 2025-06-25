@@ -109,6 +109,7 @@ export interface SonarrSeries {
   added?: string
   monitored?: boolean
   monitorNewItems?: 'all' | 'none'
+  tags?: number[]
   seasons?: Array<{
     seasonNumber: number
     monitored: boolean

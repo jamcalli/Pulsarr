@@ -12,6 +12,7 @@ export interface RadarrMovie {
   isAvailable?: boolean
   added?: string
   hasFile?: boolean
+  tags?: number[]
 }
 
 export interface RadarrPost {
