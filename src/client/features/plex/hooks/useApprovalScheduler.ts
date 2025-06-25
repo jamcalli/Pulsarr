@@ -176,15 +176,17 @@ export function useApprovalScheduler() {
     [],
   )
 
-  // Schedule update function for approval maintenance (interval-based)
-  const updateApprovalSchedule = useCallback(
-    async (interval: number) => {
+  // Generic schedule update function
+  const updateSchedule = useCallback(
+    async (
+      scheduleName: 'approval-maintenance' | 'quota-maintenance',
+      cronExpression: string,
+      successMessage: string,
+    ) => {
       setIsSavingSchedule(true)
       try {
-        const cronExpression = generateApprovalCronExpression(interval)
-
         const response = await fetch(
-          '/v1/scheduler/schedules/approval-maintenance',
+          `/v1/scheduler/schedules/${scheduleName}`,
           {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
@@ -197,7 +199,7 @@ export function useApprovalScheduler() {
         )
 
         if (!response.ok) {
-          throw new Error('Failed to update approval maintenance schedule')
+          throw new Error(`Failed to update ${scheduleName} schedule`)
         }
 
         // Refresh schedules
@@ -205,19 +207,19 @@ export function useApprovalScheduler() {
 
         toast({
           title: 'Schedule Updated',
-          description: `Approval maintenance will now run every ${interval} hour${interval !== 1 ? 's' : ''}.`,
+          description: successMessage,
           variant: 'default',
         })
 
         return true
       } catch (err) {
-        console.error('Error updating approval schedule:', err)
+        console.error(`Error updating ${scheduleName} schedule:`, err)
         toast({
           title: 'Update Failed',
           description:
             err instanceof Error
               ? err.message
-              : 'Failed to update approval schedule',
+              : `Failed to update ${scheduleName} schedule`,
           variant: 'destructive',
         })
         return false
@@ -225,60 +227,32 @@ export function useApprovalScheduler() {
         setIsSavingSchedule(false)
       }
     },
-    [generateApprovalCronExpression, fetchSchedules, toast],
+    [fetchSchedules, toast],
+  )
+
+  // Schedule update function for approval maintenance (interval-based)
+  const updateApprovalSchedule = useCallback(
+    async (interval: number) => {
+      const cronExpression = generateApprovalCronExpression(interval)
+      const successMessage = `Approval maintenance will now run every ${interval} hour${interval !== 1 ? 's' : ''}.`
+      return updateSchedule(
+        'approval-maintenance',
+        cronExpression,
+        successMessage,
+      )
+    },
+    [generateApprovalCronExpression, updateSchedule],
   )
 
   // Schedule update function for quota maintenance (time-based)
   const updateQuotaSchedule = useCallback(
     async (time: Date, dayOfWeek: string) => {
-      setIsSavingSchedule(true)
-      try {
-        const cronExpression = generateQuotaCronExpression(time, dayOfWeek)
-
-        const response = await fetch(
-          '/v1/scheduler/schedules/quota-maintenance',
-          {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              type: 'cron',
-              config: { expression: cronExpression },
-              enabled: true,
-            }),
-          },
-        )
-
-        if (!response.ok) {
-          throw new Error('Failed to update quota maintenance schedule')
-        }
-
-        // Refresh schedules
-        await fetchSchedules()
-
-        toast({
-          title: 'Schedule Updated',
-          description:
-            'Quota maintenance schedule has been updated successfully.',
-          variant: 'default',
-        })
-
-        return true
-      } catch (err) {
-        console.error('Error updating quota schedule:', err)
-        toast({
-          title: 'Update Failed',
-          description:
-            err instanceof Error
-              ? err.message
-              : 'Failed to update quota schedule',
-          variant: 'destructive',
-        })
-        return false
-      } finally {
-        setIsSavingSchedule(false)
-      }
+      const cronExpression = generateQuotaCronExpression(time, dayOfWeek)
+      const successMessage =
+        'Quota maintenance schedule has been updated successfully.'
+      return updateSchedule('quota-maintenance', cronExpression, successMessage)
     },
-    [generateQuotaCronExpression, fetchSchedules, toast],
+    [generateQuotaCronExpression, updateSchedule],
   )
 
   // Format last run time

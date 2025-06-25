@@ -52,7 +52,11 @@ export function DataTableFacetedFilter<TData, TValue>({
   // Set custom filter function if provided
   React.useEffect(() => {
     if (filterFn && column) {
+      const originalFilterFn = column.columnDef.filterFn
       column.columnDef.filterFn = filterFn
+      return () => {
+        column.columnDef.filterFn = originalFilterFn
+      }
     }
   }, [filterFn, column])
 

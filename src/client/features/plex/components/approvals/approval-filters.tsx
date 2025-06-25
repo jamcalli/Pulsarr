@@ -78,7 +78,10 @@ export default function ApprovalFilters() {
     }
 
     if (localFilters.userId) {
-      newQuery.userId = Number.parseInt(localFilters.userId)
+      const parsedUserId = Number.parseInt(localFilters.userId, 10)
+      if (!Number.isNaN(parsedUserId)) {
+        newQuery.userId = parsedUserId
+      }
     }
 
     setQuery(newQuery)

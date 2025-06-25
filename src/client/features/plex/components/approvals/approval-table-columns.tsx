@@ -294,10 +294,12 @@ export const createApprovalColumns = (
         // Add proposed routing information if available
         if (request.proposedRouterDecision?.routing) {
           const routing = request.proposedRouterDecision.routing
-          const instanceType =
-            routing.instanceType?.charAt(0).toUpperCase() +
-            routing.instanceType?.slice(1)
-          parts.push(`→ ${instanceType} Instance ${routing.instanceId}`)
+          if (routing.instanceType && routing.instanceId) {
+            const instanceType =
+              routing.instanceType.charAt(0).toUpperCase() +
+              routing.instanceType.slice(1)
+            parts.push(`→ ${instanceType} Instance ${routing.instanceId}`)
+          }
         }
 
         return parts.length > 0 ? parts.join('\n') : null

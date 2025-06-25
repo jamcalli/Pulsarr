@@ -290,7 +290,7 @@ export default function UserTable({
           return (
             <div className="text-center">
               <span className="text-sm font-medium text-blue-600">
-                Unlimited
+                Auto-Approved
               </span>
             </div>
           )

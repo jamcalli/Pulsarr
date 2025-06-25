@@ -159,9 +159,10 @@ export function ApprovalSonarrRoutingCard({
       await actionFn()
       setStatus('success')
 
-      // Exit edit mode immediately after success state is set
-      // Don't auto-reset to idle - let the onCancel handler do it
-      onCancel()
+      // Show success state for a moment before exiting
+      setTimeout(() => {
+        onCancel()
+      }, 1000) // Match the success display duration
     } catch (error) {
       // On error, still reset after minimum duration
       const elapsed = Date.now() - startTime

@@ -28,14 +28,10 @@ export default function ApprovalStatsHeader({
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
         {['pending', 'approved', 'rejected', 'expired', 'total'].map((type) => (
-          <div key={`skeleton-${type}`} className="bg-card p-4 rounded-md">
-            <div className="flex items-center justify-between mb-3">
-              <Skeleton className="h-4 w-16" />
-              <Skeleton className="h-4 w-4" />
-            </div>
-            <Skeleton className="h-8 w-12 mb-1" />
-            <Skeleton className="h-3 w-20" />
-          </div>
+          <Skeleton
+            key={`skeleton-${type}`}
+            className="h-20 w-full rounded-md"
+          />
         ))}
       </div>
     )

@@ -15,26 +15,27 @@ export const ApprovalTriggerSchema = z.enum([
   'content_criteria',
 ])
 
+// Shared routing configuration schema
+const RoutingConfigSchema = z.object({
+  instanceId: z.number(),
+  instanceType: z.enum(['radarr', 'sonarr']),
+  qualityProfile: z.union([z.number(), z.string(), z.null()]).optional(),
+  rootFolder: z.string().nullable().optional(),
+  tags: z.array(z.string()).optional(),
+  priority: z.number(),
+  searchOnAdd: z.boolean().nullable().optional(),
+  seasonMonitoring: z.string().nullable().optional(),
+  seriesType: z.enum(['standard', 'anime', 'daily']).nullable().optional(),
+  minimumAvailability: z
+    .enum(['announced', 'inCinemas', 'released'])
+    .optional(),
+  syncedInstances: z.array(z.number()).optional(),
+})
+
 // Router decision schema
 export const RouterDecisionSchema = z.object({
   action: z.enum(['route', 'require_approval', 'reject', 'continue']),
-  routing: z
-    .object({
-      instanceId: z.number(),
-      instanceType: z.enum(['radarr', 'sonarr']),
-      qualityProfile: z.union([z.number(), z.string(), z.null()]).optional(),
-      rootFolder: z.string().nullable().optional(),
-      tags: z.array(z.string()).optional(),
-      priority: z.number(),
-      searchOnAdd: z.boolean().nullable().optional(),
-      seasonMonitoring: z.string().nullable().optional(),
-      seriesType: z.enum(['standard', 'anime', 'daily']).nullable().optional(),
-      minimumAvailability: z
-        .enum(['announced', 'inCinemas', 'released'])
-        .optional(),
-      syncedInstances: z.array(z.number()).optional(),
-    })
-    .optional(),
+  routing: RoutingConfigSchema.optional(),
   approval: z
     .object({
       reason: z.string(),
@@ -48,28 +49,7 @@ export const RouterDecisionSchema = z.object({
         ruleId: z.number().optional(),
         autoApprove: z.boolean().optional(),
       }),
-      proposedRouting: z
-        .object({
-          instanceId: z.number(),
-          instanceType: z.enum(['radarr', 'sonarr']),
-          qualityProfile: z
-            .union([z.number(), z.string(), z.null()])
-            .optional(),
-          rootFolder: z.string().nullable().optional(),
-          tags: z.array(z.string()).optional(),
-          priority: z.number(),
-          searchOnAdd: z.boolean().nullable().optional(),
-          seasonMonitoring: z.string().nullable().optional(),
-          seriesType: z
-            .enum(['standard', 'anime', 'daily'])
-            .nullable()
-            .optional(),
-          minimumAvailability: z
-            .enum(['announced', 'inCinemas', 'released'])
-            .optional(),
-          syncedInstances: z.array(z.number()).optional(),
-        })
-        .optional(),
+      proposedRouting: RoutingConfigSchema.optional(),
     })
     .optional(),
 })

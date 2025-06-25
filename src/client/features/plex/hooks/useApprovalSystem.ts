@@ -1,21 +1,11 @@
 import { useEffect } from 'react'
-import { useApprovalConfiguration } from '@/features/plex/hooks/useApprovalConfiguration'
+import {
+  useApprovalConfiguration,
+  type ApprovalConfigurationFormData,
+} from '@/features/plex/hooks/useApprovalConfiguration'
 import { useApprovalScheduler } from '@/features/plex/hooks/useApprovalScheduler'
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
-import { z } from 'zod'
-import { ConfigSchema } from '@root/schemas/config/config.schema'
-
-// Define the form data type that includes both config and schedule fields
-const approvalConfigurationSchema = z.object({
-  approvalExpiration: ConfigSchema.shape.approvalExpiration,
-  quotaSettings: ConfigSchema.shape.quotaSettings,
-  approvalNotify: ConfigSchema.shape.approvalNotify,
-  scheduleInterval: z.number().min(1).max(12).optional(),
-  scheduleTime: z.date().optional(),
-  dayOfWeek: z.string().optional(),
-})
-
-type ApprovalConfigurationFormData = z.infer<typeof approvalConfigurationSchema>
+import { useToast } from '@/hooks/use-toast'
 
 /**
  * Main Approval System Hook
@@ -24,6 +14,7 @@ type ApprovalConfigurationFormData = z.infer<typeof approvalConfigurationSchema>
  * Follows the utilities pattern of composing specialized hooks into a main interface.
  */
 export function useApprovalSystem() {
+  const { toast } = useToast()
   // Form management hook for business logic configuration
   const formHook = useApprovalConfiguration()
 
@@ -87,12 +78,17 @@ export function useApprovalSystem() {
         await fetchSchedules()
       } catch (err) {
         // Schedule update failed, but config was already saved successfully
-        // Don't throw the error to avoid confusing users about the save status
         console.error(
           'Schedule update failed after successful config save:',
           err,
         )
-        // Consider showing a non-blocking warning to the user about the schedule update failure
+        // Show a non-blocking warning to the user about the schedule update failure
+        toast({
+          title: 'Schedule Update Failed',
+          description:
+            'Configuration saved successfully, but the schedule update failed. Please try updating the schedule separately.',
+          variant: 'default',
+        })
       }
     }
   }
