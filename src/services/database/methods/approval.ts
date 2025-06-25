@@ -268,7 +268,7 @@ export async function getApprovalHistoryCount(
   }
 
   const result = await query.count('* as count').first()
-  return Number.parseInt(result?.count as string, 10) || 0
+  return Number.parseInt(String(result?.count), 10) || 0
 }
 
 /**
@@ -308,7 +308,7 @@ export async function getApprovalStats(
   }
 
   for (const stat of stats) {
-    const count = Number.parseInt(stat.count as string, 10)
+    const count = Number.parseInt(String(stat.count), 10)
     result.totalRequests += count
 
     switch (stat.status as ApprovalStatus) {
@@ -361,7 +361,7 @@ export async function getUserApprovalStats(
   }
 
   for (const stat of requestStats) {
-    const count = Number.parseInt(stat.count as string, 10)
+    const count = Number.parseInt(String(stat.count), 10)
     stats.totalRequests += count
 
     switch (stat.status as ApprovalStatus) {
