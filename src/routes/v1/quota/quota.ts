@@ -3,7 +3,10 @@ import { z } from 'zod'
 import {
   CreateUserQuotaSchema,
   UpdateUserQuotaSchema,
+  UpdateSpecificQuotaSchema,
+  UpdateSeparateQuotasSchema,
   UserQuotaCreateResponseSchema,
+  UserQuotaGetResponseSchema,
   UserQuotaUpdateResponseSchema,
   GetUsersWithQuotasResponseSchema,
   QuotaStatusGetResponseSchema,
@@ -50,28 +53,31 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           }
         }
 
-        // Check if quota already exists
-        const existingQuota = await fastify.db.getUserQuota(request.body.userId)
-        if (existingQuota) {
+        // Check if quotas already exist
+        const existingQuotas = await fastify.db.getUserQuotas(
+          request.body.userId,
+        )
+        if (existingQuotas.movieQuota || existingQuotas.showQuota) {
           reply.status(409)
           return {
             success: false,
-            message: 'User already has a quota configuration',
+            message: 'User already has quota configurations',
           }
         }
 
-        const userQuota = await fastify.db.createUserQuota({
-          userId: request.body.userId,
-          quotaType: request.body.quotaType,
-          quotaLimit: request.body.quotaLimit,
-          bypassApproval: request.body.bypassApproval,
-        })
+        // Create both movie and show quotas with the same settings
+        const userQuotas = await fastify.quotaService.setupDefaultQuotas(
+          request.body.userId,
+          request.body.quotaType,
+          request.body.quotaLimit,
+          request.body.quotaLimit,
+        )
 
         reply.status(201)
         return {
           success: true,
-          message: 'User quota created successfully',
-          userQuota,
+          message: 'User quotas created successfully',
+          userQuotas,
         }
       } catch (error) {
         fastify.log.error('Error creating user quota:', error)
@@ -84,20 +90,20 @@ const plugin: FastifyPluginAsync = async (fastify) => {
   fastify.get<{
     Params: { userId: string }
     Reply:
-      | z.infer<typeof UserQuotaCreateResponseSchema>
+      | z.infer<typeof UserQuotaGetResponseSchema>
       | z.infer<typeof QuotaErrorSchema>
   }>(
     '/users/:userId',
     {
       schema: {
-        summary: 'Get user quota',
-        operationId: 'getUserQuota',
-        description: 'Get quota configuration for a specific user',
+        summary: 'Get user quotas',
+        operationId: 'getUserQuotas',
+        description: 'Get quota configurations for a specific user',
         params: z.object({
           userId: z.string(),
         }),
         response: {
-          200: UserQuotaCreateResponseSchema,
+          200: UserQuotaGetResponseSchema,
           404: QuotaErrorSchema,
         },
         tags: ['Quota'],
@@ -106,20 +112,20 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         const userId = Number.parseInt(request.params.userId, 10)
-        const userQuota = await fastify.db.getUserQuota(userId)
+        const userQuotas = await fastify.db.getUserQuotas(userId)
 
-        if (!userQuota) {
+        if (!userQuotas.movieQuota && !userQuotas.showQuota) {
           reply.status(404)
           return {
             success: false,
-            message: 'User quota not found',
+            message: 'User quotas not found',
           }
         }
 
         return {
           success: true,
-          message: 'User quota retrieved successfully',
-          userQuota,
+          message: 'User quotas retrieved successfully',
+          userQuotas,
         }
       } catch (error) {
         fastify.log.error('Error getting user quota:', error)
@@ -139,9 +145,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     '/users/:userId',
     {
       schema: {
-        summary: 'Update user quota',
-        operationId: 'updateUserQuota',
-        description: 'Update quota configuration for a specific user',
+        summary: 'Update user quotas',
+        operationId: 'updateUserQuotas',
+        description: 'Update quota configurations for a specific user',
         params: z.object({
           userId: z.string(),
         }),
@@ -157,33 +163,154 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       try {
         const userId = Number.parseInt(request.params.userId, 10)
 
-        const existingQuota = await fastify.db.getUserQuota(userId)
-        if (!existingQuota) {
+        const existingQuotas = await fastify.db.getUserQuotas(userId)
+        if (!existingQuotas.movieQuota && !existingQuotas.showQuota) {
           reply.status(404)
           return {
             success: false,
-            message: 'User quota not found',
+            message: 'User quotas not found',
           }
         }
 
-        const userQuota = await fastify.db.updateUserQuota(userId, {
+        // Update both movie and show quotas with the same settings
+        const updateData = {
           quotaType: request.body.quotaType,
           quotaLimit: request.body.quotaLimit,
           bypassApproval: request.body.bypassApproval,
-        })
+        }
 
-        if (!userQuota) {
-          throw new Error('Failed to update user quota')
+        const [movieQuota, showQuota] = await Promise.all([
+          existingQuotas.movieQuota
+            ? fastify.db.updateUserQuota(userId, 'movie', updateData)
+            : null,
+          existingQuotas.showQuota
+            ? fastify.db.updateUserQuota(userId, 'show', updateData)
+            : null,
+        ])
+
+        if (!movieQuota && !showQuota) {
+          throw new Error('Failed to update user quotas')
         }
 
         return {
           success: true,
-          message: 'User quota updated successfully',
-          userQuota,
+          message: 'User quotas updated successfully',
+          userQuotas: {
+            userId,
+            movieQuota,
+            showQuota,
+          },
         }
       } catch (error) {
         fastify.log.error('Error updating user quota:', error)
         return reply.internalServerError('Failed to update user quota')
+      }
+    },
+  )
+
+  // Update separate movie and show quotas
+  fastify.patch<{
+    Params: { userId: string }
+    Body: z.infer<typeof UpdateSeparateQuotasSchema>
+    Reply:
+      | z.infer<typeof UserQuotaUpdateResponseSchema>
+      | z.infer<typeof QuotaErrorSchema>
+  }>(
+    '/users/:userId/separate',
+    {
+      schema: {
+        summary: 'Update separate movie and show quotas',
+        operationId: 'updateSeparateUserQuotas',
+        description: 'Update movie and show quota configurations separately for a user',
+        params: z.object({
+          userId: z.string(),
+        }),
+        body: UpdateSeparateQuotasSchema,
+        response: {
+          200: UserQuotaUpdateResponseSchema,
+          404: QuotaErrorSchema,
+        },
+        tags: ['Quota'],
+      },
+    },
+    async (request, reply) => {
+      try {
+        const userId = Number.parseInt(request.params.userId, 10)
+        const { movieQuota, showQuota } = request.body
+
+        const existingQuotas = await fastify.db.getUserQuotas(userId)
+        
+        let movieResult = existingQuotas.movieQuota
+        let showResult = existingQuotas.showQuota
+
+        // Handle movie quota
+        if (movieQuota) {
+          if (movieQuota.enabled) {
+            // Create or update movie quota
+            const movieData = {
+              quotaType: movieQuota.quotaType,
+              quotaLimit: movieQuota.quotaLimit,
+              bypassApproval: movieQuota.bypassApproval ?? false,
+            }
+
+            if (existingQuotas.movieQuota) {
+              movieResult = await fastify.db.updateUserQuota(userId, 'movie', movieData) || undefined
+            } else {
+              movieResult = await fastify.db.createUserQuota({
+                userId,
+                contentType: 'movie',
+                quotaType: movieData.quotaType!,
+                quotaLimit: movieData.quotaLimit!,
+                bypassApproval: movieData.bypassApproval,
+              })
+            }
+          } else if (existingQuotas.movieQuota) {
+            // Delete movie quota if it exists but is disabled
+            await fastify.db.deleteUserQuota(userId, 'movie')
+            movieResult = undefined
+          }
+        }
+
+        // Handle show quota  
+        if (showQuota) {
+          if (showQuota.enabled) {
+            // Create or update show quota
+            const showData = {
+              quotaType: showQuota.quotaType,
+              quotaLimit: showQuota.quotaLimit,
+              bypassApproval: showQuota.bypassApproval ?? false,
+            }
+
+            if (existingQuotas.showQuota) {
+              showResult = await fastify.db.updateUserQuota(userId, 'show', showData) || undefined
+            } else {
+              showResult = await fastify.db.createUserQuota({
+                userId,
+                contentType: 'show',
+                quotaType: showData.quotaType!,
+                quotaLimit: showData.quotaLimit!,
+                bypassApproval: showData.bypassApproval,
+              })
+            }
+          } else if (existingQuotas.showQuota) {
+            // Delete show quota if it exists but is disabled
+            await fastify.db.deleteUserQuota(userId, 'show')
+            showResult = undefined
+          }
+        }
+
+        return {
+          success: true,
+          message: 'User quotas updated successfully',
+          userQuotas: {
+            userId,
+            movieQuota: movieResult,
+            showQuota: showResult,
+          },
+        }
+      } catch (error) {
+        fastify.log.error('Error updating separate user quotas:', error)
+        return reply.internalServerError('Failed to update user quotas')
       }
     },
   )
@@ -212,19 +339,19 @@ const plugin: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       try {
         const userId = Number.parseInt(request.params.userId, 10)
-        const deleted = await fastify.db.deleteUserQuota(userId)
+        const deleted = await fastify.db.deleteAllUserQuotas(userId)
 
         if (!deleted) {
           reply.status(404)
           return {
             success: false,
-            message: 'User quota not found',
+            message: 'User quotas not found',
           }
         }
 
         return {
           success: true,
-          message: 'User quota deleted successfully',
+          message: 'User quotas deleted successfully',
         }
       } catch (error) {
         fastify.log.error('Error deleting user quota:', error)
@@ -300,7 +427,9 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const userId = Number.parseInt(request.params.userId, 10)
         const { contentType } = request.query
 
-        const quotaStatus = await fastify.db.getQuotaStatus(userId, contentType)
+        const quotaStatus = contentType
+          ? await fastify.db.getQuotaStatus(userId, contentType)
+          : null
 
         return {
           success: true,

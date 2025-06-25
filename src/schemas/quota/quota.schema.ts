@@ -17,11 +17,42 @@ export const UpdateUserQuotaSchema = z.object({
   bypassApproval: z.boolean().optional(),
 })
 
+// Schema for updating specific content type quota
+export const UpdateSpecificQuotaSchema = z.object({
+  contentType: z.enum(['movie', 'show']),
+  quotaType: QuotaTypeSchema.optional(),
+  quotaLimit: z.number().min(1).optional(),
+  bypassApproval: z.boolean().optional(),
+})
+
+// Schema for updating separate movie and show quotas
+export const UpdateSeparateQuotasSchema = z.object({
+  movieQuota: z.object({
+    enabled: z.boolean(),
+    quotaType: QuotaTypeSchema.optional(),
+    quotaLimit: z.number().min(1).optional(),
+    bypassApproval: z.boolean().optional(),
+  }).optional(),
+  showQuota: z.object({
+    enabled: z.boolean(),
+    quotaType: QuotaTypeSchema.optional(),
+    quotaLimit: z.number().min(1).optional(),
+    bypassApproval: z.boolean().optional(),
+  }).optional(),
+})
+
 export const UserQuotaResponseSchema = z.object({
   userId: z.number(),
+  contentType: z.enum(['movie', 'show']),
   quotaType: QuotaTypeSchema,
   quotaLimit: z.number(),
   bypassApproval: z.boolean(),
+})
+
+export const UserQuotasResponseSchema = z.object({
+  userId: z.number(),
+  movieQuota: UserQuotaResponseSchema.optional(),
+  showQuota: UserQuotaResponseSchema.optional(),
 })
 
 export const QuotaStatusResponseSchema = z.object({
@@ -75,13 +106,19 @@ export const GetUsersWithQuotasResponseSchema = z.object({
 export const UserQuotaCreateResponseSchema = z.object({
   success: z.boolean(),
   message: z.string(),
-  userQuota: UserQuotaResponseSchema,
+  userQuotas: UserQuotasResponseSchema,
+})
+
+export const UserQuotaGetResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  userQuotas: UserQuotasResponseSchema,
 })
 
 export const UserQuotaUpdateResponseSchema = z.object({
   success: z.boolean(),
   message: z.string(),
-  userQuota: UserQuotaResponseSchema,
+  userQuotas: UserQuotasResponseSchema,
 })
 
 export const QuotaStatusGetResponseSchema = z.object({
@@ -124,6 +161,8 @@ export const QuotaErrorSchema = z.object({
 // Type exports
 export type CreateUserQuota = z.infer<typeof CreateUserQuotaSchema>
 export type UpdateUserQuota = z.infer<typeof UpdateUserQuotaSchema>
+export type UpdateSpecificQuota = z.infer<typeof UpdateSpecificQuotaSchema>
+export type UpdateSeparateQuotas = z.infer<typeof UpdateSeparateQuotasSchema>
 export type UserQuotaResponse = z.infer<typeof UserQuotaResponseSchema>
 export type QuotaStatusResponse = z.infer<typeof QuotaStatusResponseSchema>
 export type QuotaUsageResponse = z.infer<typeof QuotaUsageResponseSchema>

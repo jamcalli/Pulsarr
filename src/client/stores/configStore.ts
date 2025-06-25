@@ -2,15 +2,15 @@ import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
 import type { Config } from '@root/types/config.types'
 import type { UserWithCount } from '@root/schemas/users/users-list.schema'
-import type {
-  QuotaStatusResponse,
-  BulkQuotaStatusResponse,
-} from '@root/schemas/quota/quota.schema'
+import type { UserQuotasResponseSchema } from '@root/schemas/quota/quota.schema'
+import type { z } from 'zod'
 
 export type UserWatchlistInfo = UserWithCount
 
+export type UserQuotas = z.infer<typeof UserQuotasResponseSchema>
+
 export type UserWithQuotaInfo = UserWatchlistInfo & {
-  quotaStatus: QuotaStatusResponse | null
+  userQuotas: UserQuotas | null
 }
 
 interface UserListResponse {
@@ -31,7 +31,7 @@ interface ConfigState {
   isInitialized: boolean
   users: UserWatchlistInfo[] | null
   usersWithQuota: UserWithQuotaInfo[] | null
-  quotaStatusMap: Map<number, QuotaStatusResponse | null>
+  userQuotasMap: Map<number, UserQuotas | null>
   selfWatchlistCount: number | null
   othersWatchlistInfo: {
     userCount: number
@@ -69,7 +69,7 @@ export const useConfigStore = create<ConfigState>()(
         isInitialized: false,
         users: null,
         usersWithQuota: null,
-        quotaStatusMap: new Map(),
+        userQuotasMap: new Map(),
         selfWatchlistCount: null,
         othersWatchlistInfo: null,
         openUtilitiesAccordion: null,
@@ -183,38 +183,100 @@ export const useConfigStore = create<ConfigState>()(
               return
             }
 
-            // Use bulk endpoint to fetch quota status for all users in a single request
-            const userIds = state.users.map((user) => user.id)
-            const response = await fetch('/v1/quota/users/status/bulk', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ userIds }),
-            })
+            // Fetch quota data for each user individually to get both config and status
+            const userQuotasMap = new Map<number, UserQuotas | null>()
 
-            const data: BulkQuotaStatusResponse = await response.json()
+            for (const user of state.users) {
+              try {
+                // Fetch user quota configuration
+                const quotaResponse = await fetch(`/v1/quota/users/${user.id}`)
+                if (quotaResponse.ok) {
+                  const quotaData = await quotaResponse.json()
+                  if (quotaData.success && quotaData.userQuotas) {
+                    const userQuotas = quotaData.userQuotas
 
-            if (!response.ok || !data.success) {
-              throw new Error(
-                data.message || 'Failed to fetch bulk quota status',
-              )
-            }
+                    // Fetch current usage status for movie quota
+                    if (userQuotas.movieQuota) {
+                      try {
+                        const movieStatusResponse = await fetch(
+                          `/v1/quota/users/${user.id}/status?contentType=movie`,
+                        )
+                        if (movieStatusResponse.ok) {
+                          const movieStatusData =
+                            await movieStatusResponse.json()
+                          if (
+                            movieStatusData.success &&
+                            movieStatusData.quotaStatus
+                          ) {
+                            userQuotas.movieQuota.currentUsage =
+                              movieStatusData.quotaStatus.currentUsage
+                            userQuotas.movieQuota.exceeded =
+                              movieStatusData.quotaStatus.exceeded
+                            userQuotas.movieQuota.resetDate =
+                              movieStatusData.quotaStatus.resetDate
+                          }
+                        }
+                      } catch (e) {
+                        console.warn(
+                          'Failed to fetch movie quota status for user',
+                          user.id,
+                          e,
+                        )
+                      }
+                    }
 
-            // Convert to Map for easy lookup
-            const quotaStatusMap = new Map<number, QuotaStatusResponse | null>()
-            for (const { userId, quotaStatus } of data.quotaStatuses) {
-              quotaStatusMap.set(userId, quotaStatus)
+                    // Fetch current usage status for show quota
+                    if (userQuotas.showQuota) {
+                      try {
+                        const showStatusResponse = await fetch(
+                          `/v1/quota/users/${user.id}/status?contentType=show`,
+                        )
+                        if (showStatusResponse.ok) {
+                          const showStatusData = await showStatusResponse.json()
+                          if (
+                            showStatusData.success &&
+                            showStatusData.quotaStatus
+                          ) {
+                            userQuotas.showQuota.currentUsage =
+                              showStatusData.quotaStatus.currentUsage
+                            userQuotas.showQuota.exceeded =
+                              showStatusData.quotaStatus.exceeded
+                            userQuotas.showQuota.resetDate =
+                              showStatusData.quotaStatus.resetDate
+                          }
+                        }
+                      } catch (e) {
+                        console.warn(
+                          'Failed to fetch show quota status for user',
+                          user.id,
+                          e,
+                        )
+                      }
+                    }
+
+                    userQuotasMap.set(user.id, userQuotas)
+                  } else {
+                    userQuotasMap.set(user.id, null)
+                  }
+                } else {
+                  userQuotasMap.set(user.id, null)
+                }
+              } catch (e) {
+                console.warn('Failed to fetch quota data for user', user.id, e)
+                userQuotasMap.set(user.id, null)
+              }
             }
 
             // Create users with quota data
             const usersWithQuota: UserWithQuotaInfo[] = state.users.map(
               (user) => ({
                 ...user,
-                quotaStatus: quotaStatusMap.get(user.id) || null,
+                userQuotas: userQuotasMap.get(user.id) || null,
               }),
             )
 
             set({
-              quotaStatusMap,
+              userQuotasMap,
               usersWithQuota,
             })
           } catch (err) {

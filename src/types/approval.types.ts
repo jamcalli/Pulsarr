@@ -12,6 +12,7 @@ import type { ContentItem } from './router.types.js'
 export interface UserQuotaRow {
   id: number
   user_id: number
+  content_type: 'movie' | 'show'
   quota_type: QuotaType
   quota_limit: number
   bypass_approval: boolean
@@ -98,9 +99,17 @@ export interface ApprovalData {
 // Service types
 export interface UserQuotaConfig {
   userId: number
+  contentType: 'movie' | 'show'
   quotaType: QuotaType
   quotaLimit: number
   bypassApproval: boolean
+}
+
+// Helper type for managing both quotas together
+export interface UserQuotaConfigs {
+  userId: number
+  movieQuota?: UserQuotaConfig
+  showQuota?: UserQuotaConfig
 }
 
 export interface ApprovalRequest {
@@ -174,12 +183,14 @@ export interface UpdateApprovalRequestData {
 
 export interface CreateUserQuotaData {
   userId: number
+  contentType: 'movie' | 'show'
   quotaType: QuotaType
   quotaLimit: number
   bypassApproval?: boolean
 }
 
 export interface UpdateUserQuotaData {
+  contentType?: 'movie' | 'show'
   quotaType?: QuotaType
   quotaLimit?: number
   bypassApproval?: boolean

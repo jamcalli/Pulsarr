@@ -7,16 +7,21 @@ import type { UserWithQuotaInfo } from '@/stores/configStore'
 import type {
   CreateUserQuota,
   UpdateUserQuota,
+  UpdateSeparateQuotas,
   UserQuotaCreateResponse,
   UserQuotaUpdateResponse,
   QuotaStatusGetResponse,
 } from '@root/schemas/quota/quota.schema'
 
 interface QuotaFormData {
-  hasQuota: boolean
-  quotaType?: 'daily' | 'weekly_rolling' | 'monthly'
-  quotaLimit?: number
-  bypassApproval: boolean
+  hasMovieQuota: boolean
+  movieQuotaType?: 'daily' | 'weekly_rolling' | 'monthly'
+  movieQuotaLimit?: number
+  movieBypassApproval: boolean
+  hasShowQuota: boolean
+  showQuotaType?: 'daily' | 'weekly_rolling' | 'monthly'
+  showQuotaLimit?: number
+  showBypassApproval: boolean
 }
 
 export function useQuotaManagement() {
@@ -44,7 +49,7 @@ export function useQuotaManagement() {
         throw new Error(result.message)
       }
 
-      return result.userQuota
+      return result.userQuotas
     },
     [],
   )
@@ -68,7 +73,31 @@ export function useQuotaManagement() {
         throw new Error(result.message)
       }
 
-      return result.userQuota
+      return result.userQuotas
+    },
+    [],
+  )
+
+  const updateSeparateQuotas = useCallback(
+    async (userId: number, quotaData: UpdateSeparateQuotas) => {
+      const response = await fetch(`/v1/quota/users/${userId}/separate`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(quotaData),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to update separate quotas: ${response.status}`)
+      }
+
+      const result: UserQuotaUpdateResponse = await response.json()
+      if (!result.success) {
+        throw new Error(result.message)
+      }
+
+      return result.userQuotas
     },
     [],
   )
@@ -119,37 +148,58 @@ export function useQuotaManagement() {
         )
 
         const quotaOperation = async () => {
-          if (!formData.hasQuota) {
-            // Delete existing quota if user had one
-            if (user.quotaStatus) {
+          const hasAnyQuota = formData.hasMovieQuota || formData.hasShowQuota
+
+          if (!hasAnyQuota) {
+            // Delete all existing quotas if user had any
+            if (user.userQuotas?.movieQuota || user.userQuotas?.showQuota) {
               await deleteQuota(user.id)
-              return 'Quota removed successfully'
+              return 'All quotas removed successfully'
             }
-            return 'No quota to remove'
+            return 'No quotas to remove'
           }
 
-          // Validate required fields when hasQuota is true
-          if (!formData.quotaType || !formData.quotaLimit) {
-            throw new Error('Quota type and limit are required')
+          // Use the new separate quotas API
+          const separateQuotasData: UpdateSeparateQuotas = {}
+
+          // Handle movie quota
+          if (formData.hasMovieQuota) {
+            if (!formData.movieQuotaType || !formData.movieQuotaLimit) {
+              throw new Error('Movie quota type and limit are required')
+            }
+
+            separateQuotasData.movieQuota = {
+              enabled: true,
+              quotaType: formData.movieQuotaType,
+              quotaLimit: formData.movieQuotaLimit,
+              bypassApproval: formData.movieBypassApproval,
+            }
+          } else {
+            separateQuotasData.movieQuota = {
+              enabled: false,
+            }
           }
 
-          const quotaData = {
-            quotaType: formData.quotaType,
-            quotaLimit: formData.quotaLimit,
-            bypassApproval: formData.bypassApproval,
+          // Handle show quota
+          if (formData.hasShowQuota) {
+            if (!formData.showQuotaType || !formData.showQuotaLimit) {
+              throw new Error('Show quota type and limit are required')
+            }
+
+            separateQuotasData.showQuota = {
+              enabled: true,
+              quotaType: formData.showQuotaType,
+              quotaLimit: formData.showQuotaLimit,
+              bypassApproval: formData.showBypassApproval,
+            }
+          } else {
+            separateQuotasData.showQuota = {
+              enabled: false,
+            }
           }
 
-          if (user.quotaStatus) {
-            // Update existing quota
-            await updateQuota(user.id, quotaData)
-            return 'Quota updated successfully'
-          }
-          // Create new quota
-          await createQuota(user.id, {
-            userId: user.id,
-            ...quotaData,
-          })
-          return 'Quota created successfully'
+          await updateSeparateQuotas(user.id, separateQuotasData)
+          return 'Quotas updated successfully'
         }
 
         const [message] = await Promise.all([
@@ -191,7 +241,7 @@ export function useQuotaManagement() {
         setSaveStatus({ type: 'idle' })
       }
     },
-    [createQuota, updateQuota, deleteQuota, refreshQuotaData],
+    [createQuota, updateSeparateQuotas, deleteQuota, refreshQuotaData],
   )
 
   return {
