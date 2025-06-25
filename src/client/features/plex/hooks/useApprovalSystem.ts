@@ -8,10 +8,11 @@ import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 import { useToast } from '@/hooks/use-toast'
 
 /**
- * Main Approval System Hook
+ * Provides a unified interface for managing approval system configuration and scheduling.
  *
- * Combines form management and scheduler functionality for the approval system.
- * Follows the utilities pattern of composing specialized hooks into a main interface.
+ * Integrates form management for approval configuration with operational scheduling controls, synchronizing state between the form and scheduler. Handles configuration saving, schedule updates, and user notifications, exposing both form and scheduler state and actions for use in approval system UIs.
+ *
+ * @returns An object combining approval configuration form state and methods with scheduling controls and status.
  */
 export function useApprovalSystem() {
   const { toast } = useToast()

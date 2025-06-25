@@ -23,10 +23,12 @@ interface UserRow {
 }
 
 /**
- * Converts a UserRow database record into a User object with proper boolean field mapping.
+ * Converts a UserRow database record into a User object, normalizing boolean fields.
+ *
+ * Ensures that fields such as notification flags, sync permissions, approval requirements, and primary token status are represented as booleans in the returned User object.
  *
  * @param row - The UserRow database record to convert
- * @returns The corresponding User object
+ * @returns The corresponding User object with normalized fields
  */
 function mapRowToUser(row: UserRow): User {
   return {
@@ -368,7 +370,7 @@ export async function updateAdminPassword(
 }
 
 /**
- * Determines whether any users have synchronization disabled.
+ * Checks if any user has synchronization disabled.
  *
  * Returns `true` if at least one user has `can_sync` set to false, or if an error occurs during the check; otherwise, returns `false`.
  */
@@ -389,7 +391,11 @@ export async function hasUsersWithSyncDisabled(
 }
 
 /**
- * Check if any users have quota or approval configuration that requires user-specific processing
+ * Determines whether any users or system configurations require approval or quota processing.
+ *
+ * Returns `true` if at least one user has `requires_approval` enabled, if any user quotas exist, or if any router rules are configured to require approval or bypass user quotas. Returns `true` on error as a conservative default.
+ *
+ * @returns `true` if approval or quota configuration is present; otherwise, `false`.
  */
 export async function hasUsersWithApprovalConfig(
   this: DatabaseService,

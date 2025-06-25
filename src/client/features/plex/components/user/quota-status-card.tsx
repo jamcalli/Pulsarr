@@ -16,6 +16,14 @@ interface QuotaDisplayProps {
   quota?: QuotaWithStatus | null
 }
 
+/**
+ * Displays a card summarizing the status and usage of a specific user quota.
+ *
+ * Shows the quota title, current usage, usage percentage, quota type, status label, and a description. If a reset date is present, it is also displayed. If no quota is configured, a message is shown instead.
+ *
+ * @param title - The display title for the quota (e.g., "Movies" or "Shows")
+ * @param quota - The quota data to display, or null if not configured
+ */
 function QuotaDisplay({ title, quota }: QuotaDisplayProps) {
   if (!quota) {
     return (
@@ -101,7 +109,11 @@ function QuotaDisplay({ title, quota }: QuotaDisplayProps) {
 }
 
 /**
- * Renders quota status cards for both movies and shows
+ * Displays the user's quota status for movies and shows, or indicates if no quotas are configured.
+ *
+ * Renders quota information for both movies and shows using `QuotaDisplay` components if quotas are present. If no quotas are configured, displays a message indicating the user has no quota restrictions.
+ *
+ * @param userQuotas - The user's quota data for movies and shows, or null if not configured.
  */
 export function QuotaStatusCard({ userQuotas }: QuotaStatusCardProps) {
   if (!userQuotas) {

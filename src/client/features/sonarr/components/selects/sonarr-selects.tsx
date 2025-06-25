@@ -28,6 +28,11 @@ interface SelectsProps {
   disabled?: boolean
 }
 
+/**
+ * Renders a select dropdown for choosing a quality profile from the selected instance.
+ *
+ * Displays a loading skeleton if quality profiles are not yet loaded. The select is disabled if the connection is invalid or if the `disabled` prop is set to true. The dropdown lists all available quality profiles for the current instance.
+ */
 export function QualityProfileSelect({
   field,
   isConnectionValid,
@@ -85,6 +90,13 @@ export function QualityProfileSelect({
   )
 }
 
+/**
+ * Renders a dropdown select input for choosing a root folder from the selected instance.
+ *
+ * Displays a loading skeleton if root folder data is not yet available. The select is disabled if the connection is invalid or if the `disabled` prop is set to true.
+ *
+ * @param disabled - If true, disables the select input regardless of connection status
+ */
 export function RootFolderSelect({
   field,
   isConnectionValid,

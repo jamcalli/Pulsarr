@@ -19,6 +19,13 @@ interface DataTablePaginationProps<TData> {
   table: Table<TData>
 }
 
+/**
+ * Renders pagination controls and selection status for a data table.
+ *
+ * Displays the number of selected rows, allows users to select the number of rows per page, shows the current page and total page count, and provides navigation buttons to move between pages. The UI adapts responsively for different screen sizes and updates the table state via the provided table instance.
+ *
+ * @param table - The table instance to control pagination and selection display for.
+ */
 export function DataTablePagination<TData>({
   table,
 }: DataTablePaginationProps<TData>) {

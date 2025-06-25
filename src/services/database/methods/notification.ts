@@ -18,13 +18,13 @@ import {
 } from '@root/utils/notification-processor.js'
 
 /**
- * Processes and creates notifications for users and public channels based on a media item's release.
+ * Processes media release notifications for users and public channels, creating notification records and updating watchlist statuses as needed.
  *
  * For each relevant watchlist item, determines user notification preferences and media status, then creates notification records and updates watchlist status within a transaction. Also handles creation of public content notifications if enabled and not previously sent.
  *
- * @param mediaInfo - Details about the media item, including type, GUID, title, and optional episode data
- * @param isBulkRelease - Indicates if the release is a bulk release (such as a full season)
- * @returns An array of notification results containing user and notification details
+ * @param mediaInfo - Information about the media item, including type, GUID, title, and optional episode details
+ * @param isBulkRelease - Whether the release is a bulk release (such as a full season)
+ * @returns An array of notification results with user and notification details
  */
 export async function processNotifications(
   this: DatabaseService,
@@ -681,9 +681,9 @@ export async function deletePendingWebhook(
 }
 
 /**
- * Deletes all pending webhooks that have expired.
+ * Removes all pending webhooks from the database that have passed their expiration time.
  *
- * @returns The number of expired pending webhooks deleted
+ * @returns The number of pending webhooks deleted
  */
 export async function cleanupExpiredWebhooks(
   this: DatabaseService,
@@ -696,14 +696,13 @@ export async function cleanupExpiredWebhooks(
 }
 
 /**
- * Adds a status history entry for a watchlist item with a specific timestamp.
+ * Records a status change for a watchlist item at a specified timestamp, avoiding duplicate entries.
  *
- * This is used for backfilling missing status transitions when sync detects
- * that an item should have had a status recorded but didn't due to timing issues.
+ * Used to backfill missing status transitions when synchronization detects that a status should have been recorded but was not.
  *
- * @param watchlistItemId - The ID of the watchlist item
- * @param status - The status to record
- * @param timestamp - The timestamp when this status should have been recorded
+ * @param watchlistItemId - The ID of the watchlist item to update
+ * @param status - The status to record for the item
+ * @param timestamp - The timestamp representing when the status change occurred
  */
 export async function addStatusHistoryEntry(
   this: DatabaseService,

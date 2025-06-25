@@ -10,9 +10,9 @@ export type UserStatus = 'idle' | 'loading' | 'success' | 'error'
 /**
  * React hook for managing Plex user data, editing state, and update operations.
  *
- * Provides access to the list of users, selected user state, modal visibility, save status, loading state, and handlers for editing and updating user information. Ensures a minimum loading delay for smoother UI transitions and displays toast notifications on update success or failure.
+ * Exposes user data, editing and modal state, save status, loading state, and handler functions for initiating and saving user edits. Ensures a minimum loading delay for UI consistency and provides toast notifications on update outcomes.
  *
- * @returns An object containing user data, editing state, and handler functions for user management in Plex-related components.
+ * @returns An object containing user data, editing state, modal controls, save status, loading state, and handler functions for user management in Plex-related components.
  */
 export function usePlexUser() {
   const { toast } = useToast()

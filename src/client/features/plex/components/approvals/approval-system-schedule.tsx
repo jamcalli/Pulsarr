@@ -27,10 +27,9 @@ interface ApprovalSystemScheduleProps {
 }
 
 /**
- * Approval System Schedule Configuration
+ * Renders a user interface for configuring the interval and schedule of an approval maintenance job.
  *
- * Manages the timing configuration for approval maintenance schedule.
- * Allows configuring how frequently the maintenance job runs.
+ * Allows users to select how frequently the maintenance job runs, view the current schedule and cron expression, and save changes. Disables controls when loading or if scheduling is not enabled, and displays a warning if schedule configuration is unavailable.
  */
 export function ApprovalSystemSchedule({
   interval,
