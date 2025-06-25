@@ -456,7 +456,7 @@ export async function getAverageTimeFromGrabbedToNotified(
     // Calculate statistics for each content type
     const rows = []
     for (const [contentType, times] of contentGroups.entries()) {
-      if (times.length < 5) continue // Minimum sample size
+      if (times.length < 2) continue // Minimum sample size
 
       const avgDays = times.reduce((sum, time) => sum + time, 0) / times.length
 
@@ -574,7 +574,7 @@ export async function getDetailedStatusTransitionMetrics(
     }> = []
 
     for (const [key, times] of transitionGroups.entries()) {
-      if (times.length < 3) continue // Minimum sample size
+      if (times.length < 2) continue // Minimum sample size
 
       const [fromStatus, toStatus, contentType] = key.split('|')
 

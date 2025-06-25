@@ -419,26 +419,82 @@ export class AppriseNotificationService {
       // Create text version of the body
       let textBody = 'System Notification\n\n'
 
-      // Build enhanced HTML content with Pulsarr dark theme styling
-      let fieldsContent = ''
-      for (const field of notification.embedFields) {
-        fieldsContent += `
-        <div style="margin-bottom: 15px; padding: 15px; background-color: #212121; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
-          <h3 style="margin-top: 0; color: #ffffff; font-weight: 700; font-size: 16px;">${this.esc(field.name)}</h3>
-          <div style="margin-left: 10px; color: #ffffff; font-weight: 500;">${this.esc(field.value)}</div>
-        </div>
-        `
+      // Extract field values for consolidated structure
+      const fields = Object.fromEntries(
+        notification.embedFields.map((field) => [field.name, field.value]),
+      )
 
-        textBody += `${field.name}: ${field.value}\n\n`
-      }
+      // Build consolidated HTML structure
+      // Main Content Card (with poster)
+      const posterHtml = notification.posterUrl
+        ? `<div style="text-align: center; margin-bottom: 15px;">
+             <img src="${notification.posterUrl}" alt="${this.esc(fields.Content || title)} poster" style="max-width: 150px; border-radius: 5px; border: 2px solid #000000; box-shadow: 2px 2px 0px 0px #000000;">
+           </div>`
+        : ''
+
+      const contentCard = `
+        <div style="margin-bottom: 20px; padding: 20px; background-color: #212121; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
+          ${posterHtml}
+          <h3 style="margin-top: 0; color: #ffffff; font-weight: 700; text-align: center;">${this.esc(fields.Content || 'Unknown Content')}</h3>
+          <div style="display: flex; justify-content: center; gap: 20px; margin-top: 15px;">
+            <div style="text-align: center;">
+              <div style="color: #48a9a6; font-weight: 700; font-size: 14px;">TYPE</div>
+              <div style="color: #ffffff; font-weight: 500;">${this.esc(fields.Type || 'Unknown')}</div>
+            </div>
+          </div>
+        </div>
+      `
+
+      // Request Details Card
+      const requestCard = `
+        <div style="margin-bottom: 20px; padding: 20px; background-color: #212121; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
+          <h4 style="margin-top: 0; color: #48a9a6; font-weight: 700; border-bottom: 1px solid #48a9a6; padding-bottom: 5px;">Request Details</h4>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
+            <div>
+              <div style="color: #48a9a6; font-weight: 700; font-size: 14px;">REQUESTED BY</div>
+              <div style="color: #ffffff; font-weight: 500;">${this.esc(fields['Requested by'] || 'Unknown')}</div>
+            </div>
+            <div>
+              <div style="color: #48a9a6; font-weight: 700; font-size: 14px;">PENDING REQUESTS</div>
+              <div style="color: #ffffff; font-weight: 500;">${this.esc(fields['Total pending'] || '0').replace(' requests', ' awaiting review')}</div>
+            </div>
+          </div>
+          ${
+            fields.Reason
+              ? `
+          <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #343746;">
+            <div style="color: #48a9a6; font-weight: 700; font-size: 14px;">REASON FOR APPROVAL</div>
+            <div style="color: #ffffff; font-weight: 500; margin-top: 5px;">${this.esc(fields.Reason)}</div>
+          </div>
+          `
+              : ''
+          }
+        </div>
+      `
+
+      // Action Card
+      const actionCard = fields['Action Required']
+        ? `
+        <div style="margin-bottom: 20px; padding: 15px; background-color: #48a9a6; border-radius: 5px; border: 2px solid #000000; box-shadow: 4px 4px 0px 0px #000000;">
+          <div style="color: #000000; font-weight: 700; text-align: center;">${this.esc(fields['Action Required'])}</div>
+        </div>
+      `
+        : ''
+
+      // Build text body with consolidated structure
+      textBody += `${fields.Content || 'Unknown Content'}\n`
+      textBody += `Type: ${fields.Type || 'Unknown'}\n\n`
+      textBody += `Requested by: ${fields['Requested by'] || 'Unknown'}\n`
+      textBody += `Total pending: ${fields['Total pending'] || '0'}\n`
+      if (fields.Reason) textBody += `Reason: ${fields.Reason}\n`
+      textBody += `\n${fields['Action Required'] || ''}\n\n`
 
       // Create complete HTML content with Pulsarr styling
       const systemContent = `
-        <h2 style="color: #000000; margin-top: 0; font-weight: 700;">System Notification</h2>
-        <h3 style="color: #000000; font-weight: 700;">${this.esc(title)}</h3>
-        <div style="margin: 15px 0;">
-          ${fieldsContent}
-        </div>
+        <h2 style="color: #000000; margin-top: 0; font-weight: 700;">Content Approval Required</h2>
+        ${contentCard}
+        ${requestCard}
+        ${actionCard}
       `
 
       const htmlBody = this.htmlWrapper(systemContent)
@@ -455,6 +511,11 @@ export class AppriseNotificationService {
         body_html: htmlBody,
         // Include Pulsarr icon for notification services that support icons
         attach_url: this.ICON_URL,
+      }
+
+      // Add poster URL if available - matching media notification pattern
+      if (notification.posterUrl) {
+        appriseNotification.image = notification.posterUrl
       }
 
       // Send to the system Apprise URL

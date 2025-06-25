@@ -30,7 +30,7 @@ export class StatusService {
       const existingSeries = await this.sonarrManager.fetchAllSeries(true)
       const watchlistItems = await this.dbService.getAllShowWatchlistItems()
       const dbWatchlistItems = this.convertToDbWatchlistItems(watchlistItems)
-      const mainUpdates = this.processShowStatusUpdates(
+      const mainUpdates = await this.processShowStatusUpdates(
         existingSeries,
         dbWatchlistItems,
       )
@@ -81,7 +81,7 @@ export class StatusService {
       const existingMovies = await this.radarrManager.fetchAllMovies(true)
       const watchlistItems = await this.dbService.getAllMovieWatchlistItems()
       const dbWatchlistItems = this.convertToDbWatchlistItems(watchlistItems)
-      const mainUpdates = this.processMovieStatusUpdates(
+      const mainUpdates = await this.processMovieStatusUpdates(
         existingMovies,
         dbWatchlistItems,
       )
@@ -135,7 +135,7 @@ export class StatusService {
     })) as (Omit<T, 'id'> & { id: number })[]
   }
 
-  private processShowStatusUpdates(
+  private async processShowStatusUpdates(
     sonarrItems: SonarrItem[],
     watchlistItems: DatabaseWatchlistItem[],
   ) {
@@ -169,9 +169,34 @@ export class StatusService {
           if (item.status !== 'notified') {
             update.status = sonarrMatch.status
           } else {
-            this.log.debug(
-              `Preventing status downgrade for show ${item.title} [${item.key}]: keeping 'notified' instead of changing to '${sonarrMatch.status}'`,
-            )
+            // If item is notified but Sonarr shows it should be grabbed,
+            // we need to backfill the missing grabbed status in history
+            if (sonarrMatch.status === 'grabbed') {
+              this.log.debug(
+                `Backfilling missing 'grabbed' status for notified show ${item.title} [${item.key}]`,
+              )
+              // Add the grabbed status to history with the correct timestamp
+              try {
+                if (item.id !== undefined && sonarrMatch.added) {
+                  const itemId =
+                    typeof item.id === 'string' ? Number(item.id) : item.id
+                  await this.dbService.addStatusHistoryEntry(
+                    itemId,
+                    'grabbed',
+                    sonarrMatch.added, // Use the timestamp from Sonarr
+                  )
+                }
+              } catch (error) {
+                this.log.error(
+                  `Failed to backfill grabbed status for ${item.title}:`,
+                  error,
+                )
+              }
+            } else {
+              this.log.debug(
+                `Preventing status downgrade for show ${item.title} [${item.key}]: keeping 'notified' instead of changing to '${sonarrMatch.status}'`,
+              )
+            }
           }
         }
         if (item.series_status !== sonarrMatch.series_status) {
@@ -188,7 +213,7 @@ export class StatusService {
     return updates
   }
 
-  private processMovieStatusUpdates(
+  private async processMovieStatusUpdates(
     radarrItems: RadarrItem[],
     watchlistItems: DatabaseWatchlistItem[],
   ) {
@@ -222,9 +247,34 @@ export class StatusService {
           if (item.status !== 'notified') {
             update.status = radarrMatch.status
           } else {
-            this.log.debug(
-              `Preventing status downgrade for movie ${item.title} [${item.key}]: keeping 'notified' instead of changing to '${radarrMatch.status}'`,
-            )
+            // If item is notified but Radarr shows it should be grabbed,
+            // we need to backfill the missing grabbed status in history
+            if (radarrMatch.status === 'grabbed') {
+              this.log.debug(
+                `Backfilling missing 'grabbed' status for notified movie ${item.title} [${item.key}]`,
+              )
+              // Add the grabbed status to history with the correct timestamp
+              try {
+                if (item.id !== undefined && radarrMatch.added) {
+                  const itemId =
+                    typeof item.id === 'string' ? Number(item.id) : item.id
+                  await this.dbService.addStatusHistoryEntry(
+                    itemId,
+                    'grabbed',
+                    radarrMatch.added, // Use the timestamp from Radarr
+                  )
+                }
+              } catch (error) {
+                this.log.error(
+                  `Failed to backfill grabbed status for ${item.title}:`,
+                  error,
+                )
+              }
+            } else {
+              this.log.debug(
+                `Preventing status downgrade for movie ${item.title} [${item.key}]: keeping 'notified' instead of changing to '${radarrMatch.status}'`,
+              )
+            }
           }
         }
         if (item.movie_status !== radarrMatch.movie_status) {
