@@ -86,10 +86,10 @@ export function useApprovalSystem() {
         scheduleHook.handleApprovalIntervalChange(data.scheduleInterval)
         await fetchSchedules()
       } catch (err) {
-        // If schedule update fails, we should probably show an error
-        // but the config was already saved successfully
-        console.error('Schedule update failed:', err)
-        throw err
+        // Schedule update failed, but config was already saved successfully
+        // Don't throw the error to avoid confusing users about the save status
+        console.error('Schedule update failed after successful config save:', err)
+        // Consider showing a non-blocking warning to the user about the schedule update failure
       }
     }
   }

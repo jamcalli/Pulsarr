@@ -58,7 +58,7 @@ export async function processNotifications(
         notify_tautulli: Boolean(row.notify_tautulli),
         tautulli_notifier_id: row.tautulli_notifier_id,
         can_sync: Boolean(row.can_sync),
-        requires_approval: Boolean(row.requires_approval || false),
+        requires_approval: Boolean(row.requires_approval),
         is_primary_token: Boolean(row.is_primary_token),
         created_at: row.created_at,
         updated_at: row.updated_at,

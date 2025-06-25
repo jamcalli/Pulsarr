@@ -221,7 +221,8 @@ const plugin: FastifyPluginAsync = async (fastify) => {
       schema: {
         summary: 'Update separate movie and show quotas',
         operationId: 'updateSeparateUserQuotas',
-        description: 'Update movie and show quota configurations separately for a user',
+        description:
+          'Update movie and show quota configurations separately for a user',
         params: z.object({
           userId: z.string(),
         }),
@@ -239,7 +240,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
         const { movieQuota, showQuota } = request.body
 
         const existingQuotas = await fastify.db.getUserQuotas(userId)
-        
+
         let movieResult = existingQuotas.movieQuota
         let showResult = existingQuotas.showQuota
 
@@ -254,13 +255,21 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             }
 
             if (existingQuotas.movieQuota) {
-              movieResult = await fastify.db.updateUserQuota(userId, 'movie', movieData) || undefined
+              movieResult =
+                (await fastify.db.updateUserQuota(
+                  userId,
+                  'movie',
+                  movieData,
+                )) || undefined
             } else {
+              if (!movieData.quotaType || !movieData.quotaLimit) {
+                throw new Error('Movie quota type and limit are required')
+              }
               movieResult = await fastify.db.createUserQuota({
                 userId,
                 contentType: 'movie',
-                quotaType: movieData.quotaType!,
-                quotaLimit: movieData.quotaLimit!,
+                quotaType: movieData.quotaType,
+                quotaLimit: movieData.quotaLimit,
                 bypassApproval: movieData.bypassApproval,
               })
             }
@@ -271,7 +280,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           }
         }
 
-        // Handle show quota  
+        // Handle show quota
         if (showQuota) {
           if (showQuota.enabled) {
             // Create or update show quota
@@ -282,13 +291,18 @@ const plugin: FastifyPluginAsync = async (fastify) => {
             }
 
             if (existingQuotas.showQuota) {
-              showResult = await fastify.db.updateUserQuota(userId, 'show', showData) || undefined
+              showResult =
+                (await fastify.db.updateUserQuota(userId, 'show', showData)) ||
+                undefined
             } else {
+              if (!showData.quotaType || !showData.quotaLimit) {
+                throw new Error('Show quota type and limit are required')
+              }
               showResult = await fastify.db.createUserQuota({
                 userId,
                 contentType: 'show',
-                quotaType: showData.quotaType!,
-                quotaLimit: showData.quotaLimit!,
+                quotaType: showData.quotaType,
+                quotaLimit: showData.quotaLimit,
                 bypassApproval: showData.bypassApproval,
               })
             }
