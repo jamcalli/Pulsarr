@@ -274,17 +274,8 @@ export class ContentRouterService {
         try {
           // Check if there's already an approval request for this user/content
           if (context.userId) {
-            // Use the appropriate GUID for the content type
-            let contentKey = ''
-            if (contentType === 'movie') {
-              // Radarr uses TMDB IDs
-              contentKey =
-                extractTypedGuid(item.guids, 'tmdb:') || item.guids[0] || ''
-            } else {
-              // Sonarr uses TVDB IDs
-              contentKey =
-                extractTypedGuid(item.guids, 'tvdb:') || item.guids[0] || ''
-            }
+            // Use the same content key logic as ApprovalService: Plex key for user association
+            const contentKey = context.itemKey || item.guids[0] || ''
 
             this.log.debug(
               `Checking for existing approval request: userId=${context.userId}, contentKey=${contentKey} (plex key: ${context.itemKey})`,
@@ -301,32 +292,47 @@ export class ContentRouterService {
             )
 
             if (existingRequest) {
-              if (existingRequest.status === 'pending') {
-                // Don't create duplicate, don't route
-                this.log.info(
-                  `Pending approval request already exists for "${item.title}" by user ${context.userName || context.userId}`,
-                )
-                return { routedInstances: [] }
-              }
+              // Handle each status explicitly
+              switch (existingRequest.status) {
+                case 'pending':
+                  // Don't create duplicate, don't route
+                  this.log.info(
+                    `Pending approval request already exists for "${item.title}" by user ${context.userName || context.userId}`,
+                  )
+                  return { routedInstances: [] }
 
-              if (existingRequest.status === 'approved') {
-                // Route using the approved decision
-                this.log.info(
-                  `Using previously approved routing for "${item.title}" by user ${context.userName || context.userId}`,
-                )
-                return await this.routeUsingApprovedDecision(
-                  existingRequest,
-                  item,
-                  context,
-                )
-              }
+                case 'approved':
+                  // Route using the approved decision
+                  this.log.info(
+                    `Using previously approved routing for "${item.title}" by user ${context.userName || context.userId}`,
+                  )
+                  return await this.routeUsingApprovedDecision(
+                    existingRequest,
+                    item,
+                    context,
+                  )
 
-              if (existingRequest.status === 'rejected') {
-                // Respect the rejection, don't route, don't create duplicate
-                this.log.info(
-                  `Content "${item.title}" was previously rejected for user ${context.userName || context.userId}, skipping routing`,
-                )
-                return { routedInstances: [] }
+                case 'rejected':
+                  // Respect the rejection, don't route, don't create duplicate
+                  this.log.info(
+                    `Content "${item.title}" was previously rejected for user ${context.userName || context.userId}, skipping routing`,
+                  )
+                  return { routedInstances: [] }
+
+                case 'expired':
+                  // Expired requests can be reprocessed - continue to create new approval request
+                  this.log.info(
+                    `Previous approval request for "${item.title}" by user ${context.userName || context.userId} has expired, allowing reprocessing`,
+                  )
+                  // Fall through to continue execution
+                  break
+
+                default:
+                  // For any other unknown status, don't create duplicate, don't route
+                  this.log.info(
+                    `Existing approval request found with status "${existingRequest.status}" for "${item.title}" by user ${context.userName || context.userId}, skipping routing`,
+                  )
+                  return { routedInstances: [] }
               }
             }
           }
