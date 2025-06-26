@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
 import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import type { SonarrInstanceSchema } from '@/features/sonarr/store/schemas'
 import type { UseFormReturn } from 'react-hook-form'
 
@@ -14,7 +14,6 @@ import type { UseFormReturn } from 'react-hook-form'
  * @returns An object containing the current instance, all instances, and functions to update, delete, and fetch data for the specified instance.
  */
 export function useSonarrInstance(instanceId: number) {
-  const { toast } = useToast()
   const instance = useSonarrStore((state) =>
     state.instances.find((i) => i.id === instanceId),
   )
@@ -80,32 +79,17 @@ export function useSonarrInstance(instanceId: number) {
         setTestStatus('idle')
         await fetchInstances()
 
-        toast({
-          title: isLastRealInstance
-            ? 'Configuration Cleared'
-            : 'Instance Deleted',
-          description: isLastRealInstance
+        toast.success(
+          isLastRealInstance
             ? 'Sonarr configuration has been cleared'
             : 'Sonarr instance has been deleted',
-          variant: 'default',
-        })
+        )
       } catch (error) {
-        toast({
-          title: 'Error',
-          description: 'Failed to delete instance',
-          variant: 'destructive',
-        })
+        toast.error('Failed to delete instance')
         throw error
       }
     },
-    [
-      instanceId,
-      instances,
-      updateInstance,
-      deleteInstance,
-      fetchInstances,
-      toast,
-    ],
+    [instanceId, instances, updateInstance, deleteInstance, fetchInstances],
   )
 
   return {

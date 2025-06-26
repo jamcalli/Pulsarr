@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useConfigStore } from '@/stores/configStore'
 import type { SelfWatchlistSuccess } from '@root/schemas/plex/self-watchlist-token.schema'
 import type { OthersWatchlistSuccess } from '@root/schemas/plex/others-watchlist-token.schema'
@@ -7,7 +7,6 @@ import type { OthersWatchlistSuccess } from '@root/schemas/plex/others-watchlist
 export type WatchlistStatus = 'idle' | 'loading' | 'success' | 'error'
 
 export function usePlexWatchlist() {
-  const { toast } = useToast()
   const fetchUserData = useConfigStore((state) => state.fetchUserData)
   const getSelfWatchlistInfo = useConfigStore(
     (state) => state.getSelfWatchlistInfo,
@@ -58,19 +57,11 @@ export function usePlexWatchlist() {
       // Refresh user data
       await fetchUserData()
 
-      toast({
-        title: 'Watchlists Refreshed',
-        description: 'Watchlist data has been updated',
-        variant: 'default',
-      })
+      toast.success('Watchlist data has been updated')
     } catch (error) {
       setSelfWatchlistStatus('error')
       setOthersWatchlistStatus('error')
-      toast({
-        title: 'Refresh Failed',
-        description: 'Failed to refresh watchlist data',
-        variant: 'destructive',
-      })
+      toast.error('Failed to refresh watchlist data')
     }
   }
 

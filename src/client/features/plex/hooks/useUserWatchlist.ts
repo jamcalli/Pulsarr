@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import type { GetUserWatchlistResponse } from '@root/schemas/users/watchlist.schema'
 
 /**
@@ -10,7 +10,6 @@ import type { GetUserWatchlistResponse } from '@root/schemas/users/watchlist.sch
  * @returns An object with the current watchlist data, loading and error states, open state, and handler functions for UI interaction and data management.
  */
 export function useUserWatchlist() {
-  const { toast } = useToast()
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null)
   const [isOpen, setIsOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -36,10 +35,7 @@ export function useUserWatchlist() {
       const error =
         err instanceof Error ? err : new Error('Unknown error occurred')
       setError(error)
-      toast({
-        description: error.message,
-        variant: 'destructive',
-      })
+      toast.error(error.message)
     } finally {
       setIsLoading(false)
     }

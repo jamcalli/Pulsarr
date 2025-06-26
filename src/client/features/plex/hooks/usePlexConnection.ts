@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useConfigStore } from '@/stores/configStore'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 import { plexTokenSchema } from '@/features/plex/store/schemas'
@@ -11,7 +11,6 @@ import type { Config } from '@root/schemas/config/config.schema'
 export type ConnectionStatus = 'idle' | 'loading' | 'success' | 'error'
 
 export function usePlexConnection() {
-  const { toast } = useToast()
   const config = useConfigStore((state) => state.config)
   const updateConfig = useConfigStore((state) => state.updateConfig)
   const [isInitialized, setIsInitialized] = useState(false)
@@ -53,19 +52,11 @@ export function usePlexConnection() {
       await Promise.all([updateConfig(configUpdate), minimumLoadingTime])
 
       setStatus('success')
-      toast({
-        title: 'Token Updated',
-        description: 'Plex token has been updated successfully',
-        variant: 'default',
-      })
+      toast.success('Plex token has been updated successfully')
     } catch (error) {
       console.error('Token update error:', error)
       setStatus('error')
-      toast({
-        title: 'Error',
-        description: 'Failed to update token',
-        variant: 'destructive',
-      })
+      toast.error('Failed to update token')
     } finally {
       setStatus('idle')
     }
@@ -87,18 +78,10 @@ export function usePlexConnection() {
 
       form.reset({ plexToken: '' })
       setStatus('idle')
-      toast({
-        title: 'Token Removed',
-        description: 'Plex token has been removed',
-        variant: 'default',
-      })
+      toast.success('Plex token has been removed')
     } catch (error) {
       setStatus('error')
-      toast({
-        title: 'Error',
-        description: 'Failed to remove token',
-        variant: 'destructive',
-      })
+      toast.error('Failed to remove token')
     } finally {
       setStatus('idle')
     }

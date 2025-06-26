@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useSyncProgress } from '@/features/sonarr/hooks/instance/useSyncProgress'
 import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
 
@@ -26,7 +26,6 @@ export function SonarrSyncModal({
   syncedInstances,
   isManualSync = false,
 }: SonarrSyncModalProps) {
-  const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [currentInstanceIndex, setCurrentInstanceIndex] = useState(-1)
   const [syncCompleted, setSyncCompleted] = useState(false)
@@ -59,10 +58,7 @@ export function SonarrSyncModal({
         setCurrentInstanceIndex(0)
       } else {
         setSyncCompleted(true)
-        toast({
-          description: 'No instances to synchronize',
-          variant: 'default',
-        })
+        toast('No instances to synchronize')
       }
     }
   }, [
@@ -72,7 +68,6 @@ export function SonarrSyncModal({
     currentInstanceIndex,
     syncCompleted,
     syncedInstances.length,
-    toast,
   ])
 
   useEffect(() => {
@@ -116,13 +111,10 @@ export function SonarrSyncModal({
         setOverallProgress(100)
         setSyncCompleted(true)
 
-        toast({
-          description: 'Successfully synchronized all Sonarr instances',
-          variant: 'default',
-        })
+        toast.success('Successfully synchronized all Sonarr instances')
       }
     }
-  }, [syncProgress, currentInstanceIndex, syncedInstances, toast])
+  }, [syncProgress, currentInstanceIndex, syncedInstances])
 
   useEffect(() => {
     const syncCurrentInstance = async () => {
@@ -146,13 +138,11 @@ export function SonarrSyncModal({
           }
         } catch (error) {
           console.error('Error syncing instance:', error)
-          toast({
-            description:
-              error instanceof Error
-                ? error.message
-                : 'An error occurred during synchronization',
-            variant: 'destructive',
-          })
+          toast.error(
+            error instanceof Error
+              ? error.message
+              : 'An error occurred during synchronization',
+          )
 
           const nextIndex = currentInstanceIndex + 1
           if (nextIndex < syncedInstances.length) {
@@ -167,7 +157,7 @@ export function SonarrSyncModal({
     if (isSubmitting && currentInstanceIndex >= 0) {
       syncCurrentInstance()
     }
-  }, [currentInstanceIndex, syncedInstances, isSubmitting, toast])
+  }, [currentInstanceIndex, syncedInstances, isSubmitting])
 
   const handleSync = () => {
     setIsSubmitting(true)
@@ -176,10 +166,7 @@ export function SonarrSyncModal({
       setCurrentInstanceIndex(0)
     } else {
       setSyncCompleted(true)
-      toast({
-        description: 'No instances to synchronize',
-        variant: 'default',
-      })
+      toast('No instances to synchronize')
     }
   }
 

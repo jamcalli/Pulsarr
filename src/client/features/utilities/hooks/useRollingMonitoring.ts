@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react'
-import { toast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import type {
   RollingMonitoredShow as BaseRollingMonitoredShow,
   SessionMonitoringResult,
@@ -95,11 +95,7 @@ export function useRollingMonitoring(): UseRollingMonitoringReturn {
       setRollingShows(data.shows || [])
     } catch (error) {
       console.error('Error fetching rolling monitored shows:', error)
-      toast({
-        title: 'Error',
-        description: 'Failed to fetch rolling monitored shows',
-        variant: 'destructive',
-      })
+      toast.error('Failed to fetch rolling monitored shows')
     } finally {
       setLoading((prev) => ({ ...prev, fetchingShows: false }))
     }
@@ -125,11 +121,7 @@ export function useRollingMonitoring(): UseRollingMonitoringReturn {
       setInactiveShows(data.shows || [])
     } catch (error) {
       console.error('Error fetching inactive shows:', error)
-      toast({
-        title: 'Error',
-        description: 'Failed to fetch inactive shows',
-        variant: 'destructive',
-      })
+      toast.error('Failed to fetch inactive shows')
     } finally {
       setLoading((prev) => ({ ...prev, fetchingInactive: false }))
     }
@@ -156,20 +148,13 @@ export function useRollingMonitoring(): UseRollingMonitoringReturn {
         const remaining = Math.max(0, MIN_LOADING_TIME - elapsed)
         await new Promise((resolve) => setTimeout(resolve, remaining))
 
-        toast({
-          title: 'Success',
-          description: data.message,
-        })
+        toast.success(data.message)
 
         // Refresh the shows list
         await fetchRollingShows()
       } catch (error) {
         console.error('Error resetting show:', error)
-        toast({
-          title: 'Error',
-          description: 'Failed to reset show to original monitoring state',
-          variant: 'destructive',
-        })
+        toast.error('Failed to reset show to original monitoring state')
       } finally {
         setLoading((prev) => ({ ...prev, resetting: false }))
         setActiveActionId(null)
@@ -198,22 +183,17 @@ export function useRollingMonitoring(): UseRollingMonitoringReturn {
         const remaining = Math.max(0, MIN_LOADING_TIME - elapsed)
         await new Promise((resolve) => setTimeout(resolve, remaining))
 
-        toast({
-          title: 'Success',
-          description: data.message,
-        })
+        toast.success(data.message)
 
         // Refresh the shows list
         await fetchRollingShows()
       } catch (error) {
         console.error('Error deleting show:', error)
-        toast({
-          title: 'Error',
-          description: shouldReset
+        toast.error(
+          shouldReset
             ? 'Failed to reset and remove show from rolling monitoring'
             : 'Failed to remove show from rolling monitoring',
-          variant: 'destructive',
-        })
+        )
       } finally {
         setLoading((prev) => ({ ...prev, deleting: false }))
         setActiveActionId(null)
@@ -247,10 +227,7 @@ export function useRollingMonitoring(): UseRollingMonitoringReturn {
         const remaining = Math.max(0, MIN_LOADING_TIME - elapsed)
         await new Promise((resolve) => setTimeout(resolve, remaining))
 
-        toast({
-          title: 'Success',
-          description: data.message,
-        })
+        toast.success(data.message)
 
         // Refresh both lists
         await Promise.all([
@@ -259,11 +236,7 @@ export function useRollingMonitoring(): UseRollingMonitoringReturn {
         ])
       } catch (error) {
         console.error('Error resetting inactive shows:', error)
-        toast({
-          title: 'Error',
-          description: 'Failed to reset inactive shows',
-          variant: 'destructive',
-        })
+        toast.error('Failed to reset inactive shows')
       } finally {
         setLoading((prev) => ({ ...prev, resetting: false }))
         actionStartTime.current = null
@@ -290,10 +263,9 @@ export function useRollingMonitoring(): UseRollingMonitoringReturn {
         const remaining = Math.max(0, MIN_LOADING_TIME - elapsed)
         await new Promise((resolve) => setTimeout(resolve, remaining))
 
-        toast({
-          title: 'Success',
-          description: `Session monitoring complete. Processed ${data.result.processedSessions} sessions, triggered ${data.result.triggeredSearches} searches.`,
-        })
+        toast.success(
+          `Session monitoring complete. Processed ${data.result.processedSessions} sessions, triggered ${data.result.triggeredSearches} searches.`,
+        )
 
         // Refresh the shows list
         await fetchRollingShows()
@@ -301,11 +273,7 @@ export function useRollingMonitoring(): UseRollingMonitoringReturn {
         return data.result
       } catch (error) {
         console.error('Error running session monitor:', error)
-        toast({
-          title: 'Error',
-          description: 'Failed to run session monitor',
-          variant: 'destructive',
-        })
+        toast.error('Failed to run session monitor')
         return null
       } finally {
         setLoading((prev) => ({ ...prev, runningMonitor: false }))

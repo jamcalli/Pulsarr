@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 import { useConfigStore } from '@/stores/configStore'
 import {
@@ -87,7 +87,6 @@ export function isRemoveTagsResponse(
  * @returns An object with the form instance, operation state flags, last operation results, tag deletion status, and handler functions for user tag configuration and actions.
  */
 export function useUserTags() {
-  const { toast } = useToast()
   const [lastResults, setLastResults] = useState<z.infer<
     typeof TaggingStatusResponseSchema
   > | null>(null)
@@ -227,10 +226,7 @@ export function useUserTags() {
         // Set success state
         setSaveStatus('success')
 
-        toast({
-          description: 'Settings saved successfully',
-          variant: 'default',
-        })
+        toast.success('Settings saved successfully')
 
         // Reset form with updated configuration
         form.reset(formDataCopy, { keepDirty: false })
@@ -249,11 +245,7 @@ export function useUserTags() {
           error instanceof Error ? error.message : 'Failed to save settings'
 
         setSaveStatus('error')
-        toast({
-          title: 'Error',
-          description: errorMessage,
-          variant: 'destructive',
-        })
+        toast.error(errorMessage)
 
         setTimeout(() => {
           setSaveStatus('idle')
@@ -262,7 +254,7 @@ export function useUserTags() {
         setLoadingWithMinDuration(false)
       }
     },
-    [form, toast, updateUserTagsConfig, setLoadingWithMinDuration, fetchConfig],
+    [form, updateUserTagsConfig, setLoadingWithMinDuration, fetchConfig],
   )
 
   // Handle form cancellation
@@ -284,14 +276,11 @@ export function useUserTags() {
       const result = await createUserTags()
       setLastActionResults(result)
 
-      toast({
-        description: result.message || 'User tags created successfully',
-        variant: 'default',
-      })
+      toast.success(result.message || 'User tags created successfully')
     } catch (err) {
       // Error is already handled in the store and displayed via toast
     }
-  }, [createUserTags, toast])
+  }, [createUserTags])
 
   // Sync tags operation
   const handleSyncTags = useCallback(async () => {
@@ -305,14 +294,11 @@ export function useUserTags() {
       const result = await syncUserTags()
       setLastActionResults(result)
 
-      toast({
-        description: result.message || 'User tags synced successfully',
-        variant: 'default',
-      })
+      toast.success(result.message || 'User tags synced successfully')
     } catch (err) {
       // Error is already handled in the store and displayed via toast
     }
-  }, [syncUserTags, toast])
+  }, [syncUserTags])
 
   // Clean up orphaned tags operation
   const handleCleanupTags = useCallback(async () => {
@@ -323,14 +309,11 @@ export function useUserTags() {
       const result = await cleanupUserTags()
       setLastActionResults(result)
 
-      toast({
-        description: result.message || 'Orphaned tags cleaned up successfully',
-        variant: 'default',
-      })
+      toast.success(result.message || 'Orphaned tags cleaned up successfully')
     } catch (err) {
       // Error is already handled in the store and displayed via toast
     }
-  }, [cleanupUserTags, toast])
+  }, [cleanupUserTags])
 
   // Check if on initial loading - don't show loading on navigation
   if (!hasInitializedRef.current && !loading.userTags) {
@@ -363,24 +346,18 @@ export function useUserTags() {
           setTagDefinitionsDeleted(false)
         }
 
-        toast({
-          description: result.message || 'User tags removed successfully',
-          variant: 'default',
-        })
+        toast.success(result.message || 'User tags removed successfully')
       } catch (err) {
         // Reset states on error
         setIsTagDeletionComplete(false)
         setTagDefinitionsDeleted(false)
 
-        toast({
-          title: 'Error',
-          description:
-            err instanceof Error ? err.message : 'Failed to remove user tags',
-          variant: 'destructive',
-        })
+        toast.error(
+          err instanceof Error ? err.message : 'Failed to remove user tags',
+        )
       }
     },
-    [removeUserTags, loading.removeUserTags, toast],
+    [removeUserTags, loading.removeUserTags],
   )
 
   return {

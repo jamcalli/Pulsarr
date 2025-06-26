@@ -33,7 +33,7 @@ import InstanceCardSkeleton from '@/features/radarr/components/instance/radarr-c
 import DeleteInstanceAlert from '@/features/radarr/components/instance/delete-instance-alert'
 import { RadarrSyncModal } from '@/features/radarr/components/instance/radarr-sync-modal'
 import type { RadarrInstance } from '@/features/radarr/types/types'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import {
@@ -68,7 +68,6 @@ export function InstanceCard({
   instance,
   setShowInstanceCard,
 }: InstanceCardProps) {
-  const { toast } = useToast()
   const isMobile = useMediaQuery('(max-width: 768px)')
   const [showDeleteAlert, setShowDeleteAlert] = useState(false)
   const [showSyncModal, setShowSyncModal] = useState(false)
@@ -138,12 +137,7 @@ export function InstanceCard({
 
   const handleSubmit = async (data: RadarrInstanceSchema) => {
     if (!isConnectionValid) {
-      toast({
-        title: 'Connection Required',
-        description:
-          'Please test the connection before saving the configuration',
-        variant: 'destructive',
-      })
+      toast.error('Please test the connection before saving the configuration')
       return
     }
 
@@ -168,11 +162,7 @@ export function InstanceCard({
       await Promise.all([updateInstance(data), minimumLoadingTime])
 
       setSaveStatus('success')
-      toast({
-        title: 'Configuration Updated',
-        description: 'Radarr configuration has been updated successfully',
-        variant: 'default',
-      })
+      toast.success('Radarr configuration has been updated successfully')
       form.reset(data)
 
       if (hasChangedSyncedInstances && newSyncedInstances.length > 0) {
@@ -208,13 +198,11 @@ export function InstanceCard({
       }) // Debug log
       const isDefaultError = errorMessage.includes('default')
 
-      toast({
-        title: 'Update Failed',
-        description: isDefaultError
+      toast.error(
+        isDefaultError
           ? errorMessage // Use the actual error message from the API
           : 'Failed to update Radarr configuration',
-        variant: 'destructive',
-      })
+      )
 
       // If it was a default error, reset the form to restore the default status
       if (isDefaultError) {

@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useApprovalsStore } from '@/features/plex/store/approvalsStore'
 import type {
   GetApprovalRequestsQuery,
@@ -14,7 +14,6 @@ import type {
  * @returns An object containing approval request data, statistics, loading and error states, action methods with error handling, raw setters, utility functions for filtering, and computed metrics for use in React components.
  */
 export function useApprovals() {
-  const { toast } = useToast()
   const {
     approvalRequests,
     stats,
@@ -40,15 +39,11 @@ export function useApprovals() {
       try {
         await approveRequest(requestId, notes)
       } catch (error) {
-        toast({
-          title: 'Error',
-          description: 'Failed to approve request',
-          variant: 'destructive',
-        })
+        toast.error('Failed to approve request')
         throw error
       }
     },
-    [approveRequest, toast],
+    [approveRequest],
   )
 
   const handleRejectRequest = useCallback(
@@ -56,35 +51,24 @@ export function useApprovals() {
       try {
         await rejectRequest(requestId, reason)
       } catch (error) {
-        toast({
-          title: 'Error',
-          description: 'Failed to reject request',
-          variant: 'destructive',
-        })
+        toast.error('Failed to reject request')
         throw error
       }
     },
-    [rejectRequest, toast],
+    [rejectRequest],
   )
 
   const handleUpdateRequest = useCallback(
     async (requestId: number, updates: UpdateApprovalRequest) => {
       try {
         await updateApprovalRequest(requestId, updates)
-        toast({
-          title: 'Success',
-          description: 'Approval request updated successfully',
-        })
+        toast.success('Approval request updated successfully')
       } catch (error) {
-        toast({
-          title: 'Error',
-          description: 'Failed to update approval request',
-          variant: 'destructive',
-        })
+        toast.error('Failed to update approval request')
         throw error
       }
     },
-    [updateApprovalRequest, toast],
+    [updateApprovalRequest],
   )
 
   const handleDeleteRequest = useCallback(
@@ -92,15 +76,11 @@ export function useApprovals() {
       try {
         await deleteApprovalRequest(requestId)
       } catch (error) {
-        toast({
-          title: 'Error',
-          description: 'Failed to delete approval request',
-          variant: 'destructive',
-        })
+        toast.error('Failed to delete approval request')
         throw error
       }
     },
-    [deleteApprovalRequest, toast],
+    [deleteApprovalRequest],
   )
 
   const handleFetchRequests = useCallback(
@@ -108,58 +88,42 @@ export function useApprovals() {
       try {
         await fetchApprovalRequests(query)
       } catch (error) {
-        toast({
-          title: 'Error',
-          description: 'Failed to fetch approval requests',
-          variant: 'destructive',
-        })
+        toast.error('Failed to fetch approval requests')
         throw error
       }
     },
-    [fetchApprovalRequests, toast],
+    [fetchApprovalRequests],
   )
 
   const handleRefreshRequests = useCallback(async () => {
     try {
       await refreshApprovalRequests()
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to refresh approval requests',
-        variant: 'destructive',
-      })
+      toast.error('Failed to refresh approval requests')
       throw error
     }
-  }, [refreshApprovalRequests, toast])
+  }, [refreshApprovalRequests])
 
   const handleInitialize = useCallback(
     async (force = false) => {
       try {
         await initialize(force)
       } catch (error) {
-        toast({
-          title: 'Error',
-          description: 'Failed to initialize approvals',
-          variant: 'destructive',
-        })
+        toast.error('Failed to initialize approvals')
         throw error
       }
     },
-    [initialize, toast],
+    [initialize],
   )
 
   const handleFetchStats = useCallback(async () => {
     try {
       await fetchStats()
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to fetch approval statistics',
-        variant: 'destructive',
-      })
+      toast.error('Failed to fetch approval statistics')
       throw error
     }
-  }, [fetchStats, toast])
+  }, [fetchStats])
 
   // Utility functions
   const getPendingRequests = useCallback(() => {

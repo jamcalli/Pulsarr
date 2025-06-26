@@ -38,7 +38,7 @@ import {
 } from '@/components/ui/tag-multi-select'
 import { TagCreationDialog } from '@/components/ui/tag-creation-dialog'
 import { useForm } from 'react-hook-form'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import type { ProposedRouting } from '@root/schemas/approval/approval.schema.js'
 
@@ -87,7 +87,6 @@ export function ApprovalRadarrRoutingCard({
   onCancel,
   disabled = false,
 }: ApprovalRadarrRoutingCardProps) {
-  const { toast } = useToast()
   const isMobile = useMediaQuery('(max-width: 768px)')
   const [savingStatus, setSavingStatus] = useState<
     'idle' | 'loading' | 'success'
@@ -196,16 +195,9 @@ export function ApprovalRadarrRoutingCard({
         await onSave(updatedRouting)
       }, setSavingStatus)
 
-      toast({
-        title: 'Success',
-        description: 'Routing configuration updated successfully',
-      })
+      toast.success('Routing configuration updated successfully')
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to update routing configuration',
-        variant: 'destructive',
-      })
+      toast.error('Failed to update routing configuration')
     }
   }
 

@@ -38,7 +38,7 @@ import {
   Check,
   Trash2,
 } from 'lucide-react'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useConfigStore } from '@/stores/configStore'
 import { useApprovalsStore } from '@/features/plex/store/approvalsStore'
 import { useMediaQuery } from '@/hooks/use-media-query'
@@ -85,7 +85,6 @@ export default function ApprovalActionsModal({
   >('idle')
   const [editRoutingMode, setEditRoutingMode] = useState(false)
   const submitSectionRef = useRef<HTMLDivElement>(null)
-  const { toast } = useToast()
   const {
     approveRequest,
     rejectRequest,
@@ -154,13 +153,11 @@ export default function ApprovalActionsModal({
           error.message.includes('already expired') ||
           error.message.includes('Cannot approve request'))
 
-      toast({
-        title: 'Error',
-        description: isConflict
+      toast.error(
+        isConflict
           ? 'This request has already been processed and cannot be approved again'
           : 'Failed to approve approval request',
-        variant: 'destructive',
-      })
+      )
 
       // If it's a conflict, close the modal since the request state is invalid
       if (isConflict) {
@@ -202,13 +199,11 @@ export default function ApprovalActionsModal({
         (error.message.includes('already') ||
           error.message.includes('Cannot reject request'))
 
-      toast({
-        title: 'Error',
-        description: isConflict
+      toast.error(
+        isConflict
           ? 'This request has already been processed and cannot be rejected'
           : 'Failed to reject approval request',
-        variant: 'destructive',
-      })
+      )
 
       // If it's a conflict, close the modal since the request state is invalid
       if (isConflict) {
@@ -244,11 +239,7 @@ export default function ApprovalActionsModal({
         }, 300)
       }, 1500)
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to delete approval request',
-        variant: 'destructive',
-      })
+      toast.error('Failed to delete approval request')
     }
   }
 

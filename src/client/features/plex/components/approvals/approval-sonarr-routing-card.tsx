@@ -48,7 +48,7 @@ import {
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import type { ProposedRouting } from '@root/schemas/approval/approval.schema.js'
 
@@ -95,7 +95,6 @@ export function ApprovalSonarrRoutingCard({
   onCancel,
   disabled = false,
 }: ApprovalSonarrRoutingCardProps) {
-  const { toast } = useToast()
   const isMobile = useMediaQuery('(max-width: 768px)')
   const [savingStatus, setSavingStatus] = useState<
     'idle' | 'loading' | 'success'
@@ -205,16 +204,9 @@ export function ApprovalSonarrRoutingCard({
         await onSave(updatedRouting)
       }, setSavingStatus)
 
-      toast({
-        title: 'Success',
-        description: 'Routing configuration updated successfully',
-      })
+      toast.success('Routing configuration updated successfully')
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to update routing configuration',
-        variant: 'destructive',
-      })
+      toast.error('Failed to update routing configuration')
     }
   }
 
@@ -227,11 +219,7 @@ export function ApprovalSonarrRoutingCard({
       }
     } catch (error) {
       console.error('Error refreshing tags:', error)
-      toast({
-        title: 'Error',
-        description: 'Failed to refresh tags. Please try again.',
-        variant: 'destructive',
-      })
+      toast.error('Failed to refresh tags. Please try again.')
     }
   }
 

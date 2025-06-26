@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { useApprovalsStore } from '@/features/plex/store/approvalsStore'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useApprovalPageEvents } from '@/hooks/useApprovalEvents'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 import { ApprovalTable } from '@/features/plex/components/approvals/approval-table'
@@ -64,7 +64,6 @@ export default function ApprovalTableSection() {
   const [currentBulkAction, setCurrentBulkAction] = useState<
     'approve' | 'reject' | 'delete' | null
   >(null)
-  const { toast } = useToast()
 
   useEffect(() => {
     if (!hasInitializedRef.current) {
@@ -245,11 +244,9 @@ export default function ApprovalTableSection() {
     } catch (error) {
       console.error('Bulk approve error:', error)
       setBulkActionStatus('error')
-      toast({
-        description:
-          error instanceof Error ? error.message : 'Failed to approve requests',
-        variant: 'destructive',
-      })
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to approve requests',
+      )
       await new Promise((resolve) => setTimeout(resolve, MIN_LOADING_DELAY))
       setBulkActionStatus('idle')
       setCurrentBulkAction(null)
@@ -304,11 +301,9 @@ export default function ApprovalTableSection() {
     } catch (error) {
       console.error('Bulk reject error:', error)
       setBulkActionStatus('error')
-      toast({
-        description:
-          error instanceof Error ? error.message : 'Failed to reject requests',
-        variant: 'destructive',
-      })
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to reject requests',
+      )
       await new Promise((resolve) => setTimeout(resolve, MIN_LOADING_DELAY))
       setBulkActionStatus('idle')
       setCurrentBulkAction(null)
@@ -362,11 +357,9 @@ export default function ApprovalTableSection() {
     } catch (error) {
       console.error('Bulk delete error:', error)
       setBulkActionStatus('error')
-      toast({
-        description:
-          error instanceof Error ? error.message : 'Failed to delete requests',
-        variant: 'destructive',
-      })
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to delete requests',
+      )
       await new Promise((resolve) => setTimeout(resolve, MIN_LOADING_DELAY))
       setBulkActionStatus('idle')
       setCurrentBulkAction(null)

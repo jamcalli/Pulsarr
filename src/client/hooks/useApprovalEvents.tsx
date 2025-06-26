@@ -1,5 +1,5 @@
 import { useEffect, useCallback, useRef } from 'react'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useProgressStore } from '@/stores/progressStore'
 import { FileText, CheckCircle, XCircle, Trash2 } from 'lucide-react'
 import type { ProgressEvent, ApprovalMetadata } from '@root/types/progress.types'
@@ -27,7 +27,6 @@ interface QueuedToast {
  * @param options - Optional callbacks for approval actions and a flag to enable or disable toast notifications.
  */
 export function useApprovalEvents(options: UseApprovalEventsOptions = {}) {
-  const { toast } = useToast()
   const { subscribeToType } = useProgressStore()
   
   // Toast queueing refs
@@ -48,52 +47,48 @@ export function useApprovalEvents(options: UseApprovalEventsOptions = {}) {
         const { metadata } = actionQueue[0]
         switch (action) {
           case 'created':
-            toast({
-              title: 'New Approval Request',
-              description: (
+            toast(
+              <div>
+                <div className="font-semibold">New Approval Request</div>
                 <div className="flex items-center gap-2">
                   <FileText className="h-4 w-4 shrink-0" />
                   <span>{metadata.userName} requested {metadata.contentTitle} ({metadata.contentType})</span>
                 </div>
-              ),
-              variant: 'default',
-            })
+              </div>
+            )
             break
           case 'approved':
-            toast({
-              title: 'Request Approved',
-              description: (
+            toast(
+              <div>
+                <div className="font-semibold">Request Approved</div>
                 <div className="flex items-center gap-2">
                   <CheckCircle className="h-4 w-4 shrink-0" />
                   <span>{metadata.contentTitle} has been approved for {metadata.userName}</span>
                 </div>
-              ),
-              variant: 'default',
-            })
+              </div>
+            )
             break
           case 'rejected':
-            toast({
-              title: 'Request Rejected',
-              description: (
+            toast(
+              <div>
+                <div className="font-semibold">Request Rejected</div>
                 <div className="flex items-center gap-2">
                   <XCircle className="h-4 w-4 shrink-0" />
                   <span>{metadata.userName}'s request for {metadata.contentTitle} was rejected</span>
                 </div>
-              ),
-              variant: 'destructive',
-            })
+              </div>
+            )
             break
           case 'deleted':
-            toast({
-              title: 'Request Deleted',
-              description: (
+            toast(
+              <div>
+                <div className="font-semibold">Request Deleted</div>
                 <div className="flex items-center gap-2">
                   <Trash2 className="h-4 w-4 shrink-0" />
                   <span>Request for {metadata.contentTitle} by {metadata.userName} was deleted</span>
                 </div>
-              ),
-              variant: 'default',
-            })
+              </div>
+            )
             break
         }
       } else {
@@ -101,52 +96,48 @@ export function useApprovalEvents(options: UseApprovalEventsOptions = {}) {
         const count = actionQueue.length
         switch (action) {
           case 'created':
-            toast({
-              title: 'New Approval Requests',
-              description: (
+            toast(
+              <div>
+                <div className="font-semibold">New Approval Requests</div>
                 <div className="flex items-center gap-2">
                   <FileText className="h-4 w-4 shrink-0" />
                   <span>{count} new approval requests have been received</span>
                 </div>
-              ),
-              variant: 'default',
-            })
+              </div>
+            )
             break
           case 'approved':
-            toast({
-              title: 'Requests Approved',
-              description: (
+            toast(
+              <div>
+                <div className="font-semibold">Requests Approved</div>
                 <div className="flex items-center gap-2">
                   <CheckCircle className="h-4 w-4 shrink-0" />
                   <span>{count} approval requests have been approved</span>
                 </div>
-              ),
-              variant: 'default',
-            })
+              </div>
+            )
             break
           case 'rejected':
-            toast({
-              title: 'Requests Rejected',
-              description: (
+            toast(
+              <div>
+                <div className="font-semibold">Requests Rejected</div>
                 <div className="flex items-center gap-2">
                   <XCircle className="h-4 w-4 shrink-0" />
                   <span>{count} approval requests have been rejected</span>
                 </div>
-              ),
-              variant: 'destructive',
-            })
+              </div>
+            )
             break
           case 'deleted':
-            toast({
-              title: 'Requests Deleted',
-              description: (
+            toast(
+              <div>
+                <div className="font-semibold">Requests Deleted</div>
                 <div className="flex items-center gap-2">
                   <Trash2 className="h-4 w-4 shrink-0" />
                   <span>{count} approval requests have been deleted</span>
                 </div>
-              ),
-              variant: 'default',
-            })
+              </div>
+            )
             break
         }
       }
@@ -160,7 +151,7 @@ export function useApprovalEvents(options: UseApprovalEventsOptions = {}) {
       clearTimeout(timer)
       queueTimerRef.current.delete(action)
     }
-  }, [toast])
+  }, [])
 
   // Add toast to queue and set/reset timer
   const queueToast = useCallback((action: string, metadata: ApprovalMetadata) => {

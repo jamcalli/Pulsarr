@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useConfigStore } from '@/stores/configStore'
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 import * as z from 'zod'
@@ -90,7 +90,6 @@ const validateDayOfWeek = (value: string | undefined): string => {
  * @returns An object containing the form instance, current save status, a flag indicating if saving is in progress, the last submitted values, and handler functions for form submission, cancellation, and schedule time changes.
  */
 export function useDeleteSyncForm() {
-  const { toast } = useToast()
   const { config, updateConfig } = useConfigStore()
   const { schedules, fetchSchedules, setLoadingWithMinDuration } =
     useUtilitiesStore()
@@ -290,10 +289,7 @@ export function useDeleteSyncForm() {
       // Set success state
       setSaveStatus('success')
 
-      toast({
-        description: 'Settings saved successfully',
-        variant: 'default',
-      })
+      toast.success('Settings saved successfully')
 
       // Reset form with updated configuration
       const updatedConfig =
@@ -335,11 +331,7 @@ export function useDeleteSyncForm() {
         error instanceof Error ? error.message : 'Failed to save settings'
 
       setSaveStatus('error')
-      toast({
-        title: 'Error',
-        description: errorMessage,
-        variant: 'destructive',
-      })
+      toast.error(errorMessage)
 
       setTimeout(() => {
         setSubmittedValues(null)

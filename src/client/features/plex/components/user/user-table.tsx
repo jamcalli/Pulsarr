@@ -51,7 +51,7 @@ import type { UserWithQuotaInfo } from '@/stores/configStore'
 import type { PlexUserTableRow } from '@/features/plex/store/types'
 import { UserWatchlistSheet } from '@/features/plex/components/user/user-watchlist-sheet'
 import { useUserWatchlist } from '@/features/plex/hooks/useUserWatchlist'
-import { toast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { TableSkeleton } from '@/components/ui/table-skeleton'
 import { QuotaStatusBadge } from '@/features/plex/components/user/quota-status-badge'
 import { formatQuotaType } from '@/features/plex/components/user/quota-utils'
@@ -388,11 +388,7 @@ export default function UserTable({
                       handleOpen(userId)
                     } else {
                       console.error('Invalid user ID:', user.id)
-                      toast({
-                        title: 'Error',
-                        description: 'Unable to open watchlist for this user',
-                        variant: 'destructive',
-                      })
+                      toast.error('Unable to open watchlist for this user')
                     }
                   }}
                 >

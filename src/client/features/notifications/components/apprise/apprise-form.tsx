@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/tooltip'
 import { Input } from '@/components/ui/input'
 import { MultiInput } from '@/components/ui/multi-input'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useConfigStore } from '@/stores/configStore'
 import { AppriseStatusBadge } from '@/components/ui/apprise-status-badge'
 import { z } from 'zod'
@@ -44,7 +44,6 @@ type AppriseFormSchema = z.infer<typeof appriseFormSchema>
  * @param isInitialized - Indicates whether the configuration is ready for editing.
  */
 export function AppriseForm({ isInitialized }: AppriseFormProps) {
-  const { toast } = useToast()
   const config = useConfigStore((state) => state.config)
   const updateConfig = useConfigStore((state) => state.updateConfig)
   const [appriseStatus, setAppriseStatus] = React.useState<
@@ -94,10 +93,7 @@ export function AppriseForm({ isInitialized }: AppriseFormProps) {
       setAppriseStatus('success')
       // Reset form's dirty state
       appriseForm.reset(data)
-      toast({
-        description: 'Apprise system URL has been updated',
-        variant: 'default',
-      })
+      toast.success('Apprise system URL has been updated')
 
       setTimeout(() => {
         setAppriseStatus('idle')
@@ -105,10 +101,7 @@ export function AppriseForm({ isInitialized }: AppriseFormProps) {
     } catch (error) {
       console.error('Apprise settings update error:', error)
       setAppriseStatus('error')
-      toast({
-        description: 'Failed to update Apprise settings',
-        variant: 'destructive',
-      })
+      toast.error('Failed to update Apprise settings')
 
       await new Promise((resolve) => setTimeout(resolve, 1000))
       setAppriseStatus('idle')
@@ -134,10 +127,7 @@ export function AppriseForm({ isInitialized }: AppriseFormProps) {
         systemAppriseUrl: '',
       })
 
-      toast({
-        description: 'System Apprise URL has been cleared',
-        variant: 'default',
-      })
+      toast.success('System Apprise URL has been cleared')
 
       setTimeout(() => {
         setAppriseStatus('idle')
@@ -145,10 +135,7 @@ export function AppriseForm({ isInitialized }: AppriseFormProps) {
     } catch (error) {
       console.error('System Apprise URL clear error:', error)
       setAppriseStatus('error')
-      toast({
-        description: 'Failed to clear System Apprise URL',
-        variant: 'destructive',
-      })
+      toast.error('Failed to clear System Apprise URL')
 
       await new Promise((resolve) => setTimeout(resolve, 1000))
       setAppriseStatus('idle')

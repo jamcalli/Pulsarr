@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useRadarrSyncProgress } from '@/features/radarr/hooks/instance/useRadarrSyncProgress'
 import { useRadarrStore } from '@/features/radarr/store/radarrStore'
 
@@ -26,7 +26,6 @@ export function RadarrSyncModal({
   syncedInstances,
   isManualSync = false,
 }: RadarrSyncModalProps) {
-  const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [currentInstanceIndex, setCurrentInstanceIndex] = useState(-1)
   const [syncCompleted, setSyncCompleted] = useState(false)
@@ -59,10 +58,7 @@ export function RadarrSyncModal({
         setCurrentInstanceIndex(0)
       } else {
         setSyncCompleted(true)
-        toast({
-          description: 'No instances to synchronize',
-          variant: 'default',
-        })
+        toast('No instances to synchronize')
       }
     }
   }, [
@@ -72,7 +68,6 @@ export function RadarrSyncModal({
     currentInstanceIndex,
     syncCompleted,
     syncedInstances.length,
-    toast,
   ])
 
   useEffect(() => {
@@ -116,13 +111,10 @@ export function RadarrSyncModal({
         setOverallProgress(100)
         setSyncCompleted(true)
 
-        toast({
-          description: 'Successfully synchronized all Radarr instances',
-          variant: 'default',
-        })
+        toast.success('Successfully synchronized all Radarr instances')
       }
     }
-  }, [syncProgress, currentInstanceIndex, syncedInstances, toast])
+  }, [syncProgress, currentInstanceIndex, syncedInstances])
 
   useEffect(() => {
     const syncCurrentInstance = async () => {
@@ -146,14 +138,12 @@ export function RadarrSyncModal({
           }
         } catch (error) {
           console.error('Error syncing instance:', error)
-          toast({
-            description:
-              error instanceof Error
-                ? error.message
-                : 'An error occurred during synchronization',
-            variant: 'destructive',
-          })
-
+          toast.error(
+            error instanceof Error
+              ? error.message
+              : 'An error occurred during synchronization',
+          )
+        } finally {
           const nextIndex = currentInstanceIndex + 1
           if (nextIndex < syncedInstances.length) {
             setCurrentInstanceIndex(nextIndex)
@@ -167,7 +157,7 @@ export function RadarrSyncModal({
     if (isSubmitting && currentInstanceIndex >= 0) {
       syncCurrentInstance()
     }
-  }, [currentInstanceIndex, syncedInstances, isSubmitting, toast])
+  }, [currentInstanceIndex, syncedInstances, isSubmitting])
 
   const handleSync = () => {
     setIsSubmitting(true)
@@ -176,10 +166,7 @@ export function RadarrSyncModal({
       setCurrentInstanceIndex(0)
     } else {
       setSyncCompleted(true)
-      toast({
-        description: 'No instances to synchronize',
-        variant: 'default',
-      })
+      toast('No instances to synchronize')
     }
   }
 

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from 'react-router-dom'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import {
   createUserFormSchema,
   type CreateUserFormSchema,
@@ -17,7 +17,6 @@ import {
  */
 export function useCreateUserForm() {
   const navigate = useNavigate()
-  const { toast } = useToast()
   const [status, setStatus] = useState<'idle' | 'loading' | 'success'>('idle')
   const [backendError, setBackendError] = useState<string | null>(null)
   const emailInputRef = useRef<HTMLInputElement>(null)
@@ -63,10 +62,7 @@ export function useCreateUserForm() {
 
         if (response.ok) {
           setStatus('success')
-          toast({
-            description: 'User created successfully!',
-            variant: 'default',
-          })
+          toast.success('User created successfully!')
 
           setTimeout(() => {
             navigate('/login')
@@ -81,7 +77,7 @@ export function useCreateUserForm() {
         setBackendError('An unexpected error occurred.')
       }
     },
-    [navigate, toast],
+    [navigate],
   )
 
   return {
