@@ -124,15 +124,7 @@ export const createApprovalColumns = (
     },
     cell: ({ row }) => {
       const userName = row.getValue('userName') as string
-      const request = row.original
-      return (
-        <div className="font-medium">
-          <span className="hidden sm:inline">{userName}</span>
-          <span className="sm:hidden text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full">
-            {request.userId}
-          </span>
-        </div>
-      )
+      return <div className="font-medium">{userName}</div>
     },
     enableSorting: true,
     filterFn: (row, id, value) => {
@@ -147,15 +139,17 @@ export const createApprovalColumns = (
     },
     header: ({ column }) => {
       return (
-        <Button
-          variant="noShadow"
-          size="sm"
-          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-          className="whitespace-nowrap"
-        >
-          Status
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
+        <div className="text-center">
+          <Button
+            variant="noShadow"
+            size="sm"
+            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+            className="whitespace-nowrap"
+          >
+            Status
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
       )
     },
     cell: ({ row }) => {
@@ -208,7 +202,7 @@ export const createApprovalColumns = (
         }
       }
 
-      return getStatusBadge()
+      return <div className="flex justify-center">{getStatusBadge()}</div>
     },
     enableSorting: true,
     filterFn: (row, id, value) => {
@@ -223,15 +217,17 @@ export const createApprovalColumns = (
     },
     header: ({ column }) => {
       return (
-        <Button
-          variant="noShadow"
-          size="sm"
-          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-          className="whitespace-nowrap"
-        >
-          Trigger
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
+        <div className="text-center">
+          <Button
+            variant="noShadow"
+            size="sm"
+            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+            className="whitespace-nowrap"
+          >
+            Trigger
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
       )
     },
     cell: ({ row }) => {
@@ -309,21 +305,27 @@ export const createApprovalColumns = (
       const badge = getTriggerBadge(!!tooltipContent)
 
       if (!tooltipContent) {
-        return <div className="max-w-[200px]">{badge}</div>
+        return (
+          <div className="flex justify-center">
+            <div className="max-w-[200px]">{badge}</div>
+          </div>
+        )
       }
 
       return (
-        <div className="max-w-[200px]">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>{badge}</TooltipTrigger>
-              <TooltipContent side="top" className="max-w-xs">
-                <div className="text-xs whitespace-pre-line">
-                  {tooltipContent}
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+        <div className="flex justify-center">
+          <div className="max-w-[200px]">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>{badge}</TooltipTrigger>
+                <TooltipContent side="top" className="max-w-xs">
+                  <div className="text-xs whitespace-pre-line">
+                    {tooltipContent}
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </div>
       )
     },
@@ -340,24 +342,28 @@ export const createApprovalColumns = (
     },
     header: ({ column }) => {
       return (
-        <Button
-          variant="noShadow"
-          size="sm"
-          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-          className="whitespace-nowrap"
-        >
-          Created
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
+        <div className="text-center">
+          <Button
+            variant="noShadow"
+            size="sm"
+            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+            className="whitespace-nowrap"
+          >
+            Created
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
       )
     },
     cell: ({ row }) => {
       const date = row.getValue('createdAt') as string
       return (
-        <div className="text-sm">
-          {format(new Date(date), 'MMM d, yyyy')}
-          <div className="text-xs text-muted-foreground">
-            {format(new Date(date), 'HH:mm')}
+        <div className="text-center">
+          <div className="text-sm">
+            {format(new Date(date), 'MMM d, yyyy')}
+            <div className="text-xs text-muted-foreground">
+              {format(new Date(date), 'HH:mm')}
+            </div>
           </div>
         </div>
       )
@@ -372,33 +378,41 @@ export const createApprovalColumns = (
     },
     header: ({ column }) => {
       return (
-        <Button
-          variant="noShadow"
-          size="sm"
-          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-          className="whitespace-nowrap"
-        >
-          Expires
-          <ArrowUpDown className="ml-2 h-4 w-4" />
-        </Button>
+        <div className="text-center">
+          <Button
+            variant="noShadow"
+            size="sm"
+            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+            className="whitespace-nowrap"
+          >
+            Expires
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
       )
     },
     cell: ({ row }) => {
       const expiresAt = row.getValue('expiresAt') as string | null
 
       if (!expiresAt) {
-        return <span className="text-muted-foreground text-sm">Never</span>
+        return (
+          <div className="text-center">
+            <span className="text-muted-foreground text-sm">Never</span>
+          </div>
+        )
       }
 
       const expirationDate = new Date(expiresAt)
       const isExpired = expirationDate < new Date()
 
       return (
-        <div
-          className={`text-sm ${isExpired ? 'text-red-600' : 'text-orange-600'}`}
-        >
-          {format(expirationDate, 'MMM d, yyyy')}
-          <div className="text-xs">{format(expirationDate, 'HH:mm')}</div>
+        <div className="text-center">
+          <div
+            className={`text-sm ${isExpired ? 'text-red-600' : 'text-orange-600'}`}
+          >
+            {format(expirationDate, 'MMM d, yyyy')}
+            <div className="text-xs">{format(expirationDate, 'HH:mm')}</div>
+          </div>
         </div>
       )
     },
