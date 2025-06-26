@@ -442,6 +442,7 @@ export class RadarrService {
       added: movie.added,
       status: movie.hasFile ? 'grabbed' : 'requested',
       movie_status: movie.isAvailable ? 'available' : 'unavailable',
+      tags: movie.tags,
     }
   }
 

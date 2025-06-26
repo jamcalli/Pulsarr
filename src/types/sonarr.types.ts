@@ -150,6 +150,7 @@ export interface Item extends ContentItem {
   series_status?: 'continuing' | 'ended'
   genres?: string[]
   sonarr_instance_id?: number
+  tags?: number[]
 }
 
 // Alias for better semantics - we can gradually migrate to this

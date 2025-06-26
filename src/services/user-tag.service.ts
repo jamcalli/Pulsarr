@@ -399,14 +399,33 @@ export class UserTagService {
             (s) => s.sonarr_instance_id === instance.id,
           )
 
-          // Get ALL series details with tags in one bulk call
-          const allSeriesDetails =
-            await sonarrService.getFromSonarr<
-              Array<SonarrSeries & { tags: number[] }>
-            >('series')
-          const seriesDetailsMap = new Map(
-            allSeriesDetails.map((s) => [s.id, s]),
-          )
+          // Check if the passed data already includes tags
+          const hasTagsInData =
+            instanceSeries.length > 0 && instanceSeries[0].tags !== undefined
+
+          // Get ALL series details with tags - only if not already included
+          let seriesDetailsMap: Map<
+            number,
+            (SonarrItem & { id: number }) | (SonarrSeries & { tags: number[] })
+          >
+
+          if (hasTagsInData) {
+            // Use the data we already have with tags - need to extract IDs from GUIDs
+            seriesDetailsMap = new Map()
+            for (const series of instanceSeries) {
+              const sonarrId = extractSonarrId(series.guids)
+              if (sonarrId > 0) {
+                seriesDetailsMap.set(sonarrId, { ...series, id: sonarrId })
+              }
+            }
+          } else {
+            // Fetch complete data from API
+            const allSeriesDetails =
+              await sonarrService.getFromSonarr<
+                Array<SonarrSeries & { tags: number[] }>
+              >('series')
+            seriesDetailsMap = new Map(allSeriesDetails.map((s) => [s.id, s]))
+          }
 
           this.log.debug(
             `Processing ${instanceSeries.length} series in Sonarr instance ${instance.name} for bulk tagging`,
@@ -471,7 +490,7 @@ export class UserTagService {
               const existingTags = seriesDetails.tags || []
 
               // Clean up any existing "removed" tags when users are re-adding content
-              const removedTagIds = existingTags.filter((tagId) => {
+              const removedTagIds = existingTags.filter((tagId: number) => {
                 const tagLabel = tagIdMap.get(tagId)
                 return tagLabel
                   ?.toLowerCase()
@@ -484,7 +503,7 @@ export class UserTagService {
                   `Cleaning up ${removedTagIds.length} removed tags for re-added content "${show.title}"`,
                 )
                 cleanedExistingTags = existingTags.filter(
-                  (tagId) => !removedTagIds.includes(tagId),
+                  (tagId: number) => !removedTagIds.includes(tagId),
                 )
               }
 
@@ -496,14 +515,16 @@ export class UserTagService {
                 newTags = [...new Set([...cleanedExistingTags, ...userTagIds])]
               } else if (this.removedTagMode === 'special-tag') {
                 // Find non-user tags to preserve
-                const nonUserTagIds = cleanedExistingTags.filter((tagId) => {
-                  const tagLabel = tagIdMap.get(tagId)
-                  return !tagLabel || !this.isAppUserTag(tagLabel)
-                })
+                const nonUserTagIds = cleanedExistingTags.filter(
+                  (tagId: number) => {
+                    const tagLabel = tagIdMap.get(tagId)
+                    return !tagLabel || !this.isAppUserTag(tagLabel)
+                  },
+                )
 
                 // Find user tags that are being removed
                 const removedUserTagIds = cleanedExistingTags.filter(
-                  (tagId) => {
+                  (tagId: number) => {
                     const tagLabel = tagIdMap.get(tagId)
                     return (
                       tagLabel &&
@@ -546,10 +567,12 @@ export class UserTagService {
               } else {
                 // Default 'remove' mode
                 // Filter out any existing user tags and add current ones
-                const nonUserTagIds = cleanedExistingTags.filter((tagId) => {
-                  const tagLabel = tagIdMap.get(tagId)
-                  return !tagLabel || !this.isAppUserTag(tagLabel)
-                })
+                const nonUserTagIds = cleanedExistingTags.filter(
+                  (tagId: number) => {
+                    const tagLabel = tagIdMap.get(tagId)
+                    return !tagLabel || !this.isAppUserTag(tagLabel)
+                  },
+                )
 
                 // Combine non-user tags with new user tags
                 newTags = [...new Set([...nonUserTagIds, ...userTagIds])]
@@ -688,12 +711,33 @@ export class UserTagService {
             (m) => m.radarr_instance_id === instance.id,
           )
 
-          // Get ALL movie details with tags in one bulk call
-          const allMovieDetails =
-            await radarrService.getFromRadarr<
-              Array<RadarrMovie & { tags: number[] }>
-            >('movie')
-          const movieDetailsMap = new Map(allMovieDetails.map((m) => [m.id, m]))
+          // Check if the passed data already includes tags
+          const hasTagsInData =
+            instanceMovies.length > 0 && instanceMovies[0].tags !== undefined
+
+          // Get ALL movie details with tags - only if not already included
+          let movieDetailsMap: Map<
+            number,
+            (RadarrItem & { id: number }) | (RadarrMovie & { tags: number[] })
+          >
+
+          if (hasTagsInData) {
+            // Use the data we already have with tags - need to extract IDs from GUIDs
+            movieDetailsMap = new Map()
+            for (const movie of instanceMovies) {
+              const radarrId = extractRadarrId(movie.guids)
+              if (radarrId > 0) {
+                movieDetailsMap.set(radarrId, { ...movie, id: radarrId })
+              }
+            }
+          } else {
+            // Fetch complete data from API
+            const allMovieDetails =
+              await radarrService.getFromRadarr<
+                Array<RadarrMovie & { tags: number[] }>
+              >('movie')
+            movieDetailsMap = new Map(allMovieDetails.map((m) => [m.id, m]))
+          }
 
           this.log.debug(
             `Processing ${instanceMovies.length} movies in Radarr instance ${instance.name} for bulk tagging`,
