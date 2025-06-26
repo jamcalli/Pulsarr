@@ -573,6 +573,7 @@ export class SonarrService {
       added: series.added,
       status: hasEpisodes ? 'grabbed' : 'requested',
       series_status: series.ended ? 'ended' : 'continuing',
+      tags: series.tags,
     }
   }
 
