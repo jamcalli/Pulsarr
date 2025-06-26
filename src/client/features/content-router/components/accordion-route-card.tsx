@@ -856,7 +856,7 @@ const AccordionRouteCard = ({
                   {isNew && (
                     <Alert variant="default">
                       <div className="flex items-center">
-                        <Info className="h-5 w-5 mr-2" />
+                        <Info className="h-4 w-4 mr-2 shrink-0" />
                         <AlertDescription>
                           <p className="text-sm">
                             Build conditions below to determine when content
@@ -896,7 +896,7 @@ const AccordionRouteCard = ({
                             </TooltipProvider>
                           </div>
                           <FormControl>
-                            <div className="border rounded-md p-4 bg-card/50 border-text relative">
+                            <div className="border-2 rounded-md p-4 bg-card/50 border-foreground relative">
                               {loading && (
                                 <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-10 rounded-md">
                                   <div className="text-center space-y-2">
@@ -981,7 +981,7 @@ const AccordionRouteCard = ({
                   </div>
 
                   {/* Actions Section - Approval Behavior */}
-                  <div className="space-y-4 border rounded-md p-4 bg-card/30 border-text/20">
+                  <div className="space-y-4 border-2 rounded-md p-4 bg-card/30 border-foreground">
                     <div className="flex items-center space-x-2">
                       <h3 className="text-sm font-medium text-foreground">
                         Actions
