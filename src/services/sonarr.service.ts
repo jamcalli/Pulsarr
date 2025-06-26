@@ -573,6 +573,7 @@ export class SonarrService {
       added: series.added,
       status: hasEpisodes ? 'grabbed' : 'requested',
       series_status: series.ended ? 'ended' : 'continuing',
+      tags: series.tags,
     }
   }
 
@@ -1286,6 +1287,66 @@ export class SonarrService {
   }
 
   /**
+   * Bulk update tags for multiple series using the serieseditor endpoint
+   * This provides significant performance improvements over individual updates
+   *
+   * @param updates Array of series updates containing seriesId and tagIds
+   * @returns Promise resolving when all updates are complete
+   */
+  async bulkUpdateSeriesTags(
+    updates: Array<{ seriesId: number; tagIds: number[] }>,
+  ): Promise<void> {
+    if (updates.length === 0) {
+      return
+    }
+
+    try {
+      // Group updates by identical tag sets for efficiency
+      const tagGroups = new Map<string, number[]>()
+
+      for (const update of updates) {
+        // Create a key from sorted tag IDs for grouping
+        const tagKey = [...new Set(update.tagIds)].sort().join(',')
+        if (!tagGroups.has(tagKey)) {
+          tagGroups.set(tagKey, [])
+        }
+        tagGroups.get(tagKey)?.push(update.seriesId)
+      }
+
+      // Process each tag group as a bulk operation
+      const promises = Array.from(tagGroups.entries()).map(
+        async ([tagKey, seriesIds]) => {
+          const tagIds =
+            tagKey === ''
+              ? []
+              : tagKey.split(',').map((id) => Number.parseInt(id, 10))
+
+          const payload = {
+            seriesIds: seriesIds,
+            tags: tagIds,
+            applyTags: 'replace' as const, // Replace existing tags
+          }
+
+          await this.putToSonarr('series/editor', payload)
+
+          this.log.debug(
+            `Bulk updated ${seriesIds.length} series with tags [${tagIds.join(', ')}]`,
+          )
+        },
+      )
+
+      await Promise.all(promises)
+
+      this.log.info(
+        `Bulk updated tags for ${updates.length} series across ${tagGroups.size} tag groups`,
+      )
+    } catch (error) {
+      this.log.error('Failed to bulk update series tags:', error)
+      throw error
+    }
+  }
+
+  /**
    * Update a resource in Sonarr using PUT
    *
    * @param endpoint API endpoint
@@ -1309,7 +1370,14 @@ export class SonarrService {
     })
 
     if (!response.ok) {
-      throw new Error(`Sonarr API error: ${response.statusText}`)
+      let errorDetail = response.statusText
+      try {
+        const errorData = await response.text()
+        if (errorData) {
+          errorDetail = `${response.statusText} - ${errorData}`
+        }
+      } catch {}
+      throw new Error(`Sonarr API error (${response.status}): ${errorDetail}`)
     }
 
     // Some endpoints return 204 No Content

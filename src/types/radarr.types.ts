@@ -12,6 +12,7 @@ export interface RadarrMovie {
   isAvailable?: boolean
   added?: string
   hasFile?: boolean
+  tags?: number[]
 }
 
 export interface RadarrPost {
@@ -76,6 +77,7 @@ export interface Item extends ContentItem {
   movie_status?: 'available' | 'unavailable'
   genres?: string[]
   radarr_instance_id?: number
+  tags?: number[]
 }
 
 // Alias for better semantics - we can gradually migrate to this
