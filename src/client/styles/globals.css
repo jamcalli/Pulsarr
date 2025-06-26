@@ -173,3 +173,22 @@ body {
 	height: 100%;
 	overflow: hidden;
 }
+
+/* Font heading utility - only applies to direct heading elements */
+@layer utilities {
+	.font-heading > h1,
+	.font-heading > h2,
+	.font-heading > h3,
+	.font-heading > h4,
+	.font-heading > h5,
+	.font-heading > h6,
+	h1.font-heading,
+	h2.font-heading,
+	h3.font-heading,
+	h4.font-heading,
+	h5.font-heading,
+	h6.font-heading {
+		font-family: var(--font-heading) !important;
+		font-weight: 700 !important;
+	}
+}
