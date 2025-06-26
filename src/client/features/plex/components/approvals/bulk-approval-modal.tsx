@@ -24,7 +24,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
 
@@ -253,7 +253,6 @@ export default function BulkApprovalModal({
   actionStatus,
   currentAction,
 }: BulkApprovalModalProps) {
-  const { toast } = useToast()
   const isMobile = useMediaQuery('(max-width: 768px)')
 
   // Determine which actions are available based on selected request statuses
@@ -279,11 +278,7 @@ export default function BulkApprovalModal({
       await actionFn(requestIds)
     } catch (error) {
       console.error(`Error in bulk ${action}:`, error)
-      toast({
-        title: 'Error',
-        description: `Failed to ${action} approval requests`,
-        variant: 'destructive',
-      })
+      toast.error(`Failed to ${action} approval requests`)
     }
   }
 

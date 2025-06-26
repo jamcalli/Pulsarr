@@ -18,7 +18,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useConfigStore } from '@/stores/configStore'
 import { DiscordStatusBadge } from '@/components/ui/discord-bot-status-badge'
 import {
@@ -39,7 +39,6 @@ interface DiscordBotFormProps {
  * @param isInitialized - Whether the form is ready for user interaction.
  */
 export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
-  const { toast } = useToast()
   const config = useConfigStore((state) => state.config)
   const updateConfig = useConfigStore((state) => state.updateConfig)
   const [discordBotStatus, setDiscordBotStatus] = React.useState<
@@ -119,10 +118,7 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
       // Reset form's dirty state
       discordBotForm.reset(data)
       setFormTouched(false)
-      toast({
-        description: 'Discord bot settings have been updated',
-        variant: 'default',
-      })
+      toast.success('Discord bot settings have been updated')
 
       setTimeout(() => {
         setDiscordBotStatus('idle')
@@ -130,10 +126,7 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
     } catch (error) {
       console.error('Discord bot settings update error:', error)
       setDiscordBotStatus('error')
-      toast({
-        description: 'Failed to update Discord bot settings',
-        variant: 'destructive',
-      })
+      toast.error('Failed to update Discord bot settings')
 
       await new Promise((resolve) => setTimeout(resolve, 1000))
       setDiscordBotStatus('idle')
@@ -164,10 +157,7 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
       })
       setFormTouched(false)
 
-      toast({
-        description: 'Discord bot settings have been cleared',
-        variant: 'default',
-      })
+      toast.success('Discord bot settings have been cleared')
 
       setTimeout(() => {
         setDiscordBotStatus('idle')
@@ -175,10 +165,7 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
     } catch (error) {
       console.error('Discord bot settings clear error:', error)
       setDiscordBotStatus('error')
-      toast({
-        description: 'Failed to clear Discord bot settings',
-        variant: 'destructive',
-      })
+      toast.error('Failed to clear Discord bot settings')
 
       await new Promise((resolve) => setTimeout(resolve, 1000))
       setDiscordBotStatus('idle')

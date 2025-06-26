@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { toast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 import { useConfigStore } from '@/stores/configStore'
 import type { QuotaEditStatus } from '@/features/plex/components/user/quota-edit-modal'
@@ -171,10 +171,7 @@ export function useQuotaManagement() {
           message,
         })
 
-        toast({
-          description: message,
-          variant: 'default',
-        })
+        toast.success(message)
 
         // Show success state then close
         await new Promise((resolve) =>
@@ -188,10 +185,7 @@ export function useQuotaManagement() {
           error instanceof Error ? error.message : 'Failed to save quota'
         setSaveStatus({ type: 'error', message: errorMessage })
 
-        toast({
-          description: errorMessage,
-          variant: 'destructive',
-        })
+        toast.error(errorMessage)
 
         await new Promise((resolve) => setTimeout(resolve, MIN_LOADING_DELAY))
         setSaveStatus({ type: 'idle' })

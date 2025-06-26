@@ -4,7 +4,7 @@ import { MultiSelect } from '@/components/ui/multi-select'
 import { Button } from '@/components/ui/button'
 import { AlertCircle } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 
 interface TagOption {
   label: string
@@ -44,7 +44,6 @@ export const TagsMultiSelect = forwardRef<TagsMultiSelectRef, TagsMultiSelectPro
   isConnectionValid,
   disabled = false
 }, ref) => {
-  const { toast } = useToast()
   
   // State hooks
   const [isLoading, setIsLoading] = useState(true)
@@ -113,11 +112,7 @@ export const TagsMultiSelect = forwardRef<TagsMultiSelectRef, TagsMultiSelectPro
           }, 0);
           
           // Show a toast notification instead of blocking the UI
-          toast({
-            title: "Tags not found",
-            description: "Previously selected tags no longer exist and have been cleared.",
-            variant: "destructive"
-          });
+          toast.error("Previously selected tags no longer exist and have been cleared.");
           
           setIsLoading(false);
           setTags([]);

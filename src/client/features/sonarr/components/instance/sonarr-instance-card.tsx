@@ -41,7 +41,7 @@ import ConnectionSettings from './sonarr-connection-settings'
 import InstanceCardSkeleton from './sonarr-card-skeleton'
 import DeleteInstanceAlert from './delete-instance-alert'
 import type { SonarrInstance } from '@/features/sonarr/types/types'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import type { SonarrInstanceSchema } from '@/features/sonarr/store/schemas'
 import { SonarrSyncModal } from '@/features/sonarr/components/instance/sonarr-sync-modal'
 import { useMediaQuery } from '@/hooks/use-media-query'
@@ -75,7 +75,6 @@ export function InstanceCard({
   instance,
   setShowInstanceCard,
 }: InstanceCardProps) {
-  const { toast } = useToast()
   const isMobile = useMediaQuery('(max-width: 768px)')
   const [showDeleteAlert, setShowDeleteAlert] = useState(false)
   const [showSyncModal, setShowSyncModal] = useState(false)
@@ -147,12 +146,7 @@ export function InstanceCard({
 
   const handleSubmit = async (data: SonarrInstanceSchema) => {
     if (!isConnectionValid) {
-      toast({
-        title: 'Connection Required',
-        description:
-          'Please test the connection before saving the configuration',
-        variant: 'destructive',
-      })
+      toast.error('Please test the connection before saving the configuration')
       return
     }
 
@@ -177,11 +171,7 @@ export function InstanceCard({
       await Promise.all([updateInstance(data), minimumLoadingTime])
 
       setSaveStatus('success')
-      toast({
-        title: 'Configuration Updated',
-        description: 'Sonarr configuration has been updated successfully',
-        variant: 'default',
-      })
+      toast.success('Sonarr configuration has been updated successfully')
       form.reset(data)
 
       if (hasChangedSyncedInstances && newSyncedInstances.length > 0) {
@@ -217,13 +207,11 @@ export function InstanceCard({
       }) // Debug log
       const isDefaultError = errorMessage.includes('default')
 
-      toast({
-        title: 'Update Failed',
-        description: isDefaultError
+      toast.error(
+        isDefaultError
           ? errorMessage // Use the actual error message from the API
           : 'Failed to update Sonarr configuration',
-        variant: 'destructive',
-      })
+      )
 
       // If it was a default error, reset the form to restore the default status
       if (isDefaultError) {

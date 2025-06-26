@@ -11,7 +11,7 @@ import {
   RotateCcw,
 } from 'lucide-react'
 import { useMediaQuery } from '@/hooks/use-media-query'
-import { toast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useDebounce } from '@/hooks/useDebounce'
 import { RollingShowsSheet } from '@/features/utilities/components/session-monitoring/rolling-shows-sheet'
 import type { RollingMonitoredShow } from '@/features/utilities/hooks/useRollingMonitoring'
@@ -116,11 +116,7 @@ export function SessionMonitoringStatus({
               await runSessionMonitor()
             } catch (error) {
               console.error('Failed to run session monitor:', error)
-              toast({
-                title: 'Error',
-                description: 'Failed to run session monitor. Please try again.',
-                variant: 'destructive',
-              })
+              toast.error('Failed to run session monitor. Please try again.')
             }
           }}
           disabled={!isEnabled || rollingLoading.runningMonitor}
@@ -226,12 +222,9 @@ export function SessionMonitoringStatus({
                     await resetInactiveShows(localInactivityDays)
                   } catch (error) {
                     console.error('Failed to reset inactive shows:', error)
-                    toast({
-                      title: 'Error',
-                      description:
-                        'Failed to reset inactive shows. Please try again.',
-                      variant: 'destructive',
-                    })
+                    toast.error(
+                      'Failed to reset inactive shows. Please try again.',
+                    )
                   }
                 }}
                 disabled={!isEnabled || rollingLoading.resetting}

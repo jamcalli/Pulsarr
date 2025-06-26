@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useConfigStore } from '@/stores/configStore'
 import { useDebounce } from '@/hooks/useDebounce'
 import type { WebhookValidationResponse } from '@root/schemas/notifications/discord-control.schema'
@@ -101,7 +101,6 @@ interface TestStatus {
  * @returns An object containing the form instance, loading states, webhook test status, Apprise enablement flag, and handler functions for notification configuration operations.
  */
 export function usePublicContentNotifications() {
-  const { toast } = useToast()
   const { config, updateConfig } = useConfigStore()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isToggling, setIsToggling] = useState(false)
@@ -304,10 +303,7 @@ export function usePublicContentNotifications() {
       const url = form.getValues(urlField)
 
       if (!url?.trim()) {
-        toast({
-          description: 'Please enter webhook URLs to test',
-          variant: 'destructive',
-        })
+        toast.error('Please enter webhook URLs to test')
         return
       }
 
@@ -367,23 +363,18 @@ export function usePublicContentNotifications() {
             } removed)`
           }
 
-          toast({
-            description: countText,
-            variant:
-              result.duplicateCount && result.duplicateCount > 0
-                ? 'destructive'
-                : 'default',
-          })
+          if (result.duplicateCount && result.duplicateCount > 0) {
+            toast.error(countText)
+          } else {
+            toast.success(countText)
+          }
         } else {
           form.setValue(testedField, false, { shouldValidate: true })
           form.setError(urlField, {
             type: 'manual',
             message: 'Please test connection before saving',
           })
-          toast({
-            description: `Webhook validation failed: ${result.message}`,
-            variant: 'destructive',
-          })
+          toast.error(`Webhook validation failed: ${result.message}`)
         }
       } catch (error) {
         console.error('Webhook test error:', error)
@@ -399,10 +390,7 @@ export function usePublicContentNotifications() {
             [type]: false,
           },
         }))
-        toast({
-          description: 'Failed to validate webhook URLs',
-          variant: 'destructive',
-        })
+        toast.error('Failed to validate webhook URLs')
       } finally {
         setTestStatus((prev) => ({
           ...prev,
@@ -410,7 +398,7 @@ export function usePublicContentNotifications() {
         }))
       }
     },
-    [form, toast, validateDiscordWebhook],
+    [form, validateDiscordWebhook],
   )
 
   // Handle form submission
@@ -435,22 +423,16 @@ export function usePublicContentNotifications() {
           minimumLoadingTime,
         ])
 
-        toast({
-          description:
-            'Public content notifications settings saved successfully',
-          variant: 'default',
-        })
+        toast.success(
+          'Public content notifications settings saved successfully',
+        )
 
         // Reset form with updated data (keep testing states)
         form.reset(data)
       } catch (error) {
         console.error('Failed to save public content notifications:', error)
 
-        toast({
-          title: 'Error',
-          description: 'Failed to save public content notifications settings',
-          variant: 'destructive',
-        })
+        toast.error('Failed to save public content notifications settings')
 
         // Re-throw the error so calling functions can handle it
         throw error
@@ -458,7 +440,7 @@ export function usePublicContentNotifications() {
         setIsSubmitting(false)
       }
     },
-    [updateConfig, toast, form],
+    [updateConfig, form],
   )
 
   // Handle toggle enable/disable with consistent loading patterns
@@ -487,18 +469,15 @@ export function usePublicContentNotifications() {
         // Only update form state if the API call succeeds
         form.setValue('enabled', newEnabledState, { shouldDirty: false })
 
-        toast({
-          description: `Public content notifications ${newEnabledState ? 'enabled' : 'disabled'} successfully`,
-          variant: 'default',
-        })
+        toast.success(
+          `Public content notifications ${newEnabledState ? 'enabled' : 'disabled'} successfully`,
+        )
       } catch (error) {
         console.error('Failed to toggle public content notifications:', error)
 
-        toast({
-          title: 'Error',
-          description: `Failed to ${newEnabledState ? 'enable' : 'disable'} public content notifications`,
-          variant: 'destructive',
-        })
+        toast.error(
+          `Failed to ${newEnabledState ? 'enable' : 'disable'} public content notifications`,
+        )
 
         // Re-throw the error for the component to handle
         throw error
@@ -506,7 +485,7 @@ export function usePublicContentNotifications() {
         setIsToggling(false)
       }
     },
-    [updateConfig, form, toast],
+    [updateConfig, form],
   )
 
   // Handle form cancellation
@@ -605,18 +584,11 @@ export function usePublicContentNotifications() {
           appriseUrlsShows: 'Show Apprise URLs',
         }
 
-        toast({
-          description: `${fieldLabels[fieldName as string]} have been cleared`,
-          variant: 'default',
-        })
+        toast.success(`${fieldLabels[fieldName as string]} have been cleared`)
       } catch (error) {
         console.error(`Failed to clear ${fieldName}:`, error)
 
-        toast({
-          title: 'Error',
-          description: `Failed to clear ${fieldName}`,
-          variant: 'destructive',
-        })
+        toast.error(`Failed to clear ${fieldName}`)
 
         // Re-throw the error for the component to handle
         throw error
@@ -624,7 +596,7 @@ export function usePublicContentNotifications() {
         setIsClearing(false)
       }
     },
-    [updateConfig, form, toast],
+    [updateConfig, form],
   )
 
   return {

@@ -27,7 +27,7 @@ import {
   FormDescription,
 } from '@/components/ui/form'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import type { z } from 'zod'
 import type {
@@ -490,7 +490,6 @@ export default function BulkEditModal({
   onSave,
   saveStatus,
 }: BulkEditModalProps) {
-  const { toast } = useToast()
   const isMobile = useMediaQuery('(max-width: 768px)')
 
   const form = useForm<BulkUpdateSchema>({
@@ -594,11 +593,7 @@ export default function BulkEditModal({
       form.reset()
     } catch (error) {
       console.error('Error in bulk update:', error)
-      toast({
-        title: 'Error',
-        description: 'Failed to apply bulk updates',
-        variant: 'destructive',
-      })
+      toast.error('Failed to apply bulk updates')
     }
   }
 

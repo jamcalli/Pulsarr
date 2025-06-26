@@ -13,7 +13,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useApprovalsStore } from '@/features/plex/store/approvalsStore'
 import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
 
@@ -56,7 +56,6 @@ export function ApprovalActionDialogs({
   const [deleteStatus, setDeleteStatus] = useState<
     'idle' | 'loading' | 'success'
   >('idle')
-  const { toast } = useToast()
   const { approveRequest, rejectRequest, deleteApprovalRequest } =
     useApprovalsStore()
 
@@ -106,11 +105,7 @@ export function ApprovalActionDialogs({
       setApproveNotes('')
       onApproveDialogClose()
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to approve request',
-        variant: 'destructive',
-      })
+      toast.error('Failed to approve request')
     }
   }
 
@@ -129,11 +124,7 @@ export function ApprovalActionDialogs({
       setRejectReason('')
       onRejectDialogClose()
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to reject request',
-        variant: 'destructive',
-      })
+      toast.error('Failed to reject request')
     }
   }
 
@@ -148,11 +139,7 @@ export function ApprovalActionDialogs({
 
       onDeleteDialogClose()
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to delete approval request',
-        variant: 'destructive',
-      })
+      toast.error('Failed to delete approval request')
     }
   }
 

@@ -16,7 +16,7 @@ import { Form } from '@/components/ui/form'
 import { Separator } from '@/components/ui/separator'
 
 import { cn } from '@/lib/utils'
-import { toast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useConfigStore } from '@/stores/configStore'
 
 import { useRollingMonitoring } from '@/features/utilities/hooks/useRollingMonitoring'
@@ -217,20 +217,13 @@ export function SessionMonitoringForm() {
 
   // Helper function to show success toast
   const showSuccessToast = () => {
-    toast({
-      title: 'Success',
-      description: 'Session monitoring settings updated successfully',
-    })
+    toast.success('Session monitoring settings updated successfully')
   }
 
   // Helper function to handle submit errors
   const handleSubmitError = (error: unknown) => {
     console.error('Failed to update session monitoring settings:', error)
-    toast({
-      title: 'Error',
-      description: 'Failed to update session monitoring settings',
-      variant: 'destructive',
-    })
+    toast.error('Failed to update session monitoring settings')
   }
 
   // Helper function to cleanup submit state

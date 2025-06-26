@@ -18,7 +18,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { MultiInput } from '@/components/ui/multi-input'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useConfigStore } from '@/stores/configStore'
 import {
   webhookFormSchema,
@@ -38,7 +38,6 @@ interface DiscordWebhookFormProps {
  * @param isInitialized - Whether the configuration is ready for editing.
  */
 export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
-  const { toast } = useToast()
   const config = useConfigStore((state) => state.config)
   const updateConfig = useConfigStore((state) => state.updateConfig)
   const [webhookStatus, setWebhookStatus] = React.useState<
@@ -193,10 +192,7 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
     const webhookUrls = webhookForm.getValues('discordWebhookUrl')
 
     if (!webhookUrls) {
-      toast({
-        description: 'Please enter webhook URLs to test',
-        variant: 'destructive',
-      })
+      toast.error('Please enter webhook URLs to test')
       return
     }
 
@@ -245,13 +241,11 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
           })
         }
 
-        toast({
-          description: countText,
-          variant:
-            result.duplicateCount && result.duplicateCount > 0
-              ? 'destructive'
-              : 'default',
-        })
+        if (result.duplicateCount && result.duplicateCount > 0) {
+          toast.error(countText)
+        } else {
+          toast.success(countText)
+        }
       } else {
         setWebhookTestValid(false)
         webhookForm.setValue('_connectionTested', false, {
@@ -261,10 +255,7 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
           type: 'manual',
           message: 'Please test connection before saving',
         })
-        toast({
-          description: `Webhook validation failed: ${result.error}`,
-          variant: 'destructive',
-        })
+        toast.error(`Webhook validation failed: ${result.error}`)
       }
     } catch (error) {
       console.error('Webhook test error:', error)
@@ -274,10 +265,7 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
         type: 'manual',
         message: 'Please test connection before saving',
       })
-      toast({
-        description: 'Failed to validate webhook URLs',
-        variant: 'destructive',
-      })
+      toast.error('Failed to validate webhook URLs')
     } finally {
       setWebhookStatus('idle')
     }
@@ -336,10 +324,7 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
         ...data,
         _connectionTested: true,
       })
-      toast({
-        description: 'Discord webhook URL has been updated',
-        variant: 'default',
-      })
+      toast.success('Discord webhook URL has been updated')
 
       setTimeout(() => {
         setWebhookStatus('idle')
@@ -347,10 +332,7 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
     } catch (error) {
       console.error('Discord webhook update error:', error)
       setWebhookStatus('error')
-      toast({
-        description: 'Failed to update Discord webhook',
-        variant: 'destructive',
-      })
+      toast.error('Failed to update Discord webhook')
 
       await new Promise((resolve) => setTimeout(resolve, 1000))
       setWebhookStatus('idle')
@@ -380,10 +362,7 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
       setWebhookTested(false)
       setWebhookTestValid(false)
 
-      toast({
-        description: 'Discord webhook URL has been cleared',
-        variant: 'default',
-      })
+      toast.success('Discord webhook URL has been cleared')
 
       setTimeout(() => {
         setWebhookStatus('idle')
@@ -391,10 +370,7 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
     } catch (error) {
       console.error('Discord webhook clear error:', error)
       setWebhookStatus('error')
-      toast({
-        description: 'Failed to clear Discord webhook',
-        variant: 'destructive',
-      })
+      toast.error('Failed to clear Discord webhook')
 
       await new Promise((resolve) => setTimeout(resolve, 1000))
       setWebhookStatus('idle')

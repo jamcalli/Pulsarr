@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/tooltip'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useConfigStore } from '@/stores/configStore'
 import { z } from 'zod'
 import { ClearSettingsAlert } from '@/components/ui/clear-settings-alert'
@@ -133,7 +133,6 @@ async function testTautulliConnection(url: string, apiKey: string) {
  * @param isInitialized - Whether the configuration is ready for editing.
  */
 export function TautulliForm({ isInitialized }: TautulliFormProps) {
-  const { toast } = useToast()
   const config = useConfigStore((state) => state.config)
   const updateConfig = useConfigStore((state) => state.updateConfig)
   const [tautulliStatus, setTautulliStatus] = React.useState<
@@ -257,20 +256,16 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
         })
         tautulliForm.clearErrors(['tautulliUrl', 'tautulliApiKey'])
 
-        toast({
-          description: 'Tautulli connection is valid!',
-          variant: 'default',
-        })
+        toast.success('Tautulli connection is valid!')
       } else {
         setTautulliTestValid(false)
         tautulliForm.setValue('_connectionTested', false, {
           shouldValidate: true,
         })
         // Schema validation will handle the error
-        toast({
-          description: `Connection test failed: ${result.message || 'Unknown error'}`,
-          variant: 'destructive',
-        })
+        toast.error(
+          `Connection test failed: ${result.message || 'Unknown error'}`,
+        )
       }
     } catch (error) {
       console.error('Tautulli test error:', error)
@@ -279,10 +274,7 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
         shouldValidate: true,
       })
       // Schema validation will handle the error
-      toast({
-        description: 'Failed to test Tautulli connection',
-        variant: 'destructive',
-      })
+      toast.error('Failed to test Tautulli connection')
     } finally {
       setTautulliStatus('idle')
     }
@@ -313,10 +305,7 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
         _originalTautulliUrl: data.tautulliUrl || '',
         _originalTautulliApiKey: data.tautulliApiKey || '',
       })
-      toast({
-        description: 'Tautulli settings have been updated',
-        variant: 'default',
-      })
+      toast.success('Tautulli settings have been updated')
 
       setTimeout(() => {
         setTautulliStatus('idle')
@@ -324,10 +313,7 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
     } catch (error) {
       console.error('Tautulli settings update error:', error)
       setTautulliStatus('error')
-      toast({
-        description: 'Failed to update Tautulli settings',
-        variant: 'destructive',
-      })
+      toast.error('Failed to update Tautulli settings')
 
       await new Promise((resolve) => setTimeout(resolve, 1000))
       setTautulliStatus('idle')
@@ -361,10 +347,7 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
       })
       setTautulliTestValid(false)
 
-      toast({
-        description: 'Tautulli settings have been cleared',
-        variant: 'default',
-      })
+      toast.success('Tautulli settings have been cleared')
 
       setTimeout(() => {
         setTautulliStatus('idle')
@@ -372,10 +355,7 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
     } catch (error) {
       console.error('Tautulli settings clear error:', error)
       setTautulliStatus('error')
-      toast({
-        description: 'Failed to clear Tautulli settings',
-        variant: 'destructive',
-      })
+      toast.error('Failed to clear Tautulli settings')
 
       await new Promise((resolve) => setTimeout(resolve, 1000))
       setTautulliStatus('idle')
