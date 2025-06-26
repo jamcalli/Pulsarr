@@ -199,7 +199,7 @@ export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
         }}
       >
         <DialogHeader>
-          <DialogTitle className="text-text">
+          <DialogTitle className="text-foreground">
             {!isSubmitting
               ? 'Enter Your Plex Token'
               : currentStep === 'syncing'
@@ -243,11 +243,11 @@ export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
                   othersWatchlistStatus === 'idle')) && (
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-text">
+                    <span className="text-sm text-foreground">
                       {selfWatchlistProgress.message ||
                         'Syncing Your Watchlist'}
                     </span>
-                    <span className="text-sm text-text">
+                    <span className="text-sm text-foreground">
                       {selfWatchlistProgress.progress}%
                     </span>
                   </div>
@@ -259,11 +259,11 @@ export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
               {othersWatchlistStatus === 'loading' && (
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-text">
+                    <span className="text-sm text-foreground">
                       {othersWatchlistProgress.message ||
                         "Syncing Others' Watchlists"}
                     </span>
-                    <span className="text-sm text-text">
+                    <span className="text-sm text-foreground">
                       {othersWatchlistProgress.progress}%
                     </span>
                   </div>

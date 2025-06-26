@@ -51,9 +51,9 @@ export function TopGenresChart() {
     }
     const data = payload[0].payload as { name: string; count: number }
     return (
-      <div className="bg-bg border border-border p-2 rounded shadow-md">
-        <p className="font-medium text-text">{data.name}</p>
-        <p className="text-text">
+      <div className="bg-background border border-border p-2 rounded-xs shadow-md">
+        <p className="font-medium text-foreground">{data.name}</p>
+        <p className="text-foreground">
           <span className="font-medium">Count: </span>
           {data.count.toLocaleString()}
         </p>
@@ -64,7 +64,7 @@ export function TopGenresChart() {
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <span className="text-text text-muted-foreground">
+        <span className="text-foreground text-muted-foreground">
           Loading chart data...
         </span>
       </div>
@@ -108,7 +108,7 @@ export function TopGenresChart() {
             className="h-3 w-3 rounded-full inline-block mr-2"
             style={{ backgroundColor: cssColors.fun }}
           />
-          <span className="text-sm text-text">Genre Count</span>
+          <span className="text-sm text-foreground">Genre Count</span>
         </div>
       </div>
     </div>

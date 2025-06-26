@@ -426,7 +426,7 @@ export default function UserTable({
   })
 
   return (
-    <div className="w-full font-base text-mtext overflow-x-auto">
+    <div className="w-full font-base text-main-foreground overflow-x-auto">
       <div>
         <div className="flex items-center justify-between py-4">
           <Input
@@ -601,12 +601,12 @@ export default function UserTable({
               ))}
             </SelectContent>
           </Select>
-          <p className="text-sm text-text font-medium hidden xs:block">
+          <p className="text-sm text-foreground font-medium hidden xs:block">
             per page
           </p>
         </div>
 
-        <div className="flex items-center justify-center text-sm font-medium text-text">
+        <div className="flex items-center justify-center text-sm font-medium text-foreground">
           Page {table.getState().pagination.pageIndex + 1} of{' '}
           {table.getPageCount()}
         </div>

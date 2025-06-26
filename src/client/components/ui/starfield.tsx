@@ -48,14 +48,13 @@ const ParallaxStarfield = ({ children }: { children: React.ReactNode }) => {
   return (
     <div 
       ref={containerRef}
-      className="fixed inset-0 overflow-hidden bg-secondaryBlack pointer-events-none"
+      className="fixed inset-0 overflow-hidden pointer-events-none"
+      style={{ backgroundColor: 'var(--color-secondary-black)' }}
     >
       {stars.map((star, i) => (
         <div
           key={i}
-          className={`absolute rounded-full transition-transform duration-700 ease-out bg-white ${
-            star.parallax ? 'animate-starPulse' : ''
-          }`}
+          className="absolute rounded-full transition-transform duration-700 ease-out bg-white"
           style={{
             left: `${star.x + (star.parallax ? mousePos.x : 0)}%`,
             top: `${star.y + (star.parallax ? mousePos.y : 0)}%`,
@@ -63,6 +62,7 @@ const ParallaxStarfield = ({ children }: { children: React.ReactNode }) => {
             height: star.size,
             opacity: star.opacity,
             transform: `scale(${star.parallax ? 1.2 : 1})`,
+            animation: star.parallax ? 'var(--animate-star-pulse)' : undefined,
             animationDelay: star.parallax ? `${star.pulseDelay}s` : undefined
           }}
         />

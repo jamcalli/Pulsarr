@@ -63,7 +63,7 @@ export function QuotaSystemBusinessConfig({
 
   return (
     <div>
-      <h3 className="font-medium text-text mb-4">
+      <h3 className="font-medium text-foreground mb-4">
         Business Logic Configuration
       </h3>
 
@@ -71,7 +71,7 @@ export function QuotaSystemBusinessConfig({
       {!isScheduleEnabled && (
         <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md">
           <div className="flex items-start">
-            <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400 mt-0.5 mr-2 flex-shrink-0" />
+            <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400 mt-0.5 mr-2 shrink-0" />
             <div className="text-sm text-yellow-800 dark:text-yellow-200">
               <p className="font-medium">Schedule Required</p>
               <p>
@@ -89,7 +89,9 @@ export function QuotaSystemBusinessConfig({
           {/* Reset Policies Section */}
           <div className={cn('space-y-4', !isScheduleEnabled && 'opacity-60')}>
             <div>
-              <h4 className="font-medium text-text mb-3">Reset Policies</h4>
+              <h4 className="font-medium text-foreground mb-3">
+                Reset Policies
+              </h4>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Weekly Rolling Period */}
@@ -99,13 +101,13 @@ export function QuotaSystemBusinessConfig({
                   render={({ field }) => (
                     <FormItem className="space-y-2">
                       <div className="flex items-center">
-                        <FormLabel className="text-text m-0 text-sm">
+                        <FormLabel className="text-foreground m-0 text-sm">
                           Weekly Rolling Period (Days)
                         </FormLabel>
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                             </TooltipTrigger>
                             <TooltipContent>
                               <p className="max-w-xs">
@@ -143,13 +145,13 @@ export function QuotaSystemBusinessConfig({
                   render={({ field }) => (
                     <FormItem className="space-y-2">
                       <div className="flex items-center">
-                        <FormLabel className="text-text m-0 text-sm">
+                        <FormLabel className="text-foreground m-0 text-sm">
                           Monthly Reset Day
                         </FormLabel>
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                             </TooltipTrigger>
                             <TooltipContent>
                               <p className="max-w-xs">
@@ -187,13 +189,13 @@ export function QuotaSystemBusinessConfig({
                 render={({ field }) => (
                   <FormItem className="space-y-2">
                     <div className="flex items-center">
-                      <FormLabel className="text-text m-0 text-sm">
+                      <FormLabel className="text-foreground m-0 text-sm">
                         Month-End Handling
                       </FormLabel>
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                            <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                           </TooltipTrigger>
                           <TooltipContent>
                             <div className="max-w-xs space-y-2">
@@ -247,7 +249,9 @@ export function QuotaSystemBusinessConfig({
           {/* Cleanup Settings Section */}
           <div className={cn('space-y-4', !isScheduleEnabled && 'opacity-60')}>
             <div>
-              <h4 className="font-medium text-text mb-3">Cleanup Settings</h4>
+              <h4 className="font-medium text-foreground mb-3">
+                Cleanup Settings
+              </h4>
 
               {/* Enable Cleanup */}
               <FormField
@@ -256,13 +260,13 @@ export function QuotaSystemBusinessConfig({
                 render={({ field }) => (
                   <FormItem className="space-y-2">
                     <div className="flex items-center">
-                      <FormLabel className="text-text m-0 text-sm">
+                      <FormLabel className="text-foreground m-0 text-sm">
                         Enable Usage History Cleanup
                       </FormLabel>
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                            <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                           </TooltipTrigger>
                           <TooltipContent>
                             <p className="max-w-xs">
@@ -292,13 +296,13 @@ export function QuotaSystemBusinessConfig({
                 render={({ field }) => (
                   <FormItem className="space-y-2">
                     <div className="flex items-center">
-                      <FormLabel className="text-text m-0 text-sm">
+                      <FormLabel className="text-foreground m-0 text-sm">
                         Usage History Retention (Days)
                       </FormLabel>
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                            <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                           </TooltipTrigger>
                           <TooltipContent>
                             <p className="max-w-xs">

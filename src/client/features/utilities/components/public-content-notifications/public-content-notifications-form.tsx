@@ -109,11 +109,11 @@ function WebhookField({
       render={({ field }) => (
         <FormItem>
           <div className="flex items-center gap-1">
-            <FormLabel className="text-text">{label}</FormLabel>
+            <FormLabel className="text-foreground">{label}</FormLabel>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <InfoIcon className="h-4 w-4 text-text cursor-help" />
+                  <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
                 </TooltipTrigger>
                 <TooltipContent className="max-w-xs">{tooltip}</TooltipContent>
               </Tooltip>
@@ -172,7 +172,7 @@ function WebhookField({
               )}
             </div>
           </FormControl>
-          <p className="text-xs text-text opacity-70">{helpText}</p>
+          <p className="text-xs text-foreground opacity-70">{helpText}</p>
           <FormMessage />
         </FormItem>
       )}
@@ -373,7 +373,9 @@ export function PublicContentNotificationsForm() {
                   >
                     {/* Actions section */}
                     <div>
-                      <h3 className="font-medium text-text mb-2">Actions</h3>
+                      <h3 className="font-medium text-foreground mb-2">
+                        Actions
+                      </h3>
                       <div className="flex flex-wrap items-center gap-4">
                         <Button
                           type="button"
@@ -405,10 +407,10 @@ export function PublicContentNotificationsForm() {
 
                     {/* Information about public content notifications */}
                     <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-md">
-                      <h3 className="font-medium text-text mb-2">
+                      <h3 className="font-medium text-foreground mb-2">
                         Public Content Broadcasting
                       </h3>
-                      <p className="text-sm text-text">
+                      <p className="text-sm text-foreground">
                         {isEnabled ? (
                           <>
                             Public content notifications are enabled. ALL
@@ -440,7 +442,7 @@ export function PublicContentNotificationsForm() {
                     {isEnabled && (
                       <div className="space-y-6">
                         <div>
-                          <h3 className="font-medium text-text mb-4">
+                          <h3 className="font-medium text-foreground mb-4">
                             Discord Webhook Configuration
                           </h3>
                           <div className="space-y-4">
@@ -531,11 +533,11 @@ export function PublicContentNotificationsForm() {
 
                         <div>
                           <div className="flex items-center gap-2 mb-4">
-                            <h3 className="font-medium text-text">
+                            <h3 className="font-medium text-foreground">
                               Apprise Configuration
                             </h3>
                             {!isAppriseEnabled && (
-                              <span className="text-xs text-red-500 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded">
+                              <span className="text-xs text-red-500 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded-xs">
                                 Apprise is disabled
                               </span>
                             )}

@@ -197,7 +197,7 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
   return (
     <div className="grid gap-4 mt-6">
       <div className="flex items-center">
-        <h3 className="text-xl font-semibold text-text">
+        <h3 className="text-xl font-semibold text-foreground">
           Discord Bot Settings
         </h3>
         <DiscordStatusBadge />
@@ -214,11 +214,13 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
             render={({ field }) => (
               <FormItem>
                 <div className="flex items-center gap-1">
-                  <FormLabel className="text-text">Discord Bot Token</FormLabel>
+                  <FormLabel className="text-foreground">
+                    Discord Bot Token
+                  </FormLabel>
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <InfoIcon className="h-4 w-4 text-text cursor-help" />
+                        <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs">
                         Bot token from Discord Developer Portal.
@@ -251,13 +253,13 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <div className="flex items-center gap-1">
-                    <FormLabel className="text-text">
+                    <FormLabel className="text-foreground">
                       Discord Client ID
                     </FormLabel>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <InfoIcon className="h-4 w-4 text-text cursor-help" />
+                          <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
                         </TooltipTrigger>
                         <TooltipContent className="max-w-xs">
                           Client ID from your Discord application's General
@@ -290,13 +292,13 @@ export function DiscordBotForm({ isInitialized }: DiscordBotFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <div className="flex items-center gap-1">
-                    <FormLabel className="text-text">
+                    <FormLabel className="text-foreground">
                       Discord Guild ID
                     </FormLabel>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <InfoIcon className="h-4 w-4 text-text cursor-help" />
+                          <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
                         </TooltipTrigger>
                         <TooltipContent className="max-w-xs">
                           Server ID found by enabling Developer Mode and

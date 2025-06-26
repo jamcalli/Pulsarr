@@ -72,7 +72,7 @@ export default function WindowedLayout({ children }: WindowedLayoutProps) {
         </header>
 
         {/* Main content area */}
-        <main className="dark:bg-darkBg relative flex flex-col bg-bg font-semibold h-screen pt-[50px]">
+        <main className="bg-background relative flex flex-col font-semibold h-screen pt-[50px]">
           <ScrollArea className="flex-1">
             <div className="pb-32">{children}</div>
           </ScrollArea>
@@ -83,9 +83,9 @@ export default function WindowedLayout({ children }: WindowedLayoutProps) {
 
   // Desktop Windowed Layout
   return (
-    <div className="outline-border dark:outline-darkBorder grid grid-cols-[100px_auto] h-[90vh] w-[95vw] max-w-[1400px] rounded-base shadow-[10px_10px_0_0_#000] outline outline-4">
+    <div className="outline-border grid grid-cols-[100px_auto] h-[90vh] w-[95vw] max-w-[1400px] rounded-base shadow-[10px_10px_0_0_#000] outline-4">
       {/* Header - Desktop windowed mode */}
-      <header className="border-r-border dark:border-r-darkBorder relative flex items-center justify-center bg-main rounded-l-base border-r-4">
+      <header className="border-r-border relative flex items-center justify-center bg-main rounded-l-base border-r-4">
         {/* Title */}
         <h1 className="whitespace-nowrap font-bold -rotate-90 text-[40px] tracking-[4px]">
           <span className="text-black inline-block">Pulsarr</span>
@@ -93,7 +93,7 @@ export default function WindowedLayout({ children }: WindowedLayoutProps) {
       </header>
 
       {/* Main content area */}
-      <main className="dark:bg-darkBg relative flex flex-col bg-bg font-semibold h-[90vh] rounded-br-base rounded-tr-base">
+      <main className="bg-background relative flex flex-col font-semibold h-[90vh] rounded-br-base rounded-tr-base">
         <Nav isMobile={false} />
         <ScrollArea className="flex-1">{children}</ScrollArea>
       </main>

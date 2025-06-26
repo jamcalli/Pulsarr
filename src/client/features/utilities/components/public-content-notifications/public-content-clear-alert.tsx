@@ -37,7 +37,7 @@ export function PublicContentClearAlert({
     <Credenza open={open} onOpenChange={onOpenChange}>
       <CredenzaContent>
         <CredenzaHeader>
-          <CredenzaTitle className="text-text">{title}</CredenzaTitle>
+          <CredenzaTitle className="text-foreground">{title}</CredenzaTitle>
           <CredenzaDescription>{description}</CredenzaDescription>
         </CredenzaHeader>
         <CredenzaBody>

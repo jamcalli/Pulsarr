@@ -73,7 +73,7 @@ export function StatusTransitionsChart() {
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <span className="text-text text-muted-foreground">
+        <span className="text-foreground text-muted-foreground">
           Loading chart data...
         </span>
       </div>
@@ -124,21 +124,23 @@ export function StatusTransitionsChart() {
               }
               const data = props.payload[0].payload
               return (
-                <div className="bg-bg border border-border p-2 rounded shadow-md">
-                  <p className="font-medium text-text">{data.contentType}</p>
-                  <p className="text-text">
+                <div className="bg-background border border-border p-2 rounded-xs shadow-md">
+                  <p className="font-medium text-foreground">
+                    {data.contentType}
+                  </p>
+                  <p className="text-foreground">
                     <span className="font-medium">Avg: </span>
                     {data.avgMinutes} min
                   </p>
-                  <p className="text-text">
+                  <p className="text-foreground">
                     <span className="font-medium">Min: </span>
                     {data.minMinutes} min
                   </p>
-                  <p className="text-text">
+                  <p className="text-foreground">
                     <span className="font-medium">Max: </span>
                     {data.maxMinutes} min
                   </p>
-                  <p className="text-text">
+                  <p className="text-foreground">
                     <span className="font-medium">Count: </span>
                     {data.count} {data.count === 1 ? 'item' : 'items'}
                   </p>
@@ -261,14 +263,14 @@ export function StatusTransitionsChart() {
             className="h-3 w-3 rounded-full inline-block mr-2"
             style={{ backgroundColor: cssColors.movie }}
           />
-          <span className="text-sm text-text">Movies (avg)</span>
+          <span className="text-sm text-foreground">Movies (avg)</span>
         </div>
         <div className="flex items-center">
           <span
             className="h-3 w-3 rounded-full inline-block mr-2"
             style={{ backgroundColor: cssColors.show }}
           />
-          <span className="text-sm text-text">Shows (avg)</span>
+          <span className="text-sm text-foreground">Shows (avg)</span>
         </div>
 
         {/* Movies min/max with dashed line */}
@@ -284,7 +286,7 @@ export function StatusTransitionsChart() {
               }}
             />
           </span>
-          <span className="text-sm text-text">Movies (min/max)</span>
+          <span className="text-sm text-foreground">Movies (min/max)</span>
         </div>
 
         {/* Shows min/max with dashed line */}
@@ -300,7 +302,7 @@ export function StatusTransitionsChart() {
               }}
             />
           </span>
-          <span className="text-sm text-text">Shows (min/max)</span>
+          <span className="text-sm text-foreground">Shows (min/max)</span>
         </div>
       </div>
     </div>

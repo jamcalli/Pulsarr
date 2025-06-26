@@ -30,7 +30,7 @@ export function NotificationsSection({
     <div className="grid gap-6">
       {/* Public Content Notifications Info Section */}
       <div>
-        <div className="text-sm text-text p-3 bg-bw rounded-base border-2 border-border">
+        <div className="text-sm text-foreground p-3 bg-secondary-background rounded-base border-2 border-border">
           <p>
             Want to broadcast ALL content availability to public Discord
             channels and shared Apprise endpoints? Configure{' '}
@@ -54,7 +54,9 @@ export function NotificationsSection({
 
       {/* Discord Notifications Section */}
       <div>
-        <h2 className="text-2xl font-bold text-text">Discord Notifications</h2>
+        <h2 className="text-2xl font-bold text-foreground">
+          Discord Notifications
+        </h2>
 
         {/* Discord Webhook Section */}
         <div className="grid gap-4 mt-4">
@@ -68,7 +70,7 @@ export function NotificationsSection({
       {/* Apprise Notifications Section */}
       <div>
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-text">
+          <h2 className="text-2xl font-bold text-foreground">
             Apprise Notifications
           </h2>
         </div>
@@ -82,7 +84,7 @@ export function NotificationsSection({
       {/* Tautulli Notifications Section */}
       <div>
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-text">
+          <h2 className="text-2xl font-bold text-foreground">
             Tautulli Notifications
           </h2>
         </div>
@@ -96,7 +98,7 @@ export function NotificationsSection({
       {/* General Notifications Section */}
       <div>
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-text">
+          <h2 className="text-2xl font-bold text-foreground">
             General Notification Settings
           </h2>
         </div>

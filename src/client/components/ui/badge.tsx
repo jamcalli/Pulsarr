@@ -5,13 +5,13 @@ import type * as React from "react"
 import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-base border-2 border-border px-2.5 font-base py-0.5 text-xs transition-colors focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2",
+  "inline-flex items-center rounded-base border-2 border-border px-2.5 font-base py-0.5 text-xs transition-colors focus:outline-hidden focus:ring-2 focus:ring-black focus:ring-offset-2",
   {
     variants: {
       variant: {
-        default: "bg-main text-mtext",
-        neutral: "bg-bw text-text",
-        warn: "bg-fun text-mtext",
+        default: "bg-main text-main-foreground",
+        neutral: "bg-secondary-background text-foreground",
+        warn: "bg-fun text-main-foreground",
       },
     },
     defaultVariants: {

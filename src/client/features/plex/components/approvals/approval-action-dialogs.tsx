@@ -168,7 +168,9 @@ export function ApprovalActionDialogs({
       >
         <CredenzaContent>
           <CredenzaHeader>
-            <CredenzaTitle className="text-text">Approve Request</CredenzaTitle>
+            <CredenzaTitle className="text-foreground">
+              Approve Request
+            </CredenzaTitle>
             <CredenzaDescription>
               {selectedRequest && (
                 <>
@@ -184,7 +186,7 @@ export function ApprovalActionDialogs({
               <div className="grid gap-2">
                 <Label
                   htmlFor="approve-notes"
-                  className="text-text text-sm italic"
+                  className="text-foreground text-sm italic"
                 >
                   Notes (optional)
                 </Label>
@@ -240,7 +242,9 @@ export function ApprovalActionDialogs({
       >
         <CredenzaContent>
           <CredenzaHeader>
-            <CredenzaTitle className="text-text">Reject Request</CredenzaTitle>
+            <CredenzaTitle className="text-foreground">
+              Reject Request
+            </CredenzaTitle>
             <CredenzaDescription>
               {selectedRequest && (
                 <>
@@ -256,7 +260,7 @@ export function ApprovalActionDialogs({
               <div className="grid gap-2">
                 <Label
                   htmlFor="reject-reason"
-                  className="text-text text-sm italic"
+                  className="text-foreground text-sm italic"
                 >
                   Reason (optional)
                 </Label>
@@ -313,7 +317,7 @@ export function ApprovalActionDialogs({
       >
         <CredenzaContent>
           <CredenzaHeader>
-            <CredenzaTitle className="text-text">
+            <CredenzaTitle className="text-foreground">
               Delete Approval Request
             </CredenzaTitle>
             <CredenzaDescription>

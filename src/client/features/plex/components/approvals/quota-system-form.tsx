@@ -128,7 +128,7 @@ export function QuotaSystemForm() {
     <div className="space-y-6">
       {/* Actions section */}
       <div>
-        <h3 className="font-medium text-text mb-2">Actions</h3>
+        <h3 className="font-medium text-foreground mb-2">Actions</h3>
         <div className="flex flex-wrap items-center gap-4">
           <Button
             type="button"
@@ -172,14 +172,16 @@ export function QuotaSystemForm() {
       <div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="flex flex-col items-center text-center">
-            <h3 className="font-medium text-sm text-text mb-1">Status</h3>
-            <p className="font-medium text-text">
+            <h3 className="font-medium text-sm text-foreground mb-1">Status</h3>
+            <p className="font-medium text-foreground">
               {isScheduleEnabled ? 'Enabled' : 'Disabled'}
             </p>
           </div>
           <div className="flex flex-col items-center text-center">
-            <h3 className="font-medium text-sm text-text mb-1">Last Run</h3>
-            <p className="font-medium text-text flex items-center">
+            <h3 className="font-medium text-sm text-foreground mb-1">
+              Last Run
+            </h3>
+            <p className="font-medium text-foreground flex items-center">
               {formatLastRun(quotaMaintenanceJob?.last_run)}
               {quotaMaintenanceJob?.last_run?.status === 'failed' && (
                 <span className="text-red-500 ml-2 flex items-center">
@@ -190,10 +192,10 @@ export function QuotaSystemForm() {
             </p>
           </div>
           <div className="flex flex-col items-center text-center">
-            <h3 className="font-medium text-sm text-text mb-1">
+            <h3 className="font-medium text-sm text-foreground mb-1">
               Next Scheduled Run
             </h3>
-            <p className="font-medium text-text">
+            <p className="font-medium text-foreground">
               {formatNextRun(quotaMaintenanceJob?.next_run)}
             </p>
           </div>
@@ -207,8 +209,8 @@ export function QuotaSystemForm() {
           {/* Schedule section */}
           <div>
             <div className="flex items-center mb-3">
-              <Clock className="h-4 w-4 mr-2 text-text" />
-              <h3 className="font-medium text-sm text-text">Schedule</h3>
+              <Clock className="h-4 w-4 mr-2 text-foreground" />
+              <h3 className="font-medium text-sm text-foreground">Schedule</h3>
             </div>
 
             <FormField
@@ -219,7 +221,7 @@ export function QuotaSystemForm() {
                   control={form.control}
                   name="dayOfWeek"
                   render={({ field: dayField }) => (
-                    <div className="flex-shrink-0">
+                    <div className="shrink-0">
                       <TimeSelector
                         value={timeField.value}
                         onChange={(date, dayOfWeek) => {
@@ -245,7 +247,7 @@ export function QuotaSystemForm() {
             {quotaMaintenanceJob &&
               quotaMaintenanceJob.type === 'cron' &&
               quotaMaintenanceJob.config?.expression && (
-                <div className="mt-2 text-xs text-text">
+                <div className="mt-2 text-xs text-foreground">
                   <p>
                     Current schedule:{' '}
                     {formatScheduleDisplay(
@@ -263,7 +265,7 @@ export function QuotaSystemForm() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <h3 className="font-medium text-sm text-text mb-2">
+              <h3 className="font-medium text-sm text-foreground mb-2">
                 Reset Policies
               </h3>
               <div className="space-y-4">
@@ -273,13 +275,13 @@ export function QuotaSystemForm() {
                   render={({ field }) => (
                     <FormItem className="space-y-2">
                       <div className="flex items-center">
-                        <FormLabel className="text-text m-0 text-sm">
+                        <FormLabel className="text-foreground m-0 text-sm">
                           Weekly Rolling Period (Days)
                         </FormLabel>
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                             </TooltipTrigger>
                             <TooltipContent>
                               <p className="max-w-xs">
@@ -315,13 +317,13 @@ export function QuotaSystemForm() {
                   render={({ field }) => (
                     <FormItem className="space-y-2">
                       <div className="flex items-center">
-                        <FormLabel className="text-text m-0 text-sm">
+                        <FormLabel className="text-foreground m-0 text-sm">
                           Monthly Reset Day
                         </FormLabel>
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                             </TooltipTrigger>
                             <TooltipContent>
                               <p className="max-w-xs">
@@ -356,13 +358,13 @@ export function QuotaSystemForm() {
                   render={({ field }) => (
                     <FormItem className="space-y-2">
                       <div className="flex items-center">
-                        <FormLabel className="text-text m-0 text-sm">
+                        <FormLabel className="text-foreground m-0 text-sm">
                           Month-End Handling
                         </FormLabel>
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                             </TooltipTrigger>
                             <TooltipContent>
                               <div className="max-w-xs space-y-2">
@@ -417,7 +419,7 @@ export function QuotaSystemForm() {
             </div>
 
             <div>
-              <h3 className="font-medium text-sm text-text mb-2">
+              <h3 className="font-medium text-sm text-foreground mb-2">
                 Cleanup Settings
               </h3>
               <div className="space-y-4">
@@ -433,13 +435,13 @@ export function QuotaSystemForm() {
                         />
                       </FormControl>
                       <div className="flex items-center">
-                        <FormLabel className="text-text m-0">
+                        <FormLabel className="text-foreground m-0">
                           Enable Usage History Cleanup
                         </FormLabel>
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                             </TooltipTrigger>
                             <TooltipContent>
                               <p className="max-w-xs">
@@ -461,13 +463,13 @@ export function QuotaSystemForm() {
                   render={({ field }) => (
                     <FormItem className="space-y-2">
                       <div className="flex items-center">
-                        <FormLabel className="text-text m-0 text-sm">
+                        <FormLabel className="text-foreground m-0 text-sm">
                           Usage History Retention (Days)
                         </FormLabel>
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                             </TooltipTrigger>
                             <TooltipContent>
                               <p className="max-w-xs">

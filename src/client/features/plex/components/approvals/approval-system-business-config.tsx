@@ -61,7 +61,7 @@ export function ApprovalSystemBusinessConfig({
 
   return (
     <div>
-      <h3 className="font-medium text-text mb-4">
+      <h3 className="font-medium text-foreground mb-4">
         Business Logic Configuration
       </h3>
 
@@ -69,7 +69,7 @@ export function ApprovalSystemBusinessConfig({
       {!isScheduleEnabled && (
         <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md">
           <div className="flex items-start">
-            <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400 mt-0.5 mr-2 flex-shrink-0" />
+            <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400 mt-0.5 mr-2 shrink-0" />
             <div className="text-sm text-yellow-800 dark:text-yellow-200">
               <p className="font-medium">Schedule Required</p>
               <p>
@@ -87,7 +87,7 @@ export function ApprovalSystemBusinessConfig({
           {/* Approval Expiration Section */}
           <div className={cn('space-y-4', !isScheduleEnabled && 'opacity-60')}>
             <div>
-              <h4 className="font-medium text-text mb-3">
+              <h4 className="font-medium text-foreground mb-3">
                 Approval Expiration
               </h4>
 
@@ -98,13 +98,13 @@ export function ApprovalSystemBusinessConfig({
                 render={({ field }) => (
                   <FormItem className="space-y-2">
                     <div className="flex items-center">
-                      <FormLabel className="text-text m-0">
+                      <FormLabel className="text-foreground m-0">
                         Enable Approval Expiration
                       </FormLabel>
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                            <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                           </TooltipTrigger>
                           <TooltipContent>
                             <p className="max-w-xs">
@@ -134,13 +134,13 @@ export function ApprovalSystemBusinessConfig({
                 render={({ field }) => (
                   <FormItem className="space-y-2">
                     <div className="flex items-center">
-                      <FormLabel className="text-text m-0">
+                      <FormLabel className="text-foreground m-0">
                         Default Expiration Hours
                       </FormLabel>
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                            <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                           </TooltipTrigger>
                           <TooltipContent>
                             <p className="max-w-xs">
@@ -175,13 +175,13 @@ export function ApprovalSystemBusinessConfig({
                 render={({ field }) => (
                   <FormItem className="space-y-2">
                     <div className="flex items-center">
-                      <FormLabel className="text-text m-0">
+                      <FormLabel className="text-foreground m-0">
                         Expiration Action
                       </FormLabel>
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                            <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                           </TooltipTrigger>
                           <TooltipContent>
                             <div className="max-w-xs space-y-2">
@@ -227,7 +227,7 @@ export function ApprovalSystemBusinessConfig({
             {/* Per-Trigger Overrides */}
             {isExpirationEnabled && (
               <div className="space-y-4">
-                <h5 className="font-medium text-text text-sm">
+                <h5 className="font-medium text-foreground text-sm">
                   Per-Trigger Expiration Overrides
                 </h5>
 
@@ -238,13 +238,13 @@ export function ApprovalSystemBusinessConfig({
                     render={({ field }) => (
                       <FormItem className="space-y-2">
                         <div className="flex items-center">
-                          <FormLabel className="text-text m-0 text-sm">
+                          <FormLabel className="text-foreground m-0 text-sm">
                             Quota Exceeded Override
                           </FormLabel>
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p className="max-w-xs">
@@ -285,13 +285,13 @@ export function ApprovalSystemBusinessConfig({
                     render={({ field }) => (
                       <FormItem className="space-y-2">
                         <div className="flex items-center">
-                          <FormLabel className="text-text m-0 text-sm">
+                          <FormLabel className="text-foreground m-0 text-sm">
                             Router Rule Override
                           </FormLabel>
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p className="max-w-xs">
@@ -332,13 +332,13 @@ export function ApprovalSystemBusinessConfig({
                     render={({ field }) => (
                       <FormItem className="space-y-2">
                         <div className="flex items-center">
-                          <FormLabel className="text-text m-0 text-sm">
+                          <FormLabel className="text-foreground m-0 text-sm">
                             Manual Flag Override
                           </FormLabel>
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p className="max-w-xs">
@@ -379,13 +379,13 @@ export function ApprovalSystemBusinessConfig({
                     render={({ field }) => (
                       <FormItem className="space-y-2">
                         <div className="flex items-center">
-                          <FormLabel className="text-text m-0 text-sm">
+                          <FormLabel className="text-foreground m-0 text-sm">
                             Content Criteria Override
                           </FormLabel>
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p className="max-w-xs">
@@ -425,7 +425,7 @@ export function ApprovalSystemBusinessConfig({
 
             {/* Cleanup Settings */}
             <div>
-              <h5 className="font-medium text-text text-sm mb-3">
+              <h5 className="font-medium text-foreground text-sm mb-3">
                 Cleanup Settings
               </h5>
 
@@ -435,13 +435,13 @@ export function ApprovalSystemBusinessConfig({
                 render={({ field }) => (
                   <FormItem className="space-y-2">
                     <div className="flex items-center">
-                      <FormLabel className="text-text m-0 text-sm">
+                      <FormLabel className="text-foreground m-0 text-sm">
                         Expired Request Retention (Days)
                       </FormLabel>
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                            <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                           </TooltipTrigger>
                           <TooltipContent>
                             <p className="max-w-xs">

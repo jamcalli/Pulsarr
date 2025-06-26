@@ -87,7 +87,7 @@ export const createApprovalColumns = (
 
       return (
         <div className="flex items-center gap-2 max-w-[300px]">
-          <ContentIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <ContentIcon className="h-4 w-4 text-muted-foreground shrink-0" />
           <div className="truncate">
             <div className="font-medium truncate">{request.contentTitle}</div>
             <div className="text-sm text-muted-foreground capitalize">

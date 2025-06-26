@@ -411,7 +411,9 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
   return (
     <div className="grid gap-4">
       <div className="flex justify-between items-center">
-        <h3 className="text-xl font-semibold text-text">Discord Webhook</h3>
+        <h3 className="text-xl font-semibold text-foreground">
+          Discord Webhook
+        </h3>
       </div>
 
       <Form {...webhookForm}>
@@ -425,13 +427,13 @@ export function DiscordWebhookForm({ isInitialized }: DiscordWebhookFormProps) {
             render={({ field }) => (
               <FormItem>
                 <div className="flex items-center gap-1">
-                  <FormLabel className="text-text">
+                  <FormLabel className="text-foreground">
                     System Discord Webhook URL(s)
                   </FormLabel>
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <InfoIcon className="h-4 w-4 text-text cursor-help" />
+                        <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs">
                         Discord webhook URLs for sending system notifications.

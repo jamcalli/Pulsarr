@@ -579,7 +579,7 @@ const AccordionContentRouterSection = ({
         // Loading with existing rules - show skeletons
         <div className="grid gap-6">
           <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold text-text">
+            <h2 className="text-2xl font-bold text-foreground">
               {targetType === 'radarr' ? 'Radarr' : 'Sonarr'} Content Routes
             </h2>
           </div>
@@ -595,11 +595,11 @@ const AccordionContentRouterSection = ({
         // Empty state - no rules
         <div className="grid gap-6">
           <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold text-text">
+            <h2 className="text-2xl font-bold text-foreground">
               {targetType === 'radarr' ? 'Radarr' : 'Sonarr'} Content Routes
             </h2>
           </div>
-          <div className="text-center py-8 text-text">
+          <div className="text-center py-8 text-foreground">
             <p>No content routes configured</p>
             <Button onClick={addRoute} className="mt-4">
               Add Your First Route
@@ -610,7 +610,7 @@ const AccordionContentRouterSection = ({
         // Display routes
         <>
           <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold text-text">
+            <h2 className="text-2xl font-bold text-foreground">
               {targetType === 'radarr' ? 'Radarr' : 'Sonarr'} Content Routes
             </h2>
             <Button onClick={addRoute}>Add Route</Button>

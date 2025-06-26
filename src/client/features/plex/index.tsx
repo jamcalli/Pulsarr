@@ -33,7 +33,9 @@ export default function PlexConfigPage() {
     <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
       <SetupModal open={showSetupModal} onOpenChange={setShowSetupModal} />
 
-      <h1 className="text-3xl font-bold text-text mb-6">Plex Configuration</h1>
+      <h1 className="text-3xl font-bold text-foreground mb-6">
+        Plex Configuration
+      </h1>
 
       {/* Plex Connection Section - outside of tabs */}
       <div className="mb-6">

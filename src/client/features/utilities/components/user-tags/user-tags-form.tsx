@@ -166,7 +166,7 @@ export function UserTagsForm() {
               <div className="space-y-6">
                 {/* Actions section */}
                 <div>
-                  <h3 className="font-medium text-text mb-2">Actions</h3>
+                  <h3 className="font-medium text-foreground mb-2">Actions</h3>
                   <div className="flex flex-wrap items-center gap-4">
                     <Button
                       type="button"
@@ -284,11 +284,11 @@ export function UserTagsForm() {
                   isSyncingTags ||
                   isRemovingTags) && (
                   <div>
-                    <h3 className="font-medium text-text mb-2">Status</h3>
+                    <h3 className="font-medium text-foreground mb-2">Status</h3>
                     <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-md">
                       {/* Display appropriate status message */}
                       {!(isSyncingTags || isRemovingTags) && (
-                        <p className="text-sm text-text">
+                        <p className="text-sm text-foreground">
                           {lastRemoveResults?.message ||
                             lastActionResults?.message ||
                             lastResults?.message ||
@@ -300,7 +300,7 @@ export function UserTagsForm() {
                       {isSyncingTags && (
                         <div className="mt-3 space-y-3">
                           {/* Overall progress message */}
-                          <p className="text-sm text-text mb-2">
+                          <p className="text-sm text-foreground mb-2">
                             Synchronizing tags...
                           </p>
 
@@ -308,10 +308,10 @@ export function UserTagsForm() {
                           {form.watch('tagUsersInSonarr') && (
                             <div className="mb-4">
                               <div className="flex justify-between items-center mb-1">
-                                <span className="text-xs font-medium text-text">
+                                <span className="text-xs font-medium text-foreground">
                                   Sonarr
                                 </span>
-                                <span className="text-xs text-text">
+                                <span className="text-xs text-foreground">
                                   {sonarrTaggingProgress.progress}%
                                 </span>
                               </div>
@@ -319,7 +319,7 @@ export function UserTagsForm() {
                                 value={sonarrTaggingProgress.progress}
                               />
                               {sonarrTaggingProgress.message && (
-                                <p className="text-xs text-text mt-1">
+                                <p className="text-xs text-foreground mt-1">
                                   {sonarrTaggingProgress.message}
                                 </p>
                               )}
@@ -330,10 +330,10 @@ export function UserTagsForm() {
                           {form.watch('tagUsersInRadarr') && (
                             <div>
                               <div className="flex justify-between items-center mb-1">
-                                <span className="text-xs font-medium text-text">
+                                <span className="text-xs font-medium text-foreground">
                                   Radarr
                                 </span>
-                                <span className="text-xs text-text">
+                                <span className="text-xs text-foreground">
                                   {radarrTaggingProgress.progress}%
                                 </span>
                               </div>
@@ -341,7 +341,7 @@ export function UserTagsForm() {
                                 value={radarrTaggingProgress.progress}
                               />
                               {radarrTaggingProgress.message && (
-                                <p className="text-xs text-text mt-1">
+                                <p className="text-xs text-foreground mt-1">
                                   {radarrTaggingProgress.message}
                                 </p>
                               )}
@@ -354,7 +354,7 @@ export function UserTagsForm() {
                       {isRemovingTags && (
                         <div className="mt-3 space-y-3">
                           {/* Overall progress message */}
-                          <p className="text-sm text-text mb-2">
+                          <p className="text-sm text-foreground mb-2">
                             Removing tags...
                           </p>
 
@@ -362,10 +362,10 @@ export function UserTagsForm() {
                           {form.watch('tagUsersInSonarr') && (
                             <div className="mb-4">
                               <div className="flex justify-between items-center mb-1">
-                                <span className="text-xs font-medium text-text">
+                                <span className="text-xs font-medium text-foreground">
                                   Sonarr
                                 </span>
-                                <span className="text-xs text-text">
+                                <span className="text-xs text-foreground">
                                   {sonarrRemovalProgress.progress}%
                                 </span>
                               </div>
@@ -373,7 +373,7 @@ export function UserTagsForm() {
                                 value={sonarrRemovalProgress.progress}
                               />
                               {sonarrRemovalProgress.message && (
-                                <p className="text-xs text-text mt-1">
+                                <p className="text-xs text-foreground mt-1">
                                   {sonarrRemovalProgress.message}
                                 </p>
                               )}
@@ -384,10 +384,10 @@ export function UserTagsForm() {
                           {form.watch('tagUsersInRadarr') && (
                             <div>
                               <div className="flex justify-between items-center mb-1">
-                                <span className="text-xs font-medium text-text">
+                                <span className="text-xs font-medium text-foreground">
                                   Radarr
                                 </span>
-                                <span className="text-xs text-text">
+                                <span className="text-xs text-foreground">
                                   {radarrRemovalProgress.progress}%
                                 </span>
                               </div>
@@ -395,7 +395,7 @@ export function UserTagsForm() {
                                 value={radarrRemovalProgress.progress}
                               />
                               {radarrRemovalProgress.message && (
-                                <p className="text-xs text-text mt-1">
+                                <p className="text-xs text-foreground mt-1">
                                   {radarrRemovalProgress.message}
                                 </p>
                               )}
@@ -408,18 +408,18 @@ export function UserTagsForm() {
                         !isSyncingTags &&
                         !isRemovingTags && (
                           <>
-                            <h4 className="font-medium text-sm text-text mt-3 mb-1">
+                            <h4 className="font-medium text-sm text-foreground mt-3 mb-1">
                               Last Operation Results
                             </h4>
 
                             {/* Sonarr results */}
                             {lastActionResults?.sonarr && (
                               <div className="mt-2">
-                                <h5 className="text-xs font-medium text-text">
+                                <h5 className="text-xs font-medium text-foreground">
                                   Sonarr
                                 </h5>
                                 <ul className="mt-1 space-y-1">
-                                  <li className="text-xs text-text">
+                                  <li className="text-xs text-foreground">
                                     {isCreateTagResponse(lastActionResults) && (
                                       <>
                                         Created:{' '}
@@ -464,11 +464,11 @@ export function UserTagsForm() {
                             {/* Radarr results */}
                             {lastActionResults?.radarr && (
                               <div className="mt-2">
-                                <h5 className="text-xs font-medium text-text">
+                                <h5 className="text-xs font-medium text-foreground">
                                   Radarr
                                 </h5>
                                 <ul className="mt-1 space-y-1">
-                                  <li className="text-xs text-text">
+                                  <li className="text-xs text-foreground">
                                     {isCreateTagResponse(lastActionResults) && (
                                       <>
                                         Created:{' '}
@@ -514,11 +514,11 @@ export function UserTagsForm() {
                             {isSyncTagResponse(lastActionResults) &&
                               lastActionResults.orphanedCleanup && (
                                 <div className="mt-2">
-                                  <h5 className="text-xs font-medium text-text">
+                                  <h5 className="text-xs font-medium text-foreground">
                                     Orphaned Cleanup
                                   </h5>
                                   <ul className="mt-1 space-y-1">
-                                    <li className="text-xs text-text">
+                                    <li className="text-xs text-foreground">
                                       Sonarr:{' '}
                                       {
                                         lastActionResults.orphanedCleanup.sonarr
@@ -531,7 +531,7 @@ export function UserTagsForm() {
                                       }{' '}
                                       skipped
                                     </li>
-                                    <li className="text-xs text-text">
+                                    <li className="text-xs text-foreground">
                                       Radarr:{' '}
                                       {
                                         lastActionResults.orphanedCleanup.radarr
@@ -553,17 +553,17 @@ export function UserTagsForm() {
                       {/* Tag removal results */}
                       {lastRemoveResults && !isRemovingTags && (
                         <>
-                          <h4 className="font-medium text-sm text-text mt-3 mb-1">
+                          <h4 className="font-medium text-sm text-foreground mt-3 mb-1">
                             Tag Removal Results
                           </h4>
 
                           {/* Sonarr removal results */}
                           <div className="mt-2">
-                            <h5 className="text-xs font-medium text-text">
+                            <h5 className="text-xs font-medium text-foreground">
                               Sonarr
                             </h5>
                             <ul className="mt-1 space-y-1">
-                              <li className="text-xs text-text">
+                              <li className="text-xs text-foreground">
                                 Items Updated:{' '}
                                 {lastRemoveResults.sonarr.itemsUpdated}, Tags
                                 Removed: {lastRemoveResults.sonarr.tagsRemoved},
@@ -576,11 +576,11 @@ export function UserTagsForm() {
 
                           {/* Radarr removal results */}
                           <div className="mt-2">
-                            <h5 className="text-xs font-medium text-text">
+                            <h5 className="text-xs font-medium text-foreground">
                               Radarr
                             </h5>
                             <ul className="mt-1 space-y-1">
-                              <li className="text-xs text-text">
+                              <li className="text-xs text-foreground">
                                 Items Updated:{' '}
                                 {lastRemoveResults.radarr.itemsUpdated}, Tags
                                 Removed: {lastRemoveResults.radarr.tagsRemoved},
@@ -598,7 +598,7 @@ export function UserTagsForm() {
 
                 {error && (
                   <div className="p-4 border border-red-500 bg-red-50 dark:bg-red-900/20 rounded-md flex items-start gap-3">
-                    <AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+                    <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
                     <div>
                       <h4 className="text-sm font-medium text-red-800 dark:text-red-300">
                         Error
@@ -618,7 +618,7 @@ export function UserTagsForm() {
                     className="space-y-4"
                   >
                     <div>
-                      <h3 className="font-medium text-sm text-text mb-2">
+                      <h3 className="font-medium text-sm text-foreground mb-2">
                         Tag Configuration
                       </h3>
                       <div className="space-y-4">
@@ -634,13 +634,13 @@ export function UserTagsForm() {
                                 />
                               </FormControl>
                               <div className="flex items-center">
-                                <FormLabel className="text-text m-0">
+                                <FormLabel className="text-foreground m-0">
                                   Tag Users in Sonarr
                                 </FormLabel>
                                 <TooltipProvider>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help" />
+                                      <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
                                     </TooltipTrigger>
                                     <TooltipContent>
                                       <p className="max-w-xs">
@@ -669,13 +669,13 @@ export function UserTagsForm() {
                                 />
                               </FormControl>
                               <div className="flex items-center">
-                                <FormLabel className="text-text m-0">
+                                <FormLabel className="text-foreground m-0">
                                   Tag Users in Radarr
                                 </FormLabel>
                                 <TooltipProvider>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help" />
+                                      <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
                                     </TooltipTrigger>
                                     <TooltipContent>
                                       <p className="max-w-xs">
@@ -704,13 +704,13 @@ export function UserTagsForm() {
                                 />
                               </FormControl>
                               <div className="flex items-center">
-                                <FormLabel className="text-text m-0">
+                                <FormLabel className="text-foreground m-0">
                                   Clean Up Orphaned Tags
                                 </FormLabel>
                                 <TooltipProvider>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help" />
+                                      <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
                                     </TooltipTrigger>
                                     <TooltipContent>
                                       <p className="max-w-xs">
@@ -733,13 +733,13 @@ export function UserTagsForm() {
                           render={({ field }) => (
                             <FormItem className="space-y-1">
                               <div className="flex items-center">
-                                <FormLabel className="text-text">
+                                <FormLabel className="text-foreground">
                                   Tag Behavior on Removal
                                 </FormLabel>
                                 <TooltipProvider>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help" />
+                                      <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
                                     </TooltipTrigger>
                                     <TooltipContent>
                                       <div className="max-w-xs space-y-2">
@@ -793,13 +793,13 @@ export function UserTagsForm() {
                             render={({ field }) => (
                               <FormItem>
                                 <div className="flex items-center">
-                                  <FormLabel className="text-text">
+                                  <FormLabel className="text-foreground">
                                     Removed Tag Label
                                   </FormLabel>
                                   <TooltipProvider>
                                     <Tooltip>
                                       <TooltipTrigger asChild>
-                                        <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help" />
+                                        <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
                                       </TooltipTrigger>
                                       <TooltipContent>
                                         <div className="max-w-xs space-y-2">
@@ -808,7 +808,7 @@ export function UserTagsForm() {
                                             previously in a user's watchlist
                                             when using "Special Tag" mode.
                                           </p>
-                                          <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded border border-slate-200 dark:border-slate-700 text-xs text-text mt-2">
+                                          <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded-xs border border-slate-200 dark:border-slate-700 text-xs text-foreground mt-2">
                                             <strong>Note:</strong> Changing this
                                             requires removing existing tags
                                             first, as old removed tags won't be
@@ -841,7 +841,7 @@ export function UserTagsForm() {
                                   )}
                                 <p className="text-xs text-gray-500 mt-1">
                                   Tag format:{' '}
-                                  <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded">
+                                  <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded-xs">
                                     {form.watch('removedTagPrefix') ||
                                       'pulsarr:removed'}
                                   </code>
@@ -857,13 +857,13 @@ export function UserTagsForm() {
                           render={({ field }) => (
                             <FormItem>
                               <div className="flex items-center">
-                                <FormLabel className="text-text">
+                                <FormLabel className="text-foreground">
                                   Tag Prefix
                                 </FormLabel>
                                 <TooltipProvider>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help" />
+                                      <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
                                     </TooltipTrigger>
                                     <TooltipContent>
                                       <div className="max-w-xs space-y-2">
@@ -871,7 +871,7 @@ export function UserTagsForm() {
                                           Defines the prefix used for all user
                                           tags. The final tag format will be:
                                         </p>
-                                        <code className="bg-slate-700 text-white px-1 py-0.5 rounded block text-center">
+                                        <code className="bg-slate-700 text-white px-1 py-0.5 rounded-xs block text-center">
                                           {form.watch('tagPrefix') ||
                                             'pulsarr:user'}
                                           :username
@@ -882,16 +882,16 @@ export function UserTagsForm() {
                                             Examples:
                                           </span>
                                           <br />• With default prefix:{' '}
-                                          <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded">
+                                          <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded-xs">
                                             pulsarr:user:john_doe
                                           </code>
                                           <br />• With "user" prefix:{' '}
-                                          <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded">
+                                          <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded-xs">
                                             user:john_doe
                                           </code>
                                         </p>
 
-                                        <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded border border-slate-200 dark:border-slate-700 text-xs text-text mt-2">
+                                        <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded-xs border border-slate-200 dark:border-slate-700 text-xs text-foreground mt-2">
                                           <strong>Note:</strong> Changing this
                                           requires removing existing tags first,
                                           as old tags won't be recognized with
@@ -921,7 +921,7 @@ export function UserTagsForm() {
                                 )}
                               <p className="text-xs text-gray-500 mt-1">
                                 Final format:{' '}
-                                <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded">
+                                <code className="bg-slate-200 dark:bg-slate-800 px-1 rounded-xs">
                                   {form.watch('tagPrefix') || 'pulsarr:user'}
                                   :username
                                 </code>

@@ -56,7 +56,7 @@ export function ApprovalSystemActions({
     <div>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <h3 className="font-medium text-text">Operational Control</h3>
+          <h3 className="font-medium text-foreground">Operational Control</h3>
           {getStatusBadge()}
         </div>
       </div>
@@ -100,7 +100,7 @@ export function ApprovalSystemActions({
       {!isScheduleEnabled && (
         <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md">
           <div className="flex items-start">
-            <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400 mt-0.5 mr-2 flex-shrink-0" />
+            <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400 mt-0.5 mr-2 shrink-0" />
             <div className="text-sm text-yellow-800 dark:text-yellow-200">
               <p className="font-medium">Schedule Disabled</p>
               <p>

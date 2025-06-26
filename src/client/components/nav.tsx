@@ -32,7 +32,7 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
   if (isMobile) {
     return (
       <nav className={cn('flex flex-col h-full w-full', className)}>
-        <div className="p-4 text-2xl font-bold text-text">Navigation</div>
+        <div className="p-4 text-2xl font-bold text-foreground">Navigation</div>
         {/* Added overflow-y-auto to enable scrolling when content exceeds height */}
         <div className="flex flex-col overflow-y-auto">
           <Link
@@ -40,7 +40,7 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
               'p-4 flex items-center text-lg m-2 rounded-base',
               location.pathname === '/dashboard'
                 ? 'text-black font-bold border-2 border-border bg-main'
-                : 'text-text',
+                : 'text-foreground',
             )}
             to="/dashboard"
             onClick={onNavItemClick}
@@ -52,7 +52,7 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
               'p-4 flex items-center text-lg m-2 rounded-base',
               location.pathname === '/notifications'
                 ? 'text-black font-bold border-2 border-border bg-main'
-                : 'text-text',
+                : 'text-foreground',
             )}
             to="/notifications"
             onClick={onNavItemClick}
@@ -64,7 +64,7 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
               'p-4 flex items-center text-lg m-2 rounded-base',
               location.pathname === '/utilities'
                 ? 'text-black font-bold border-2 border-border bg-main'
-                : 'text-text',
+                : 'text-foreground',
             )}
             to="/utilities"
             onClick={onNavItemClick}
@@ -76,7 +76,7 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
               'p-4 flex items-center text-lg m-2 rounded-base',
               location.pathname === '/plex'
                 ? 'text-black font-bold border-2 border-border bg-main'
-                : 'text-text',
+                : 'text-foreground',
             )}
             to="/plex"
             onClick={onNavItemClick}
@@ -88,7 +88,7 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
               'p-4 flex items-center text-lg m-2 rounded-base',
               location.pathname === '/sonarr'
                 ? 'text-black font-bold border-2 border-border bg-main'
-                : 'text-text',
+                : 'text-foreground',
             )}
             to="/sonarr"
             onClick={onNavItemClick}
@@ -100,7 +100,7 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
               'p-4 flex items-center text-lg m-2 rounded-base',
               location.pathname === '/radarr'
                 ? 'text-black font-bold border-2 border-border bg-main'
-                : 'text-text',
+                : 'text-foreground',
             )}
             to="/radarr"
             onClick={onNavItemClick}
@@ -130,7 +130,7 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
               className={
                 location.pathname === '/dashboard'
                   ? 'bg-black text-white flex h-full items-center justify-center uppercase'
-                  : 'text-black bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border dark:border-r-darkBorder'
+                  : 'text-black bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border'
               }
               to="/dashboard"
             >
@@ -140,7 +140,7 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
               className={
                 location.pathname === '/notifications'
                   ? 'bg-black text-white flex h-full items-center justify-center uppercase'
-                  : 'text-black bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border dark:border-r-darkBorder'
+                  : 'text-black bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border'
               }
               to="/notifications"
             >
@@ -150,7 +150,7 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
               className={
                 location.pathname === '/utilities'
                   ? 'bg-black text-white flex h-full items-center justify-center uppercase'
-                  : 'text-black bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border dark:border-r-darkBorder'
+                  : 'text-black bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border'
               }
               to="/utilities"
             >
@@ -164,7 +164,7 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
               className={
                 location.pathname === '/plex'
                   ? 'bg-black text-white flex h-full items-center justify-center uppercase'
-                  : 'text-black bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border dark:border-r-darkBorder'
+                  : 'text-black bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border'
               }
               to="/plex"
             >
@@ -174,7 +174,7 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
               className={
                 location.pathname === '/sonarr'
                   ? 'bg-black text-white flex h-full items-center justify-center uppercase'
-                  : 'text-black bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border dark:border-r-darkBorder'
+                  : 'text-black bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border'
               }
               to="/sonarr"
             >
@@ -184,7 +184,7 @@ export default function Nav({ isMobile, className, onNavItemClick }: NavProps) {
               className={
                 location.pathname === '/radarr'
                   ? 'bg-black text-white flex h-full items-center justify-center uppercase'
-                  : 'text-black bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border dark:border-r-darkBorder'
+                  : 'text-black bg-main flex h-full items-center justify-center uppercase border-r-4 border-r-border'
               }
               to="/radarr"
             >

@@ -91,13 +91,13 @@ export function ContentDistributionChart() {
     }
     const data = payload[0].payload as { name: string; count: number }
     return (
-      <div className="bg-bg border border-border p-2 rounded shadow-md text-xs">
-        <p className="font-medium text-text">{data.name}</p>
-        <p className="text-text">
+      <div className="bg-background border border-border p-2 rounded-xs shadow-md text-xs">
+        <p className="font-medium text-foreground">{data.name}</p>
+        <p className="text-foreground">
           <span className="font-medium">Count: </span>
           {data.count.toLocaleString()}
         </p>
-        <p className="text-text">
+        <p className="text-foreground">
           <span className="font-medium">Percentage: </span>
           {Math.round((data.count / totalContentItems) * 100)}%
         </p>
@@ -109,8 +109,8 @@ export function ContentDistributionChart() {
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {/* Content Type Distribution Card */}
       <div className="flex flex-col">
-        <Card className="bg-bw relative shadow-md">
-          <div className="bg-main text-text px-4 py-3 text-center">
+        <Card className="bg-secondary-background relative shadow-md">
+          <div className="bg-main text-foreground px-4 py-3 text-center">
             <h4 className="text-base font-medium">Content Types</h4>
           </div>
           <CardContent className="pt-4">
@@ -217,7 +217,9 @@ export function ContentDistributionChart() {
                       className="h-3 w-3 rounded-full inline-block mr-2"
                       style={{ backgroundColor: color }}
                     />
-                    <span className="text-sm text-text">{entry.name}</span>
+                    <span className="text-sm text-foreground">
+                      {entry.name}
+                    </span>
                   </div>
                 )
               })}

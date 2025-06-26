@@ -107,17 +107,19 @@ export default function ApprovalStatsHeader({
             className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-md"
           >
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-medium text-text">{stat.title}</h3>
+              <h3 className="text-sm font-medium text-foreground">
+                {stat.title}
+              </h3>
               <Icon className={`h-4 w-4 ${stat.color}`} />
             </div>
             <div className={`text-2xl font-bold ${stat.color} mb-1`}>
               {stat.value.toLocaleString()}
             </div>
             {percentage !== null && (
-              <p className="text-xs text-text">{percentage}% of total</p>
+              <p className="text-xs text-foreground">{percentage}% of total</p>
             )}
             {stat.title === 'Total' && stats.totalRequests > 0 && (
-              <p className="text-xs text-text">All requests</p>
+              <p className="text-xs text-foreground">All requests</p>
             )}
           </div>
         )

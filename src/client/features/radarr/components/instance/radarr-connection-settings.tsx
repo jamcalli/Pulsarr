@@ -77,8 +77,8 @@ export default function ConnectionSettings({
           control={form.control}
           name="baseUrl"
           render={({ field }) => (
-            <FormItem className="flex-grow">
-              <FormLabel className="text-text">Radarr URL</FormLabel>
+            <FormItem className="grow">
+              <FormLabel className="text-foreground">Radarr URL</FormLabel>
               <FormControl>
                 <Input
                   {...field}
@@ -100,10 +100,10 @@ export default function ConnectionSettings({
           control={form.control}
           name="apiKey"
           render={({ field }) => (
-            <FormItem className="flex-grow">
-              <FormLabel className="text-text">API Key</FormLabel>
+            <FormItem className="grow">
+              <FormLabel className="text-foreground">API Key</FormLabel>
               <div className="flex gap-2">
-                <div className="flex-grow">
+                <div className="grow">
                   <FormControl>
                     <Input
                       {...field}

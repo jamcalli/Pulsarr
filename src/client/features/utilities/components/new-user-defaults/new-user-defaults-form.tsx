@@ -123,7 +123,7 @@ export function NewUserDefaultsForm() {
               <Form {...form}>
                 {/* Actions section */}
                 <div>
-                  <h3 className="font-medium text-text mb-2">Actions</h3>
+                  <h3 className="font-medium text-foreground mb-2">Actions</h3>
                   <div className="flex flex-wrap items-center gap-4">
                     <Button
                       type="button"
@@ -157,10 +157,10 @@ export function NewUserDefaultsForm() {
 
                 {/* Information about new user defaults */}
                 <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-md">
-                  <h3 className="font-medium text-text mb-2">
+                  <h3 className="font-medium text-foreground mb-2">
                     New User Sync Behavior
                   </h3>
-                  <p className="text-sm text-text">
+                  <p className="text-sm text-foreground">
                     {isEnabled ? (
                       <>
                         New Plex users will automatically have their watchlists

@@ -235,7 +235,7 @@ export function ApprovalRadarrRoutingCard({
       />
 
       <div className="space-y-4">
-        <div className="flex justify-between items-center text-text">
+        <div className="flex justify-between items-center text-foreground">
           <div className="inline-flex items-center gap-2 flex-1 min-w-0">
             {isDefaultInstance && (
               <Badge className="text-sm bg-blue">
@@ -260,7 +260,7 @@ export function ApprovalRadarrRoutingCard({
                   name="qualityProfile"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-text">
+                      <FormLabel className="text-foreground">
                         Quality Profile
                       </FormLabel>
                       <QualityProfileSelect
@@ -281,7 +281,9 @@ export function ApprovalRadarrRoutingCard({
                   name="rootFolder"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-text">Root Folder</FormLabel>
+                      <FormLabel className="text-foreground">
+                        Root Folder
+                      </FormLabel>
                       <RootFolderSelect
                         field={field}
                         isConnectionValid={isConnectionValid}
@@ -304,11 +306,13 @@ export function ApprovalRadarrRoutingCard({
                 render={({ field }) => (
                   <FormItem>
                     <div className="flex items-center space-x-2">
-                      <FormLabel className="text-text">Search on Add</FormLabel>
+                      <FormLabel className="text-foreground">
+                        Search on Add
+                      </FormLabel>
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                            <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
                           </TooltipTrigger>
                           <TooltipContent>
                             <p className="max-w-xs">
@@ -329,7 +333,7 @@ export function ApprovalRadarrRoutingCard({
                           disabled={disabled || !isConnectionValid}
                         />
                       </FormControl>
-                      <span className="text-sm text-text text-muted-foreground">
+                      <span className="text-sm text-foreground text-muted-foreground">
                         Automatically search for movies
                       </span>
                     </div>
@@ -344,13 +348,13 @@ export function ApprovalRadarrRoutingCard({
                 render={({ field }) => (
                   <FormItem>
                     <div className="flex items-center space-x-2">
-                      <FormLabel className="text-text">
+                      <FormLabel className="text-foreground">
                         Minimum Availability
                       </FormLabel>
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                            <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
                           </TooltipTrigger>
                           <TooltipContent>
                             <p className="max-w-xs">
@@ -393,13 +397,13 @@ export function ApprovalRadarrRoutingCard({
                 render={({ field }) => (
                   <FormItem>
                     <div className="flex items-center space-x-2">
-                      <FormLabel className="text-text">
+                      <FormLabel className="text-foreground">
                         Monitor New Items
                       </FormLabel>
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                            <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
                           </TooltipTrigger>
                           <TooltipContent>
                             <p className="max-w-xs">
@@ -418,7 +422,7 @@ export function ApprovalRadarrRoutingCard({
                           disabled={disabled || !isConnectionValid}
                         />
                       </FormControl>
-                      <span className="text-sm text-text text-muted-foreground">
+                      <span className="text-sm text-foreground text-muted-foreground">
                         Automatically monitor new items
                       </span>
                     </div>
@@ -435,11 +439,11 @@ export function ApprovalRadarrRoutingCard({
               render={({ field }) => (
                 <FormItem>
                   <div className="flex items-center space-x-2">
-                    <FormLabel className="text-text">Tags</FormLabel>
+                    <FormLabel className="text-foreground">Tags</FormLabel>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                          <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
                         </TooltipTrigger>
                         <TooltipContent>
                           <p className="max-w-xs">
@@ -459,7 +463,7 @@ export function ApprovalRadarrRoutingCard({
                             type="button"
                             variant="noShadow"
                             size="icon"
-                            className="flex-shrink-0"
+                            className="shrink-0"
                             onClick={() => setShowTagCreationDialog(true)}
                             disabled={disabled || !isConnectionValid}
                           >
@@ -498,13 +502,13 @@ export function ApprovalRadarrRoutingCard({
                 render={({ field }) => (
                   <FormItem>
                     <div className="flex items-center space-x-2">
-                      <FormLabel className="text-text">
+                      <FormLabel className="text-foreground">
                         Synced Instances
                       </FormLabel>
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                            <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
                           </TooltipTrigger>
                           <TooltipContent>
                             <p className="max-w-xs">

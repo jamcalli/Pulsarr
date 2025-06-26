@@ -402,13 +402,13 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
   return (
     <div className="grid gap-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-xl font-semibold text-text">
+        <h3 className="text-xl font-semibold text-foreground">
           Tautulli Notification Service
         </h3>
         <TautulliStatusBadge />
       </div>
 
-      <div className="text-sm text-text p-3 bg-bw rounded-base border-2 border-border">
+      <div className="text-sm text-foreground p-3 bg-secondary-background rounded-base border-2 border-border">
         <p>
           Tautulli integration sends native Plex notifications using your
           existing notification agents. This provides a seamless notification
@@ -437,13 +437,13 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
               <FormItem>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1">
-                    <FormLabel className="text-text">
+                    <FormLabel className="text-foreground">
                       Tautulli Notifications Enabled
                     </FormLabel>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <InfoIcon className="h-4 w-4 text-text cursor-help" />
+                          <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
                         </TooltipTrigger>
                         <TooltipContent className="max-w-xs">
                           Enable Tautulli integration for native Plex
@@ -473,11 +473,13 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
                 render={({ field }) => (
                   <FormItem>
                     <div className="flex items-center gap-1">
-                      <FormLabel className="text-text">Tautulli URL</FormLabel>
+                      <FormLabel className="text-foreground">
+                        Tautulli URL
+                      </FormLabel>
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <InfoIcon className="h-4 w-4 text-text cursor-help" />
+                            <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
                           </TooltipTrigger>
                           <TooltipContent className="max-w-xs">
                             Full URL to your Tautulli instance (including
@@ -513,13 +515,13 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
                 render={({ field }) => (
                   <FormItem>
                     <div className="flex items-center gap-1">
-                      <FormLabel className="text-text">
+                      <FormLabel className="text-foreground">
                         Tautulli API Key
                       </FormLabel>
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <InfoIcon className="h-4 w-4 text-text cursor-help" />
+                            <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
                           </TooltipTrigger>
                           <TooltipContent className="max-w-xs">
                             API key from Tautulli Settings → Web Interface

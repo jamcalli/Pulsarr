@@ -322,9 +322,9 @@ const ConditionGroupComponent = ({
                       onCheckedChange={handleToggleNegate}
                       variant="danger"
                     />
-                    <span className="text-text">NOT</span>
+                    <span className="text-foreground">NOT</span>
                   </Label>
-                  <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                  <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
                 </div>
               </TooltipTrigger>
               <TooltipContent>
@@ -355,7 +355,7 @@ const ConditionGroupComponent = ({
                       <SelectItem value="OR">OR</SelectItem>
                     </SelectContent>
                   </Select>
-                  <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help" />
+                  <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
                 </div>
               </TooltipTrigger>
               <TooltipContent>

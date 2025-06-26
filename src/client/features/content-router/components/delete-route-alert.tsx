@@ -44,7 +44,7 @@ export function DeleteRouteAlert({
     <Credenza open={open} onOpenChange={onOpenChange}>
       <CredenzaContent>
         <CredenzaHeader>
-          <CredenzaTitle className="text-text">
+          <CredenzaTitle className="text-foreground">
             Remove {routeType}?
           </CredenzaTitle>
           <CredenzaDescription>
