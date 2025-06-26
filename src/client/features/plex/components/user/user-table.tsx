@@ -47,6 +47,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import type { UserWithQuotaInfo } from '@/stores/configStore'
 import type { PlexUserTableRow } from '@/features/plex/store/types'
 import { UserWatchlistSheet } from '@/features/plex/components/user/user-watchlist-sheet'
@@ -364,14 +370,22 @@ export default function UserTable({
         return (
           <div className="w-8">
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="noShadow" className="h-8 w-8 p-0">
-                  <span className="sr-only">Open menu</span>
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="noShadow" className="h-8 w-8 p-0">
+                        <span className="sr-only">Open menu</span>
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <p className="text-xs">More actions</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Actions</DropdownMenuLabel>
                 <DropdownMenuItem onClick={() => onEditUser(user)}>
                   Edit user
                 </DropdownMenuItem>

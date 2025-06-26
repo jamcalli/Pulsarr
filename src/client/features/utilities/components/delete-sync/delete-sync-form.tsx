@@ -444,7 +444,7 @@ export function DeleteSyncForm() {
                                                   'user-tags',
                                                 )
                                               }}
-                                              className="underline font-medium hover:text-yellow-900 dark:hover:text-yellow-300"
+                                              className="underline font-medium hover:text-yellow-900 dark:hover:text-yellow-300 cursor-pointer"
                                             >
                                               Configure User Tags
                                             </button>

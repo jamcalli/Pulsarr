@@ -43,7 +43,7 @@ export function NotificationsSection({
                   setOpenUtilitiesAccordion('public-content-notifications')
                 }, 100)
               }}
-              className="underline font-medium"
+              className="underline font-medium hover:opacity-80 cursor-pointer"
             >
               Public Content Notifications
             </button>{' '}
