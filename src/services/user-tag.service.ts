@@ -620,7 +620,7 @@ export class UserTagService {
                     individualError,
                   )
                   instanceResults.failed++
-                  instanceResults.tagged--
+                  // Don't decrement tagged - it was never successfully updated
                 }
               }
             }
@@ -932,7 +932,7 @@ export class UserTagService {
                     individualError,
                   )
                   instanceResults.failed++
-                  instanceResults.tagged--
+                  // Don't decrement tagged - it was never successfully updated
                 }
               }
             }
@@ -1459,7 +1459,7 @@ export class UserTagService {
                     individualError,
                   )
                   results.failed++
-                  results.itemsUpdated-- // Decrement since this update failed
+                  // Don't decrement itemsUpdated - it was never successfully updated
                 }
               }
             }
@@ -1740,7 +1740,7 @@ export class UserTagService {
                     individualError,
                   )
                   results.failed++
-                  results.itemsUpdated-- // Decrement since this update failed
+                  // Don't decrement itemsUpdated - it was never successfully updated
                 }
               }
             }
@@ -2101,7 +2101,7 @@ export class UserTagService {
                   individualError,
                 )
                 results.failed++
-                results.removed--
+                // Don't decrement removed - it was never successfully updated
               }
             }
           }
@@ -2251,7 +2251,7 @@ export class UserTagService {
                   individualError,
                 )
                 results.failed++
-                results.removed--
+                // Don't decrement removed - it was never successfully updated
               }
             }
           }
