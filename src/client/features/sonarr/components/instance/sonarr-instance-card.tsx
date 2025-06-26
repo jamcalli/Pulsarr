@@ -313,7 +313,7 @@ export function InstanceCard({
             )}
           />
         )}
-        <Card ref={cardRef} className="bg-bg relative">
+        <Card ref={cardRef} className="bg-background relative">
           <EditableCardHeader
             title={form.watch('name')}
             isNew={instance.id === -1}
@@ -351,7 +351,7 @@ export function InstanceCard({
                       name="qualityProfile"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-text">
+                          <FormLabel className="text-foreground">
                             Quality Profile
                           </FormLabel>
                           <QualityProfileSelect
@@ -371,7 +371,7 @@ export function InstanceCard({
                       name="rootFolder"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-text">
+                          <FormLabel className="text-foreground">
                             Root Folder
                           </FormLabel>
                           <RootFolderSelect
@@ -395,13 +395,13 @@ export function InstanceCard({
                     render={({ field }) => (
                       <FormItem>
                         <div className="flex items-center space-x-2">
-                          <FormLabel className="text-text">
+                          <FormLabel className="text-foreground">
                             Monitor New Items
                           </FormLabel>
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                                <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p className="max-w-xs">
@@ -424,7 +424,7 @@ export function InstanceCard({
                               disabled={!isConnectionValid}
                             />
                           </FormControl>
-                          <span className="text-sm text-text text-muted-foreground">
+                          <span className="text-sm text-foreground text-muted-foreground">
                             Automatically monitor new items
                           </span>
                         </div>
@@ -438,13 +438,13 @@ export function InstanceCard({
                     render={({ field }) => (
                       <FormItem>
                         <div className="flex items-center space-x-2">
-                          <FormLabel className="text-text">
+                          <FormLabel className="text-foreground">
                             Search on Add
                           </FormLabel>
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                                <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p className="max-w-xs">
@@ -465,7 +465,7 @@ export function InstanceCard({
                               disabled={!isConnectionValid}
                             />
                           </FormControl>
-                          <span className="text-sm text-text text-muted-foreground">
+                          <span className="text-sm text-foreground text-muted-foreground">
                             Automatically search for series when added
                           </span>
                         </div>
@@ -478,13 +478,13 @@ export function InstanceCard({
                     render={({ field }) => (
                       <FormItem>
                         <div className="flex items-center space-x-2">
-                          <FormLabel className="text-text">
+                          <FormLabel className="text-foreground">
                             Bypass Ignored
                           </FormLabel>
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                                <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p className="max-w-xs">
@@ -505,7 +505,7 @@ export function InstanceCard({
                               disabled={!isConnectionValid}
                             />
                           </FormControl>
-                          <span className="text-sm text-text text-muted-foreground">
+                          <span className="text-sm text-foreground text-muted-foreground">
                             Bypass ignore exclusions
                           </span>
                         </div>
@@ -518,13 +518,13 @@ export function InstanceCard({
                     render={({ field }) => (
                       <FormItem>
                         <div className="flex items-center space-x-2">
-                          <FormLabel className="text-text">
+                          <FormLabel className="text-foreground">
                             Create Season Folders
                           </FormLabel>
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                                <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p className="max-w-xs">
@@ -545,7 +545,7 @@ export function InstanceCard({
                               disabled={!isConnectionValid}
                             />
                           </FormControl>
-                          <span className="text-sm text-text text-muted-foreground">
+                          <span className="text-sm text-foreground text-muted-foreground">
                             Organize episodes in season folders
                           </span>
                         </div>
@@ -558,13 +558,13 @@ export function InstanceCard({
                     render={({ field }) => (
                       <FormItem>
                         <div className="flex items-center space-x-2">
-                          <FormLabel className="text-text">
+                          <FormLabel className="text-foreground">
                             Instance Tags
                           </FormLabel>
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                                <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p className="max-w-xs">
@@ -585,7 +585,7 @@ export function InstanceCard({
                                   type="button"
                                   variant="noShadow"
                                   size="icon"
-                                  className="flex-shrink-0"
+                                  className="shrink-0"
                                   onClick={() => setShowTagCreationDialog(true)}
                                   disabled={!isConnectionValid}
                                 >
@@ -619,13 +619,13 @@ export function InstanceCard({
                     render={({ field }) => (
                       <FormItem>
                         <div className="flex items-center space-x-2">
-                          <FormLabel className="text-text">
+                          <FormLabel className="text-foreground">
                             Season Monitoring
                           </FormLabel>
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                                <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p className="max-w-xs">
@@ -692,13 +692,13 @@ export function InstanceCard({
                     render={({ field }) => (
                       <FormItem>
                         <div className="flex items-center space-x-2">
-                          <FormLabel className="text-text">
+                          <FormLabel className="text-foreground">
                             Series Type
                           </FormLabel>
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                                <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p className="max-w-xs">
@@ -738,13 +738,13 @@ export function InstanceCard({
                     render={({ field }) => (
                       <FormItem>
                         <div className="flex items-center space-x-2">
-                          <FormLabel className="text-text">
+                          <FormLabel className="text-foreground">
                             Sync With Instances
                           </FormLabel>
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                                <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p className="max-w-xs">
@@ -776,7 +776,7 @@ export function InstanceCard({
                                       type="button"
                                       variant="noShadow"
                                       size="icon"
-                                      className="flex-shrink-0"
+                                      className="shrink-0"
                                       onClick={() => {
                                         setIsManualSync(true)
                                         setShowSyncModal(true)
@@ -802,13 +802,13 @@ export function InstanceCard({
                     render={({ field }) => (
                       <FormItem>
                         <div className="flex items-center space-x-2">
-                          <FormLabel className="text-text">
+                          <FormLabel className="text-foreground">
                             Default Instance
                           </FormLabel>
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                                <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p className="max-w-xs">
@@ -828,7 +828,7 @@ export function InstanceCard({
                               disabled={!isConnectionValid}
                             />
                           </FormControl>
-                          <span className="text-sm text-text text-muted-foreground">
+                          <span className="text-sm text-foreground text-muted-foreground">
                             Set as default instance
                           </span>
                         </div>

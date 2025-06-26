@@ -59,7 +59,9 @@ const FormContent = React.memo(
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-text">Plex User Name</FormLabel>
+                  <FormLabel className="text-foreground">
+                    Plex User Name
+                  </FormLabel>
                   <FormControl>
                     <Input
                       placeholder="Plex user name"
@@ -79,7 +81,7 @@ const FormContent = React.memo(
               name="apprise"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-text">Apprise</FormLabel>
+                  <FormLabel className="text-foreground">Apprise</FormLabel>
                   <FormControl>
                     <Input
                       placeholder="Apprise endpoint"
@@ -98,7 +100,7 @@ const FormContent = React.memo(
               name="alias"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-text">Alias</FormLabel>
+                  <FormLabel className="text-foreground">Alias</FormLabel>
                   <FormControl>
                     <Input
                       placeholder="User alias (optional)"
@@ -118,7 +120,7 @@ const FormContent = React.memo(
               name="discord_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-text">Discord ID</FormLabel>
+                  <FormLabel className="text-foreground">Discord ID</FormLabel>
                   <FormControl>
                     <Input
                       placeholder="Discord ID (optional)"
@@ -148,7 +150,7 @@ const FormContent = React.memo(
                 return (
                   <FormItem>
                     <div className="flex items-center justify-between">
-                      <FormLabel className="text-text">
+                      <FormLabel className="text-foreground">
                         Apprise Notifications
                       </FormLabel>
                       <FormControl>
@@ -181,7 +183,7 @@ const FormContent = React.memo(
                 return (
                   <FormItem>
                     <div className="flex items-center justify-between">
-                      <FormLabel className="text-text">
+                      <FormLabel className="text-foreground">
                         Discord Notifications
                       </FormLabel>
                       <FormControl>
@@ -206,7 +208,7 @@ const FormContent = React.memo(
               render={({ field }) => (
                 <FormItem>
                   <div className="flex items-center justify-between">
-                    <FormLabel className="text-text">
+                    <FormLabel className="text-foreground">
                       Tautulli Notifications
                     </FormLabel>
                     <FormControl>
@@ -228,7 +230,7 @@ const FormContent = React.memo(
               render={({ field }) => (
                 <FormItem>
                   <div className="flex items-center justify-between">
-                    <FormLabel className="text-text">
+                    <FormLabel className="text-foreground">
                       Can Sync Watchlist
                     </FormLabel>
                     <FormControl>
@@ -250,7 +252,7 @@ const FormContent = React.memo(
               render={({ field }) => (
                 <FormItem>
                   <div className="flex items-center justify-between">
-                    <FormLabel className="text-text">
+                    <FormLabel className="text-foreground">
                       Requires Approval
                     </FormLabel>
                     <FormControl>
@@ -397,7 +399,9 @@ export default function UserEditModal({
           className="overflow-y-auto"
         >
           <SheetHeader>
-            <SheetTitle className="text-text">Edit User Information</SheetTitle>
+            <SheetTitle className="text-foreground">
+              Edit User Information
+            </SheetTitle>
             <SheetDescription>
               Update user details and notification preferences
             </SheetDescription>
@@ -433,7 +437,9 @@ export default function UserEditModal({
         }}
       >
         <DialogHeader>
-          <DialogTitle className="text-text">Edit User Information</DialogTitle>
+          <DialogTitle className="text-foreground">
+            Edit User Information
+          </DialogTitle>
           <DialogDescription>
             Update user details and notification preferences
           </DialogDescription>

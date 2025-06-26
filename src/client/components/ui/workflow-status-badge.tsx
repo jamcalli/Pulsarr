@@ -197,7 +197,7 @@ export function WatchlistStatusBadge() {
                   />
                   <Label
                     htmlFor="auto-start"
-                    className="text-xs text-text cursor-pointer flex items-center gap-1"
+                    className="text-xs text-foreground cursor-pointer flex items-center gap-1"
                   >
                     <BookmarkCheck className="h-3.5 w-3.5" />
                     Auto-Start

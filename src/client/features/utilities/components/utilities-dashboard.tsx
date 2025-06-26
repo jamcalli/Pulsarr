@@ -66,7 +66,7 @@ export function UtilitiesDashboard() {
 
   return (
     <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
-      <h2 className="mb-6 text-2xl font-bold text-text">Utilities</h2>
+      <h2 className="mb-6 text-2xl font-bold text-foreground">Utilities</h2>
 
       <div className="space-y-6">
         {isLoading || loading.schedules ? (

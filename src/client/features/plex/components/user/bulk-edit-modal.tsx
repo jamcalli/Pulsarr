@@ -77,7 +77,9 @@ const FormContent = ({
 
           {/* Clear fields section */}
           <div className="space-y-4 pt-4">
-            <h3 className="text-lg font-medium text-text">Clear fields</h3>
+            <h3 className="text-lg font-medium text-foreground">
+              Clear fields
+            </h3>
 
             {/* Clear Alias */}
             <div className="space-y-2">
@@ -94,7 +96,9 @@ const FormContent = ({
                       />
                     </FormControl>
                     <div className="space-y-1 leading-none">
-                      <FormLabel className="text-text">Clear alias</FormLabel>
+                      <FormLabel className="text-foreground">
+                        Clear alias
+                      </FormLabel>
                       <FormDescription>
                         Remove all aliases from selected users
                       </FormDescription>
@@ -119,7 +123,7 @@ const FormContent = ({
                       />
                     </FormControl>
                     <div className="space-y-1 leading-none">
-                      <FormLabel className="text-text">
+                      <FormLabel className="text-foreground">
                         Clear Discord IDs
                       </FormLabel>
                       <FormDescription>
@@ -146,7 +150,7 @@ const FormContent = ({
                       />
                     </FormControl>
                     <div className="space-y-1 leading-none">
-                      <FormLabel className="text-text">
+                      <FormLabel className="text-foreground">
                         Clear Apprise endpoints
                       </FormLabel>
                       <FormDescription>
@@ -161,7 +165,9 @@ const FormContent = ({
 
           {/* Set permissions section */}
           <div className="space-y-4 pt-4">
-            <h3 className="text-lg font-medium text-text">Set permissions</h3>
+            <h3 className="text-lg font-medium text-foreground">
+              Set permissions
+            </h3>
 
             {/* Apprise Notifications */}
             <div className="space-y-2">
@@ -184,7 +190,7 @@ const FormContent = ({
                       />
                     </FormControl>
                     <div className="space-y-1 leading-none">
-                      <FormLabel className="text-text">
+                      <FormLabel className="text-foreground">
                         Set Apprise notifications
                       </FormLabel>
                     </div>
@@ -208,7 +214,7 @@ const FormContent = ({
                         />
                       </FormControl>
                       <div className="leading-none">
-                        <FormLabel className="text-text">
+                        <FormLabel className="text-foreground">
                           Enable Apprise notifications
                           {form.getValues('clearApprise') && (
                             <span className="text-error text-xs ml-2">
@@ -244,7 +250,7 @@ const FormContent = ({
                       />
                     </FormControl>
                     <div className="space-y-1 leading-none">
-                      <FormLabel className="text-text">
+                      <FormLabel className="text-foreground">
                         Set Discord notifications
                       </FormLabel>
                     </div>
@@ -268,7 +274,7 @@ const FormContent = ({
                         />
                       </FormControl>
                       <div className="leading-none">
-                        <FormLabel className="text-text">
+                        <FormLabel className="text-foreground">
                           Enable Discord notifications
                           {form.getValues('clearDiscordId') && (
                             <span className="text-error text-xs ml-2">
@@ -298,7 +304,7 @@ const FormContent = ({
                       />
                     </FormControl>
                     <div className="space-y-1 leading-none">
-                      <FormLabel className="text-text">
+                      <FormLabel className="text-foreground">
                         Set Tautulli notifications
                       </FormLabel>
                     </div>
@@ -319,7 +325,7 @@ const FormContent = ({
                         />
                       </FormControl>
                       <div className="leading-none">
-                        <FormLabel className="text-text">
+                        <FormLabel className="text-foreground">
                           Enable Tautulli notifications
                         </FormLabel>
                       </div>
@@ -344,7 +350,7 @@ const FormContent = ({
                       />
                     </FormControl>
                     <div className="space-y-1 leading-none">
-                      <FormLabel className="text-text">
+                      <FormLabel className="text-foreground">
                         Set watchlist sync permission
                       </FormLabel>
                     </div>
@@ -365,7 +371,7 @@ const FormContent = ({
                         />
                       </FormControl>
                       <div className="leading-none">
-                        <FormLabel className="text-text">
+                        <FormLabel className="text-foreground">
                           Allow watchlist syncing
                         </FormLabel>
                       </div>
@@ -390,7 +396,7 @@ const FormContent = ({
                       />
                     </FormControl>
                     <div className="space-y-1 leading-none">
-                      <FormLabel className="text-text">
+                      <FormLabel className="text-foreground">
                         Set approval requirement
                       </FormLabel>
                     </div>
@@ -411,7 +417,7 @@ const FormContent = ({
                         />
                       </FormControl>
                       <div className="leading-none">
-                        <FormLabel className="text-text">
+                        <FormLabel className="text-foreground">
                           Require approval for all content
                         </FormLabel>
                       </div>
@@ -625,7 +631,7 @@ export default function BulkEditModal({
           className="overflow-y-auto"
         >
           <SheetHeader>
-            <SheetTitle className="text-text">Bulk Edit Users</SheetTitle>
+            <SheetTitle className="text-foreground">Bulk Edit Users</SheetTitle>
             <SheetDescription>
               Apply changes to {selectedRows.length} selected users
             </SheetDescription>
@@ -661,7 +667,7 @@ export default function BulkEditModal({
         }}
       >
         <DialogHeader>
-          <DialogTitle className="text-text">Bulk Edit Users</DialogTitle>
+          <DialogTitle className="text-foreground">Bulk Edit Users</DialogTitle>
           <DialogDescription>
             Apply changes to {selectedRows.length} selected users
           </DialogDescription>

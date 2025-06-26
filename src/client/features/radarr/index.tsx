@@ -62,7 +62,7 @@ export default function RadarrConfigPage() {
 
   return (
     <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
-      <h1 className="text-3xl font-bold text-text mb-6">
+      <h1 className="text-3xl font-bold text-foreground mb-6">
         Radarr Configuration
       </h1>
 
@@ -79,19 +79,19 @@ export default function RadarrConfigPage() {
           {isPlaceholderInstance && !showInstanceCard ? (
             <div className="grid gap-6">
               <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-text">
+                <h2 className="text-2xl font-bold text-foreground">
                   Radarr Instances
                 </h2>
                 <Button onClick={addInstance}>Add Your First Instance</Button>
               </div>
-              <div className="text-center py-8 text-text">
+              <div className="text-center py-8 text-foreground">
                 <p>No Radarr instances configured</p>
               </div>
             </div>
           ) : (
             <div className="grid gap-6">
               <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-text">
+                <h2 className="text-2xl font-bold text-foreground">
                   Radarr Instances
                 </h2>
                 <Button onClick={addInstance}>Add Instance</Button>

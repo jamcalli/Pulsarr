@@ -212,7 +212,7 @@ export const MultiSelect = React.forwardRef<
             onClick={handleTogglePopover}
             className={cn(
               'flex w-full p-1 rounded-md h-10 items-center justify-between [&_svg]:pointer-events-auto overflow-hidden',
-              props.disabled && '!cursor-not-allowed pointer-events-none opacity-50',
+              props.disabled && 'cursor-not-allowed! pointer-events-none opacity-50',
               className,
             )}
           >
@@ -313,7 +313,7 @@ export const MultiSelect = React.forwardRef<
           </Button>
         </PopoverTrigger>
         <PopoverContent
-          className="w-[--radix-popper-anchor-width] p-0 overflow-hidden rounded-md border-border shadow-md bg-popover"
+          className="w-(--radix-popper-anchor-width) p-0 overflow-hidden rounded-md border-border shadow-md bg-popover"
           align="start"
           onEscapeKeyDown={() => setIsPopoverOpen(false)}
         >
@@ -333,7 +333,7 @@ export const MultiSelect = React.forwardRef<
                 >
                   <div
                     className={cn(
-                      'mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary',
+                      'mr-2 flex h-4 w-4 items-center justify-center rounded-xs border border-primary',
                       selectedValues.length === flatOptions.length
                         ? 'bg-primary text-primary-foreground'
                         : 'opacity-50 [&_svg]:invisible',
@@ -365,7 +365,7 @@ export const MultiSelect = React.forwardRef<
                           >
                             <div
                               className={cn(
-                                'mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary',
+                                'mr-2 flex h-4 w-4 items-center justify-center rounded-xs border border-primary',
                                 isSelected
                                   ? 'bg-primary text-primary-foreground'
                                   : 'opacity-50 [&_svg]:invisible',
@@ -394,7 +394,7 @@ export const MultiSelect = React.forwardRef<
                       >
                         <div
                           className={cn(
-                            'mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary',
+                            'mr-2 flex h-4 w-4 items-center justify-center rounded-xs border border-primary',
                             isSelected
                               ? 'bg-primary text-primary-foreground'
                               : 'opacity-50 [&_svg]:invisible',

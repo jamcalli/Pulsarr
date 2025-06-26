@@ -61,19 +61,21 @@ export function ApprovalSystemSchedule({
 
   return (
     <div>
-      <h3 className="font-medium text-text mb-4">Schedule Configuration</h3>
+      <h3 className="font-medium text-foreground mb-4">
+        Schedule Configuration
+      </h3>
 
       <div className="space-y-4">
         {/* Interval Selection */}
         <div>
           <div className="flex items-center mb-2">
-            <Label className="text-text m-0 text-sm">
+            <Label className="text-foreground m-0 text-sm">
               Maintenance Frequency
             </Label>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                  <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                 </TooltipTrigger>
                 <TooltipContent>
                   <p className="max-w-xs">
@@ -132,7 +134,7 @@ export function ApprovalSystemSchedule({
         {/* Current Schedule Display */}
         {job && job.type === 'cron' && job.config?.expression && (
           <div className="p-3 bg-muted/50 rounded-md">
-            <div className="text-xs text-text">
+            <div className="text-xs text-foreground">
               <p>
                 <strong>Current schedule:</strong>{' '}
                 {interval

@@ -167,13 +167,13 @@ export function GeneralSettingsForm({
             render={({ field }) => (
               <FormItem>
                 <div className="flex items-center gap-1">
-                  <FormLabel className="text-text">
+                  <FormLabel className="text-foreground">
                     Queue Wait Time (minutes)
                   </FormLabel>
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <InfoIcon className="h-4 w-4 text-text cursor-help" />
+                        <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs">
                         Time to wait before processing queued notifications.
@@ -203,13 +203,13 @@ export function GeneralSettingsForm({
             render={({ field }) => (
               <FormItem>
                 <div className="flex items-center gap-1">
-                  <FormLabel className="text-text">
+                  <FormLabel className="text-foreground">
                     New Episode Threshold (hours)
                   </FormLabel>
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <InfoIcon className="h-4 w-4 text-text cursor-help" />
+                        <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs">
                         Threshold for immediate notifications. Recent episodes
@@ -239,13 +239,13 @@ export function GeneralSettingsForm({
             render={({ field }) => (
               <FormItem>
                 <div className="flex items-center gap-1">
-                  <FormLabel className="text-text">
+                  <FormLabel className="text-foreground">
                     Upgrade Buffer Time (seconds)
                   </FormLabel>
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <InfoIcon className="h-4 w-4 text-text cursor-help" />
+                        <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs">
                         Buffer time between quality upgrades to prevent

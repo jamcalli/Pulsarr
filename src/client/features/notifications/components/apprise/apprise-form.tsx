@@ -163,13 +163,13 @@ export function AppriseForm({ isInitialized }: AppriseFormProps) {
   return (
     <div className="grid gap-4">
       <div className="flex items-center">
-        <h3 className="text-xl font-semibold text-text">
+        <h3 className="text-xl font-semibold text-foreground">
           Apprise Notification Service
         </h3>
         <AppriseStatusBadge />
       </div>
 
-      <div className="text-sm text-text p-3 bg-bw rounded-base border-2 border-border">
+      <div className="text-sm text-foreground p-3 bg-secondary-background rounded-base border-2 border-border">
         <p>
           Apprise is a notification service that can send alerts to multiple
           platforms. The service status is determined at server startup and
@@ -188,13 +188,13 @@ export function AppriseForm({ isInitialized }: AppriseFormProps) {
 
       <div className="mt-2">
         <div className="flex items-center gap-1">
-          <div className="text-sm font-semibold text-text">
+          <div className="text-sm font-semibold text-foreground">
             Apprise Server URL
           </div>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <InfoIcon className="h-4 w-4 text-text cursor-help" />
+                <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
               </TooltipTrigger>
               <TooltipContent className="max-w-xs">
                 Set via environment variables or .env file. Cannot be changed
@@ -207,7 +207,7 @@ export function AppriseForm({ isInitialized }: AppriseFormProps) {
           <Input
             value={config?.appriseUrl || ''}
             disabled={true}
-            className="bg-bw opacity-80 text-text"
+            className="bg-secondary-background opacity-80 text-foreground"
           />
         </div>
       </div>
@@ -223,13 +223,13 @@ export function AppriseForm({ isInitialized }: AppriseFormProps) {
             render={({ field }) => (
               <FormItem>
                 <div className="flex items-center gap-1">
-                  <FormLabel className="text-text">
+                  <FormLabel className="text-foreground">
                     System Apprise URL
                   </FormLabel>
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <InfoIcon className="h-4 w-4 text-text cursor-help" />
+                        <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs">
                         URLs for system-wide notifications. Use the + button to

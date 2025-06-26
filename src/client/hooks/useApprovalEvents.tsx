@@ -52,7 +52,7 @@ export function useApprovalEvents(options: UseApprovalEventsOptions = {}) {
               title: 'New Approval Request',
               description: (
                 <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 flex-shrink-0" />
+                  <FileText className="h-4 w-4 shrink-0" />
                   <span>{metadata.userName} requested {metadata.contentTitle} ({metadata.contentType})</span>
                 </div>
               ),
@@ -64,7 +64,7 @@ export function useApprovalEvents(options: UseApprovalEventsOptions = {}) {
               title: 'Request Approved',
               description: (
                 <div className="flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 flex-shrink-0" />
+                  <CheckCircle className="h-4 w-4 shrink-0" />
                   <span>{metadata.contentTitle} has been approved for {metadata.userName}</span>
                 </div>
               ),
@@ -76,7 +76,7 @@ export function useApprovalEvents(options: UseApprovalEventsOptions = {}) {
               title: 'Request Rejected',
               description: (
                 <div className="flex items-center gap-2">
-                  <XCircle className="h-4 w-4 flex-shrink-0" />
+                  <XCircle className="h-4 w-4 shrink-0" />
                   <span>{metadata.userName}'s request for {metadata.contentTitle} was rejected</span>
                 </div>
               ),
@@ -88,7 +88,7 @@ export function useApprovalEvents(options: UseApprovalEventsOptions = {}) {
               title: 'Request Deleted',
               description: (
                 <div className="flex items-center gap-2">
-                  <Trash2 className="h-4 w-4 flex-shrink-0" />
+                  <Trash2 className="h-4 w-4 shrink-0" />
                   <span>Request for {metadata.contentTitle} by {metadata.userName} was deleted</span>
                 </div>
               ),
@@ -105,7 +105,7 @@ export function useApprovalEvents(options: UseApprovalEventsOptions = {}) {
               title: 'New Approval Requests',
               description: (
                 <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 flex-shrink-0" />
+                  <FileText className="h-4 w-4 shrink-0" />
                   <span>{count} new approval requests have been received</span>
                 </div>
               ),
@@ -117,7 +117,7 @@ export function useApprovalEvents(options: UseApprovalEventsOptions = {}) {
               title: 'Requests Approved',
               description: (
                 <div className="flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 flex-shrink-0" />
+                  <CheckCircle className="h-4 w-4 shrink-0" />
                   <span>{count} approval requests have been approved</span>
                 </div>
               ),
@@ -129,7 +129,7 @@ export function useApprovalEvents(options: UseApprovalEventsOptions = {}) {
               title: 'Requests Rejected',
               description: (
                 <div className="flex items-center gap-2">
-                  <XCircle className="h-4 w-4 flex-shrink-0" />
+                  <XCircle className="h-4 w-4 shrink-0" />
                   <span>{count} approval requests have been rejected</span>
                 </div>
               ),
@@ -141,7 +141,7 @@ export function useApprovalEvents(options: UseApprovalEventsOptions = {}) {
               title: 'Requests Deleted',
               description: (
                 <div className="flex items-center gap-2">
-                  <Trash2 className="h-4 w-4 flex-shrink-0" />
+                  <Trash2 className="h-4 w-4 shrink-0" />
                   <span>{count} approval requests have been deleted</span>
                 </div>
               ),

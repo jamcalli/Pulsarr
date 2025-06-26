@@ -37,7 +37,7 @@ export function SessionMonitoringActions({
 
   return (
     <div>
-      <h3 className="font-medium text-text mb-2">Actions</h3>
+      <h3 className="font-medium text-foreground mb-2">Actions</h3>
       <div className="flex flex-wrap items-center gap-4">
         <Button
           type="button"

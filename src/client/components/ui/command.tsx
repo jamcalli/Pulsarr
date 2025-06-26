@@ -16,7 +16,7 @@ const Command = React.forwardRef<
   <CommandPrimitive
     ref={ref}
     className={cn(
-      "flex h-full w-full flex-col overflow-hidden rounded-base border-2 border-border bg-main font-base text-mtext",
+      "flex h-full w-full flex-col overflow-hidden rounded-base border-2 border-border bg-main font-base text-main-foreground",
       className,
     )}
     {...props}
@@ -30,7 +30,7 @@ const CommandDialog = ({ children, ...props }: CommandDialogProps) => {
   return (
     <Dialog {...props}>
       <DialogContent className="overflow-hidden p-0 shadow-lg">
-        <Command className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:text-mtext [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5">
+        <Command className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:text-main-foreground [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5">
           {children}
         </Command>
       </DialogContent>
@@ -50,7 +50,7 @@ const CommandInput = React.forwardRef<
     <CommandPrimitive.Input
       ref={ref}
       className={cn(
-        "flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-mtext placeholder:opacity-50 disabled:cursor-not-allowed disabled:opacity-50",
+        "flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-hidden placeholder:text-main-foreground placeholder:opacity-50 disabled:cursor-not-allowed disabled:opacity-50",
         className,
       )}
       {...props}
@@ -93,7 +93,7 @@ const CommandGroup = React.forwardRef<
   <CommandPrimitive.Group
     ref={ref}
     className={cn(
-      "overflow-hidden rounded-base p-2 text-mtext/80 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-base [&_[cmdk-group-heading]]:font-heading [&_[cmdk-group-heading]]:text-mtext/80",
+      "overflow-hidden rounded-base p-2 text-main-foreground/80 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-base [&_[cmdk-group-heading]]:font-heading [&_[cmdk-group-heading]]:text-main-foreground/80",
       className,
     )}
     {...props}
@@ -122,7 +122,7 @@ const CommandItem = React.forwardRef<
     ref={ref}
     className={clsx(
       cn(
-        "relative flex cursor-default select-none items-center rounded-base px-2 py-1.5 text-sm text-mtext outline-border",
+        "relative flex cursor-default select-none items-center rounded-base px-2 py-1.5 text-sm text-main-foreground outline-border",
         className,
       ),
       "outline-0 outline aria-selected:outline-2",
@@ -139,7 +139,7 @@ const CommandShortcut = ({
 }: React.HTMLAttributes<HTMLSpanElement>) => {
   return (
     <span
-      className={cn("ml-auto text-xs tracking-widest text-mtext", className)}
+      className={cn("ml-auto text-xs tracking-widest text-main-foreground", className)}
       {...props}
     />
   )

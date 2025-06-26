@@ -78,7 +78,7 @@ const FormContent = ({
   return (
     <div className="space-y-4">
       <Alert variant="error" className="break-words">
-        <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+        <AlertTriangle className="h-4 w-4 shrink-0" />
         <AlertTitle>Warning</AlertTitle>
         <AlertDescription className="text-sm">
           You are about to perform bulk actions on {selectedRequests.length}{' '}
@@ -88,7 +88,7 @@ const FormContent = ({
 
       {/* Status breakdown */}
       <div className="space-y-2">
-        <h4 className="text-sm font-medium text-text">
+        <h4 className="text-sm font-medium text-foreground">
           Selected requests breakdown:
         </h4>
         <div className="flex flex-wrap gap-2">
@@ -125,7 +125,7 @@ const FormContent = ({
       {/* Action restrictions */}
       {!canApprove && approvedCount > 0 && (
         <Alert variant="default" className="break-words">
-          <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+          <AlertTriangle className="h-4 w-4 shrink-0" />
           <AlertDescription className="text-sm">
             Cannot approve requests that are already approved.
           </AlertDescription>
@@ -134,7 +134,7 @@ const FormContent = ({
 
       {!canReject && (approvedCount > 0 || rejectedCount > 0) && (
         <Alert variant="default" className="break-words">
-          <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+          <AlertTriangle className="h-4 w-4 shrink-0" />
           <AlertDescription className="text-sm">
             Cannot reject approved requests. Only pending and rejected requests
             can be processed.
@@ -316,7 +316,9 @@ export default function BulkApprovalModal({
           className="overflow-y-auto"
         >
           <SheetHeader>
-            <SheetTitle className="text-text">Bulk Approval Actions</SheetTitle>
+            <SheetTitle className="text-foreground">
+              Bulk Approval Actions
+            </SheetTitle>
             <SheetDescription>
               Perform actions on {selectedRequests.length} selected approval
               requests
@@ -357,7 +359,9 @@ export default function BulkApprovalModal({
         }}
       >
         <DialogHeader>
-          <DialogTitle className="text-text">Bulk Approval Actions</DialogTitle>
+          <DialogTitle className="text-foreground">
+            Bulk Approval Actions
+          </DialogTitle>
           <DialogDescription>
             Perform actions on {selectedRequests.length} selected approval
             requests

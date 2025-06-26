@@ -356,10 +356,10 @@ export function SessionMonitoringForm() {
 
                   {/* Information about rolling monitoring */}
                   <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-md">
-                    <h3 className="font-medium text-text mb-2">
+                    <h3 className="font-medium text-foreground mb-2">
                       Rolling Monitoring Options
                     </h3>
-                    <p className="text-sm text-text">
+                    <p className="text-sm text-foreground">
                       When adding shows to Sonarr, you can now select "Pilot
                       Rolling" or "First Season Rolling" monitoring options.
                       These will start with minimal episodes and automatically

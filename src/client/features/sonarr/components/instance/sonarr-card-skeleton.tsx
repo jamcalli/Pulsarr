@@ -6,7 +6,7 @@ import { Card, CardHeader, CardContent } from '@/components/ui/card'
 export const SonarrPageSkeleton = () => {
   return (
     <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
-      <h1 className="text-3xl font-bold text-text mb-6">
+      <h1 className="text-3xl font-bold text-foreground mb-6">
         Sonarr Configuration
       </h1>
 
@@ -17,7 +17,9 @@ export const SonarrPageSkeleton = () => {
         <div className="mt-2">
           <div className="grid gap-6">
             <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-text">Sonarr Instances</h2>
+              <h2 className="text-2xl font-bold text-foreground">
+                Sonarr Instances
+              </h2>
               <Skeleton className="h-9 w-32" />
             </div>
             <InstanceCardSkeleton />
@@ -32,7 +34,7 @@ const InstanceCardSkeleton = () => {
   const isMobile = useMediaQuery('(max-width: 768px)')
 
   return (
-    <Card className="bg-bg">
+    <Card className="bg-background">
       <CardHeader
         className={`flex items-center justify-between space-y-0 pb-7 ${
           isMobile ? 'flex-col items-start gap-4' : 'flex-row'

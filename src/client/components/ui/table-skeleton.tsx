@@ -119,7 +119,7 @@ export function TableSkeleton({
                   className={`${getSkeletonHeight(column.type)} ${getSkeletonWidth(
                     column.type,
                     column.width,
-                  )} ${column.type === 'checkbox' ? 'rounded' : ''}`}
+                  )} ${column.type === 'checkbox' ? 'rounded-xs' : ''}`}
                 />
               </TableCell>
             ))}

@@ -164,7 +164,9 @@ export function DeleteSyncForm() {
                 <div className="space-y-6">
                   {/* Actions section */}
                   <div>
-                    <h3 className="font-medium text-text mb-2">Actions</h3>
+                    <h3 className="font-medium text-foreground mb-2">
+                      Actions
+                    </h3>
                     <div className="flex flex-wrap items-center gap-4">
                       <Button
                         type="button"
@@ -226,18 +228,18 @@ export function DeleteSyncForm() {
                   <div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="flex flex-col items-center text-center">
-                        <h3 className="font-medium text-sm text-text mb-1">
+                        <h3 className="font-medium text-sm text-foreground mb-1">
                           Status
                         </h3>
-                        <p className="font-medium text-text">
+                        <p className="font-medium text-foreground">
                           {deleteSyncJob?.enabled ? 'Enabled' : 'Disabled'}
                         </p>
                       </div>
                       <div className="flex flex-col items-center text-center">
-                        <h3 className="font-medium text-sm text-text mb-1">
+                        <h3 className="font-medium text-sm text-foreground mb-1">
                           Last Run
                         </h3>
-                        <p className="font-medium text-text flex items-center">
+                        <p className="font-medium text-foreground flex items-center">
                           {formatLastRun(deleteSyncJob?.last_run)}
                           {deleteSyncJob?.last_run?.status === 'failed' && (
                             <span className="text-red-500 ml-2 flex items-center">
@@ -248,10 +250,10 @@ export function DeleteSyncForm() {
                         </p>
                       </div>
                       <div className="flex flex-col items-center text-center">
-                        <h3 className="font-medium text-sm text-text mb-1">
+                        <h3 className="font-medium text-sm text-foreground mb-1">
                           Next Scheduled Run
                         </h3>
-                        <p className="font-medium text-text">
+                        <p className="font-medium text-foreground">
                           {formatNextRun(deleteSyncJob?.next_run)}
                         </p>
                       </div>
@@ -263,8 +265,8 @@ export function DeleteSyncForm() {
                   {/* Schedule section */}
                   <div>
                     <div className="flex items-center mb-3">
-                      <Clock className="h-4 w-4 mr-2 text-text" />
-                      <h3 className="font-medium text-sm text-text">
+                      <Clock className="h-4 w-4 mr-2 text-foreground" />
+                      <h3 className="font-medium text-sm text-foreground">
                         Schedule
                       </h3>
                     </div>
@@ -273,7 +275,7 @@ export function DeleteSyncForm() {
                       control={form.control}
                       name="scheduleTime"
                       render={({ field }) => (
-                        <div className="flex-shrink-0">
+                        <div className="shrink-0">
                           <TimeSelector
                             value={field.value}
                             onChange={handleTimeChange}
@@ -291,7 +293,7 @@ export function DeleteSyncForm() {
                     {deleteSyncJob &&
                       deleteSyncJob.type === 'cron' &&
                       deleteSyncJob.config?.expression && (
-                        <div className="mt-2 text-xs text-text">
+                        <div className="mt-2 text-xs text-foreground">
                           <p>
                             Current schedule:{' '}
                             {deleteSyncJob.config.expression === '0 0 * * * *'
@@ -337,7 +339,7 @@ export function DeleteSyncForm() {
                     >
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <h3 className="font-medium text-sm text-text mb-2">
+                          <h3 className="font-medium text-sm text-foreground mb-2">
                             Deletion Mode
                           </h3>
                           <div className="space-y-4">
@@ -347,13 +349,13 @@ export function DeleteSyncForm() {
                               render={({ field }) => (
                                 <FormItem className="space-y-1">
                                   <div className="flex items-center">
-                                    <FormLabel className="text-text m-0">
+                                    <FormLabel className="text-foreground m-0">
                                       Mode
                                     </FormLabel>
                                     <TooltipProvider>
                                       <Tooltip>
                                         <TooltipTrigger asChild>
-                                          <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                                          <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                                         </TooltipTrigger>
                                         <TooltipContent>
                                           <div className="max-w-xs space-y-2">
@@ -378,7 +380,7 @@ export function DeleteSyncForm() {
                                                 " tag.
                                               </li>
                                             </ul>
-                                            <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded border border-slate-200 dark:border-slate-700 text-xs text-text mt-2">
+                                            <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded-xs border border-slate-200 dark:border-slate-700 text-xs text-foreground mt-2">
                                               <strong>Note:</strong> Tag-based
                                               deletion requires "Tag Behavior on
                                               Removal" to be set to{' '}
@@ -423,7 +425,7 @@ export function DeleteSyncForm() {
                                       'special-tag' && (
                                       <div className="mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-900/20 rounded-md">
                                         <div className="flex items-start space-x-2">
-                                          <AlertTriangle className="h-4 w-4 mt-0.5 text-yellow-600 dark:text-yellow-500 flex-shrink-0" />
+                                          <AlertTriangle className="h-4 w-4 mt-0.5 text-yellow-600 dark:text-yellow-500 shrink-0" />
                                           <p className="text-xs text-yellow-800 dark:text-yellow-400">
                                             <strong>
                                               Configuration Warning:
@@ -458,13 +460,13 @@ export function DeleteSyncForm() {
                           {form.watch('deletionMode') === 'tag-based' && (
                             <div className="mt-4">
                               <div className="flex items-center mb-2">
-                                <FormLabel className="text-text m-0">
+                                <FormLabel className="text-foreground m-0">
                                   Removal Tag Name
                                 </FormLabel>
                                 <TooltipProvider>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                                      <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                                     </TooltipTrigger>
                                     <TooltipContent>
                                       <div className="max-w-xs space-y-2">
@@ -474,7 +476,7 @@ export function DeleteSyncForm() {
                                           Any content with this exact tag will
                                           be deleted during the sync job.
                                         </p>
-                                        <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded border border-slate-200 dark:border-slate-700 text-xs text-text mt-2">
+                                        <p className="bg-slate-100 dark:bg-slate-800 p-2 rounded-xs border border-slate-200 dark:border-slate-700 text-xs text-foreground mt-2">
                                           <strong>Note:</strong> This value is
                                           configured in the User Tags section
                                           with the{' '}
@@ -498,7 +500,7 @@ export function DeleteSyncForm() {
                             </div>
                           )}
 
-                          <h3 className="font-medium text-sm text-text mt-4 mb-2">
+                          <h3 className="font-medium text-sm text-foreground mt-4 mb-2">
                             Configuration
                           </h3>
                           <div className="space-y-4">
@@ -518,13 +520,13 @@ export function DeleteSyncForm() {
                                     />
                                   </FormControl>
                                   <div className="flex items-center">
-                                    <FormLabel className="text-text m-0">
+                                    <FormLabel className="text-foreground m-0">
                                       Delete Movies
                                     </FormLabel>
                                     <TooltipProvider>
                                       <Tooltip>
                                         <TooltipTrigger asChild>
-                                          <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                                          <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                                         </TooltipTrigger>
                                         <TooltipContent>
                                           <p className="max-w-xs">
@@ -551,13 +553,13 @@ export function DeleteSyncForm() {
                                     />
                                   </FormControl>
                                   <div className="flex items-center">
-                                    <FormLabel className="text-text m-0">
+                                    <FormLabel className="text-foreground m-0">
                                       Delete Ended Shows
                                     </FormLabel>
                                     <TooltipProvider>
                                       <Tooltip>
                                         <TooltipTrigger asChild>
-                                          <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                                          <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                                         </TooltipTrigger>
                                         <TooltipContent>
                                           <p className="max-w-xs">
@@ -584,13 +586,13 @@ export function DeleteSyncForm() {
                                     />
                                   </FormControl>
                                   <div className="flex items-center">
-                                    <FormLabel className="text-text m-0">
+                                    <FormLabel className="text-foreground m-0">
                                       Delete Continuing Shows
                                     </FormLabel>
                                     <TooltipProvider>
                                       <Tooltip>
                                         <TooltipTrigger asChild>
-                                          <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                                          <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                                         </TooltipTrigger>
                                         <TooltipContent>
                                           <p className="max-w-xs">
@@ -618,13 +620,13 @@ export function DeleteSyncForm() {
                                     />
                                   </FormControl>
                                   <div className="flex items-center">
-                                    <FormLabel className="text-text m-0">
+                                    <FormLabel className="text-foreground m-0">
                                       Delete Files
                                     </FormLabel>
                                     <TooltipProvider>
                                       <Tooltip>
                                         <TooltipTrigger asChild>
-                                          <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                                          <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                                         </TooltipTrigger>
                                         <TooltipContent>
                                           <p className="max-w-xs">
@@ -643,7 +645,7 @@ export function DeleteSyncForm() {
                         </div>
 
                         <div>
-                          <h3 className="font-medium text-sm text-text mb-2">
+                          <h3 className="font-medium text-sm text-foreground mb-2">
                             Safety Settings
                           </h3>
                           <div className="space-y-4">
@@ -659,13 +661,13 @@ export function DeleteSyncForm() {
                                     />
                                   </FormControl>
                                   <div className="flex items-center">
-                                    <FormLabel className="text-text m-0">
+                                    <FormLabel className="text-foreground m-0">
                                       Respect User Sync Settings
                                     </FormLabel>
                                     <TooltipProvider>
                                       <Tooltip>
                                         <TooltipTrigger asChild>
-                                          <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                                          <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                                         </TooltipTrigger>
                                         <TooltipContent>
                                           <p className="max-w-xs">
@@ -693,13 +695,13 @@ export function DeleteSyncForm() {
                                     />
                                   </FormControl>
                                   <div className="flex items-center">
-                                    <FormLabel className="text-text m-0">
+                                    <FormLabel className="text-foreground m-0">
                                       Enable Plex Playlist Protection
                                     </FormLabel>
                                     <TooltipProvider>
                                       <Tooltip>
                                         <TooltipTrigger asChild>
-                                          <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                                          <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                                         </TooltipTrigger>
                                         <TooltipContent>
                                           <p className="max-w-xs">
@@ -724,13 +726,13 @@ export function DeleteSyncForm() {
                                 <FormItem className="space-y-2">
                                   <div className="flex flex-col space-y-2">
                                     <div className="flex items-center">
-                                      <FormLabel className="text-text m-0">
+                                      <FormLabel className="text-foreground m-0">
                                         Protection Playlist Name
                                       </FormLabel>
                                       <TooltipProvider>
                                         <Tooltip>
                                           <TooltipTrigger asChild>
-                                            <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                                            <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                                           </TooltipTrigger>
                                           <TooltipContent>
                                             <p className="max-w-xs">
@@ -774,13 +776,13 @@ export function DeleteSyncForm() {
                                 <FormItem className="space-y-2">
                                   <div className="flex flex-col space-y-2">
                                     <div className="flex items-center">
-                                      <FormLabel className="text-text m-0">
+                                      <FormLabel className="text-foreground m-0">
                                         Notifications
                                       </FormLabel>
                                       <TooltipProvider>
                                         <Tooltip>
                                           <TooltipTrigger asChild>
-                                            <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                                            <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                                           </TooltipTrigger>
                                           <TooltipContent>
                                             <div className="max-w-xs">
@@ -874,13 +876,13 @@ export function DeleteSyncForm() {
                                     />
                                   </FormControl>
                                   <div className="flex items-center">
-                                    <FormLabel className="text-text m-0">
+                                    <FormLabel className="text-foreground m-0">
                                       Only Notify When Items Deleted
                                     </FormLabel>
                                     <TooltipProvider>
                                       <Tooltip>
                                         <TooltipTrigger asChild>
-                                          <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                                          <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                                         </TooltipTrigger>
                                         <TooltipContent>
                                           <p className="max-w-xs">
@@ -905,13 +907,13 @@ export function DeleteSyncForm() {
                                 <FormItem className="space-y-2">
                                   <div className="flex flex-col space-y-2">
                                     <div className="flex items-center">
-                                      <FormLabel className="text-text m-0">
+                                      <FormLabel className="text-foreground m-0">
                                         Max Deletion Prevention (%)
                                       </FormLabel>
                                       <TooltipProvider>
                                         <Tooltip>
                                           <TooltipTrigger asChild>
-                                            <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                                            <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                                           </TooltipTrigger>
                                           <TooltipContent>
                                             <p className="max-w-xs">
@@ -983,7 +985,7 @@ export function DeleteSyncForm() {
                   </Form>
 
                   {dryRunError && (
-                    <div className="mt-4 p-3 bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded border border-red-300 dark:border-red-700">
+                    <div className="mt-4 p-3 bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-xs border border-red-300 dark:border-red-700">
                       <div className="flex items-center">
                         <AlertTriangle className="h-5 w-5 mr-2" />
                         <span>{dryRunError}</span>

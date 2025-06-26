@@ -81,7 +81,7 @@ export function ApprovalSystemForm() {
     <div className="space-y-6">
       {/* Actions section */}
       <div>
-        <h3 className="font-medium text-text mb-2">Actions</h3>
+        <h3 className="font-medium text-foreground mb-2">Actions</h3>
         <div className="flex flex-wrap items-center gap-4">
           <Button
             type="button"
@@ -125,14 +125,16 @@ export function ApprovalSystemForm() {
       <div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="flex flex-col items-center text-center">
-            <h3 className="font-medium text-sm text-text mb-1">Status</h3>
-            <p className="font-medium text-text">
+            <h3 className="font-medium text-sm text-foreground mb-1">Status</h3>
+            <p className="font-medium text-foreground">
               {isScheduleEnabled ? 'Enabled' : 'Disabled'}
             </p>
           </div>
           <div className="flex flex-col items-center text-center">
-            <h3 className="font-medium text-sm text-text mb-1">Last Run</h3>
-            <p className="font-medium text-text flex items-center">
+            <h3 className="font-medium text-sm text-foreground mb-1">
+              Last Run
+            </h3>
+            <p className="font-medium text-foreground flex items-center">
               {formatLastRun(approvalMaintenanceJob?.last_run)}
               {approvalMaintenanceJob?.last_run?.status === 'failed' && (
                 <span className="text-red-500 ml-2 flex items-center">
@@ -143,10 +145,10 @@ export function ApprovalSystemForm() {
             </p>
           </div>
           <div className="flex flex-col items-center text-center">
-            <h3 className="font-medium text-sm text-text mb-1">
+            <h3 className="font-medium text-sm text-foreground mb-1">
               Next Scheduled Run
             </h3>
-            <p className="font-medium text-text">
+            <p className="font-medium text-foreground">
               {formatNextRun(approvalMaintenanceJob?.next_run)}
             </p>
           </div>
@@ -160,15 +162,15 @@ export function ApprovalSystemForm() {
           {/* Schedule section */}
           <div>
             <div className="flex items-center mb-3">
-              <Clock className="h-4 w-4 mr-2 text-text" />
-              <h3 className="font-medium text-sm text-text">Schedule</h3>
+              <Clock className="h-4 w-4 mr-2 text-foreground" />
+              <h3 className="font-medium text-sm text-foreground">Schedule</h3>
             </div>
 
             <FormField
               control={form.control}
               name="scheduleInterval"
               render={({ field }) => (
-                <div className="flex-shrink-0">
+                <div className="shrink-0">
                   <Select
                     value={
                       field.value?.toString() ||
@@ -199,7 +201,7 @@ export function ApprovalSystemForm() {
             {approvalMaintenanceJob &&
               approvalMaintenanceJob.type === 'cron' &&
               approvalMaintenanceJob.config?.expression && (
-                <div className="mt-2 text-xs text-text">
+                <div className="mt-2 text-xs text-foreground">
                   <p>
                     Current schedule:{' '}
                     {isSaving && form.getValues('scheduleInterval')
@@ -216,7 +218,7 @@ export function ApprovalSystemForm() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <h3 className="font-medium text-sm text-text mb-2">
+              <h3 className="font-medium text-sm text-foreground mb-2">
                 Expiration Settings
               </h3>
               <div className="space-y-4">
@@ -232,13 +234,13 @@ export function ApprovalSystemForm() {
                         />
                       </FormControl>
                       <div className="flex items-center">
-                        <FormLabel className="text-text m-0">
+                        <FormLabel className="text-foreground m-0">
                           Enable Approval Expiration
                         </FormLabel>
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                             </TooltipTrigger>
                             <TooltipContent>
                               <p className="max-w-xs">
@@ -260,13 +262,13 @@ export function ApprovalSystemForm() {
                   render={({ field }) => (
                     <FormItem className="space-y-2">
                       <div className="flex items-center">
-                        <FormLabel className="text-text m-0">
+                        <FormLabel className="text-foreground m-0">
                           Expiration Period (Hours)
                         </FormLabel>
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                             </TooltipTrigger>
                             <TooltipContent>
                               <p className="max-w-xs">
@@ -302,13 +304,13 @@ export function ApprovalSystemForm() {
                   render={({ field }) => (
                     <FormItem className="space-y-2">
                       <div className="flex items-center">
-                        <FormLabel className="text-text m-0">
+                        <FormLabel className="text-foreground m-0">
                           Expiration Action
                         </FormLabel>
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                             </TooltipTrigger>
                             <TooltipContent>
                               <div className="max-w-xs space-y-2">
@@ -361,13 +363,13 @@ export function ApprovalSystemForm() {
                     <FormItem className="space-y-2">
                       <div className="flex flex-col space-y-2">
                         <div className="flex items-center">
-                          <FormLabel className="text-text m-0">
+                          <FormLabel className="text-foreground m-0">
                             Notifications
                           </FormLabel>
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                                <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                               </TooltipTrigger>
                               <TooltipContent>
                                 <div className="max-w-xs">
@@ -436,7 +438,7 @@ export function ApprovalSystemForm() {
             </div>
 
             <div>
-              <h3 className="font-medium text-sm text-text mb-2">
+              <h3 className="font-medium text-sm text-foreground mb-2">
                 Cleanup Settings
               </h3>
               <div className="space-y-4">
@@ -446,13 +448,13 @@ export function ApprovalSystemForm() {
                   render={({ field }) => (
                     <FormItem className="space-y-2">
                       <div className="flex items-center">
-                        <FormLabel className="text-text m-0">
+                        <FormLabel className="text-foreground m-0">
                           Cleanup Expired After (Days)
                         </FormLabel>
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help flex-shrink-0" />
+                              <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help shrink-0" />
                             </TooltipTrigger>
                             <TooltipContent>
                               <p className="max-w-xs">

@@ -220,7 +220,7 @@ export function RadarrSyncModal({
         }}
       >
         <DialogHeader>
-          <DialogTitle className="text-text">
+          <DialogTitle className="text-foreground">
             {!isSubmitting
               ? 'Instance Synchronization'
               : syncCompleted
@@ -245,8 +245,10 @@ export function RadarrSyncModal({
               {!isSingleInstance && !syncCompleted && (
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-text">Overall Progress</span>
-                    <span className="text-sm text-text">
+                    <span className="text-sm text-foreground">
+                      Overall Progress
+                    </span>
+                    <span className="text-sm text-foreground">
                       {overallProgress}%
                     </span>
                   </div>
@@ -258,7 +260,7 @@ export function RadarrSyncModal({
               {!syncCompleted && (
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-text">
+                    <span className="text-sm text-foreground">
                       {syncProgress.message
                         ? syncProgress.message.replace(
                             /radarr instance \d+/i,
@@ -266,7 +268,7 @@ export function RadarrSyncModal({
                           )
                         : `Syncing ${getCurrentInstanceName()}`}
                     </span>
-                    <span className="text-sm text-text">
+                    <span className="text-sm text-foreground">
                       {Math.round(syncProgress.progress)}%
                     </span>
                   </div>
@@ -276,7 +278,7 @@ export function RadarrSyncModal({
             </div>
           ) : (
             <div className="space-y-4">
-              <p className="text-sm text-text">
+              <p className="text-sm text-foreground">
                 Your configuration includes {syncedInstances.length} synced{' '}
                 {syncedInstances.length === 1 ? 'instance' : 'instances'}. Would
                 you like to perform an initial synchronization now?

@@ -21,7 +21,7 @@ const Pulsar = ({ className = "w-96 h-96" }) => {
             <stop offset="100%" stopColor="white" stopOpacity="0"/>
           </radialGradient>
           
-          <filter id="blur">
+          <filter id="blur-xs">
             <feGaussianBlur stdDeviation="2"/>
           </filter>
         </defs>

@@ -175,14 +175,14 @@ export function TagCreationDialog({
       >
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle className="text-text">Create New Tag</DialogTitle>
+            <DialogTitle className="text-foreground">Create New Tag</DialogTitle>
             <DialogDescription>
               Enter a name for your new tag. This tag will be created in your {instanceType === 'radarr' ? 'Radarr' : 'Sonarr'} instance.
             </DialogDescription>
           </DialogHeader>
           
           <div className="py-4">
-            <Label htmlFor="tag-name" className="text-text">Tag Name</Label>
+            <Label htmlFor="tag-name" className="text-foreground">Tag Name</Label>
             <Input
               id="tag-name"
               value={tagLabel}

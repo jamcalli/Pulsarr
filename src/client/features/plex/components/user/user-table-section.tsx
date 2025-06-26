@@ -111,11 +111,11 @@ export default function UserTableSection() {
   return (
     <div>
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-text">User Watchlists</h2>
+        <h2 className="text-2xl font-bold text-foreground">User Watchlists</h2>
       </div>
       <div className="grid gap-4 mt-4">
         {!hasUserData && !isLoading ? (
-          <div className="text-center py-8 text-text text-muted-foreground">
+          <div className="text-center py-8 text-foreground text-muted-foreground">
             No watchlist data available
           </div>
         ) : (

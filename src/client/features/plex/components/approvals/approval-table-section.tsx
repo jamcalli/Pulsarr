@@ -411,7 +411,9 @@ export default function ApprovalTableSection() {
 
       {/* Header with stats */}
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-text">Approval Management</h2>
+        <h2 className="text-2xl font-bold text-foreground">
+          Approval Management
+        </h2>
       </div>
 
       {/* Stats overview */}

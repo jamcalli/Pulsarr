@@ -397,7 +397,7 @@ export default function ApprovalActionsModal({
     <div className="space-y-6">
       {/* Request Information */}
       <div>
-        <h3 className="text-lg font-semibold text-text mb-4">
+        <h3 className="text-lg font-semibold text-foreground mb-4">
           Request Information
         </h3>
         <div className="space-y-4">
@@ -468,7 +468,9 @@ export default function ApprovalActionsModal({
       {/* Proposed Routing */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-text">Proposed Routing</h3>
+          <h3 className="text-lg font-semibold text-foreground">
+            Proposed Routing
+          </h3>
           {!editRoutingMode && (
             <TooltipProvider>
               <Tooltip>
@@ -542,7 +544,7 @@ export default function ApprovalActionsModal({
         <>
           <Separator />
           <div>
-            <h3 className="text-lg font-semibold text-text mb-4">
+            <h3 className="text-lg font-semibold text-foreground mb-4">
               Approval History
             </h3>
             <div className="space-y-4">
@@ -591,7 +593,7 @@ export default function ApprovalActionsModal({
         <>
           <Separator />
           <div>
-            <h3 className="text-lg font-semibold text-text mb-4">
+            <h3 className="text-lg font-semibold text-foreground mb-4">
               Take Action
             </h3>
             <div className="space-y-4">
@@ -639,7 +641,7 @@ export default function ApprovalActionsModal({
                       <div className="space-y-4">
                         <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg p-4">
                           <div className="flex items-start gap-3">
-                            <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                            <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
                             <div>
                               <h4 className="font-medium text-red-800 dark:text-red-200 mb-1">
                                 Confirm Deletion
@@ -763,10 +765,10 @@ export default function ApprovalActionsModal({
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent
           side="right"
-          className="!w-[90vw] md:!w-[70vw] lg:!w-[60vw] xl:!w-[50vw] !max-w-[800px] sm:!max-w-[800px] overflow-y-auto flex flex-col p-5"
+          className="w-[90vw]! md:w-[70vw]! lg:w-[60vw]! xl:w-[50vw]! max-w-[800px]! sm:max-w-[800px]! overflow-y-auto flex flex-col p-5"
         >
-          <SheetHeader className="mb-6 flex-shrink-0">
-            <SheetTitle className="flex items-center gap-2 text-text text-xl">
+          <SheetHeader className="mb-6 shrink-0">
+            <SheetTitle className="flex items-center gap-2 text-foreground text-xl">
               {request.contentType === 'movie' ? (
                 <Monitor className="w-5 h-5" />
               ) : (
@@ -785,7 +787,7 @@ export default function ApprovalActionsModal({
           </div>
 
           {/* Empty spacer div to ensure content doesn't get cut off */}
-          <div className="h-2 flex-shrink-0" />
+          <div className="h-2 shrink-0" />
         </SheetContent>
       </Sheet>
     )
@@ -794,9 +796,9 @@ export default function ApprovalActionsModal({
   // For mobile - use Drawer
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="h-[90vh] text-text">
-        <DrawerHeader className="mb-6 flex-shrink-0">
-          <DrawerTitle className="flex items-center gap-2 text-text text-xl">
+      <DrawerContent className="h-[90vh] text-foreground">
+        <DrawerHeader className="mb-6 shrink-0">
+          <DrawerTitle className="flex items-center gap-2 text-foreground text-xl">
             {request.contentType === 'movie' ? (
               <Monitor className="w-5 h-5" />
             ) : (
@@ -805,7 +807,7 @@ export default function ApprovalActionsModal({
             {request.contentTitle}
             {getStatusBadge()}
           </DrawerTitle>
-          <DrawerDescription className="text-text">
+          <DrawerDescription className="text-foreground">
             Approval request details and actions
           </DrawerDescription>
         </DrawerHeader>
@@ -814,7 +816,7 @@ export default function ApprovalActionsModal({
         </div>
 
         {/* Empty spacer div to ensure content doesn't get cut off */}
-        <div className="h-2 flex-shrink-0" />
+        <div className="h-2 shrink-0" />
       </DrawerContent>
     </Drawer>
   )
