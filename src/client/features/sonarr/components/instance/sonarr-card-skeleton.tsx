@@ -2,29 +2,23 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { Card, CardHeader, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 
 export const SonarrPageSkeleton = () => {
   return (
     <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
-      <h1 className="text-3xl font-bold text-foreground mb-6">
-        Sonarr Configuration
-      </h1>
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold text-foreground">Sonarr Instances</h2>
+        <p className="text-sm text-foreground mt-1">
+          Manage and configure your Sonarr instances for TV show automation
+        </p>
+      </div>
 
-      <div className="w-full">
-        <Skeleton className="h-10 w-60 mb-4" />
-        <Separator className="my-4" />
-
-        <div className="mt-2">
-          <div className="grid gap-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-foreground">
-                Sonarr Instances
-              </h2>
-              <Skeleton className="h-9 w-32" />
-            </div>
-            <InstanceCardSkeleton />
-          </div>
+      <div className="grid gap-6">
+        <div className="flex justify-between items-center">
+          <Skeleton className="h-9 w-24" />
         </div>
+        <InstanceCardSkeleton />
       </div>
     </div>
   )

@@ -381,7 +381,7 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
 
   return (
     <div className="grid gap-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
         <h3 className="text-xl font-semibold text-foreground">
           Tautulli Notification Service
         </h3>
@@ -415,7 +415,14 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
             name="tautulliEnabled"
             render={({ field }) => (
               <FormItem>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      disabled={tautulliStatus === 'loading'}
+                    />
+                  </FormControl>
                   <div className="flex items-center gap-1">
                     <FormLabel className="text-foreground">
                       Tautulli Notifications Enabled
@@ -432,13 +439,6 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
                       </Tooltip>
                     </TooltipProvider>
                   </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                      disabled={tautulliStatus === 'loading'}
-                    />
-                  </FormControl>
                 </div>
                 <FormMessage />
               </FormItem>

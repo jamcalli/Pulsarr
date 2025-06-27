@@ -557,10 +557,15 @@ const AccordionContentRouterSection = ({
       null : isLoading && hasExistingRoutes ? (
         // Loading with existing rules - show skeletons
         <div className="grid gap-6">
-          <div className="flex justify-between items-center">
+          <div className="mb-6">
             <h2 className="text-2xl font-bold text-foreground">
               {targetType === 'radarr' ? 'Radarr' : 'Sonarr'} Content Routes
             </h2>
+            <p className="text-sm text-foreground mt-1">
+              Define criteria-based routing rules for{' '}
+              {targetType === 'radarr' ? 'movies' : 'TV shows'} within or across{' '}
+              {targetType === 'radarr' ? 'Radarr' : 'Sonarr'} instances
+            </p>
           </div>
           <div className="grid gap-4">
             {skeletonIds.map((id) => (
@@ -573,10 +578,15 @@ const AccordionContentRouterSection = ({
       ) : !hasExistingRoutes && localRules.length === 0 ? (
         // Empty state - no rules
         <div className="grid gap-6">
-          <div className="flex justify-between items-center">
+          <div className="mb-6">
             <h2 className="text-2xl font-bold text-foreground">
               {targetType === 'radarr' ? 'Radarr' : 'Sonarr'} Content Routes
             </h2>
+            <p className="text-sm text-foreground mt-1">
+              Define criteria-based routing rules for{' '}
+              {targetType === 'radarr' ? 'movies' : 'TV shows'} within or across{' '}
+              {targetType === 'radarr' ? 'Radarr' : 'Sonarr'} instances
+            </p>
           </div>
           <div className="text-center py-8 text-foreground">
             <p>No content routes configured</p>
@@ -588,11 +598,21 @@ const AccordionContentRouterSection = ({
       ) : (
         // Display routes
         <>
-          <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold text-foreground">
-              {targetType === 'radarr' ? 'Radarr' : 'Sonarr'} Content Routes
-            </h2>
-            <Button onClick={addRoute}>Add Route</Button>
+          <div className="mb-6">
+            <div className="flex justify-between items-start">
+              <div>
+                <h2 className="text-2xl font-bold text-foreground">
+                  {targetType === 'radarr' ? 'Radarr' : 'Sonarr'} Content Routes
+                </h2>
+                <p className="text-sm text-foreground mt-1">
+                  Define criteria-based routing rules for{' '}
+                  {targetType === 'radarr' ? 'movies' : 'TV shows'} within or
+                  across {targetType === 'radarr' ? 'Radarr' : 'Sonarr'}{' '}
+                  instances
+                </p>
+              </div>
+              <Button onClick={addRoute}>Add Route</Button>
+            </div>
           </div>
           <div className="grid gap-4">
             {/* Saved rules */}

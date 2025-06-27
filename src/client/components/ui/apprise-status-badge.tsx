@@ -11,9 +11,9 @@ export function AppriseStatusBadge() {
   
   const getBadgeVariant = () => {
     if (isEnabled) {
-      return 'bg-green-500 hover:bg-green-500 text-white'
+      return 'bg-green-500 hover:bg-green-500 text-black'
     } else {
-      return 'bg-red-500 hover:bg-red-500 text-white'
+      return 'bg-red-500 hover:bg-red-500 text-black'
     }
   }
   
