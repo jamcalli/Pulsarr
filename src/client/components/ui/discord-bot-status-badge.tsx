@@ -14,15 +14,15 @@ export function DiscordStatusBadge() {
   const getBadgeVariant = () => {
     switch (status) {
       case 'running':
-        return 'bg-green-500 hover:bg-green-500 text-white'
+        return 'bg-green-500 hover:bg-green-500 text-black'
       case 'starting':
-        return 'bg-yellow-500 hover:bg-yellow-500 text-white'
+        return 'bg-yellow-500 hover:bg-yellow-500 text-black'
       case 'stopping':
-        return 'bg-orange-500 hover:bg-orange-500 text-white'
+        return 'bg-orange-500 hover:bg-orange-500 text-black'
       case 'stopped':
-        return 'bg-red-500 hover:bg-red-500 text-white'
+        return 'bg-red-500 hover:bg-red-500 text-black'
       default:
-        return 'bg-gray-400 hover:bg-gray-400 text-white'
+        return 'bg-gray-400 hover:bg-gray-400 text-black'
     }
   }
 

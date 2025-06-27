@@ -12,7 +12,6 @@ const PlexConfigurationPage = lazy(
 const PlexUsersPage = lazy(() => import('@/features/plex/pages/users'))
 const ApprovalsPage = lazy(() => import('@/features/approvals'))
 const SonarrConfigPage = lazy(() => import('@/features/sonarr'))
-const RadarrConfigPage = lazy(() => import('@/features/radarr'))
 const NotificationsConfigPage = lazy(() => import('@/features/notifications'))
 const DashboardPage = lazy(() => import('@/features/dashboard'))
 const UtilitiesPage = lazy(() => import('@/features/utilities'))
@@ -37,6 +36,18 @@ const ApprovalSettingsPage = lazy(
 )
 const QuotaSettingsPage = lazy(
   () => import('@/features/approvals/pages/quota-settings'),
+)
+const SonarrInstancesPage = lazy(
+  () => import('@/features/sonarr/pages/sonarr-instances'),
+)
+const SonarrContentRouterPage = lazy(
+  () => import('@/features/sonarr/pages/sonarr-content-router'),
+)
+const RadarrInstancesPage = lazy(
+  () => import('@/features/radarr/pages/radarr-instances'),
+)
+const RadarrContentRouterPage = lazy(
+  () => import('@/features/radarr/pages/radarr-content-router'),
 )
 const NotFoundPage = lazy(() => import('@/features/not-found'))
 
@@ -102,23 +113,61 @@ export const router = createBrowserRouter([
       },
       {
         path: 'sonarr',
-        element: (
-          <AuthenticatedLayout>
-            <Suspense fallback={<LoadingFallback />}>
-              <SonarrConfigPage />
-            </Suspense>
-          </AuthenticatedLayout>
-        ),
+        children: [
+          {
+            index: true,
+            element: <Navigate to="/sonarr/instances" replace />,
+          },
+          {
+            path: 'instances',
+            element: (
+              <AuthenticatedLayout>
+                <Suspense fallback={<LoadingFallback />}>
+                  <SonarrInstancesPage />
+                </Suspense>
+              </AuthenticatedLayout>
+            ),
+          },
+          {
+            path: 'content-router',
+            element: (
+              <AuthenticatedLayout>
+                <Suspense fallback={<LoadingFallback />}>
+                  <SonarrContentRouterPage />
+                </Suspense>
+              </AuthenticatedLayout>
+            ),
+          },
+        ],
       },
       {
         path: 'radarr',
-        element: (
-          <AuthenticatedLayout>
-            <Suspense fallback={<LoadingFallback />}>
-              <RadarrConfigPage />
-            </Suspense>
-          </AuthenticatedLayout>
-        ),
+        children: [
+          {
+            index: true,
+            element: <Navigate to="/radarr/instances" replace />,
+          },
+          {
+            path: 'instances',
+            element: (
+              <AuthenticatedLayout>
+                <Suspense fallback={<LoadingFallback />}>
+                  <RadarrInstancesPage />
+                </Suspense>
+              </AuthenticatedLayout>
+            ),
+          },
+          {
+            path: 'content-router',
+            element: (
+              <AuthenticatedLayout>
+                <Suspense fallback={<LoadingFallback />}>
+                  <RadarrContentRouterPage />
+                </Suspense>
+              </AuthenticatedLayout>
+            ),
+          },
+        ],
       },
       {
         path: 'notifications',

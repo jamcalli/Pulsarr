@@ -2,16 +2,25 @@ import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
 import type { Config } from '@root/types/config.types'
 import type { UserWithCount } from '@root/schemas/users/users-list.schema'
-import type { UserQuotasResponseSchema } from '@root/schemas/quota/quota.schema'
+import type {
+  UserQuotasResponseSchema,
+  QuotaStatusResponseSchema,
+} from '@root/schemas/quota/quota.schema'
 import type { z } from 'zod'
 
 export type UserWatchlistInfo = UserWithCount
 
 export type UserQuotas = z.infer<typeof UserQuotasResponseSchema>
+export type QuotaStatusResponse = z.infer<typeof QuotaStatusResponseSchema>
 
 export type UserWithQuotaInfo = UserWatchlistInfo & {
   userQuotas: UserQuotas | null
 }
+
+// Cache timestamps to prevent unnecessary refetches
+let lastUserDataFetch = 0
+let lastQuotaDataFetch = 0
+const CACHE_DURATION = 5000 // 5 seconds
 
 interface UserListResponse {
   success: boolean
@@ -141,6 +150,13 @@ export const useConfigStore = create<ConfigState>()(
         },
 
         fetchUserData: async () => {
+          // Check if we've fetched recently
+          const now = Date.now()
+          if (now - lastUserDataFetch < CACHE_DURATION) {
+            return
+          }
+
+          lastUserDataFetch = now
           try {
             const response = await fetch('/v1/users/users/list/with-counts')
             const data: UserListResponse = await response.json()
@@ -177,92 +193,136 @@ export const useConfigStore = create<ConfigState>()(
         },
 
         fetchQuotaData: async () => {
+          const state = get()
+          if (!state.users || state.users.length === 0) {
+            return
+          }
+
+          // Check if we've fetched recently
+          const now = Date.now()
+          if (now - lastQuotaDataFetch < CACHE_DURATION) {
+            return
+          }
+
+          lastQuotaDataFetch = now
           try {
-            const state = get()
-            if (!state.users || state.users.length === 0) {
-              return
+            // Use bulk endpoints instead of individual calls
+            const userQuotasMap = new Map<number, UserQuotas | null>()
+            const userIds = state.users.map((user) => user.id)
+
+            // 1. Fetch all quota configurations in one call
+            const quotaConfigsResponse = await fetch('/v1/quota/users')
+            let quotaConfigs: UserQuotas[] = []
+            if (quotaConfigsResponse.ok) {
+              const quotaConfigsData = await quotaConfigsResponse.json()
+              if (quotaConfigsData.success && quotaConfigsData.userQuotas) {
+                quotaConfigs = quotaConfigsData.userQuotas
+              }
             }
 
-            // Fetch quota data for each user individually to get both config and status
-            const userQuotasMap = new Map<number, UserQuotas | null>()
-
-            for (const user of state.users) {
-              try {
-                // Fetch user quota configuration
-                const quotaResponse = await fetch(`/v1/quota/users/${user.id}`)
-                if (quotaResponse.ok) {
-                  const quotaData = await quotaResponse.json()
-                  if (quotaData.success && quotaData.userQuotas) {
-                    const userQuotas = quotaData.userQuotas
-
-                    // Fetch current usage status for movie quota
-                    if (userQuotas.movieQuota) {
-                      try {
-                        const movieStatusResponse = await fetch(
-                          `/v1/quota/users/${user.id}/status?contentType=movie`,
-                        )
-                        if (movieStatusResponse.ok) {
-                          const movieStatusData =
-                            await movieStatusResponse.json()
-                          if (
-                            movieStatusData.success &&
-                            movieStatusData.quotaStatus
-                          ) {
-                            userQuotas.movieQuota.currentUsage =
-                              movieStatusData.quotaStatus.currentUsage
-                            userQuotas.movieQuota.exceeded =
-                              movieStatusData.quotaStatus.exceeded
-                            userQuotas.movieQuota.resetDate =
-                              movieStatusData.quotaStatus.resetDate
-                          }
-                        }
-                      } catch (e) {
-                        console.warn(
-                          'Failed to fetch movie quota status for user',
-                          user.id,
-                          e,
-                        )
+            // 2. Fetch all movie quota statuses in one call
+            let movieStatuses: Record<number, QuotaStatusResponse> = {}
+            try {
+              const movieStatusResponse = await fetch(
+                '/v1/quota/users/status/bulk',
+                {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ userIds, contentType: 'movie' }),
+                },
+              )
+              if (movieStatusResponse.ok) {
+                const movieStatusData = await movieStatusResponse.json()
+                if (movieStatusData.success && movieStatusData.quotaStatuses) {
+                  // Convert array response to object mapping userId to quotaStatus
+                  movieStatuses = movieStatusData.quotaStatuses.reduce(
+                    (
+                      acc: Record<number, QuotaStatusResponse>,
+                      item: {
+                        userId: number
+                        quotaStatus: QuotaStatusResponse | null
+                      },
+                    ) => {
+                      if (item.quotaStatus) {
+                        acc[item.userId] = item.quotaStatus
                       }
-                    }
-
-                    // Fetch current usage status for show quota
-                    if (userQuotas.showQuota) {
-                      try {
-                        const showStatusResponse = await fetch(
-                          `/v1/quota/users/${user.id}/status?contentType=show`,
-                        )
-                        if (showStatusResponse.ok) {
-                          const showStatusData = await showStatusResponse.json()
-                          if (
-                            showStatusData.success &&
-                            showStatusData.quotaStatus
-                          ) {
-                            userQuotas.showQuota.currentUsage =
-                              showStatusData.quotaStatus.currentUsage
-                            userQuotas.showQuota.exceeded =
-                              showStatusData.quotaStatus.exceeded
-                            userQuotas.showQuota.resetDate =
-                              showStatusData.quotaStatus.resetDate
-                          }
-                        }
-                      } catch (e) {
-                        console.warn(
-                          'Failed to fetch show quota status for user',
-                          user.id,
-                          e,
-                        )
-                      }
-                    }
-
-                    userQuotasMap.set(user.id, userQuotas)
-                  } else {
-                    userQuotasMap.set(user.id, null)
-                  }
-                } else {
-                  userQuotasMap.set(user.id, null)
+                      return acc
+                    },
+                    {},
+                  )
                 }
-              } catch (e) {
-                console.warn('Failed to fetch quota data for user', user.id, e)
+              }
+            } catch (e) {
+              console.warn('Failed to fetch bulk movie quota statuses:', e)
+            }
+
+            // 3. Fetch all show quota statuses in one call
+            let showStatuses: Record<number, QuotaStatusResponse> = {}
+            try {
+              const showStatusResponse = await fetch(
+                '/v1/quota/users/status/bulk',
+                {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ userIds, contentType: 'show' }),
+                },
+              )
+              if (showStatusResponse.ok) {
+                const showStatusData = await showStatusResponse.json()
+                if (showStatusData.success && showStatusData.quotaStatuses) {
+                  // Convert array response to object mapping userId to quotaStatus
+                  showStatuses = showStatusData.quotaStatuses.reduce(
+                    (
+                      acc: Record<number, QuotaStatusResponse>,
+                      item: {
+                        userId: number
+                        quotaStatus: QuotaStatusResponse | null
+                      },
+                    ) => {
+                      if (item.quotaStatus) {
+                        acc[item.userId] = item.quotaStatus
+                      }
+                      return acc
+                    },
+                    {},
+                  )
+                }
+              }
+            } catch (e) {
+              console.warn('Failed to fetch bulk show quota statuses:', e)
+            }
+
+            // 4. Combine configurations with statuses
+            for (const user of state.users) {
+              const userQuotaConfig = quotaConfigs.find(
+                (q) => q.userId === user.id,
+              )
+
+              if (userQuotaConfig) {
+                const userQuotas = { ...userQuotaConfig }
+
+                // Merge movie quota status
+                if (userQuotas.movieQuota && movieStatuses[user.id]) {
+                  userQuotas.movieQuota = {
+                    ...userQuotas.movieQuota,
+                    currentUsage: movieStatuses[user.id].currentUsage,
+                    exceeded: movieStatuses[user.id].exceeded,
+                    resetDate: movieStatuses[user.id].resetDate,
+                  }
+                }
+
+                // Merge show quota status
+                if (userQuotas.showQuota && showStatuses[user.id]) {
+                  userQuotas.showQuota = {
+                    ...userQuotas.showQuota,
+                    currentUsage: showStatuses[user.id].currentUsage,
+                    exceeded: showStatuses[user.id].exceeded,
+                    resetDate: showStatuses[user.id].resetDate,
+                  }
+                }
+
+                userQuotasMap.set(user.id, userQuotas)
+              } else {
                 userQuotasMap.set(user.id, null)
               }
             }
