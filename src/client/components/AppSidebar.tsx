@@ -198,27 +198,27 @@ const data = {
       items: [
         {
           title: 'Delete Sync',
-          url: '/utilities#delete-sync',
+          url: '/utilities/delete-sync',
         },
         {
           title: 'New User Defaults',
-          url: '/utilities#new-user-defaults',
+          url: '/utilities/new-user-defaults',
         },
         {
           title: 'Plex Notifications',
-          url: '/utilities#plex-notifications',
+          url: '/utilities/plex-notifications',
         },
         {
           title: 'Plex Session Monitoring',
-          url: '/utilities#plex-session-monitoring',
+          url: '/utilities/plex-session-monitoring',
         },
         {
           title: 'Public Content Notifications',
-          url: '/utilities#public-content-notifications',
+          url: '/utilities/public-content-notifications',
         },
         {
           title: 'User Tags',
-          url: '/utilities#user-tags',
+          url: '/utilities/user-tags',
         },
       ],
     },
@@ -245,6 +245,7 @@ const data = {
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { isMobile } = useSidebar()
   const [activeTeam, setActiveTeam] = React.useState(data.teams[0])
+  const [activeSection, setActiveSection] = React.useState<string>('')
 
   // Persistent collapsible state
   const [openSections, setOpenSections] = React.useState<
@@ -259,17 +260,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       for (const item of data.navMain) {
         result[item.title] = item.isActive || false
       }
-      for (const item of data.documentation) {
-        result[item.title] = false
-      }
       return result
     } catch {
       const result: Record<string, boolean> = {}
       for (const item of data.navMain) {
         result[item.title] = item.isActive || false
-      }
-      for (const item of data.documentation) {
-        result[item.title] = false
       }
       return result
     }
@@ -286,6 +281,33 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   const navigate = useNavigate()
   const location = useLocation()
+
+  // Track clicked navigation items for highlighting
+  React.useEffect(() => {
+    // Clear active section when leaving notifications page
+    if (location.pathname !== '/notifications') {
+      setActiveSection('')
+    }
+  }, [location.pathname])
+
+  // Check if a route is active
+  const isActiveRoute = React.useCallback(
+    (url: string) => {
+      if (url === '#' || !url) return false
+
+      // For anchor links, use tracked active section
+      if (url.includes('#')) {
+        const [pathname, hash] = url.split('#')
+
+        // Must be on the correct page and have the section selected
+        return location.pathname === pathname && activeSection === hash
+      }
+
+      // For regular routes, just match pathname
+      return location.pathname === url
+    },
+    [location.pathname, activeSection],
+  )
 
   // Handle navigation with anchor scrolling
   const handleNavigation = React.useCallback(
@@ -308,6 +330,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       const [pathname, hash] = url.split('#')
 
       if (hash) {
+        // Set the active section immediately when clicked
+        setActiveSection(hash)
+
         // If we're already on the target page, just scroll to anchor
         if (location.pathname === pathname) {
           const element = document.getElementById(hash)
@@ -428,7 +453,10 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                       <SidebarMenuSub>
                         {item.items?.map((subItem) => (
                           <SidebarMenuSubItem key={subItem.title}>
-                            <SidebarMenuSubButton asChild>
+                            <SidebarMenuSubButton
+                              asChild
+                              isActive={isActiveRoute(subItem.url)}
+                            >
                               <a
                                 href={subItem.url}
                                 onClick={(e) =>
@@ -446,7 +474,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 </Collapsible>
               ) : (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild tooltip={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip={item.title}
+                    isActive={isActiveRoute(item.url)}
+                  >
                     <a
                       href={item.url}
                       onClick={(e) => handleNavigation(item.url, e)}

@@ -134,7 +134,7 @@ export function SessionMonitoringStatus({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {/* Active Rolling Shows */}
-        <div className="flex items-center justify-between p-3 border-2 border-border rounded-base bg-blue/10">
+        <div className="flex items-center justify-between p-3 border-2 border-border rounded-base bg-slate-50 dark:bg-slate-900/50">
           <div className="flex items-center gap-2">
             <Activity className="h-4 w-4 text-foreground" />
             <span className="text-sm font-medium text-foreground">
@@ -159,7 +159,7 @@ export function SessionMonitoringStatus({
         </div>
 
         {/* Inactive Shows */}
-        <div className="flex items-center justify-between p-3 border-2 border-border rounded-base bg-blue/10">
+        <div className="flex items-center justify-between p-3 border-2 border-border rounded-base bg-slate-50 dark:bg-slate-900/50">
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4 text-foreground" />
             <span className="text-sm font-medium text-foreground">

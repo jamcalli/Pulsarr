@@ -206,7 +206,7 @@ export function ApprovalTable({
                 <TableRow>
                   <TableCell
                     colSpan={columns.length}
-                    className="h-24 text-center"
+                    className="h-40 text-center"
                   >
                     <div className="flex flex-col items-center justify-center">
                       <p className="text-lg mb-2 text-muted-foreground">

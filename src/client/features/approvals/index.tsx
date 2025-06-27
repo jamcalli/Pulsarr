@@ -11,7 +11,6 @@ import { ApprovalActionDialogs } from '@/features/approvals/components/approval-
 import ApprovalStatsHeader from '@/features/approvals/components/approval-stats-header'
 import ApprovalActionsModal from '@/features/approvals/components/approval-actions-modal'
 import BulkApprovalModal from '@/features/approvals/components/bulk-approval-modal'
-import { ApprovalConfigurationSection } from '@/features/approvals/components/approval-configuration-section'
 import type {
   ApprovalRequestResponse,
   BulkApprovalRequest,
@@ -261,9 +260,6 @@ export default function ApprovalsPage() {
             onBulkActions={() => {}}
             isLoading={true}
           />
-
-          {/* Configuration Section with loading state */}
-          <ApprovalConfigurationSection />
         </div>
       </div>
     )
@@ -288,9 +284,6 @@ export default function ApprovalsPage() {
           onBulkActions={(requests) => handleBulkAction(requests, 'approve')}
           isLoading={approvalsLoading}
         />
-
-        {/* Configuration Section */}
-        <ApprovalConfigurationSection />
 
         {/* Action Dialogs */}
         <ApprovalActionDialogs />
