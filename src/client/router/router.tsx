@@ -16,6 +16,28 @@ const RadarrConfigPage = lazy(() => import('@/features/radarr'))
 const NotificationsConfigPage = lazy(() => import('@/features/notifications'))
 const DashboardPage = lazy(() => import('@/features/dashboard'))
 const UtilitiesPage = lazy(() => import('@/features/utilities'))
+const DeleteSyncPage = lazy(
+  () => import('@/features/utilities/pages/delete-sync'),
+)
+const PlexNotificationsPage = lazy(
+  () => import('@/features/utilities/pages/plex-notifications'),
+)
+const NewUserDefaultsPage = lazy(
+  () => import('@/features/utilities/pages/new-user-defaults'),
+)
+const PlexSessionMonitoringPage = lazy(
+  () => import('@/features/utilities/pages/plex-session-monitoring'),
+)
+const PublicContentNotificationsPage = lazy(
+  () => import('@/features/utilities/pages/public-content-notifications'),
+)
+const UserTagsPage = lazy(() => import('@/features/utilities/pages/user-tags'))
+const ApprovalSettingsPage = lazy(
+  () => import('@/features/approvals/pages/approval-settings'),
+)
+const QuotaSettingsPage = lazy(
+  () => import('@/features/approvals/pages/quota-settings'),
+)
 const NotFoundPage = lazy(() => import('@/features/not-found'))
 
 const LoadingFallback = () => null
@@ -120,23 +142,113 @@ export const router = createBrowserRouter([
       },
       {
         path: 'utilities',
-        element: (
-          <AuthenticatedLayout>
-            <Suspense fallback={<LoadingFallback />}>
-              <UtilitiesPage />
-            </Suspense>
-          </AuthenticatedLayout>
-        ),
+        children: [
+          {
+            index: true,
+            element: (
+              <AuthenticatedLayout>
+                <Suspense fallback={<LoadingFallback />}>
+                  <UtilitiesPage />
+                </Suspense>
+              </AuthenticatedLayout>
+            ),
+          },
+          {
+            path: 'delete-sync',
+            element: (
+              <AuthenticatedLayout>
+                <Suspense fallback={<LoadingFallback />}>
+                  <DeleteSyncPage />
+                </Suspense>
+              </AuthenticatedLayout>
+            ),
+          },
+          {
+            path: 'plex-notifications',
+            element: (
+              <AuthenticatedLayout>
+                <Suspense fallback={<LoadingFallback />}>
+                  <PlexNotificationsPage />
+                </Suspense>
+              </AuthenticatedLayout>
+            ),
+          },
+          {
+            path: 'new-user-defaults',
+            element: (
+              <AuthenticatedLayout>
+                <Suspense fallback={<LoadingFallback />}>
+                  <NewUserDefaultsPage />
+                </Suspense>
+              </AuthenticatedLayout>
+            ),
+          },
+          {
+            path: 'plex-session-monitoring',
+            element: (
+              <AuthenticatedLayout>
+                <Suspense fallback={<LoadingFallback />}>
+                  <PlexSessionMonitoringPage />
+                </Suspense>
+              </AuthenticatedLayout>
+            ),
+          },
+          {
+            path: 'public-content-notifications',
+            element: (
+              <AuthenticatedLayout>
+                <Suspense fallback={<LoadingFallback />}>
+                  <PublicContentNotificationsPage />
+                </Suspense>
+              </AuthenticatedLayout>
+            ),
+          },
+          {
+            path: 'user-tags',
+            element: (
+              <AuthenticatedLayout>
+                <Suspense fallback={<LoadingFallback />}>
+                  <UserTagsPage />
+                </Suspense>
+              </AuthenticatedLayout>
+            ),
+          },
+        ],
       },
       {
         path: 'approvals',
-        element: (
-          <AuthenticatedLayout>
-            <Suspense fallback={<LoadingFallback />}>
-              <ApprovalsPage />
-            </Suspense>
-          </AuthenticatedLayout>
-        ),
+        children: [
+          {
+            index: true,
+            element: (
+              <AuthenticatedLayout>
+                <Suspense fallback={<LoadingFallback />}>
+                  <ApprovalsPage />
+                </Suspense>
+              </AuthenticatedLayout>
+            ),
+          },
+          {
+            path: 'settings',
+            element: (
+              <AuthenticatedLayout>
+                <Suspense fallback={<LoadingFallback />}>
+                  <ApprovalSettingsPage />
+                </Suspense>
+              </AuthenticatedLayout>
+            ),
+          },
+          {
+            path: 'quota-settings',
+            element: (
+              <AuthenticatedLayout>
+                <Suspense fallback={<LoadingFallback />}>
+                  <QuotaSettingsPage />
+                </Suspense>
+              </AuthenticatedLayout>
+            ),
+          },
+        ],
       },
       {
         path: '*',
