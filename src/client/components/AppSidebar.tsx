@@ -1,6 +1,7 @@
 'use client'
 
 import {
+  AlertCircle,
   AudioWaveform,
   BadgeCheck,
   Bell,
@@ -18,7 +19,7 @@ import {
   GalleryVerticalEnd,
   LayoutDashboard,
   LogOut,
-  Map,
+  Map as MapIcon,
   Monitor,
   MoreHorizontal,
   PieChart,
@@ -34,6 +35,7 @@ import {
 } from 'lucide-react'
 
 import * as React from 'react'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
@@ -135,8 +137,8 @@ const data = {
           url: '/notifications#tautulli-notifications',
         },
         {
-          title: 'General Notification Settings',
-          url: '/notifications#general-notification-settings',
+          title: 'General Notifications',
+          url: '/notifications#general-notifications',
         },
       ],
     },
@@ -221,21 +223,21 @@ const data = {
       ],
     },
   ],
-  projects: [
+  helpResources: [
     {
-      name: 'Design Engineering',
-      url: '#',
-      icon: Frame,
+      name: 'Documentation',
+      url: 'https://jamcalli.github.io/Pulsarr/docs/intro',
+      icon: BookOpen,
     },
     {
-      name: 'Sales & Marketing',
-      url: '#',
-      icon: PieChart,
+      name: 'GitHub Repository',
+      url: 'https://github.com/jamcalli/Pulsarr',
+      icon: Bot,
     },
     {
-      name: 'Travel',
-      url: '#',
-      icon: Map,
+      name: 'GitHub Issues',
+      url: 'https://github.com/jamcalli/Pulsarr/issues',
+      icon: AlertCircle,
     },
   ],
 }
@@ -243,6 +245,99 @@ const data = {
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { isMobile } = useSidebar()
   const [activeTeam, setActiveTeam] = React.useState(data.teams[0])
+
+  // Persistent collapsible state
+  const [openSections, setOpenSections] = React.useState<
+    Record<string, boolean>
+  >(() => {
+    try {
+      const saved = localStorage.getItem('sidebar-open-sections')
+      if (saved) {
+        return JSON.parse(saved)
+      }
+      const result: Record<string, boolean> = {}
+      for (const item of data.navMain) {
+        result[item.title] = item.isActive || false
+      }
+      for (const item of data.documentation) {
+        result[item.title] = false
+      }
+      return result
+    } catch {
+      const result: Record<string, boolean> = {}
+      for (const item of data.navMain) {
+        result[item.title] = item.isActive || false
+      }
+      for (const item of data.documentation) {
+        result[item.title] = false
+      }
+      return result
+    }
+  })
+
+  // Save to localStorage whenever state changes
+  React.useEffect(() => {
+    localStorage.setItem('sidebar-open-sections', JSON.stringify(openSections))
+  }, [openSections])
+
+  const toggleSection = (title: string) => {
+    setOpenSections((prev) => ({ ...prev, [title]: !prev[title] }))
+  }
+
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  // Handle navigation with anchor scrolling
+  const handleNavigation = React.useCallback(
+    (url: string, e: React.MouseEvent) => {
+      // Skip empty/hash-only URLs
+      if (url === '#' || !url) {
+        e.preventDefault()
+        return
+      }
+
+      // Check if it's an external URL
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        // Let the browser handle external links normally (new tab)
+        return
+      }
+
+      e.preventDefault()
+
+      // Check if URL contains anchor
+      const [pathname, hash] = url.split('#')
+
+      if (hash) {
+        // If we're already on the target page, just scroll to anchor
+        if (location.pathname === pathname) {
+          const element = document.getElementById(hash)
+          if (element) {
+            element.scrollIntoView({
+              behavior: 'smooth',
+              block: 'nearest',
+            })
+          }
+        } else {
+          // Navigate to page then scroll to anchor
+          navigate(pathname)
+          // Wait for navigation and loading to complete then scroll
+          setTimeout(() => {
+            const element = document.getElementById(hash)
+            if (element) {
+              element.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest',
+              })
+            }
+          }, 600) // Wait for MIN_LOADING_DELAY (500ms) + buffer
+        }
+      } else {
+        // Regular navigation without anchor
+        navigate(url)
+      }
+    },
+    [navigate, location.pathname],
+  )
 
   if (!activeTeam) {
     return null
@@ -309,12 +404,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarGroup>
           <SidebarGroupLabel>Application</SidebarGroupLabel>
           <SidebarMenu>
-            {data.navMain.map((item) => (
+            {data.navMain.map((item) =>
               item.items ? (
                 <Collapsible
                   key={item.title}
                   asChild
-                  defaultOpen={item.isActive}
+                  open={openSections[item.title]}
+                  onOpenChange={() => toggleSection(item.title)}
                   className="group/collapsible"
                 >
                   <SidebarMenuItem>
@@ -333,7 +429,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         {item.items?.map((subItem) => (
                           <SidebarMenuSubItem key={subItem.title}>
                             <SidebarMenuSubButton asChild>
-                              <a href={subItem.url}>
+                              <a
+                                href={subItem.url}
+                                onClick={(e) =>
+                                  handleNavigation(subItem.url, e)
+                                }
+                              >
                                 <span>{subItem.title}</span>
                               </a>
                             </SidebarMenuSubButton>
@@ -346,62 +447,39 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               ) : (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild tooltip={item.title}>
-                    <a href={item.url}>
+                    <a
+                      href={item.url}
+                      onClick={(e) => handleNavigation(item.url, e)}
+                    >
                       {item.icon && <item.icon />}
                       <span>{item.title}</span>
                     </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              )
-            ))}
+              ),
+            )}
           </SidebarMenu>
         </SidebarGroup>
         <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-          <SidebarGroupLabel>Projects</SidebarGroupLabel>
+          <SidebarGroupLabel>Help & Resources</SidebarGroupLabel>
           <SidebarMenu>
-            {data.projects.map((item) => (
+            {data.helpResources.map((item) => (
               <SidebarMenuItem key={item.name}>
                 <SidebarMenuButton asChild>
-                  <a href={item.url}>
+                  <a
+                    href={item.url}
+                    onClick={(e) => handleNavigation(item.url, e)}
+                    {...(item.url.startsWith('http') && {
+                      target: '_blank',
+                      rel: 'noopener noreferrer',
+                    })}
+                  >
                     <item.icon />
                     <span>{item.name}</span>
                   </a>
                 </SidebarMenuButton>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <SidebarMenuAction>
-                      <MoreHorizontal className="group-hover/menu-item:text-main-foreground" />
-                      <span className="sr-only">More</span>
-                    </SidebarMenuAction>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    className="w-48"
-                    side={isMobile ? 'bottom' : 'right'}
-                    align={isMobile ? 'end' : 'start'}
-                  >
-                    <DropdownMenuItem>
-                      <Folder />
-                      <span>View Project</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Forward />
-                      <span>Share Project</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem>
-                      <Trash2 />
-                      <span>Delete Project</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
               </SidebarMenuItem>
             ))}
-            <SidebarMenuItem>
-              <SidebarMenuButton>
-                <MoreHorizontal />
-                <span>More</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>
