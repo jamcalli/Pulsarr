@@ -4,14 +4,21 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { Menu, FileText } from 'lucide-react'
 import { SettingsButton } from '@/components/ui/settings-button'
-import { useState } from 'react'
 import { DOCUMENTATION_URL } from '@/lib/constants'
 import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-  SheetTitle,
-} from '@/components/ui/sheet'
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb'
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from '@/components/ui/sidebar'
+import { AppSidebar } from '@/components/AppSidebar'
 
 interface WindowedLayoutProps {
   children: ReactNode
@@ -26,64 +33,55 @@ interface WindowedLayoutProps {
  */
 export default function WindowedLayout({ children }: WindowedLayoutProps) {
   const isMobile = useMediaQuery('(max-width: 768px)')
-  const [sheetOpen, setSheetOpen] = useState(false)
 
   // Mobile Layout
   if (isMobile) {
     return (
       <div className="grid grid-cols-1 w-full h-screen max-h-screen rounded-none shadow-none outline-0 fixed inset-0 z-40">
-        {/* Header - always visible */}
-        <header className="rounded-none border-r-0 border-b-4 h-[50px] border-b-border dark:border-b-darkBorder fixed top-0 left-0 w-full z-50 bg-main flex items-center justify-center">
-          {/* Mobile Menu Button */}
-          <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-            <SheetTrigger asChild>
-              <button
-                type="button"
-                className="absolute left-3 top-1/2 -translate-y-1/2"
+        <SidebarProvider>
+          <AppSidebar />
+          {/* Header - always visible */}
+          <header className="rounded-none border-r-0 border-b-4 h-[50px] border-b-border dark:border-b-darkBorder fixed top-0 left-0 w-full z-50 bg-main flex items-center justify-center">
+            {/* Mobile Menu Button */}
+            <SidebarTrigger className="absolute left-3 top-1/2 -translate-y-1/2 bg-transparent border-0 p-0 size-6">
+              <Menu className="stroke-black h-6 w-6" />
+              <span className="sr-only">Menu</span>
+            </SidebarTrigger>
+
+            {/* Title */}
+            <h1 className="whitespace-nowrap font-bold rotate-0 text-[30px] tracking-[2px]">
+              <span className="text-black inline-block">Pulsarr</span>
+            </h1>
+
+            {/* Mobile Settings and Docs Buttons */}
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-3">
+              <a
+                href={DOCUMENTATION_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-black"
+                aria-label="Documentation"
               >
-                <Menu className="stroke-black h-6 w-6" />
-                <span className="sr-only">Menu</span>
-              </button>
-            </SheetTrigger>
-            <SheetContent side="left">
-              <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
-              <Nav isMobile={true} onNavItemClick={() => setSheetOpen(false)} />
-            </SheetContent>
-          </Sheet>
+                <FileText className="stroke-current h-6 w-6" />
+              </a>
+              <SettingsButton isMobile={true} />
+            </div>
+          </header>
 
-          {/* Title */}
-          <h1 className="whitespace-nowrap font-bold rotate-0 text-[30px] tracking-[2px]">
-            <span className="text-black inline-block">Pulsarr</span>
-          </h1>
-
-          {/* Mobile Settings and Docs Buttons */}
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-3">
-            <a
-              href={DOCUMENTATION_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-black"
-              aria-label="Documentation"
-            >
-              <FileText className="stroke-current h-6 w-6" />
-            </a>
-            <SettingsButton isMobile={true} />
-          </div>
-        </header>
-
-        {/* Main content area */}
-        <main className="bg-background relative flex flex-col font-semibold h-screen pt-[50px]">
-          <ScrollArea className="flex-1">
-            <div className="pb-32">{children}</div>
-          </ScrollArea>
-        </main>
+          {/* Main content area */}
+          <main className="bg-background relative flex flex-col h-screen pt-[50px]">
+            <ScrollArea className="flex-1">
+              <div className="pb-32">{children}</div>
+            </ScrollArea>
+          </main>
+        </SidebarProvider>
       </div>
     )
   }
 
   // Desktop Windowed Layout
   return (
-    <div className="outline-border grid grid-cols-[100px_auto] h-[90vh] w-[95vw] max-w-[1400px] rounded-base shadow-[10px_10px_0_0_#000] outline-4">
+    <div className="outline-border grid grid-cols-[80px_auto] h-[90vh] w-[98vw] max-w-[1600px] rounded-base shadow-[10px_10px_0_0_#000] outline-4">
       {/* Header - Desktop windowed mode */}
       <header className="border-r-border relative flex items-center justify-center bg-main rounded-l-base border-r-4">
         {/* Title */}
@@ -92,10 +90,35 @@ export default function WindowedLayout({ children }: WindowedLayoutProps) {
         </h1>
       </header>
 
-      {/* Main content area */}
-      <main className="bg-background relative flex flex-col font-semibold h-[90vh] rounded-br-base rounded-tr-base">
-        <Nav isMobile={false} />
-        <ScrollArea className="flex-1">{children}</ScrollArea>
+      {/* Main content area with sidebar */}
+      <main className="bg-background relative flex h-[90vh] rounded-br-base rounded-tr-base overflow-hidden min-h-0">
+        <SidebarProvider>
+          <AppSidebar />
+          <SidebarInset className="bg-background">
+            <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+              <div className="flex items-center gap-2 px-4">
+                <SidebarTrigger className="-ml-1" />
+                <Breadcrumb>
+                  <BreadcrumbList>
+                    <BreadcrumbItem className="hidden md:block">
+                      <BreadcrumbLink href="#">
+                        Building Your Application
+                      </BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator className="hidden md:block" />
+                    <BreadcrumbItem>
+                      <BreadcrumbPage>Data Fetching</BreadcrumbPage>
+                    </BreadcrumbItem>
+                  </BreadcrumbList>
+                </Breadcrumb>
+              </div>
+            </header>
+            <div className="flex flex-1 flex-col min-h-0">
+              <Nav isMobile={false} />
+              <ScrollArea className="flex-1">{children}</ScrollArea>
+            </div>
+          </SidebarInset>
+        </SidebarProvider>
       </main>
     </div>
   )
