@@ -6,6 +6,11 @@ import RootLayout from '@/layouts/root'
 const LoginPage = lazy(() => import('@/features/auth'))
 const CreateUserPage = lazy(() => import('@/features/create-user'))
 const PlexConfigPage = lazy(() => import('@/features/plex'))
+const PlexConfigurationPage = lazy(
+  () => import('@/features/plex/pages/configuration'),
+)
+const PlexUsersPage = lazy(() => import('@/features/plex/pages/users'))
+const ApprovalsPage = lazy(() => import('@/features/approvals'))
 const SonarrConfigPage = lazy(() => import('@/features/sonarr'))
 const RadarrConfigPage = lazy(() => import('@/features/radarr'))
 const NotificationsConfigPage = lazy(() => import('@/features/notifications'))
@@ -46,13 +51,32 @@ export const router = createBrowserRouter([
       },
       {
         path: 'plex',
-        element: (
-          <AuthenticatedLayout>
-            <Suspense fallback={<LoadingFallback />}>
-              <PlexConfigPage />
-            </Suspense>
-          </AuthenticatedLayout>
-        ),
+        children: [
+          {
+            index: true,
+            element: <Navigate to="/plex/configuration" replace />,
+          },
+          {
+            path: 'configuration',
+            element: (
+              <AuthenticatedLayout>
+                <Suspense fallback={<LoadingFallback />}>
+                  <PlexConfigurationPage />
+                </Suspense>
+              </AuthenticatedLayout>
+            ),
+          },
+          {
+            path: 'users',
+            element: (
+              <AuthenticatedLayout>
+                <Suspense fallback={<LoadingFallback />}>
+                  <PlexUsersPage />
+                </Suspense>
+              </AuthenticatedLayout>
+            ),
+          },
+        ],
       },
       {
         path: 'sonarr',
@@ -100,6 +124,16 @@ export const router = createBrowserRouter([
           <AuthenticatedLayout>
             <Suspense fallback={<LoadingFallback />}>
               <UtilitiesPage />
+            </Suspense>
+          </AuthenticatedLayout>
+        ),
+      },
+      {
+        path: 'approvals',
+        element: (
+          <AuthenticatedLayout>
+            <Suspense fallback={<LoadingFallback />}>
+              <ApprovalsPage />
             </Suspense>
           </AuthenticatedLayout>
         ),

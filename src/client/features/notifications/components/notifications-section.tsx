@@ -53,7 +53,7 @@ export function NotificationsSection({
       </div>
 
       {/* Discord Notifications Section */}
-      <div>
+      <div id="discord-notifications">
         <h2 className="text-2xl font-bold text-foreground">
           Discord Notifications
         </h2>
@@ -68,7 +68,7 @@ export function NotificationsSection({
       <Separator className="my-4" />
 
       {/* Apprise Notifications Section */}
-      <div>
+      <div id="apprise-notifications">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold text-foreground">
             Apprise Notifications
@@ -82,7 +82,7 @@ export function NotificationsSection({
       <Separator className="my-4" />
 
       {/* Tautulli Notifications Section */}
-      <div>
+      <div id="tautulli-notifications">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold text-foreground">
             Tautulli Notifications
@@ -96,7 +96,7 @@ export function NotificationsSection({
       <Separator className="my-4" />
 
       {/* General Notifications Section */}
-      <div>
+      <div id="general-notifications">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold text-foreground">
             General Notification Settings

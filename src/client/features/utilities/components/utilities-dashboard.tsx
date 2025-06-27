@@ -69,41 +69,53 @@ export function UtilitiesDashboard() {
       <h2 className="mb-6 text-2xl font-bold text-foreground">Utilities</h2>
 
       <div className="space-y-6">
-        {isLoading || loading.schedules ? (
-          <DeleteSyncSkeleton />
-        ) : (
-          <DeleteSyncForm />
-        )}
+        <div id="delete-sync">
+          {isLoading || loading.schedules ? (
+            <DeleteSyncSkeleton />
+          ) : (
+            <DeleteSyncForm />
+          )}
+        </div>
 
-        {isLoading || loading.schedules ? (
-          <NewUserDefaultsSkeleton />
-        ) : (
-          <NewUserDefaultsForm />
-        )}
+        <div id="new-user-defaults">
+          {isLoading || loading.schedules ? (
+            <NewUserDefaultsSkeleton />
+          ) : (
+            <NewUserDefaultsForm />
+          )}
+        </div>
 
-        {isLoading || loading.schedules ? (
-          <PlexNotificationsSkeleton />
-        ) : (
-          <PlexNotificationsForm />
-        )}
+        <div id="plex-notifications">
+          {isLoading || loading.schedules ? (
+            <PlexNotificationsSkeleton />
+          ) : (
+            <PlexNotificationsForm />
+          )}
+        </div>
 
-        {isLoading || loading.schedules ? (
-          <SessionMonitoringSkeleton />
-        ) : (
-          <SessionMonitoringForm />
-        )}
+        <div id="plex-session-monitoring">
+          {isLoading || loading.schedules ? (
+            <SessionMonitoringSkeleton />
+          ) : (
+            <SessionMonitoringForm />
+          )}
+        </div>
 
-        {isLoading || loading.schedules ? (
-          <PublicContentNotificationsSkeleton />
-        ) : (
-          <PublicContentNotificationsForm />
-        )}
+        <div id="public-content-notifications">
+          {isLoading || loading.schedules ? (
+            <PublicContentNotificationsSkeleton />
+          ) : (
+            <PublicContentNotificationsForm />
+          )}
+        </div>
 
-        {isLoading || loading.schedules ? (
-          <UserTagsSkeleton />
-        ) : (
-          <UserTagsForm />
-        )}
+        <div id="user-tags">
+          {isLoading || loading.schedules ? (
+            <UserTagsSkeleton />
+          ) : (
+            <UserTagsForm />
+          )}
+        </div>
       </div>
     </div>
   )
