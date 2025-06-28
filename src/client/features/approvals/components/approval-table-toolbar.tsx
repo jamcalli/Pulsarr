@@ -143,15 +143,12 @@ export function ApprovalTableToolbar({
           )}
 
           {/* Content type filter */}
-          {table.getColumn('contentTitle') && (
+          {table.getColumn('contentType') && (
             <DataTableFacetedFilter
-              column={table.getColumn('contentTitle')}
+              column={table.getColumn('contentType')}
               title="Content Type"
               icon={Monitor}
               options={contentTypeOptions}
-              filterFn={(row, _columnId, filterValue) => {
-                return filterValue.includes(row.original.contentType)
-              }}
             />
           )}
 

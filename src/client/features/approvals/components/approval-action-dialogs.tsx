@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Loader2, Check } from 'lucide-react'
 import {
   Credenza,
@@ -67,6 +67,17 @@ export function ApprovalActionDialogs({
   const { approveRequest, rejectRequest, deleteApprovalRequest } =
     useApprovalsStore()
 
+  // Track timeout IDs for cleanup
+  const timeoutIdsRef = useRef<NodeJS.Timeout[]>([])
+
+  // Clean up timeouts on component unmount
+  useEffect(() => {
+    return () => {
+      // Clear all pending timeouts on unmount
+      timeoutIdsRef.current.forEach(clearTimeout)
+    }
+  }, [])
+
   // Helper function to manage minimum loading duration
   const withMinLoadingDuration = async (
     action: () => Promise<void>,
@@ -83,17 +94,19 @@ export function ApprovalActionDialogs({
       const elapsed = Date.now() - startTime
       const remainingTime = Math.max(500 - elapsed, 0)
 
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         setStatus('idle')
       }, remainingTime + 1000) // Show success for 1 second after minimum duration
+      timeoutIdsRef.current.push(timeoutId)
     } catch (error) {
       // Ensure minimum duration even on error
       const elapsed = Date.now() - startTime
       const remainingTime = Math.max(500 - elapsed, 0)
 
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         setStatus('idle')
       }, remainingTime)
+      timeoutIdsRef.current.push(timeoutId)
       throw error
     }
   }
@@ -113,7 +126,11 @@ export function ApprovalActionDialogs({
       setApproveNotes('')
       onApproveDialogClose()
     } catch (error) {
-      toast.error('Failed to approve request')
+      toast.error(
+        error instanceof Error
+          ? `Failed to approve request: ${error.message}`
+          : 'Failed to approve request. Please try again.',
+      )
     }
   }
 
@@ -132,7 +149,11 @@ export function ApprovalActionDialogs({
       setRejectReason('')
       onRejectDialogClose()
     } catch (error) {
-      toast.error('Failed to reject request')
+      toast.error(
+        error instanceof Error
+          ? `Failed to reject request: ${error.message}`
+          : 'Failed to reject request. Please try again.',
+      )
     }
   }
 
@@ -147,7 +168,11 @@ export function ApprovalActionDialogs({
 
       onDeleteDialogClose()
     } catch (error) {
-      toast.error('Failed to delete approval request')
+      toast.error(
+        error instanceof Error
+          ? `Failed to delete approval request: ${error.message}`
+          : 'Failed to delete approval request. Please try again.',
+      )
     }
   }
 

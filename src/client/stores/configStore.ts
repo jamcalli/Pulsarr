@@ -207,29 +207,51 @@ export const useConfigStore = create<ConfigState>()(
             const userQuotasMap = new Map<number, UserQuotas | null>()
             const userIds = state.users.map((user) => user.id)
 
-            // 1. Fetch all quota configurations in one call
-            const quotaConfigsResponse = await fetch('/v1/quota/users')
-            let quotaConfigs: UserQuotas[] = []
-            if (quotaConfigsResponse.ok) {
-              const quotaConfigsData = await quotaConfigsResponse.json()
-              if (quotaConfigsData.success && quotaConfigsData.userQuotas) {
-                quotaConfigs = quotaConfigsData.userQuotas
-              }
-            }
+            // Fetch all quota data in parallel for maximum performance
+            const [quotaConfigsResult, movieStatusResult, showStatusResult] =
+              await Promise.allSettled([
+                // 1. Fetch all quota configurations
+                fetch('/v1/quota/users'),
 
-            // 2. Fetch all movie quota statuses in one call
-            let movieStatuses: Record<number, QuotaStatusResponse> = {}
-            try {
-              const movieStatusResponse = await fetch(
-                '/v1/quota/users/status/bulk',
-                {
+                // 2. Fetch all movie quota statuses
+                fetch('/v1/quota/users/status/bulk', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ userIds, contentType: 'movie' }),
-                },
-              )
-              if (movieStatusResponse.ok) {
-                const movieStatusData = await movieStatusResponse.json()
+                }),
+
+                // 3. Fetch all show quota statuses
+                fetch('/v1/quota/users/status/bulk', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ userIds, contentType: 'show' }),
+                }),
+              ])
+
+            // Process quota configurations
+            let quotaConfigs: UserQuotas[] = []
+            if (
+              quotaConfigsResult.status === 'fulfilled' &&
+              quotaConfigsResult.value.ok
+            ) {
+              try {
+                const quotaConfigsData = await quotaConfigsResult.value.json()
+                if (quotaConfigsData.success && quotaConfigsData.userQuotas) {
+                  quotaConfigs = quotaConfigsData.userQuotas
+                }
+              } catch (e) {
+                console.warn('Failed to parse quota configurations:', e)
+              }
+            }
+
+            // Process movie quota statuses
+            let movieStatuses: Record<number, QuotaStatusResponse> = {}
+            if (
+              movieStatusResult.status === 'fulfilled' &&
+              movieStatusResult.value.ok
+            ) {
+              try {
+                const movieStatusData = await movieStatusResult.value.json()
                 if (movieStatusData.success && movieStatusData.quotaStatuses) {
                   // Convert array response to object mapping userId to quotaStatus
                   movieStatuses = movieStatusData.quotaStatuses.reduce(
@@ -248,24 +270,24 @@ export const useConfigStore = create<ConfigState>()(
                     {},
                   )
                 }
+              } catch (e) {
+                console.warn('Failed to parse movie quota statuses:', e)
               }
-            } catch (e) {
-              console.warn('Failed to fetch bulk movie quota statuses:', e)
+            } else if (movieStatusResult.status === 'rejected') {
+              console.warn(
+                'Failed to fetch bulk movie quota statuses:',
+                movieStatusResult.reason,
+              )
             }
 
-            // 3. Fetch all show quota statuses in one call
+            // Process show quota statuses
             let showStatuses: Record<number, QuotaStatusResponse> = {}
-            try {
-              const showStatusResponse = await fetch(
-                '/v1/quota/users/status/bulk',
-                {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ userIds, contentType: 'show' }),
-                },
-              )
-              if (showStatusResponse.ok) {
-                const showStatusData = await showStatusResponse.json()
+            if (
+              showStatusResult.status === 'fulfilled' &&
+              showStatusResult.value.ok
+            ) {
+              try {
+                const showStatusData = await showStatusResult.value.json()
                 if (showStatusData.success && showStatusData.quotaStatuses) {
                   // Convert array response to object mapping userId to quotaStatus
                   showStatuses = showStatusData.quotaStatuses.reduce(
@@ -284,9 +306,14 @@ export const useConfigStore = create<ConfigState>()(
                     {},
                   )
                 }
+              } catch (e) {
+                console.warn('Failed to parse show quota statuses:', e)
               }
-            } catch (e) {
-              console.warn('Failed to fetch bulk show quota statuses:', e)
+            } else if (showStatusResult.status === 'rejected') {
+              console.warn(
+                'Failed to fetch bulk show quota statuses:',
+                showStatusResult.reason,
+              )
             }
 
             // 4. Combine configurations with statuses

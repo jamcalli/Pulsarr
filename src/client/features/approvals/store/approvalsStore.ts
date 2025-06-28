@@ -350,6 +350,8 @@ export const useApprovalsStore = create<ApprovalsState>()(
           total: state.total + 1,
         }
       })
+      // Refresh stats to maintain consistency
+      get().fetchStats()
     },
 
     handleApprovalUpdated: (request: ApprovalRequestResponse) => {
@@ -371,6 +373,8 @@ export const useApprovalsStore = create<ApprovalsState>()(
           approvalRequests: updatedRequests,
         }
       })
+      // Refresh stats if status might have changed
+      get().fetchStats()
     },
 
     handleApprovalDeleted: (requestId: number) => {
@@ -389,6 +393,8 @@ export const useApprovalsStore = create<ApprovalsState>()(
           total: Math.max(0, state.total - 1),
         }
       })
+      // Refresh stats after deletion
+      get().fetchStats()
     },
   })),
 )

@@ -62,8 +62,8 @@ export function useGrabbedToNotifiedData() {
 
   return {
     data: grabbedToNotifiedTimes || [],
-    isLoading: loading.all,
-    error: errors.all,
+    isLoading: loading.grabbedToNotified,
+    error: errors.grabbedToNotified,
   }
 }
 
@@ -79,7 +79,7 @@ export function useInstanceContentData() {
 
   return {
     data: instanceContentBreakdown || [],
-    isLoading: loading.all,
-    error: errors.all,
+    isLoading: loading.instanceContent,
+    error: errors.instanceContent,
   }
 }
