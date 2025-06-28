@@ -20,11 +20,11 @@ interface QueuedToast {
 }
 
 /**
- * Subscribes to approval-related server-sent events (SSE) and manages toast notifications with batching and optional event callbacks.
+ * Subscribes to approval server-sent events and manages batched toast notifications and optional event callbacks.
  *
- * This hook listens for approval events such as creation, update, approval, rejection, and deletion. It can queue and batch toast notifications to avoid spamming users, and invokes optional callbacks for each approval action. Toast notifications can be enabled or disabled via the `showToasts` option.
+ * Listens for approval events such as creation, update, approval, rejection, and deletion. Optionally displays toast notifications for these events, batching multiple notifications of the same type within a short interval to reduce notification spam. Invokes provided callbacks for each approval action if specified.
  *
- * @param options - Optional callbacks for each approval action and a flag to enable or disable toast notifications.
+ * @param options - Optional callbacks for approval actions and a flag to enable or disable toast notifications.
  */
 export function useApprovalEvents(options: UseApprovalEventsOptions = {}) {
   const { toast } = useToast()
@@ -241,18 +241,18 @@ export function useApprovalEvents(options: UseApprovalEventsOptions = {}) {
 }
 
 /**
- * Subscribes to approval events and displays toast notifications globally.
+ * Enables global toast notifications for approval events throughout the application.
  *
- * Intended for use at the top level of the application to provide approval-related toasts across all pages.
+ * Intended to be used at the application's top level to display approval-related toasts on all pages.
  */
 export function useApprovalToasts() {
   useApprovalEvents({ showToasts: true })
 }
 
 /**
- * Subscribes to approval-related SSE events and invokes provided callbacks for each action, without displaying toast notifications.
+ * Subscribes to approval-related server-sent events and triggers optional callbacks for each approval action, without showing toast notifications.
  *
- * Intended for use on the approval management page to update local state in response to approval events.
+ * Use this hook on approval management pages to update local state in response to approval events.
  *
  * @param options - Optional callbacks for handling approval creation, update, approval, rejection, and deletion events.
  */

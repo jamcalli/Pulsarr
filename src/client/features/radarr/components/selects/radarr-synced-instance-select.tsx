@@ -7,16 +7,11 @@ import { Badge } from '@/components/ui/badge'
 import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
 
 /**
- * Renders a multi-select UI for selecting Radarr instances to sync with, restricted to the default instance.
+ * Displays a multi-select UI for choosing Radarr instances to sync with, available only on the default instance.
  *
- * Displays a warning badge if syncing is unavailable due to not being on the default instance or lacking additional valid instances. Only instances other than the current one and with a valid API key are selectable.
+ * Shows a warning badge if syncing is unavailable due to not being on the default instance or if there are no additional valid instances. Only instances other than the current one and with a valid API key can be selected.
  *
- * @param field - Controller props for managing the synced instances form field.
- * @param instances - Array of all Radarr instances.
- * @param currentInstanceId - The ID of the current Radarr instance.
- * @param isDefault - Indicates if the current instance is the default.
  * @param disabled - If true, disables the multi-select UI.
- *
  * @returns The multi-select UI for instance selection, or a warning badge if selection is not possible.
  */
 function SyncedInstancesSelect({

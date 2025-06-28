@@ -29,18 +29,10 @@ interface ApprovalActionDialogsProps {
 }
 
 /**
- * Renders modal dialogs for approving, rejecting, or deleting an approval request.
+ * Displays modal dialogs for approving, rejecting, or deleting an approval request, managing user input and asynchronous action states for each operation.
  *
- * Displays the appropriate dialog based on the provided open state props, allowing users to approve with optional notes, reject with an optional reason, or permanently delete an approval request. Handles asynchronous actions with consistent loading and success feedback, and notifies users of errors.
+ * Shows the appropriate dialog based on open state props, allowing users to provide optional notes or reasons, and provides consistent feedback for loading, success, and error conditions. Invokes the supplied callbacks when dialogs are closed or actions complete.
  *
- * @param selectedRequest - The approval request currently selected for action, or null if none is selected.
- * @param approveDialogOpen - Whether the approve dialog is open.
- * @param rejectDialogOpen - Whether the reject dialog is open.
- * @param deleteDialogOpen - Whether the delete dialog is open.
- * @param onApproveDialogClose - Callback to close the approve dialog.
- * @param onRejectDialogClose - Callback to close the reject dialog.
- * @param onDeleteDialogClose - Callback to close the delete dialog.
- * @param onActionComplete - Async callback invoked after an action completes.
  * @returns The rendered approval action dialogs as React elements.
  */
 export function ApprovalActionDialogs({

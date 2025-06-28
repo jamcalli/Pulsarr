@@ -1,9 +1,9 @@
 import type { Knex } from 'knex'
 
 /**
- * Adds `quotaSettings` and `approvalExpiration` JSON columns to the `configs` table.
+ * Adds nullable JSON columns `quotaSettings` and `approvalExpiration` to the `configs` table.
  *
- * These columns are intended to store configuration data for quota management and approval expiration policies.
+ * These columns are used to store configuration data for quota management and approval expiration policies.
  */
 export async function up(knex: Knex): Promise<void> {
   await knex.schema.alterTable('configs', (table) => {
@@ -16,7 +16,7 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Drops the `quotaSettings` and `approvalExpiration` JSON columns from the `configs` table, reverting the schema changes introduced by the corresponding migration.
+ * Removes the `quotaSettings` and `approvalExpiration` columns from the `configs` table to revert the migration.
  */
 export async function down(knex: Knex): Promise<void> {
   await knex.schema.alterTable('configs', (table) => {

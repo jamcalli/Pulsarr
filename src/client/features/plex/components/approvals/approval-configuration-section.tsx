@@ -12,9 +12,9 @@ import { QuotaSystemForm } from '@/features/plex/components/approvals/quota-syst
 import { useApprovalScheduler } from '@/features/plex/hooks/useApprovalScheduler'
 
 /**
- * Renders a section for configuring approval and quota systems using accordions.
+ * Displays configuration sections for approval and quota systems with status indicators and management forms.
  *
- * Displays the current status of approval and quota maintenance jobs, and provides forms for managing their configuration. If there is an error loading the scheduler data, an error message is shown instead.
+ * Shows the current status of approval and quota maintenance jobs using color-coded badges, and provides forms for updating their configuration. If there is an error loading scheduler data, an error message is displayed instead.
  */
 export function ApprovalConfigurationSection() {
   const { approvalMaintenanceJob, quotaMaintenanceJob, schedulerError } =
