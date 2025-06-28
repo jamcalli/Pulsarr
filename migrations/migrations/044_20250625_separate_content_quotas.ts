@@ -54,7 +54,7 @@ export async function up(knex: Knex): Promise<void> {
       quota_limit: quota.quota_limit,
       bypass_approval: quota.bypass_approval,
       created_at: quota.created_at,
-      updated_at: knex.fn.now(),
+      updated_at: quota.updated_at,
     })
   }
 
@@ -69,6 +69,7 @@ export async function up(knex: Knex): Promise<void> {
  * Deletes all show quota entries and drops the `content_type` column and related constraints, restoring the original unique constraint on `user_id`. All show quota data will be lost.
  */
 export async function down(knex: Knex): Promise<void> {
+  // WARNING: This migration will permanently delete all show quota data
   // Step 1: Remove show quotas (keep only movie quotas)
   await knex('user_quotas').where('content_type', 'show').del()
 

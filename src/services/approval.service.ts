@@ -8,7 +8,7 @@ import type {
 } from '@root/types/approval.types.js'
 import type { ContentItem } from '@root/types/router.types.js'
 import type { SonarrItem } from '@root/types/sonarr.types.js'
-import type { Item as RadarrItem } from '@root/types/radarr.types.js'
+import type { RadarrItem } from '@root/types/radarr.types.js'
 import type { ApprovalMetadata } from '@root/types/progress.types.js'
 import type { DiscordEmbed } from '@root/types/discord.types.js'
 import { hasMatchingGuids } from '@utils/guid-handler.js'

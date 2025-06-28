@@ -91,7 +91,7 @@ export interface ApprovalData {
   quotaUsage?: number
   quotaLimit?: number
   criteriaType?: string
-  criteriaValue?: unknown
+  criteriaValue?: string
   ruleId?: number
   autoApprove?: boolean
 }
