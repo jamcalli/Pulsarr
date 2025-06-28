@@ -47,35 +47,41 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type { UserWatchlistInfo } from '@/stores/configStore'
+import type { UserWithQuotaInfo } from '@/stores/configStore'
 import type { PlexUserTableRow } from '@/features/plex/store/types'
 import { UserWatchlistSheet } from '@/features/plex/components/user/user-watchlist-sheet'
 import { useUserWatchlist } from '@/features/plex/hooks/useUserWatchlist'
 import { toast } from '@/hooks/use-toast'
 import { TableSkeleton } from '@/components/ui/table-skeleton'
+import { QuotaStatusBadge } from '@/features/plex/components/user/quota-status-badge'
+import { formatQuotaType } from '@/features/plex/components/user/quota-utils'
 
 interface ColumnMetaType {
   className?: string
   headerClassName?: string
+  displayName?: string
 }
 
 interface UserTableProps {
-  users: UserWatchlistInfo[]
-  onEditUser: (user: UserWatchlistInfo) => void
+  users: UserWithQuotaInfo[]
+  onEditUser: (user: UserWithQuotaInfo) => void
+  onEditQuota: (user: UserWithQuotaInfo) => void
   isLoading?: boolean
   onBulkEdit?: (selectedRows: PlexUserTableRow[]) => void
 }
 
 /**
- * Renders an interactive table for managing user watchlist data, supporting sorting, filtering by username, pagination, column visibility toggling, row selection, and both individual and bulk editing.
+ * Renders an interactive user management table with sorting, filtering, pagination, column visibility toggling, row selection, and editing capabilities.
  *
- * Users can edit individual user details, perform bulk edits on selected rows, and open a modal to view a user's watchlist. The table adapts to loading state, disables controls as needed, and displays visual indicators for notification and sync statuses.
+ * Allows editing individual user details and quotas, performing bulk edits on selected users, and viewing a user's watchlist in a modal. The table displays notification, sync, approval, and quota statuses, and adapts its controls and appearance based on loading state.
  *
  * @remark If a user's ID is invalid when attempting to view their watchlist, an error is logged and a destructive toast notification is shown; the modal will not open.
  */
+
 export default function UserTable({
   users,
   onEditUser,
+  onEditQuota,
   isLoading = false,
   onBulkEdit,
 }: UserTableProps) {
@@ -98,7 +104,7 @@ export default function UserTable({
     handleClose,
   } = useUserWatchlist()
 
-  const columns: ColumnDef<UserWatchlistInfo>[] = [
+  const columns: ColumnDef<UserWithQuotaInfo>[] = [
     {
       id: 'select',
       header: ({ table }) => (
@@ -125,6 +131,9 @@ export default function UserTable({
     },
     {
       accessorKey: 'name',
+      meta: {
+        displayName: 'Username',
+      },
       header: ({ column }) => {
         return (
           <Button
@@ -151,9 +160,12 @@ export default function UserTable({
     },
     {
       accessorKey: 'notify_apprise',
-      header: () => <div>Apprise</div>,
+      meta: {
+        displayName: 'Apprise Notifications',
+      },
+      header: () => <div className="text-center">Apprise</div>,
       cell: ({ row }) => (
-        <div className="flex justify-center w-16">
+        <div className="flex justify-center">
           {row.getValue('notify_apprise') ? (
             <Check className="h-4 w-4 text-main" />
           ) : (
@@ -164,9 +176,12 @@ export default function UserTable({
     },
     {
       accessorKey: 'notify_discord',
-      header: () => <div>Discord</div>,
+      meta: {
+        displayName: 'Discord Notifications',
+      },
+      header: () => <div className="text-center">Discord</div>,
       cell: ({ row }) => (
-        <div className="flex justify-center w-16">
+        <div className="flex justify-center">
           {row.getValue('notify_discord') ? (
             <Check className="h-4 w-4 text-main" />
           ) : (
@@ -177,9 +192,12 @@ export default function UserTable({
     },
     {
       accessorKey: 'notify_tautulli',
-      header: () => <div>Tautulli</div>,
+      meta: {
+        displayName: 'Tautulli Notifications',
+      },
+      header: () => <div className="text-center">Tautulli</div>,
       cell: ({ row }) => (
-        <div className="flex justify-center w-16">
+        <div className="flex justify-center">
           {row.getValue('notify_tautulli') ? (
             <Check className="h-4 w-4 text-main" />
           ) : (
@@ -190,9 +208,12 @@ export default function UserTable({
     },
     {
       accessorKey: 'can_sync',
-      header: () => <div>Can Sync</div>,
+      meta: {
+        displayName: 'Can Sync',
+      },
+      header: () => <div className="text-center">Can Sync</div>,
       cell: ({ row }) => (
-        <div className="flex justify-center w-16">
+        <div className="flex justify-center">
           {row.getValue('can_sync') ? (
             <Check className="h-4 w-4 text-main" />
           ) : (
@@ -201,26 +222,134 @@ export default function UserTable({
         </div>
       ),
     },
+    {
+      accessorKey: 'requires_approval',
+      meta: {
+        displayName: 'Requires Approval',
+      },
+      header: () => <div className="text-center">Approval</div>,
+      cell: ({ row }) => (
+        <div className="flex justify-center">
+          {row.getValue('requires_approval') ? (
+            <Check className="h-4 w-4 text-main" />
+          ) : (
+            <X className="h-4 w-4 text-error" />
+          )}
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'userQuotas.movieQuota.quotaType',
+      meta: {
+        displayName: 'Quota Type',
+      },
+      header: () => <div className="text-center">Quota Type</div>,
+      cell: ({ row }) => {
+        const userQuotas = row.original.userQuotas
+        if (!userQuotas || (!userQuotas.movieQuota && !userQuotas.showQuota)) {
+          return (
+            <div className="text-center">
+              <span className="text-sm text-muted-foreground">None</span>
+            </div>
+          )
+        }
 
+        const types = []
+        if (userQuotas.movieQuota)
+          types.push(`M:${formatQuotaType(userQuotas.movieQuota.quotaType)}`)
+        if (userQuotas.showQuota)
+          types.push(`S:${formatQuotaType(userQuotas.showQuota.quotaType)}`)
+
+        return (
+          <div className="text-center">
+            <span className="text-sm font-medium">{types.join(', ')}</span>
+          </div>
+        )
+      },
+    },
+    {
+      accessorKey: 'userQuotas.movieQuota.quotaLimit',
+      meta: {
+        displayName: 'Quota Limit',
+      },
+      header: () => <div className="text-center">Quota Limit</div>,
+      cell: ({ row }) => {
+        const userQuotas = row.original.userQuotas
+        if (!userQuotas || (!userQuotas.movieQuota && !userQuotas.showQuota)) {
+          return (
+            <div className="text-center">
+              <span className="text-sm text-muted-foreground">-</span>
+            </div>
+          )
+        }
+
+        const hasAutoApprove =
+          userQuotas.movieQuota?.bypassApproval ||
+          userQuotas.showQuota?.bypassApproval
+        if (hasAutoApprove) {
+          return (
+            <div className="text-center">
+              <span className="text-sm font-medium text-blue-600">
+                Auto-Approved
+              </span>
+            </div>
+          )
+        }
+
+        const limits = []
+        if (userQuotas.movieQuota)
+          limits.push(`M:${userQuotas.movieQuota.quotaLimit}`)
+        if (userQuotas.showQuota)
+          limits.push(`S:${userQuotas.showQuota.quotaLimit}`)
+
+        return (
+          <div className="text-center">
+            <span className="text-sm font-medium">{limits.join(', ')}</span>
+          </div>
+        )
+      },
+    },
+    {
+      accessorKey: 'userQuotas.movieQuota.currentUsage',
+      meta: {
+        displayName: 'Quota Usage',
+      },
+      header: () => <div className="text-center">Usage</div>,
+      cell: ({ row }) => {
+        const userQuotas = row.original.userQuotas
+        return (
+          <div className="text-center">
+            <QuotaStatusBadge userQuotas={userQuotas} />
+          </div>
+        )
+      },
+    },
     {
       accessorKey: 'watchlist_count',
+      meta: {
+        displayName: 'Watchlist Items',
+      },
       header: ({ column }) => {
         return (
-          <Button
-            variant="noShadow"
-            size="sm"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-            className="whitespace-nowrap"
-          >
-            Items
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
+          <div className="text-center">
+            <Button
+              variant="noShadow"
+              size="sm"
+              onClick={() =>
+                column.toggleSorting(column.getIsSorted() === 'asc')
+              }
+              className="whitespace-nowrap"
+            >
+              Items
+              <ArrowUpDown className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
         )
       },
       cell: ({ row }) => {
         const count = Number(row.getValue('watchlist_count'))
         return (
-          <div className="text-right font-medium w-16">
+          <div className="text-center font-medium">
             {count.toLocaleString()}
           </div>
         )
@@ -246,13 +375,16 @@ export default function UserTable({
                 <DropdownMenuItem onClick={() => onEditUser(user)}>
                   Edit user
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onEditQuota(user)}>
+                  Edit quotas
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={(e) => {
                     e.preventDefault()
                     e.stopPropagation()
                     setSelectedUserName(user.name)
-                    const userId = Number.parseInt(user.id)
-                    if (!Number.isNaN(userId) && userId > 0) {
+                    const userId = user.id
+                    if (userId > 0) {
                       handleOpen(userId)
                     } else {
                       console.error('Invalid user ID:', user.id)
@@ -326,7 +458,8 @@ export default function UserTable({
                         column.toggleVisibility(!!value)
                       }
                     >
-                      {column.id}
+                      {(column.columnDef.meta as ColumnMetaType)?.displayName ||
+                        column.id}
                     </DropdownMenuCheckboxItem>
                   )
                 })}
@@ -378,6 +511,10 @@ export default function UserTable({
               { type: 'icon' },
               { type: 'icon' },
               { type: 'icon' },
+              { type: 'icon' },
+              { type: 'text', width: 'w-20' },
+              { type: 'text', width: 'w-20' },
+              { type: 'badge', width: 'w-24' },
               { type: 'text', width: 'w-16' },
               { type: 'button', width: 'w-8', className: 'text-right' },
             ]}

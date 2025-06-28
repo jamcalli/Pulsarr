@@ -31,6 +31,6 @@ export default fp(
   },
   {
     name: 'content-router',
-    dependencies: ['database', 'sonarr-manager', 'radarr-manager'],
+    dependencies: ['database', 'sonarr-manager', 'radarr-manager', 'quota'],
   },
 )

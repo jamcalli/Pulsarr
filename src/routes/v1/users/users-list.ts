@@ -40,6 +40,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           notify_discord: user.notify_discord,
           notify_tautulli: user.notify_tautulli,
           can_sync: user.can_sync,
+          requires_approval: user.requires_approval ?? false,
           created_at: user.created_at ?? new Date().toISOString(),
           updated_at: user.updated_at ?? new Date().toISOString(),
         }))
@@ -96,6 +97,7 @@ const plugin: FastifyPluginAsync = async (fastify) => {
           notify_discord: user.notify_discord,
           notify_tautulli: user.notify_tautulli,
           can_sync: user.can_sync,
+          requires_approval: user.requires_approval ?? false,
           created_at: user.created_at ?? new Date().toISOString(),
           updated_at: user.updated_at ?? new Date().toISOString(),
           watchlist_count: user.watchlist_count,

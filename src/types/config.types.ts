@@ -9,6 +9,7 @@ export interface User {
   notify_tautulli: boolean
   tautulli_notifier_id: number | null
   can_sync: boolean
+  requires_approval?: boolean
   is_primary_token?: boolean
   created_at?: string
   updated_at?: string
@@ -22,6 +23,17 @@ export type LogLevel =
   | 'debug'
   | 'trace'
   | 'silent'
+
+export type NotifyOption =
+  | 'none' // No notifications
+  | 'all' // All available notification channels
+  | 'discord-only' // Only Discord (both webhook and DM if configured)
+  | 'apprise-only' // Only Apprise
+  | 'webhook-only' // Only Discord webhook (no DMs)
+  | 'dm-only' // Only Discord DMs (no webhook)
+  | 'discord-webhook' // Equivalent to webhook-only
+  | 'discord-message' // Equivalent to dm-only
+  | 'discord-both' // Both Discord webhook and DMs, no Apprise
 
 export type DeleteSyncNotifyOption =
   | 'none' // No notifications
@@ -150,6 +162,7 @@ export interface Config {
   deleteFiles: boolean
   respectUserSyncSetting: boolean
   deleteSyncNotify: DeleteSyncNotifyOption
+  approvalNotify: NotifyOption
   deleteSyncNotifyOnlyOnDeletion: boolean
   maxDeletionPrevention: number
   enablePlexPlaylistProtection: boolean
@@ -181,6 +194,38 @@ export interface Config {
   }
   // New User Defaults
   newUserDefaultCanSync?: boolean
+  // Quota System Configuration
+  quotaSettings?: {
+    // Cleanup configuration
+    cleanup?: {
+      enabled?: boolean
+      retentionDays?: number
+    }
+    // Weekly rolling quota configuration
+    weeklyRolling?: {
+      resetDays?: number
+    }
+    // Monthly quota configuration
+    monthly?: {
+      resetDay?: number
+      handleMonthEnd?: 'last-day' | 'skip-month' | 'next-month'
+    }
+  }
+  // Approval System Configuration
+  approvalExpiration?: {
+    enabled?: boolean
+    // Default expiration time in hours for approval requests
+    defaultExpirationHours?: number
+    // What happens when approvals expire
+    expirationAction?: 'expire' | 'auto_approve'
+    // Per-trigger expiration overrides
+    quotaExceededExpirationHours?: number
+    routerRuleExpirationHours?: number
+    manualFlagExpirationHours?: number
+    contentCriteriaExpirationHours?: number
+    // Maintenance settings
+    cleanupExpiredDays?: number
+  }
   // Security Config
   allowIframes: boolean
   // Ready state
@@ -194,5 +239,9 @@ export type RawConfig = {
       ? string
       : K extends 'publicContentNotifications'
         ? string
-        : Config[K]
+        : K extends 'quotaSettings'
+          ? string
+          : K extends 'approvalExpiration'
+            ? string
+            : Config[K]
 }

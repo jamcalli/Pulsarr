@@ -43,7 +43,7 @@ interface BulkEditModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   selectedRows: PlexUserTableRow[]
-  onSave: (userIds: string[], updates: PlexUserUpdates) => Promise<void>
+  onSave: (userIds: number[], updates: PlexUserUpdates) => Promise<void>
   saveStatus: BulkUpdateStatus
 }
 
@@ -374,6 +374,52 @@ const FormContent = ({
                 />
               )}
             </div>
+
+            {/* Requires Approval */}
+            <div className="space-y-2">
+              <FormField
+                control={form.control}
+                name="setRequiresApproval"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        disabled={saveStatus !== 'idle'}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="text-text">
+                        Set approval requirement
+                      </FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+              {form.watch('setRequiresApproval') && (
+                <FormField
+                  control={form.control}
+                  name="requiresApprovalValue"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 ml-7">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          disabled={saveStatus !== 'idle'}
+                        />
+                      </FormControl>
+                      <div className="leading-none">
+                        <FormLabel className="text-text">
+                          Require approval for all content
+                        </FormLabel>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              )}
+            </div>
           </div>
         </div>
         <div className="flex justify-end gap-2">
@@ -395,7 +441,8 @@ const FormContent = ({
                 !form.getValues('setAppriseNotify') &&
                 !form.getValues('setDiscordNotify') &&
                 !form.getValues('setTautulliNotify') &&
-                !form.getValues('setCanSync'))
+                !form.getValues('setCanSync') &&
+                !form.getValues('setRequiresApproval'))
             }
             className="min-w-[100px] flex items-center justify-center gap-2"
           >
@@ -420,17 +467,15 @@ const FormContent = ({
 }
 
 /**
- * Displays a modal for bulk editing multiple Plex users, allowing fields to be cleared and notification or sync permissions to be set.
+ * Displays a responsive modal for bulk editing multiple Plex users, allowing administrators to clear user fields and set notification, sync, or approval permissions.
  *
- * Renders a responsive form interface for updating selected users, supporting clearing of alias, Discord ID, and Apprise endpoints, as well as toggling Apprise, Discord, and Tautulli notifications and watchlist sync permissions. Handles form validation, disables controls during save operations, and provides feedback on success or failure.
+ * Presents a form interface for updating selected users, supporting the clearing of alias, Discord ID, and Apprise endpoints, as well as toggling Apprise, Discord, and Tautulli notifications, watchlist sync, and approval requirement settings. Controls are disabled and modal closure is prevented during save operations. Provides user feedback on successful or failed updates.
  *
  * @param open - Whether the modal is visible.
- * @param onOpenChange - Callback to toggle the modal's open state.
- * @param selectedRows - The currently selected Plex user rows to be updated.
+ * @param onOpenChange - Callback to change the modal's open state.
+ * @param selectedRows - The Plex user rows selected for bulk editing.
  * @param onSave - Async function to persist updates for the selected users.
  * @param saveStatus - The current status of the save operation.
- *
- * @remark Prevents closing the modal while a save operation is in progress.
  */
 export default function BulkEditModal({
   open,
@@ -456,6 +501,8 @@ export default function BulkEditModal({
       tautulliNotifyValue: false,
       setCanSync: false,
       canSyncValue: true,
+      setRequiresApproval: false,
+      requiresApprovalValue: false,
     },
   })
 
@@ -529,6 +576,10 @@ export default function BulkEditModal({
 
     if (values.setCanSync) {
       updates.can_sync = values.canSyncValue
+    }
+
+    if (values.setRequiresApproval) {
+      updates.requires_approval = values.requiresApprovalValue
     }
 
     try {

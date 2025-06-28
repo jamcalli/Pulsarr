@@ -43,11 +43,11 @@ export async function getRouterRuleById(
 }
 
 /**
- * Retrieves router rules filtered by type, optionally including only enabled rules.
+ * Retrieves router rules of a specified type, optionally filtering for only enabled rules.
  *
- * @param type - The type of router rules to retrieve.
- * @param enabledOnly - If true, only enabled rules are returned (default: true).
- * @returns A promise that resolves to an array of matching router rules.
+ * @param type - The router rule type to filter by.
+ * @param enabledOnly - Whether to include only enabled rules (default: true).
+ * @returns A promise resolving to an array of formatted router rules matching the criteria.
  */
 export async function getRouterRulesByType(
   this: DatabaseService,
@@ -55,6 +55,41 @@ export async function getRouterRulesByType(
   enabledOnly = true,
 ): Promise<RouterRule[]> {
   const query = this.knex('router_rules').select('*').where('type', type)
+
+  if (enabledOnly) {
+    query.where('enabled', true)
+  }
+
+  const rules = await query.orderBy('order', 'desc').orderBy('id', 'asc')
+
+  return rules.map((rule) => this.formatRouterRule(rule))
+}
+
+/**
+ * Retrieves router rules that match a specific action, such as requiring approval or bypassing quotas.
+ *
+ * For the 'require_approval' action, returns rules with `always_require_approval` set to true. For 'bypass_quotas', returns rules with `bypass_user_quotas` set to true. For other actions, filters by the rule's `type` field. Optionally restricts results to enabled rules.
+ *
+ * @param action - The action to filter rules by (e.g., 'require_approval', 'bypass_quotas', or a rule type)
+ * @param enabledOnly - Whether to return only enabled rules (default: true)
+ * @returns A promise that resolves to an array of router rules matching the specified action
+ */
+export async function getRouterRulesByAction(
+  this: DatabaseService,
+  action: string,
+  enabledOnly = true,
+): Promise<RouterRule[]> {
+  let query = this.knex('router_rules').select('*')
+
+  // Filter by approval actions
+  if (action === 'require_approval') {
+    query = query.where('always_require_approval', true)
+  } else if (action === 'bypass_quotas') {
+    query = query.where('bypass_user_quotas', true)
+  } else {
+    // For other actions, filter by type as fallback
+    query = query.where('type', action)
+  }
 
   if (enabledOnly) {
     query.where('enabled', true)
@@ -98,10 +133,10 @@ export async function createRouterRule(
 /**
  * Updates an existing router rule with the specified fields.
  *
- * Only the provided fields in `updates` are modified. Throws an error if the router rule does not exist or the update fails.
+ * Only the fields provided in `updates` are modified. Throws an error if the router rule does not exist or the update fails.
  *
- * @param id - The ID of the router rule to update
- * @param updates - The fields to update in the router rule
+ * @param id - The unique identifier of the router rule to update
+ * @param updates - Partial set of fields to update on the router rule
  * @returns The updated router rule
  */
 export async function updateRouterRule(
@@ -170,6 +205,19 @@ export async function updateRouterRule(
 
   if (updates.series_type !== undefined) {
     updateData.series_type = updates.series_type
+  }
+
+  // Action fields for approval system
+  if (updates.always_require_approval !== undefined) {
+    updateData.always_require_approval = updates.always_require_approval
+  }
+
+  if (updates.bypass_user_quotas !== undefined) {
+    updateData.bypass_user_quotas = updates.bypass_user_quotas
+  }
+
+  if (updates.approval_reason !== undefined) {
+    updateData.approval_reason = updates.approval_reason
   }
 
   const [updatedRule] = await this.knex('router_rules')

@@ -21,7 +21,12 @@ import type {
   RadarrMovieLookupResponse,
   SonarrSeriesLookupResponse,
 } from '@root/types/content-lookup.types.js'
-import { extractTmdbId, extractTvdbId } from '@utils/guid-handler.js'
+import type { RouterDecision } from '@root/types/approval.types.js'
+import {
+  extractTmdbId,
+  extractTvdbId,
+  extractTypedGuid,
+} from '@utils/guid-handler.js'
 
 /**
  * ContentRouterService is responsible for routing content items to Radarr or Sonarr instances
@@ -255,6 +260,185 @@ export class ContentRouterService {
         return { routedInstances }
       }
 
+      // Check for approval requirements before default routing
+      if (options.userId) {
+        const context: RoutingContext = {
+          userId: options.userId,
+          userName: options.userName,
+          itemKey: key,
+          contentType,
+          syncing: options.syncing,
+          syncTargetInstanceId: options.syncTargetInstanceId,
+        }
+
+        try {
+          // Check if there's already an approval request for this user/content
+          if (context.userId) {
+            // Use the same content key logic as ApprovalService: Plex key for user association
+            const contentKey = context.itemKey || item.guids[0] || ''
+
+            this.log.debug(
+              `Checking for existing approval request: userId=${context.userId}, contentKey=${contentKey} (plex key: ${context.itemKey})`,
+            )
+
+            const existingRequest =
+              await this.fastify.db.getApprovalRequestByContent(
+                context.userId,
+                contentKey,
+              )
+
+            this.log.debug(
+              `Existing request result: ${existingRequest ? `found with status ${existingRequest.status}` : 'not found'}`,
+            )
+
+            if (existingRequest) {
+              // Handle each status explicitly
+              switch (existingRequest.status) {
+                case 'pending':
+                  // Don't create duplicate, don't route
+                  this.log.info(
+                    `Pending approval request already exists for "${item.title}" by user ${context.userName || context.userId}`,
+                  )
+                  return { routedInstances: [] }
+
+                case 'approved':
+                  // Route using the approved decision
+                  this.log.info(
+                    `Using previously approved routing for "${item.title}" by user ${context.userName || context.userId}`,
+                  )
+                  return await this.routeUsingApprovedDecision(
+                    existingRequest,
+                    item,
+                    context,
+                  )
+
+                case 'rejected':
+                  // Respect the rejection, don't route, don't create duplicate
+                  this.log.info(
+                    `Content "${item.title}" was previously rejected for user ${context.userName || context.userId}, skipping routing`,
+                  )
+                  return { routedInstances: [] }
+
+                case 'expired':
+                  // Expired requests can be reprocessed - continue to create new approval request
+                  this.log.info(
+                    `Previous approval request for "${item.title}" by user ${context.userName || context.userId} has expired, allowing reprocessing`,
+                  )
+                  // Fall through to continue execution
+                  break
+
+                default:
+                  // For any other unknown status, don't create duplicate, don't route
+                  this.log.info(
+                    `Existing approval request found with status "${existingRequest.status}" for "${item.title}" by user ${context.userName || context.userId}, skipping routing`,
+                  )
+                  return { routedInstances: [] }
+              }
+            }
+          }
+
+          // Get all default routing decisions that would be made (default + synced instances)
+          const defaultRoutingDecisions =
+            await this.getDefaultRoutingDecisions(contentType)
+
+          if (defaultRoutingDecisions.length === 0) {
+            this.log.warn(
+              `No default instance available for ${contentType}, skipping approval check`,
+            )
+            // Continue to normal default routing which will handle the error
+          } else {
+            const approvalResult = await this.checkApprovalRequirements(
+              item,
+              context,
+              defaultRoutingDecisions,
+            )
+
+            if (approvalResult.required) {
+              this.log.info(
+                `Approval required for default routing of "${item.title}" by user ${context.userName || context.userId}: ${approvalResult.reason}`,
+              )
+
+              // Create approval request for default routing with actual routing decision
+              if (context.userId) {
+                this.log.debug(
+                  `Creating approval request with userId=${context.userId}, item.title="${item.title}", item.guids=${JSON.stringify(item.guids)}, context.itemKey=${context.itemKey}`,
+                )
+                const approvalRequest =
+                  await this.fastify.approvalService.createApprovalRequest(
+                    {
+                      id: context.userId,
+                      name: context.userName || `User ${context.userId}`,
+                    },
+                    item,
+                    {
+                      action: 'require_approval',
+                      approval: {
+                        reason: approvalResult.reason || 'Approval required',
+                        triggeredBy: approvalResult.trigger || 'manual_flag',
+                        data: approvalResult.data || {},
+                        proposedRouting:
+                          await this.createProposedRoutingDecision(
+                            defaultRoutingDecisions,
+                            contentType,
+                          ),
+                      },
+                    },
+                    approvalResult.trigger || 'manual_flag',
+                    approvalResult.reason,
+                    undefined,
+                    context.itemKey,
+                  )
+
+                // Auto-approve if bypass is enabled
+                if (approvalResult.data?.autoApprove) {
+                  this.log.info(
+                    `Auto-approving request ${approvalRequest.id} for user ${context.userId} due to bypass setting`,
+                  )
+
+                  // First approve the request
+                  const approvedRequest = await this.fastify.db.approveRequest(
+                    approvalRequest.id,
+                    context.userId,
+                    'Auto-approved (bypass enabled)',
+                  )
+
+                  if (approvedRequest) {
+                    // Then process the approved request
+                    await this.fastify.approvalService.processApprovedRequest(
+                      approvedRequest,
+                    )
+                  }
+
+                  // Continue with normal routing flow since it's been auto-approved
+                  const defaultRoutedInstances = await this.routeUsingDefault(
+                    item,
+                    key,
+                    contentType,
+                    context.userId,
+                    options.syncing,
+                  )
+                  return { routedInstances: defaultRoutedInstances }
+                }
+              }
+
+              // Return empty - content will not be routed until approved
+              return { routedInstances: [] }
+            }
+          }
+        } catch (error) {
+          this.log.error(
+            `Error checking approval requirements for default routing of "${item.title}":`,
+            error,
+          )
+          // Log the full error details for debugging
+          if (error instanceof Error) {
+            this.log.error(`Error details: ${error.message}`)
+            this.log.error(`Error stack: ${error.stack}`)
+          }
+          // On error, continue with normal default routing
+        }
+      }
+
       // Otherwise use default routing
       this.log.info(
         `No routing rules exist, using default routing for "${item.title}"`,
@@ -367,6 +551,83 @@ export class ContentRouterService {
         this.log.info(
           `No matching routing rules for "${item.title}", using default routing`,
         )
+
+        // Check for approval requirements before default routing
+        if (options.userId) {
+          const context: RoutingContext = {
+            userId: options.userId,
+            userName: options.userName,
+            itemKey: key,
+            contentType,
+            syncing: options.syncing,
+            syncTargetInstanceId: options.syncTargetInstanceId,
+          }
+
+          try {
+            // Get all default routing decisions that would be made
+            const defaultRoutingDecisions =
+              await this.getDefaultRoutingDecisions(contentType)
+
+            if (defaultRoutingDecisions.length > 0) {
+              const approvalResult = await this.checkApprovalRequirements(
+                item,
+                context,
+                defaultRoutingDecisions,
+              )
+
+              if (approvalResult.required) {
+                this.log.info(
+                  `Approval required for default routing of "${item.title}" by user ${context.userName || context.userId}: ${approvalResult.reason}`,
+                )
+
+                // Create approval request for default routing
+                if (context.userId) {
+                  const approvalRequest =
+                    await this.fastify.approvalService.createApprovalRequest(
+                      {
+                        id: context.userId,
+                        name: context.userName || `User ${context.userId}`,
+                      },
+                      item,
+                      {
+                        action: 'require_approval',
+                        approval: {
+                          reason: approvalResult.reason || 'Approval required',
+                          triggeredBy: approvalResult.trigger || 'manual_flag',
+                          data: approvalResult.data || {},
+                          proposedRouting:
+                            await this.createProposedRoutingDecision(
+                              defaultRoutingDecisions,
+                              contentType,
+                            ),
+                        },
+                      },
+                      approvalResult.trigger || 'manual_flag',
+                      approvalResult.reason,
+                      undefined,
+                      context.itemKey,
+                    )
+
+                  if (approvalRequest) {
+                    this.log.info(
+                      `New approval request created for "${item.title}" by user ${context.userId}`,
+                    )
+                  }
+                }
+
+                // Return empty - content will not be routed until approved
+                return { routedInstances: [] }
+              }
+            }
+          } catch (error) {
+            this.log.error(
+              `Error checking approval requirements for default routing of "${item.title}":`,
+              error,
+            )
+            // Continue with normal routing on error
+          }
+        }
+
         // Default routing will handle routing to default instance and any synced instances
         const defaultRoutedInstances = await this.routeUsingDefault(
           item,
@@ -383,11 +644,109 @@ export class ContentRouterService {
       return { routedInstances }
     }
 
-    // Step 4: Process decisions from evaluators
+    // Step 4: Check for approval requirements before processing routing decisions
 
-    // Sort decisions by priority (highest first) to ensure we process most important rules first
-    // This is crucial since we only route to each instance once (using the highest priority rule)
-    allDecisions.sort((a, b) => (b.priority || 50) - (a.priority || 50))
+    // If we have routing decisions and user context, check if approval is required
+    if (allDecisions.length > 0 && context.userId) {
+      try {
+        // Sort decisions by priority for approval checking
+        allDecisions.sort((a, b) => (b.priority || 50) - (a.priority || 50))
+
+        // Check if approval is required for these routing decisions
+        const approvalResult = await this.checkApprovalRequirements(
+          enrichedItem,
+          context,
+          allDecisions,
+        )
+
+        if (approvalResult.required) {
+          this.log.info(
+            `Approval required for "${enrichedItem.title}" by user ${context.userName || context.userId}: ${approvalResult.reason}`,
+          )
+
+          // Store the approval request with the highest priority routing decision
+          const primaryDecision = allDecisions[0] // Already sorted by priority
+
+          const approvalRequest =
+            await this.fastify.approvalService.createApprovalRequest(
+              {
+                id: context.userId,
+                name: context.userName || `User ${context.userId}`,
+              },
+              enrichedItem,
+              {
+                action: 'require_approval',
+                approval: {
+                  reason: approvalResult.reason || 'Approval required',
+                  triggeredBy: approvalResult.trigger || 'manual_flag',
+                  data: approvalResult.data || {},
+                  proposedRouting: primaryDecision
+                    ? {
+                        instanceId: primaryDecision.instanceId,
+                        instanceType:
+                          enrichedItem.type === 'movie' ? 'radarr' : 'sonarr',
+                        qualityProfile: primaryDecision.qualityProfile,
+                        rootFolder: primaryDecision.rootFolder,
+                        tags: primaryDecision.tags,
+                        priority: primaryDecision.priority,
+                        searchOnAdd: primaryDecision.searchOnAdd,
+                        seasonMonitoring: primaryDecision.seasonMonitoring,
+                        seriesType: primaryDecision.seriesType,
+                        minimumAvailability:
+                          primaryDecision.minimumAvailability,
+                      }
+                    : undefined,
+                },
+              },
+              approvalResult.trigger || 'manual_flag',
+              approvalResult.reason,
+              undefined,
+              context.itemKey,
+            )
+
+          // Auto-approve if bypass is enabled
+          if (approvalResult.data?.autoApprove) {
+            this.log.info(
+              `Auto-approving request ${approvalRequest.id} for user ${context.userId} due to bypass setting`,
+            )
+
+            // First approve the request
+            const approvedRequest = await this.fastify.db.approveRequest(
+              approvalRequest.id,
+              context.userId,
+              'Auto-approved (bypass enabled)',
+            )
+
+            if (approvedRequest) {
+              // Then process the approved request
+              await this.fastify.approvalService.processApprovedRequest(
+                approvedRequest,
+              )
+            }
+
+            // Continue with normal routing flow since it's been auto-approved
+            const routedInstanceIds = allDecisions.map((d) => d.instanceId)
+            return { routedInstances: routedInstanceIds }
+          }
+
+          // Return empty - content will not be routed until approved
+          return { routedInstances: [] }
+        }
+      } catch (error) {
+        this.log.error(
+          `Error checking approval requirements for "${enrichedItem.title}":`,
+          error,
+        )
+        // On error, continue with normal routing
+      }
+    }
+
+    // Step 5: Process decisions from evaluators (normal routing path)
+
+    // Sort decisions by priority if not already sorted from approval check
+    if (allDecisions.length > 0) {
+      allDecisions.sort((a, b) => (b.priority || 50) - (a.priority || 50))
+    }
 
     let routeCount = 0
 
@@ -475,6 +834,25 @@ export class ContentRouterService {
     this.log.info(
       `Successfully routed "${item.title}" to ${routeCount} instances`,
     )
+
+    // Record quota usage if user has quotas enabled and routing was successful
+    // Only count once per content item regardless of how many instances it was routed to
+    if (
+      options.userId &&
+      options.userId > 0 &&
+      !options.syncing &&
+      routedInstances.length > 0
+    ) {
+      const recorded = await this.fastify.quotaService.recordUsage(
+        options.userId,
+        contentType,
+      )
+      if (recorded) {
+        this.log.info(
+          `Recorded quota usage for user ${options.userId}: ${item.title}`,
+        )
+      }
+    }
 
     return { routedInstances }
   }
@@ -742,6 +1120,111 @@ export class ContentRouterService {
   }
 
   /**
+   * Generic routing method that handles both movie and show routing to multiple instances.
+   * Fetches appropriate instances, maps them by ID, and routes the item using the correct manager.
+   *
+   * @param contentType - Type of content ('movie' or 'show')
+   * @param item - The content item to route
+   * @param key - Unique identifier for the watchlist item
+   * @param userId - ID of the user who owns the watchlist item
+   * @param instanceIds - Array of instance IDs to route to
+   * @param syncing - Whether this is part of a sync operation
+   * @returns Promise resolving to array of instance IDs the item was successfully routed to
+   */
+  private async routeToInstances(
+    contentType: 'movie' | 'show',
+    item: ContentItem,
+    key: string,
+    userId: number,
+    instanceIds: number[],
+    syncing?: boolean,
+  ): Promise<number[]> {
+    const routedInstances: number[] = []
+
+    if (contentType === 'movie') {
+      const allInstances = await this.fastify.db.getAllRadarrInstances()
+      const instanceMap = new Map(
+        allInstances.map((instance) => [instance.id, instance]),
+      )
+
+      for (const instanceId of instanceIds) {
+        const instance = instanceMap.get(instanceId)
+        if (!instance) {
+          this.log.warn(`Radarr instance ${instanceId} not found – skipping`)
+          continue
+        }
+
+        try {
+          // Get the root folder for this instance (handling null case)
+          const rootFolder =
+            instance.rootFolder === null ? undefined : instance.rootFolder
+
+          // Route to the instance with its specific settings
+          await this.fastify.radarrManager.routeItemToRadarr(
+            item as RadarrItem,
+            key,
+            userId,
+            instanceId,
+            syncing,
+            rootFolder,
+            instance.qualityProfile,
+            instance.tags,
+            instance.searchOnAdd,
+            instance.minimumAvailability,
+          )
+          routedInstances.push(instanceId)
+        } catch (error) {
+          this.log.error(
+            `Error routing "${item.title}" to Radarr instance ${instanceId}:`,
+            error,
+          )
+          // Continue with other instances even if one fails
+        }
+      }
+    } else {
+      const allInstances = await this.fastify.db.getAllSonarrInstances()
+      const instanceMap = new Map(
+        allInstances.map((instance) => [instance.id, instance]),
+      )
+
+      for (const instanceId of instanceIds) {
+        const instance = instanceMap.get(instanceId)
+        if (!instance) {
+          this.log.warn(`Sonarr instance ${instanceId} not found – skipping`)
+          continue
+        }
+
+        try {
+          const rootFolder =
+            instance.rootFolder === null ? undefined : instance.rootFolder
+
+          await this.fastify.sonarrManager.routeItemToSonarr(
+            item as SonarrItem,
+            key,
+            userId,
+            instanceId,
+            syncing,
+            rootFolder,
+            instance.qualityProfile,
+            instance.tags,
+            instance.searchOnAdd,
+            instance.seasonMonitoring,
+          )
+          routedInstances.push(instanceId)
+        } catch (error) {
+          this.log.error(
+            `Error routing "${item.title}" to Sonarr instance ${instanceId}:`,
+            error,
+          )
+          // Continue with other instances even if one fails
+        }
+      }
+    }
+
+    return routedInstances
+  }
+
+  /**
    * Default routing method used when no evaluator rules match.
    * Routes content to the default instance for its type (Radarr/Sonarr),
    * and also to any instances that are configured as "synced instances" for the default.
@@ -764,233 +1247,33 @@ export class ContentRouterService {
     syncing?: boolean,
   ): Promise<number[]> {
     try {
-      const routedInstances: number[] = []
+      // Get all instances that should be routed to (using shared logic)
+      const instanceIds = await this.getDefaultRoutingInstanceIds(contentType)
+      if (instanceIds.length === 0) {
+        return []
+      }
 
-      // Handle movies and shows differently since they use different managers
-      if (contentType === 'movie') {
-        // Step 1: Get the default Radarr instance
-        let defaultInstance: RadarrInstance | null = null
-        try {
-          defaultInstance = await this.fastify.db.getDefaultRadarrInstance()
-          if (!defaultInstance) {
-            this.log.warn('No default Radarr instance found for routing')
-            return []
-          }
-        } catch (error) {
-          this.log.error(
-            `Database error getting default Radarr instance for "${item.title}":`,
-            error,
+      // Use the generic routing method
+      const routedInstances = await this.routeToInstances(
+        contentType,
+        item,
+        key,
+        userId,
+        instanceIds,
+        syncing,
+      )
+
+      // Record quota usage if user has quotas enabled and routing was successful
+      // Only count once per content item regardless of how many instances it was routed to
+      if (userId && userId > 0 && !syncing && routedInstances.length > 0) {
+        const recorded = await this.fastify.quotaService.recordUsage(
+          userId,
+          contentType,
+        )
+        if (recorded) {
+          this.log.info(
+            `Recorded quota usage for user ${userId}: ${item.title}`,
           )
-          return []
-        }
-
-        // Step 2: Route to the default instance
-        try {
-          await this.fastify.radarrManager.routeItemToRadarr(
-            item as RadarrItem,
-            key,
-            userId,
-            defaultInstance.id,
-            syncing,
-          )
-          routedInstances.push(defaultInstance.id)
-        } catch (error) {
-          this.log.error(
-            `Error routing "${item.title}" to default Radarr instance ${defaultInstance.id}:`,
-            error,
-          )
-        }
-
-        // Step 3: Check for and route to synced instances
-        // Parse the syncedInstances from the default instance (handling various formats)
-        const syncedInstanceIds = Array.isArray(defaultInstance.syncedInstances)
-          ? defaultInstance.syncedInstances
-          : typeof defaultInstance.syncedInstances === 'string'
-            ? (() => {
-                try {
-                  return JSON.parse(defaultInstance.syncedInstances || '[]')
-                } catch (e) {
-                  this.log.error(
-                    `Invalid syncedInstances JSON for instance ${defaultInstance.id}:`,
-                    e,
-                  )
-                  return []
-                }
-              })()
-            : []
-
-        // Only proceed if there are synced instances
-        if (syncedInstanceIds.length > 0) {
-          // Get all Radarr instances to look up details
-          let allInstances: RadarrInstance[] = []
-          try {
-            allInstances = await this.fastify.db.getAllRadarrInstances()
-          } catch (error) {
-            this.log.error(
-              `Failed to retrieve all Radarr instances for "${item.title}":`,
-              error,
-            )
-            // Continue with empty list if we can't get instances
-          }
-
-          const instanceMap = new Map(
-            allInstances.map((instance) => [instance.id, instance]),
-          )
-
-          // Process each synced instance
-          for (const rawId of syncedInstanceIds) {
-            const syncedId = Number(rawId)
-            if (Number.isNaN(syncedId)) {
-              this.log.warn(`Invalid synced instance ID "${rawId}" – skipping`)
-              continue
-            }
-
-            // Skip if we've already routed to this instance
-            if (routedInstances.includes(syncedId)) continue
-
-            // Get the synced instance details
-            const syncedInstance = instanceMap.get(syncedId)
-            if (!syncedInstance) {
-              this.log.warn(`Synced instance ${syncedId} not found – skipping`)
-              continue
-            }
-
-            try {
-              // Get the root folder for this instance (handling null case)
-              const rootFolder =
-                syncedInstance.rootFolder === null
-                  ? undefined
-                  : syncedInstance.rootFolder
-
-              // Route to the synced instance with its specific settings
-              await this.fastify.radarrManager.routeItemToRadarr(
-                item as RadarrItem,
-                key,
-                userId,
-                syncedId,
-                syncing,
-                rootFolder,
-                syncedInstance.qualityProfile,
-                syncedInstance.tags,
-                syncedInstance.searchOnAdd,
-                syncedInstance.minimumAvailability,
-              )
-              routedInstances.push(syncedId)
-            } catch (error) {
-              this.log.error(
-                `Error routing "${item.title}" to synced Radarr instance ${syncedId}:`,
-                error,
-              )
-              // Continue with other synced instances even if one fails
-            }
-          }
-        }
-      } else {
-        // TV shows - Similar implementation as movies but using Sonarr
-        // Step 1: Get the default Sonarr instance
-        let defaultInstance: SonarrInstance | null = null
-        try {
-          defaultInstance = await this.fastify.db.getDefaultSonarrInstance()
-          if (!defaultInstance) {
-            this.log.warn('No default Sonarr instance found for routing')
-            return []
-          }
-        } catch (error) {
-          this.log.error(
-            `Database error getting default Sonarr instance for "${item.title}":`,
-            error,
-          )
-          return []
-        }
-
-        // Step 2: Route to default instance
-        try {
-          await this.fastify.sonarrManager.routeItemToSonarr(
-            item as SonarrItem,
-            key,
-            userId,
-            defaultInstance.id,
-            syncing,
-          )
-          routedInstances.push(defaultInstance.id)
-        } catch (error) {
-          this.log.error(
-            `Error routing "${item.title}" to default Sonarr instance ${defaultInstance.id}:`,
-            error,
-          )
-        }
-
-        // Step 3: Handle synced instances like with Radarr
-        const syncedInstanceIds = Array.isArray(defaultInstance.syncedInstances)
-          ? defaultInstance.syncedInstances
-          : typeof defaultInstance.syncedInstances === 'string'
-            ? (() => {
-                try {
-                  return JSON.parse(defaultInstance.syncedInstances || '[]')
-                } catch (e) {
-                  this.log.error(
-                    `Invalid syncedInstances JSON for instance ${defaultInstance.id}:`,
-                    e,
-                  )
-                  return []
-                }
-              })()
-            : []
-
-        if (syncedInstanceIds.length > 0) {
-          let allInstances: SonarrInstance[] = []
-          try {
-            allInstances = await this.fastify.db.getAllSonarrInstances()
-          } catch (error) {
-            this.log.error(
-              `Failed to retrieve all Sonarr instances for "${item.title}":`,
-              error,
-            )
-            // Continue with empty list if we can't get instances
-          }
-
-          const instanceMap = new Map(
-            allInstances.map((instance) => [instance.id, instance]),
-          )
-
-          for (const rawId of syncedInstanceIds) {
-            const syncedId = Number(rawId)
-            if (Number.isNaN(syncedId)) {
-              this.log.warn(`Invalid synced instance ID "${rawId}" – skipping`)
-              continue
-            }
-
-            if (routedInstances.includes(syncedId)) continue
-
-            const syncedInstance = instanceMap.get(syncedId)
-            if (!syncedInstance) continue
-
-            try {
-              const rootFolder =
-                syncedInstance.rootFolder === null
-                  ? undefined
-                  : syncedInstance.rootFolder
-
-              await this.fastify.sonarrManager.routeItemToSonarr(
-                item as SonarrItem,
-                key,
-                userId,
-                syncedId,
-                syncing,
-                rootFolder,
-                syncedInstance.qualityProfile,
-                syncedInstance.tags,
-                syncedInstance.searchOnAdd,
-                syncedInstance.seasonMonitoring,
-              )
-              routedInstances.push(syncedId)
-            } catch (error) {
-              this.log.error(
-                `Error routing "${item.title}" to synced Sonarr instance ${syncedId}:`,
-                error,
-              )
-            }
-          }
         }
       }
 
@@ -1042,5 +1325,467 @@ export class ContentRouterService {
       supportedOperators: evaluator.supportedOperators || {},
       contentType: evaluator.contentType || 'both',
     }))
+  }
+
+  /**
+   * Checks if routing decisions require approval based on router rules and user quotas.
+   * This method evaluates approval criteria like user-based rules ("if user = 'User A' then require approval")
+   * and quota restrictions to determine if content should be held for admin review.
+   *
+   * @param item - The content item being routed
+   * @param context - The routing context with user information
+   * @param routingDecisions - The routing decisions that would be applied
+   * @returns Promise resolving to approval requirement result
+   */
+  private async checkApprovalRequirements(
+    item: ContentItem,
+    context: RoutingContext,
+    _routingDecisions: RoutingDecision[],
+  ): Promise<{
+    required: boolean
+    reason?: string
+    trigger?: import('@root/types/approval.types.js').ApprovalTrigger
+    data?: import('@root/types/approval.types.js').ApprovalData
+  }> {
+    if (!context.userId) {
+      return { required: false }
+    }
+
+    try {
+      // Get user information for later checks
+      const user = await this.fastify.db.getUser(context.userId)
+      if (!user) {
+        return { required: false }
+      }
+
+      // PRIORITY 1: Router Rules (absolute content policy - always checked first)
+      const allRouterRules = await this.fastify.db.getAllRouterRules()
+      let quotasBypassedByRule = false
+
+      for (const rule of allRouterRules) {
+        if (!rule.enabled) continue
+
+        // Check if this rule matches the current context
+        if (rule.criteria && typeof rule.criteria === 'object') {
+          try {
+            const condition = rule.criteria.condition as ConditionGroup
+            const matches = this.evaluateCondition(condition, item, context)
+
+            if (matches) {
+              // Track quota bypass for later use
+              if (rule.bypass_user_quotas) {
+                quotasBypassedByRule = true
+              }
+
+              // Router rule approval requirement trumps everything else
+              if (rule.always_require_approval) {
+                return {
+                  required: true,
+                  reason:
+                    rule.approval_reason ||
+                    `Approval required by router rule: ${rule.name}`,
+                  trigger: 'router_rule',
+                  data: {
+                    ruleId: rule.id,
+                    criteriaType: 'router_rule',
+                    criteriaValue: rule.name,
+                  },
+                }
+              }
+            }
+          } catch (error) {
+            this.log.error(`Error evaluating router rule ${rule.id}:`, error)
+          }
+        }
+      }
+
+      // PRIORITY 2: User requires_approval (user-level restriction)
+      if (user.requires_approval === true) {
+        return {
+          required: true,
+          reason: `User "${user.name}" requires approval for all content`,
+          trigger: 'manual_flag',
+          data: {
+            criteriaType: 'user_requires_approval',
+            criteriaValue: user.name,
+          },
+        }
+      }
+
+      // PRIORITY 3: Quota exceeded (resource management)
+      const userQuota = await this.fastify.db.getUserQuota(
+        context.userId,
+        item.type,
+      )
+      const userBypassesQuotas = userQuota?.bypassApproval || false
+
+      const quotaStatus = await this.fastify.quotaService.getUserQuotaStatus(
+        context.userId,
+        item.type,
+      )
+
+      if (quotaStatus) {
+        // Check if adding this item would exceed quota (predictive check)
+        const wouldExceedAfterAddition =
+          quotaStatus.currentUsage + 1 > quotaStatus.quotaLimit
+
+        if (wouldExceedAfterAddition) {
+          // Determine if this should be auto-approved due to bypass settings
+          const shouldAutoApprove = quotasBypassedByRule || userBypassesQuotas
+
+          // Show the "would-be" usage count (current + 1)
+          const wouldBeUsage = quotaStatus.currentUsage + 1
+
+          return {
+            required: true,
+            reason: shouldAutoApprove
+              ? `${quotaStatus.quotaType} quota would be exceeded (auto-approved due to bypass)`
+              : `${quotaStatus.quotaType} quota exceeded (${wouldBeUsage}/${quotaStatus.quotaLimit})`,
+            trigger: 'quota_exceeded',
+            data: {
+              quotaType: quotaStatus.quotaType,
+              quotaUsage: wouldBeUsage,
+              quotaLimit: quotaStatus.quotaLimit,
+              autoApprove: shouldAutoApprove,
+            },
+          }
+        }
+      }
+
+      return { required: false }
+    } catch (error) {
+      this.log.error('Error checking approval requirements:', error)
+      return { required: false }
+    }
+  }
+
+  /**
+   * Parses synced instances from various input formats
+   */
+  private parseSyncedInstances(
+    syncedInstances: number[] | string | null | undefined,
+  ): number[] {
+    if (Array.isArray(syncedInstances)) {
+      return syncedInstances
+    }
+    if (typeof syncedInstances === 'string') {
+      try {
+        return JSON.parse(syncedInstances || '[]')
+      } catch (e) {
+        this.log.error('Invalid syncedInstances JSON:', e)
+        return []
+      }
+    }
+    return []
+  }
+
+  /**
+   * Validates and filters synced instance IDs against available instances
+   */
+  private validateSyncedInstances<T extends { id: number }>(
+    syncedIds: number[],
+    allInstances: T[],
+    existingIds: number[],
+  ): number[] {
+    const instanceMap = new Map(
+      allInstances.map((instance) => [instance.id, instance]),
+    )
+    const validIds: number[] = []
+
+    for (const rawId of syncedIds) {
+      const syncedId = Number(rawId)
+      if (Number.isNaN(syncedId)) {
+        this.log.warn(`Invalid synced instance ID "${rawId}" – skipping`)
+        continue
+      }
+
+      // Skip if we've already included this instance
+      if (existingIds.includes(syncedId)) continue
+
+      // Check if the instance exists
+      const instance = instanceMap.get(syncedId)
+      if (!instance) {
+        this.log.warn(`Synced instance ${syncedId} not found – skipping`)
+        continue
+      }
+
+      validIds.push(syncedId)
+    }
+
+    return validIds
+  }
+
+  /**
+   * Gets default instance IDs for a specific content type
+   */
+  private async getDefaultInstanceIds(
+    contentType: 'movie' | 'show',
+  ): Promise<{ instanceIds: number[]; error?: string }> {
+    try {
+      const instanceIds: number[] = []
+
+      if (contentType === 'movie') {
+        const defaultInstance = await this.fastify.db.getDefaultRadarrInstance()
+        if (!defaultInstance) {
+          return { instanceIds: [], error: 'No default Radarr instance found' }
+        }
+
+        instanceIds.push(defaultInstance.id)
+        const syncedIds = this.parseSyncedInstances(
+          defaultInstance.syncedInstances,
+        )
+
+        if (syncedIds.length > 0) {
+          const allInstances = await this.fastify.db.getAllRadarrInstances()
+          const validSyncedIds = this.validateSyncedInstances(
+            syncedIds,
+            allInstances,
+            instanceIds,
+          )
+          instanceIds.push(...validSyncedIds)
+        }
+      } else {
+        const defaultInstance = await this.fastify.db.getDefaultSonarrInstance()
+        if (!defaultInstance) {
+          return { instanceIds: [], error: 'No default Sonarr instance found' }
+        }
+
+        instanceIds.push(defaultInstance.id)
+        const syncedIds = this.parseSyncedInstances(
+          defaultInstance.syncedInstances,
+        )
+
+        if (syncedIds.length > 0) {
+          const allInstances = await this.fastify.db.getAllSonarrInstances()
+          const validSyncedIds = this.validateSyncedInstances(
+            syncedIds,
+            allInstances,
+            instanceIds,
+          )
+          instanceIds.push(...validSyncedIds)
+        }
+      }
+
+      return { instanceIds }
+    } catch (error) {
+      this.log.error(`Error getting default ${contentType} instances:`, error)
+      return {
+        instanceIds: [],
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }
+    }
+  }
+
+  /**
+   * Gets all instances that would be used for default routing (default + synced instances)
+   * without actually executing the routing. This is a shared helper used by both
+   * actual routing and approval checking to ensure identical behavior.
+   *
+   * @param contentType - Type of content ('movie' or 'show')
+   * @returns Promise resolving to array of instance IDs that would be routed to
+   */
+  private async getDefaultRoutingInstanceIds(
+    contentType: 'movie' | 'show',
+  ): Promise<number[]> {
+    try {
+      const result = await this.getDefaultInstanceIds(contentType)
+      if (result.error) {
+        this.log.warn(result.error)
+      }
+      return result.instanceIds
+    } catch (error) {
+      this.log.error(
+        `Error in getting default routing instances for ${contentType}:`,
+        error,
+      )
+      return []
+    }
+  }
+
+  /**
+   * Gets all default routing decisions that would be made for the given content type
+   * without actually executing the routing. This includes the default instance plus
+   * any synced instances that would be automatically routed to.
+   *
+   * @param contentType - Type of content ('movie' or 'show')
+   * @returns Promise resolving to array of routing decisions (empty if no default instance)
+   */
+  private async getDefaultRoutingDecisions(
+    contentType: 'movie' | 'show',
+  ): Promise<RoutingDecision[]> {
+    try {
+      const instanceIds = await this.getDefaultRoutingInstanceIds(contentType)
+      if (instanceIds.length === 0) {
+        return []
+      }
+
+      const decisions: RoutingDecision[] = []
+
+      if (contentType === 'movie') {
+        const allInstances = await this.fastify.db.getAllRadarrInstances()
+        const instanceMap = new Map(
+          allInstances.map((instance) => [instance.id, instance]),
+        )
+
+        for (const instanceId of instanceIds) {
+          const instance = instanceMap.get(instanceId)
+          if (instance) {
+            decisions.push({
+              instanceId: instance.id,
+              qualityProfile: instance.qualityProfile || null,
+              rootFolder: instance.rootFolder || null,
+              tags: instance.tags || [],
+              priority: 50, // Default priority
+              searchOnAdd: instance.searchOnAdd ?? null,
+              minimumAvailability: instance.minimumAvailability || undefined,
+            })
+          }
+        }
+      } else {
+        const allInstances = await this.fastify.db.getAllSonarrInstances()
+        const instanceMap = new Map(
+          allInstances.map((instance) => [instance.id, instance]),
+        )
+
+        for (const instanceId of instanceIds) {
+          const instance = instanceMap.get(instanceId)
+          if (instance) {
+            decisions.push({
+              instanceId: instance.id,
+              qualityProfile: instance.qualityProfile || null,
+              rootFolder: instance.rootFolder || null,
+              tags: instance.tags || [],
+              priority: 50, // Default priority
+              searchOnAdd: instance.searchOnAdd ?? null,
+              seasonMonitoring: instance.seasonMonitoring || null,
+              seriesType: instance.seriesType || null,
+            })
+          }
+        }
+      }
+
+      return decisions
+    } catch (error) {
+      this.log.error(
+        `Error getting default routing decisions for ${contentType}:`,
+        error,
+      )
+      return []
+    }
+  }
+
+  /**
+   * Creates a proposed routing decision that includes primary instance and synced instances
+   */
+  private async createProposedRoutingDecision(
+    routingDecisions: RoutingDecision[],
+    contentType: 'movie' | 'show',
+  ): Promise<NonNullable<RouterDecision['approval']>['proposedRouting']> {
+    if (routingDecisions.length === 0) {
+      return undefined
+    }
+
+    // Use the primary routing decision (first one) as the base
+    const primaryDecision = routingDecisions[0]
+
+    // Extract synced instance IDs from the routing decisions (skip the first one which is primary)
+    const syncedInstances = routingDecisions
+      .slice(1)
+      .map((decision) => decision.instanceId)
+
+    return {
+      instanceId: primaryDecision.instanceId,
+      instanceType: contentType === 'movie' ? 'radarr' : 'sonarr',
+      qualityProfile: primaryDecision.qualityProfile,
+      rootFolder: primaryDecision.rootFolder,
+      tags: primaryDecision.tags,
+      priority: primaryDecision.priority,
+      searchOnAdd: primaryDecision.searchOnAdd,
+      seasonMonitoring: primaryDecision.seasonMonitoring,
+      seriesType: primaryDecision.seriesType,
+      minimumAvailability: primaryDecision.minimumAvailability,
+      syncedInstances: syncedInstances.length > 0 ? syncedInstances : undefined,
+    }
+  }
+
+  /**
+   * Routes content using a previously approved decision
+   */
+  private async routeUsingApprovedDecision(
+    approvedRequest: import('@root/types/approval.types.js').ApprovalRequest,
+    item: ContentItem,
+    context: RoutingContext,
+  ): Promise<{ routedInstances: number[] }> {
+    try {
+      const proposedRouting =
+        approvedRequest.proposedRouterDecision?.approval?.proposedRouting
+
+      if (!proposedRouting || !proposedRouting.instanceId) {
+        this.log.error(
+          'Approved request has invalid routing decision:',
+          approvedRequest,
+        )
+        return { routedInstances: [] }
+      }
+
+      const routedInstances: number[] = []
+      const instanceId = proposedRouting.instanceId
+      const contentType = approvedRequest.contentType
+
+      if (contentType === 'movie') {
+        try {
+          await this.fastify.radarrManager.routeItemToRadarr(
+            item as RadarrItem,
+            context.itemKey,
+            context.userId || 1,
+            instanceId,
+            context.syncing,
+            proposedRouting.rootFolder || undefined,
+            proposedRouting.qualityProfile,
+            proposedRouting.tags || [],
+            proposedRouting.searchOnAdd,
+            proposedRouting.minimumAvailability,
+          )
+          routedInstances.push(instanceId)
+          this.log.info(
+            `Successfully routed approved content "${item.title}" to Radarr instance ${instanceId}`,
+          )
+        } catch (error) {
+          this.log.error(
+            `Failed to route approved content "${item.title}" to Radarr instance ${instanceId}:`,
+            error,
+          )
+        }
+      } else {
+        try {
+          await this.fastify.sonarrManager.routeItemToSonarr(
+            item as SonarrItem,
+            context.itemKey,
+            context.userId || 1,
+            instanceId,
+            context.syncing,
+            proposedRouting.rootFolder || undefined,
+            proposedRouting.qualityProfile,
+            proposedRouting.tags || [],
+            proposedRouting.searchOnAdd,
+            proposedRouting.seasonMonitoring,
+          )
+          routedInstances.push(instanceId)
+          this.log.info(
+            `Successfully routed approved content "${item.title}" to Sonarr instance ${instanceId}`,
+          )
+        } catch (error) {
+          this.log.error(
+            `Failed to route approved content "${item.title}" to Sonarr instance ${instanceId}:`,
+            error,
+          )
+        }
+      }
+
+      return { routedInstances }
+    } catch (error) {
+      this.log.error('Error routing using approved decision:', error)
+      return { routedInstances: [] }
+    }
   }
 }

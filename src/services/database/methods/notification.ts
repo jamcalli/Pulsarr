@@ -18,12 +18,14 @@ import {
 } from '@root/utils/notification-processor.js'
 
 /**
- * Processes and creates notifications for users and public channels based on a media item's release.
+ * Processes media release notifications for users and public channels, creating notification records and updating watchlist statuses as appropriate.
  *
- * For each relevant watchlist item, determines user notification preferences and media status, then creates notification records and updates watchlist status within a transaction. Also handles creation of public content notifications if enabled and not previously sent.
+ * For each relevant watchlist item, determines user notification preferences and media status, updates the watchlist item to "notified," and creates a notification record if needed. Also handles creation of public content notifications if enabled and not previously sent. Associates notifications with specific Sonarr or Radarr instances when provided.
  *
- * @param mediaInfo - Details about the media item, including type, GUID, title, and optional episode data
+ * @param mediaInfo - Information about the media item, including type, GUID, title, and optional episode details
  * @param isBulkRelease - Indicates if the release is a bulk release (such as a full season)
+ * @param instanceId - Optional Sonarr or Radarr instance ID to associate with the notification
+ * @param instanceType - Optional instance type ('sonarr' or 'radarr') corresponding to the instance ID
  * @returns An array of notification results containing user and notification details
  */
 export async function processNotifications(
@@ -35,6 +37,8 @@ export async function processNotifications(
     episodes?: SonarrEpisodeSchema[]
   },
   isBulkRelease: boolean,
+  instanceId?: number,
+  instanceType?: 'sonarr' | 'radarr',
 ): Promise<NotificationResult[]> {
   const watchlistItems = await this.getWatchlistItemsByGuid(mediaInfo.guid)
   const notifications: NotificationResult[] = []
@@ -58,6 +62,7 @@ export async function processNotifications(
         notify_tautulli: Boolean(row.notify_tautulli),
         tautulli_notifier_id: row.tautulli_notifier_id,
         can_sync: Boolean(row.can_sync),
+        requires_approval: Boolean(row.requires_approval),
         is_primary_token: Boolean(row.is_primary_token),
         created_at: row.created_at,
         updated_at: row.updated_at,
@@ -110,20 +115,30 @@ export async function processNotifications(
     const itemId =
       typeof item.id === 'string' ? Number.parseInt(item.id, 10) : item.id
 
-    // Update watchlist item status, record history, and create notification atomically
+    // Update watchlist item status using proper updateWatchlistItem method
+    // This will record status history and update junction tables properly
+    const updateData: {
+      status: 'notified'
+      last_notified_at: string
+      radarr_instance_id?: number
+      sonarr_instance_id?: number
+    } = {
+      status: 'notified',
+      last_notified_at: new Date().toISOString(),
+    }
+
+    // Add instance ID to update if provided
+    if (instanceId && instanceType === 'radarr') {
+      updateData.radarr_instance_id = instanceId
+    } else if (instanceId && instanceType === 'sonarr') {
+      updateData.sonarr_instance_id = instanceId
+    }
+
+    await this.updateWatchlistItem(item.user_id, item.key, updateData)
+
+    // Create notification record atomically
     let notificationCreated = false
     await this.knex.transaction(async (trx) => {
-      await trx('watchlist_items').where('id', item.id).update({
-        last_notified_at: new Date().toISOString(),
-        status: 'notified',
-      })
-
-      await trx('watchlist_status_history').insert({
-        watchlist_item_id: item.id,
-        status: 'notified',
-        timestamp: new Date().toISOString(),
-      })
-
       // Create the notification within the same transaction
       let notificationResult = null
       if (contentType === 'movie') {
@@ -654,10 +669,10 @@ export async function getPendingWebhooks(
 }
 
 /**
- * Deletes a pending webhook notification by its ID.
+ * Deletes a pending webhook by its unique ID.
  *
- * @param id - The unique identifier of the pending webhook to delete.
- * @returns True if a webhook was deleted; false if no matching record was found.
+ * @param id - The ID of the pending webhook to delete.
+ * @returns True if a webhook was deleted; false if no matching webhook was found.
  */
 export async function deletePendingWebhook(
   this: DatabaseService,
@@ -668,9 +683,9 @@ export async function deletePendingWebhook(
 }
 
 /**
- * Deletes all pending webhooks that have expired.
+ * Deletes all expired pending webhooks from the database.
  *
- * @returns The number of expired pending webhooks deleted
+ * @returns The number of pending webhooks that were deleted
  */
 export async function cleanupExpiredWebhooks(
   this: DatabaseService,
@@ -680,6 +695,55 @@ export async function cleanupExpiredWebhooks(
     .delete()
 
   return deleted
+}
+
+/**
+ * Adds a status history entry for a watchlist item at a given timestamp, ensuring no duplicate status entries are created.
+ *
+ * Intended for use when backfilling missing status transitions detected during synchronization.
+ *
+ * @param watchlistItemId - The ID of the watchlist item to record the status for
+ * @param status - The status to record ('pending', 'requested', 'grabbed', or 'notified')
+ * @param timestamp - The ISO timestamp representing when the status change occurred
+ */
+export async function addStatusHistoryEntry(
+  this: DatabaseService,
+  watchlistItemId: number,
+  status: 'pending' | 'requested' | 'grabbed' | 'notified',
+  timestamp: string,
+): Promise<void> {
+  try {
+    // Check if this status entry already exists to avoid duplicates
+    const existing = await this.knex('watchlist_status_history')
+      .where({
+        watchlist_item_id: watchlistItemId,
+        status: status,
+      })
+      .first()
+
+    if (existing) {
+      this.log.debug(
+        `Status '${status}' already exists for watchlist item ${watchlistItemId}, skipping`,
+      )
+      return
+    }
+
+    await this.knex('watchlist_status_history').insert({
+      watchlist_item_id: watchlistItemId,
+      status: status,
+      timestamp: timestamp,
+    })
+
+    this.log.debug(
+      `Added status history entry: watchlist_item_id=${watchlistItemId}, status='${status}', timestamp='${timestamp}'`,
+    )
+  } catch (error) {
+    this.log.error(
+      `Error adding status history entry for watchlist item ${watchlistItemId}:`,
+      error,
+    )
+    throw error
+  }
 }
 
 /**

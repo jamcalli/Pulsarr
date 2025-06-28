@@ -51,7 +51,11 @@ import {
 } from '@/components/ui/tag-multi-select'
 import { useConfigStore } from '@/stores/configStore'
 import { TagCreationDialog } from '@/components/ui/tag-creation-dialog'
-import { SONARR_SERIES_TYPES, SERIES_TYPE_LABELS } from '../../constants'
+import {
+  SONARR_SERIES_TYPES,
+  SERIES_TYPE_LABELS,
+} from '@/features/sonarr/constants'
+import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
 
 interface InstanceCardProps {
   instance: SonarrInstance
@@ -61,13 +65,11 @@ interface InstanceCardProps {
 /**
  * Renders an interactive configuration card for a Sonarr instance, enabling users to view, edit, test, sync, and delete instance settings.
  *
- * Provides a comprehensive form for managing connection details, quality profile, root folder, monitoring and search options, tag management, season monitoring, series type, syncing with other instances, and default instance selection. Integrates with global state and supports asynchronous operations for testing connections, saving changes, syncing, deleting, and refreshing tags. User feedback is provided through toasts and modals.
+ * The card provides a comprehensive form for managing connection details, quality profiles, root folders, monitoring and search options, tag management, season monitoring, series type, syncing with other instances, and default instance selection. It integrates with global state and supports asynchronous operations for connection testing, saving, syncing, deleting, and tag refreshing. User feedback is provided through toasts and modals.
  *
  * @param instance - The Sonarr instance to display and configure.
  * @param setShowInstanceCard - Optional callback to control the visibility of the card.
  * @returns The Sonarr instance configuration card UI.
- *
- * @remark If the instance is incomplete but has a valid connection, the form is automatically marked as dirty to preserve editing state. If updating the default instance results in a conflict, the form resets the `isDefault` field to its original value and displays the error message.
  */
 export function InstanceCard({
   instance,
@@ -281,7 +283,7 @@ export function InstanceCard({
         onConfirm={handleDelete}
         instanceName={instance.name}
         isLastInstance={
-          instances.filter((i) => i.apiKey !== 'placeholder').length === 1
+          instances.filter((i) => i.apiKey !== API_KEY_PLACEHOLDER).length === 1
         }
       />
       <SonarrSyncModal

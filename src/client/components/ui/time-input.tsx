@@ -7,7 +7,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 
 interface TimeSelectorProps {
   value?: Date;
@@ -34,15 +34,15 @@ const DAYS_OF_WEEK: DayOption[] = [
 ];
 
 /**
- * A React component that renders selectable time and day options.
+ * A React component that provides dropdown selectors for choosing a day of the week and a time in 15-minute intervals.
  *
- * Displays two dropdown menus: one for choosing a day of the week from a predefined list and another for selecting a time in 15-minute intervals. The displayed time is formatted as "HH:mm" from an optional date value; if no date is provided, it defaults to "00:00". When the time or day is changed, the component invokes the onChange callback with the new Date (or current date) and the selected day.
+ * Users can select a day and a time, and the component invokes the provided callback with the updated Date and selected day string. If the initial date is missing or invalid, the time defaults to "00:00". Both selectors can be disabled, and custom CSS classes can be applied to the container.
  *
- * @param value - Optional date used to initialize the time display.
- * @param onChange - Callback invoked with the updated Date and selected day when a change is made.
- * @param disabled - Optional flag to disable both dropdown menus.
- * @param className - Optional additional CSS classes for styling.
- * @param dayOfWeek - Optional initial day selection; defaults to '*'.
+ * @param value - The initial date used to display the selected time, if valid.
+ * @param onChange - Callback called with the new Date and selected day string when a selection changes.
+ * @param disabled - Disables both dropdown selectors when true.
+ * @param className - Additional CSS classes for the container.
+ * @param dayOfWeek - The initial day selection; defaults to '*'.
  */
 export function TimeSelector({ 
   value, 
@@ -53,7 +53,7 @@ export function TimeSelector({
 }: TimeSelectorProps) {
   // Format the time value as "HH:MM"
   const formatTimeValue = (date?: Date): string => {
-    if (!date) return "00:00";
+    if (!date || !isValid(date)) return "00:00";
     return format(date, "HH:mm");
   };
   
