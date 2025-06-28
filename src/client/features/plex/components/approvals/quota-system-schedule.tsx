@@ -22,9 +22,18 @@ interface QuotaSystemScheduleProps {
 }
 
 /**
- * Renders a configuration interface for setting the time and day of the quota maintenance schedule.
+ * Displays a user interface for configuring the quota maintenance schedule, allowing selection of the maintenance time and day, and saving changes.
  *
- * Allows users to select when the quota maintenance job should run, displays the current schedule if available, and provides controls to save changes. Disables configuration if the schedule is not enabled or the component is loading.
+ * Shows the current schedule and cron expression if available, and disables configuration controls when the schedule is not enabled or the component is loading. Displays a warning if schedule configuration is unavailable.
+ *
+ * @param scheduleTime - The currently selected time for the quota maintenance job, or undefined if not set.
+ * @param dayOfWeek - The selected day of the week for the job, or '*' for every day.
+ * @param onTimeChange - Callback invoked when the time or day selection changes.
+ * @param onSave - Async callback to save the schedule configuration, returning a boolean.
+ * @param job - The current job status, including type and configuration, or null/undefined if not present.
+ * @param isLoading - Indicates if the component is in a loading state.
+ * @param isScheduleEnabled - Indicates if the quota maintenance schedule is enabled.
+ * @returns The rendered quota schedule configuration UI.
  */
 export function QuotaSystemSchedule({
   scheduleTime,

@@ -22,11 +22,11 @@ interface QuotaFormData {
 }
 
 /**
- * Provides quota management functionality for users, including saving, updating, deleting, and retrieving quota settings for movies and shows.
+ * React hook for managing user quota settings for movies and shows, including saving, updating, deleting, and retrieving quota information.
  *
- * Returns state and functions to manage user quotas, including tracking the status of save operations, performing quota updates or deletions based on form data, and fetching current quota status.
+ * Provides state and functions to handle quota operations, track the status of save actions, and fetch the current quota status for a user.
  *
- * @returns An object containing the current save status, a function to save quota settings, a setter for save status, and a function to retrieve quota status for a user.
+ * @returns An object containing the current save status, a function to save or update quota settings, a setter for save status, and a function to retrieve a user's quota status.
  */
 export function useQuotaManagement() {
   const refreshQuotaData = useConfigStore((state) => state.refreshQuotaData)

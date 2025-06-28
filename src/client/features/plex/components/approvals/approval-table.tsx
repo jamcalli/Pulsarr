@@ -43,18 +43,18 @@ interface ApprovalTableProps {
 }
 
 /**
- * Displays a paginated, sortable, and filterable table of approval requests with support for row selection and bulk actions.
+ * Renders an interactive table for approval requests with sorting, filtering, pagination, column visibility, and row selection.
  *
- * Renders approval request data in a table with customizable columns, filtering (including date range and status), sorting, and pagination. Provides action handlers for approving, rejecting, viewing, and deleting individual requests, as well as optional bulk actions on selected rows. Shows a loading skeleton when data is loading and displays contextual messages when no data matches the current filters.
+ * Supports individual and bulk actions on approval requests, including approve, reject, view, and delete. Provides a loading skeleton during data fetches and contextual empty state messaging. Filtering includes status and date range, with visual indication for expired requests.
  *
- * @param data - Array of approval request objects to display in the table.
- * @param onApprove - Callback invoked when an approval request is approved.
- * @param onReject - Callback invoked when an approval request is rejected.
- * @param onView - Callback invoked when an approval request is viewed.
- * @param onDelete - Callback invoked when an approval request is deleted.
- * @param isLoading - Optional flag to display a loading state.
+ * @param data - The approval request records to display.
+ * @param onApprove - Invoked when an approval request is approved.
+ * @param onReject - Invoked when an approval request is rejected.
+ * @param onView - Invoked when an approval request is viewed.
+ * @param onDelete - Invoked when an approval request is deleted.
+ * @param isLoading - If true, displays a loading skeleton instead of table data.
  * @param onBulkActions - Optional callback for performing actions on selected rows.
- * @returns The rendered approval requests table component.
+ * @returns The approval requests table component.
  */
 export function ApprovalTable({
   data,

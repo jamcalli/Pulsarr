@@ -7,7 +7,7 @@ import type { JobStatus } from '@root/schemas/scheduler/scheduler.schema'
 /**
  * React hook for managing approval and quota maintenance job schedules.
  *
- * Provides state and handlers for displaying, configuring, enabling/disabling, and running approval-maintenance (interval-based) and quota-maintenance (time-based) jobs. Integrates with a scheduler backend to fetch, update, and control job schedules, including parsing and generating cron expressions, formatting run times, and managing loading and error states. Exposes all necessary data and actions for use in scheduling UI components.
+ * Handles state and provides utilities for configuring, enabling/disabling, and running approval-maintenance (interval-based) and quota-maintenance (time-based) jobs. Integrates with a backend scheduler to fetch, update, and control job schedules, including parsing and generating cron expressions, formatting run times, and managing loading and error states. Returns all relevant job data, configuration states, formatting helpers, and action handlers for use in scheduling UI components.
  *
  * @returns An object containing job data, schedule configuration states, loading and error states, formatting utilities, and action handlers for interacting with approval and quota maintenance schedules.
  */

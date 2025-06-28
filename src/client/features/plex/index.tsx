@@ -9,9 +9,9 @@ import SetupModal from '@/features/plex/components/setup/setup-modal'
 import { usePlexSetup } from '@/features/plex/hooks/usePlexSetup'
 
 /**
- * Renders the Plex configuration page with connection settings, user management, and approval management in a tabbed interface.
+ * Displays the Plex configuration page with connection settings, user management, and approval management organized in tabs.
  *
- * Displays a setup modal if Plex tokens are missing from the configuration.
+ * Shows a setup modal if Plex tokens are missing from the configuration.
  */
 export default function PlexConfigPage() {
   const config = useConfigStore((state) => state.config)

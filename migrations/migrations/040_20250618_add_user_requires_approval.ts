@@ -1,9 +1,9 @@
 import type { Knex } from 'knex'
 
 /**
- * Adds a boolean `requires_approval` column to the `users` table to indicate if a user requires approval for all content requests.
+ * Adds the `requires_approval` boolean column to the `users` table, defaulting to `false` and indexed for efficient filtering.
  *
- * The new column defaults to `false` and is indexed to optimize queries filtering by approval requirement. This migration enables user-level approval enforcement, independent of quota or router rules.
+ * This migration enables tracking whether a user requires approval for all content requests, supporting user-level approval enforcement.
  */
 export async function up(knex: Knex): Promise<void> {
   // Add requires_approval field to users table
@@ -14,7 +14,7 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Reverts the migration by removing the `requires_approval` column and its index from the `users` table.
+ * Removes the `requires_approval` column and its index from the `users` table, undoing the migration changes.
  */
 export async function down(knex: Knex): Promise<void> {
   // Remove requires_approval field from users table

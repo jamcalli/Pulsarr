@@ -63,7 +63,7 @@ interface InstanceCardProps {
 }
 
 /**
- * Displays an interactive card for configuring a Sonarr instance, allowing users to view, edit, test, sync, and delete instance settings.
+ * Renders an interactive configuration card for a Sonarr instance, enabling users to view, edit, test, sync, and delete instance settings.
  *
  * The card provides a comprehensive form for managing connection details, quality profiles, root folders, monitoring and search options, tag management, season monitoring, series type, syncing with other instances, and default instance selection. It integrates with global state and supports asynchronous operations for connection testing, saving, syncing, deleting, and tag refreshing. User feedback is provided through toasts and modals.
  *

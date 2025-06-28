@@ -20,11 +20,11 @@ interface DataTablePaginationProps<TData> {
 }
 
 /**
- * Renders pagination controls and selection status for a data table.
+ * Displays pagination controls and selection status for a data table managed by `@tanstack/react-table`.
  *
- * Displays the number of selected rows, allows users to select the number of rows per page, shows the current page and total page count, and provides navigation buttons to move between pages. The UI adapts responsively for different screen sizes and updates the table state via the provided table instance.
+ * Shows the number of selected rows, allows users to choose the number of rows per page, displays the current page and total page count, and provides navigation buttons for paging. The layout adapts responsively for different screen sizes and updates the table state through the provided table instance.
  *
- * @param table - The table instance to control pagination and selection display for.
+ * @param table - The data table instance whose pagination and selection state are controlled and displayed.
  */
 export function DataTablePagination<TData>({
   table,

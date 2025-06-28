@@ -43,11 +43,12 @@ function mapRowToQuotaUsage(row: QuotaUsageRow): QuotaUsage {
 }
 
 /**
- * Returns the start and end date strings for quota calculations based on the specified quota type.
+ * Calculates the start and end date strings for a quota period based on the given quota type.
  *
- * For 'daily', both start and end are set to the current local date. For 'weekly_rolling', the start is set to seven days ago (including today). For 'monthly', the start is the first day of the current month. The end date is always the current local date.
+ * For 'daily', both start and end are set to the current local date. For 'weekly_rolling', the start is seven days ago (including today). For 'monthly', the start is the first day of the current month. The end date is always the current local date.
  *
- * @returns An object containing the start and end date strings for the quota period.
+ * @returns An object with `start` and `end` date strings representing the quota period.
+ * @throws If an unsupported quota type is provided.
  */
 async function getDateRange(
   this: DatabaseService,
@@ -82,11 +83,11 @@ async function getDateRange(
 }
 
 /**
- * Returns the next scheduled reset date for the specified quota type, based on the maintenance schedule.
+ * Retrieves the next reset date for a given quota type based on the maintenance schedule.
  *
- * For 'daily', 'monthly', and 'weekly_rolling' quota types, the reset date is determined by the next maintenance run. Returns undefined for unknown quota types.
+ * For 'daily', 'monthly', and 'weekly_rolling' quota types, returns the date of the next scheduled maintenance run. Returns undefined for unsupported quota types.
  *
- * @returns The next reset date, or undefined if not applicable.
+ * @returns The next reset date, or undefined if the quota type is not recognized.
  */
 async function getNextResetDate(
   this: DatabaseService,
@@ -112,10 +113,10 @@ async function getNextResetDate(
 }
 
 /**
- * Inserts a new quota configuration for a user and content type into the database.
+ * Creates a new user quota configuration for a specific content type.
  *
- * @param data - The quota configuration details to create, including user ID, content type, quota type, limit, and optional bypass approval flag.
- * @returns The created user quota configuration object.
+ * @param data - The details for the new quota configuration, including user ID, content type, quota type, limit, and optional bypass approval flag.
+ * @returns The newly created user quota configuration.
  */
 export async function createUserQuota(
   this: DatabaseService,
@@ -137,9 +138,9 @@ export async function createUserQuota(
 }
 
 /**
- * Retrieves the quota configuration for a user and content type.
+ * Returns the quota configuration for a user and content type, or null if not found.
  *
- * @returns The user's quota configuration for the specified content type, or null if none exists.
+ * @returns The quota configuration for the specified user and content type, or null if none exists.
  */
 export async function getUserQuota(
   this: DatabaseService,
@@ -154,10 +155,10 @@ export async function getUserQuota(
 }
 
 /**
- * Retrieves all quota configurations for a user, returning both movie and show quotas if available.
+ * Retrieves all quota configurations for a user, including separate configurations for movies and shows if present.
  *
- * @param userId - The ID of the user whose quota configurations are being retrieved
- * @returns An object containing the user's ID and optional movie and show quota configurations
+ * @param userId - The user ID to fetch quota configurations for
+ * @returns An object containing the user ID and the user's movie and show quota configurations, if available
  */
 export async function getUserQuotas(
   this: DatabaseService,
@@ -178,12 +179,12 @@ export async function getUserQuotas(
 }
 
 /**
- * Updates the quota configuration for a user and content type with the provided data.
+ * Updates a user's quota configuration for a specific content type with new values.
  *
- * @param userId - The ID of the user whose quota is being updated
+ * @param userId - The user whose quota configuration will be updated
  * @param contentType - The content type ('movie' or 'show') for which the quota applies
- * @param data - The fields to update in the user's quota configuration
- * @returns The updated user quota configuration, or null if no matching record was found
+ * @param data - The fields to update in the quota configuration
+ * @returns The updated quota configuration, or null if no matching record exists
  */
 export async function updateUserQuota(
   this: DatabaseService,
@@ -211,11 +212,11 @@ export async function updateUserQuota(
 }
 
 /**
- * Deletes a user's quota configuration for a specific content type.
+ * Removes the quota configuration for a user and specified content type.
  *
- * @param userId - The ID of the user whose quota configuration will be deleted
- * @param contentType - The content type ('movie' or 'show') for which the quota configuration will be deleted
- * @returns True if a quota configuration was deleted, otherwise false
+ * @param userId - The user ID whose quota configuration should be removed
+ * @param contentType - The content type ('movie' or 'show') associated with the quota configuration
+ * @returns True if a quota configuration was removed; false if none existed
  */
 export async function deleteUserQuota(
   this: DatabaseService,
@@ -230,10 +231,10 @@ export async function deleteUserQuota(
 }
 
 /**
- * Removes all quota configurations associated with a specific user.
+ * Deletes all quota configurations for the specified user.
  *
- * @param userId - The ID of the user whose quota configurations will be deleted
- * @returns True if any quota configurations were deleted, otherwise false
+ * @param userId - The ID of the user whose quota configurations are to be removed
+ * @returns True if one or more quota configurations were deleted; otherwise, false
  */
 export async function deleteAllUserQuotas(
   this: DatabaseService,
@@ -246,12 +247,12 @@ export async function deleteAllUserQuotas(
 }
 
 /**
- * Inserts a quota usage record for a user and content type at the specified or current date.
+ * Records a quota usage entry for a user and content type on a specified or current date.
  *
- * @param userId - The ID of the user whose usage is being recorded
- * @param contentType - The type of content for which the quota usage is recorded ('movie' or 'show')
- * @param requestDate - The date of the quota usage; defaults to the current date if not provided
- * @returns The recorded quota usage entry
+ * @param userId - The user ID for whom the usage is recorded
+ * @param contentType - The content type ('movie' or 'show') associated with the usage
+ * @param requestDate - The date of usage; uses the current date if not provided
+ * @returns The created quota usage record
  */
 export async function recordQuotaUsage(
   this: DatabaseService,
@@ -276,11 +277,11 @@ export async function recordQuotaUsage(
 }
 
 /**
- * Returns the number of quota usage records for a user within the current quota period.
+ * Counts the number of quota usage records for a user within the current quota period.
  *
- * Counts usage entries for the specified user and quota type, optionally filtered by content type, within the relevant date range for the quota period.
+ * Calculates usage for the specified user and quota type, optionally filtered by content type, based on the relevant date range for the quota period.
  *
- * @returns The count of usage records for the user in the current quota period
+ * @returns The number of usage records for the user in the current quota period
  */
 export async function getCurrentQuotaUsage(
   this: DatabaseService,
@@ -303,11 +304,13 @@ export async function getCurrentQuotaUsage(
 }
 
 /**
- * Retrieves the quota status for a user and content type, including current usage, limit, whether the quota is exceeded, reset date, and bypass approval flag.
+ * Retrieves the current quota status for a user and content type.
  *
- * @param userId - The ID of the user whose quota status is being retrieved
- * @param contentType - The content type ('movie' or 'show') for which to check the quota
- * @returns The quota status object if a quota configuration exists, or null if not found
+ * Returns an object containing the quota type, usage limit, current usage count, whether the quota is exceeded, the next reset date (if available), and the bypass approval flag. Returns null if no quota configuration exists for the user and content type.
+ *
+ * @param userId - The user ID to check quota status for
+ * @param contentType - The content type ('movie' or 'show') to check
+ * @returns The quota status object, or null if no quota configuration is found
  */
 export async function getQuotaStatus(
   this: DatabaseService,
@@ -341,11 +344,11 @@ export async function getQuotaStatus(
 /**
  * Retrieves quota status for multiple users in a single batch operation.
  *
- * For each user ID, returns the user's quota configuration and current usage for the specified content type (if provided), including whether the quota is exceeded and the next reset date. Users without a quota configuration receive a `null` quota status.
+ * For each user ID, returns the user's quota status for the specified content type, including current usage, limit, exceeded flag, next reset date, and bypass approval flag. If a user has no quota configuration, their quota status is `null`.
  *
- * @param userIds - Array of user IDs to check quota status for
- * @param contentType - Optional content type to filter quotas and usage ('movie' or 'show')
- * @returns An array of objects containing each user ID and their corresponding quota status or null if no quota is configured
+ * @param userIds - List of user IDs to retrieve quota status for
+ * @param contentType - Optional content type to filter by ('movie' or 'show')
+ * @returns An array of objects with each user ID and their corresponding quota status or null if not configured
  */
 export async function getBulkQuotaStatus(
   this: DatabaseService,
@@ -471,11 +474,11 @@ export async function getBulkQuotaStatus(
 }
 
 /**
- * Determines if a user's quota has been exceeded for a specific content type.
+ * Checks whether a user's quota has been exceeded for the specified content type.
  *
- * Returns a `QuotaExceeded` object with details if the quota is exceeded, or `null` if not exceeded or if no content type is provided.
+ * Returns a `QuotaExceeded` object with quota type, limit, usage, and exceeded flag if the quota is exceeded; otherwise returns `null`. If no content type is provided, always returns `null`.
  *
- * @returns A `QuotaExceeded` object if the quota is exceeded, otherwise `null`.
+ * @returns A `QuotaExceeded` object if the user's quota is exceeded for the given content type, or `null` if not exceeded or if content type is not specified.
  */
 export async function checkQuotaExceeded(
   this: DatabaseService,
@@ -500,9 +503,9 @@ export async function checkQuotaExceeded(
 }
 
 /**
- * Retrieves all user quota configurations from the database.
+ * Retrieves all user quota configurations.
  *
- * @returns An array of user quota configuration objects.
+ * @returns An array of all user quota configuration objects in the system.
  */
 export async function getUsersWithQuotas(
   this: DatabaseService,
@@ -512,15 +515,15 @@ export async function getUsersWithQuotas(
 }
 
 /**
- * Retrieves a user's quota usage records filtered by optional date range, content type, and pagination.
+ * Retrieves quota usage records for a user, optionally filtered by date range, content type, and paginated.
  *
- * @param userId - The ID of the user whose quota usage history is requested
- * @param startDate - Optional start date to filter usage records (inclusive)
- * @param endDate - Optional end date to filter usage records (inclusive)
- * @param contentType - Optional content type filter ('movie' or 'show')
+ * @param userId - The user ID to retrieve usage history for
+ * @param startDate - If provided, only records on or after this date are included
+ * @param endDate - If provided, only records on or before this date are included
+ * @param contentType - If provided, filters records by content type ('movie' or 'show')
  * @param limit - Maximum number of records to return (default: 50)
  * @param offset - Number of records to skip for pagination (default: 0)
- * @returns An array of quota usage records matching the specified filters
+ * @returns An array of quota usage records matching the filters
  */
 export async function getQuotaUsageHistory(
   this: DatabaseService,
@@ -557,13 +560,13 @@ export async function getQuotaUsageHistory(
 }
 
 /**
- * Returns the total number of quota usage records for a user, optionally filtered by date range and content type.
+ * Counts the number of quota usage records for a user, with optional filtering by date range and content type.
  *
- * @param userId - The ID of the user whose quota usage records are counted
- * @param startDate - Optional start date to filter records from this date onward
- * @param endDate - Optional end date to filter records up to this date
- * @param contentType - Optional content type ('movie' or 'show') to filter records
- * @returns The count of matching quota usage records
+ * @param userId - The user ID to count usage records for
+ * @param startDate - If provided, only records on or after this date are counted
+ * @param endDate - If provided, only records on or before this date are counted
+ * @param contentType - If provided, only records matching this content type ('movie' or 'show') are counted
+ * @returns The total count of matching quota usage records
  */
 export async function getQuotaUsageHistoryCount(
   this: DatabaseService,
@@ -595,13 +598,13 @@ export async function getQuotaUsageHistoryCount(
 }
 
 /**
- * Returns daily aggregated usage statistics for a user over a specified number of days.
+ * Retrieves daily aggregated quota usage statistics for a user over a specified number of days.
  *
- * Each entry includes the date, counts of movies and shows used, and the total usage for that day.
+ * Each result includes the date, the number of movies and shows used, and the total usage for that day. Days with no usage are included with zero counts. Results are sorted by date in descending order.
  *
- * @param userId - The ID of the user whose usage statistics are retrieved
- * @param days - The number of days to include in the statistics (default is 30)
- * @returns An array of objects containing the date, movies count, shows count, and total usage per day, sorted by date descending
+ * @param userId - The user ID for which to retrieve usage statistics
+ * @param days - The number of days to include in the statistics window (default is 30)
+ * @returns An array of objects with date, movies count, shows count, and total usage per day
  */
 export async function getDailyUsageStats(
   this: DatabaseService,
@@ -664,10 +667,10 @@ export async function getDailyUsageStats(
 }
 
 /**
- * Deletes quota usage records older than the specified number of days.
+ * Removes quota usage records that are older than the specified number of days.
  *
- * @param olderThanDays - The age threshold in days; records older than this will be deleted (default is 90)
- * @returns The number of quota usage records deleted
+ * @param olderThanDays - The minimum age in days for records to be deleted; defaults to 90 if not specified.
+ * @returns The count of quota usage records removed.
  */
 export async function cleanupOldQuotaUsage(
   this: DatabaseService,
@@ -685,10 +688,10 @@ export async function cleanupOldQuotaUsage(
 }
 
 /**
- * Deletes all quota usage records for a specific user.
+ * Deletes all quota usage records associated with the specified user.
  *
- * @param userId - The ID of the user whose quota usage records will be deleted
- * @returns The number of quota usage records deleted
+ * @param userId - The user ID for which all quota usage records will be removed
+ * @returns The total number of deleted quota usage records
  */
 export async function deleteQuotaUsageByUser(
   this: DatabaseService,
@@ -727,9 +730,9 @@ export async function getNextMaintenanceRun(
 }
 
 /**
- * Returns the start date for a weekly rolling quota period, representing 7 days ago including today.
+ * Calculates the start date of the current 7-day rolling window for weekly quotas.
  *
- * @returns The Date object marking the beginning of the current 7-day rolling window.
+ * @returns The Date marking the beginning of the 7-day period, including today.
  */
 export async function getWeeklyRollingStartDate(
   this: DatabaseService,
@@ -741,10 +744,10 @@ export async function getWeeklyRollingStartDate(
 }
 
 /**
- * Retrieves all user quota configurations that match the specified quota type.
+ * Retrieves all user quota configurations for users with the specified quota type.
  *
- * @param quotaType - The quota type to filter user quota configurations by
- * @returns An array of user quota configuration objects with the given quota type
+ * @param quotaType - The type of quota to filter by
+ * @returns An array of user quota configurations matching the quota type
  */
 export async function getUsersWithQuotaType(
   this: DatabaseService,
@@ -757,10 +760,10 @@ export async function getUsersWithQuotaType(
 }
 
 /**
- * Retrieves the most recent quota usage record for a user.
+ * Returns the most recent quota usage entry for the specified user, or null if no usage records exist.
  *
- * @param userId - The ID of the user whose latest quota usage is requested
- * @returns The latest quota usage record for the user, or null if none exists
+ * @param userId - The user ID to look up
+ * @returns The latest quota usage record for the user, or null if not found
  */
 export async function getLatestQuotaUsage(
   this: DatabaseService,
