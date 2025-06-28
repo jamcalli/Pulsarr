@@ -582,6 +582,7 @@ export class PlexWatchlistService {
               notify_tautulli: false,
               tautulli_notifier_id: null,
               can_sync: this.config.newUserDefaultCanSync ?? true,
+              requires_approval: false,
               is_primary_token: false, // Initially false, will set to true next
             })
 
@@ -602,6 +603,7 @@ export class PlexWatchlistService {
               notify_tautulli: false,
               tautulli_notifier_id: null,
               can_sync: this.config.newUserDefaultCanSync ?? true,
+              requires_approval: false,
               is_primary_token: false,
             })
           }

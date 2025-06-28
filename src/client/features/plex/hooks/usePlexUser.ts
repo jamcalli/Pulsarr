@@ -3,16 +3,16 @@ import { useToast } from '@/hooks/use-toast'
 import { useConfigStore } from '@/stores/configStore'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 import type { UserWatchlistInfo } from '@/stores/configStore'
-import type { UpdateUser } from '@root/schemas/users/users.schema'
+import type { CreateUser } from '@root/schemas/users/users.schema'
 
 export type UserStatus = 'idle' | 'loading' | 'success' | 'error'
 
 /**
- * React hook for managing Plex user data, editing state, and update operations.
+ * React hook for managing Plex user data, edit modal state, save status, and user update operations.
  *
- * Provides access to the list of users, selected user state, modal visibility, save status, loading state, and handlers for editing and updating user information. Ensures a minimum loading delay for smoother UI transitions and displays toast notifications on update success or failure.
+ * Provides user data, editing state, modal controls, save status, loading state, and handler functions for editing and updating Plex users. Ensures a minimum loading delay for UI consistency and displays toast notifications on update success or failure.
  *
- * @returns An object containing user data, editing state, and handler functions for user management in Plex-related components.
+ * @returns An object containing user data, selected user state, modal controls, save status, loading state, and handler functions for managing Plex users in UI components.
  */
 export function usePlexUser() {
   const { toast } = useToast()
@@ -42,39 +42,14 @@ export function usePlexUser() {
     setIsEditModalOpen(true)
   }
 
-  const handleUpdateUser = async (userId: string, updates: UpdateUser) => {
+  const handleUpdateUser = async (userId: number, updates: CreateUser) => {
     setSaveStatus('loading')
     try {
       const minimumLoadingTime = new Promise((resolve) =>
         setTimeout(resolve, MIN_LOADING_DELAY),
       )
 
-      // Convert UpdateUser to Partial<UserWatchlistInfo> to match the expected type
-      const compatibleUpdates: Partial<UserWatchlistInfo> = {
-        ...(updates.name !== undefined && { name: updates.name }),
-        ...(updates.apprise !== undefined && {
-          apprise: updates.apprise === null ? undefined : updates.apprise,
-        }),
-        ...(updates.alias !== undefined && { alias: updates.alias }),
-        ...(updates.discord_id !== undefined && {
-          discord_id: updates.discord_id,
-        }),
-        ...(updates.notify_apprise !== undefined && {
-          notify_apprise: updates.notify_apprise,
-        }),
-        ...(updates.notify_discord !== undefined && {
-          notify_discord: updates.notify_discord,
-        }),
-        ...(updates.notify_tautulli !== undefined && {
-          notify_tautulli: updates.notify_tautulli,
-        }),
-        ...(updates.can_sync !== undefined && { can_sync: updates.can_sync }),
-      }
-
-      await Promise.all([
-        updateUser(userId, compatibleUpdates),
-        minimumLoadingTime,
-      ])
+      await Promise.all([updateUser(userId, updates), minimumLoadingTime])
 
       setSaveStatus('success')
       toast({

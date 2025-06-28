@@ -10,6 +10,7 @@ const UserBaseSchema = z.object({
   notify_discord: z.boolean(),
   notify_tautulli: z.boolean(),
   can_sync: z.boolean(),
+  requires_approval: z.boolean(),
   created_at: z.string(),
   updated_at: z.string(),
 })
@@ -35,6 +36,8 @@ export const UserErrorSchema = z.object({
   message: z.string(),
 })
 
+export type UserBase = z.infer<typeof UserBaseSchema>
+export type UserWithCount = z.infer<typeof UserWithCountSchema>
 export type UserListResponse = z.infer<typeof UserListResponseSchema>
 export type UserListWithCountsResponse = z.infer<
   typeof UserListWithCountsResponseSchema

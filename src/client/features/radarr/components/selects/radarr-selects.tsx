@@ -25,13 +25,20 @@ interface SelectsProps {
       rootFolders?: Array<{ path: string }>
     }
   }>
+  disabled?: boolean
 }
 
+/**
+ * Displays a dropdown for selecting a quality profile from the currently selected instance.
+ *
+ * Shows a loading skeleton while quality profiles are being loaded. The select is disabled if the connection is invalid or if the `disabled` prop is set. Options are dynamically generated from the selected instance's available quality profiles.
+ */
 export function QualityProfileSelect({
   field,
   isConnectionValid,
   selectedInstance,
   instances,
+  disabled = false,
 }: {
   field: SelectFieldProps
 } & SelectsProps) {
@@ -50,7 +57,7 @@ export function QualityProfileSelect({
     <Select
       onValueChange={field.onChange}
       value={field.value || ''}
-      disabled={!isConnectionValid}
+      disabled={disabled || !isConnectionValid}
     >
       <FormControl>
         <SelectTrigger className={!field.value ? 'text-muted-foreground' : ''}>
@@ -83,11 +90,17 @@ export function QualityProfileSelect({
   )
 }
 
+/**
+ * Displays a dropdown select for choosing a root folder from the currently selected instance.
+ *
+ * Shows a loading skeleton while root folder data is being fetched. The select is disabled if the connection is invalid or if explicitly disabled. Options are populated from the available root folders of the selected instance.
+ */
 export function RootFolderSelect({
   field,
   isConnectionValid,
   selectedInstance,
   instances,
+  disabled = false,
 }: {
   field: SelectFieldProps
 } & SelectsProps) {
@@ -106,7 +119,7 @@ export function RootFolderSelect({
     <Select
       onValueChange={field.onChange}
       value={field.value || ''}
-      disabled={!isConnectionValid}
+      disabled={disabled || !isConnectionValid}
     >
       <FormControl>
         <SelectTrigger className={!field.value ? 'text-muted-foreground' : ''}>

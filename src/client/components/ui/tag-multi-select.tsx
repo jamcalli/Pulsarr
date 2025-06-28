@@ -241,7 +241,7 @@ export const TagsMultiSelect = forwardRef<TagsMultiSelectRef, TagsMultiSelectPro
     fetchTags()
   }, [fetchTags]);
   return (
-    <div className="flex-1 min-w-0">
+    <div className={`flex-1 min-w-0 ${(!isConnectionValid || disabled) ? 'cursor-not-allowed' : ''}`}>
       {isLoading ? (
         <Skeleton className="h-10 w-full" />
       ) : loadError ? (

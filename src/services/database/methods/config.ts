@@ -2,11 +2,11 @@ import type { DatabaseService } from '@services/database.service.js'
 import type { Config } from '@root/types/config.types.js'
 
 /**
- * Retrieves the application configuration from the database, normalizing and parsing all fields.
+ * Retrieves the normalized application configuration from the database.
  *
- * Returns a fully constructed configuration object with all fields parsed and defaulted as necessary, or `undefined` if no configuration exists.
+ * Fetches the configuration record with `id: 1` from the `configs` table. All JSON fields are safely parsed with fallback defaults, optional string fields are normalized, and default values are applied for missing or undefined properties. Returns a fully constructed `Config` object if found, or `undefined` if no configuration exists.
  *
- * @returns The application configuration object if found, otherwise `undefined`.
+ * @returns The normalized application configuration object if found, otherwise `undefined`.
  */
 export async function getConfig(
   this: DatabaseService,
@@ -61,6 +61,56 @@ export async function getConfig(
           appriseUrlsMovies: '',
           appriseUrlsShows: '',
         },
+    quotaSettings: config.quotaSettings
+      ? this.safeJsonParse(
+          config.quotaSettings,
+          {
+            cleanup: {
+              enabled: true,
+              retentionDays: 90,
+            },
+            weeklyRolling: {
+              resetDays: 7,
+            },
+            monthly: {
+              resetDay: 1,
+              handleMonthEnd: 'last-day' as const,
+            },
+          },
+          'config.quotaSettings',
+        )
+      : {
+          cleanup: {
+            enabled: true,
+            retentionDays: 90,
+          },
+          weeklyRolling: {
+            resetDays: 7,
+          },
+          monthly: {
+            resetDay: 1,
+            handleMonthEnd: 'last-day' as const,
+          },
+        },
+    approvalExpiration: config.approvalExpiration
+      ? this.safeJsonParse(
+          config.approvalExpiration,
+          {
+            enabled: false,
+            defaultExpirationHours: 72,
+            expirationAction: 'expire' as const,
+            maintenanceCronExpression: '0 */4 * * *',
+            cleanupExpiredDays: 30,
+          },
+          'config.approvalExpiration',
+        )
+      : {
+          enabled: false,
+          defaultExpirationHours: 72,
+          expirationAction: 'expire' as const,
+          maintenanceCronExpression: '0 */4 * * *',
+          cleanupExpiredDays: 30,
+        },
     newUserDefaultCanSync: Boolean(config.newUserDefaultCanSync ?? true),
     // Handle optional RSS fields
     selfRss: config.selfRss || undefined,
@@ -102,6 +152,7 @@ export async function getConfig(
     deleteSyncNotifyOnlyOnDeletion: Boolean(
       config.deleteSyncNotifyOnlyOnDeletion,
     ),
+    approvalNotify: config.approvalNotify || 'none',
     // Plex playlist protection
     enablePlexPlaylistProtection: Boolean(config.enablePlexPlaylistProtection),
     plexProtectionPlaylistName:
@@ -120,12 +171,12 @@ export async function getConfig(
 }
 
 /**
- * Inserts a new configuration record into the database, enforcing a single configuration entry.
+ * Inserts a new configuration record into the database, enforcing that only one configuration entry exists.
  *
  * Throws an error if a configuration already exists. Serializes JSON fields and applies default values for optional properties. Returns the ID of the newly created configuration.
  *
- * @param config - Configuration data excluding `id`, `created_at`, and `updated_at`
- * @returns The ID of the created configuration
+ * @param config - The configuration data to insert, excluding `id`, `created_at`, and `updated_at`
+ * @returns The ID of the newly created configuration
  */
 export async function createConfig(
   this: DatabaseService,
@@ -180,6 +231,7 @@ export async function createConfig(
       respectUserSyncSetting: config.respectUserSyncSetting,
       deleteSyncNotify: config.deleteSyncNotify,
       deleteSyncNotifyOnlyOnDeletion: config.deleteSyncNotifyOnlyOnDeletion,
+      approvalNotify: config.approvalNotify || 'none',
       maxDeletionPrevention: config.maxDeletionPrevention ?? 10,
       // Plex playlist protection
       enablePlexPlaylistProtection:
@@ -210,6 +262,14 @@ export async function createConfig(
       // Public Content Notifications
       publicContentNotifications: config.publicContentNotifications
         ? JSON.stringify(config.publicContentNotifications)
+        : null,
+      // Quota Settings
+      quotaSettings: config.quotaSettings
+        ? JSON.stringify(config.quotaSettings)
+        : null,
+      // Approval Expiration
+      approvalExpiration: config.approvalExpiration
+        ? JSON.stringify(config.approvalExpiration)
         : null,
       // New User Defaults
       newUserDefaultCanSync: config.newUserDefaultCanSync ?? true,
@@ -321,6 +381,7 @@ const ALLOWED_COLUMNS = new Set([
   'respectUserSyncSetting',
   'deleteSyncNotify',
   'deleteSyncNotifyOnlyOnDeletion',
+  'approvalNotify',
   'maxDeletionPrevention',
   'enablePlexPlaylistProtection',
   'plexProtectionPlaylistName',
@@ -336,6 +397,12 @@ const ALLOWED_COLUMNS = new Set([
   // Plex session monitoring (JSON column)
   'plexSessionMonitoring',
 
+  // Quota settings (JSON column)
+  'quotaSettings',
+
+  // Approval expiration (JSON column)
+  'approvalExpiration',
+
   // New user defaults
   'newUserDefaultCanSync',
 ])
@@ -345,6 +412,8 @@ const JSON_COLUMNS = new Set([
   'publicContentNotifications',
   'plexTokens',
   'plexSessionMonitoring',
+  'quotaSettings',
+  'approvalExpiration',
 ])
 
 /**

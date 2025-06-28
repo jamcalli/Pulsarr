@@ -52,4 +52,10 @@ export interface SystemNotification {
   title: string
   embedFields: Array<{ name: string; value: string; inline?: boolean }>
   safetyTriggered?: boolean
+  posterUrl?: string
+  actionButton?: {
+    label: string
+    customId: string
+    style: 'Primary' | 'Secondary' | 'Success' | 'Danger'
+  }
 }

@@ -313,9 +313,9 @@ export async function getRecentActivityStats(
 }
 
 /**
- * Retrieves activity statistics for all Sonarr and Radarr instances, including the number of watchlist items associated with each instance.
+ * Retrieves the number of watchlist items associated with each Sonarr and Radarr instance.
  *
- * @returns An array of objects containing instance ID, type ('sonarr' or 'radarr'), name, and item count, sorted by item count in descending order.
+ * @returns An array of objects containing the instance ID, type ('sonarr' or 'radarr'), name, and item count, sorted by item count in descending order.
  */
 export async function getInstanceActivityStats(this: DatabaseService): Promise<
   {
@@ -377,11 +377,11 @@ export async function getInstanceActivityStats(this: DatabaseService): Promise<
 }
 
 /**
- * Calculates average, minimum, and maximum time in days from "grabbed" to "notified" status for each content type.
+ * Calculates the average, minimum, and maximum number of days between the first "grabbed" and first "notified" statuses for each content type.
  *
- * Only includes content types with at least 5 valid samples and filters out unreasonable time differences (greater than 365 days or negative).
+ * Only includes content types with at least 2 valid samples, excluding negative or excessively large time differences (over 365 days).
  *
- * @returns An array of objects containing content type, average days, minimum days, maximum days, and sample count.
+ * @returns An array of objects containing the content type, average days, minimum days, maximum days, and sample count.
  */
 export async function getAverageTimeFromGrabbedToNotified(
   this: DatabaseService,
@@ -456,7 +456,7 @@ export async function getAverageTimeFromGrabbedToNotified(
     // Calculate statistics for each content type
     const rows = []
     for (const [contentType, times] of contentGroups.entries()) {
-      if (times.length < 5) continue // Minimum sample size
+      if (times.length < 2) continue // Minimum sample size
 
       const avgDays = times.reduce((sum, time) => sum + time, 0) / times.length
 
@@ -489,11 +489,11 @@ export async function getAverageTimeFromGrabbedToNotified(
 }
 
 /**
- * Retrieves detailed metrics for all direct status transitions between watchlist item statuses.
+ * Calculates average, minimum, and maximum days between all direct status transitions for watchlist items, grouped by transition type and content type.
  *
- * For each unique (from_status, to_status, content_type) combination, calculates the average, minimum, and maximum number of days between transitions, after applying robust outlier filtering. Only transitions with at least three valid samples are included.
+ * For each unique (from_status, to_status, content_type) combination, applies robust outlier filtering and includes only transitions with at least two valid samples. Results are sorted by sample count in descending order.
  *
- * @returns An array of objects containing transition details and time statistics, sorted by sample count descending.
+ * @returns An array of objects with transition details and time statistics.
  */
 export async function getDetailedStatusTransitionMetrics(
   this: DatabaseService,
@@ -574,7 +574,7 @@ export async function getDetailedStatusTransitionMetrics(
     }> = []
 
     for (const [key, times] of transitionGroups.entries()) {
-      if (times.length < 3) continue // Minimum sample size
+      if (times.length < 2) continue // Minimum sample size
 
       const [fromStatus, toStatus, contentType] = key.split('|')
 
