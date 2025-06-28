@@ -1,7 +1,7 @@
 import { z } from 'zod'
+import { QuotaTypeSchema } from '@root/schemas/shared/quota-type.schema.js'
 
 // Base enums matching approval types
-export const QuotaTypeSchema = z.enum(['daily', 'weekly_rolling', 'monthly'])
 export const ApprovalStatusSchema = z.enum([
   'pending',
   'approved',
@@ -32,6 +32,17 @@ const RoutingConfigSchema = z.object({
   syncedInstances: z.array(z.number()).optional(),
 })
 
+// Approval data schema matching ApprovalData interface
+const ApprovalDataSchema = z.object({
+  quotaType: QuotaTypeSchema.optional(),
+  quotaUsage: z.number().optional(),
+  quotaLimit: z.number().optional(),
+  criteriaType: z.string().optional(),
+  criteriaValue: z.string().optional(), // Changed from unknown to string for strict typing
+  ruleId: z.number().optional(),
+  autoApprove: z.boolean().optional(),
+})
+
 // Router decision schema
 export const RouterDecisionSchema = z.object({
   action: z.enum(['route', 'require_approval', 'reject', 'continue']),
@@ -40,15 +51,7 @@ export const RouterDecisionSchema = z.object({
     .object({
       reason: z.string(),
       triggeredBy: ApprovalTriggerSchema,
-      data: z.object({
-        quotaType: QuotaTypeSchema.optional(),
-        quotaUsage: z.number().optional(),
-        quotaLimit: z.number().optional(),
-        criteriaType: z.string().optional(),
-        criteriaValue: z.unknown().optional(),
-        ruleId: z.number().optional(),
-        autoApprove: z.boolean().optional(),
-      }),
+      data: ApprovalDataSchema,
       proposedRouting: RoutingConfigSchema.optional(),
     })
     .optional(),

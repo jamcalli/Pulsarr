@@ -231,7 +231,7 @@ export async function createConfig(
       respectUserSyncSetting: config.respectUserSyncSetting,
       deleteSyncNotify: config.deleteSyncNotify,
       deleteSyncNotifyOnlyOnDeletion: config.deleteSyncNotifyOnlyOnDeletion,
-      approvalNotify: config.approvalNotify,
+      approvalNotify: config.approvalNotify || 'none',
       maxDeletionPrevention: config.maxDeletionPrevention ?? 10,
       // Plex playlist protection
       enablePlexPlaylistProtection:

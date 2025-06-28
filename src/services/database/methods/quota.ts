@@ -74,7 +74,7 @@ async function getDateRange(
       break
     }
     default: {
-      start = end
+      throw new Error(`Unsupported quota type: ${quotaType}`)
     }
   }
 

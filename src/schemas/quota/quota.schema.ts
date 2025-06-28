@@ -1,7 +1,7 @@
 import { z } from 'zod'
+import { QuotaTypeSchema } from '@root/schemas/shared/quota-type.schema.js'
 
 // Base enums
-export const QuotaTypeSchema = z.enum(['daily', 'weekly_rolling', 'monthly'])
 
 // User quota schemas
 export const CreateUserQuotaSchema = z.object({

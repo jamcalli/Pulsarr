@@ -12,10 +12,12 @@ import type {
 /**
  * Converts a database row into an ApprovalRequest object, parsing JSON fields and providing default values where necessary.
  *
+ * @param this - DatabaseService instance for accessing safeJsonParse
  * @param row - The database row representing an approval request, optionally including the user's name
  * @returns The mapped ApprovalRequest object
  */
 function mapRowToApprovalRequest(
+  this: DatabaseService,
   row: ApprovalRequestRow & { user_name?: string },
 ): ApprovalRequest {
   return {
@@ -25,8 +27,16 @@ function mapRowToApprovalRequest(
     contentType: row.content_type,
     contentTitle: row.content_title,
     contentKey: row.content_key,
-    contentGuids: JSON.parse(row.content_guids),
-    proposedRouterDecision: JSON.parse(row.router_decision),
+    contentGuids: this.safeJsonParse(
+      row.content_guids,
+      [],
+      'approval.content_guids',
+    ),
+    proposedRouterDecision: this.safeJsonParse(
+      row.router_decision,
+      { action: 'continue' as const },
+      'approval.router_decision',
+    ),
     routerRuleId: row.router_rule_id,
     triggeredBy: row.triggered_by,
     approvalReason: row.approval_reason,
@@ -76,7 +86,7 @@ export async function createApprovalRequest(
     .where('approval_requests.id', row.id)
     .first()
 
-  return mapRowToApprovalRequest(rowWithUsername)
+  return mapRowToApprovalRequest.call(this, rowWithUsername)
 }
 
 /**
@@ -94,7 +104,7 @@ export async function getApprovalRequest(
     .leftJoin('users', 'approval_requests.user_id', 'users.id')
     .where('approval_requests.id', id)
     .first()
-  return row ? mapRowToApprovalRequest(row) : null
+  return row ? mapRowToApprovalRequest.call(this, row) : null
 }
 
 /**
@@ -117,7 +127,7 @@ export async function getApprovalRequestByContent(
       'approval_requests.content_key': contentKey,
     })
     .first()
-  return row ? mapRowToApprovalRequest(row) : null
+  return row ? mapRowToApprovalRequest.call(this, row) : null
 }
 
 /**
@@ -159,7 +169,7 @@ export async function updateApprovalRequest(
     .where('approval_requests.id', id)
     .first()
 
-  return updatedRow ? mapRowToApprovalRequest(updatedRow) : null
+  return updatedRow ? mapRowToApprovalRequest.call(this, updatedRow) : null
 }
 
 /**
@@ -232,7 +242,7 @@ export async function getPendingApprovalRequests(
     .limit(limit)
     .offset(offset)
 
-  return rows.map(mapRowToApprovalRequest)
+  return rows.map((row) => mapRowToApprovalRequest.call(this, row))
 }
 
 /**
@@ -280,7 +290,7 @@ export async function getApprovalHistory(
     .limit(limit)
     .offset(offset)
 
-  return rows.map(mapRowToApprovalRequest)
+  return rows.map((row) => mapRowToApprovalRequest.call(this, row))
 }
 
 /**
@@ -337,7 +347,7 @@ export async function getExpiredPendingRequests(
     .whereNotNull('approval_requests.expires_at')
     .orderBy('approval_requests.expires_at', 'asc')
 
-  return rows.map(mapRowToApprovalRequest)
+  return rows.map((row) => mapRowToApprovalRequest.call(this, row))
 }
 
 /**
@@ -498,7 +508,7 @@ export async function createApprovalRequestWithExpiredHandling(
       .first()
 
     if (existingRow) {
-      const existing = mapRowToApprovalRequest(existingRow)
+      const existing = mapRowToApprovalRequest.call(this, existingRow)
 
       if (existing.status === 'pending') {
         // Return existing pending request
@@ -539,7 +549,7 @@ export async function createApprovalRequestWithExpiredHandling(
       .first()
 
     return {
-      request: mapRowToApprovalRequest(rowWithUsername),
+      request: mapRowToApprovalRequest.call(this, rowWithUsername),
       isNewlyCreated: true,
     }
   })
