@@ -45,7 +45,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useDeleteSync } from '@/features/utilities/hooks/useDeleteSync'
-import { useConfigStore } from '@/stores/configStore'
+import { useNavigate } from 'react-router-dom'
 import { DeleteSyncConfirmationModal } from '@/features/utilities/components/delete-sync/delete-sync-confirmation-modal'
 import { DeleteSyncDryRunModal } from '@/features/utilities/components/delete-sync/delete-sync-dry-run-modal'
 import { useMediaQuery } from '@/hooks/use-media-query'
@@ -91,7 +91,7 @@ export function DeleteSyncForm() {
     setShowDryRunModal,
   } = useDeleteSync()
 
-  const { setOpenUtilitiesAccordion } = useConfigStore()
+  const navigate = useNavigate()
 
   return (
     <>
@@ -439,11 +439,9 @@ export function DeleteSyncForm() {
                                             ".{' '}
                                             <button
                                               type="button"
-                                              onClick={() => {
-                                                setOpenUtilitiesAccordion(
-                                                  'user-tags',
-                                                )
-                                              }}
+                                              onClick={() =>
+                                                navigate('/utilities/user-tags')
+                                              }
                                               className="underline font-medium hover:text-yellow-900 dark:hover:text-yellow-300 cursor-pointer"
                                             >
                                               Configure User Tags

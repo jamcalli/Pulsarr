@@ -1,18 +1,11 @@
 import type { ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import Nav from '@/components/nav'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { Menu, FileText } from 'lucide-react'
 import { SettingsButton } from '@/components/ui/settings-button'
 import { DOCUMENTATION_URL } from '@/lib/constants'
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb'
 import {
   SidebarInset,
   SidebarProvider,
@@ -98,19 +91,6 @@ export default function WindowedLayout({ children }: WindowedLayoutProps) {
             <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
               <div className="flex items-center gap-2 px-4">
                 <SidebarTrigger className="-ml-1" />
-                <Breadcrumb>
-                  <BreadcrumbList>
-                    <BreadcrumbItem className="hidden md:block">
-                      <BreadcrumbLink href="#">
-                        Building Your Application
-                      </BreadcrumbLink>
-                    </BreadcrumbItem>
-                    <BreadcrumbSeparator className="hidden md:block" />
-                    <BreadcrumbItem>
-                      <BreadcrumbPage>Data Fetching</BreadcrumbPage>
-                    </BreadcrumbItem>
-                  </BreadcrumbList>
-                </Breadcrumb>
               </div>
             </header>
             <div className="flex flex-1 flex-col min-h-0">

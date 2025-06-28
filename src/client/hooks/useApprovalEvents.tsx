@@ -1,5 +1,6 @@
 import { useEffect, useCallback, useRef } from 'react'
 import { toast } from 'sonner'
+import { useNavigate } from 'react-router-dom'
 import { useProgressStore } from '@/stores/progressStore'
 import { FileText, CheckCircle, XCircle, Trash2 } from 'lucide-react'
 import type { ProgressEvent, ApprovalMetadata } from '@root/types/progress.types'
@@ -28,6 +29,7 @@ interface QueuedToast {
  */
 export function useApprovalEvents(options: UseApprovalEventsOptions = {}) {
   const { subscribeToType } = useProgressStore()
+  const navigate = useNavigate()
   
   // Toast queueing refs
   const toastQueueRef = useRef<Map<string, QueuedToast[]>>(new Map())
@@ -54,7 +56,13 @@ export function useApprovalEvents(options: UseApprovalEventsOptions = {}) {
                   <FileText className="h-4 w-4 shrink-0" />
                   <span>{metadata.userName} requested {metadata.contentTitle} ({metadata.contentType})</span>
                 </div>
-              </div>
+              </div>,
+              {
+                action: {
+                  label: 'View',
+                  onClick: () => navigate('/approvals')
+                }
+              }
             )
             break
           case 'approved':
@@ -103,7 +111,13 @@ export function useApprovalEvents(options: UseApprovalEventsOptions = {}) {
                   <FileText className="h-4 w-4 shrink-0" />
                   <span>{count} new approval requests have been received</span>
                 </div>
-              </div>
+              </div>,
+              {
+                action: {
+                  label: 'View',
+                  onClick: () => navigate('/approvals')
+                }
+              }
             )
             break
           case 'approved':
