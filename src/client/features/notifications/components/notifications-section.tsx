@@ -4,7 +4,6 @@ import { AppriseForm } from '@/features/notifications/components/apprise/apprise
 import { TautulliForm } from '@/features/notifications/components/tautulli/tautulli-form'
 import { GeneralSettingsForm } from '@/features/notifications/components/general/general-settings-form'
 import { Separator } from '@/components/ui/separator'
-import { useConfigStore } from '@/stores/configStore'
 import { useNavigate } from 'react-router-dom'
 
 interface NotificationsSectionProps {
@@ -21,9 +20,6 @@ interface NotificationsSectionProps {
 export function NotificationsSection({
   isInitialized,
 }: NotificationsSectionProps) {
-  const setOpenUtilitiesAccordion = useConfigStore(
-    (state) => state.setOpenUtilitiesAccordion,
-  )
   const navigate = useNavigate()
 
   return (
@@ -36,13 +32,9 @@ export function NotificationsSection({
             channels and shared Apprise endpoints? Configure{' '}
             <button
               type="button"
-              onClick={() => {
-                navigate('/utilities')
-                // Set accordion after navigation to ensure the page is loaded
-                setTimeout(() => {
-                  setOpenUtilitiesAccordion('public-content-notifications')
-                }, 100)
-              }}
+              onClick={() =>
+                navigate('/utilities/public-content-notifications')
+              }
               className="underline font-medium hover:opacity-80 cursor-pointer"
             >
               Public Content Notifications

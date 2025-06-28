@@ -28,7 +28,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
-import { cn } from '@/lib/utils'
 import { TimeSelector } from '@/components/ui/time-input'
 import { Separator } from '@/components/ui/separator'
 import {
@@ -38,7 +37,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useDeleteSync } from '@/features/utilities/hooks/useDeleteSync'
-import { useConfigStore } from '@/stores/configStore'
+import { useNavigate } from 'react-router-dom'
 import { DeleteSyncConfirmationModal } from '@/features/utilities/components/delete-sync/delete-sync-confirmation-modal'
 import { DeleteSyncDryRunModal } from '@/features/utilities/components/delete-sync/delete-sync-dry-run-modal'
 import { useMediaQuery } from '@/hooks/use-media-query'
@@ -83,7 +82,7 @@ export default function DeleteSyncPage() {
     setShowDryRunModal,
   } = useDeleteSync()
 
-  const { setOpenUtilitiesAccordion } = useConfigStore()
+  const navigate = useNavigate()
 
   // Determine status based on job state
   const getStatus = () => {
@@ -396,9 +395,9 @@ export default function DeleteSyncPage() {
                                   {form.watch('removedTagMode') || 'remove'}".{' '}
                                   <button
                                     type="button"
-                                    onClick={() => {
-                                      setOpenUtilitiesAccordion('user-tags')
-                                    }}
+                                    onClick={() =>
+                                      navigate('/utilities/user-tags')
+                                    }
                                     className="underline font-medium hover:text-yellow-900 dark:hover:text-yellow-300 cursor-pointer"
                                   >
                                     Configure User Tags

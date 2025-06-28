@@ -2,12 +2,10 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { useApprovalsStore } from '@/features/approvals/store/approvalsStore'
 import { useConfigStore } from '@/stores/configStore'
 import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
 import { useApprovalPageEvents } from '@/hooks/useApprovalEvents'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 import { ApprovalTable } from '@/features/approvals/components/approval-table'
-import { ApprovalActionDialogs } from '@/features/approvals/components/approval-action-dialogs'
 import ApprovalStatsHeader from '@/features/approvals/components/approval-stats-header'
 import ApprovalActionsModal from '@/features/approvals/components/approval-actions-modal'
 import BulkApprovalModal from '@/features/approvals/components/bulk-approval-modal'
@@ -17,10 +15,6 @@ import type {
   BulkRejectRequest,
   BulkDeleteRequest,
 } from '@root/schemas/approval/approval.schema'
-import type {
-  ProgressEvent,
-  ApprovalMetadata,
-} from '@root/types/progress.types'
 
 type BulkActionStatus = 'idle' | 'loading' | 'success' | 'error'
 
@@ -39,10 +33,8 @@ export default function ApprovalsPage() {
     isInitialized,
     approvalsLoading,
     error,
-    total,
     initialize,
     refreshApprovalRequests,
-    clearError,
     handleApprovalDeleted,
     fetchStats,
   } = useApprovalsStore()
@@ -65,8 +57,29 @@ export default function ApprovalsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [minLoadingComplete, setMinLoadingComplete] = useState(false)
 
-  // Real-time events
-  useApprovalPageEvents()
+  // Real-time events - connect SSE events to store updates
+  useApprovalPageEvents({
+    onApprovalCreated: (_event, _metadata) => {
+      refreshApprovalRequests()
+      fetchStats()
+    },
+    onApprovalUpdated: (_event, _metadata) => {
+      refreshApprovalRequests()
+      fetchStats()
+    },
+    onApprovalApproved: (_event, _metadata) => {
+      refreshApprovalRequests()
+      fetchStats()
+    },
+    onApprovalRejected: (_event, _metadata) => {
+      refreshApprovalRequests()
+      fetchStats()
+    },
+    onApprovalDeleted: (_event, metadata) => {
+      handleApprovalDeleted(metadata.requestId)
+      fetchStats()
+    },
+  })
 
   const retryInitialization = useCallback(() => {
     console.log('🔄 Retrying approvals initialization...')
@@ -206,25 +219,6 @@ export default function ApprovalsPage() {
     }
   }
 
-  // Handle bulk modal save
-  const handleBulkSave = async (
-    data: BulkApprovalRequest | BulkRejectRequest | BulkDeleteRequest,
-  ) => {
-    if (!bulkActionType) return
-
-    switch (bulkActionType) {
-      case 'approve':
-        await executeBulkApproval(data)
-        break
-      case 'reject':
-        await executeBulkReject(data)
-        break
-      case 'delete':
-        await executeBulkDelete(data)
-        break
-    }
-  }
-
   // Show error state
   if (error && !isLoading) {
     return (
@@ -285,18 +279,15 @@ export default function ApprovalsPage() {
           isLoading={approvalsLoading}
         />
 
-        {/* Action Dialogs */}
-        <ApprovalActionDialogs />
-
         {/* Individual Actions Modal */}
         {selectedRequest && (
           <ApprovalActionsModal
             open={isActionsModalOpen}
             onOpenChange={setIsActionsModalOpen}
             request={selectedRequest}
-            onUpdate={() => {
-              refreshApprovalRequests()
-              fetchStats()
+            onUpdate={async () => {
+              await refreshApprovalRequests()
+              await fetchStats()
             }}
           />
         )}

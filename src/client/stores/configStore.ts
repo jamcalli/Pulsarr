@@ -46,7 +46,6 @@ interface ConfigState {
     userCount: number
     totalItems: number
   } | null
-  openUtilitiesAccordion: string | null
 
   initialize: (force?: boolean) => Promise<void>
   updateConfig: (updates: Partial<Config>) => Promise<void>
@@ -65,7 +64,6 @@ interface ConfigState {
     userId: number,
     updates: Partial<UserWatchlistInfo>,
   ) => Promise<void>
-  setOpenUtilitiesAccordion: (accordionId: string | null) => void
 }
 
 export const useConfigStore = create<ConfigState>()(
@@ -81,7 +79,6 @@ export const useConfigStore = create<ConfigState>()(
         userQuotasMap: new Map(),
         selfWatchlistCount: null,
         othersWatchlistInfo: null,
-        openUtilitiesAccordion: null,
 
         fetchConfig: async () => {
           try {
@@ -430,16 +427,10 @@ export const useConfigStore = create<ConfigState>()(
             }
           }
         },
-
-        setOpenUtilitiesAccordion: (accordionId: string | null) => {
-          set({ openUtilitiesAccordion: accordionId })
-        },
       }),
       {
         name: 'config-storage',
-        partialize: (state) => ({
-          openUtilitiesAccordion: state.openUtilitiesAccordion,
-        }),
+        partialize: (state) => ({}),
       },
     ),
   ),

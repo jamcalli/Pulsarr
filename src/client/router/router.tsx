@@ -5,16 +5,13 @@ import RootLayout from '@/layouts/root'
 
 const LoginPage = lazy(() => import('@/features/auth'))
 const CreateUserPage = lazy(() => import('@/features/create-user'))
-const PlexConfigPage = lazy(() => import('@/features/plex'))
 const PlexConfigurationPage = lazy(
   () => import('@/features/plex/pages/configuration'),
 )
 const PlexUsersPage = lazy(() => import('@/features/plex/pages/users'))
 const ApprovalsPage = lazy(() => import('@/features/approvals'))
-const SonarrConfigPage = lazy(() => import('@/features/sonarr'))
 const NotificationsConfigPage = lazy(() => import('@/features/notifications'))
 const DashboardPage = lazy(() => import('@/features/dashboard'))
-const UtilitiesPage = lazy(() => import('@/features/utilities'))
 const DeleteSyncPage = lazy(
   () => import('@/features/utilities/pages/delete-sync'),
 )
@@ -115,10 +112,6 @@ export const router = createBrowserRouter([
         path: 'sonarr',
         children: [
           {
-            index: true,
-            element: <Navigate to="/sonarr/instances" replace />,
-          },
-          {
             path: 'instances',
             element: (
               <AuthenticatedLayout>
@@ -143,10 +136,6 @@ export const router = createBrowserRouter([
       {
         path: 'radarr',
         children: [
-          {
-            index: true,
-            element: <Navigate to="/radarr/instances" replace />,
-          },
           {
             path: 'instances',
             element: (
@@ -192,16 +181,6 @@ export const router = createBrowserRouter([
       {
         path: 'utilities',
         children: [
-          {
-            index: true,
-            element: (
-              <AuthenticatedLayout>
-                <Suspense fallback={<LoadingFallback />}>
-                  <UtilitiesPage />
-                </Suspense>
-              </AuthenticatedLayout>
-            ),
-          },
           {
             path: 'delete-sync',
             element: (
