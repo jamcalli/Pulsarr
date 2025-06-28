@@ -18,13 +18,15 @@ import {
 } from '@root/utils/notification-processor.js'
 
 /**
- * Processes media release notifications for users and public channels, creating notification records and updating watchlist statuses as needed.
+ * Processes media release notifications for users and public channels, creating notification records and updating watchlist statuses as appropriate.
  *
- * For each relevant watchlist item, determines user notification preferences and media status, then creates notification records and updates watchlist status within a transaction. Also handles creation of public content notifications if enabled and not previously sent.
+ * For each relevant watchlist item, determines user notification preferences and media status, updates the watchlist item to "notified," and creates a notification record if needed. Also handles creation of public content notifications if enabled and not previously sent. Associates notifications with specific Sonarr or Radarr instances when provided.
  *
  * @param mediaInfo - Information about the media item, including type, GUID, title, and optional episode details
- * @param isBulkRelease - Whether the release is a bulk release (such as a full season)
- * @returns An array of notification results with user and notification details
+ * @param isBulkRelease - Indicates if the release is a bulk release (such as a full season)
+ * @param instanceId - Optional Sonarr or Radarr instance ID to associate with the notification
+ * @param instanceType - Optional instance type ('sonarr' or 'radarr') corresponding to the instance ID
+ * @returns An array of notification results containing user and notification details
  */
 export async function processNotifications(
   this: DatabaseService,
@@ -667,10 +669,10 @@ export async function getPendingWebhooks(
 }
 
 /**
- * Deletes a pending webhook notification by its ID.
+ * Deletes a pending webhook by its unique ID.
  *
- * @param id - The unique identifier of the pending webhook to delete.
- * @returns True if a webhook was deleted; false if no matching record was found.
+ * @param id - The ID of the pending webhook to delete.
+ * @returns True if a webhook was deleted; false if no matching webhook was found.
  */
 export async function deletePendingWebhook(
   this: DatabaseService,
@@ -681,9 +683,9 @@ export async function deletePendingWebhook(
 }
 
 /**
- * Removes all pending webhooks from the database that have passed their expiration time.
+ * Deletes all expired pending webhooks from the database.
  *
- * @returns The number of pending webhooks deleted
+ * @returns The number of pending webhooks that were deleted
  */
 export async function cleanupExpiredWebhooks(
   this: DatabaseService,
@@ -696,13 +698,13 @@ export async function cleanupExpiredWebhooks(
 }
 
 /**
- * Records a status change for a watchlist item at a specified timestamp, avoiding duplicate entries.
+ * Adds a status history entry for a watchlist item at a given timestamp, ensuring no duplicate status entries are created.
  *
- * Used to backfill missing status transitions when synchronization detects that a status should have been recorded but was not.
+ * Intended for use when backfilling missing status transitions detected during synchronization.
  *
- * @param watchlistItemId - The ID of the watchlist item to update
- * @param status - The status to record for the item
- * @param timestamp - The timestamp representing when the status change occurred
+ * @param watchlistItemId - The ID of the watchlist item to record the status for
+ * @param status - The status to record ('pending', 'requested', 'grabbed', or 'notified')
+ * @param timestamp - The ISO timestamp representing when the status change occurred
  */
 export async function addStatusHistoryEntry(
   this: DatabaseService,

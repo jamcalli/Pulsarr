@@ -237,11 +237,11 @@ const FormContent = ({
 }
 
 /**
- * Displays a modal for performing bulk approval, rejection, or deletion of multiple approval requests.
+ * Renders a responsive modal for performing bulk approval, rejection, or deletion of multiple approval requests.
  *
- * Renders a responsive modal interface that adapts between mobile and desktop layouts, allowing users to execute bulk actions on selected approval requests. The modal manages action permissions based on the statuses of the selected requests, prevents closure during ongoing operations, and provides user feedback for errors and action results.
+ * The modal adapts between mobile and desktop layouts, manages action permissions based on the statuses of selected requests, and prevents closure during ongoing operations. It provides user feedback for errors and action results, and disables unavailable actions according to the current selection.
  *
- * @returns The modal component for bulk approval actions.
+ * @returns The modal component for bulk approval, rejection, or deletion actions.
  */
 export default function BulkApprovalModal({
   open,

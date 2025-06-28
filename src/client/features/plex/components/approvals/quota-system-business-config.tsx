@@ -39,11 +39,11 @@ interface QuotaSystemBusinessConfigProps {
 }
 
 /**
- * Renders a form for configuring quota reset policies and usage history cleanup settings.
+ * Displays a form for configuring quota reset policies and usage history cleanup options.
  *
- * Allows users to specify weekly and monthly quota reset rules, month-end handling, and retention policies for quota usage records. Inputs are conditionally enabled based on the quota maintenance schedule status and loading state. Displays warnings and validation feedback as appropriate.
+ * Users can set weekly and monthly quota reset rules, define how to handle month-end resets, and manage retention policies for quota usage records. Inputs are dynamically enabled or disabled based on the quota maintenance schedule and loading state. Validation feedback and warnings are shown as needed.
  *
- * @returns The quota system business configuration form UI.
+ * @returns The rendered quota system business configuration form UI.
  */
 export function QuotaSystemBusinessConfig({
   form,

@@ -7,11 +7,11 @@ import type {
 } from '@root/schemas/approval/approval.schema'
 
 /**
- * Provides a comprehensive interface for managing approval requests, including CRUD operations, statistics retrieval, and filtering utilities.
+ * React hook that centralizes approval request management, providing data, state, CRUD operations, statistics retrieval, and filtering utilities for use in components.
  *
- * Integrates error handling and toast notifications for user feedback on all asynchronous actions. Exposes both wrapped action handlers and raw state setters, as well as utility functions for filtering and computing approval request data.
+ * All asynchronous actions are wrapped with error handling and toast notifications for user feedback. The hook exposes both high-level action handlers (with toasts) and raw state setters, as well as utility functions for filtering and computing approval request data.
  *
- * @returns An object containing approval request data, state flags, action methods with error handling, raw setters, utility functions, and computed values for use in React components.
+ * @returns An object containing approval request data, statistics, loading and error states, action methods with error handling, raw setters, utility functions for filtering, and computed metrics for use in React components.
  */
 export function useApprovals() {
   const { toast } = useToast()

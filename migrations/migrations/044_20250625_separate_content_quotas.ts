@@ -1,9 +1,9 @@
 import type { Knex } from 'knex'
 
 /**
- * Migrates the `user_quotas` table to support separate quota entries for movies and shows.
+ * Upgrades the `user_quotas` table to support separate quota records for movies and shows.
  *
- * Creates a new table schema with a `content_type` column, migrates existing quota data by duplicating each record for both 'movie' and 'show' types, and updates constraints and indexes to reflect the new structure.
+ * Creates a new schema with a `content_type` column, migrates existing data by duplicating each quota for both 'movie' and 'show', updates unique constraints and indexes, and replaces the old table with the new structure.
  */
 export async function up(knex: Knex): Promise<void> {
   // Step 1: Create a new temporary table with the correct structure
@@ -64,9 +64,9 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Reverts the `user_quotas` table to a single quota per user, removing support for separate movie and show quotas.
+ * Reverts the `user_quotas` table to its original schema, removing support for separate quotas by content type.
  *
- * Deletes all show quota entries and drops the `content_type` column and related constraints, restoring the original unique constraint on `user_id`. All show quota data will be lost.
+ * Permanently deletes all quota records for shows, drops the `content_type` column and related constraints, and restores the unique constraint on `user_id` only.
  */
 export async function down(knex: Knex): Promise<void> {
   // WARNING: This migration will permanently delete all show quota data

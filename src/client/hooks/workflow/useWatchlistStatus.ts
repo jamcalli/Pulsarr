@@ -3,11 +3,11 @@ import { useProgressStore } from '@/stores/progressStore'
 import type { ProgressEvent } from '@root/types/progress.types'
 
 /**
- * React hook that provides the current watchlist workflow status and synchronization state.
+ * React hook that returns the current watchlist workflow status, synchronization mode, and RSS availability.
  *
- * Subscribes to system events to track changes in the watchlist workflow status, synchronization mode, and RSS availability.
+ * Subscribes to system events to keep these values updated in real time.
  *
- * @returns An object with the current `status`, `syncMode`, and `rssAvailable` values.
+ * @returns An object containing `status`, `syncMode`, and `rssAvailable`.
  */
 export function useWatchlistStatus() {
   const [status, setStatus] = useState<string>('unknown')

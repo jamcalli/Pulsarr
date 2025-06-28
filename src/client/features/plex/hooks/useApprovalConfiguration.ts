@@ -27,11 +27,11 @@ export type { ApprovalConfigurationFormData }
 type FormSaveStatus = 'idle' | 'loading' | 'success' | 'error'
 
 /**
- * Provides a React hook for managing approval and quota configuration forms with validation, state synchronization, and persistence.
+ * React hook for managing approval and quota configuration forms with validation, state synchronization, and persistence.
  *
- * Handles form state using `react-hook-form` and Zod schema validation, synchronizes with the global configuration store, manages save and error states, and provides submit and cancel handlers. Excludes schedule-related fields from configuration updates and provides user feedback via toast notifications.
+ * Integrates `react-hook-form` and Zod schema validation to manage form state, synchronizes with a global configuration store, and handles save and error states. Provides submit and cancel handlers, omits schedule-related fields from configuration updates, and delivers user feedback via toast notifications.
  *
- * @returns An object containing the form instance, current config, error state, saving status, save status, submitted values, submit and cancel handlers, and a flag indicating if the form has unsaved changes.
+ * @returns An object containing the form instance, current configuration, error state, saving status, save status, last submitted values, submit and cancel handlers, and a flag indicating if the form has unsaved changes.
  */
 export function useApprovalConfiguration() {
   const { config, updateConfig } = useConfigStore()

@@ -10,11 +10,11 @@ import type {
 } from '@root/types/approval.types.js'
 
 /**
- * Converts a database row into an ApprovalRequest object, parsing JSON fields and providing default values where necessary.
+ * Maps a database row to an ApprovalRequest object, parsing JSON fields and assigning default values for missing data.
  *
- * @param this - DatabaseService instance for accessing safeJsonParse
- * @param row - The database row representing an approval request, optionally including the user's name
- * @returns The mapped ApprovalRequest object
+ * The returned object includes the user's name (defaulting to 'Unknown' if not present), parsed content GUIDs, and a default router decision if not specified.
+ *
+ * @returns The ApprovalRequest object constructed from the database row.
  */
 function mapRowToApprovalRequest(
   this: DatabaseService,
@@ -50,12 +50,12 @@ function mapRowToApprovalRequest(
 }
 
 /**
- * Inserts a new approval request into the database with the provided data and returns the created request.
+ * Creates a new approval request in the database and returns the complete request with user name included.
  *
- * The returned approval request includes the associated user's name and all relevant fields.
+ * The returned object contains all approval request fields and the associated user's name.
  *
- * @param data - The data for the new approval request
- * @returns The created approval request object
+ * @param data - The information required to create the approval request
+ * @returns The newly created approval request with user details
  */
 export async function createApprovalRequest(
   this: DatabaseService,
@@ -90,10 +90,10 @@ export async function createApprovalRequest(
 }
 
 /**
- * Retrieves an approval request by its unique ID, including the associated user's name.
+ * Retrieves an approval request by its ID, including the associated user's name.
  *
- * @param id - The unique identifier of the approval request
- * @returns The corresponding ApprovalRequest object, or null if not found
+ * @param id - The approval request's unique identifier
+ * @returns The ApprovalRequest object if found, otherwise null
  */
 export async function getApprovalRequest(
   this: DatabaseService,
@@ -108,11 +108,11 @@ export async function getApprovalRequest(
 }
 
 /**
- * Retrieves an approval request for a specific user and content key.
+ * Retrieves an approval request matching the specified user ID and content key.
  *
- * @param userId - The ID of the user associated with the approval request
- * @param contentKey - The unique key identifying the content
- * @returns The matching approval request, or null if not found
+ * @param userId - The user ID to filter approval requests by
+ * @param contentKey - The content key to filter approval requests by
+ * @returns The approval request if found, otherwise null
  */
 export async function getApprovalRequestByContent(
   this: DatabaseService,
@@ -131,12 +131,12 @@ export async function getApprovalRequestByContent(
 }
 
 /**
- * Updates fields of an approval request by ID and returns the updated request.
+ * Updates specified fields of an approval request by its ID and returns the updated request.
  *
- * Only the fields provided in the `data` parameter are updated. Returns the updated `ApprovalRequest` object, or `null` if no matching request is found.
+ * Only the fields present in the `data` parameter are modified. Returns the updated `ApprovalRequest` object with user name included, or `null` if no matching request exists.
  *
- * @param id - The ID of the approval request to update
- * @param data - The fields to update in the approval request
+ * @param id - The unique identifier of the approval request to update
+ * @param data - An object containing the fields to update
  * @returns The updated approval request, or `null` if not found
  */
 export async function updateApprovalRequest(
@@ -173,12 +173,12 @@ export async function updateApprovalRequest(
 }
 
 /**
- * Marks an approval request as approved, setting the approver and optional notes.
+ * Approves an approval request by ID, recording the approver and optional notes.
  *
- * @param id - The ID of the approval request to approve
+ * @param id - The unique identifier of the approval request
  * @param approvedBy - The user ID of the approver
- * @param notes - Optional notes to include with the approval
- * @returns The updated approval request, or null if not found
+ * @param notes - Optional notes to attach to the approval
+ * @returns The updated approval request if found, otherwise null
  */
 export async function approveRequest(
   this: DatabaseService,
@@ -194,12 +194,12 @@ export async function approveRequest(
 }
 
 /**
- * Marks an approval request as rejected, recording the rejecting user and optional reason.
+ * Rejects an approval request by ID, setting its status to 'rejected' and recording the rejecting user's ID and optional reason.
  *
- * @param id - The ID of the approval request to reject
+ * @param id - The unique identifier of the approval request to reject
  * @param rejectedBy - The user ID of the person rejecting the request
- * @param reason - Optional reason for rejection
- * @returns The updated ApprovalRequest if found, or null if no matching request exists
+ * @param reason - An optional reason for rejection
+ * @returns The updated ApprovalRequest if the request exists, or null if not found
  */
 export async function rejectRequest(
   this: DatabaseService,
@@ -215,12 +215,14 @@ export async function rejectRequest(
 }
 
 /**
- * Retrieves pending approval requests, optionally filtered by user ID.
+ * Retrieves all pending approval requests, optionally filtered by user ID.
  *
- * @param userId - If provided, filters requests to those created by the specified user
+ * If a user ID is provided, only requests created by that user are returned. Results are ordered by creation date in descending order and paginated using the provided limit and offset.
+ *
+ * @param userId - Optional user ID to filter requests by creator
  * @param limit - Maximum number of requests to return (default: 50)
- * @param offset - Number of requests to skip before starting to collect the result set (default: 0)
- * @returns An array of pending approval requests, ordered by creation date descending
+ * @param offset - Number of requests to skip before collecting results (default: 0)
+ * @returns An array of pending approval requests
  */
 export async function getPendingApprovalRequests(
   this: DatabaseService,
@@ -246,15 +248,9 @@ export async function getPendingApprovalRequests(
 }
 
 /**
- * Retrieves approval requests with optional filters for user, status, content type, and trigger source.
+ * Retrieves approval requests filtered by optional user, status, content type, and trigger source, with pagination support.
  *
- * @param userId - If provided, filters approval requests by user ID
- * @param status - If provided, filters approval requests by status
- * @param limit - Maximum number of results to return (default: 50)
- * @param offset - Number of results to skip (default: 0)
- * @param contentType - If provided, filters by content type ('movie' or 'show')
- * @param triggeredBy - If provided, filters by the source that triggered the approval request
- * @returns An array of approval requests matching the specified filters
+ * @returns An array of approval requests matching the specified filters.
  */
 export async function getApprovalHistory(
   this: DatabaseService,
@@ -294,13 +290,13 @@ export async function getApprovalHistory(
 }
 
 /**
- * Returns the total number of approval requests matching the specified filters.
+ * Counts approval requests that match the given optional filters.
  *
- * @param userId - Optional user ID to filter approval requests by user
- * @param status - Optional approval status to filter results
- * @param contentType - Optional content type ('movie' or 'show') to filter results
- * @param triggeredBy - Optional trigger source to filter results
- * @returns The count of approval requests matching the provided criteria
+ * @param userId - Filter by user ID
+ * @param status - Filter by approval status
+ * @param contentType - Filter by content type ('movie' or 'show')
+ * @param triggeredBy - Filter by trigger source
+ * @returns The number of approval requests matching the filters
  */
 export async function getApprovalHistoryCount(
   this: DatabaseService,
@@ -332,7 +328,7 @@ export async function getApprovalHistoryCount(
 }
 
 /**
- * Retrieves all pending approval requests whose expiration date has passed.
+ * Retrieves all pending approval requests that have expired based on their expiration timestamp.
  *
  * @returns An array of expired pending approval requests.
  */
@@ -351,9 +347,9 @@ export async function getExpiredPendingRequests(
 }
 
 /**
- * Retrieves aggregated counts of approval requests grouped by status and the total number of requests.
+ * Returns the total number of approval requests and counts for each status.
  *
- * @returns An object containing the count of requests for each status and the total number of requests.
+ * @returns An object with counts of pending, approved, rejected, expired, and total approval requests.
  */
 export async function getApprovalStats(
   this: DatabaseService,
@@ -395,12 +391,12 @@ export async function getApprovalStats(
 }
 
 /**
- * Retrieves approval statistics and quota information for a specific user.
+ * Retrieves aggregated approval statistics and quota details for a specific user.
  *
- * Returns an object containing the user's name, counts of approval requests by status, total requests, current quota usage, quota limit and type, and whether approval can be bypassed.
+ * Returns an object with the user's name, counts of approval requests by status, total requests, current quota usage, quota limit and type, and whether approval can be bypassed.
  *
  * @param userId - The ID of the user whose approval statistics are requested
- * @returns A `UserApprovalStats` object with user details, request counts, and quota information
+ * @returns A `UserApprovalStats` object containing user details, request counts by status, quota usage, quota limits, quota type, and bypass approval flag
  */
 export async function getUserApprovalStats(
   this: DatabaseService,
@@ -450,9 +446,9 @@ export async function getUserApprovalStats(
 }
 
 /**
- * Marks all pending approval requests with an expired `expires_at` timestamp as expired.
+ * Expires all pending approval requests whose `expires_at` timestamp is earlier than the current time.
  *
- * @returns The number of approval requests updated.
+ * @returns The number of approval requests that were updated to expired.
  */
 export async function expireOldRequests(
   this: DatabaseService,
@@ -469,10 +465,10 @@ export async function expireOldRequests(
 }
 
 /**
- * Permanently deletes an approval request by its ID.
+ * Deletes an approval request by its unique ID.
  *
- * @param id - The unique identifier of the approval request to delete
- * @returns `true` if the request was deleted, otherwise `false`
+ * @param id - The ID of the approval request to delete
+ * @returns `true` if a request was deleted; `false` if no matching request was found
  */
 export async function deleteApprovalRequest(
   this: DatabaseService,
@@ -486,9 +482,9 @@ export async function deleteApprovalRequest(
 }
 
 /**
- * Creates a new approval request, atomically handling existing duplicates by user and content key.
+ * Creates a new approval request, ensuring no duplicate pending requests exist for the same user and content key.
  *
- * If a pending request already exists for the user and content, returns the existing request without creating a new one. If an expired request exists, deletes it before creating a new request. For approved or rejected requests, always creates a new request. The operation is performed within a transaction to ensure consistency.
+ * If a pending request already exists for the user and content, returns that request without creating a new one. If an expired request exists, deletes it before creating a new request. For approved or rejected requests, always creates a new request. The entire operation is performed atomically within a transaction.
  *
  * @returns An object containing the approval request and a boolean indicating whether it was newly created.
  */
@@ -556,10 +552,10 @@ export async function createApprovalRequestWithExpiredHandling(
 }
 
 /**
- * Deletes expired approval requests that were last updated before a specified number of days ago.
+ * Permanently deletes expired approval requests last updated before a specified number of days ago.
  *
- * @param olderThanDays - The minimum age in days for expired requests to be deleted (default is 30)
- * @returns The number of approval requests deleted
+ * @param olderThanDays - The minimum number of days since last update for expired requests to be deleted (default is 30)
+ * @returns The count of approval requests deleted
  */
 export async function cleanupExpiredRequests(
   this: DatabaseService,

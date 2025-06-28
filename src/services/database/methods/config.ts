@@ -2,9 +2,9 @@ import type { DatabaseService } from '@services/database.service.js'
 import type { Config } from '@root/types/config.types.js'
 
 /**
- * Retrieves and normalizes the application configuration from the database.
+ * Retrieves the normalized application configuration from the database.
  *
- * Fetches the configuration record with `id: 1` from the `configs` table, parsing and defaulting all fields as needed. JSON fields are safely parsed with fallback defaults, optional string fields are normalized to `undefined` if empty, and all configuration options are returned as a fully constructed `Config` object. Returns `undefined` if no configuration exists.
+ * Fetches the configuration record with `id: 1` from the `configs` table. All JSON fields are safely parsed with fallback defaults, optional string fields are normalized, and default values are applied for missing or undefined properties. Returns a fully constructed `Config` object if found, or `undefined` if no configuration exists.
  *
  * @returns The normalized application configuration object if found, otherwise `undefined`.
  */
@@ -171,9 +171,9 @@ export async function getConfig(
 }
 
 /**
- * Creates a new configuration record in the database, ensuring only one configuration entry exists.
+ * Inserts a new configuration record into the database, enforcing that only one configuration entry exists.
  *
- * Throws an error if a configuration already exists. Serializes JSON fields and applies default values for optional properties. Returns the ID of the created configuration.
+ * Throws an error if a configuration already exists. Serializes JSON fields and applies default values for optional properties. Returns the ID of the newly created configuration.
  *
  * @param config - The configuration data to insert, excluding `id`, `created_at`, and `updated_at`
  * @returns The ID of the newly created configuration

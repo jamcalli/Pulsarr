@@ -17,9 +17,9 @@ interface DataTableColumnHeaderProps<TData, TValue>
 }
 
 /**
- * Renders a data table column header with sorting and visibility controls.
+ * Renders a data table column header with interactive sorting and visibility controls.
  *
- * Displays the column title and, if the column is sortable, provides a dropdown menu to sort ascending, sort descending, or hide the column.
+ * Displays the column title. If the column supports sorting, provides a dropdown menu to sort ascending, sort descending, or hide the column.
  *
  * @param title - The display title for the column header.
  */

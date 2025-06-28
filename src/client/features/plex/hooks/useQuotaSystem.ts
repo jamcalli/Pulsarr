@@ -17,9 +17,9 @@ const approvalConfigurationSchema = z.object({
 type ApprovalConfigurationFormData = z.infer<typeof approvalConfigurationSchema>
 
 /**
- * Provides an integrated interface for managing quota system configuration and scheduling.
+ * Integrates quota system configuration form management with scheduling controls, providing a unified interface for both.
  *
- * Combines approval configuration form management with operational scheduling controls, synchronizing schedule state with form values and handling coordinated updates to both configuration and schedule. Returns state, handlers, and status flags for both form and scheduler management.
+ * Synchronizes schedule-related form fields with scheduler state and coordinates updates to configuration and schedule. Returns combined state, handlers, and status flags for managing quota approval settings and scheduled quota maintenance operations.
  */
 export function useQuotaSystem() {
   // Form management hook for business logic configuration

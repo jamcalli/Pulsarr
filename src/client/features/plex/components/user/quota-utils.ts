@@ -20,11 +20,11 @@ export function formatQuotaType(quotaType: string): string {
 }
 
 /**
- * Returns a formatted string combining the quota limit and its time unit.
+ * Formats a quota limit with its corresponding time unit based on the quota type.
  *
- * @param quotaLimit - The numeric quota limit
- * @param quotaType - The type of quota period (e.g., 'daily', 'weekly_rolling', 'monthly')
- * @returns The quota limit with the appropriate time unit suffix, or the limit as a string if the type is unrecognized
+ * @param quotaLimit - The numeric value representing the quota limit.
+ * @param quotaType - The quota period type; recognized values are 'daily', 'weekly_rolling', and 'monthly'.
+ * @returns A string combining the quota limit and its time unit (e.g., "10/day"), or just the limit as a string if the type is unrecognized.
  */
 export function formatQuotaLimit(
   quotaLimit: number,
@@ -43,12 +43,12 @@ export function formatQuotaLimit(
 }
 
 /**
- * Returns a status message indicating quota usage based on current usage, quota limit, and whether the quota has been exceeded.
+ * Generates a quota status message based on usage, limit, and exceeded state.
  *
- * @param currentUsage - The current amount of quota used
+ * @param currentUsage - The current quota usage amount
  * @param quotaLimit - The maximum allowed quota
- * @param exceeded - Whether the quota has been exceeded
- * @returns A string representing the quota status: 'Exceeded', 'At Limit', or the number of units remaining
+ * @param exceeded - Indicates if the quota has been exceeded
+ * @returns 'Exceeded' if the quota is exceeded, 'At Limit' if usage equals the limit, or a string showing the remaining quota units
  */
 export function getQuotaStatusText(
   currentUsage: number,
