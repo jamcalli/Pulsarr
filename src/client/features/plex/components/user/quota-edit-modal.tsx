@@ -64,7 +64,6 @@ interface FormContentProps {
   handleOpenChange: (open: boolean) => void
   saveStatus: QuotaEditStatus
   isFormDirty: boolean
-  user: UserWithQuotaInfo
 }
 
 const FormContent = React.memo(
@@ -74,7 +73,6 @@ const FormContent = React.memo(
     handleOpenChange,
     saveStatus,
     isFormDirty,
-    user: _user,
   }: FormContentProps) => {
     const hasMovieQuota = form.watch('hasMovieQuota')
     const hasShowQuota = form.watch('hasShowQuota')

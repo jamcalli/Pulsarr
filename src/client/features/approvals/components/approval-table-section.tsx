@@ -196,25 +196,32 @@ export default function ApprovalTableSection() {
     }
   }
 
-  const handleBulkApprove = async (requestIds: string[]) => {
-    setCurrentBulkAction('approve')
+  // Generic bulk action handler to reduce code duplication
+  const handleBulkAction = async (
+    action: 'approve' | 'reject' | 'delete',
+    requestIds: string[],
+    additionalData?: { notes?: string; reason?: string },
+  ) => {
+    setCurrentBulkAction(action)
     setBulkActionStatus('loading')
+
     try {
       const minimumLoadingTime = new Promise((resolve) =>
         setTimeout(resolve, MIN_LOADING_DELAY),
       )
 
-      const requestBody: BulkApprovalRequest = {
+      const endpoint = `/v1/approval/requests/bulk/${action}`
+      const method = action === 'delete' ? 'DELETE' : 'POST'
+
+      const requestBody = {
         requestIds: requestIds.map((id) => Number.parseInt(id, 10)),
-        notes: undefined, // Optional notes field
+        ...additionalData,
       }
 
       const [response] = await Promise.all([
-        fetch('/v1/approval/requests/bulk/approve', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+        fetch(endpoint, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(requestBody),
         }),
         minimumLoadingTime,
@@ -222,11 +229,10 @@ export default function ApprovalTableSection() {
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.message || 'Failed to approve requests')
+        throw new Error(errorData.message || `Failed to ${action} requests`)
       }
 
       await response.json() // Consume response but don't need result
-
       setBulkActionStatus('success')
 
       // Refresh data
@@ -242,10 +248,10 @@ export default function ApprovalTableSection() {
         setCurrentBulkAction(null)
       }, 500)
     } catch (error) {
-      console.error('Bulk approve error:', error)
+      console.error(`Bulk ${action} error:`, error)
       setBulkActionStatus('error')
       toast.error(
-        error instanceof Error ? error.message : 'Failed to approve requests',
+        error instanceof Error ? error.message : `Failed to ${action} requests`,
       )
       await new Promise((resolve) => setTimeout(resolve, MIN_LOADING_DELAY))
       setBulkActionStatus('idle')
@@ -253,118 +259,15 @@ export default function ApprovalTableSection() {
     }
   }
 
-  const handleBulkReject = async (requestIds: string[]) => {
-    setCurrentBulkAction('reject')
-    setBulkActionStatus('loading')
-    try {
-      const minimumLoadingTime = new Promise((resolve) =>
-        setTimeout(resolve, MIN_LOADING_DELAY),
-      )
+  // Simplified bulk action handlers
+  const handleBulkApprove = (requestIds: string[]) =>
+    handleBulkAction('approve', requestIds, { notes: undefined })
 
-      const requestBody: BulkRejectRequest = {
-        requestIds: requestIds.map((id) => Number.parseInt(id, 10)),
-        reason: undefined, // Optional reason field
-      }
+  const handleBulkReject = (requestIds: string[]) =>
+    handleBulkAction('reject', requestIds, { reason: undefined })
 
-      const [response] = await Promise.all([
-        fetch('/v1/approval/requests/bulk/reject', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(requestBody),
-        }),
-        minimumLoadingTime,
-      ])
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Failed to reject requests')
-      }
-
-      await response.json() // Consume response but don't need result
-
-      setBulkActionStatus('success')
-
-      // Refresh data
-      await handleActionComplete()
-
-      // Show success state then close
-      await new Promise((resolve) => setTimeout(resolve, MIN_LOADING_DELAY / 2))
-      setBulkModalOpen(false)
-
-      // Reset status
-      setTimeout(() => {
-        setBulkActionStatus('idle')
-        setCurrentBulkAction(null)
-      }, 500)
-    } catch (error) {
-      console.error('Bulk reject error:', error)
-      setBulkActionStatus('error')
-      toast.error(
-        error instanceof Error ? error.message : 'Failed to reject requests',
-      )
-      await new Promise((resolve) => setTimeout(resolve, MIN_LOADING_DELAY))
-      setBulkActionStatus('idle')
-      setCurrentBulkAction(null)
-    }
-  }
-
-  const handleBulkDelete = async (requestIds: string[]) => {
-    setCurrentBulkAction('delete')
-    setBulkActionStatus('loading')
-    try {
-      const minimumLoadingTime = new Promise((resolve) =>
-        setTimeout(resolve, MIN_LOADING_DELAY),
-      )
-
-      const requestBody: BulkDeleteRequest = {
-        requestIds: requestIds.map((id) => Number.parseInt(id, 10)),
-      }
-
-      const [response] = await Promise.all([
-        fetch('/v1/approval/requests/bulk/delete', {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(requestBody),
-        }),
-        minimumLoadingTime,
-      ])
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Failed to delete requests')
-      }
-
-      await response.json() // Consume response but don't need result
-
-      setBulkActionStatus('success')
-
-      // Refresh data
-      await handleActionComplete()
-
-      // Show success state then close
-      await new Promise((resolve) => setTimeout(resolve, MIN_LOADING_DELAY / 2))
-      setBulkModalOpen(false)
-
-      // Reset status
-      setTimeout(() => {
-        setBulkActionStatus('idle')
-        setCurrentBulkAction(null)
-      }, 500)
-    } catch (error) {
-      console.error('Bulk delete error:', error)
-      setBulkActionStatus('error')
-      toast.error(
-        error instanceof Error ? error.message : 'Failed to delete requests',
-      )
-      await new Promise((resolve) => setTimeout(resolve, MIN_LOADING_DELAY))
-      setBulkActionStatus('idle')
-      setCurrentBulkAction(null)
-    }
-  }
+  const handleBulkDelete = (requestIds: string[]) =>
+    handleBulkAction('delete', requestIds)
 
   if (!isInitialized) {
     return null

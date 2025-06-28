@@ -1472,7 +1472,7 @@ export class ContentRouterService {
       try {
         return JSON.parse(syncedInstances || '[]')
       } catch (e) {
-        this.log.error('Invalid syncedInstances JSON:', e)
+        this.log.error(`Invalid syncedInstances JSON: "${syncedInstances}"`, e)
         return []
       }
     }

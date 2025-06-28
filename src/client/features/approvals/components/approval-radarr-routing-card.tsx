@@ -186,6 +186,8 @@ export function ApprovalRadarrRoutingCard({
           qualityProfile: data.qualityProfile,
           rootFolder: data.rootFolder,
           searchOnAdd: data.searchOnAdd,
+          monitorNewItems: data.monitorNewItems,
+          bypassIgnored: data.bypassIgnored,
           minimumAvailability: data.minimumAvailability,
           tags: data.tags,
           syncedInstances: data.syncedInstances,

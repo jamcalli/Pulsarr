@@ -11,6 +11,41 @@ import { ApprovalSystemForm } from '@/features/approvals/components/approval-sys
 import { QuotaSystemForm } from '@/features/approvals/components/quota-system-form'
 import { useApprovalScheduler } from '@/features/plex/hooks/useApprovalScheduler'
 
+type MaintenanceJob =
+  | {
+      enabled?: boolean
+      last_run?: {
+        status?: string
+      } | null
+    }
+  | null
+  | undefined
+
+/**
+ * Renders a status badge for maintenance jobs with appropriate styling and text.
+ */
+const getStatusBadge = (job: MaintenanceJob) => (
+  <Badge
+    variant="neutral"
+    className={cn(
+      'px-2 py-0.5 h-7 text-sm ml-2 mr-2',
+      job?.enabled
+        ? 'bg-green-500 hover:bg-green-500 text-white'
+        : job?.last_run?.status === 'failed'
+          ? 'bg-yellow-500 hover:bg-yellow-500 text-white'
+          : 'bg-red-500 hover:bg-red-500 text-white',
+    )}
+  >
+    {!job
+      ? 'Unknown'
+      : !job.enabled
+        ? 'Disabled'
+        : job.last_run?.status === 'failed'
+          ? 'Failed'
+          : 'Enabled'}
+  </Badge>
+)
+
 /**
  * Renders a section for configuring approval and quota systems using accordions.
  *
@@ -48,25 +83,7 @@ export function ApprovalConfigurationSection() {
                   scheduling
                 </p>
               </div>
-              <Badge
-                variant="neutral"
-                className={cn(
-                  'px-2 py-0.5 h-7 text-sm ml-2 mr-2',
-                  approvalMaintenanceJob?.enabled
-                    ? 'bg-green-500 hover:bg-green-500 text-white'
-                    : approvalMaintenanceJob?.last_run?.status === 'failed'
-                      ? 'bg-yellow-500 hover:bg-yellow-500 text-white'
-                      : 'bg-red-500 hover:bg-red-500 text-white',
-                )}
-              >
-                {!approvalMaintenanceJob
-                  ? 'Unknown'
-                  : !approvalMaintenanceJob.enabled
-                    ? 'Disabled'
-                    : approvalMaintenanceJob.last_run?.status === 'failed'
-                      ? 'Failed'
-                      : 'Enabled'}
-              </Badge>
+              {getStatusBadge(approvalMaintenanceJob)}
             </div>
           </AccordionTrigger>
           <AccordionContent className="p-0">
@@ -93,25 +110,7 @@ export function ApprovalConfigurationSection() {
                   Manages quota reset policies and maintenance scheduling
                 </p>
               </div>
-              <Badge
-                variant="neutral"
-                className={cn(
-                  'px-2 py-0.5 h-7 text-sm ml-2 mr-2',
-                  quotaMaintenanceJob?.enabled
-                    ? 'bg-green-500 hover:bg-green-500 text-white'
-                    : quotaMaintenanceJob?.last_run?.status === 'failed'
-                      ? 'bg-yellow-500 hover:bg-yellow-500 text-white'
-                      : 'bg-red-500 hover:bg-red-500 text-white',
-                )}
-              >
-                {!quotaMaintenanceJob
-                  ? 'Unknown'
-                  : !quotaMaintenanceJob.enabled
-                    ? 'Disabled'
-                    : quotaMaintenanceJob.last_run?.status === 'failed'
-                      ? 'Failed'
-                      : 'Enabled'}
-              </Badge>
+              {getStatusBadge(quotaMaintenanceJob)}
             </div>
           </AccordionTrigger>
           <AccordionContent className="p-0">

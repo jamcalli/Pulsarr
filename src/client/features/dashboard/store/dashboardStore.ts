@@ -58,6 +58,7 @@ export interface StatsState {
     statusTransitions: boolean
     statusFlow: boolean
     notifications: boolean
+    instanceContent: boolean
   }
   errors: {
     all: string | null
@@ -71,6 +72,7 @@ export interface StatsState {
     statusTransitions: string | null
     statusFlow: string | null
     notifications: string | null
+    instanceContent: string | null
   }
 
   // Fetch functions

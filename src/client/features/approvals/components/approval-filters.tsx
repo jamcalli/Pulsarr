@@ -10,14 +10,14 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Card, CardContent } from '@/components/ui/card'
-import { Search, Filter, X } from 'lucide-react'
+import { Filter, X } from 'lucide-react'
 import { useApprovalsStore } from '@/features/approvals/store/approvalsStore'
 import type { GetApprovalRequestsQuery } from '@root/schemas/approval/approval.schema'
 
 /**
- * Renders a UI component for filtering and searching approval requests.
+ * Renders a UI component for filtering approval requests.
  *
- * Provides quick filter buttons, advanced filter controls (status, content type, trigger type, user ID), and a search input for content title. Synchronizes local filter state with a global store, applies or clears filters, and displays active filter badges. Disables controls during loading to prevent concurrent actions.
+ * Provides quick filter buttons and advanced filter controls (status, content type, trigger type, user ID). Synchronizes local filter state with a global store, applies or clears filters, and displays active filter badges. Disables controls during loading to prevent concurrent actions.
  */
 export default function ApprovalFilters() {
   const { currentQuery, setQuery, fetchApprovalRequests, approvalsLoading } =
@@ -28,7 +28,6 @@ export default function ApprovalFilters() {
     contentType: currentQuery.contentType || '',
     triggeredBy: currentQuery.triggeredBy || '',
     userId: currentQuery.userId?.toString() || '',
-    searchTerm: '',
   })
 
   // Sync local filters with current query when it changes
@@ -38,7 +37,6 @@ export default function ApprovalFilters() {
       contentType: currentQuery.contentType || '',
       triggeredBy: currentQuery.triggeredBy || '',
       userId: currentQuery.userId?.toString() || '',
-      searchTerm: '',
     })
   }, [currentQuery])
 
@@ -77,7 +75,7 @@ export default function ApprovalFilters() {
 
     if (localFilters.userId) {
       const parsedUserId = Number.parseInt(localFilters.userId, 10)
-      if (!Number.isNaN(parsedUserId)) {
+      if (!Number.isNaN(parsedUserId) && parsedUserId > 0) {
         newQuery.userId = parsedUserId
       }
     }
@@ -92,7 +90,6 @@ export default function ApprovalFilters() {
       contentType: '',
       triggeredBy: '',
       userId: '',
-      searchTerm: '',
     })
 
     const clearedQuery = {
@@ -146,7 +143,10 @@ export default function ApprovalFilters() {
           | 'manual_flag'
           | 'content_criteria'
       } else if (key === 'userId') {
-        newQuery.userId = Number.parseInt(newValue)
+        const parsedUserId = Number.parseInt(newValue, 10)
+        if (!Number.isNaN(parsedUserId) && parsedUserId > 0) {
+          newQuery.userId = parsedUserId
+        }
       }
     } else {
       if (key === 'status') {
@@ -296,24 +296,8 @@ export default function ApprovalFilters() {
             </div>
           )}
 
-          {/* Search and action buttons */}
+          {/* Action buttons */}
           <div className="flex gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Search by content title..."
-                value={localFilters.searchTerm}
-                onChange={(e) =>
-                  handleFilterChange('searchTerm', e.target.value)
-                }
-                className="pl-10"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    applyFilters()
-                  }
-                }}
-              />
-            </div>
             <Button
               onClick={applyFilters}
               disabled={approvalsLoading}

@@ -104,6 +104,21 @@ export const createApprovalColumns = (
     },
   },
   {
+    // Hidden column used only for content type filtering - not displayed in UI
+    accessorKey: 'contentType',
+    id: 'contentType',
+    header: () => null,
+    cell: () => null,
+    enableSorting: false,
+    enableHiding: false,
+    size: 0,
+    minSize: 0,
+    maxSize: 0,
+    filterFn: (row, id, value) => {
+      return value.includes(row.getValue(id))
+    },
+  },
+  {
     accessorKey: 'userName',
     id: 'userName',
     meta: {

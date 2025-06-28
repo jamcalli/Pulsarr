@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { toast } from 'sonner'
 import { useApprovalConfiguration } from '@/features/plex/hooks/useApprovalConfiguration'
 import { useApprovalScheduler } from '@/features/plex/hooks/useApprovalScheduler'
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
@@ -104,12 +105,15 @@ export function useQuotaSystem() {
         await fetchSchedules()
       } catch (err) {
         // Schedule update failed, but config was already saved successfully
-        // Don't throw the error to avoid confusing users about the save status
         console.error(
           'Schedule update failed after successful config save:',
           err,
         )
-        // Consider showing a non-blocking warning to the user about the schedule update failure
+        // Show a warning toast to inform the user
+        toast.warning('Schedule Update Failed', {
+          description:
+            'Configuration saved successfully, but the schedule update failed. Please try updating the schedule separately.',
+        })
       }
     }
   }
