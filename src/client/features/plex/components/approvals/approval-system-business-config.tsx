@@ -39,9 +39,9 @@ interface ApprovalSystemBusinessConfigProps {
 }
 
 /**
- * Renders a form for configuring approval system business logic, including approval expiration policies, per-trigger expiration overrides, and cleanup settings.
+ * Displays a form for configuring approval system business logic, including approval expiration policies, per-trigger expiration overrides, and cleanup settings.
  *
- * The form allows enabling or disabling approval expiration, setting default and trigger-specific expiration times, choosing the action on expiration, and specifying retention duration for expired requests. Inputs are conditionally enabled based on loading state and whether the approval maintenance schedule is active. Save and cancel controls are shown when there are unsaved changes.
+ * The form supports enabling or disabling approval expiration, setting default and trigger-specific expiration durations, selecting the action to take on expiration, and specifying how long expired requests are retained before deletion. Inputs are conditionally enabled based on loading state and whether the approval maintenance schedule is active. Save and cancel controls are shown when there are unsaved changes.
  */
 export function ApprovalSystemBusinessConfig({
   form,

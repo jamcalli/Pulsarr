@@ -4,11 +4,11 @@ import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
 import { Computer } from 'lucide-react'
 
 /**
- * Provides a list of Radarr instances available for synchronization, excluding the current instance and those with a placeholder API key.
+ * Returns a list of Radarr instances available for synchronization, excluding the current instance and those with a placeholder API key.
  *
- * @param currentInstanceId - The ID of the currently selected Radarr instance to exclude from the list
- * @param instances - The array of all Radarr instances to filter
- * @returns An object containing the `availableInstances` array, each with `value`, `label`, and `icon` properties
+ * @param currentInstanceId - The ID of the Radarr instance to exclude from the results
+ * @param instances - The list of Radarr instances to filter and format
+ * @returns An object with an `availableInstances` array, where each entry contains `value`, `label`, and `icon` properties
  */
 export function useRadarrSync(
   currentInstanceId: number,

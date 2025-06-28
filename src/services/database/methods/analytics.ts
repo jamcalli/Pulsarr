@@ -313,9 +313,9 @@ export async function getRecentActivityStats(
 }
 
 /**
- * Retrieves activity statistics for all Sonarr and Radarr instances, including the number of watchlist items associated with each instance.
+ * Retrieves the number of watchlist items associated with each Sonarr and Radarr instance.
  *
- * @returns An array of objects containing instance ID, type ('sonarr' or 'radarr'), name, and item count, sorted by item count in descending order.
+ * @returns An array of objects containing the instance ID, type ('sonarr' or 'radarr'), name, and item count, sorted by item count in descending order.
  */
 export async function getInstanceActivityStats(this: DatabaseService): Promise<
   {
@@ -377,11 +377,11 @@ export async function getInstanceActivityStats(this: DatabaseService): Promise<
 }
 
 /**
- * Computes the average, minimum, and maximum number of days between "grabbed" and "notified" statuses for each content type.
+ * Calculates the average, minimum, and maximum number of days between the first "grabbed" and first "notified" statuses for each content type.
  *
- * Only includes content types with at least 2 valid samples, excluding time differences that are negative or exceed 365 days.
+ * Only includes content types with at least 2 valid samples, excluding negative or excessively large time differences (over 365 days).
  *
- * @returns An array of objects with content type, average days, minimum days, maximum days, and sample count.
+ * @returns An array of objects containing the content type, average days, minimum days, maximum days, and sample count.
  */
 export async function getAverageTimeFromGrabbedToNotified(
   this: DatabaseService,
@@ -489,11 +489,11 @@ export async function getAverageTimeFromGrabbedToNotified(
 }
 
 /**
- * Computes detailed metrics for all direct status transitions between watchlist item statuses.
+ * Calculates average, minimum, and maximum days between all direct status transitions for watchlist items, grouped by transition type and content type.
  *
- * For each unique combination of from_status, to_status, and content_type, calculates the average, minimum, and maximum number of days between transitions, after applying robust outlier filtering. Only transitions with at least two valid samples are included.
+ * For each unique (from_status, to_status, content_type) combination, applies robust outlier filtering and includes only transitions with at least two valid samples. Results are sorted by sample count in descending order.
  *
- * @returns An array of objects containing transition details and time statistics, sorted by sample count in descending order.
+ * @returns An array of objects with transition details and time statistics.
  */
 export async function getDetailedStatusTransitionMetrics(
   this: DatabaseService,

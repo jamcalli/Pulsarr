@@ -1,7 +1,9 @@
 import type { Knex } from 'knex'
 
 /**
- * Adds the `approvalNotify` enum column to the `configs` table to specify notification methods for new approval requests.
+ * Alters the `configs` table by adding an `approvalNotify` enum column to define notification methods for new approval requests.
+ *
+ * The new column supports multiple notification options, such as 'none', 'all', and various Discord, Apprise, webhook, and DM combinations. The default value is 'none'.
  */
 export async function up(knex: Knex): Promise<void> {
   // Add approval notification configuration
@@ -24,7 +26,7 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Removes the `approvalNotify` column from the `configs` table, reverting the migration.
+ * Drops the `approvalNotify` column from the `configs` table to revert the schema change.
  */
 export async function down(knex: Knex): Promise<void> {
   await knex.schema.alterTable('configs', (table) => {

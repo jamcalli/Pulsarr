@@ -83,9 +83,9 @@ const formatScheduleDisplay = (
 }
 
 /**
- * Renders a comprehensive form for configuring the quota maintenance schedule, reset policies, and cleanup settings.
+ * Displays a form interface for configuring quota maintenance scheduling, reset policies, and usage history cleanup.
  *
- * Provides controls to enable or disable the quota schedule, run the maintenance job immediately, and view current status, last run, and next scheduled run. Users can set the schedule time and day, adjust weekly and monthly reset policies, and configure usage history cleanup options. The form supports validation, responsive layout, and displays errors if the schedule fails to load.
+ * Allows users to enable or disable the quota schedule, trigger immediate maintenance, and view current status, last run, and next scheduled run. The form supports setting the schedule time and day, adjusting weekly and monthly reset options, and managing cleanup retention. Responsive layout and validation are provided, with error feedback if the schedule cannot be loaded.
  */
 export function QuotaSystemForm() {
   const isMobile = useMediaQuery('(max-width: 768px)')

@@ -13,17 +13,11 @@ interface SystemStatusProps {
 }
 
 /**
- * Displays the status, last run, and next run information for a scheduled job.
+ * Renders a summary of a scheduled job's status, including current state, last run, next run, and a description.
  *
- * Renders a loading state with skeleton placeholders when data is loading. Shows a status badge, formatted last and next run times, and a description of the schedule when loaded. Handles missing or disabled job states gracefully.
+ * Displays loading placeholders when data is being fetched, and adapts the UI for missing, disabled, or failed job states.
  *
- * @param job - The job status object, or null/undefined if unavailable.
- * @param formatLastRun - Function to format the last run timestamp.
- * @param formatNextRun - Function to format the next run timestamp.
- * @param isLoading - Whether the component should display a loading state.
- * @param title - Optional title for the status section.
- * @param description - Description of the schedule's purpose.
- * @returns A React element displaying the job's schedule status.
+ * @returns A React element summarizing the job's schedule status and details.
  */
 export function SystemStatus({
   job,

@@ -77,13 +77,13 @@ interface ApprovalSonarrRoutingCardProps {
 }
 
 /**
- * Renders a form card for editing Sonarr routing configuration within an approval workflow.
+ * React component for editing Sonarr routing configuration in an approval workflow.
  *
- * Displays and manages form fields for quality profile, root folder, search and monitoring options, series type, tags, synced instances, and priority. Handles validation, asynchronous data fetching, tag creation, and user feedback for saving or canceling changes. Disables inputs and actions appropriately based on connection validity, saving state, and provided props.
+ * Presents a form card allowing users to modify routing options such as quality profile, root folder, search and monitoring settings, series type, tags, synced instances, and priority for a specific Sonarr instance. Handles form validation, asynchronous data loading, tag management, and user feedback for save and cancel actions. Inputs and actions are conditionally disabled based on connection validity, saving state, and provided props.
  *
- * @param routing - The current routing configuration to edit.
- * @param instanceId - The Sonarr instance identifier for which routing is being configured.
- * @param onSave - Callback invoked with the updated routing configuration upon successful save.
+ * @param routing - The routing configuration to edit.
+ * @param instanceId - Identifier of the Sonarr instance being configured.
+ * @param onSave - Callback invoked with the updated routing configuration after a successful save.
  * @param onCancel - Callback invoked to cancel editing and close the form.
  * @param disabled - Optional flag to disable all form inputs and actions.
  * @returns The rendered Sonarr routing configuration form card.

@@ -4,11 +4,11 @@ import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
 import { Computer } from 'lucide-react'
 
 /**
- * Provides a list of Sonarr instances available for synchronization, excluding the current instance and those with a placeholder API key.
+ * Returns a list of Sonarr instances available for synchronization, excluding the current instance and those with a placeholder API key.
  *
- * @param currentInstanceId - The ID of the currently selected Sonarr instance to exclude from the list
- * @param instances - The array of all Sonarr instances to filter
- * @returns An object containing `availableInstances`, an array of selectable instance options with `value`, `label`, and `icon` properties
+ * @param currentInstanceId - The ID of the Sonarr instance to exclude from the results
+ * @param instances - The list of all Sonarr instances to consider
+ * @returns An object with `availableInstances`, an array of selectable options each containing `value`, `label`, and `icon`
  */
 export function useSonarrSync(
   currentInstanceId: number,

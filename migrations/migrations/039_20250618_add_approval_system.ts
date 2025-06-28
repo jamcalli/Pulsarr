@@ -107,7 +107,7 @@ export async function up(knex: Knex): Promise<void> {
 }
 
 /**
- * Drops the tables created for the approval system, removing `quota_usage`, `approval_requests`, and `user_quotas` from the database.
+ * Reverts the approval system migration by dropping the `quota_usage`, `approval_requests`, and `user_quotas` tables if they exist.
  */
 export async function down(knex: Knex): Promise<void> {
   // Drop tables in reverse dependency order

@@ -10,11 +10,11 @@ interface AuthenticatedLayoutProps {
 }
 
 /**
- * Provides the authenticated application layout, initializing progress tracking, version checks, and global approval toast notifications.
+ * Renders the authenticated application layout, initializing progress tracking, version checks, and global approval toast notifications.
  *
- * Wraps its children with the main windowed layout and ensures setup and cleanup of progress state on mount and unmount.
+ * Wraps the provided content in the main windowed layout and manages setup and cleanup of progress state during the component lifecycle.
  *
- * @param children - The content to render within the authenticated layout
+ * @param children - The content to display within the authenticated layout
  */
 export default function AuthenticatedLayout({
   children,
