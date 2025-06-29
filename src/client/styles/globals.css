@@ -42,6 +42,8 @@
 	--animate-star-pulse: starPulse 16s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 	--animate-hard-flicker: hardFlicker 0.16s infinite;
 	--animate-soft-flicker: softFlicker 2s infinite;
+	--animate-marquee: marquee 15s linear infinite;
+	--animate-marquee2: marquee2 15s linear infinite;
 
 	@keyframes starPulse {
 		0%,
@@ -82,6 +84,22 @@
 		}
 		to {
 			transform: rotate(360deg);
+		}
+	}
+	@keyframes marquee {
+		0% {
+			transform: translateX(0%);
+		}
+		100% {
+			transform: translateX(-100%);
+		}
+	}
+	@keyframes marquee2 {
+		0% {
+			transform: translateX(100%);
+		}
+		100% {
+			transform: translateX(0%);
 		}
 	}
 }

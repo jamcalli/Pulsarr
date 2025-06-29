@@ -6,6 +6,7 @@ import type {
   UserQuotasResponseSchema,
   QuotaStatusResponseSchema,
 } from '@root/schemas/quota/quota.schema'
+import type { MeResponse, MeError } from '@root/schemas/users/me.schema'
 import type { z } from 'zod'
 
 export type UserWatchlistInfo = UserWithCount
@@ -17,9 +18,12 @@ export type UserWithQuotaInfo = UserWatchlistInfo & {
   userQuotas: UserQuotas | null
 }
 
+export type CurrentUser = MeResponse['user']
+
 // Cache timestamps to prevent unnecessary refetches
 let lastUserDataFetch = 0
 let lastQuotaDataFetch = 0
+let lastCurrentUserFetch = 0
 const CACHE_DURATION = 5000 // 5 seconds
 
 interface UserListResponse {
@@ -32,6 +36,8 @@ interface ConfigResponse {
   success: boolean
   config: Config
 }
+
+type CurrentUserResponse = MeResponse
 
 interface ConfigState {
   config: Config | null
@@ -46,6 +52,9 @@ interface ConfigState {
     userCount: number
     totalItems: number
   } | null
+  currentUser: CurrentUser | null
+  currentUserLoading: boolean
+  currentUserError: string | null
 
   initialize: (force?: boolean) => Promise<void>
   updateConfig: (updates: Partial<Config>) => Promise<void>
@@ -64,6 +73,8 @@ interface ConfigState {
     userId: number,
     updates: Partial<UserWatchlistInfo>,
   ) => Promise<void>
+  fetchCurrentUser: () => Promise<void>
+  refreshCurrentUser: () => Promise<void>
 }
 
 export const useConfigStore = create<ConfigState>()(
@@ -79,6 +90,9 @@ export const useConfigStore = create<ConfigState>()(
         userQuotasMap: new Map(),
         selfWatchlistCount: null,
         othersWatchlistInfo: null,
+        currentUser: null,
+        currentUserLoading: false,
+        currentUserError: null,
 
         fetchConfig: async () => {
           try {
@@ -431,6 +445,58 @@ export const useConfigStore = create<ConfigState>()(
                 ),
               }
             : null
+        },
+
+        fetchCurrentUser: async () => {
+          // Check if we've fetched recently
+          const now = Date.now()
+          if (now - lastCurrentUserFetch < CACHE_DURATION) {
+            return
+          }
+
+          lastCurrentUserFetch = now
+          set({ currentUserLoading: true, currentUserError: null })
+
+          try {
+            const response = await fetch('/v1/users/me', {
+              credentials: 'include',
+            })
+
+            if (!response.ok) {
+              if (response.status === 401) {
+                throw new Error('Authentication required')
+              }
+              throw new Error('Failed to fetch current user')
+            }
+
+            const data: CurrentUserResponse = await response.json()
+
+            if (data.success) {
+              set({
+                currentUser: data.user,
+                currentUserLoading: false,
+                currentUserError: null,
+              })
+            } else {
+              throw new Error(data.message || 'Failed to fetch current user')
+            }
+          } catch (err) {
+            const errorMessage =
+              err instanceof Error
+                ? err.message
+                : 'Failed to fetch current user'
+            set({
+              currentUser: null,
+              currentUserLoading: false,
+              currentUserError: errorMessage,
+            })
+            console.error('Current user fetch error:', err)
+          }
+        },
+
+        refreshCurrentUser: async () => {
+          lastCurrentUserFetch = 0 // Reset cache
+          await get().fetchCurrentUser()
         },
 
         initialize: async (force = false) => {
