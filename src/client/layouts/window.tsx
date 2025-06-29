@@ -36,29 +36,12 @@ export default function WindowedLayout({ children }: WindowedLayoutProps) {
           {/* Header - always visible */}
           <header className="rounded-none border-r-0 border-b-4 h-[50px] border-b-border dark:border-b-darkBorder fixed top-0 left-0 w-full z-50 bg-main flex items-center justify-center">
             {/* Mobile Menu Button */}
-            <SidebarTrigger className="absolute left-3 top-1/2 -translate-y-1/2 bg-transparent border-0 p-0 size-6">
-              <Menu className="stroke-black h-6 w-6" />
-              <span className="sr-only">Menu</span>
-            </SidebarTrigger>
+            <SidebarTrigger className="absolute left-3 top-1/2 -translate-y-1/2" />
 
             {/* Title */}
             <h1 className="whitespace-nowrap font-bold rotate-0 text-[30px] tracking-[2px]">
               <span className="text-black inline-block">Pulsarr</span>
             </h1>
-
-            {/* Mobile Settings and Docs Buttons */}
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-3">
-              <a
-                href={DOCUMENTATION_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-black"
-                aria-label="Documentation"
-              >
-                <FileText className="stroke-current h-6 w-6" />
-              </a>
-              <SettingsButton isMobile={true} />
-            </div>
           </header>
 
           {/* Main content area */}
@@ -88,13 +71,12 @@ export default function WindowedLayout({ children }: WindowedLayoutProps) {
         <SidebarProvider>
           <AppSidebar />
           <SidebarInset className="bg-background">
-            <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+            <header className="flex h-12 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 bg-main border-b-4 border-b-border">
               <div className="flex items-center gap-2 px-4">
                 <SidebarTrigger className="-ml-1" />
               </div>
             </header>
             <div className="flex flex-1 flex-col min-h-0">
-              <Nav isMobile={false} />
               <ScrollArea className="flex-1">{children}</ScrollArea>
             </div>
           </SidebarInset>

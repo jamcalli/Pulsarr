@@ -2,42 +2,33 @@
 
 import {
   AlertCircle,
-  AudioWaveform,
-  BadgeCheck,
   Bell,
   BookOpen,
   Bot,
   CheckCircle,
   ChevronRight,
   ChevronsUpDown,
-  Command,
-  CreditCard,
   Film,
-  Folder,
-  Forward,
-  Frame,
-  GalleryVerticalEnd,
   LayoutDashboard,
   LogOut,
-  Map as MapIcon,
   Monitor,
-  MoreHorizontal,
-  PieChart,
-  Plus,
-  Settings,
-  Settings2,
+  Moon,
   Sparkles,
-  SquareTerminal,
-  Trash2,
+  Sun,
   Tv,
-  Users,
   Wrench,
 } from 'lucide-react'
 
 import * as React from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
+import pulsarrLogo from '@/assets/images/pulsarr.svg'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { useTheme } from '@/components/theme-provider'
+import { useSettings } from '@/components/settings-provider'
+import { LogoutAlert } from '@/components/ui/logout-alert'
+import { UserAvatarSkeleton } from '@/components/ui/user-avatar-skeleton'
+import { useConfigStore } from '@/stores/configStore'
 import {
   Collapsible,
   CollapsibleContent,
@@ -46,11 +37,9 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
@@ -58,12 +47,9 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
-  SidebarGroupAction,
-  SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
@@ -73,36 +59,13 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar'
 
-// This is sample data.
+// Navigation data
 const data = {
-  user: {
-    name: 'shadcn',
-    email: 'm@example.com',
-    avatar: '/avatars/shadcn.jpg',
-  },
-  teams: [
-    {
-      name: 'Acme Inc',
-      logo: GalleryVerticalEnd,
-      plan: 'Enterprise',
-    },
-    {
-      name: 'Acme Corp.',
-      logo: AudioWaveform,
-      plan: 'Startup',
-    },
-    {
-      name: 'Evil Corp.',
-      logo: Command,
-      plan: 'Free',
-    },
-  ],
   navMain: [
     {
       title: 'Dashboard',
       url: '/dashboard',
       icon: LayoutDashboard,
-      isActive: true,
     },
     {
       title: 'Plex',
@@ -243,9 +206,12 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { isMobile } = useSidebar()
-  const [activeTeam, setActiveTeam] = React.useState(data.teams[0])
+  const { isMobile, setOpenMobile } = useSidebar()
   const [activeSection, setActiveSection] = React.useState<string>('')
+  const { theme, setTheme } = useTheme()
+  const { asteroidsEnabled, setAsteroidsEnabled } = useSettings()
+  const [showLogoutAlert, setShowLogoutAlert] = React.useState(false)
+  const { currentUser, currentUserLoading, fetchCurrentUser } = useConfigStore()
 
   // Persistent collapsible state
   const [openSections, setOpenSections] = React.useState<
@@ -258,13 +224,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       }
       const result: Record<string, boolean> = {}
       for (const item of data.navMain) {
-        result[item.title] = item.isActive || false
+        // Only track collapsible sections (items with children)
+        if (item.items) {
+          result[item.title] = item.isActive || false
+        }
       }
       return result
     } catch {
       const result: Record<string, boolean> = {}
       for (const item of data.navMain) {
-        result[item.title] = item.isActive || false
+        // Only track collapsible sections (items with children)
+        if (item.items) {
+          result[item.title] = item.isActive || false
+        }
       }
       return result
     }
@@ -289,6 +261,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       setActiveSection('')
     }
   }, [location.pathname])
+
+  // Fetch current user data on mount
+  React.useEffect(() => {
+    fetchCurrentUser()
+  }, [fetchCurrentUser])
 
   // Check if a route is active
   const isActiveRoute = React.useCallback(
@@ -360,244 +337,272 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         // Regular navigation without anchor
         navigate(url)
       }
+
+      // Close mobile sidebar after navigation
+      if (isMobile) {
+        setOpenMobile(false)
+      }
     },
-    [navigate, location.pathname],
+    [navigate, location.pathname, isMobile, setOpenMobile],
   )
 
-  if (!activeTeam) {
-    return null
-  }
-
   return (
-    <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <DropdownMenu>
-              <DropdownMenuTrigger className="focus-visible:ring-0" asChild>
-                <SidebarMenuButton
-                  size="lg"
-                  className="data-[state=open]:bg-main data-[state=open]:text-main-foreground data-[state=open]:outline-border data-[state=open]:outline-2"
-                >
-                  <div className="flex aspect-square size-8 items-center justify-center rounded-base">
-                    <activeTeam.logo className="size-4" />
-                  </div>
-                  <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-heading">
-                      {activeTeam.name}
-                    </span>
-                    <span className="truncate text-xs">{activeTeam.plan}</span>
-                  </div>
-                  <ChevronsUpDown className="ml-auto" />
-                </SidebarMenuButton>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-base"
-                align="start"
-                side={isMobile ? 'bottom' : 'right'}
-                sideOffset={4}
-              >
-                <DropdownMenuLabel className="text-sm font-heading">
-                  Teams
-                </DropdownMenuLabel>
-                {data.teams.map((team, index) => (
-                  <DropdownMenuItem
-                    key={team.name}
-                    onClick={() => setActiveTeam(team)}
-                    className="gap-2 p-1.5"
-                  >
-                    <div className="flex size-6 items-center justify-center">
-                      <team.logo className="size-4 shrink-0" />
-                    </div>
-                    {team.name}
-                    <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
-                  </DropdownMenuItem>
-                ))}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="gap-2 p-1.5">
-                  <div className="flex size-6 items-center justify-center">
-                    <Plus className="size-4" />
-                  </div>
-                  <div className="font-base">Add team</div>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarHeader>
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Application</SidebarGroupLabel>
+    <>
+      <Sidebar collapsible="icon" {...props}>
+        <SidebarHeader className="border-b-4 border-b-border h-12 flex items-center px-2 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center">
           <SidebarMenu>
-            {data.navMain.map((item) =>
-              item.items ? (
-                <Collapsible
-                  key={item.title}
-                  asChild
-                  open={openSections[item.title]}
-                  onOpenChange={() => toggleSection(item.title)}
-                  className="group/collapsible"
+            <SidebarMenuItem>
+              <DropdownMenu>
+                <DropdownMenuTrigger className="focus-visible:ring-0" asChild>
+                  <SidebarMenuButton
+                    className="data-[state=open]:bg-main data-[state=open]:text-main-foreground data-[state=open]:outline-border data-[state=open]:outline-2 group-data-[state=collapsed]:hover:outline-0 group-data-[state=collapsed]:hover:bg-transparent group-data-[collapsible=icon]:data-[state=open]:bg-transparent group-data-[collapsible=icon]:data-[state=open]:outline-0 overflow-visible"
+                    size="sm"
+                  >
+                    <Avatar
+                      className="h-8 w-8"
+                      style={{ backgroundColor: '#212121' }}
+                    >
+                      <AvatarImage
+                        src={pulsarrLogo}
+                        alt="Pulsarr"
+                        className="object-cover"
+                      />
+                      <AvatarFallback
+                        style={{ backgroundColor: '#212121' }}
+                        className="text-white"
+                      >
+                        P
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="grid flex-1 text-left text-base leading-tight">
+                      <span className="truncate font-heading">Pulsarr</span>
+                    </div>
+                    <ChevronsUpDown className="ml-auto size-4" />
+                  </SidebarMenuButton>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-base"
+                  align="start"
+                  side={isMobile ? 'bottom' : 'right'}
+                  sideOffset={4}
                 >
-                  <SidebarMenuItem>
-                    <CollapsibleTrigger asChild>
-                      <SidebarMenuButton
-                        className="data-[state=open]:bg-main data-[state=open]:outline-border data-[state=open]:text-main-foreground"
-                        tooltip={item.title}
+                  <DropdownMenuLabel className="text-sm font-heading">
+                    Settings
+                  </DropdownMenuLabel>
+                  <DropdownMenuItem
+                    onClick={() =>
+                      setTheme(theme === 'dark' ? 'light' : 'dark')
+                    }
+                  >
+                    {theme === 'dark' ? (
+                      <Sun className="mr-2 h-4 w-4" />
+                    ) : (
+                      <Moon className="mr-2 h-4 w-4" />
+                    )}
+                    <span>Switch theme</span>
+                  </DropdownMenuItem>
+                  {!isMobile && (
+                    <DropdownMenuItem
+                      onClick={() => setAsteroidsEnabled(!asteroidsEnabled)}
+                    >
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      <span>
+                        {asteroidsEnabled ? 'Disable' : 'Enable'} asteroids
+                      </span>
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarHeader>
+        <SidebarContent>
+          <SidebarGroup>
+            <SidebarGroupLabel>Application</SidebarGroupLabel>
+            <SidebarMenu>
+              {data.navMain.map((item) =>
+                item.items ? (
+                  <Collapsible
+                    key={item.title}
+                    asChild
+                    open={openSections[item.title]}
+                    onOpenChange={() => toggleSection(item.title)}
+                    className="group/collapsible"
+                  >
+                    <SidebarMenuItem>
+                      <CollapsibleTrigger asChild>
+                        <SidebarMenuButton
+                          className="data-[state=open]:bg-main data-[state=open]:outline-border data-[state=open]:text-main-foreground"
+                          tooltip={item.title}
+                        >
+                          {item.icon && <item.icon />}
+                          <span>{item.title}</span>
+                          <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                        </SidebarMenuButton>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <SidebarMenuSub>
+                          {item.items?.map((subItem) => (
+                            <SidebarMenuSubItem key={subItem.title}>
+                              <SidebarMenuSubButton
+                                asChild
+                                isActive={isActiveRoute(subItem.url)}
+                              >
+                                <a
+                                  href={subItem.url}
+                                  onClick={(e) =>
+                                    handleNavigation(subItem.url, e)
+                                  }
+                                >
+                                  <span>{subItem.title}</span>
+                                </a>
+                              </SidebarMenuSubButton>
+                            </SidebarMenuSubItem>
+                          ))}
+                        </SidebarMenuSub>
+                      </CollapsibleContent>
+                    </SidebarMenuItem>
+                  </Collapsible>
+                ) : (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      tooltip={item.title}
+                      isActive={isActiveRoute(item.url)}
+                    >
+                      <a
+                        href={item.url}
+                        onClick={(e) => handleNavigation(item.url, e)}
                       >
                         {item.icon && <item.icon />}
                         <span>{item.title}</span>
-                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                      </SidebarMenuButton>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <SidebarMenuSub>
-                        {item.items?.map((subItem) => (
-                          <SidebarMenuSubItem key={subItem.title}>
-                            <SidebarMenuSubButton
-                              asChild
-                              isActive={isActiveRoute(subItem.url)}
-                            >
-                              <a
-                                href={subItem.url}
-                                onClick={(e) =>
-                                  handleNavigation(subItem.url, e)
-                                }
-                              >
-                                <span>{subItem.title}</span>
-                              </a>
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                        ))}
-                      </SidebarMenuSub>
-                    </CollapsibleContent>
+                      </a>
+                    </SidebarMenuButton>
                   </SidebarMenuItem>
-                </Collapsible>
-              ) : (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    tooltip={item.title}
-                    isActive={isActiveRoute(item.url)}
-                  >
+                ),
+              )}
+            </SidebarMenu>
+          </SidebarGroup>
+          <SidebarGroup className="group-data-[collapsible=icon]:hidden">
+            <SidebarGroupLabel>Help & Resources</SidebarGroupLabel>
+            <SidebarMenu>
+              {data.helpResources.map((item) => (
+                <SidebarMenuItem key={item.name}>
+                  <SidebarMenuButton asChild>
                     <a
                       href={item.url}
                       onClick={(e) => handleNavigation(item.url, e)}
+                      {...(item.url.startsWith('http') && {
+                        target: '_blank',
+                        rel: 'noopener noreferrer',
+                      })}
                     >
-                      {item.icon && <item.icon />}
-                      <span>{item.title}</span>
+                      <item.icon />
+                      <span>{item.name}</span>
                     </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              ),
-            )}
-          </SidebarMenu>
-        </SidebarGroup>
-        <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-          <SidebarGroupLabel>Help & Resources</SidebarGroupLabel>
+              ))}
+            </SidebarMenu>
+          </SidebarGroup>
+        </SidebarContent>
+        <SidebarFooter>
           <SidebarMenu>
-            {data.helpResources.map((item) => (
-              <SidebarMenuItem key={item.name}>
-                <SidebarMenuButton asChild>
-                  <a
-                    href={item.url}
-                    onClick={(e) => handleNavigation(item.url, e)}
-                    {...(item.url.startsWith('http') && {
-                      target: '_blank',
-                      rel: 'noopener noreferrer',
-                    })}
+            <SidebarMenuItem>
+              {currentUserLoading ? (
+                <SidebarMenuButton size="lg" disabled>
+                  <UserAvatarSkeleton size="lg" />
+                  <ChevronsUpDown className="ml-auto size-4 opacity-50" />
+                </SidebarMenuButton>
+              ) : (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <SidebarMenuButton
+                      className="group-data-[state=collapsed]:hover:outline-0 group-data-[state=collapsed]:hover:bg-transparent overflow-visible"
+                      size="lg"
+                    >
+                      <Avatar
+                        className="h-8 w-8"
+                        style={{ backgroundColor: '#212121' }}
+                      >
+                        {currentUser?.avatar && (
+                          <AvatarImage
+                            src={currentUser.avatar}
+                            alt={currentUser.username || 'User'}
+                            className="object-cover"
+                          />
+                        )}
+                        <AvatarFallback
+                          style={{ backgroundColor: '#212121' }}
+                          className="text-white"
+                        >
+                          {currentUser?.username?.charAt(0).toUpperCase() ||
+                            '?'}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="grid flex-1 text-left text-sm leading-tight">
+                        <span className="truncate font-heading">
+                          {currentUser?.username || 'Unknown User'}
+                        </span>
+                        <span className="truncate text-xs">
+                          {currentUser?.email || ''}
+                        </span>
+                      </div>
+                      <ChevronsUpDown className="ml-auto size-4" />
+                    </SidebarMenuButton>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    className="w-[--radix-dropdown-menu-trigger-width] min-w-56"
+                    side={isMobile ? 'bottom' : 'right'}
+                    align="end"
+                    sideOffset={4}
                   >
-                    <item.icon />
-                    <span>{item.name}</span>
-                  </a>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
+                    <DropdownMenuLabel className="p-0 font-base">
+                      <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                        <Avatar
+                          className="h-8 w-8"
+                          style={{ backgroundColor: '#212121' }}
+                        >
+                          {currentUser?.avatar && (
+                            <AvatarImage
+                              src={currentUser.avatar}
+                              alt={currentUser.username || 'User'}
+                              className="object-cover"
+                            />
+                          )}
+                          <AvatarFallback
+                            style={{ backgroundColor: '#212121' }}
+                            className="text-white"
+                          >
+                            {currentUser?.username?.charAt(0).toUpperCase() ||
+                              '?'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="grid flex-1 text-left text-sm leading-tight">
+                          <span className="truncate font-heading">
+                            {currentUser?.username || 'Unknown User'}
+                          </span>
+                          <span className="truncate text-xs">
+                            {currentUser?.email || ''}
+                          </span>
+                        </div>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onSelect={() => setShowLogoutAlert(true)}>
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Log out</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </SidebarMenuItem>
           </SidebarMenu>
-        </SidebarGroup>
-      </SidebarContent>
-      <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <SidebarMenuButton
-                  className="group-data-[state=collapsed]:hover:outline-0 group-data-[state=collapsed]:hover:bg-transparent overflow-visible"
-                  size="lg"
-                >
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage
-                      src="https://github.com/shadcn.png?size=40"
-                      alt="CN"
-                    />
-                    <AvatarFallback>CN</AvatarFallback>
-                  </Avatar>
-                  <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-heading">
-                      {data.user.name}
-                    </span>
-                    <span className="truncate text-xs">{data.user.email}</span>
-                  </div>
-                  <ChevronsUpDown className="ml-auto size-4" />
-                </SidebarMenuButton>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                className="w-[--radix-dropdown-menu-trigger-width] min-w-56"
-                side={isMobile ? 'bottom' : 'right'}
-                align="end"
-                sideOffset={4}
-              >
-                <DropdownMenuLabel className="p-0 font-base">
-                  <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage
-                        src="https://github.com/shadcn.png?size=40"
-                        alt="CN"
-                      />
-                      <AvatarFallback>CN</AvatarFallback>
-                    </Avatar>
-                    <div className="grid flex-1 text-left text-sm leading-tight">
-                      <span className="truncate font-heading">
-                        {data.user.name}
-                      </span>
-                      <span className="truncate text-xs">
-                        {data.user.email}
-                      </span>
-                    </div>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                  <DropdownMenuItem>
-                    <Sparkles />
-                    Upgrade to Pro
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                  <DropdownMenuItem>
-                    <BadgeCheck />
-                    Account
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <CreditCard />
-                    Billing
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <Bell />
-                    Notifications
-                  </DropdownMenuItem>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <LogOut />
-                  Log out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
-      <SidebarRail />
-    </Sidebar>
+        </SidebarFooter>
+        <SidebarRail />
+      </Sidebar>
+
+      <LogoutAlert open={showLogoutAlert} onOpenChange={setShowLogoutAlert} />
+    </>
   )
 }
