@@ -226,7 +226,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       for (const item of data.navMain) {
         // Only track collapsible sections (items with children)
         if (item.items) {
-          result[item.title] = item.isActive || false
+          result[item.title] = false // Default to closed
         }
       }
       return result
@@ -235,7 +235,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       for (const item of data.navMain) {
         // Only track collapsible sections (items with children)
         if (item.items) {
-          result[item.title] = item.isActive || false
+          result[item.title] = false // Default to closed
         }
       }
       return result

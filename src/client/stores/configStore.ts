@@ -3,16 +3,26 @@ import { devtools, persist } from 'zustand/middleware'
 import type { Config } from '@root/types/config.types'
 import type { UserWithCount } from '@root/schemas/users/users-list.schema'
 import type {
-  UserQuotasResponseSchema,
-  QuotaStatusResponseSchema,
+  UserQuotaResponse,
+  QuotaStatusResponse,
 } from '@root/schemas/quota/quota.schema'
-import type { MeResponse, MeError } from '@root/schemas/users/me.schema'
-import type { z } from 'zod'
+import type { MeResponse } from '@root/schemas/users/me.schema'
 
 export type UserWatchlistInfo = UserWithCount
 
-export type UserQuotas = z.infer<typeof UserQuotasResponseSchema>
-export type QuotaStatusResponse = z.infer<typeof QuotaStatusResponseSchema>
+// Type for quota with both config and status data
+type QuotaWithStatus = UserQuotaResponse & {
+  currentUsage?: number
+  exceeded?: boolean
+  resetDate?: string | null
+}
+
+// Custom type for user quotas that includes status data
+export type UserQuotas = {
+  userId: number
+  movieQuota?: QuotaWithStatus
+  showQuota?: QuotaWithStatus
+}
 
 export type UserWithQuotaInfo = UserWatchlistInfo & {
   userQuotas: UserQuotas | null
@@ -242,8 +252,14 @@ export const useConfigStore = create<ConfigState>()(
                 }),
               ])
 
-            // Process quota configurations
-            let quotaConfigs: UserQuotas[] = []
+            // Process quota configurations - group by user
+            const quotaConfigsByUser = new Map<
+              number,
+              {
+                movieQuota?: QuotaWithStatus
+                showQuota?: QuotaWithStatus
+              }
+            >()
             if (
               quotaConfigsResult.status === 'fulfilled' &&
               quotaConfigsResult.value.ok
@@ -251,7 +267,32 @@ export const useConfigStore = create<ConfigState>()(
               try {
                 const quotaConfigsData = await quotaConfigsResult.value.json()
                 if (quotaConfigsData.success && quotaConfigsData.userQuotas) {
-                  quotaConfigs = quotaConfigsData.userQuotas
+                  // Group flat configs by user and content type
+                  for (const config of quotaConfigsData.userQuotas) {
+                    if (!quotaConfigsByUser.has(config.userId)) {
+                      quotaConfigsByUser.set(config.userId, {})
+                    }
+                    const userConfigs = quotaConfigsByUser.get(config.userId)
+                    if (!userConfigs) continue
+
+                    if (config.contentType === 'movie') {
+                      userConfigs.movieQuota = {
+                        userId: config.userId,
+                        contentType: config.contentType,
+                        quotaType: config.quotaType,
+                        quotaLimit: config.quotaLimit,
+                        bypassApproval: config.bypassApproval,
+                      }
+                    } else if (config.contentType === 'show') {
+                      userConfigs.showQuota = {
+                        userId: config.userId,
+                        contentType: config.contentType,
+                        quotaType: config.quotaType,
+                        quotaLimit: config.quotaLimit,
+                        bypassApproval: config.bypassApproval,
+                      }
+                    }
+                  }
                 }
               } catch (e) {
                 console.warn('Failed to parse quota configurations:', e)
@@ -332,31 +373,29 @@ export const useConfigStore = create<ConfigState>()(
 
             // 4. Combine configurations with statuses
             for (const user of state.users) {
-              const userQuotaConfig = quotaConfigs.find(
-                (q) => q.userId === user.id,
-              )
+              const userQuotaConfig = quotaConfigsByUser.get(user.id)
 
               if (userQuotaConfig) {
-                const userQuotas = { ...userQuotaConfig }
-
-                // Merge movie quota status
-                if (userQuotas.movieQuota && movieStatuses[user.id]) {
-                  userQuotas.movieQuota = {
-                    ...userQuotas.movieQuota,
-                    currentUsage: movieStatuses[user.id].currentUsage,
-                    exceeded: movieStatuses[user.id].exceeded,
-                    resetDate: movieStatuses[user.id].resetDate,
-                  }
+                const userQuotas: UserQuotas = {
+                  userId: user.id,
+                  movieQuota: userQuotaConfig.movieQuota,
+                  showQuota: userQuotaConfig.showQuota,
                 }
 
-                // Merge show quota status
+                // Merge movie quota status into movieQuota object (like develop branch)
+                if (userQuotas.movieQuota && movieStatuses[user.id]) {
+                  const movieStatus = movieStatuses[user.id]
+                  userQuotas.movieQuota.currentUsage = movieStatus.currentUsage
+                  userQuotas.movieQuota.exceeded = movieStatus.exceeded
+                  userQuotas.movieQuota.resetDate = movieStatus.resetDate
+                }
+
+                // Merge show quota status into showQuota object (like develop branch)
                 if (userQuotas.showQuota && showStatuses[user.id]) {
-                  userQuotas.showQuota = {
-                    ...userQuotas.showQuota,
-                    currentUsage: showStatuses[user.id].currentUsage,
-                    exceeded: showStatuses[user.id].exceeded,
-                    resetDate: showStatuses[user.id].resetDate,
-                  }
+                  const showStatus = showStatuses[user.id]
+                  userQuotas.showQuota.currentUsage = showStatus.currentUsage
+                  userQuotas.showQuota.exceeded = showStatus.exceeded
+                  userQuotas.showQuota.resetDate = showStatus.resetDate
                 }
 
                 userQuotasMap.set(user.id, userQuotas)
@@ -365,7 +404,7 @@ export const useConfigStore = create<ConfigState>()(
               }
             }
 
-            // Create users with quota data
+            // Create users with quota data (status is now merged into quota objects)
             const usersWithQuota: UserWithQuotaInfo[] = state.users.map(
               (user) => ({
                 ...user,
@@ -523,7 +562,7 @@ export const useConfigStore = create<ConfigState>()(
       }),
       {
         name: 'config-storage',
-        partialize: (state) => ({}),
+        partialize: () => ({}),
       },
     ),
   ),

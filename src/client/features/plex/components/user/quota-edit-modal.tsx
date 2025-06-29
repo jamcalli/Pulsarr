@@ -457,7 +457,6 @@ export function QuotaEditModal({
               handleOpenChange={handleOpenChange}
               saveStatus={saveStatus}
               isFormDirty={isFormDirty}
-              user={user}
             />
           </div>
         </SheetContent>
@@ -495,7 +494,6 @@ export function QuotaEditModal({
           handleOpenChange={handleOpenChange}
           saveStatus={saveStatus}
           isFormDirty={isFormDirty}
-          user={user}
         />
       </DialogContent>
     </Dialog>
