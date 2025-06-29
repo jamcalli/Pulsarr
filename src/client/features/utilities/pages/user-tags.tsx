@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useConfigStore } from '@/stores/configStore'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import {
   Loader2,
   Tag,
@@ -23,7 +22,6 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
-import { cn } from '@/lib/utils'
 import { Separator } from '@/components/ui/separator'
 import {
   Tooltip,
@@ -59,7 +57,6 @@ export function UserTagsPage() {
   const {
     form,
     isSaving,
-    isLoading,
     isCreatingTags,
     isSyncingTags,
     isCleaningTags,

@@ -1,5 +1,4 @@
 import { Skeleton } from '@/components/ui/skeleton'
-import { Separator } from '@/components/ui/separator'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { Card, CardHeader, CardContent } from '@/components/ui/card'
 

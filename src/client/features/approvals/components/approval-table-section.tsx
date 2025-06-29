@@ -11,12 +11,7 @@ import ApprovalStatsHeader from '@/features/approvals/components/approval-stats-
 import ApprovalActionsModal from '@/features/approvals/components/approval-actions-modal'
 import BulkApprovalModal from '@/features/approvals/components/bulk-approval-modal'
 import { ApprovalConfigurationSection } from '@/features/approvals/components/approval-configuration-section'
-import type {
-  ApprovalRequestResponse,
-  BulkApprovalRequest,
-  BulkRejectRequest,
-  BulkDeleteRequest,
-} from '@root/schemas/approval/approval.schema'
+import type { ApprovalRequestResponse } from '@root/schemas/approval/approval.schema'
 import type {
   ProgressEvent,
   ApprovalMetadata,
@@ -38,7 +33,6 @@ export default function ApprovalTableSection() {
     isInitialized,
     approvalsLoading,
     error,
-    total,
     initialize,
     refreshApprovalRequests,
     clearError,
@@ -328,21 +322,6 @@ export default function ApprovalTableSection() {
         onBulkActions={handleBulkActions}
         isLoading={approvalsLoading}
       />
-
-      {/* Load more button if there are more results */}
-      {total > approvalRequests.length && (
-        <div className="text-center">
-          <Button
-            variant="noShadow"
-            onClick={() => {
-              refreshApprovalRequests()
-            }}
-            disabled={approvalsLoading}
-          >
-            Load More ({total - approvalRequests.length} remaining)
-          </Button>
-        </div>
-      )}
 
       {/* Action dialogs */}
       <ApprovalActionDialogs

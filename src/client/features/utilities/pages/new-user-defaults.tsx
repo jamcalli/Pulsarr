@@ -8,7 +8,6 @@ import { Form } from '@/components/ui/form'
 import { Separator } from '@/components/ui/separator'
 import { useConfigStore } from '@/stores/configStore'
 import { toast } from 'sonner'
-import { useMediaQuery } from '@/hooks/use-media-query'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 import { NewUserDefaultsPageSkeleton } from '@/features/utilities/components/new-user-defaults/new-user-defaults-page-skeleton'
 
@@ -24,7 +23,6 @@ type NewUserDefaultsFormData = z.infer<typeof newUserDefaultsSchema>
  * Users can toggle whether newly discovered Plex users have sync enabled by default, with immediate auto-save functionality and contextual information about how the setting affects new user behavior.
  */
 export default function NewUserDefaultsPage() {
-  const isMobile = useMediaQuery('(max-width: 768px)')
   const { config, updateConfig, isInitialized, initialize } = useConfigStore()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const submittingStartTime = useRef<number | null>(null)

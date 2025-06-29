@@ -1,6 +1,5 @@
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
-import { useMediaQuery } from '@/hooks/use-media-query'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 
 /**
@@ -12,12 +11,7 @@ import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
  * @returns A JSX element showing skeleton placeholders for the User Tags page.
  */
 export function UserTagsPageSkeleton() {
-  const isMobile = useMediaQuery('(max-width: 768px)')
-
-  const statusInfo = {
-    label: 'Loading...',
-    variant: 'neutral' as const,
-  }
+  const statusInfo = 'unknown' as const
 
   return (
     <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">

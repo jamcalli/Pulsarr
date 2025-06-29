@@ -1,11 +1,6 @@
 import type { ReactNode } from 'react'
-import { Link } from 'react-router-dom'
-import Nav from '@/components/nav'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useMediaQuery } from '@/hooks/use-media-query'
-import { Menu, FileText } from 'lucide-react'
-import { SettingsButton } from '@/components/ui/settings-button'
-import { DOCUMENTATION_URL } from '@/lib/constants'
 import {
   SidebarInset,
   SidebarProvider,

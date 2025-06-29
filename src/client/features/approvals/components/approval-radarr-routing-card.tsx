@@ -42,13 +42,12 @@ import { toast } from 'sonner'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import type { ProposedRouting } from '@root/schemas/approval/approval.schema.js'
 
-// Use a subset of RadarrInstanceSchema for form compatibility
+// Use a subset of RadarrInstanceSchema for form compatibility with routing schema
 type ApprovalRoutingFormData = Pick<
   RadarrInstanceSchema,
   | 'qualityProfile'
   | 'rootFolder'
   | 'searchOnAdd'
-  | 'bypassIgnored'
   | 'minimumAvailability'
   | 'tags'
   | 'syncedInstances'
@@ -56,7 +55,6 @@ type ApprovalRoutingFormData = Pick<
   | 'baseUrl'
   | 'apiKey'
 > & {
-  monitorNewItems: boolean
   priority: number
 }
 
@@ -132,8 +130,6 @@ export function ApprovalRadarrRoutingCard({
       qualityProfile: routing.qualityProfile?.toString() || '',
       rootFolder: routing.rootFolder || '',
       searchOnAdd: routing.searchOnAdd ?? true,
-      monitorNewItems: true,
-      bypassIgnored: false,
       minimumAvailability:
         (routing.minimumAvailability as
           | 'announced'
@@ -186,8 +182,6 @@ export function ApprovalRadarrRoutingCard({
           qualityProfile: data.qualityProfile,
           rootFolder: data.rootFolder,
           searchOnAdd: data.searchOnAdd,
-          monitorNewItems: data.monitorNewItems,
-          bypassIgnored: data.bypassIgnored,
           minimumAvailability: data.minimumAvailability,
           tags: data.tags,
           syncedInstances: data.syncedInstances,
@@ -293,7 +287,7 @@ export function ApprovalRadarrRoutingCard({
             </div>
 
             {/* Instance Configuration */}
-            <div className="grid lg:grid-cols-3 md:grid-cols-2 gap-4">
+            <div className="grid md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="searchOnAdd"
@@ -380,46 +374,6 @@ export function ApprovalRadarrRoutingCard({
                         </SelectContent>
                       </Select>
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="monitorNewItems"
-                render={({ field }) => (
-                  <FormItem>
-                    <div className="flex items-center space-x-2">
-                      <FormLabel className="text-foreground">
-                        Monitor New Items
-                      </FormLabel>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="max-w-xs">
-                              When enabled, new movies will automatically be
-                              monitored when added to Radarr.
-                            </p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                    <div className="flex h-10 items-center gap-2 px-3 py-2">
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                          disabled={disabled || !isConnectionValid}
-                        />
-                      </FormControl>
-                      <span className="text-sm text-foreground text-muted-foreground">
-                        Automatically monitor new items
-                      </span>
-                    </div>
                     <FormMessage />
                   </FormItem>
                 )}

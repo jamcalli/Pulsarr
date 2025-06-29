@@ -1,6 +1,5 @@
 import type React from 'react'
 import CRTOverlay from './crt-overlay'
-import Marquee from './marquee'
 import { cn } from '@/lib/utils'
 
 interface SidebarDisplayBoxProps {

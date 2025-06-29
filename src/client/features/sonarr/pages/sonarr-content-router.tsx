@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
 import { useSonarrStore } from '@/features/sonarr/store/sonarrStore'
 import AccordionContentRouterSection from '@/features/content-router/components/accordion-content-router-section'
-import { SonarrContentRouterSkeleton } from '@/features/sonarr/pages/sonarr-content-router-skeleton'
 import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
 
 /**

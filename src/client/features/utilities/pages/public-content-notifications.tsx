@@ -16,7 +16,6 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { MultiInput } from '@/components/ui/multi-input'
-import { cn } from '@/lib/utils'
 import { Separator } from '@/components/ui/separator'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { usePublicContentNotifications } from '@/features/utilities/hooks/usePublicContentNotifications'
@@ -86,7 +85,6 @@ function WebhookField({
   label,
   placeholder,
   tooltip,
-  helpText,
   isTestable = false,
   testHandler,
   isTestLoading = false,
