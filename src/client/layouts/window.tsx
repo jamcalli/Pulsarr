@@ -40,9 +40,9 @@ export default function WindowedLayout({ children }: WindowedLayoutProps) {
           </header>
 
           {/* Main content area */}
-          <main className="bg-background relative flex flex-col h-screen pt-[50px]">
-            <ScrollArea className="flex-1">
-              <div className="pb-32">{children}</div>
+          <main className="bg-background relative flex flex-col h-screen pt-[50px] w-full">
+            <ScrollArea className="flex-1 w-full">
+              <div className="pb-32 w-full">{children}</div>
             </ScrollArea>
           </main>
         </SidebarProvider>
