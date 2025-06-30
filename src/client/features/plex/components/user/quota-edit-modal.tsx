@@ -357,9 +357,9 @@ interface QuotaEditModalProps {
 }
 
 /**
- * Renders a responsive modal for editing a user's movie and show quota settings.
+ * Displays a responsive modal for editing a user's movie and show quota settings.
  *
- * Allows enabling or disabling quotas, selecting quota types, setting usage limits, and configuring approval bypass options for movies and shows. The modal adapts its layout for mobile and desktop screens, and prevents interaction or closing while a save operation is in progress.
+ * Enables configuration of quota limits, types, and approval bypass options for movies and shows. The modal adapts its layout for mobile and desktop, and disables interaction or closing while a save operation is in progress.
  *
  * @param isOpen - Whether the modal is currently open
  * @param onOpenChange - Callback to update the modal's open state

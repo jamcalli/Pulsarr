@@ -6,7 +6,7 @@ import type * as React from "react"
 import { cn } from "@/lib/utils"
 
 /**
- * Renders a navigation container for breadcrumb links with appropriate ARIA labeling.
+ * Renders a navigation container for breadcrumb links with ARIA labeling for accessibility.
  *
  * Spreads additional props onto the underlying `<nav>` element.
  */
@@ -15,9 +15,9 @@ function Breadcrumb({ ...props }: React.ComponentProps<"nav">) {
 }
 
 /**
- * Renders an ordered list for breadcrumb items with horizontal layout and styling.
+ * Renders an ordered list (`<ol>`) for breadcrumb items with horizontal flex layout and customizable styling.
  *
- * Additional class names and HTML attributes can be provided via props.
+ * Accepts additional class names and HTML attributes for further customization.
  */
 function BreadcrumbList({ className, ...props }: React.ComponentProps<"ol">) {
   return (
@@ -33,9 +33,9 @@ function BreadcrumbList({ className, ...props }: React.ComponentProps<"ol">) {
 }
 
 /**
- * Renders a breadcrumb list item with appropriate styling and slot attribute.
+ * Renders an individual breadcrumb item as a styled list element.
  *
- * Accepts all standard `<li>` element props and merges additional class names with default styles.
+ * Accepts all standard `<li>` props and merges custom class names with default inline-flex styling.
  */
 function BreadcrumbItem({ className, ...props }: React.ComponentProps<"li">) {
   return (
@@ -48,9 +48,11 @@ function BreadcrumbItem({ className, ...props }: React.ComponentProps<"li">) {
 }
 
 /**
- * Renders a breadcrumb link, optionally using a custom child component.
+ * Renders a breadcrumb link as either an anchor element or a custom child component.
  *
- * If `asChild` is true, renders the child element using the `Slot` component; otherwise, renders an anchor (`<a>`) element.
+ * If `asChild` is true, the link is rendered using the provided child component via the `Slot` utility; otherwise, it renders a standard `<a>` element.
+ *
+ * @param asChild - If true, renders the link using a custom child component instead of an anchor element.
  */
 function BreadcrumbLink({
   asChild,
@@ -67,9 +69,9 @@ function BreadcrumbLink({
 }
 
 /**
- * Renders the current page indicator in a breadcrumb navigation.
+ * Renders a span indicating the current page in a breadcrumb navigation.
  *
- * Displays a <span> element with appropriate ARIA attributes to mark it as the current page.
+ * The element is marked with `aria-current="page"` for accessibility and accepts additional class names and span props.
  */
 function BreadcrumbPage({ className, ...props }: React.ComponentProps<"span">) {
   return (
@@ -83,9 +85,9 @@ function BreadcrumbPage({ className, ...props }: React.ComponentProps<"span">) {
 }
 
 /**
- * Renders a separator element between breadcrumb items, displaying a chevron icon by default.
+ * Renders a decorative separator between breadcrumb items, using a chevron icon by default or custom content if provided.
  *
- * If `children` are provided, they are rendered instead of the default chevron icon.
+ * The separator is hidden from assistive technologies and marked as presentational.
  */
 function BreadcrumbSeparator({
   children,
@@ -106,9 +108,9 @@ function BreadcrumbSeparator({
 }
 
 /**
- * Renders an ellipsis indicator in the breadcrumb, typically used to represent collapsed or truncated breadcrumb items.
+ * Renders an ellipsis indicator for truncated breadcrumb items.
  *
- * Displays a horizontal ellipsis icon with a visually hidden "More" label for accessibility.
+ * Displays a horizontal ellipsis icon with a hidden "More" label for screen readers to enhance accessibility.
  */
 function BreadcrumbEllipsis({
   className,

@@ -29,7 +29,7 @@ type FormSaveStatus = 'idle' | 'loading' | 'success' | 'error'
 /**
  * React hook for managing an approval and quota configuration form with validation, state synchronization, and persistence.
  *
- * Integrates `react-hook-form` and Zod schema validation to manage form state, synchronizes with a global configuration store, and handles save and error states. Provides submit and cancel handlers, omits schedule-related fields from configuration updates, and delivers user feedback via toast notifications.
+ * Integrates `react-hook-form` with Zod schema validation to manage form state, synchronizes with a global configuration store, and handles save and error states. Excludes schedule-related fields from configuration updates and provides user feedback via toast notifications.
  *
  * @returns An object containing the form instance, current configuration, error state, saving status, save status, last submitted values, submit and cancel handlers, and a flag indicating if the form has unsaved changes.
  */

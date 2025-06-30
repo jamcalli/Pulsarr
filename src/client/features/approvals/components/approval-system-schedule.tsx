@@ -27,16 +27,16 @@ interface ApprovalSystemScheduleProps {
 }
 
 /**
- * Displays a configuration interface for setting the interval and schedule of an approval maintenance job.
+ * Renders a UI for configuring the interval and schedule of an approval maintenance job.
  *
- * Provides controls for selecting the maintenance frequency, viewing the current schedule and cron expression, and saving changes. Controls are disabled when loading or when scheduling is not enabled, and a warning is shown if schedule configuration is unavailable.
+ * Allows users to select a maintenance frequency, view the current schedule and cron expression, and save changes. Controls are disabled when loading or when scheduling is not enabled, and a warning is displayed if schedule configuration is unavailable.
  *
- * @param interval - The current interval (in hours) for the maintenance job, or null if not set.
- * @param onIntervalChange - Callback invoked with the new interval when the user selects a different frequency.
+ * @param interval - The current maintenance interval in hours, or null if not set.
+ * @param onIntervalChange - Invoked with the new interval when the user selects a different frequency.
  * @param onSave - Async callback to save the schedule configuration; returns a boolean indicating success.
- * @param job - The current job status object, which may include schedule type and cron expression.
- * @param isLoading - Whether the component is in a loading state.
- * @param isScheduleEnabled - Whether scheduling is enabled.
+ * @param job - The current job status, which may include schedule type and cron expression.
+ * @param isLoading - Indicates if the component is in a loading state.
+ * @param isScheduleEnabled - Indicates if scheduling is enabled.
  */
 export function ApprovalSystemSchedule({
   interval,

@@ -6,9 +6,9 @@ import RadarrPageSkeleton from '@/features/radarr/components/instance/radarr-car
 import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
 
 /**
- * Displays the Radarr Instances management page for configuring and maintaining Radarr connections.
+ * Renders the management page for configuring and maintaining Radarr instances.
  *
- * Renders a dedicated interface for viewing, adding, and editing Radarr instances, handling loading and initialization states, and distinguishing between placeholder and real instances.
+ * Provides an interface to view, add, and edit Radarr connections, handling loading and initialization states, and distinguishing between placeholder and real instances.
  *
  * @returns The React component for the Radarr Instances management page.
  */

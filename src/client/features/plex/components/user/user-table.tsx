@@ -76,11 +76,11 @@ interface UserTableProps {
 }
 
 /**
- * Displays an interactive user management table with advanced features for sorting, filtering, pagination, column visibility, row selection, and editing.
+ * Renders an interactive user management table with advanced features including sorting, filtering, pagination, column visibility toggling, row selection, and editing.
  *
- * Enables editing user details and quotas, performing bulk edits on selected users, and viewing a user's watchlist in a modal. The table presents notification, sync, approval, and quota statuses, and adapts its controls and appearance based on loading state.
+ * Allows editing user details and quotas, performing bulk edits on selected users, and viewing a user's watchlist in a modal. The table displays notification, sync, approval, and quota statuses, and adapts its controls and appearance based on loading state.
  *
- * If an attempt is made to view the watchlist for a user with an invalid ID, an error is logged and an error toast is shown; the modal will not open.
+ * If a watchlist is requested for a user with an invalid ID, an error is logged and an error toast is shown; the modal will not open.
  */
 
 export default function UserTable({

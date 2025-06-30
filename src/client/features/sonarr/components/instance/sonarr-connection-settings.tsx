@@ -30,9 +30,9 @@ interface ConnectionSettingsProps {
 }
 
 /**
- * Renders a form section for entering and testing Sonarr connection settings.
+ * Renders a responsive form section for configuring and testing a Sonarr connection.
  *
- * Includes input fields for the Sonarr URL and API key, and a button to test the connection. The component manages validation, displays connection test status, and provides visual feedback when a test is required or fails. Layout adapts responsively for mobile screens.
+ * Provides input fields for the Sonarr URL and API key, along with a button to test the connection. Displays validation messages, connection test status, and visual feedback when a test is required or fails. Layout automatically adapts for mobile screens.
  *
  * @param form - Form state and methods for managing Sonarr instance configuration.
  * @param testStatus - Current status of the connection test.

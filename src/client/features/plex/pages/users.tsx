@@ -10,11 +10,11 @@ import { QuotaEditModal } from '@/features/plex/components/user/quota-edit-modal
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 
 /**
- * Displays the Plex Users administration page, allowing management of user watchlists, individual user settings, quotas, and bulk operations.
+ * Renders the Plex Users administration page, providing interfaces for viewing, editing, and managing user watchlists, individual user settings, quotas, and bulk operations.
  *
- * Provides an interface for viewing users, editing user details, managing quotas, and performing bulk updates. Handles loading state, modal dialogs for editing, and integrates with custom hooks for user and quota management.
+ * Integrates user and quota management hooks, handles loading and modal state, and displays user data with options for individual and bulk updates.
  *
- * @returns The rendered Plex Users administration page component.
+ * @returns The Plex Users administration page component.
  */
 export default function PlexUsersPage() {
   const initialize = useConfigStore((state) => state.initialize)

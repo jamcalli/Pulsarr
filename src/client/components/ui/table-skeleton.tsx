@@ -38,13 +38,13 @@ interface TableSkeletonProps {
 }
 
 /**
- * Renders a table skeleton with configurable rows and columns to simulate the final table layout during data loading.
+ * Displays a skeleton table with customizable rows and columns to mimic the final table layout during data loading.
  *
- * Each skeleton cell adapts its size and style based on the specified column type, and an optional header skeleton can be displayed. Useful for preventing layout shifts while table data is loading.
+ * Each skeleton cell adjusts its size and style based on the column configuration, including type, width, and visibility. An optional header skeleton can be shown to match the expected table structure. This component helps prevent layout shifts while awaiting table data.
  *
  * @param rows - Number of skeleton rows to render. Defaults to 10.
- * @param columns - Configuration for each column, including type, width, visibility, and custom class names.
- * @param showHeader - Whether to display the table header skeleton. Defaults to true.
+ * @param columns - Array describing each column's type, width, visibility, and custom class names.
+ * @param showHeader - Whether to render a skeleton header row. Defaults to true.
  * @param className - Optional CSS class for the table.
  */
 export function TableSkeleton({
