@@ -17,9 +17,9 @@ interface QuotaDisplayProps {
 }
 
 /**
- * Renders a card displaying the status, usage, and details of a specific user quota.
+ * Displays a card summarizing the status, usage, and details of a specific user quota.
  *
- * Shows the quota title, current usage versus limit, usage percentage, quota type, status label, and a description. If a reset date is provided, it is also displayed. If no quota is configured, a message indicating this is shown.
+ * Shows the quota title, current usage versus limit with percentage, quota type, status label, and a description. If a reset date is present, it is also displayed. If no quota is configured, a message indicating this is shown.
  *
  * @param title - The display title for the quota (e.g., "Movies" or "Shows")
  * @param quota - The quota data to display, or null if not configured
@@ -109,9 +109,9 @@ function QuotaDisplay({ title, quota }: QuotaDisplayProps) {
 }
 
 /**
- * Renders a card displaying the user's quota status for movies and shows.
+ * Displays a card summarizing the user's quota status for movies and shows.
  *
- * If quota data is provided, shows quota usage and status for each category. If no quotas are configured, displays a message indicating the user has no quota restrictions.
+ * Renders quota usage and status for each category if quota data is available. If no quotas are configured, shows an informational message indicating the user has no quota restrictions.
  *
  * @param userQuotas - The user's quota information for movies and shows, or null if not configured.
  */

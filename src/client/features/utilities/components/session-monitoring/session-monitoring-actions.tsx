@@ -14,13 +14,13 @@ interface SessionMonitoringActionsProps
 }
 
 /**
- * Renders an actions section for toggling session monitoring on or off within a form.
+ * Renders an action section with a button to enable or disable session monitoring in a form.
  *
- * Displays a button that enables or disables session monitoring and triggers an auto-save of the form state. The button's appearance and label adapt based on the current monitoring state.
+ * The button toggles the monitoring state, marks the form as dirty, and triggers an auto-save by calling the provided submission handler with the updated form values. The button's appearance and label reflect the current monitoring state and submission status.
  *
- * @param isEnabled - Indicates whether session monitoring is currently enabled.
- * @param isSubmitting - Indicates whether the form is currently being submitted.
- * @param onSubmit - Async handler called with the updated form values when toggling monitoring.
+ * @param isEnabled - Whether session monitoring is currently enabled.
+ * @param isSubmitting - Whether the form is currently being submitted.
+ * @param onSubmit - Async function invoked with updated form values when toggling monitoring.
  */
 export function SessionMonitoringActions({
   form,

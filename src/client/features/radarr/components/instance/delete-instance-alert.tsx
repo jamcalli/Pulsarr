@@ -18,6 +18,18 @@ interface DeleteInstanceAlertProps {
   isLastInstance: boolean
 }
 
+/**
+ * Renders a modal dialog prompting the user to confirm deletion or clearing of an instance configuration.
+ *
+ * The dialog displays context-sensitive titles, descriptions, and button labels based on whether the instance is the last one. On confirmation, it executes the provided callback and closes the modal.
+ *
+ * @param open - Whether the modal is visible
+ * @param onOpenChange - Callback to update the modal's open state
+ * @param onConfirm - Async function called when the user confirms the action
+ * @param instanceName - Name of the instance being deleted or cleared
+ * @param isLastInstance - Whether this is the last instance, affecting dialog text and actions
+ * @returns The rendered confirmation modal component
+ */
 export function DeleteInstanceAlert({
   open,
   onOpenChange,

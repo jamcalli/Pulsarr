@@ -6,12 +6,11 @@ import SonarrPageSkeleton from '@/features/sonarr/components/instance/sonarr-car
 import { API_KEY_PLACEHOLDER } from '@/features/sonarr/store/constants'
 
 /**
- * Standalone Sonarr Instances page for managing Sonarr instances.
+ * Displays a standalone page for managing Sonarr instances, allowing users to add, view, and configure instances.
  *
- * Allows users to add, view, and configure Sonarr instances. Handles initialization and loading states,
- * providing a dedicated interface for instance management separate from content routing.
+ * Handles initialization and loading states, and conditionally renders UI elements for adding new instances or displaying existing ones.
  *
- * @returns The Sonarr Instances page component.
+ * @returns The Sonarr Instances management page component.
  */
 export default function SonarrInstancesPage() {
   const instances = useSonarrStore((state) => state.instances)

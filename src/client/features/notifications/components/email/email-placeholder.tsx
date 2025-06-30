@@ -1,3 +1,6 @@
+/**
+ * Displays a placeholder message indicating that email notification settings are not yet available.
+ */
 export function EmailPlaceholder() {
   return (
     <div className="p-6 bg-gray-100 dark:bg-gray-800 rounded-lg text-center">

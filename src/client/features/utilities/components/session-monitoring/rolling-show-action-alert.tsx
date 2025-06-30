@@ -21,12 +21,12 @@ interface RollingShowActionAlertProps {
 }
 
 /**
- * Renders a confirmation modal for resetting or removing a show from rolling monitoring.
+ * Displays a modal dialog prompting the user to confirm resetting or removing a show from rolling monitoring.
  *
- * The modal displays action-specific titles and descriptions based on whether the user is resetting the show to its original monitoring state or removing it from rolling monitoring. The confirm button triggers the provided callback and shows a loading spinner when an operation is in progress.
+ * The modal presents action-specific messaging and disables interaction while an operation is in progress. The confirm button invokes the provided callback when clicked.
  *
- * @param showTitle - The title of the show affected by the action.
- * @param action - The action to confirm, either 'reset' or 'delete'.
+ * @param showTitle - The name of the show being acted upon.
+ * @param action - Specifies whether the action is 'reset' or 'delete'.
  */
 export function RollingShowActionAlert({
   open,

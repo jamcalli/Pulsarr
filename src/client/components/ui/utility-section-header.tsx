@@ -9,10 +9,14 @@ interface UtilitySectionHeaderProps {
 }
 
 /**
- * A reusable header component for utility sections that displays a title, description, and status badge.
+ * Renders a section header with a title, description, and a status badge for utility pages.
  *
- * Provides consistent styling and status indication for utility pages, matching the pattern
- * used in accordion headers throughout the application.
+ * Displays the provided title and description, along with a badge indicating the current status. The badge's color and label are determined by the status value, supporting 'enabled', 'disabled', 'failed', and 'unknown' states. Additional CSS classes can be applied to the container via the `className` prop.
+ *
+ * @param title - The section title to display.
+ * @param description - The description text shown below the title.
+ * @param status - The status to display in the badge; defaults to 'unknown' if not provided.
+ * @param className - Optional additional CSS classes for the container.
  */
 export function UtilitySectionHeader({
   title,
