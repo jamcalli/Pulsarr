@@ -25,8 +25,7 @@ const RetroTerminalContent = () => {
     }
   }
 
-  const fullTextLarge = `
- ____  _   _ _     ____    _    ____  ____  
+  const fullTextLarge = ` ____  _   _ _     ____    _    ____  ____  
 |  _ \\| | | | |   / ___|  / \\  |  _ \\|  _ \\ 
 | |_) | | | | |   \\___ \\ / _ \\ | |_) | |_) |
 |  __/| |_| | |___ ___) / ___ \\|  _ <|  _ < 
@@ -514,12 +513,7 @@ const RetroTerminal = () => {
               }}
             >
               {/* Main content area - no header, just the body */}
-              <main
-                className="flex flex-col font-semibold p-6 rounded-base"
-                style={{
-                  backgroundColor: '#272933', // Fixed dark background
-                }}
-              >
+              <main className="flex flex-col font-semibold p-6 rounded-base bg-background">
                 <div className="flex-1">
                   <RetroTerminalContent />
                 </div>
