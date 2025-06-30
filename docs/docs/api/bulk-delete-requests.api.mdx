@@ -1,0 +1,71 @@
+---
+id: bulk-delete-requests
+title: "Bulk delete requests"
+description: "Delete multiple approval requests in batch"
+sidebar_label: "Bulk delete requests"
+hide_title: true
+hide_table_of_contents: true
+api: eJzVVcFu2zAM/RWBpw1Q56TdMMC3du0hQA9B2u0S5MDYTKJWtlyJThoE/veBspN6adB2wC4LDMSQyKdHvmdqB64ij2xcOcohhXltH6/JEtOEnmoKHEAD4zJAOoXLqvJujRZmGnIKmTeVJEIKbYoqasumsqSwi1S+Q1GmVHPkbAUaurUrl28h3UHmSqaS5RWryposskkegiDvIGQrKlDeeFsRpODmD5QxaKi8cGdDQXY71FEeerHoPW5Bg2Eq+utlXczJQ6OhMOWo3Rw2TcvNeMql3B7iTAPmuRFiaMe9cxdoAzV/ZrKvKS6EypWhZXc+GMjfcdcWWFtWky4S9L9qRqizjEK/4rlzlrCMJVMIuKTeZmBvyiW0pGvLHz5gUduTXV2gsdKKDwvRaCDvnf+IeHu2jQZ2jKcYHCnZY3vgdjhwj/Kexich4aWdh+a9a5ZGw9f/wg/v1vx+qRGfV06GSx6nhJBDXkEKyXqY7CdFsp8UiYyg5BAayK9JbDHdQe0tpLBirtIkGQ6+nH+Pz7cBHM+jsTcF+q26i9nQ6DeS04vB4OIVwrXxlHEHoC5j4erTxvBKVc7z59eY1mVoVy7wacDb/fZJsJkG0XTyMhpvnrGoLB2Ptulg1mgw5cJFvQxLCIxrG9B7dTkevTr4cjxSucvqgkqO7lEL59U+40yhGlt6VhuZztYEVqZkWvqX0DtXSiSWuZpgjt6DBtGkhf81FA9VLnCB0ZMlFkLpqraPqpXxcAscc+sN/7+7QjqfMj1zUlk00cdRjV1nrimsh6Bhj/Jy7QgJsVjkEk020yC6SM5uN8dAP71tGll+qslvIZ3ONKzRG5xLs6ciwIowJx9d+UhbSOFHW8jZvTCTcFvHGXb80Ypt2gyxQcVvxs56H8/1ze3N/Y2Q7+7NwuWS5XEjxeEGUgANLra2vRFlbQcWy2Udv29oUeX3G71Zwyw=
+sidebar_class_name: "delete api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Bulk delete requests"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"delete"}
+  path={"/v1/approval/requests/bulk/delete"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Delete multiple approval requests in batch
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={undefined}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"requestIds":{"type":"array","items":{"type":"number"},"minItems":1}},"required":["requestIds"],"additionalProperties":false}}},"required":true}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"},"result":{"type":"object","properties":{"successful":{"type":"number"},"failed":{"type":"array","items":{"type":"number"}},"errors":{"type":"array","items":{"type":"string"}},"total":{"type":"number"}},"required":["successful","failed","errors","total"],"additionalProperties":false}},"required":["success","message","result"],"additionalProperties":false}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

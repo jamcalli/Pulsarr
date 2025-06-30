@@ -1,0 +1,71 @@
+---
+id: delete-approval-request
+title: "Delete approval request"
+description: "Permanently delete an approval request from database"
+sidebar_label: "Delete approval request"
+hide_title: true
+hide_table_of_contents: true
+api: eJzllMFuGjEQhl/FmlMjuV1IUlXaGxI5RMoBkbYXxGFYD6xT79qxZ0nQat+9mmUJNNAceq2EBNgzv2d+fTMt+EAR2fr63kAOhhwxTUKIfotuTs8NJQYNjJsE+QION7DUYCgV0QbJhRxmFCusqWa3U3sVhbXCIV7FvZRaR18pg4wrTAQaAkasiCmKfAupKKlCyFvgXSDIIXG09QY6DVZeCcglaKixkktrQIMo20gGco4NdUs5ScHXiZLoXI9G8vVnsVNaY+NYzYdI0FD4mqlmicUQnC16U7KnJAkXCvOrJyrEmhDFQrb751JTFJTSSeDKe0dYSwsVpYQbutBed9rH4k3lmLLUgMZYqQnd7OTJNbpEXScKt6Pb/6PVXp9LfyS2J4lLyCHbjrMDddlAXcpaazrQkChuD6g10UEOJXPIs2w8+nL9rf98HcEZ2tFWGHfqsc+GTn+QnN+MRjdnClMbqeBBQE36jtWnF8ulCj7y1bmm8wW60ie+LPhwuL4otpRpWfvefMtO3J81LmGMajK7PxObzO6V8UVTUc09CmrtozpkfFaoZo5e1QtyUTqbWNmaaROPoY++lkisjZqjwRhBg/i8l/85FiCCT1xhD9gwvdNhS7xbEe/La4+8/uuSGQhkeuUsOLQ9ob3d7YDNArZj0HBQGtaKoAMacmsESrFbIttWZH9E13Vy/NxQ3EG+WGrYYrS4Er8XLRib5LcZuP2gq0/zYR6u1N+KHQ6x3om16Br5Bxp+0W6/B7tlp6EkNBT71/cXAkfgk5SzeRdW3mZpevdw9/0Ouu43HPEYRQ==
+sidebar_class_name: "delete api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Delete approval request"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"delete"}
+  path={"/v1/approval/requests/{id}"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Permanently delete an approval request from database
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"string"},"in":"path","name":"id","required":true}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={undefined}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}},"404":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      

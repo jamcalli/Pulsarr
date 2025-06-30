@@ -1,0 +1,71 @@
+---
+id: record-quota-usage
+title: "Record quota usage"
+description: "Record quota usage for a user"
+sidebar_label: "Record quota usage"
+hide_title: true
+hide_table_of_contents: true
+api: eJzlVcFu2zAM/RWBpxVQZidb0c23bt2hwIBlabvDihwYm4m12ZYr0UkDw/8+UHaatOnay24LAkSR+J5J6vG5BVuTQza2uswgAUepddn3xjLeeFwRaGBceUhuIWzCXENGPnWmFgwkMAsIdSenqhGMWlqnZE0ONDi6a8jzJ5ttIWkhtRVTxbLEui5MGp4d/fJC1oJPcypRVrytCRKwi1+UMmionWTKhvwBzXUIegj27Ey1Ag1UNaXkXNq1kRp8bjcw7x6yuUB+Fre0rkSGBDJkGrEpCboBZRxlQnn45LkGzDIjFWAxPUhwiYWn7jGUXUOdhhodlsTkpKnPFDzk0mkw0t4aOQcNFZZyKD29zOCIdi47vraV79sziWP5eXxTF7TEpmA1GyJB/6vb8E2akvcHgQtrC8JKyijJByUdl/ikszuWPeTV/nYa3v8vpQZ+zq2MaW19SE3EkUC0Hkdh/iLRh4/aXiZd1Awj7Mmtd4JrXAEJ5Mx1EkXj+O3kLHxPY3g62VNnSnRbdRXQ0OkXwMm7OH53xHBhHKU8EKjzULN6szGcq9o6PjnmLGyKRW49P0/4dXf8LNlcg1znbO84X+6xrAs6cowHY3jkBzCJJ+9H8dlo8vF6fJqcjpPJh7fx2fhnP41LGy7WsBDCtCk8OqfOp5dHaZ5PL1Vm06akioPMgiXuECOFalrQvdogp3lhPCtTMa3cPvTKVhKJVaZmmKETI5Ub7Ol/jCUh0UCJQbyDOxxb8dPMDvz3VeMeFMx0z1FdoAkKD5fVDsK7hfUYNAQG0MGcRNLJg0s1O2nLlUl82y7Q040ruk627xpyW0hu5xrW6AwupLO3LWTGyzob1P9CEW9mw1SdqL+lPGxitZUmYtHIP9Dwm7Z7R+3k5ZATZuRCBv3h5/45oyCaPfjIP0TGPUJkWfOLsfODOZ5+u7oGDYvh5VjaTDAONyJN3PSJ2lB3sJyw10KB1aoJRgM9p3z+AAn8qq8=
+sidebar_class_name: "post api-method"
+info_path: docs/api/pulsarr-api
+custom_edit_url: null
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Record quota usage"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/v1/quota/users/{userId}/usage"}
+  context={"endpoint"}
+>
+  
+</MethodEndpoint>
+
+
+
+Record quota usage for a user
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+  children={"Request"}
+>
+</Heading>
+
+<ParamsDetails
+  parameters={[{"schema":{"type":"string"},"in":"path","name":"userId","required":true}]}
+>
+  
+</ParamsDetails>
+
+<RequestSchema
+  title={"Body"}
+  body={{"content":{"application/json":{"schema":{"type":"object","properties":{"contentType":{"type":"string","enum":["movie","show"]},"requestDate":{"type":"string","format":"date-time"}},"required":["contentType"],"additionalProperties":false}}},"required":true}}
+>
+  
+</RequestSchema>
+
+<StatusCodes
+  id={undefined}
+  label={undefined}
+  responses={{"200":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}},"400":{"description":"Default Response","content":{"application/json":{"schema":{"type":"object","properties":{"success":{"type":"boolean"},"message":{"type":"string"}},"required":["success","message"],"additionalProperties":false}}}}}}
+>
+  
+</StatusCodes>
+
+
+      
