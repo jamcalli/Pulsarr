@@ -53,33 +53,31 @@ export function useTopGenresData() {
 }
 
 /**
- * Returns grabbed-to-notified times data, loading status, and error state from the dashboard store.
+ * Retrieves grabbed-to-notified times data along with its loading and error states from the dashboard store.
  *
- * @returns An object containing `data` (array of grabbed-to-notified times, or empty array if unavailable), `isLoading` (boolean indicating loading state), and `error` (any error encountered).
+ * @returns An object containing the grabbed-to-notified times array (empty if unavailable), a loading indicator, and any associated error.
  */
 export function useGrabbedToNotifiedData() {
   const { grabbedToNotifiedTimes, loading, errors } = useDashboardStore()
 
   return {
     data: grabbedToNotifiedTimes || [],
-    isLoading: loading.all,
-    error: errors.all,
+    isLoading: loading.grabbedToNotified,
+    error: errors.grabbedToNotified,
   }
 }
 
 /**
- * Returns instance content breakdown data, loading state, and error information from the dashboard store.
+ * Retrieves the instance content breakdown data, along with its loading and error states, from the dashboard store.
  *
- * The returned object contains the current instance content breakdown array (or an empty array if unavailable), a boolean indicating if data is loading, and any error encountered during data retrieval.
- *
- * @returns An object with `data` (instance content breakdown array), `isLoading` (boolean), and `error` (error state)
+ * @returns An object containing the instance content breakdown array (or an empty array if unavailable), a loading indicator, and any associated error.
  */
 export function useInstanceContentData() {
   const { instanceContentBreakdown, loading, errors } = useDashboardStore()
 
   return {
     data: instanceContentBreakdown || [],
-    isLoading: loading.all,
-    error: errors.all,
+    isLoading: loading.instanceContent,
+    error: errors.instanceContent,
   }
 }

@@ -17,12 +17,9 @@ interface NotificationChartData {
 }
 
 /**
- * Displays two pie charts summarizing notification statistics by channel and by type.
+ * Renders two responsive pie charts visualizing notification statistics by channel and by type.
  *
- * Fetches notification data, processes it into chart-friendly formats, and renders responsive pie charts with tooltips and legends. Adapts chart colors and styles based on the current theme and system color scheme.
- *
- * @remark
- * If notification data is loading or unavailable, a loading or empty state message is shown instead of the charts.
+ * Fetches notification data, transforms it for chart display, and adapts chart colors and styles based on the current theme and system color scheme. Shows a loading or empty state message if data is unavailable.
  */
 export function NotificationCharts() {
   const { data: notificationStats, isLoading } = useNotificationStatsData()
@@ -140,13 +137,13 @@ export function NotificationCharts() {
       total: number
     }
     return (
-      <div className="bg-bg border border-border p-2 rounded shadow-md">
-        <p className="font-medium text-text">{data.name}</p>
-        <p className="text-text">
+      <div className="bg-background border border-border p-2 rounded-xs shadow-md">
+        <p className="font-medium text-foreground">{data.name}</p>
+        <p className="text-foreground">
           <span className="font-medium">Count: </span>
           {data.value}
         </p>
-        <p className="text-text">
+        <p className="text-foreground">
           <span className="font-medium">Percentage: </span>
           {Math.round((data.value / data.total) * 100)}%
         </p>
@@ -168,7 +165,7 @@ export function NotificationCharts() {
   if (isLoading || !notificationStats) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <span className="text-text text-muted-foreground">
+        <span className="text-foreground text-muted-foreground">
           {isLoading
             ? 'Loading notification data...'
             : 'No notification data available'}
@@ -182,8 +179,8 @@ export function NotificationCharts() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div className="flex flex-col">
-        <Card className="bg-bw relative shadow-md">
-          <div className="bg-main text-text px-4 py-3 text-center">
+        <Card className="bg-secondary-background relative shadow-md">
+          <div className="bg-main text-foreground px-4 py-3 text-center">
             <h4 className="text-base font-medium">By Channel</h4>
           </div>
           <CardContent className="pt-4">
@@ -278,7 +275,7 @@ export function NotificationCharts() {
                       backgroundColor: getHSLColor(index),
                     }}
                   />
-                  <span className="text-sm text-text">{entry.name}</span>
+                  <span className="text-sm text-foreground">{entry.name}</span>
                 </div>
               ))}
             </div>
@@ -287,8 +284,8 @@ export function NotificationCharts() {
       </div>
 
       <div className="flex flex-col">
-        <Card className="bg-bw relative shadow-md">
-          <div className="bg-main text-text px-4 py-3 text-center">
+        <Card className="bg-secondary-background relative shadow-md">
+          <div className="bg-main text-foreground px-4 py-3 text-center">
             <h4 className="text-base font-medium">By Type</h4>
           </div>
           <CardContent className="pt-4">
@@ -383,7 +380,7 @@ export function NotificationCharts() {
                       backgroundColor: getHSLColor(index),
                     }}
                   />
-                  <span className="text-sm text-text">{entry.name}</span>
+                  <span className="text-sm text-foreground">{entry.name}</span>
                 </div>
               ))}
             </div>

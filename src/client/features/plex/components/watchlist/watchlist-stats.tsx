@@ -4,6 +4,11 @@ import { useWatchlistProgress } from '@/hooks/useProgress'
 import { usePlexWatchlist } from '@/features/plex/hooks/usePlexWatchlist'
 import { useConfigStore } from '@/stores/configStore'
 
+/**
+ * Displays statistics and syncing progress for the current user's watchlist and other users' watchlists.
+ *
+ * Shows the number of items in the user's own watchlist and aggregates watchlist counts for other users. While syncing, displays progress bars and status messages for each section.
+ */
 export default function WatchlistStatsSection() {
   const users = useConfigStore((state) => state.users)
 
@@ -22,17 +27,17 @@ export default function WatchlistStatsSection() {
   return (
     <div className="flex gap-4">
       <div className="flex-1">
-        <div className="flex-grow">
-          <div className="text-text text-sm font-medium mb-2">
+        <div className="grow">
+          <div className="text-foreground text-sm font-medium mb-2">
             Self Watchlist
           </div>
           {selfWatchlistStatus === 'loading' ? (
             <div className="space-y-1">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-text">
+                <span className="text-sm text-foreground">
                   {selfWatchlistProgress.message || 'Syncing Your Watchlist'}
                 </span>
-                <span className="text-sm text-text">
+                <span className="text-sm text-foreground">
                   {selfWatchlistProgress.progress}%
                 </span>
               </div>
@@ -55,18 +60,18 @@ export default function WatchlistStatsSection() {
       </div>
 
       <div className="flex-1">
-        <div className="flex-grow">
-          <div className="text-text text-sm font-medium mb-2">
+        <div className="grow">
+          <div className="text-foreground text-sm font-medium mb-2">
             Others Watchlist
           </div>
           {othersWatchlistStatus === 'loading' ? (
             <div className="space-y-1">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-text">
+                <span className="text-sm text-foreground">
                   {othersWatchlistProgress.message ||
                     "Syncing Others' Watchlists"}
                 </span>
-                <span className="text-sm text-text">
+                <span className="text-sm text-foreground">
                   {othersWatchlistProgress.progress}%
                 </span>
               </div>

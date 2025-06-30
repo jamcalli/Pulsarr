@@ -100,9 +100,9 @@ interface RollingShowsSheetProps {
 }
 
 /**
- * Displays a responsive, interactive table of rolling monitored shows with sorting, filtering, pagination, and optional reset or delete actions.
+ * Renders a responsive, interactive table of rolling monitored shows with sorting, filtering, pagination, and optional reset or delete actions.
  *
- * Adapts between a sliding sheet (desktop) and a drawer (mobile) layout. Users can filter shows by title, sort and toggle column visibility, and paginate results. For master records, provides action buttons to reset or remove shows, each with confirmation dialogs and loading indicators. Handles loading and error states with contextual UI feedback.
+ * Adapts between a sliding sheet on desktop and a drawer on mobile devices. Users can filter shows by title, sort columns, toggle column visibility, and paginate results. For master records (shows without a specific user), provides action buttons to reset or remove shows, each with confirmation dialogs and loading indicators. Handles loading and error states with contextual feedback.
  *
  * @param isOpen - Whether the sheet or drawer is open.
  * @param onClose - Callback to close the sheet or drawer.
@@ -116,7 +116,8 @@ interface RollingShowsSheetProps {
  * @param actionLoading - Loading states for reset and delete actions.
  * @param activeActionId - ID of the show currently being acted upon.
  *
- * @remark Action buttons are only available for master records (shows without a specific user). Non-master records display a "Tracking only" label instead of action buttons.
+ * @remarks
+ * Action buttons are only available for master records (shows without a specific user). Non-master records display a "Tracking only" label instead of action buttons.
  */
 export function RollingShowsSheet({
   isOpen,
@@ -435,7 +436,7 @@ export function RollingShowsSheet({
     }
 
     return (
-      <div className="w-full font-base text-mtext">
+      <div className="w-full font-base text-main-foreground">
         <div>
           <div className="flex items-center justify-between py-4">
             <Input
@@ -575,12 +576,12 @@ export function RollingShowsSheet({
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-sm text-text font-medium hidden xs:block">
+            <p className="text-sm text-foreground font-medium hidden xs:block">
               per page
             </p>
           </div>
 
-          <div className="flex items-center justify-center text-sm font-medium text-text">
+          <div className="flex items-center justify-center text-sm font-medium text-foreground">
             Page {table.getState().pagination.pageIndex + 1} of{' '}
             {table.getPageCount()}
           </div>
@@ -617,10 +618,12 @@ export function RollingShowsSheet({
         <Sheet open={isOpen} onOpenChange={onClose}>
           <SheetContent
             side="right"
-            className="!w-[90vw] md:!w-[70vw] lg:!w-[60vw] xl:!w-[50vw] !max-w-[800px] sm:!max-w-[800px] overflow-y-auto flex flex-col p-5"
+            className="w-[90vw]! md:w-[70vw]! lg:w-[60vw]! xl:w-[50vw]! max-w-[800px]! sm:max-w-[800px]! overflow-y-auto flex flex-col p-5"
           >
-            <SheetHeader className="mb-6 flex-shrink-0">
-              <SheetTitle className="text-text text-xl">{title}</SheetTitle>
+            <SheetHeader className="mb-6 shrink-0">
+              <SheetTitle className="text-foreground text-xl">
+                {title}
+              </SheetTitle>
               <SheetDescription>
                 {isLoading
                   ? 'Loading rolling monitored shows...'
@@ -635,14 +638,16 @@ export function RollingShowsSheet({
             </div>
 
             {/* Empty spacer div to ensure content doesn't get cut off */}
-            <div className="h-2 flex-shrink-0" />
+            <div className="h-2 shrink-0" />
           </SheetContent>
         </Sheet>
       ) : (
         <Drawer open={isOpen} onOpenChange={onClose}>
           <DrawerContent className="h-[90vh]">
             <DrawerHeader className="mb-6">
-              <DrawerTitle className="text-text text-xl">{title}</DrawerTitle>
+              <DrawerTitle className="text-foreground text-xl">
+                {title}
+              </DrawerTitle>
               <DrawerDescription>
                 {isLoading
                   ? 'Loading rolling monitored shows...'

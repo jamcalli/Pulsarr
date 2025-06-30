@@ -2,22 +2,21 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import {
   loginFormSchema,
   type LoginFormSchema,
 } from '@/features/auth/schemas/login-schema'
 
 /**
- * Provides state management, validation, and submission handling for a login form in a React application.
+ * React hook that manages state, validation, and submission logic for a login form.
  *
- * Initializes form validation using a Zod schema, manages form status and backend error messages, and focuses the email input on mount. On successful login, shows a welcome toast and redirects the user to a dashboard or a specified route.
+ * Handles form validation using a Zod schema, tracks submission status and backend errors, and focuses the email input on mount. On successful login, displays a welcome toast and redirects the user to a dashboard or a specified route.
  *
- * @returns An object with the form instance, current status, backend error message, email input ref, and the submit handler function.
+ * @returns An object containing the form instance, current status, backend error message, email input ref, and the submit handler function.
  */
 export function useLoginForm() {
   const navigate = useNavigate()
-  const { toast } = useToast()
   const [status, setStatus] = useState<'idle' | 'loading' | 'success'>('idle')
   const [backendError, setBackendError] = useState<string | null>(null)
   const emailInputRef = useRef<HTMLInputElement>(null)
@@ -55,10 +54,7 @@ export function useLoginForm() {
             }))
         if (response.ok) {
           setStatus('success')
-          toast({
-            description: `Welcome back, ${responseData.username}!`,
-            variant: 'default',
-          })
+          toast.success(`Welcome back, ${responseData.username}!`)
           setTimeout(() => {
             navigate(responseData.redirectTo || '/dashboard')
           }, 1000)
@@ -74,7 +70,7 @@ export function useLoginForm() {
         setBackendError('An unexpected error occurred. Please try again.')
       }
     },
-    [navigate, toast],
+    [navigate],
   )
 
   return {

@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/tooltip'
 import { Input } from '@/components/ui/input'
 import { MultiInput } from '@/components/ui/multi-input'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useConfigStore } from '@/stores/configStore'
 import { AppriseStatusBadge } from '@/components/ui/apprise-status-badge'
 import { z } from 'zod'
@@ -37,14 +37,13 @@ const appriseFormSchema = z.object({
 type AppriseFormSchema = z.infer<typeof appriseFormSchema>
 
 /****
- * Renders a form for configuring system-wide Apprise notification service URLs.
+ * Displays a form for managing system-wide Apprise notification service URLs.
  *
- * Users can view the current Apprise server URL, add or update up to five system Apprise URLs for notifications, or clear them with confirmation. The form includes validation, status feedback, and disables controls when Apprise is not enabled or configuration is not initialized.
+ * Allows users to view the current Apprise server URL, add or update up to five system notification URLs, and clear them with confirmation. The form provides validation, status feedback, and disables controls when Apprise is not enabled or configuration is not initialized.
  *
- * @param isInitialized - Indicates whether the configuration is ready for editing.
+ * @param isInitialized - Whether the configuration is ready for editing.
  */
 export function AppriseForm({ isInitialized }: AppriseFormProps) {
-  const { toast } = useToast()
   const config = useConfigStore((state) => state.config)
   const updateConfig = useConfigStore((state) => state.updateConfig)
   const [appriseStatus, setAppriseStatus] = React.useState<
@@ -94,10 +93,7 @@ export function AppriseForm({ isInitialized }: AppriseFormProps) {
       setAppriseStatus('success')
       // Reset form's dirty state
       appriseForm.reset(data)
-      toast({
-        description: 'Apprise system URL has been updated',
-        variant: 'default',
-      })
+      toast.success('Apprise system URL has been updated')
 
       setTimeout(() => {
         setAppriseStatus('idle')
@@ -105,10 +101,7 @@ export function AppriseForm({ isInitialized }: AppriseFormProps) {
     } catch (error) {
       console.error('Apprise settings update error:', error)
       setAppriseStatus('error')
-      toast({
-        description: 'Failed to update Apprise settings',
-        variant: 'destructive',
-      })
+      toast.error('Failed to update Apprise settings')
 
       await new Promise((resolve) => setTimeout(resolve, 1000))
       setAppriseStatus('idle')
@@ -134,10 +127,7 @@ export function AppriseForm({ isInitialized }: AppriseFormProps) {
         systemAppriseUrl: '',
       })
 
-      toast({
-        description: 'System Apprise URL has been cleared',
-        variant: 'default',
-      })
+      toast.success('System Apprise URL has been cleared')
 
       setTimeout(() => {
         setAppriseStatus('idle')
@@ -145,10 +135,7 @@ export function AppriseForm({ isInitialized }: AppriseFormProps) {
     } catch (error) {
       console.error('System Apprise URL clear error:', error)
       setAppriseStatus('error')
-      toast({
-        description: 'Failed to clear System Apprise URL',
-        variant: 'destructive',
-      })
+      toast.error('Failed to clear System Apprise URL')
 
       await new Promise((resolve) => setTimeout(resolve, 1000))
       setAppriseStatus('idle')
@@ -163,13 +150,13 @@ export function AppriseForm({ isInitialized }: AppriseFormProps) {
   return (
     <div className="grid gap-4">
       <div className="flex items-center">
-        <h3 className="text-xl font-semibold text-text">
+        <h3 className="text-xl font-semibold text-foreground">
           Apprise Notification Service
         </h3>
         <AppriseStatusBadge />
       </div>
 
-      <div className="text-sm text-text p-3 bg-bw rounded-base border-2 border-border">
+      <div className="text-sm text-foreground p-3 bg-secondary-background rounded-base border-2 border-border">
         <p>
           Apprise is a notification service that can send alerts to multiple
           platforms. The service status is determined at server startup and
@@ -188,13 +175,13 @@ export function AppriseForm({ isInitialized }: AppriseFormProps) {
 
       <div className="mt-2">
         <div className="flex items-center gap-1">
-          <div className="text-sm font-semibold text-text">
+          <div className="text-sm font-semibold text-foreground">
             Apprise Server URL
           </div>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <InfoIcon className="h-4 w-4 text-text cursor-help" />
+                <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
               </TooltipTrigger>
               <TooltipContent className="max-w-xs">
                 Set via environment variables or .env file. Cannot be changed
@@ -207,7 +194,7 @@ export function AppriseForm({ isInitialized }: AppriseFormProps) {
           <Input
             value={config?.appriseUrl || ''}
             disabled={true}
-            className="bg-bw opacity-80 text-text"
+            className="bg-secondary-background opacity-80 text-foreground"
           />
         </div>
       </div>
@@ -223,13 +210,13 @@ export function AppriseForm({ isInitialized }: AppriseFormProps) {
             render={({ field }) => (
               <FormItem>
                 <div className="flex items-center gap-1">
-                  <FormLabel className="text-text">
+                  <FormLabel className="text-foreground">
                     System Apprise URL
                   </FormLabel>
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <InfoIcon className="h-4 w-4 text-text cursor-help" />
+                        <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs">
                         URLs for system-wide notifications. Use the + button to

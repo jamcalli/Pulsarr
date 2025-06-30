@@ -41,7 +41,7 @@ const CRTOverlay = ({
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         {/* Scanlines and RGB split */}
         <div 
-          className="absolute inset-0 animate-hardFlicker"
+          className="absolute inset-0"
           style={{
             background: `
               linear-gradient(
@@ -56,15 +56,17 @@ const CRTOverlay = ({
               )
             `,
             backgroundSize: '100% 2px, 3px 100%',
+            animation: 'var(--animate-hard-flicker)',
             zIndex: 20
           }}
         />
         
         {/* Flicker overlay */}
         <div 
-          className="absolute inset-0 animate-softFlicker bg-black"
+          className="absolute inset-0 bg-black"
           style={{ 
             opacity: settings.flickerOpacity,
+            animation: 'var(--animate-soft-flicker)',
             zIndex: 20 
           }}
         />

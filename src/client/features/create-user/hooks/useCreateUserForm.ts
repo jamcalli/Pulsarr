@@ -2,22 +2,21 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from 'react-router-dom'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import {
   createUserFormSchema,
   type CreateUserFormSchema,
 } from '@/features/create-user/schemas/create-user-schema'
 
 /**
- * React hook for managing a user creation form, including state, validation, and submission.
+ * React hook that manages the state, validation, and submission logic for a user creation form.
  *
- * Initializes form validation with a Zod schema, handles backend submission, manages submission status and error messages, and provides a ref for focusing the email input on mount.
+ * Sets up form validation using a Zod schema, handles backend submission and error reporting, tracks submission status, and provides a ref for focusing the email input on mount.
  *
  * @returns An object containing the form instance, current submission status, backend error message, email input ref, and the submit handler function.
  */
 export function useCreateUserForm() {
   const navigate = useNavigate()
-  const { toast } = useToast()
   const [status, setStatus] = useState<'idle' | 'loading' | 'success'>('idle')
   const [backendError, setBackendError] = useState<string | null>(null)
   const emailInputRef = useRef<HTMLInputElement>(null)
@@ -63,10 +62,7 @@ export function useCreateUserForm() {
 
         if (response.ok) {
           setStatus('success')
-          toast({
-            description: 'User created successfully!',
-            variant: 'default',
-          })
+          toast.success('User created successfully!')
 
           setTimeout(() => {
             navigate('/login')
@@ -81,7 +77,7 @@ export function useCreateUserForm() {
         setBackendError('An unexpected error occurred.')
       }
     },
-    [navigate, toast],
+    [navigate],
   )
 
   return {

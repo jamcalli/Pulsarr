@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Loader2, Check } from 'lucide-react'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import type {
   CreateTagBody as RadarrCreateTagBody,
   CreateTagResponse as RadarrCreateTagResponse,
@@ -49,11 +49,16 @@ interface TagCreationDialogProps {
 }
 
 /**
- * Renders a dialog for creating a new tag in a Radarr or Sonarr instance.
+ * Displays a modal dialog for creating a new tag in a Radarr or Sonarr instance.
  *
- * Users can enter a tag name, which is validated and submitted to the backend. The dialog provides visual feedback for loading, success, and error states, and invokes a callback after successful creation.
+ * Allows users to input a tag name, validates the input, and submits a creation request to the backend. Provides visual feedback for loading, success, and error states, and prevents dialog closure or input changes while a request is in progress. Invokes a callback after successful tag creation.
  *
- * @remark Input fields are disabled and the dialog cannot be closed while a tag creation request is in progress.
+ * @param open - Whether the dialog is open
+ * @param onOpenChange - Callback invoked when the dialog open state changes
+ * @param instanceId - The ID of the Radarr or Sonarr instance
+ * @param instanceType - The type of instance ('radarr' or 'sonarr')
+ * @param instanceName - Optional display name of the instance
+ * @param onSuccess - Callback invoked after a tag is successfully created
  */
 export function TagCreationDialog({
   open,
@@ -63,7 +68,6 @@ export function TagCreationDialog({
   instanceName = '',
   onSuccess
 }: TagCreationDialogProps) {
-  const { toast } = useToast()
   const [tagLabel, setTagLabel] = useState('')
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
   
@@ -83,11 +87,7 @@ export function TagCreationDialog({
     e.preventDefault()
     
     if (!tagLabel.trim()) {
-      toast({
-        title: 'Validation Error',
-        description: 'Please enter a tag name',
-        variant: 'destructive'
-      })
+      toast.error('Please enter a tag name')
       return
     }
     
@@ -125,10 +125,7 @@ export function TagCreationDialog({
           ? `${systemType} instance "${instanceName}"`
           : systemType;
           
-        toast({
-          description: `Tag "${tagLabel}" created successfully in ${displayName}`,
-          variant: 'default'
-        })
+        toast.success(`Tag "${tagLabel}" created successfully in ${displayName}`)
         
         setSaveStatus('success')
         
@@ -147,11 +144,7 @@ export function TagCreationDialog({
       }
     } catch (error) {
       console.error('Error creating tag:', error)
-      toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to create tag',
-        variant: 'destructive'
-      })
+      toast.error(error instanceof Error ? error.message : 'Failed to create tag')
       
       setSaveStatus('error')
       setTimeout(() => setSaveStatus('idle'), 500)
@@ -175,14 +168,14 @@ export function TagCreationDialog({
       >
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle className="text-text">Create New Tag</DialogTitle>
+            <DialogTitle className="text-foreground">Create New Tag</DialogTitle>
             <DialogDescription>
               Enter a name for your new tag. This tag will be created in your {instanceType === 'radarr' ? 'Radarr' : 'Sonarr'} instance.
             </DialogDescription>
           </DialogHeader>
           
           <div className="py-4">
-            <Label htmlFor="tag-name" className="text-text">Tag Name</Label>
+            <Label htmlFor="tag-name" className="text-foreground">Tag Name</Label>
             <Input
               id="tag-name"
               value={tagLabel}

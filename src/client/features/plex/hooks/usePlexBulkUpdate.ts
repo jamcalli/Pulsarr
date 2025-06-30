@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useConfigStore } from '@/stores/configStore'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 import type {
@@ -10,8 +10,12 @@ import type { BulkUpdateRequest } from '@root/schemas/users/users.schema'
 
 export type BulkUpdateStatus = 'idle' | 'loading' | 'success' | 'error'
 
+/**
+ * Provides state and handlers for performing bulk updates of Plex user data, including modal control, update status, and selected user rows.
+ *
+ * Returns modal open state, update status, selected rows, and functions to open the bulk edit modal and execute the bulk update operation.
+ */
 export function usePlexBulkUpdate() {
-  const { toast } = useToast()
   const fetchUserData = useConfigStore((state) => state.fetchUserData)
   const [bulkEditModalOpen, setBulkEditModalOpen] = useState(false)
   const [updateStatus, setUpdateStatus] = useState<BulkUpdateStatus>('idle')
@@ -56,11 +60,9 @@ export function usePlexBulkUpdate() {
       const result = await response.json()
 
       setUpdateStatus('success')
-      toast({
-        description:
-          result.message || `Updated ${result.updatedCount} users successfully`,
-        variant: 'default',
-      })
+      toast.success(
+        result.message || `Updated ${result.updatedCount} users successfully`,
+      )
 
       // Refresh user data
       await fetchUserData()
@@ -76,11 +78,9 @@ export function usePlexBulkUpdate() {
     } catch (error) {
       console.error('Bulk update error:', error)
       setUpdateStatus('error')
-      toast({
-        description:
-          error instanceof Error ? error.message : 'Failed to update users',
-        variant: 'destructive',
-      })
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to update users',
+      )
       await new Promise((resolve) => setTimeout(resolve, MIN_LOADING_DELAY))
       setUpdateStatus('idle')
     }

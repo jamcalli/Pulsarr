@@ -21,6 +21,18 @@ interface WatchlistCarouselProps {
   error?: string | null
 }
 
+/**
+ * Displays a horizontally scrollable carousel of media items with navigation controls, loading placeholders, and error handling.
+ *
+ * Renders a titled card containing a carousel of media items sorted by descending count and then alphabetically by title. Shows skeleton placeholders during loading, an error message if provided, or a "No data available" message when appropriate. Navigation buttons allow scrolling through the carousel when possible.
+ *
+ * @param title - The title displayed above the carousel.
+ * @param items - The list of media items to display in the carousel.
+ * @param className - Optional additional CSS classes for the root card.
+ * @param loading - Whether to show loading placeholders.
+ * @param error - Optional error message to display instead of the carousel.
+ * @returns The rendered carousel component.
+ */
 export function WatchlistCarousel({
   title,
   items = [],
@@ -87,9 +99,9 @@ export function WatchlistCarousel({
   }, [items])
 
   return (
-    <Card className={cn('w-full bg-bg relative', className)}>
+    <Card className={cn('w-full bg-background relative', className)}>
       <CardHeader className="pb-3 flex flex-row items-center justify-between">
-        <CardTitle className="text-text">{title}</CardTitle>
+        <CardTitle className="text-foreground">{title}</CardTitle>
         <div className="flex items-center gap-2">
           <Button
             variant="noShadow"
@@ -120,7 +132,7 @@ export function WatchlistCarousel({
           </div>
         ) : sortedItems.length === 0 && !loading ? (
           <div className="flex h-48 items-center justify-center">
-            <span className="text-text text-muted-foreground">
+            <span className="text-foreground text-muted-foreground">
               No data available
             </span>
           </div>

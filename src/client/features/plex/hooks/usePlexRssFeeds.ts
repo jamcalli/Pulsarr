@@ -1,12 +1,18 @@
 import { useState } from 'react'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useConfigStore } from '@/stores/configStore'
 import type { RssFeedsResponse } from '@root/schemas/plex/generate-rss-feeds.schema'
 
 export type RssStatus = 'idle' | 'loading' | 'success' | 'error'
 
+/**
+ * React hook for managing Plex RSS feed URLs and their generation status.
+ *
+ * Provides the current RSS feed URLs, the status of the feed generation process, and a function to trigger RSS feed generation and refresh.
+ *
+ * @returns An object containing the current RSS feed URLs (`rssFeeds`), the generation status (`rssStatus`), and a function to generate new RSS feeds (`generateRssFeeds`).
+ */
 export function usePlexRssFeeds() {
-  const { toast } = useToast()
   const config = useConfigStore((state) => state.config)
   const refreshRssFeeds = useConfigStore((state) => state.refreshRssFeeds)
   const [rssStatus, setRssStatus] = useState<RssStatus>('idle')
@@ -39,19 +45,11 @@ export function usePlexRssFeeds() {
       await refreshRssFeeds()
 
       setRssStatus('success')
-      toast({
-        title: 'RSS Feeds Generated',
-        description: 'RSS feed URLs have been successfully generated',
-        variant: 'default',
-      })
+      toast.success('RSS feed URLs have been successfully generated')
     } catch (error) {
       console.error('RSS generation error:', error)
       setRssStatus('error')
-      toast({
-        title: 'Generation Failed',
-        description: 'Failed to generate RSS feed URLs',
-        variant: 'destructive',
-      })
+      toast.error('Failed to generate RSS feed URLs')
     }
   }
 

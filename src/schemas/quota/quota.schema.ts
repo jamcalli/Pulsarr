@@ -194,4 +194,5 @@ export type QuotaUsageListResponse = z.infer<
 export type DailyStatsListResponse = z.infer<
   typeof DailyStatsListResponseSchema
 >
+export type UserQuotasResponse = z.infer<typeof UserQuotasResponseSchema>
 export type QuotaError = z.infer<typeof QuotaErrorSchema>

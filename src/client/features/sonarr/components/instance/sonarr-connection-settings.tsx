@@ -30,14 +30,14 @@ interface ConnectionSettingsProps {
 }
 
 /**
- * Displays a form section for configuring and testing Sonarr connection settings.
+ * Renders a form section for entering and testing Sonarr connection settings.
  *
- * Provides input fields for the Sonarr URL and API key, along with a button to test the connection. The component manages validation, connection test status, and responsive layout, and gives visual feedback when a connection test is required or fails.
+ * Includes input fields for the Sonarr URL and API key, and a button to test the connection. The component manages validation, displays connection test status, and provides visual feedback when a test is required or fails. Layout adapts responsively for mobile screens.
  *
  * @param form - Form state and methods for managing Sonarr instance configuration.
  * @param testStatus - Current status of the connection test.
  * @param onTest - Async callback to initiate a connection test.
- * @param hasValidUrlAndKey - Whether the URL and API key fields are valid.
+ * @param hasValidUrlAndKey - Indicates if the URL and API key fields are valid.
  * @param disabled - Optional flag to disable all inputs and actions.
  */
 export default function ConnectionSettings({
@@ -74,8 +74,8 @@ export default function ConnectionSettings({
           control={form.control}
           name="baseUrl"
           render={({ field }) => (
-            <FormItem className="flex-grow">
-              <FormLabel className="text-text">Sonarr URL</FormLabel>
+            <FormItem className="grow">
+              <FormLabel className="text-foreground">Sonarr URL</FormLabel>
               <FormControl>
                 <Input
                   {...field}
@@ -97,10 +97,10 @@ export default function ConnectionSettings({
           control={form.control}
           name="apiKey"
           render={({ field }) => (
-            <FormItem className="flex-grow">
-              <FormLabel className="text-text">API Key</FormLabel>
+            <FormItem className="grow">
+              <FormLabel className="text-foreground">API Key</FormLabel>
               <div className="flex gap-2">
-                <div className="flex-grow">
+                <div className="grow">
                   <FormControl>
                     <Input
                       {...field}

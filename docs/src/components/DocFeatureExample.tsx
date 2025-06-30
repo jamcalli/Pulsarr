@@ -12,15 +12,15 @@ export default function DocFeatureExample() {
       <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-12 lg:gap-6 items-start lg:items-stretch">
         <DocFeature title="Overview">
           <div className="feature-content">
-            <h3 className="text-text">What is Pulsarr?</h3>
-            <p className="text-text">
+            <h3 className="text-foreground">What is Pulsarr?</h3>
+            <p className="text-foreground">
               Pulsarr monitors user Plex watchlists in real-time*, intelligently
               routing content to multiple Sonarr/Radarr instances through a
               predicate-based routing system—all without requiring additional
               user logins beyond the admin's Plex token.
             </p>
 
-            <p className="text-text">
+            <p className="text-foreground">
               Features include conditional content routing based on
               genre/user/language/year/certification, comprehensive
               multi-instance support with intelligent synchronization, granular
@@ -30,7 +30,7 @@ export default function DocFeatureExample() {
               automatic deletion options when content leaves watchlists.
             </p>
 
-            <p className="text-text text-xs opacity-70 mt-2">
+            <p className="text-foreground text-xs opacity-70 mt-2">
               * Non-Plex Pass users supported with 20-minute polling intervals;
               all other features remain identical.
             </p>
@@ -50,32 +50,32 @@ export default function DocFeatureExample() {
           <div className="feature-content">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="feature-item">
-                <h3 className="text-text">Real-time Monitoring</h3>
-                <p className="text-text">
+                <h3 className="text-foreground">Real-time Monitoring</h3>
+                <p className="text-foreground">
                   Automatically detects when users add content to their Plex
                   watchlist
                 </p>
               </div>
 
               <div className="feature-item">
-                <h3 className="text-text">Smart Content Routing</h3>
-                <p className="text-text">
+                <h3 className="text-foreground">Smart Content Routing</h3>
+                <p className="text-foreground">
                   Intelligently routes content based on genre, user, language,
                   and more
                 </p>
               </div>
 
               <div className="feature-item">
-                <h3 className="text-text">Multi-Instance Support</h3>
-                <p className="text-text">
+                <h3 className="text-foreground">Multi-Instance Support</h3>
+                <p className="text-foreground">
                   Distribute content across multiple Sonarr/Radarr instances
                   with intelligent synchronization
                 </p>
               </div>
 
               <div className="feature-item">
-                <h3 className="text-text">Notification System</h3>
-                <p className="text-text">
+                <h3 className="text-foreground">Notification System</h3>
+                <p className="text-foreground">
                   Sends personalized notifications via Discord and Apprise
                 </p>
               </div>
@@ -91,28 +91,34 @@ export default function DocFeatureExample() {
           className="max-w-3xl"
         >
           <div className="feature-content">
-            <ul className="list-disc pl-6 space-y-2 text-text">
+            <ul className="list-disc pl-6 space-y-2 text-foreground">
               <li>
-                <strong className="text-text">Simplified Discovery</strong> -
-                Users can request content directly from Plex
+                <strong className="text-foreground">
+                  Simplified Discovery
+                </strong>{' '}
+                - Users can request content directly from Plex
               </li>
               <li>
-                <strong className="text-text">Centralized Management</strong> -
-                All content requests in one place
+                <strong className="text-foreground">
+                  Centralized Management
+                </strong>{' '}
+                - All content requests in one place
               </li>
               <li>
-                <strong className="text-text">Automated Workflow</strong> - No
-                manual intervention needed
+                <strong className="text-foreground">Automated Workflow</strong>{' '}
+                - No manual intervention needed
               </li>
               <li>
-                <strong className="text-text">
+                <strong className="text-foreground">
                   Intelligent Decision-Making
                 </strong>{' '}
                 - Route content based on complex conditions
               </li>
               <li>
-                <strong className="text-text">Comprehensive Analytics</strong> -
-                Track usage and content distribution
+                <strong className="text-foreground">
+                  Comprehensive Analytics
+                </strong>{' '}
+                - Track usage and content distribution
               </li>
             </ul>
           </div>

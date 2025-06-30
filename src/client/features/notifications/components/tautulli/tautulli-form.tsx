@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/tooltip'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useConfigStore } from '@/stores/configStore'
 import { z } from 'zod'
 import { ClearSettingsAlert } from '@/components/ui/clear-settings-alert'
@@ -126,14 +126,13 @@ async function testTautulliConnection(url: string, apiKey: string) {
 }
 
 /****
- * Displays a form for configuring Tautulli notification integration, enabling users to manage connection settings, test connectivity, save changes, or clear all Tautulli-related configuration.
+ * Renders a form for configuring Tautulli notification integration, allowing users to enable or disable the service, enter connection details, test connectivity, save changes, or clear all Tautulli settings.
  *
- * The form enforces validation and requires a successful connection test before saving new or updated credentials. User feedback is provided for connection tests, saving, and clearing settings. Inputs and actions are dynamically enabled or disabled based on form state and loading status.
+ * The form enforces validation rules and requires a successful connection test before saving new or updated credentials. User feedback is provided for connection testing, saving, and clearing actions. Form fields and actions are dynamically enabled or disabled based on the current state and loading status.
  *
- * @param isInitialized - Whether the configuration is ready for editing.
+ * @param isInitialized - Indicates whether the configuration is ready for editing.
  */
 export function TautulliForm({ isInitialized }: TautulliFormProps) {
-  const { toast } = useToast()
   const config = useConfigStore((state) => state.config)
   const updateConfig = useConfigStore((state) => state.updateConfig)
   const [tautulliStatus, setTautulliStatus] = React.useState<
@@ -257,20 +256,16 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
         })
         tautulliForm.clearErrors(['tautulliUrl', 'tautulliApiKey'])
 
-        toast({
-          description: 'Tautulli connection is valid!',
-          variant: 'default',
-        })
+        toast.success('Tautulli connection is valid!')
       } else {
         setTautulliTestValid(false)
         tautulliForm.setValue('_connectionTested', false, {
           shouldValidate: true,
         })
         // Schema validation will handle the error
-        toast({
-          description: `Connection test failed: ${result.message || 'Unknown error'}`,
-          variant: 'destructive',
-        })
+        toast.error(
+          `Connection test failed: ${result.message || 'Unknown error'}`,
+        )
       }
     } catch (error) {
       console.error('Tautulli test error:', error)
@@ -279,10 +274,7 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
         shouldValidate: true,
       })
       // Schema validation will handle the error
-      toast({
-        description: 'Failed to test Tautulli connection',
-        variant: 'destructive',
-      })
+      toast.error('Failed to test Tautulli connection')
     } finally {
       setTautulliStatus('idle')
     }
@@ -313,10 +305,7 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
         _originalTautulliUrl: data.tautulliUrl || '',
         _originalTautulliApiKey: data.tautulliApiKey || '',
       })
-      toast({
-        description: 'Tautulli settings have been updated',
-        variant: 'default',
-      })
+      toast.success('Tautulli settings have been updated')
 
       setTimeout(() => {
         setTautulliStatus('idle')
@@ -324,10 +313,7 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
     } catch (error) {
       console.error('Tautulli settings update error:', error)
       setTautulliStatus('error')
-      toast({
-        description: 'Failed to update Tautulli settings',
-        variant: 'destructive',
-      })
+      toast.error('Failed to update Tautulli settings')
 
       await new Promise((resolve) => setTimeout(resolve, 1000))
       setTautulliStatus('idle')
@@ -361,10 +347,7 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
       })
       setTautulliTestValid(false)
 
-      toast({
-        description: 'Tautulli settings have been cleared',
-        variant: 'default',
-      })
+      toast.success('Tautulli settings have been cleared')
 
       setTimeout(() => {
         setTautulliStatus('idle')
@@ -372,10 +355,7 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
     } catch (error) {
       console.error('Tautulli settings clear error:', error)
       setTautulliStatus('error')
-      toast({
-        description: 'Failed to clear Tautulli settings',
-        variant: 'destructive',
-      })
+      toast.error('Failed to clear Tautulli settings')
 
       await new Promise((resolve) => setTimeout(resolve, 1000))
       setTautulliStatus('idle')
@@ -401,14 +381,14 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
 
   return (
     <div className="grid gap-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-xl font-semibold text-text">
+      <div className="flex items-center gap-2">
+        <h3 className="text-xl font-semibold text-foreground">
           Tautulli Notification Service
         </h3>
         <TautulliStatusBadge />
       </div>
 
-      <div className="text-sm text-text p-3 bg-bw rounded-base border-2 border-border">
+      <div className="text-sm text-foreground p-3 bg-secondary-background rounded-base border-2 border-border">
         <p>
           Tautulli integration sends native Plex notifications using your
           existing notification agents. This provides a seamless notification
@@ -435,15 +415,22 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
             name="tautulliEnabled"
             render={({ field }) => (
               <FormItem>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      disabled={tautulliStatus === 'loading'}
+                    />
+                  </FormControl>
                   <div className="flex items-center gap-1">
-                    <FormLabel className="text-text">
+                    <FormLabel className="text-foreground">
                       Tautulli Notifications Enabled
                     </FormLabel>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <InfoIcon className="h-4 w-4 text-text cursor-help" />
+                          <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
                         </TooltipTrigger>
                         <TooltipContent className="max-w-xs">
                           Enable Tautulli integration for native Plex
@@ -452,13 +439,6 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
                       </Tooltip>
                     </TooltipProvider>
                   </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                      disabled={tautulliStatus === 'loading'}
-                    />
-                  </FormControl>
                 </div>
                 <FormMessage />
               </FormItem>
@@ -473,11 +453,13 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
                 render={({ field }) => (
                   <FormItem>
                     <div className="flex items-center gap-1">
-                      <FormLabel className="text-text">Tautulli URL</FormLabel>
+                      <FormLabel className="text-foreground">
+                        Tautulli URL
+                      </FormLabel>
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <InfoIcon className="h-4 w-4 text-text cursor-help" />
+                            <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
                           </TooltipTrigger>
                           <TooltipContent className="max-w-xs">
                             Full URL to your Tautulli instance (including
@@ -513,13 +495,13 @@ export function TautulliForm({ isInitialized }: TautulliFormProps) {
                 render={({ field }) => (
                   <FormItem>
                     <div className="flex items-center gap-1">
-                      <FormLabel className="text-text">
+                      <FormLabel className="text-foreground">
                         Tautulli API Key
                       </FormLabel>
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <InfoIcon className="h-4 w-4 text-text cursor-help" />
+                            <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
                           </TooltipTrigger>
                           <TooltipContent className="max-w-xs">
                             API key from Tautulli Settings → Web Interface

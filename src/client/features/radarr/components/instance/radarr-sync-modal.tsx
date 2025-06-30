@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useRadarrSyncProgress } from '@/features/radarr/hooks/instance/useRadarrSyncProgress'
 import { useRadarrStore } from '@/features/radarr/store/radarrStore'
 
@@ -20,13 +20,17 @@ interface RadarrSyncModalProps {
   isManualSync?: boolean
 }
 
+/**
+ * Displays a modal dialog to manage and track the synchronization of Radarr instances.
+ *
+ * Provides progress feedback, handles synchronization requests for one or more Radarr instances, and prevents user interaction while syncing is in progress. Supports both manual and automatic sync initiation, and notifies users of completion or errors.
+ */
 export function RadarrSyncModal({
   open,
   onOpenChange,
   syncedInstances,
   isManualSync = false,
 }: RadarrSyncModalProps) {
-  const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [currentInstanceIndex, setCurrentInstanceIndex] = useState(-1)
   const [syncCompleted, setSyncCompleted] = useState(false)
@@ -59,10 +63,7 @@ export function RadarrSyncModal({
         setCurrentInstanceIndex(0)
       } else {
         setSyncCompleted(true)
-        toast({
-          description: 'No instances to synchronize',
-          variant: 'default',
-        })
+        toast('No instances to synchronize')
       }
     }
   }, [
@@ -72,7 +73,6 @@ export function RadarrSyncModal({
     currentInstanceIndex,
     syncCompleted,
     syncedInstances.length,
-    toast,
   ])
 
   useEffect(() => {
@@ -116,13 +116,10 @@ export function RadarrSyncModal({
         setOverallProgress(100)
         setSyncCompleted(true)
 
-        toast({
-          description: 'Successfully synchronized all Radarr instances',
-          variant: 'default',
-        })
+        toast.success('Successfully synchronized all Radarr instances')
       }
     }
-  }, [syncProgress, currentInstanceIndex, syncedInstances, toast])
+  }, [syncProgress, currentInstanceIndex, syncedInstances])
 
   useEffect(() => {
     const syncCurrentInstance = async () => {
@@ -146,14 +143,12 @@ export function RadarrSyncModal({
           }
         } catch (error) {
           console.error('Error syncing instance:', error)
-          toast({
-            description:
-              error instanceof Error
-                ? error.message
-                : 'An error occurred during synchronization',
-            variant: 'destructive',
-          })
-
+          toast.error(
+            error instanceof Error
+              ? error.message
+              : 'An error occurred during synchronization',
+          )
+        } finally {
           const nextIndex = currentInstanceIndex + 1
           if (nextIndex < syncedInstances.length) {
             setCurrentInstanceIndex(nextIndex)
@@ -167,7 +162,7 @@ export function RadarrSyncModal({
     if (isSubmitting && currentInstanceIndex >= 0) {
       syncCurrentInstance()
     }
-  }, [currentInstanceIndex, syncedInstances, isSubmitting, toast])
+  }, [currentInstanceIndex, syncedInstances, isSubmitting])
 
   const handleSync = () => {
     setIsSubmitting(true)
@@ -176,10 +171,7 @@ export function RadarrSyncModal({
       setCurrentInstanceIndex(0)
     } else {
       setSyncCompleted(true)
-      toast({
-        description: 'No instances to synchronize',
-        variant: 'default',
-      })
+      toast('No instances to synchronize')
     }
   }
 
@@ -220,7 +212,7 @@ export function RadarrSyncModal({
         }}
       >
         <DialogHeader>
-          <DialogTitle className="text-text">
+          <DialogTitle className="text-foreground">
             {!isSubmitting
               ? 'Instance Synchronization'
               : syncCompleted
@@ -245,8 +237,10 @@ export function RadarrSyncModal({
               {!isSingleInstance && !syncCompleted && (
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-text">Overall Progress</span>
-                    <span className="text-sm text-text">
+                    <span className="text-sm text-foreground">
+                      Overall Progress
+                    </span>
+                    <span className="text-sm text-foreground">
                       {overallProgress}%
                     </span>
                   </div>
@@ -258,7 +252,7 @@ export function RadarrSyncModal({
               {!syncCompleted && (
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-text">
+                    <span className="text-sm text-foreground">
                       {syncProgress.message
                         ? syncProgress.message.replace(
                             /radarr instance \d+/i,
@@ -266,7 +260,7 @@ export function RadarrSyncModal({
                           )
                         : `Syncing ${getCurrentInstanceName()}`}
                     </span>
-                    <span className="text-sm text-text">
+                    <span className="text-sm text-foreground">
                       {Math.round(syncProgress.progress)}%
                     </span>
                   </div>
@@ -276,7 +270,7 @@ export function RadarrSyncModal({
             </div>
           ) : (
             <div className="space-y-4">
-              <p className="text-sm text-text">
+              <p className="text-sm text-foreground">
                 Your configuration includes {syncedInstances.length} synced{' '}
                 {syncedInstances.length === 1 ? 'instance' : 'instances'}. Would
                 you like to perform an initial synchronization now?

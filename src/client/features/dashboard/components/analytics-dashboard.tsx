@@ -40,6 +40,11 @@ const CHART_CONFIG: Record<ChartType, ChartConfigItem> = {
   },
 }
 
+/**
+ * Displays a media analytics dashboard with selectable charts and descriptive headers.
+ *
+ * Renders a card containing a tabbed interface for switching between different analytics charts, each with its own label and description. The dashboard includes a header section and dynamically displays the selected chart.
+ */
 export function AnalyticsDashboard() {
   const [activeChart, setActiveChart] = useState<ChartType>(
     CHARTS.STATUS_TRANSITIONS,
@@ -50,7 +55,7 @@ export function AnalyticsDashboard() {
     return (
       <div className="flex flex-col overflow-hidden">
         {/* Top row with chart description */}
-        <div className="bg-main text-text px-6 py-4">
+        <div className="bg-main text-foreground px-6 py-4">
           <h3 className="text-lg font-medium">
             {CHART_CONFIG[activeChart].label}
           </h3>
@@ -77,14 +82,14 @@ export function AnalyticsDashboard() {
                     'flex h-12 items-center justify-center uppercase text-sm font-medium',
                     activeChart === key
                       ? 'bg-black text-white'
-                      : 'bg-main text-text',
+                      : 'bg-main text-foreground',
                     needsBorder &&
                       index < Object.entries(CHART_CONFIG).length - 1 &&
                       !isLastInRow &&
-                      'border-r-2 border-r-border dark:border-r-darkBorder',
+                      'border-r-2 border-r-border',
                     needsBorder &&
                       isSecondButton &&
-                      'sm:border-r-2 border-r-border dark:border-r-darkBorder',
+                      'sm:border-r-2 border-r-border',
                     index < 2 &&
                       'border-b-2 sm:border-b-0 border-b-border dark:border-b-darkBorder',
                   )}
@@ -117,8 +122,10 @@ export function AnalyticsDashboard() {
 
   return (
     <div className="mb-8">
-      <h2 className="mb-4 text-2xl font-bold text-text">Media Analytics</h2>
-      <Card className="w-full bg-bw relative overflow-hidden">
+      <h2 className="mb-4 text-2xl font-bold text-foreground">
+        Media Analytics
+      </h2>
+      <Card className="w-full bg-secondary-background relative overflow-hidden">
         <ChartHeader />
         <CardContent className="px-6 py-6">{renderChart()}</CardContent>
       </Card>

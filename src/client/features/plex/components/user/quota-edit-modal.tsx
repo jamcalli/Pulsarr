@@ -64,7 +64,6 @@ interface FormContentProps {
   handleOpenChange: (open: boolean) => void
   saveStatus: QuotaEditStatus
   isFormDirty: boolean
-  user: UserWithQuotaInfo
 }
 
 const FormContent = React.memo(
@@ -74,7 +73,6 @@ const FormContent = React.memo(
     handleOpenChange,
     saveStatus,
     isFormDirty,
-    user: _user,
   }: FormContentProps) => {
     const hasMovieQuota = form.watch('hasMovieQuota')
     const hasShowQuota = form.watch('hasShowQuota')
@@ -88,7 +86,7 @@ const FormContent = React.memo(
               className="space-y-4 border-l-2 pl-4"
               style={{ borderColor: 'var(--color-movie)' }}
             >
-              <h4 className="font-medium text-text">Movie Quotas</h4>
+              <h4 className="font-medium text-foreground">Movie Quotas</h4>
 
               {/* Enable/Disable Movie Quota */}
               <FormField
@@ -97,7 +95,7 @@ const FormContent = React.memo(
                 render={({ field }) => (
                   <FormItem>
                     <div className="flex items-center justify-between">
-                      <FormLabel className="text-text">
+                      <FormLabel className="text-foreground">
                         Enable Movie Quota
                       </FormLabel>
                       <FormControl>
@@ -121,7 +119,7 @@ const FormContent = React.memo(
                     name="movieQuotaType"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-text">
+                        <FormLabel className="text-foreground">
                           Movie Quota Type
                         </FormLabel>
                         <Select
@@ -152,7 +150,7 @@ const FormContent = React.memo(
                     name="movieQuotaLimit"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-text">
+                        <FormLabel className="text-foreground">
                           Movie Quota Limit
                         </FormLabel>
                         <FormControl>
@@ -176,7 +174,7 @@ const FormContent = React.memo(
                     render={({ field }) => (
                       <FormItem>
                         <div className="flex items-center justify-between">
-                          <FormLabel className="text-text">
+                          <FormLabel className="text-foreground">
                             Auto-Approve Movies When Exceeded
                           </FormLabel>
                           <FormControl>
@@ -200,7 +198,7 @@ const FormContent = React.memo(
               className="space-y-4 border-l-2 pl-4"
               style={{ borderColor: 'var(--color-show)' }}
             >
-              <h4 className="font-medium text-text">Show Quotas</h4>
+              <h4 className="font-medium text-foreground">Show Quotas</h4>
 
               {/* Enable/Disable Show Quota */}
               <FormField
@@ -209,7 +207,7 @@ const FormContent = React.memo(
                 render={({ field }) => (
                   <FormItem>
                     <div className="flex items-center justify-between">
-                      <FormLabel className="text-text">
+                      <FormLabel className="text-foreground">
                         Enable Show Quota
                       </FormLabel>
                       <FormControl>
@@ -233,7 +231,7 @@ const FormContent = React.memo(
                     name="showQuotaType"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-text">
+                        <FormLabel className="text-foreground">
                           Show Quota Type
                         </FormLabel>
                         <Select
@@ -264,7 +262,7 @@ const FormContent = React.memo(
                     name="showQuotaLimit"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-text">
+                        <FormLabel className="text-foreground">
                           Show Quota Limit
                         </FormLabel>
                         <FormControl>
@@ -288,7 +286,7 @@ const FormContent = React.memo(
                     render={({ field }) => (
                       <FormItem>
                         <div className="flex items-center justify-between">
-                          <FormLabel className="text-text">
+                          <FormLabel className="text-foreground">
                             Auto-Approve Shows When Exceeded
                           </FormLabel>
                           <FormControl>
@@ -359,15 +357,16 @@ interface QuotaEditModalProps {
 }
 
 /**
- * Displays a responsive modal for editing a user's movie and show quota settings.
+ * Renders a responsive modal for editing a user's movie and show quota settings.
  *
- * Provides a form to enable or disable quotas, select quota types, set usage limits, and configure approval bypass options for both movies and shows. The modal adapts its layout for mobile and desktop screens, and prevents closing or interaction while a save operation is in progress.
+ * Allows enabling or disabling quotas, selecting quota types, setting usage limits, and configuring approval bypass options for movies and shows. The modal adapts its layout for mobile and desktop screens, and prevents interaction or closing while a save operation is in progress.
  *
  * @param isOpen - Whether the modal is currently open
  * @param onOpenChange - Callback to update the modal's open state
  * @param user - The user whose quota settings are being edited, or `null` if no user is selected
  * @param onSave - Callback invoked with the updated quota data when the form is submitted
  * @param saveStatus - The current status of the save operation
+ * @returns The modal component, or `null` if no user is provided
  */
 export function QuotaEditModal({
   isOpen,
@@ -444,7 +443,9 @@ export function QuotaEditModal({
           className="overflow-y-auto"
         >
           <SheetHeader>
-            <SheetTitle className="text-text">Edit Quota Settings</SheetTitle>
+            <SheetTitle className="text-foreground">
+              Edit Quota Settings
+            </SheetTitle>
             <SheetDescription>
               Configure separate usage limits for movies and shows for{' '}
               {user.name}
@@ -457,7 +458,6 @@ export function QuotaEditModal({
               handleOpenChange={handleOpenChange}
               saveStatus={saveStatus}
               isFormDirty={isFormDirty}
-              user={user}
             />
           </div>
         </SheetContent>
@@ -482,7 +482,9 @@ export function QuotaEditModal({
         }}
       >
         <DialogHeader>
-          <DialogTitle className="text-text">Edit Quota Settings</DialogTitle>
+          <DialogTitle className="text-foreground">
+            Edit Quota Settings
+          </DialogTitle>
           <DialogDescription>
             Configure usage limits and approval settings for {user.name}
           </DialogDescription>
@@ -493,7 +495,6 @@ export function QuotaEditModal({
           handleOpenChange={handleOpenChange}
           saveStatus={saveStatus}
           isFormDirty={isFormDirty}
-          user={user}
         />
       </DialogContent>
     </Dialog>

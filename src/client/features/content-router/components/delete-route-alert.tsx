@@ -19,19 +19,17 @@ interface DeleteRouteAlertProps {
 }
 
 /**
- * Renders a confirmation dialog for deleting a route.
+ * Displays a modal dialog prompting the user to confirm deletion of a route.
  *
- * This component displays a modal alert that asks the user to confirm the deletion of a specified route,
- * with the text dynamically reflecting the provided route type and name. It offers options to cancel or
- * proceed with the deletion.
+ * The dialog shows the route's type and name, warns that deletion is irreversible, and provides options to cancel or proceed.
  *
- * @param open - Indicates whether the alert is visible.
- * @param onOpenChange - Callback to update the dialog's visibility.
- * @param onConfirm - Function executed when the user confirms deletion; typically returns a Promise.
- * @param routeName - The name of the route to be deleted.
- * @param routeType - The type of the route, defaults to "routing rule".
+ * @param open - Whether the dialog is visible.
+ * @param onOpenChange - Callback to change the dialog's visibility.
+ * @param onConfirm - Function called when the user confirms deletion.
+ * @param routeName - Name of the route to delete.
+ * @param routeType - Type of the route; defaults to "routing rule".
  *
- * @returns A JSX element representing the deletion confirmation dialog.
+ * @returns The confirmation dialog as a JSX element.
  */
 export function DeleteRouteAlert({
   open,
@@ -44,7 +42,7 @@ export function DeleteRouteAlert({
     <Credenza open={open} onOpenChange={onOpenChange}>
       <CredenzaContent>
         <CredenzaHeader>
-          <CredenzaTitle className="text-text">
+          <CredenzaTitle className="text-foreground">
             Remove {routeType}?
           </CredenzaTitle>
           <CredenzaDescription>

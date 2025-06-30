@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useRadarrStore } from '@/features/radarr/store/radarrStore'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import type {
   RadarrInstance,
   RadarrConnectionValues,
@@ -29,7 +29,7 @@ function checkNeedsConfiguration(instance: RadarrInstance) {
 /**
  * React hook for managing the connection lifecycle, configuration state, and UI status of a Radarr instance.
  *
- * Provides connection testing, initialization, and validation logic for a Radarr instance, including tracking UI states for connection and save operations. Exposes functions to test and reset the connection, determine if additional configuration is required, and integrates with Radarr store and UI notifications.
+ * Handles connection testing, initialization, and validation for a Radarr instance, including tracking UI states for connection and save operations. Provides functions to test and reset the connection, determine if additional configuration is required, and integrates with the Radarr store and UI notifications.
  *
  * @param instance - The Radarr instance to manage.
  * @param setShowInstanceCard - Optional callback to control the visibility of the instance card UI.
@@ -49,7 +49,6 @@ export function useRadarrConnection(
   const [needsConfiguration, setNeedsConfiguration] = useState(false)
   const isNavigationTest = useRef(false)
   const hasInitialized = useRef(false)
-  const { toast } = useToast()
 
   const {
     instances,
@@ -161,12 +160,7 @@ export function useRadarrConnection(
       form: UseFormReturn<RadarrInstanceSchema>,
     ) => {
       if (!values.name?.trim()) {
-        toast({
-          title: 'Name Required',
-          description:
-            'Please provide an instance name before testing connection',
-          variant: 'destructive',
-        })
+        toast.error('Please provide an instance name before testing connection')
         return
       }
 
@@ -269,24 +263,17 @@ export function useRadarrConnection(
         if (!instance.id || instance.id !== -1) {
           setTestStatus('success')
           setIsConnectionValid(true)
-          toast({
-            title: 'Connection Successful',
-            description: 'Successfully connected to Radarr',
-            variant: 'default',
-          })
+          toast.success('Successfully connected to Radarr')
         }
       } catch (error) {
         setTestStatus('error')
         setIsConnectionValid(false)
         form.setValue('_connectionTested', false, { shouldValidate: true })
-        toast({
-          title: 'Connection Failed',
-          description:
-            error instanceof Error
-              ? error.message
-              : 'Failed to connect to Radarr',
-          variant: 'destructive',
-        })
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : 'Failed to connect to Radarr',
+        )
       }
     },
     [
@@ -296,7 +283,6 @@ export function useRadarrConnection(
       updateInstance,
       fetchInstances,
       fetchInstanceData,
-      toast,
       setShowInstanceCard,
     ],
   )

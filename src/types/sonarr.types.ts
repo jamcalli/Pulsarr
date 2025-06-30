@@ -103,6 +103,7 @@ export interface SonarrEpisode {
 export interface SonarrSeries {
   title: string
   imdbId?: string
+  tmdbId?: number
   tvdbId?: number
   id: number
   ended?: boolean

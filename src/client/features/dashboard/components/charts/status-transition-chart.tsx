@@ -14,9 +14,9 @@ import { ChartContainer } from '@/components/ui/chart'
 import { useStatusTransitionData } from '@/features/dashboard/hooks/useChartData'
 
 /**
- * Renders a vertical bar chart visualizing the average, minimum, and maximum time in minutes for status transitions from "grabbed" to "notified" for movies and shows.
+ * Displays a vertical bar chart comparing the average, minimum, and maximum time in minutes for status transitions from "grabbed" to "notified" for movies and shows.
  *
- * Displays a loading indicator while fetching data. The chart includes error bars and reference lines for min/max values, and a legend distinguishing movies and shows by color and line style.
+ * Shows a loading indicator while data is being fetched. The chart includes error bars and reference lines for min/max values, and a legend to distinguish movies and shows by color and line style.
  */
 export function StatusTransitionsChart() {
   const { data: statusTransitions, isLoading } = useStatusTransitionData()
@@ -73,7 +73,7 @@ export function StatusTransitionsChart() {
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <span className="text-text text-muted-foreground">
+        <span className="text-foreground text-muted-foreground">
           Loading chart data...
         </span>
       </div>
@@ -124,21 +124,23 @@ export function StatusTransitionsChart() {
               }
               const data = props.payload[0].payload
               return (
-                <div className="bg-bg border border-border p-2 rounded shadow-md">
-                  <p className="font-medium text-text">{data.contentType}</p>
-                  <p className="text-text">
+                <div className="bg-background border border-border p-2 rounded-xs shadow-md">
+                  <p className="font-medium text-foreground">
+                    {data.contentType}
+                  </p>
+                  <p className="text-foreground">
                     <span className="font-medium">Avg: </span>
                     {data.avgMinutes} min
                   </p>
-                  <p className="text-text">
+                  <p className="text-foreground">
                     <span className="font-medium">Min: </span>
                     {data.minMinutes} min
                   </p>
-                  <p className="text-text">
+                  <p className="text-foreground">
                     <span className="font-medium">Max: </span>
                     {data.maxMinutes} min
                   </p>
-                  <p className="text-text">
+                  <p className="text-foreground">
                     <span className="font-medium">Count: </span>
                     {data.count} {data.count === 1 ? 'item' : 'items'}
                   </p>
@@ -261,14 +263,14 @@ export function StatusTransitionsChart() {
             className="h-3 w-3 rounded-full inline-block mr-2"
             style={{ backgroundColor: cssColors.movie }}
           />
-          <span className="text-sm text-text">Movies (avg)</span>
+          <span className="text-sm text-foreground">Movies (avg)</span>
         </div>
         <div className="flex items-center">
           <span
             className="h-3 w-3 rounded-full inline-block mr-2"
             style={{ backgroundColor: cssColors.show }}
           />
-          <span className="text-sm text-text">Shows (avg)</span>
+          <span className="text-sm text-foreground">Shows (avg)</span>
         </div>
 
         {/* Movies min/max with dashed line */}
@@ -284,7 +286,7 @@ export function StatusTransitionsChart() {
               }}
             />
           </span>
-          <span className="text-sm text-text">Movies (min/max)</span>
+          <span className="text-sm text-foreground">Movies (min/max)</span>
         </div>
 
         {/* Shows min/max with dashed line */}
@@ -300,7 +302,7 @@ export function StatusTransitionsChart() {
               }}
             />
           </span>
-          <span className="text-sm text-text">Shows (min/max)</span>
+          <span className="text-sm text-foreground">Shows (min/max)</span>
         </div>
       </div>
     </div>

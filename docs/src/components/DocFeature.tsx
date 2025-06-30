@@ -22,13 +22,13 @@ export default function DocFeature({
     <BrowserOnly
       fallback={
         <div className="border border-gray-300 grid w-full max-w-6xl grid-cols-1 rounded-lg shadow-lg">
-          <header className="border-b border-gray-300 relative flex items-center justify-center bg-gray-100 dark:bg-gray-800 h-[60px] w-full">
+          <header className="border-b border-gray-300 relative flex items-center justify-center bg-gray-100 dark:bg-gray-800 h-[60px] w-full docfeature-header">
             <h2 className="whitespace-nowrap font-bold text-2xl tracking-wider text-black dark:text-white">
               {title}
             </h2>
           </header>
           <main className="flex flex-col font-semibold p-6 bg-white dark:bg-gray-900 min-h-[200px]">
-            <div className="flex-1">{children}</div>
+            <div className="flex-1 docfeature-content">{children}</div>
           </main>
         </div>
       }
@@ -48,7 +48,7 @@ export default function DocFeature({
               {/* Simple header like other cards */}
               <header
                 className="border-b-border dark:border-b-darkBorder relative flex items-center justify-center bg-main
-                  rounded-t-base border-b-4 h-[60px] w-full"
+                  rounded-t-base border-b-4 h-[60px] w-full docfeature-header"
               >
                 <h2
                   className={`whitespace-nowrap font-bold text-[24px] tracking-[2px] ${titleClassName}`}
@@ -60,8 +60,8 @@ export default function DocFeature({
               </header>
 
               {/* Main content area */}
-              <main className="flex flex-col font-semibold p-6 bg-bg rounded-b-base flex-1">
-                <div className="flex-1">{children}</div>
+              <main className="flex flex-col font-semibold p-6 bg-background rounded-b-base flex-1">
+                <div className="flex-1 docfeature-content">{children}</div>
               </main>
             </div>
           )

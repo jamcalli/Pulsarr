@@ -7,6 +7,11 @@ interface StatsHeaderProps {
   onRefresh: () => Promise<void>
 }
 
+/**
+ * Displays the dashboard header with a title, watchlist status badge, and controls for refreshing and viewing the last updated time.
+ *
+ * @param onRefresh - Callback invoked when the refresh button is clicked.
+ */
 export function StatsHeader({ onRefresh }: StatsHeaderProps) {
   const { isLoading, lastRefreshed } = useDashboardStats()
 
@@ -15,7 +20,7 @@ export function StatsHeader({ onRefresh }: StatsHeaderProps) {
       {/* Dashboard Header */}
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center">
-          <h1 className="text-3xl font-bold text-text">Main Workflow</h1>
+          <h1 className="text-3xl font-bold text-foreground">Main Workflow</h1>
           <WatchlistStatusBadge />
         </div>
       </div>

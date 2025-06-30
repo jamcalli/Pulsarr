@@ -9,7 +9,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useConfigStore } from '@/stores/configStore'
 import { useWatchlistProgress } from '@/hooks/useProgress'
 import { usePlexWatchlist } from '@/features/plex/hooks/usePlexWatchlist'
@@ -19,8 +19,15 @@ interface SetupModalProps {
   onOpenChange: (open: boolean) => void
 }
 
+/**
+ * Displays a modal dialog for setting up Plex integration by entering a Plex token and syncing watchlists.
+ *
+ * Guides the user through entering their Plex token, validates the token, and manages the syncing of both personal and shared Plex watchlists. Progress is displayed for each sync step, and the modal prevents closure during submission. Success and error notifications are shown as appropriate.
+ *
+ * @param open - Whether the modal is currently open
+ * @param onOpenChange - Callback to update the modal's open state
+ */
 export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
-  const { toast } = useToast()
   const updateConfig = useConfigStore((state) => state.updateConfig)
   const fetchUserData = useConfigStore((state) => state.fetchUserData)
   const refreshRssFeeds = useConfigStore((state) => state.refreshRssFeeds)
@@ -56,10 +63,7 @@ export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
           }, 150)
         } catch (error) {
           console.error('Error updating final state:', error)
-          toast({
-            description: 'Error finalizing setup',
-            variant: 'destructive',
-          })
+          toast.error('Error finalizing setup')
         }
       }, 1000)
       return () => clearTimeout(timer)
@@ -69,7 +73,6 @@ export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
     othersWatchlistStatus,
     onOpenChange,
     fetchUserData,
-    toast,
     setSelfWatchlistStatus,
     setOthersWatchlistStatus,
   ])
@@ -155,19 +158,12 @@ export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
 
       setOthersWatchlistStatus('success')
 
-      toast({
-        description: 'Plex configuration has been successfully completed',
-        variant: 'default',
-      })
+      toast.success('Plex configuration has been successfully completed')
     } catch (error) {
       console.error('Setup error:', error)
-      toast({
-        description:
-          error instanceof Error
-            ? error.message
-            : 'An unexpected error occurred',
-        variant: 'destructive',
-      })
+      toast.error(
+        error instanceof Error ? error.message : 'An unexpected error occurred',
+      )
       setIsSubmitting(false)
       setCurrentStep('token')
       setSelfWatchlistStatus('idle')
@@ -199,7 +195,7 @@ export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
         }}
       >
         <DialogHeader>
-          <DialogTitle className="text-text">
+          <DialogTitle className="text-foreground">
             {!isSubmitting
               ? 'Enter Your Plex Token'
               : currentStep === 'syncing'
@@ -243,11 +239,11 @@ export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
                   othersWatchlistStatus === 'idle')) && (
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-text">
+                    <span className="text-sm text-foreground">
                       {selfWatchlistProgress.message ||
                         'Syncing Your Watchlist'}
                     </span>
-                    <span className="text-sm text-text">
+                    <span className="text-sm text-foreground">
                       {selfWatchlistProgress.progress}%
                     </span>
                   </div>
@@ -259,11 +255,11 @@ export default function SetupModal({ open, onOpenChange }: SetupModalProps) {
               {othersWatchlistStatus === 'loading' && (
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-text">
+                    <span className="text-sm text-foreground">
                       {othersWatchlistProgress.message ||
                         "Syncing Others' Watchlists"}
                     </span>
-                    <span className="text-sm text-text">
+                    <span className="text-sm text-foreground">
                       {othersWatchlistProgress.progress}%
                     </span>
                   </div>

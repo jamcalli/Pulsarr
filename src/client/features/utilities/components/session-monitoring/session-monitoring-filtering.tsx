@@ -33,7 +33,9 @@ export function SessionMonitoringFiltering({
 }: SessionMonitoringFilteringProps) {
   return (
     <div>
-      <h3 className="font-medium text-sm text-text mb-2">Filtering Options</h3>
+      <h3 className="font-medium text-sm text-foreground mb-2">
+        Filtering Options
+      </h3>
       <div className="space-y-4">
         <FormField
           control={form.control}
@@ -41,13 +43,13 @@ export function SessionMonitoringFiltering({
           render={({ field }) => (
             <FormItem>
               <div className="flex items-center">
-                <FormLabel className="text-text">
+                <FormLabel className="text-foreground">
                   Filter Users (Optional)
                 </FormLabel>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <HelpCircle className="h-4 w-4 ml-2 text-text cursor-help" />
+                      <HelpCircle className="h-4 w-4 ml-2 text-foreground cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent>
                       <p className="max-w-xs">

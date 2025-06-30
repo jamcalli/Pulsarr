@@ -10,9 +10,9 @@ import type { FastifyRequest } from 'fastify'
  */
 export function createTemporaryAdminSession(request: FastifyRequest): void {
   request.session.user = {
-    id: 1,
-    email: 'auth-bypass@local',
-    username: 'auth-bypass',
+    id: 1, // IMPORTANT: Must remain 1 - client-side code depends on this ID
+    email: 'admin@localhost',
+    username: 'Administrator',
     role: 'admin',
   }
 }

@@ -1,9 +1,9 @@
 import type { Knex } from 'knex'
 
 /**
- * Upgrades the `user_quotas` table to support separate quota records for movies and shows.
+ * Migrates the `user_quotas` table to support separate quota records for movies and shows.
  *
- * Creates a new schema with a `content_type` column, migrates existing data by duplicating each quota for both 'movie' and 'show', updates unique constraints and indexes, and replaces the old table with the new structure.
+ * Creates a new schema with a `content_type` column, duplicates each existing quota record for both 'movie' and 'show' types within a transaction, updates constraints and indexes, and replaces the original table with the new structure.
  */
 export async function up(knex: Knex): Promise<void> {
   // Step 1: Create a new temporary table with the correct structure
@@ -34,29 +34,31 @@ export async function up(knex: Knex): Promise<void> {
   // Step 2: Migrate existing data - duplicate each quota for both content types
   const existingQuotas = await knex('user_quotas').select('*')
 
-  for (const quota of existingQuotas) {
-    // Insert movie quota
-    await knex('user_quotas_new').insert({
-      user_id: quota.user_id,
-      content_type: 'movie',
-      quota_type: quota.quota_type,
-      quota_limit: quota.quota_limit,
-      bypass_approval: quota.bypass_approval,
-      created_at: quota.created_at,
-      updated_at: quota.updated_at,
-    })
+  await knex.transaction(async (trx) => {
+    for (const quota of existingQuotas) {
+      // Insert movie quota
+      await trx('user_quotas_new').insert({
+        user_id: quota.user_id,
+        content_type: 'movie',
+        quota_type: quota.quota_type,
+        quota_limit: quota.quota_limit,
+        bypass_approval: quota.bypass_approval,
+        created_at: quota.created_at,
+        updated_at: quota.updated_at,
+      })
 
-    // Insert show quota
-    await knex('user_quotas_new').insert({
-      user_id: quota.user_id,
-      content_type: 'show',
-      quota_type: quota.quota_type,
-      quota_limit: quota.quota_limit,
-      bypass_approval: quota.bypass_approval,
-      created_at: quota.created_at,
-      updated_at: quota.updated_at,
-    })
-  }
+      // Insert show quota
+      await trx('user_quotas_new').insert({
+        user_id: quota.user_id,
+        content_type: 'show',
+        quota_type: quota.quota_type,
+        quota_limit: quota.quota_limit,
+        bypass_approval: quota.bypass_approval,
+        created_at: quota.created_at,
+        updated_at: quota.updated_at,
+      })
+    }
+  })
 
   // Step 3: Replace old table with new table
   await knex.schema.dropTable('user_quotas')

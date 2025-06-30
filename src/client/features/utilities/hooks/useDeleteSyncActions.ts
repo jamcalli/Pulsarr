@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
 
 /**
@@ -32,7 +32,6 @@ import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
  * @returns An object containing state variables and action handlers for delete synchronization.
  */
 export function useDeleteSyncActions() {
-  const { toast } = useToast()
   const { runDryDeleteSync, runScheduleNow, toggleScheduleStatus } =
     useUtilitiesStore()
 
@@ -68,26 +67,21 @@ export function useDeleteSyncActions() {
         ])
 
         if (success) {
-          toast({
-            description: `Delete sync service ${enabled ? 'stopped' : 'started'} successfully`,
-            variant: 'default',
-          })
+          toast.success(
+            `Delete sync service ${enabled ? 'stopped' : 'started'} successfully`,
+          )
         } else {
           throw new Error('Failed to toggle status')
         }
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : 'Failed to toggle status'
-        toast({
-          title: 'Error',
-          description: errorMessage,
-          variant: 'destructive',
-        })
+        toast.error(errorMessage)
       } finally {
         setIsTogglingStatus(false)
       }
     },
-    [toast, toggleScheduleStatus],
+    [toggleScheduleStatus],
   )
 
   // Function to initiate toggle confirmation - only when enabling
@@ -124,25 +118,18 @@ export function useDeleteSyncActions() {
       ])
 
       if (success) {
-        toast({
-          description: 'Delete sync job started successfully',
-          variant: 'default',
-        })
+        toast.success('Delete sync job started successfully')
       } else {
         throw new Error('Failed to start job')
       }
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : 'Failed to run job'
-      toast({
-        title: 'Error',
-        description: errorMessage,
-        variant: 'destructive',
-      })
+      toast.error(errorMessage)
     } finally {
       setIsRunningJob(false)
     }
-  }, [toast, runScheduleNow])
+  }, [runScheduleNow])
 
   // Function to initiate run confirmation
   const initiateRunJob = useCallback(() => {
@@ -159,19 +146,12 @@ export function useDeleteSyncActions() {
       // Start dry run process. Showing progress in the modal
       await runDryDeleteSync()
 
-      toast({
-        description: 'Dry run completed successfully',
-        variant: 'default',
-      })
+      toast.success('Dry run completed successfully')
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : 'Failed to run dry run'
       setDryRunError(errorMessage)
-      toast({
-        title: 'Dry Run Failed',
-        description: errorMessage,
-        variant: 'destructive',
-      })
+      toast.error(errorMessage)
       // Close the modal on error after a short delay
       setTimeout(() => {
         setShowDryRunModal(false)
@@ -179,7 +159,7 @@ export function useDeleteSyncActions() {
     } finally {
       setIsDryRunLoading(false)
     }
-  }, [toast, runDryDeleteSync])
+  }, [runDryDeleteSync])
 
   return {
     isDryRunLoading,

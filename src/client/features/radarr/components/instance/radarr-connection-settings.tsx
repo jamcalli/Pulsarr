@@ -30,18 +30,15 @@ interface ConnectionSettingsProps {
 }
 
 /**
- * Displays a form section for configuring and testing Radarr connection settings.
+ * Renders a form section for entering and testing Radarr connection settings.
  *
- * Provides input fields for the Radarr URL and API key, along with a button to test the connection. Shows validation feedback and prompts users to test the connection when required or if a previous test failed.
+ * Includes input fields for the Radarr URL and API key, along with a button to test the connection. Displays validation messages and prompts users to test the connection when required or after a failed attempt. The test connection button and tooltip provide visual feedback based on the connection test status.
  *
- * @param form - The form instance managing the Radarr connection fields.
+ * @param form - The form instance managing Radarr connection fields.
  * @param testStatus - The current status of the connection test.
  * @param onTest - Callback to initiate the Radarr connection test.
  * @param hasValidUrlAndKey - Indicates if the URL and API key inputs are valid.
  * @param disabled - Optional flag to disable all inputs and actions.
- *
- * @remark
- * The connection test button's tooltip displays "Test connection required" if the connection has not been tested or if a test error is present, prompting users to complete the test before proceeding.
  */
 export default function ConnectionSettings({
   form,
@@ -77,8 +74,8 @@ export default function ConnectionSettings({
           control={form.control}
           name="baseUrl"
           render={({ field }) => (
-            <FormItem className="flex-grow">
-              <FormLabel className="text-text">Radarr URL</FormLabel>
+            <FormItem className="grow">
+              <FormLabel className="text-foreground">Radarr URL</FormLabel>
               <FormControl>
                 <Input
                   {...field}
@@ -100,10 +97,10 @@ export default function ConnectionSettings({
           control={form.control}
           name="apiKey"
           render={({ field }) => (
-            <FormItem className="flex-grow">
-              <FormLabel className="text-text">API Key</FormLabel>
+            <FormItem className="grow">
+              <FormLabel className="text-foreground">API Key</FormLabel>
               <div className="flex gap-2">
-                <div className="flex-grow">
+                <div className="grow">
                   <FormControl>
                     <Input
                       {...field}

@@ -18,17 +18,10 @@ import {
 } from '@/components/ui/form'
 import { MultiInput } from '@/components/ui/multi-input'
 import { cn } from '@/lib/utils'
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion'
 import { Separator } from '@/components/ui/separator'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { usePublicContentNotifications } from '@/features/utilities/hooks/usePublicContentNotifications'
 import { PublicContentClearAlert } from '@/features/utilities/components/public-content-notifications/public-content-clear-alert'
-import { useConfigStore } from '@/stores/configStore'
 
 // Type for string URL fields only (excludes boolean 'enabled' field)
 type WebhookFieldName =
@@ -80,11 +73,24 @@ interface WebhookFieldProps {
 }
 
 /**
- * Renders an input field for one or more webhook URLs with label, tooltip, help text, validation, and optional test and clear actions.
+ * Renders a form input for configuring one or more webhook URLs, with support for labels, tooltips, help text, validation, and optional test and clear actions.
  *
- * Displays a multi-input field allowing up to five URLs, with optional buttons to test the webhook connection and clear the field. Shows loading and result states for testing, and disables actions as needed.
+ * Allows entry of up to five URLs, displays contextual information, and provides buttons to test the webhook connection (if enabled) and clear the field. Disables actions and shows loading or result states as appropriate. For Discord webhook fields, enforces basic URL validation.
  *
- * @remark For Discord webhook fields, basic URL validation is enforced to match the expected Discord webhook URL pattern.
+ * @param name - The form field name for the webhook URLs.
+ * @param label - The label displayed above the input field.
+ * @param placeholder - Placeholder text for the input.
+ * @param tooltip - Tooltip text providing additional information about the field.
+ * @param helpText - Help text displayed below the input.
+ * @param isTestable - Whether to show a test button for the webhook connection.
+ * @param testHandler - Handler function to trigger the webhook test.
+ * @param isTestLoading - Indicates if the webhook test is in progress.
+ * @param testResult - Indicates if the last webhook test was successful.
+ * @param showTestError - Whether to display an error tooltip for the test.
+ * @param onClear - Handler function to clear the field value.
+ * @param value - The current value(s) of the webhook URLs.
+ * @param disabled - Whether the input and actions are disabled.
+ * @param form - The form control object for managing state and validation.
  */
 function WebhookField({
   name,
@@ -109,11 +115,11 @@ function WebhookField({
       render={({ field }) => (
         <FormItem>
           <div className="flex items-center gap-1">
-            <FormLabel className="text-text">{label}</FormLabel>
+            <FormLabel className="text-foreground">{label}</FormLabel>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <InfoIcon className="h-4 w-4 text-text cursor-help" />
+                  <InfoIcon className="h-4 w-4 text-foreground cursor-help" />
                 </TooltipTrigger>
                 <TooltipContent className="max-w-xs">{tooltip}</TooltipContent>
               </Tooltip>
@@ -172,7 +178,7 @@ function WebhookField({
               )}
             </div>
           </FormControl>
-          <p className="text-xs text-text opacity-70">{helpText}</p>
+          <p className="text-xs text-foreground opacity-70">{helpText}</p>
           <FormMessage />
         </FormItem>
       )}
@@ -181,27 +187,14 @@ function WebhookField({
 }
 
 /**
- * Provides an administrative form for configuring public content notifications, including enabling or disabling broadcasts to public Discord channels and Apprise endpoints.
+ * Renders an administrative form for configuring public content notifications, allowing management of Discord and Apprise webhook endpoints for broadcasting content availability.
  *
- * Administrators can manage general, movie-specific, and show-specific webhook URLs for both Discord and Apprise. Discord webhook fields support connection testing and require successful tests before changes can be saved. The form supports enabling/disabling the feature, clearing individual webhook fields with confirmation, and managing multiple endpoints per category.
+ * Administrators can enable or disable public notifications, add or remove webhook URLs for general, movie, and show categories, test Discord webhook connections, and clear individual fields with confirmation. The form enforces that all modified Discord webhook fields must pass connection tests before changes can be saved.
  *
- * @returns The UI for configuring public content notification endpoints and settings.
- *
- * @remark Saving changes is only permitted when all modified Discord webhook fields have passed connection tests.
+ * @returns The React element for the public content notifications configuration form.
  */
 export function PublicContentNotificationsForm() {
   const isMobile = useMediaQuery('(max-width: 768px)')
-  const openUtilitiesAccordion = useConfigStore(
-    (state) => state.openUtilitiesAccordion,
-  )
-  const [isOpen, setIsOpen] = React.useState(false)
-
-  // Handle navigation-triggered opening
-  React.useEffect(() => {
-    if (openUtilitiesAccordion === 'public-content-notifications') {
-      setIsOpen(true)
-    }
-  }, [openUtilitiesAccordion])
 
   const {
     form,
@@ -325,338 +318,325 @@ export function PublicContentNotificationsForm() {
 
   return (
     <>
-      <Accordion
-        type="single"
-        collapsible
-        className="w-full"
-        value={isOpen ? 'public-content-notifications' : undefined}
-        onValueChange={(value) =>
-          setIsOpen(value === 'public-content-notifications')
-        }
-      >
-        <AccordionItem
-          value="public-content-notifications"
-          className="border-2 border-border rounded-base overflow-hidden"
-          data-accordion-value="public-content-notifications"
-        >
-          <AccordionTrigger className="px-6 py-4 bg-main hover:bg-main hover:no-underline">
-            <div className="flex justify-between items-center w-full pr-2">
-              <div>
-                <h3 className="text-lg font-medium text-black text-left">
-                  Public Content Notifications
-                </h3>
-                <p className="text-sm text-black text-left">
-                  Broadcast ALL content availability to public Discord channels
-                  and shared Apprise endpoints
-                </p>
-              </div>
-              <Badge
-                variant="neutral"
-                className={cn(
-                  'px-2 py-0.5 h-7 text-sm ml-2 mr-2',
-                  isEnabled
-                    ? 'bg-green-500 hover:bg-green-500 text-white'
-                    : 'bg-red-500 hover:bg-red-500 text-white',
-                )}
-              >
-                {isEnabled ? 'Enabled' : 'Disabled'}
-              </Badge>
+      <div className="border-2 border-border rounded-base overflow-hidden">
+        <div className="px-6 py-4 bg-main">
+          <div className="flex justify-between items-center w-full pr-2">
+            <div>
+              <h3 className="text-lg font-medium text-black text-left">
+                Public Content Notifications
+              </h3>
+              <p className="text-sm text-black text-left">
+                Broadcast ALL content availability to public Discord channels
+                and shared Apprise endpoints
+              </p>
             </div>
-          </AccordionTrigger>
-          <AccordionContent className="p-0">
-            <div className="p-6 border-t border-border">
-              <div className="space-y-6">
-                <Form {...form}>
-                  <form
-                    onSubmit={form.handleSubmit(onSubmit)}
-                    className="space-y-6"
-                  >
-                    {/* Actions section */}
-                    <div>
-                      <h3 className="font-medium text-text mb-2">Actions</h3>
-                      <div className="flex flex-wrap items-center gap-4">
-                        <Button
-                          type="button"
-                          size="sm"
-                          onClick={toggleEnabled}
-                          disabled={isSubmitting || isToggling || isClearing}
-                          variant={isEnabled ? 'error' : 'noShadow'}
-                          className="h-8"
-                        >
-                          {isToggling ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Power className="h-4 w-4" />
-                          )}
-                          <span className={isMobile ? 'hidden' : 'ml-2'}>
-                            {isToggling
-                              ? isEnabled
-                                ? 'Disabling...'
-                                : 'Enabling...'
-                              : isEnabled
-                                ? 'Disable'
-                                : 'Enable'}
-                          </span>
-                        </Button>
-                      </div>
-                    </div>
-
-                    <Separator />
-
-                    {/* Information about public content notifications */}
-                    <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-md">
-                      <h3 className="font-medium text-text mb-2">
-                        Public Content Broadcasting
-                      </h3>
-                      <p className="text-sm text-text">
-                        {isEnabled ? (
-                          <>
-                            Public content notifications are enabled. ALL
-                            content ready notifications will be broadcast to the
-                            configured public endpoints in addition to
-                            individual user notifications. Movies and shows can
-                            be routed to specific endpoints, with fallback to
-                            general endpoints if no specific ones are
-                            configured. Discord notifications include @ mentions
-                            for users who have the content watchlisted and have
-                            configured Discord IDs.
-                          </>
+            <Badge
+              variant="neutral"
+              className={cn(
+                'px-2 py-0.5 h-7 text-sm ml-2 mr-2',
+                isEnabled
+                  ? 'bg-green-500 hover:bg-green-500 text-white'
+                  : 'bg-red-500 hover:bg-red-500 text-white',
+              )}
+            >
+              {isEnabled ? 'Enabled' : 'Disabled'}
+            </Badge>
+          </div>
+        </div>
+        <div className="p-0">
+          <div className="p-6 border-t border-border">
+            <div className="space-y-6">
+              <Form {...form}>
+                <form
+                  onSubmit={form.handleSubmit(onSubmit)}
+                  className="space-y-6"
+                >
+                  {/* Actions section */}
+                  <div>
+                    <h3 className="font-medium text-foreground mb-2">
+                      Actions
+                    </h3>
+                    <div className="flex flex-wrap items-center gap-4">
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={toggleEnabled}
+                        disabled={isSubmitting || isToggling || isClearing}
+                        variant={isEnabled ? 'error' : 'noShadow'}
+                        className="h-8"
+                      >
+                        {isToggling ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
-                          <>
-                            Content notifications will only be sent to
-                            individual users based on their personal
-                            notification settings. Enable this feature to
-                            broadcast ALL content availability to public Discord
-                            channels and shared Apprise endpoints for
-                            server-wide announcements.
-                          </>
+                          <Power className="h-4 w-4" />
                         )}
-                      </p>
+                        <span className={isMobile ? 'hidden' : 'ml-2'}>
+                          {isToggling
+                            ? isEnabled
+                              ? 'Disabling...'
+                              : 'Enabling...'
+                            : isEnabled
+                              ? 'Disable'
+                              : 'Enable'}
+                        </span>
+                      </Button>
                     </div>
+                  </div>
 
-                    <Separator />
+                  <Separator />
 
-                    {/* Configuration form - only show when enabled */}
-                    {isEnabled && (
-                      <div className="space-y-6">
-                        <div>
-                          <h3 className="font-medium text-text mb-4">
-                            Discord Webhook Configuration
+                  {/* Information about public content notifications */}
+                  <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-md">
+                    <h3 className="font-medium text-foreground mb-2">
+                      Public Content Broadcasting
+                    </h3>
+                    <p className="text-sm text-foreground">
+                      {isEnabled ? (
+                        <>
+                          Public content notifications are enabled. ALL content
+                          ready notifications will be broadcast to the
+                          configured public endpoints in addition to individual
+                          user notifications. Movies and shows can be routed to
+                          specific endpoints, with fallback to general endpoints
+                          if no specific ones are configured. Discord
+                          notifications include @ mentions for users who have
+                          the content watchlisted and have configured Discord
+                          IDs.
+                        </>
+                      ) : (
+                        <>
+                          Content notifications will only be sent to individual
+                          users based on their personal notification settings.
+                          Enable this feature to broadcast ALL content
+                          availability to public Discord channels and shared
+                          Apprise endpoints for server-wide announcements.
+                        </>
+                      )}
+                    </p>
+                  </div>
+
+                  <Separator />
+
+                  {/* Configuration form - only show when enabled */}
+                  {isEnabled && (
+                    <div className="space-y-6">
+                      <div>
+                        <h3 className="font-medium text-foreground mb-4">
+                          Discord Webhook Configuration
+                        </h3>
+                        <div className="space-y-4">
+                          <WebhookField
+                            name="discordWebhookUrls"
+                            label="General Discord Webhook URLs"
+                            placeholder="https://discord.com/api/webhooks/..."
+                            tooltip="Discord webhook URLs for general content notifications. Use the + button to add multiple channels."
+                            helpText="Discord webhook URLs for general content notifications"
+                            isTestable={true}
+                            testHandler={() =>
+                              handleTestDiscordWebhook('general')
+                            }
+                            isTestLoading={testStatus.isTestingGeneral}
+                            testResult={testStatus.testResults.general}
+                            showTestError={showGeneralTestError}
+                            onClear={() => {
+                              setClearingField('discordWebhookUrls')
+                              setShowClearAlert(true)
+                            }}
+                            value={generalUrls}
+                            disabled={
+                              testStatus.isTestingGeneral ||
+                              isSubmitting ||
+                              isToggling ||
+                              isClearing
+                            }
+                            form={form}
+                          />
+
+                          <WebhookField
+                            name="discordWebhookUrlsMovies"
+                            label="Movie-specific Discord Webhook URLs"
+                            placeholder="https://discord.com/api/webhooks/..."
+                            tooltip="Discord webhook URLs specifically for movie notifications. Use the + button to add multiple channels."
+                            helpText="Discord webhook URLs specifically for movie notifications"
+                            isTestable={true}
+                            testHandler={() =>
+                              handleTestDiscordWebhook('movies')
+                            }
+                            isTestLoading={testStatus.isTestingMovies}
+                            testResult={testStatus.testResults.movies}
+                            showTestError={showMoviesTestError}
+                            onClear={() => {
+                              setClearingField('discordWebhookUrlsMovies')
+                              setShowClearAlert(true)
+                            }}
+                            value={moviesUrls}
+                            disabled={
+                              testStatus.isTestingMovies ||
+                              isSubmitting ||
+                              isToggling ||
+                              isClearing
+                            }
+                            form={form}
+                          />
+
+                          <WebhookField
+                            name="discordWebhookUrlsShows"
+                            label="Show-specific Discord Webhook URLs"
+                            placeholder="https://discord.com/api/webhooks/..."
+                            tooltip="Discord webhook URLs specifically for TV show notifications. Use the + button to add multiple channels."
+                            helpText="Discord webhook URLs specifically for TV show notifications"
+                            isTestable={true}
+                            testHandler={() =>
+                              handleTestDiscordWebhook('shows')
+                            }
+                            isTestLoading={testStatus.isTestingShows}
+                            testResult={testStatus.testResults.shows}
+                            showTestError={showShowsTestError}
+                            onClear={() => {
+                              setClearingField('discordWebhookUrlsShows')
+                              setShowClearAlert(true)
+                            }}
+                            value={showsUrls}
+                            disabled={
+                              testStatus.isTestingShows ||
+                              isSubmitting ||
+                              isToggling ||
+                              isClearing
+                            }
+                            form={form}
+                          />
+                        </div>
+                      </div>
+
+                      <Separator />
+
+                      <div>
+                        <div className="flex items-center gap-2 mb-4">
+                          <h3 className="font-medium text-foreground">
+                            Apprise Configuration
                           </h3>
-                          <div className="space-y-4">
-                            <WebhookField
-                              name="discordWebhookUrls"
-                              label="General Discord Webhook URLs"
-                              placeholder="https://discord.com/api/webhooks/..."
-                              tooltip="Discord webhook URLs for general content notifications. Use the + button to add multiple channels."
-                              helpText="Discord webhook URLs for general content notifications"
-                              isTestable={true}
-                              testHandler={() =>
-                                handleTestDiscordWebhook('general')
-                              }
-                              isTestLoading={testStatus.isTestingGeneral}
-                              testResult={testStatus.testResults.general}
-                              showTestError={showGeneralTestError}
-                              onClear={() => {
-                                setClearingField('discordWebhookUrls')
-                                setShowClearAlert(true)
-                              }}
-                              value={generalUrls}
-                              disabled={
-                                testStatus.isTestingGeneral ||
-                                isSubmitting ||
-                                isToggling ||
-                                isClearing
-                              }
-                              form={form}
-                            />
-
-                            <WebhookField
-                              name="discordWebhookUrlsMovies"
-                              label="Movie-specific Discord Webhook URLs"
-                              placeholder="https://discord.com/api/webhooks/..."
-                              tooltip="Discord webhook URLs specifically for movie notifications. Use the + button to add multiple channels."
-                              helpText="Discord webhook URLs specifically for movie notifications"
-                              isTestable={true}
-                              testHandler={() =>
-                                handleTestDiscordWebhook('movies')
-                              }
-                              isTestLoading={testStatus.isTestingMovies}
-                              testResult={testStatus.testResults.movies}
-                              showTestError={showMoviesTestError}
-                              onClear={() => {
-                                setClearingField('discordWebhookUrlsMovies')
-                                setShowClearAlert(true)
-                              }}
-                              value={moviesUrls}
-                              disabled={
-                                testStatus.isTestingMovies ||
-                                isSubmitting ||
-                                isToggling ||
-                                isClearing
-                              }
-                              form={form}
-                            />
-
-                            <WebhookField
-                              name="discordWebhookUrlsShows"
-                              label="Show-specific Discord Webhook URLs"
-                              placeholder="https://discord.com/api/webhooks/..."
-                              tooltip="Discord webhook URLs specifically for TV show notifications. Use the + button to add multiple channels."
-                              helpText="Discord webhook URLs specifically for TV show notifications"
-                              isTestable={true}
-                              testHandler={() =>
-                                handleTestDiscordWebhook('shows')
-                              }
-                              isTestLoading={testStatus.isTestingShows}
-                              testResult={testStatus.testResults.shows}
-                              showTestError={showShowsTestError}
-                              onClear={() => {
-                                setClearingField('discordWebhookUrlsShows')
-                                setShowClearAlert(true)
-                              }}
-                              value={showsUrls}
-                              disabled={
-                                testStatus.isTestingShows ||
-                                isSubmitting ||
-                                isToggling ||
-                                isClearing
-                              }
-                              form={form}
-                            />
-                          </div>
+                          {!isAppriseEnabled && (
+                            <span className="text-xs text-red-500 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded-xs">
+                              Apprise is disabled
+                            </span>
+                          )}
                         </div>
-
-                        <Separator />
-
-                        <div>
-                          <div className="flex items-center gap-2 mb-4">
-                            <h3 className="font-medium text-text">
-                              Apprise Configuration
-                            </h3>
-                            {!isAppriseEnabled && (
-                              <span className="text-xs text-red-500 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded">
-                                Apprise is disabled
-                              </span>
-                            )}
-                          </div>
-                          <div className="space-y-4">
-                            <WebhookField
-                              name="appriseUrls"
-                              label="General Apprise URLs"
-                              placeholder="discord://webhook_id/token"
-                              tooltip="Apprise URLs for general content notifications. Use the + button to add multiple services."
-                              helpText="Apprise URLs for general content notifications"
-                              isTestable={false}
-                              onClear={() => {
-                                setClearingField('appriseUrls')
-                                setShowClearAlert(true)
-                              }}
-                              value={appriseGeneralUrls}
-                              disabled={
-                                isSubmitting ||
-                                isToggling ||
-                                isClearing ||
-                                !isAppriseEnabled
-                              }
-                              form={form}
-                            />
-
-                            <WebhookField
-                              name="appriseUrlsMovies"
-                              label="Movie-specific Apprise URLs"
-                              placeholder="discord://webhook_id/token"
-                              tooltip="Apprise URLs specifically for movie notifications. Use the + button to add multiple services."
-                              helpText="Apprise URLs specifically for movie notifications"
-                              isTestable={false}
-                              onClear={() => {
-                                setClearingField('appriseUrlsMovies')
-                                setShowClearAlert(true)
-                              }}
-                              value={appriseMoviesUrls}
-                              disabled={
-                                isSubmitting ||
-                                isToggling ||
-                                isClearing ||
-                                !isAppriseEnabled
-                              }
-                              form={form}
-                            />
-
-                            <WebhookField
-                              name="appriseUrlsShows"
-                              label="Show-specific Apprise URLs"
-                              placeholder="discord://webhook_id/token"
-                              tooltip="Apprise URLs specifically for TV show notifications. Use the + button to add multiple services."
-                              helpText="Apprise URLs specifically for TV show notifications"
-                              isTestable={false}
-                              onClear={() => {
-                                setClearingField('appriseUrlsShows')
-                                setShowClearAlert(true)
-                              }}
-                              value={appriseShowsUrls}
-                              disabled={
-                                isSubmitting ||
-                                isToggling ||
-                                isClearing ||
-                                !isAppriseEnabled
-                              }
-                              form={form}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Action buttons */}
-                        <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-border">
-                          {form.formState.isDirty &&
-                            !isSubmitting &&
-                            !isToggling &&
-                            !isClearing && (
-                              <Button
-                                type="button"
-                                variant="cancel"
-                                onClick={handleCancel}
-                                disabled={
-                                  isSubmitting || isToggling || isClearing
-                                }
-                                className="flex items-center gap-1"
-                              >
-                                <X className="h-4 w-4" />
-                                <span>Cancel</span>
-                              </Button>
-                            )}
-
-                          <Button
-                            type="submit"
+                        <div className="space-y-4">
+                          <WebhookField
+                            name="appriseUrls"
+                            label="General Apprise URLs"
+                            placeholder="discord://webhook_id/token"
+                            tooltip="Apprise URLs for general content notifications. Use the + button to add multiple services."
+                            helpText="Apprise URLs for general content notifications"
+                            isTestable={false}
+                            onClear={() => {
+                              setClearingField('appriseUrls')
+                              setShowClearAlert(true)
+                            }}
+                            value={appriseGeneralUrls}
                             disabled={
                               isSubmitting ||
                               isToggling ||
                               isClearing ||
-                              !form.formState.isDirty ||
-                              !canSubmit
+                              !isAppriseEnabled
                             }
-                            className="flex items-center gap-2"
-                            variant="blue"
-                          >
-                            {isSubmitting ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Save className="h-4 w-4" />
-                            )}
-                            <span>
-                              {isSubmitting ? 'Saving...' : 'Save Changes'}
-                            </span>
-                          </Button>
+                            form={form}
+                          />
+
+                          <WebhookField
+                            name="appriseUrlsMovies"
+                            label="Movie-specific Apprise URLs"
+                            placeholder="discord://webhook_id/token"
+                            tooltip="Apprise URLs specifically for movie notifications. Use the + button to add multiple services."
+                            helpText="Apprise URLs specifically for movie notifications"
+                            isTestable={false}
+                            onClear={() => {
+                              setClearingField('appriseUrlsMovies')
+                              setShowClearAlert(true)
+                            }}
+                            value={appriseMoviesUrls}
+                            disabled={
+                              isSubmitting ||
+                              isToggling ||
+                              isClearing ||
+                              !isAppriseEnabled
+                            }
+                            form={form}
+                          />
+
+                          <WebhookField
+                            name="appriseUrlsShows"
+                            label="Show-specific Apprise URLs"
+                            placeholder="discord://webhook_id/token"
+                            tooltip="Apprise URLs specifically for TV show notifications. Use the + button to add multiple services."
+                            helpText="Apprise URLs specifically for TV show notifications"
+                            isTestable={false}
+                            onClear={() => {
+                              setClearingField('appriseUrlsShows')
+                              setShowClearAlert(true)
+                            }}
+                            value={appriseShowsUrls}
+                            disabled={
+                              isSubmitting ||
+                              isToggling ||
+                              isClearing ||
+                              !isAppriseEnabled
+                            }
+                            form={form}
+                          />
                         </div>
                       </div>
-                    )}
-                  </form>
-                </Form>
-              </div>
+
+                      {/* Action buttons */}
+                      <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-border">
+                        {form.formState.isDirty &&
+                          !isSubmitting &&
+                          !isToggling &&
+                          !isClearing && (
+                            <Button
+                              type="button"
+                              variant="cancel"
+                              onClick={handleCancel}
+                              disabled={
+                                isSubmitting || isToggling || isClearing
+                              }
+                              className="flex items-center gap-1"
+                            >
+                              <X className="h-4 w-4" />
+                              <span>Cancel</span>
+                            </Button>
+                          )}
+
+                        <Button
+                          type="submit"
+                          disabled={
+                            isSubmitting ||
+                            isToggling ||
+                            isClearing ||
+                            !form.formState.isDirty ||
+                            !canSubmit
+                          }
+                          className="flex items-center gap-2"
+                          variant="blue"
+                        >
+                          {isSubmitting ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Save className="h-4 w-4" />
+                          )}
+                          <span>
+                            {isSubmitting ? 'Saving...' : 'Save Changes'}
+                          </span>
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </form>
+              </Form>
             </div>
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
+          </div>
+        </div>
+      </div>
 
       <PublicContentClearAlert
         open={showClearAlert}

@@ -2,8 +2,6 @@ import { Loader2, Power } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 
-import { useMediaQuery } from '@/hooks/use-media-query'
-
 import type {
   SessionMonitoringFormData,
   SessionMonitoringComponentProps,
@@ -16,16 +14,13 @@ interface SessionMonitoringActionsProps
 }
 
 /**
- * Renders an actions section for toggling session monitoring on or off within a form.
+ * Renders an action section with a button to enable or disable session monitoring in a form.
  *
- * Displays a button that enables or disables session monitoring and triggers an auto-save of the form state. The button's appearance and label adapt based on the current monitoring state and screen size.
+ * The button toggles the monitoring state, marks the form as dirty, and triggers an auto-save by calling the provided submission handler with the updated form values. The button's appearance and label reflect the current monitoring state and submission status.
  *
- * @param isEnabled - Indicates whether session monitoring is currently enabled.
- * @param isSubmitting - Indicates whether the form is currently being submitted.
- * @param onSubmit - Async handler called with the updated form values when toggling monitoring.
- *
- * @remark
- * The button label is hidden on mobile screens (viewport width ≤ 768px).
+ * @param isEnabled - Whether session monitoring is currently enabled.
+ * @param isSubmitting - Whether the form is currently being submitted.
+ * @param onSubmit - Async function invoked with updated form values when toggling monitoring.
  */
 export function SessionMonitoringActions({
   form,
@@ -33,11 +28,9 @@ export function SessionMonitoringActions({
   isSubmitting,
   onSubmit,
 }: SessionMonitoringActionsProps) {
-  const isMobile = useMediaQuery('(max-width: 768px)')
-
   return (
     <div>
-      <h3 className="font-medium text-text mb-2">Actions</h3>
+      <h3 className="font-medium text-foreground mb-2">Actions</h3>
       <div className="flex flex-wrap items-center gap-4">
         <Button
           type="button"
@@ -59,9 +52,7 @@ export function SessionMonitoringActions({
           ) : (
             <Power className="h-4 w-4" />
           )}
-          <span className={isMobile ? 'hidden' : 'ml-2'}>
-            {isEnabled ? 'Disable' : 'Enable'}
-          </span>
+          <span className="ml-2">{isEnabled ? 'Disable' : 'Enable'}</span>
         </Button>
       </div>
     </div>
