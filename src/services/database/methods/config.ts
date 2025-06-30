@@ -112,6 +112,27 @@ export async function getConfig(
           cleanupExpiredDays: 30,
         },
     newUserDefaultCanSync: Boolean(config.newUserDefaultCanSync ?? true),
+    newUserDefaultRequiresApproval: Boolean(
+      config.newUserDefaultRequiresApproval ?? false,
+    ),
+    newUserDefaultMovieQuotaEnabled: Boolean(
+      config.newUserDefaultMovieQuotaEnabled ?? false,
+    ),
+    newUserDefaultMovieQuotaType:
+      config.newUserDefaultMovieQuotaType || 'monthly',
+    newUserDefaultMovieQuotaLimit: config.newUserDefaultMovieQuotaLimit ?? 10,
+    newUserDefaultMovieBypassApproval: Boolean(
+      config.newUserDefaultMovieBypassApproval ?? false,
+    ),
+    newUserDefaultShowQuotaEnabled: Boolean(
+      config.newUserDefaultShowQuotaEnabled ?? false,
+    ),
+    newUserDefaultShowQuotaType:
+      config.newUserDefaultShowQuotaType || 'monthly',
+    newUserDefaultShowQuotaLimit: config.newUserDefaultShowQuotaLimit ?? 10,
+    newUserDefaultShowBypassApproval: Boolean(
+      config.newUserDefaultShowBypassApproval ?? false,
+    ),
     // Handle optional RSS fields
     selfRss: config.selfRss || undefined,
     friendsRss: config.friendsRss || undefined,
@@ -273,6 +294,22 @@ export async function createConfig(
         : null,
       // New User Defaults
       newUserDefaultCanSync: config.newUserDefaultCanSync ?? true,
+      newUserDefaultRequiresApproval:
+        config.newUserDefaultRequiresApproval ?? false,
+      newUserDefaultMovieQuotaEnabled:
+        config.newUserDefaultMovieQuotaEnabled ?? false,
+      newUserDefaultMovieQuotaType:
+        config.newUserDefaultMovieQuotaType || 'monthly',
+      newUserDefaultMovieQuotaLimit: config.newUserDefaultMovieQuotaLimit ?? 10,
+      newUserDefaultMovieBypassApproval:
+        config.newUserDefaultMovieBypassApproval ?? false,
+      newUserDefaultShowQuotaEnabled:
+        config.newUserDefaultShowQuotaEnabled ?? false,
+      newUserDefaultShowQuotaType:
+        config.newUserDefaultShowQuotaType || 'monthly',
+      newUserDefaultShowQuotaLimit: config.newUserDefaultShowQuotaLimit ?? 10,
+      newUserDefaultShowBypassApproval:
+        config.newUserDefaultShowBypassApproval ?? false,
       // Ready state
       _isReady: config._isReady || false,
       // Timestamps
@@ -405,6 +442,15 @@ const ALLOWED_COLUMNS = new Set([
 
   // New user defaults
   'newUserDefaultCanSync',
+  'newUserDefaultRequiresApproval',
+  'newUserDefaultMovieQuotaEnabled',
+  'newUserDefaultMovieQuotaType',
+  'newUserDefaultMovieQuotaLimit',
+  'newUserDefaultMovieBypassApproval',
+  'newUserDefaultShowQuotaEnabled',
+  'newUserDefaultShowQuotaType',
+  'newUserDefaultShowQuotaLimit',
+  'newUserDefaultShowBypassApproval',
 ])
 
 // JSON columns that need special serialization handling

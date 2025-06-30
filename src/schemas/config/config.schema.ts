@@ -145,6 +145,19 @@ export const ConfigSchema = z.object({
     .optional(),
   // New User Defaults
   newUserDefaultCanSync: z.boolean().optional(),
+  newUserDefaultRequiresApproval: z.boolean().optional(),
+  newUserDefaultMovieQuotaEnabled: z.boolean().optional(),
+  newUserDefaultMovieQuotaType: z
+    .enum(['daily', 'weekly_rolling', 'monthly'])
+    .optional(),
+  newUserDefaultMovieQuotaLimit: z.number().min(1).max(1000).optional(),
+  newUserDefaultMovieBypassApproval: z.boolean().optional(),
+  newUserDefaultShowQuotaEnabled: z.boolean().optional(),
+  newUserDefaultShowQuotaType: z
+    .enum(['daily', 'weekly_rolling', 'monthly'])
+    .optional(),
+  newUserDefaultShowQuotaLimit: z.number().min(1).max(1000).optional(),
+  newUserDefaultShowBypassApproval: z.boolean().optional(),
   // Quota System Configuration
   quotaSettings: z
     .object({

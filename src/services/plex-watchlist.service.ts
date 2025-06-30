@@ -37,6 +37,30 @@ export class PlexWatchlistService {
   }
 
   /**
+   * Creates default quota configurations for a newly created user using the quota service.
+   */
+  private async createDefaultQuotasForUser(userId: number): Promise<void> {
+    try {
+      const quotas = await this.fastify.quotaService.setupDefaultQuotas(userId)
+
+      const createdQuotas = []
+      if (quotas.movieQuota) createdQuotas.push('movie')
+      if (quotas.showQuota) createdQuotas.push('show')
+
+      if (createdQuotas.length > 0) {
+        this.log.debug(
+          `Created default quotas for user ${userId}: ${createdQuotas.join(', ')}`,
+        )
+      }
+    } catch (error) {
+      this.log.error(
+        `Failed to create default quotas for user ${userId}:`,
+        error,
+      )
+    }
+  }
+
+  /**
    * Creates a snapshot of existing GUIDs for a specific operation
    *
    * @returns Promise resolving to a Set of lowercase GUIDs
@@ -582,12 +606,16 @@ export class PlexWatchlistService {
               notify_tautulli: false,
               tautulli_notifier_id: null,
               can_sync: this.config.newUserDefaultCanSync ?? true,
-              requires_approval: false,
+              requires_approval:
+                this.config.newUserDefaultRequiresApproval ?? false,
               is_primary_token: false, // Initially false, will set to true next
             })
 
             // Now set as primary using the database service method
             await this.dbService.setPrimaryUser(user.id)
+
+            // Create default quotas for the new user
+            await this.createDefaultQuotasForUser(user.id)
 
             // Reload to get updated data
             user = await this.dbService.getUser(user.id)
@@ -603,9 +631,13 @@ export class PlexWatchlistService {
               notify_tautulli: false,
               tautulli_notifier_id: null,
               can_sync: this.config.newUserDefaultCanSync ?? true,
-              requires_approval: false,
+              requires_approval:
+                this.config.newUserDefaultRequiresApproval ?? false,
               is_primary_token: false,
             })
+
+            // Create default quotas for the new user
+            await this.createDefaultQuotasForUser(user.id)
           }
         }
 
@@ -643,8 +675,13 @@ export class PlexWatchlistService {
             notify_tautulli: false,
             tautulli_notifier_id: null,
             can_sync: this.config.newUserDefaultCanSync ?? true,
+            requires_approval:
+              this.config.newUserDefaultRequiresApproval ?? false,
             is_primary_token: false,
           })
+
+          // Create default quotas for the new user
+          await this.createDefaultQuotasForUser(user.id)
         }
 
         if (!user.id) throw new Error(`No ID for user ${friend.username}`)

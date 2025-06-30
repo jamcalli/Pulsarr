@@ -3,11 +3,14 @@ import { useConfigStore, type UserWithQuotaInfo } from '@/stores/configStore'
 import { usePlexUser } from '@/features/plex/hooks/usePlexUser'
 import { usePlexBulkUpdate } from '@/features/plex/hooks/usePlexBulkUpdate'
 import { useQuotaManagement } from '@/features/plex/hooks/useQuotaManagement'
+import { useBulkQuotaManagement } from '@/features/plex/hooks/useBulkQuotaManagement'
 import UserTable from '@/features/plex/components/user/user-table'
 import UserEditModal from '@/features/plex/components/user/user-edit-modal'
 import BulkEditModal from '@/features/plex/components/user/bulk-edit-modal'
 import { QuotaEditModal } from '@/features/plex/components/user/quota-edit-modal'
+import { BulkQuotaEditModal } from '@/features/plex/components/user/bulk-quota-edit-modal'
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
+import type { PlexUserTableRow } from '@/features/plex/store/types'
 
 /**
  * Renders the Plex Users administration page, providing interfaces for viewing, editing, and managing user watchlists, individual user settings, quotas, and bulk operations.
@@ -48,10 +51,22 @@ export default function PlexUsersPage() {
     setSaveStatus: setQuotaSaveStatus,
   } = useQuotaManagement()
 
+  const {
+    saveStatus: bulkQuotaSaveStatus,
+    performBulkOperation,
+    setSaveStatus: setBulkQuotaSaveStatus,
+  } = useBulkQuotaManagement()
+
   // Quota modal state
   const [isQuotaModalOpen, setIsQuotaModalOpen] = useState(false)
   const [selectedQuotaUser, setSelectedQuotaUser] =
     useState<UserWithQuotaInfo | null>(null)
+
+  // Bulk quota modal state
+  const [isBulkQuotaModalOpen, setIsBulkQuotaModalOpen] = useState(false)
+  const [selectedQuotaRows, setSelectedQuotaRows] = useState<
+    PlexUserTableRow[]
+  >([])
 
   const [isLoading, setIsLoading] = useState(true)
   const [minLoadingComplete, setMinLoadingComplete] = useState(false)
@@ -117,6 +132,38 @@ export default function PlexUsersPage() {
     })
   }
 
+  // Bulk quota handlers
+  const handleOpenBulkQuotaModal = (selectedRows: PlexUserTableRow[]) => {
+    setSelectedQuotaRows(selectedRows)
+    setIsBulkQuotaModalOpen(true)
+    setBulkQuotaSaveStatus({ type: 'idle' })
+  }
+
+  const handleBulkQuotaModalClose = (open: boolean) => {
+    if (!open) {
+      setIsBulkQuotaModalOpen(false)
+      setSelectedQuotaRows([])
+      setBulkQuotaSaveStatus({ type: 'idle' })
+    }
+  }
+
+  const handleBulkQuotaSave = async (formData: {
+    clearQuotas: boolean
+    setMovieQuota: boolean
+    movieQuotaType?: 'daily' | 'weekly_rolling' | 'monthly'
+    movieQuotaLimit?: number
+    movieBypassApproval: boolean
+    setShowQuota: boolean
+    showQuotaType?: 'daily' | 'weekly_rolling' | 'monthly'
+    showQuotaLimit?: number
+    showBypassApproval: boolean
+  }) => {
+    await performBulkOperation(selectedQuotaRows, formData, () => {
+      setIsBulkQuotaModalOpen(false)
+      setSelectedQuotaRows([])
+    })
+  }
+
   return (
     <div className="w600:p-[30px] w600:text-lg w400:p-5 w400:text-base p-10 leading-[1.7]">
       <div className="flex items-center justify-between">
@@ -135,6 +182,7 @@ export default function PlexUsersPage() {
               onEditQuota={handleEditQuota}
               isLoading={isLoading}
               onBulkEdit={handleOpenBulkEditModal}
+              onBulkEditQuotas={handleOpenBulkQuotaModal}
             />
             {/* Individual user edit modal */}
             <UserEditModal
@@ -159,6 +207,14 @@ export default function PlexUsersPage() {
               selectedRows={selectedRows}
               onSave={handleBulkUpdate}
               saveStatus={bulkUpdateStatus}
+            />
+            {/* Bulk quota edit modal */}
+            <BulkQuotaEditModal
+              isOpen={isBulkQuotaModalOpen}
+              onOpenChange={handleBulkQuotaModalClose}
+              selectedRows={selectedQuotaRows}
+              onSave={handleBulkQuotaSave}
+              saveStatus={bulkQuotaSaveStatus}
             />
           </>
         )}

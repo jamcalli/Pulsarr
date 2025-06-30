@@ -217,5 +217,37 @@ declare module '@services/database.service.js' {
      * @returns Promise resolving to the start date for weekly rolling quotas
      */
     getWeeklyRollingStartDate(): Promise<Date>
+
+    /**
+     * Bulk deletes quotas for multiple users efficiently using database transactions and batching
+     * @param userIds - Array of user IDs to delete quotas for
+     * @returns Promise resolving to object containing processed count and failed user IDs
+     */
+    bulkDeleteQuotas(
+      userIds: number[],
+    ): Promise<{ processedCount: number; failedIds: number[] }>
+
+    /**
+     * Bulk updates or creates quotas for multiple users efficiently using database transactions and batching
+     * @param userIds - Array of user IDs to update quotas for
+     * @param movieQuota - Movie quota configuration (enabled, quotaType, quotaLimit, bypassApproval)
+     * @param showQuota - Show quota configuration (enabled, quotaType, quotaLimit, bypassApproval)
+     * @returns Promise resolving to object containing processed count and failed user IDs
+     */
+    bulkUpdateQuotas(
+      userIds: number[],
+      movieQuota?: {
+        enabled: boolean
+        quotaType?: QuotaType
+        quotaLimit?: number
+        bypassApproval?: boolean
+      },
+      showQuota?: {
+        enabled: boolean
+        quotaType?: QuotaType
+        quotaLimit?: number
+        bypassApproval?: boolean
+      },
+    ): Promise<{ processedCount: number; failedIds: number[] }>
   }
 }
