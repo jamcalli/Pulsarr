@@ -17,7 +17,6 @@ import {
 } from '@/components/ui/form'
 import { MultiInput } from '@/components/ui/multi-input'
 import { Separator } from '@/components/ui/separator'
-import { useMediaQuery } from '@/hooks/use-media-query'
 import { usePublicContentNotifications } from '@/features/utilities/hooks/usePublicContentNotifications'
 import { PublicContentClearAlert } from '@/features/utilities/components/public-content-notifications/public-content-clear-alert'
 import { useConfigStore } from '@/stores/configStore'
@@ -180,7 +179,6 @@ function WebhookField({
  * Users can manage general, movie-specific, and show-specific webhook URLs for both Discord and Apprise. Discord webhook fields support connection testing and require successful tests before changes can be saved. The form supports enabling/disabling the feature, clearing individual webhook fields with confirmation, and managing multiple endpoints per category.
  */
 export default function PublicContentNotificationsPage() {
-  const isMobile = useMediaQuery('(max-width: 768px)')
   const { initialize, isInitialized } = useConfigStore()
 
   // Initialize store on mount
@@ -346,7 +344,7 @@ export default function PublicContentNotificationsPage() {
                   ) : (
                     <Power className="h-4 w-4" />
                   )}
-                  <span className={isMobile ? 'hidden' : 'ml-2'}>
+                  <span className="ml-2">
                     {isToggling
                       ? isEnabled
                         ? 'Disabling...'

@@ -159,7 +159,7 @@ export default function DeleteSyncPage() {
               ) : (
                 <Power className="h-4 w-4" />
               )}
-              <span className={isMobile ? 'hidden' : 'ml-2'}>
+              <span className="ml-2">
                 {deleteSyncJob?.enabled ? 'Disable' : 'Enable'}
               </span>
             </Button>
@@ -177,7 +177,7 @@ export default function DeleteSyncPage() {
               ) : (
                 <PlayCircle className="h-4 w-4" />
               )}
-              <span className={isMobile ? 'hidden' : 'ml-2'}>Run Now</span>
+              <span className="ml-2">Run Now</span>
             </Button>
 
             <Button
