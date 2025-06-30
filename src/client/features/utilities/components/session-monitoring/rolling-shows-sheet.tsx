@@ -100,9 +100,9 @@ interface RollingShowsSheetProps {
 }
 
 /**
- * Displays a responsive, interactive table of rolling monitored shows with sorting, filtering, pagination, and optional reset or delete actions.
+ * Renders a responsive, interactive table of rolling monitored shows with sorting, filtering, pagination, and optional reset or delete actions.
  *
- * Adapts between a sliding sheet (desktop) and a drawer (mobile) layout. Users can filter shows by title, sort and toggle column visibility, and paginate results. For master records, provides action buttons to reset or remove shows, each with confirmation dialogs and loading indicators. Handles loading and error states with contextual UI feedback.
+ * Adapts between a sliding sheet on desktop and a drawer on mobile devices. Users can filter shows by title, sort columns, toggle column visibility, and paginate results. For master records (shows without a specific user), provides action buttons to reset or remove shows, each with confirmation dialogs and loading indicators. Handles loading and error states with contextual feedback.
  *
  * @param isOpen - Whether the sheet or drawer is open.
  * @param onClose - Callback to close the sheet or drawer.
@@ -116,7 +116,8 @@ interface RollingShowsSheetProps {
  * @param actionLoading - Loading states for reset and delete actions.
  * @param activeActionId - ID of the show currently being acted upon.
  *
- * @remark Action buttons are only available for master records (shows without a specific user). Non-master records display a "Tracking only" label instead of action buttons.
+ * @remarks
+ * Action buttons are only available for master records (shows without a specific user). Non-master records display a "Tracking only" label instead of action buttons.
  */
 export function RollingShowsSheet({
   isOpen,

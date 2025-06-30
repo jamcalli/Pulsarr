@@ -2,12 +2,11 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 
 /**
- * Skeleton loading component for the Sonarr Content Router page.
+ * Displays a skeleton UI for the Sonarr Content Router page during loading.
  *
- * Shows placeholder content while the Sonarr Content Router page loads, including
- * route cards, form elements, and action buttons with proper responsive design.
+ * Renders placeholder elements that mimic the layout of the Sonarr Content Router page, including headers, route cards, form fields, and action buttons, to provide a visual loading state.
  *
- * @returns A JSX element showing skeleton placeholders for the Sonarr Content Router page.
+ * @returns A JSX element containing skeleton placeholders for the Sonarr Content Router page.
  */
 export function SonarrContentRouterSkeleton() {
   return (

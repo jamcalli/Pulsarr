@@ -19,12 +19,12 @@ interface PublicContentClearAlertProps {
 }
 
 /**
- * Displays a modal dialog prompting the user to confirm clearing public content.
+ * Renders a modal dialog that prompts the user to confirm clearing public content.
  *
- * Shows a customizable title and description, with "Cancel" and "Clear" actions. Selecting "Clear" triggers the provided confirmation handler and closes the modal.
+ * Displays a customizable title and description, with "Cancel" and "Clear" actions. Selecting "Clear" invokes the provided confirmation handler and closes the modal.
  *
- * @param title - The title text displayed in the modal header.
- * @param description - The description text displayed below the title.
+ * @param title - The text displayed as the modal's header.
+ * @param description - The text shown below the title to describe the action.
  */
 export function PublicContentClearAlert({
   open,

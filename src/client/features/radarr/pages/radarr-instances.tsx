@@ -6,12 +6,11 @@ import RadarrPageSkeleton from '@/features/radarr/components/instance/radarr-car
 import { API_KEY_PLACEHOLDER } from '@/features/radarr/store/constants'
 
 /**
- * Standalone Radarr Instances page for managing Radarr instances.
+ * Displays the Radarr Instances management page for configuring and maintaining Radarr connections.
  *
- * Provides a dedicated interface for configuring and managing Radarr instances,
- * including adding new instances, editing existing ones, and monitoring their status.
+ * Renders a dedicated interface for viewing, adding, and editing Radarr instances, handling loading and initialization states, and distinguishing between placeholder and real instances.
  *
- * @returns The Radarr Instances page component.
+ * @returns The React component for the Radarr Instances management page.
  */
 export default function RadarrInstancesPage() {
   const instances = useRadarrStore((state) => state.instances)

@@ -22,13 +22,11 @@ import PlexConnectionSkeleton from '@/features/plex/components/connection/connec
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 
 /**
- * Renders the Plex integration UI for managing connection credentials, watchlist statistics, and RSS feed generation.
+ * Displays the Plex integration section for managing connection credentials, watchlist statistics, and RSS feed generation.
  *
- * This component displays a form enabling users to update or remove their Plex token, refresh watchlist data, and generate RSS feeds.
- * It manages loading state with a minimum delay and conditionally renders a skeleton until initialization is complete.
- * Responsive design adjustments ensure proper layout on mobile devices.
+ * Provides a responsive UI for updating or removing the Plex token, generating RSS feeds, and refreshing watchlist data. Shows live progress and statistics for the user's and others' watchlists, and displays RSS feed URLs if available. Enforces a minimum loading delay before rendering the main interface.
  *
- * @returns The Plex connection section component.
+ * @returns The rendered Plex connection section component.
  */
 export default function PlexConnectionSection() {
   // Connection state

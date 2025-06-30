@@ -3,12 +3,11 @@ import { Separator } from '@/components/ui/separator'
 import { UtilitySectionHeader } from '@/components/ui/utility-section-header'
 
 /**
- * Skeleton loading component for the Approval Settings page.
+ * Displays a skeleton UI for the Approval Settings page while content is loading.
  *
- * Shows placeholder content while the Approval Settings page loads, including action buttons,
- * status display, schedule configuration, and form elements with proper responsive design.
+ * Renders placeholder elements that mimic the layout of the Approval Settings page, including sections for actions, status, scheduling, expiration settings, cleanup settings, and action buttons.
  *
- * @returns A JSX element showing skeleton placeholders for the Approval Settings page.
+ * @returns A JSX element containing skeleton placeholders for the Approval Settings page.
  */
 export function ApprovalSettingsPageSkeleton() {
   return (

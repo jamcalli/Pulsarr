@@ -18,6 +18,18 @@ interface DiscordClearAlertProps {
   description: string
 }
 
+/**
+ * Displays a confirmation alert dialog for clearing Discord-related data.
+ *
+ * Renders a modal with a customizable title and description, providing "Cancel" and "Clear" actions. The "Clear" button triggers the provided confirmation callback and then closes the alert.
+ *
+ * @param open - Whether the alert dialog is visible
+ * @param onOpenChange - Callback to update the open state of the alert
+ * @param onConfirm - Async function executed when the "Clear" action is confirmed
+ * @param title - Title text displayed in the alert
+ * @param description - Description text displayed in the alert
+ * @returns The rendered alert dialog component
+ */
 export function DiscordClearAlert({
   open,
   onOpenChange,
