@@ -30,7 +30,7 @@ export function SystemStatus({
   if (isLoading) {
     return (
       <div>
-        <h3 className="font-medium text-text mb-4">{title}</h3>
+        <h3 className="font-medium text-foreground mb-4">{title}</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {['status', 'last-run', 'next-run'].map((item) => (
             <div key={item} className="flex flex-col items-center text-center">
@@ -45,12 +45,12 @@ export function SystemStatus({
 
   return (
     <div>
-      <h3 className="font-medium text-text mb-4">{title}</h3>
+      <h3 className="font-medium text-foreground mb-4">{title}</h3>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Status */}
         <div className="flex flex-col items-center text-center">
-          <h4 className="font-medium text-sm text-text mb-1">Status</h4>
+          <h4 className="font-medium text-sm text-foreground mb-1">Status</h4>
           <Badge
             variant="neutral"
             className={`px-2 py-0.5 h-7 text-sm ${
@@ -75,8 +75,8 @@ export function SystemStatus({
 
         {/* Last Run */}
         <div className="flex flex-col items-center text-center">
-          <h4 className="font-medium text-sm text-text mb-1">Last Run</h4>
-          <div className="font-medium text-text flex items-center">
+          <h4 className="font-medium text-sm text-foreground mb-1">Last Run</h4>
+          <div className="font-medium text-foreground flex items-center">
             {formatLastRun(job?.last_run)}
             {job?.last_run?.status === 'failed' && (
               <span className="text-red-500 ml-2 flex items-center">
@@ -89,8 +89,8 @@ export function SystemStatus({
 
         {/* Next Run */}
         <div className="flex flex-col items-center text-center">
-          <h4 className="font-medium text-sm text-text mb-1">Next Run</h4>
-          <div className="font-medium text-text">
+          <h4 className="font-medium text-sm text-foreground mb-1">Next Run</h4>
+          <div className="font-medium text-foreground">
             {job?.enabled ? formatNextRun(job?.next_run) : 'Not scheduled'}
           </div>
         </div>

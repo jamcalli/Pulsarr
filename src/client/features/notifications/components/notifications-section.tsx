@@ -4,7 +4,6 @@ import { AppriseForm } from '@/features/notifications/components/apprise/apprise
 import { TautulliForm } from '@/features/notifications/components/tautulli/tautulli-form'
 import { GeneralSettingsForm } from '@/features/notifications/components/general/general-settings-form'
 import { Separator } from '@/components/ui/separator'
-import { useConfigStore } from '@/stores/configStore'
 import { useNavigate } from 'react-router-dom'
 
 interface NotificationsSectionProps {
@@ -21,29 +20,22 @@ interface NotificationsSectionProps {
 export function NotificationsSection({
   isInitialized,
 }: NotificationsSectionProps) {
-  const setOpenUtilitiesAccordion = useConfigStore(
-    (state) => state.setOpenUtilitiesAccordion,
-  )
   const navigate = useNavigate()
 
   return (
     <div className="grid gap-6">
       {/* Public Content Notifications Info Section */}
       <div>
-        <div className="text-sm text-text p-3 bg-bw rounded-base border-2 border-border">
+        <div className="text-sm text-foreground p-3 bg-secondary-background rounded-base border-2 border-border">
           <p>
             Want to broadcast ALL content availability to public Discord
             channels and shared Apprise endpoints? Configure{' '}
             <button
               type="button"
-              onClick={() => {
-                navigate('/utilities')
-                // Set accordion after navigation to ensure the page is loaded
-                setTimeout(() => {
-                  setOpenUtilitiesAccordion('public-content-notifications')
-                }, 100)
-              }}
-              className="underline font-medium"
+              onClick={() =>
+                navigate('/utilities/public-content-notifications')
+              }
+              className="underline font-medium hover:opacity-80 cursor-pointer"
             >
               Public Content Notifications
             </button>{' '}
@@ -53,8 +45,10 @@ export function NotificationsSection({
       </div>
 
       {/* Discord Notifications Section */}
-      <div>
-        <h2 className="text-2xl font-bold text-text">Discord Notifications</h2>
+      <div id="discord-notifications">
+        <h2 className="text-2xl font-bold text-foreground">
+          Discord Notifications
+        </h2>
 
         {/* Discord Webhook Section */}
         <div className="grid gap-4 mt-4">
@@ -66,9 +60,9 @@ export function NotificationsSection({
       <Separator className="my-4" />
 
       {/* Apprise Notifications Section */}
-      <div>
+      <div id="apprise-notifications">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-text">
+          <h2 className="text-2xl font-bold text-foreground">
             Apprise Notifications
           </h2>
         </div>
@@ -80,9 +74,9 @@ export function NotificationsSection({
       <Separator className="my-4" />
 
       {/* Tautulli Notifications Section */}
-      <div>
+      <div id="tautulli-notifications">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-text">
+          <h2 className="text-2xl font-bold text-foreground">
             Tautulli Notifications
           </h2>
         </div>
@@ -94,9 +88,9 @@ export function NotificationsSection({
       <Separator className="my-4" />
 
       {/* General Notifications Section */}
-      <div>
+      <div id="general-notifications">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-text">
+          <h2 className="text-2xl font-bold text-foreground">
             General Notification Settings
           </h2>
         </div>

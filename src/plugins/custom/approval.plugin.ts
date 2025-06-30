@@ -50,6 +50,7 @@ const approvalPlugin: FastifyPluginAsync = async (fastify) => {
 
         fastify.log.info(`Running scheduled job: ${jobName}`)
         await approvalService.performMaintenance()
+        fastify.log.info(`Completed scheduled job: ${jobName}`)
       },
     )
   })

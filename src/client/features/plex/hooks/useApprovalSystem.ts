@@ -5,7 +5,7 @@ import {
 } from '@/features/plex/hooks/useApprovalConfiguration'
 import { useApprovalScheduler } from '@/features/plex/hooks/useApprovalScheduler'
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 
 /**
  * Combines approval configuration form management and scheduling controls into a single hook.
@@ -15,7 +15,6 @@ import { useToast } from '@/hooks/use-toast'
  * @returns An object containing approval configuration form state and methods, along with scheduling controls and status.
  */
 export function useApprovalSystem() {
-  const { toast } = useToast()
   // Form management hook for business logic configuration
   const formHook = useApprovalConfiguration()
 
@@ -84,12 +83,9 @@ export function useApprovalSystem() {
           err,
         )
         // Show a non-blocking warning to the user about the schedule update failure
-        toast({
-          title: 'Schedule Update Failed',
-          description:
-            'Configuration saved successfully, but the schedule update failed. Please try updating the schedule separately.',
-          variant: 'default',
-        })
+        toast(
+          'Configuration saved successfully, but the schedule update failed. Please try updating the schedule separately.',
+        )
       }
     }
   }

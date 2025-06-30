@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/accordion'
 import { Separator } from '@/components/ui/separator'
 import { useConfigStore } from '@/stores/configStore'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useMediaQuery } from '@/hooks/use-media-query'
 
 const newUserDefaultsSchema = z.object({
@@ -32,7 +32,6 @@ type NewUserDefaultsFormData = z.infer<typeof newUserDefaultsSchema>
 export function NewUserDefaultsForm() {
   const isMobile = useMediaQuery('(max-width: 768px)')
   const { config, updateConfig } = useConfigStore()
-  const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const submittingStartTime = useRef<number | null>(null)
 
@@ -71,17 +70,10 @@ export function NewUserDefaultsForm() {
 
       await new Promise((resolve) => setTimeout(resolve, remaining))
 
-      toast({
-        title: 'Success',
-        description: 'New user default settings updated successfully',
-      })
+      toast.success('New user default settings updated successfully')
     } catch (error) {
       console.error('Failed to update new user defaults:', error)
-      toast({
-        title: 'Error',
-        description: 'Failed to update new user default settings',
-        variant: 'destructive',
-      })
+      toast.error('Failed to update new user default settings')
     } finally {
       setIsSubmitting(false)
       submittingStartTime.current = null
@@ -123,7 +115,7 @@ export function NewUserDefaultsForm() {
               <Form {...form}>
                 {/* Actions section */}
                 <div>
-                  <h3 className="font-medium text-text mb-2">Actions</h3>
+                  <h3 className="font-medium text-foreground mb-2">Actions</h3>
                   <div className="flex flex-wrap items-center gap-4">
                     <Button
                       type="button"
@@ -157,10 +149,10 @@ export function NewUserDefaultsForm() {
 
                 {/* Information about new user defaults */}
                 <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-md">
-                  <h3 className="font-medium text-text mb-2">
+                  <h3 className="font-medium text-foreground mb-2">
                     New User Sync Behavior
                   </h3>
-                  <p className="text-sm text-text">
+                  <p className="text-sm text-foreground">
                     {isEnabled ? (
                       <>
                         New Plex users will automatically have their watchlists

@@ -42,7 +42,7 @@ export function RollingShowActionAlert({
     <Credenza open={open} onOpenChange={onOpenChange}>
       <CredenzaContent>
         <CredenzaHeader>
-          <CredenzaTitle className="text-text">
+          <CredenzaTitle className="text-foreground">
             {isReset
               ? 'Reset Show to Original State?'
               : 'Remove from Rolling Monitoring?'}

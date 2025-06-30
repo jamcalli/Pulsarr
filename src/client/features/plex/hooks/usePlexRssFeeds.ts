@@ -1,12 +1,11 @@
 import { useState } from 'react'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useConfigStore } from '@/stores/configStore'
 import type { RssFeedsResponse } from '@root/schemas/plex/generate-rss-feeds.schema'
 
 export type RssStatus = 'idle' | 'loading' | 'success' | 'error'
 
 export function usePlexRssFeeds() {
-  const { toast } = useToast()
   const config = useConfigStore((state) => state.config)
   const refreshRssFeeds = useConfigStore((state) => state.refreshRssFeeds)
   const [rssStatus, setRssStatus] = useState<RssStatus>('idle')
@@ -39,19 +38,11 @@ export function usePlexRssFeeds() {
       await refreshRssFeeds()
 
       setRssStatus('success')
-      toast({
-        title: 'RSS Feeds Generated',
-        description: 'RSS feed URLs have been successfully generated',
-        variant: 'default',
-      })
+      toast.success('RSS feed URLs have been successfully generated')
     } catch (error) {
       console.error('RSS generation error:', error)
       setRssStatus('error')
-      toast({
-        title: 'Generation Failed',
-        description: 'Failed to generate RSS feed URLs',
-        variant: 'destructive',
-      })
+      toast.error('Failed to generate RSS feed URLs')
     }
   }
 

@@ -33,7 +33,7 @@ import InstanceCardSkeleton from '@/features/radarr/components/instance/radarr-c
 import DeleteInstanceAlert from '@/features/radarr/components/instance/delete-instance-alert'
 import { RadarrSyncModal } from '@/features/radarr/components/instance/radarr-sync-modal'
 import type { RadarrInstance } from '@/features/radarr/types/types'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import type { RadarrInstanceSchema } from '@/features/radarr/store/schemas'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import {
@@ -68,7 +68,6 @@ export function InstanceCard({
   instance,
   setShowInstanceCard,
 }: InstanceCardProps) {
-  const { toast } = useToast()
   const isMobile = useMediaQuery('(max-width: 768px)')
   const [showDeleteAlert, setShowDeleteAlert] = useState(false)
   const [showSyncModal, setShowSyncModal] = useState(false)
@@ -138,12 +137,7 @@ export function InstanceCard({
 
   const handleSubmit = async (data: RadarrInstanceSchema) => {
     if (!isConnectionValid) {
-      toast({
-        title: 'Connection Required',
-        description:
-          'Please test the connection before saving the configuration',
-        variant: 'destructive',
-      })
+      toast.error('Please test the connection before saving the configuration')
       return
     }
 
@@ -168,11 +162,7 @@ export function InstanceCard({
       await Promise.all([updateInstance(data), minimumLoadingTime])
 
       setSaveStatus('success')
-      toast({
-        title: 'Configuration Updated',
-        description: 'Radarr configuration has been updated successfully',
-        variant: 'default',
-      })
+      toast.success('Radarr configuration has been updated successfully')
       form.reset(data)
 
       if (hasChangedSyncedInstances && newSyncedInstances.length > 0) {
@@ -208,13 +198,11 @@ export function InstanceCard({
       }) // Debug log
       const isDefaultError = errorMessage.includes('default')
 
-      toast({
-        title: 'Update Failed',
-        description: isDefaultError
+      toast.error(
+        isDefaultError
           ? errorMessage // Use the actual error message from the API
           : 'Failed to update Radarr configuration',
-        variant: 'destructive',
-      })
+      )
 
       // If it was a default error, reset the form to restore the default status
       if (isDefaultError) {
@@ -304,7 +292,7 @@ export function InstanceCard({
             )}
           />
         )}
-        <Card ref={cardRef} className="bg-bg relative">
+        <Card ref={cardRef} className="bg-background relative">
           <EditableCardHeader
             title={form.watch('name')}
             isNew={instance.id === -1}
@@ -342,7 +330,7 @@ export function InstanceCard({
                       name="qualityProfile"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-text">
+                          <FormLabel className="text-foreground">
                             Quality Profile
                           </FormLabel>
                           <QualityProfileSelect
@@ -362,7 +350,7 @@ export function InstanceCard({
                       name="rootFolder"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-text">
+                          <FormLabel className="text-foreground">
                             Root Folder
                           </FormLabel>
                           <RootFolderSelect
@@ -386,13 +374,13 @@ export function InstanceCard({
                     render={({ field }) => (
                       <FormItem>
                         <div className="flex items-center space-x-2">
-                          <FormLabel className="text-text">
+                          <FormLabel className="text-foreground">
                             Search on Add
                           </FormLabel>
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                                <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p className="max-w-xs">
@@ -413,7 +401,7 @@ export function InstanceCard({
                               disabled={!isConnectionValid}
                             />
                           </FormControl>
-                          <span className="text-sm text-text text-muted-foreground">
+                          <span className="text-sm text-foreground text-muted-foreground">
                             Automatically search for movies when added
                           </span>
                         </div>
@@ -426,13 +414,13 @@ export function InstanceCard({
                     render={({ field }) => (
                       <FormItem>
                         <div className="flex items-center space-x-2">
-                          <FormLabel className="text-text">
+                          <FormLabel className="text-foreground">
                             Bypass Ignored
                           </FormLabel>
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                                <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p className="max-w-xs">
@@ -453,7 +441,7 @@ export function InstanceCard({
                               disabled={!isConnectionValid}
                             />
                           </FormControl>
-                          <span className="text-sm text-text text-muted-foreground">
+                          <span className="text-sm text-foreground text-muted-foreground">
                             Bypass ignore exclusions
                           </span>
                         </div>
@@ -466,13 +454,13 @@ export function InstanceCard({
                     render={({ field }) => (
                       <FormItem>
                         <div className="flex items-center space-x-2">
-                          <FormLabel className="text-text">
+                          <FormLabel className="text-foreground">
                             Instance Tags
                           </FormLabel>
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                                <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p className="max-w-xs">
@@ -493,7 +481,7 @@ export function InstanceCard({
                                   type="button"
                                   variant="noShadow"
                                   size="icon"
-                                  className="flex-shrink-0"
+                                  className="shrink-0"
                                   onClick={() => setShowTagCreationDialog(true)}
                                   disabled={!isConnectionValid}
                                 >
@@ -527,13 +515,13 @@ export function InstanceCard({
                     render={({ field }) => (
                       <FormItem>
                         <div className="flex items-center space-x-2">
-                          <FormLabel className="text-text">
+                          <FormLabel className="text-foreground">
                             Minimum Availability
                           </FormLabel>
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                                <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p className="max-w-xs">
@@ -577,13 +565,13 @@ export function InstanceCard({
                     render={({ field }) => (
                       <FormItem>
                         <div className="flex items-center space-x-2">
-                          <FormLabel className="text-text">
+                          <FormLabel className="text-foreground">
                             Sync With Instances
                           </FormLabel>
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                                <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p className="max-w-xs">
@@ -615,7 +603,7 @@ export function InstanceCard({
                                       type="button"
                                       variant="noShadow"
                                       size="icon"
-                                      className="flex-shrink-0"
+                                      className="shrink-0"
                                       onClick={() => {
                                         setIsManualSync(true)
                                         setShowSyncModal(true)
@@ -641,13 +629,13 @@ export function InstanceCard({
                     render={({ field }) => (
                       <FormItem>
                         <div className="flex items-center space-x-2">
-                          <FormLabel className="text-text">
+                          <FormLabel className="text-foreground">
                             Default Instance
                           </FormLabel>
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <HelpCircle className="h-4 w-4 text-text cursor-help" />
+                                <HelpCircle className="h-4 w-4 text-foreground cursor-help" />
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p className="max-w-xs">
@@ -667,7 +655,7 @@ export function InstanceCard({
                               disabled={!isConnectionValid}
                             />
                           </FormControl>
-                          <span className="text-sm text-text text-muted-foreground">
+                          <span className="text-sm text-foreground text-muted-foreground">
                             Set as default instance
                           </span>
                         </div>

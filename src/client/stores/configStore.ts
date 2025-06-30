@@ -2,16 +2,39 @@ import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
 import type { Config } from '@root/types/config.types'
 import type { UserWithCount } from '@root/schemas/users/users-list.schema'
-import type { UserQuotasResponseSchema } from '@root/schemas/quota/quota.schema'
-import type { z } from 'zod'
+import type {
+  UserQuotaResponse,
+  QuotaStatusResponse,
+} from '@root/schemas/quota/quota.schema'
+import type { MeResponse } from '@root/schemas/users/me.schema'
 
 export type UserWatchlistInfo = UserWithCount
 
-export type UserQuotas = z.infer<typeof UserQuotasResponseSchema>
+// Type for quota with both config and status data
+type QuotaWithStatus = UserQuotaResponse & {
+  currentUsage?: number
+  exceeded?: boolean
+  resetDate?: string | null
+}
+
+// Custom type for user quotas that includes status data
+export type UserQuotas = {
+  userId: number
+  movieQuota?: QuotaWithStatus
+  showQuota?: QuotaWithStatus
+}
 
 export type UserWithQuotaInfo = UserWatchlistInfo & {
   userQuotas: UserQuotas | null
 }
+
+export type CurrentUser = MeResponse['user']
+
+// Cache timestamps to prevent unnecessary refetches
+let lastUserDataFetch = 0
+let lastQuotaDataFetch = 0
+let lastCurrentUserFetch = 0
+const CACHE_DURATION = 5000 // 5 seconds
 
 interface UserListResponse {
   success: boolean
@@ -23,6 +46,8 @@ interface ConfigResponse {
   success: boolean
   config: Config
 }
+
+type CurrentUserResponse = MeResponse
 
 interface ConfigState {
   config: Config | null
@@ -37,7 +62,9 @@ interface ConfigState {
     userCount: number
     totalItems: number
   } | null
-  openUtilitiesAccordion: string | null
+  currentUser: CurrentUser | null
+  currentUserLoading: boolean
+  currentUserError: string | null
 
   initialize: (force?: boolean) => Promise<void>
   updateConfig: (updates: Partial<Config>) => Promise<void>
@@ -56,7 +83,8 @@ interface ConfigState {
     userId: number,
     updates: Partial<UserWatchlistInfo>,
   ) => Promise<void>
-  setOpenUtilitiesAccordion: (accordionId: string | null) => void
+  fetchCurrentUser: () => Promise<void>
+  refreshCurrentUser: () => Promise<void>
 }
 
 export const useConfigStore = create<ConfigState>()(
@@ -72,7 +100,9 @@ export const useConfigStore = create<ConfigState>()(
         userQuotasMap: new Map(),
         selfWatchlistCount: null,
         othersWatchlistInfo: null,
-        openUtilitiesAccordion: null,
+        currentUser: null,
+        currentUserLoading: false,
+        currentUserError: null,
 
         fetchConfig: async () => {
           try {
@@ -141,6 +171,13 @@ export const useConfigStore = create<ConfigState>()(
         },
 
         fetchUserData: async () => {
+          // Check if we've fetched recently
+          const now = Date.now()
+          if (now - lastUserDataFetch < CACHE_DURATION) {
+            return
+          }
+
+          lastUserDataFetch = now
           try {
             const response = await fetch('/v1/users/users/list/with-counts')
             const data: UserListResponse = await response.json()
@@ -177,97 +214,197 @@ export const useConfigStore = create<ConfigState>()(
         },
 
         fetchQuotaData: async () => {
+          const state = get()
+          if (!state.users || state.users.length === 0) {
+            return
+          }
+
+          // Check if we've fetched recently
+          const now = Date.now()
+          if (now - lastQuotaDataFetch < CACHE_DURATION) {
+            return
+          }
+
+          lastQuotaDataFetch = now
           try {
-            const state = get()
-            if (!state.users || state.users.length === 0) {
-              return
-            }
-
-            // Fetch quota data for each user individually to get both config and status
+            // Use bulk endpoints instead of individual calls
             const userQuotasMap = new Map<number, UserQuotas | null>()
+            const userIds = state.users.map((user) => user.id)
 
-            for (const user of state.users) {
+            // Fetch all quota data in parallel for maximum performance
+            const [quotaConfigsResult, movieStatusResult, showStatusResult] =
+              await Promise.allSettled([
+                // 1. Fetch all quota configurations
+                fetch('/v1/quota/users'),
+
+                // 2. Fetch all movie quota statuses
+                fetch('/v1/quota/users/status/bulk', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ userIds, contentType: 'movie' }),
+                }),
+
+                // 3. Fetch all show quota statuses
+                fetch('/v1/quota/users/status/bulk', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ userIds, contentType: 'show' }),
+                }),
+              ])
+
+            // Process quota configurations - group by user
+            const quotaConfigsByUser = new Map<
+              number,
+              {
+                movieQuota?: QuotaWithStatus
+                showQuota?: QuotaWithStatus
+              }
+            >()
+            if (
+              quotaConfigsResult.status === 'fulfilled' &&
+              quotaConfigsResult.value.ok
+            ) {
               try {
-                // Fetch user quota configuration
-                const quotaResponse = await fetch(`/v1/quota/users/${user.id}`)
-                if (quotaResponse.ok) {
-                  const quotaData = await quotaResponse.json()
-                  if (quotaData.success && quotaData.userQuotas) {
-                    const userQuotas = quotaData.userQuotas
+                const quotaConfigsData = await quotaConfigsResult.value.json()
+                if (quotaConfigsData.success && quotaConfigsData.userQuotas) {
+                  // Group flat configs by user and content type
+                  for (const config of quotaConfigsData.userQuotas) {
+                    if (!quotaConfigsByUser.has(config.userId)) {
+                      quotaConfigsByUser.set(config.userId, {})
+                    }
+                    const userConfigs = quotaConfigsByUser.get(config.userId)
+                    if (!userConfigs) continue
 
-                    // Fetch current usage status for movie quota
-                    if (userQuotas.movieQuota) {
-                      try {
-                        const movieStatusResponse = await fetch(
-                          `/v1/quota/users/${user.id}/status?contentType=movie`,
-                        )
-                        if (movieStatusResponse.ok) {
-                          const movieStatusData =
-                            await movieStatusResponse.json()
-                          if (
-                            movieStatusData.success &&
-                            movieStatusData.quotaStatus
-                          ) {
-                            userQuotas.movieQuota.currentUsage =
-                              movieStatusData.quotaStatus.currentUsage
-                            userQuotas.movieQuota.exceeded =
-                              movieStatusData.quotaStatus.exceeded
-                            userQuotas.movieQuota.resetDate =
-                              movieStatusData.quotaStatus.resetDate
-                          }
-                        }
-                      } catch (e) {
-                        console.warn(
-                          'Failed to fetch movie quota status for user',
-                          user.id,
-                          e,
-                        )
+                    if (config.contentType === 'movie') {
+                      userConfigs.movieQuota = {
+                        userId: config.userId,
+                        contentType: config.contentType,
+                        quotaType: config.quotaType,
+                        quotaLimit: config.quotaLimit,
+                        bypassApproval: config.bypassApproval,
+                      }
+                    } else if (config.contentType === 'show') {
+                      userConfigs.showQuota = {
+                        userId: config.userId,
+                        contentType: config.contentType,
+                        quotaType: config.quotaType,
+                        quotaLimit: config.quotaLimit,
+                        bypassApproval: config.bypassApproval,
                       }
                     }
-
-                    // Fetch current usage status for show quota
-                    if (userQuotas.showQuota) {
-                      try {
-                        const showStatusResponse = await fetch(
-                          `/v1/quota/users/${user.id}/status?contentType=show`,
-                        )
-                        if (showStatusResponse.ok) {
-                          const showStatusData = await showStatusResponse.json()
-                          if (
-                            showStatusData.success &&
-                            showStatusData.quotaStatus
-                          ) {
-                            userQuotas.showQuota.currentUsage =
-                              showStatusData.quotaStatus.currentUsage
-                            userQuotas.showQuota.exceeded =
-                              showStatusData.quotaStatus.exceeded
-                            userQuotas.showQuota.resetDate =
-                              showStatusData.quotaStatus.resetDate
-                          }
-                        }
-                      } catch (e) {
-                        console.warn(
-                          'Failed to fetch show quota status for user',
-                          user.id,
-                          e,
-                        )
-                      }
-                    }
-
-                    userQuotasMap.set(user.id, userQuotas)
-                  } else {
-                    userQuotasMap.set(user.id, null)
                   }
-                } else {
-                  userQuotasMap.set(user.id, null)
                 }
               } catch (e) {
-                console.warn('Failed to fetch quota data for user', user.id, e)
+                console.warn('Failed to parse quota configurations:', e)
+              }
+            }
+
+            // Process movie quota statuses
+            let movieStatuses: Record<number, QuotaStatusResponse> = {}
+            if (
+              movieStatusResult.status === 'fulfilled' &&
+              movieStatusResult.value.ok
+            ) {
+              try {
+                const movieStatusData = await movieStatusResult.value.json()
+                if (movieStatusData.success && movieStatusData.quotaStatuses) {
+                  // Convert array response to object mapping userId to quotaStatus
+                  movieStatuses = movieStatusData.quotaStatuses.reduce(
+                    (
+                      acc: Record<number, QuotaStatusResponse>,
+                      item: {
+                        userId: number
+                        quotaStatus: QuotaStatusResponse | null
+                      },
+                    ) => {
+                      if (item.quotaStatus) {
+                        acc[item.userId] = item.quotaStatus
+                      }
+                      return acc
+                    },
+                    {},
+                  )
+                }
+              } catch (e) {
+                console.warn('Failed to parse movie quota statuses:', e)
+              }
+            } else if (movieStatusResult.status === 'rejected') {
+              console.warn(
+                'Failed to fetch bulk movie quota statuses:',
+                movieStatusResult.reason,
+              )
+            }
+
+            // Process show quota statuses
+            let showStatuses: Record<number, QuotaStatusResponse> = {}
+            if (
+              showStatusResult.status === 'fulfilled' &&
+              showStatusResult.value.ok
+            ) {
+              try {
+                const showStatusData = await showStatusResult.value.json()
+                if (showStatusData.success && showStatusData.quotaStatuses) {
+                  // Convert array response to object mapping userId to quotaStatus
+                  showStatuses = showStatusData.quotaStatuses.reduce(
+                    (
+                      acc: Record<number, QuotaStatusResponse>,
+                      item: {
+                        userId: number
+                        quotaStatus: QuotaStatusResponse | null
+                      },
+                    ) => {
+                      if (item.quotaStatus) {
+                        acc[item.userId] = item.quotaStatus
+                      }
+                      return acc
+                    },
+                    {},
+                  )
+                }
+              } catch (e) {
+                console.warn('Failed to parse show quota statuses:', e)
+              }
+            } else if (showStatusResult.status === 'rejected') {
+              console.warn(
+                'Failed to fetch bulk show quota statuses:',
+                showStatusResult.reason,
+              )
+            }
+
+            // 4. Combine configurations with statuses
+            for (const user of state.users) {
+              const userQuotaConfig = quotaConfigsByUser.get(user.id)
+
+              if (userQuotaConfig) {
+                const userQuotas: UserQuotas = {
+                  userId: user.id,
+                  movieQuota: userQuotaConfig.movieQuota,
+                  showQuota: userQuotaConfig.showQuota,
+                }
+
+                // Merge movie quota status into movieQuota object (like develop branch)
+                if (userQuotas.movieQuota && movieStatuses[user.id]) {
+                  const movieStatus = movieStatuses[user.id]
+                  userQuotas.movieQuota.currentUsage = movieStatus.currentUsage
+                  userQuotas.movieQuota.exceeded = movieStatus.exceeded
+                  userQuotas.movieQuota.resetDate = movieStatus.resetDate
+                }
+
+                // Merge show quota status into showQuota object (like develop branch)
+                if (userQuotas.showQuota && showStatuses[user.id]) {
+                  const showStatus = showStatuses[user.id]
+                  userQuotas.showQuota.currentUsage = showStatus.currentUsage
+                  userQuotas.showQuota.exceeded = showStatus.exceeded
+                  userQuotas.showQuota.resetDate = showStatus.resetDate
+                }
+
+                userQuotasMap.set(user.id, userQuotas)
+              } else {
                 userQuotasMap.set(user.id, null)
               }
             }
 
-            // Create users with quota data
+            // Create users with quota data (status is now merged into quota objects)
             const usersWithQuota: UserWithQuotaInfo[] = state.users.map(
               (user) => ({
                 ...user,
@@ -349,6 +486,58 @@ export const useConfigStore = create<ConfigState>()(
             : null
         },
 
+        fetchCurrentUser: async () => {
+          // Check if we've fetched recently
+          const now = Date.now()
+          if (now - lastCurrentUserFetch < CACHE_DURATION) {
+            return
+          }
+
+          lastCurrentUserFetch = now
+          set({ currentUserLoading: true, currentUserError: null })
+
+          try {
+            const response = await fetch('/v1/users/me', {
+              credentials: 'include',
+            })
+
+            if (!response.ok) {
+              if (response.status === 401) {
+                throw new Error('Authentication required')
+              }
+              throw new Error('Failed to fetch current user')
+            }
+
+            const data: CurrentUserResponse = await response.json()
+
+            if (data.success) {
+              set({
+                currentUser: data.user,
+                currentUserLoading: false,
+                currentUserError: null,
+              })
+            } else {
+              throw new Error(data.message || 'Failed to fetch current user')
+            }
+          } catch (err) {
+            const errorMessage =
+              err instanceof Error
+                ? err.message
+                : 'Failed to fetch current user'
+            set({
+              currentUser: null,
+              currentUserLoading: false,
+              currentUserError: errorMessage,
+            })
+            console.error('Current user fetch error:', err)
+          }
+        },
+
+        refreshCurrentUser: async () => {
+          lastCurrentUserFetch = 0 // Reset cache
+          await get().fetchCurrentUser()
+        },
+
         initialize: async (force = false) => {
           const state = get()
           if (!state.isInitialized || force) {
@@ -370,16 +559,10 @@ export const useConfigStore = create<ConfigState>()(
             }
           }
         },
-
-        setOpenUtilitiesAccordion: (accordionId: string | null) => {
-          set({ openUtilitiesAccordion: accordionId })
-        },
       }),
       {
         name: 'config-storage',
-        partialize: (state) => ({
-          openUtilitiesAccordion: state.openUtilitiesAccordion,
-        }),
+        partialize: () => ({}),
       },
     ),
   ),

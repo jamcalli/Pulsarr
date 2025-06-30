@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import {
   Credenza,
   CredenzaContent,
@@ -27,7 +27,6 @@ interface LogoutAlertProps {
  */
 export function LogoutAlert({ open, onOpenChange }: LogoutAlertProps) {
   const navigate = useNavigate();
-  const { toast } = useToast();
 
   const handleLogout = async () => {
     try {
@@ -45,28 +44,18 @@ export function LogoutAlert({ open, onOpenChange }: LogoutAlertProps) {
         : await response.json().catch(() => ({ success: false, message: response.statusText }));
       
       if (response.ok && data.success) {
-        toast({
-          description: data.message || 'Successfully logged out',
-          variant: 'default',
-        });
+        toast.success(data.message || 'Successfully logged out');
         navigate('/login');
       } else {
         // Close the logout dialog
         onOpenChange(false);
         
         // Show the error message from the server
-        toast({
-          title: "Logout unavailable",
-          description: data.message || 'Failed to log out. Please try again.',
-          variant: 'destructive',
-        });
+        toast.error(data.message || 'Failed to log out. Please try again.');
       }
     } catch (error) {
       console.error('Logout error:', error);
-      toast({
-        description: 'An unexpected error occurred while logging out.',
-        variant: 'destructive',
-      });
+      toast.error('An unexpected error occurred while logging out.');
     }
   };
 
@@ -74,7 +63,7 @@ export function LogoutAlert({ open, onOpenChange }: LogoutAlertProps) {
     <Credenza open={open} onOpenChange={onOpenChange}>
       <CredenzaContent>
         <CredenzaHeader>
-        <CredenzaTitle className="text-text">Are you sure you want to log out?</CredenzaTitle>
+        <CredenzaTitle className="text-foreground">Are you sure you want to log out?</CredenzaTitle>
           <CredenzaDescription>
             You will be redirected to the login screen. Your current session will be lost.
           </CredenzaDescription>

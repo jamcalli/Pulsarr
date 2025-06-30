@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import {
   loginFormSchema,
   type LoginFormSchema,
@@ -17,7 +17,6 @@ import {
  */
 export function useLoginForm() {
   const navigate = useNavigate()
-  const { toast } = useToast()
   const [status, setStatus] = useState<'idle' | 'loading' | 'success'>('idle')
   const [backendError, setBackendError] = useState<string | null>(null)
   const emailInputRef = useRef<HTMLInputElement>(null)
@@ -55,10 +54,7 @@ export function useLoginForm() {
             }))
         if (response.ok) {
           setStatus('success')
-          toast({
-            description: `Welcome back, ${responseData.username}!`,
-            variant: 'default',
-          })
+          toast.success(`Welcome back, ${responseData.username}!`)
           setTimeout(() => {
             navigate(responseData.redirectTo || '/dashboard')
           }, 1000)
@@ -74,7 +70,7 @@ export function useLoginForm() {
         setBackendError('An unexpected error occurred. Please try again.')
       }
     },
-    [navigate, toast],
+    [navigate],
   )
 
   return {

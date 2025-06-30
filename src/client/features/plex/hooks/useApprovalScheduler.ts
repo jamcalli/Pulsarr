@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { formatDistanceToNow, parseISO } from 'date-fns'
 import { useUtilitiesStore } from '@/features/utilities/stores/utilitiesStore'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import type { JobStatus } from '@root/schemas/scheduler/scheduler.schema'
 
 /**
@@ -20,7 +20,6 @@ export function useApprovalScheduler() {
     runScheduleNow,
     toggleScheduleStatus,
   } = useUtilitiesStore()
-  const { toast } = useToast()
 
   // Schedule time states for quota (daily scheduling)
   const [quotaScheduleTime, setQuotaScheduleTime] = useState<Date | undefined>(
@@ -205,29 +204,22 @@ export function useApprovalScheduler() {
         // Refresh schedules
         await fetchSchedules()
 
-        toast({
-          title: 'Schedule Updated',
-          description: successMessage,
-          variant: 'default',
-        })
+        toast.success(successMessage)
 
         return true
       } catch (err) {
         console.error(`Error updating ${scheduleName} schedule:`, err)
-        toast({
-          title: 'Update Failed',
-          description:
-            err instanceof Error
-              ? err.message
-              : `Failed to update ${scheduleName} schedule`,
-          variant: 'destructive',
-        })
+        toast.error(
+          err instanceof Error
+            ? err.message
+            : `Failed to update ${scheduleName} schedule`,
+        )
         return false
       } finally {
         setIsSavingSchedule(false)
       }
     },
-    [fetchSchedules, toast],
+    [fetchSchedules],
   )
 
   // Schedule update function for approval maintenance (interval-based)
@@ -306,23 +298,17 @@ export function useApprovalScheduler() {
           enabled,
         )
         if (success) {
-          toast({
-            title: `Approval Schedule ${enabled ? 'Enabled' : 'Disabled'}`,
-            description: `Approval maintenance schedule has been ${enabled ? 'enabled' : 'disabled'}.`,
-            variant: 'default',
-          })
+          toast.success(
+            `Approval maintenance schedule has been ${enabled ? 'enabled' : 'disabled'}.`,
+          )
         }
       } catch (err) {
-        toast({
-          title: 'Toggle Failed',
-          description: 'Failed to toggle approval schedule status',
-          variant: 'destructive',
-        })
+        toast.error('Failed to toggle approval schedule status')
       } finally {
         setIsTogglingApproval(false)
       }
     },
-    [toggleScheduleStatus, toast],
+    [toggleScheduleStatus],
   )
 
   const toggleQuotaSchedule = useCallback(
@@ -331,23 +317,17 @@ export function useApprovalScheduler() {
       try {
         const success = await toggleScheduleStatus('quota-maintenance', enabled)
         if (success) {
-          toast({
-            title: `Quota Schedule ${enabled ? 'Enabled' : 'Disabled'}`,
-            description: `Quota maintenance schedule has been ${enabled ? 'enabled' : 'disabled'}.`,
-            variant: 'default',
-          })
+          toast.success(
+            `Quota maintenance schedule has been ${enabled ? 'enabled' : 'disabled'}.`,
+          )
         }
       } catch (err) {
-        toast({
-          title: 'Toggle Failed',
-          description: 'Failed to toggle quota schedule status',
-          variant: 'destructive',
-        })
+        toast.error('Failed to toggle quota schedule status')
       } finally {
         setIsTogglingQuota(false)
       }
     },
-    [toggleScheduleStatus, toast],
+    [toggleScheduleStatus],
   )
 
   // Run schedules now
@@ -356,44 +336,28 @@ export function useApprovalScheduler() {
     try {
       const success = await runScheduleNow('approval-maintenance')
       if (success) {
-        toast({
-          title: 'Approval Maintenance Started',
-          description: 'Approval maintenance job has been started.',
-          variant: 'default',
-        })
+        toast.success('Approval maintenance job has been started.')
       }
     } catch (err) {
-      toast({
-        title: 'Run Failed',
-        description: 'Failed to run approval maintenance job',
-        variant: 'destructive',
-      })
+      toast.error('Failed to run approval maintenance job')
     } finally {
       setIsRunningApproval(false)
     }
-  }, [runScheduleNow, toast])
+  }, [runScheduleNow])
 
   const runQuotaNow = useCallback(async () => {
     setIsRunningQuota(true)
     try {
       const success = await runScheduleNow('quota-maintenance')
       if (success) {
-        toast({
-          title: 'Quota Maintenance Started',
-          description: 'Quota maintenance job has been started.',
-          variant: 'default',
-        })
+        toast.success('Quota maintenance job has been started.')
       }
     } catch (err) {
-      toast({
-        title: 'Run Failed',
-        description: 'Failed to run quota maintenance job',
-        variant: 'destructive',
-      })
+      toast.error('Failed to run quota maintenance job')
     } finally {
       setIsRunningQuota(false)
     }
-  }, [runScheduleNow, toast])
+  }, [runScheduleNow])
 
   // Save schedule functions
   const saveApprovalSchedule = useCallback(async () => {

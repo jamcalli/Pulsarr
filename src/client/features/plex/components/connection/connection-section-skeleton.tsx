@@ -7,14 +7,14 @@ export function PlexConnectionSkeleton() {
   return (
     <div>
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-text">Plex Integration</h2>
+        <h2 className="text-2xl font-bold text-foreground">Plex Integration</h2>
       </div>
       <div className="grid gap-4 mt-4">
         {/* First row (Token input and buttons) */}
         <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} gap-4`}>
           <div className="flex-1">
             <div className="flex items-end space-x-2">
-              <div className="flex-grow space-y-2">
+              <div className="grow space-y-2">
                 <Skeleton className="h-4 w-32" />
                 <Skeleton className="h-10 w-full" />
               </div>

@@ -195,7 +195,7 @@ export function MultiInput({
       
       {/* Help text */}
       {fields.length > 1 && (
-        <p className="text-xs text-text opacity-70">
+        <p className="text-xs text-foreground opacity-70">
           Empty fields will be automatically removed when saving.
         </p>
       )}

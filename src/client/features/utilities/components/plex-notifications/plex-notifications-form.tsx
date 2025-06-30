@@ -101,7 +101,9 @@ export function PlexNotificationsForm() {
                 {/* Actions section */}
                 {lastResults?.success && (
                   <div>
-                    <h3 className="font-medium text-text mb-2">Actions</h3>
+                    <h3 className="font-medium text-foreground mb-2">
+                      Actions
+                    </h3>
                     <div className="flex flex-wrap items-center gap-4">
                       <Button
                         type="button"
@@ -130,15 +132,17 @@ export function PlexNotificationsForm() {
                 {/* Status section */}
                 {lastResults && (
                   <div className="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-md">
-                    <h3 className="font-medium text-text mb-2">
+                    <h3 className="font-medium text-foreground mb-2">
                       Current Status
                     </h3>
-                    <p className="text-sm text-text">{lastResults.message}</p>
+                    <p className="text-sm text-foreground">
+                      {lastResults.message}
+                    </p>
 
                     {/* Radarr instances */}
                     {lastResults.results?.radarr?.length > 0 && (
                       <div className="mt-3">
-                        <h4 className="font-medium text-sm text-text">
+                        <h4 className="font-medium text-sm text-foreground">
                           Radarr Instances
                         </h4>
                         <ul className="mt-1 space-y-1">
@@ -149,7 +153,7 @@ export function PlexNotificationsForm() {
                               >
                                 {result.name}
                               </span>
-                              <span className="text-text ml-2">
+                              <span className="text-foreground ml-2">
                                 {result.message}
                               </span>
                             </li>
@@ -161,7 +165,7 @@ export function PlexNotificationsForm() {
                     {/* Sonarr instances */}
                     {lastResults.results?.sonarr?.length > 0 && (
                       <div className="mt-3">
-                        <h4 className="font-medium text-sm text-text">
+                        <h4 className="font-medium text-sm text-foreground">
                           Sonarr Instances
                         </h4>
                         <ul className="mt-1 space-y-1">
@@ -172,7 +176,7 @@ export function PlexNotificationsForm() {
                               >
                                 {result.name}
                               </span>
-                              <span className="text-text ml-2">
+                              <span className="text-foreground ml-2">
                                 {result.message}
                               </span>
                             </li>
@@ -192,7 +196,7 @@ export function PlexNotificationsForm() {
                     className="space-y-4"
                   >
                     <div className="space-y-4">
-                      <h3 className="font-medium text-sm text-text mb-2">
+                      <h3 className="font-medium text-sm text-foreground mb-2">
                         Plex Connection Settings
                       </h3>
 
@@ -202,7 +206,7 @@ export function PlexNotificationsForm() {
                         name="plexToken"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-text">
+                            <FormLabel className="text-foreground">
                               Plex Token
                             </FormLabel>
                             <div className="flex space-x-2">
@@ -239,7 +243,7 @@ export function PlexNotificationsForm() {
                       {/* Server Selection Cards */}
                       {servers.length > 0 && (
                         <div className="pt-2 pb-4">
-                          <h4 className="text-sm font-medium text-text mb-3">
+                          <h4 className="text-sm font-medium text-foreground mb-3">
                             Available Servers
                           </h4>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -306,7 +310,7 @@ export function PlexNotificationsForm() {
                         name="plexHost"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-text">
+                            <FormLabel className="text-foreground">
                               Plex Host
                             </FormLabel>
                             <FormControl>
@@ -326,7 +330,7 @@ export function PlexNotificationsForm() {
                           name="plexPort"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-text">
+                              <FormLabel className="text-foreground">
                                 Plex Port
                               </FormLabel>
                               <FormControl>
@@ -358,7 +362,7 @@ export function PlexNotificationsForm() {
                                     onCheckedChange={field.onChange}
                                   />
                                 </FormControl>
-                                <FormLabel className="text-text m-0">
+                                <FormLabel className="text-foreground m-0">
                                   Use SSL
                                 </FormLabel>
                               </div>
