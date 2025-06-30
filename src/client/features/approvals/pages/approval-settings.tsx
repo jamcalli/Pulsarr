@@ -41,9 +41,9 @@ import { ApprovalSettingsPageSkeleton } from '@/features/approvals/pages/approva
 import { useConfigStore } from '@/stores/configStore'
 
 /**
- * Renders a standalone page for configuring approval system settings, including scheduling, expiration, notifications, and cleanup.
+ * Displays a configuration page for managing approval system settings, including scheduling, expiration policies, notification preferences, and cleanup options.
  *
- * Provides controls to enable or disable the approval schedule, trigger immediate approval runs, and adjust related configuration options. Displays current schedule status, last and next run times, and handles error and loading states with responsive UI.
+ * Provides controls to enable or disable scheduled approval maintenance, trigger immediate approval runs, and adjust related settings through a form interface. Shows current schedule status, last and next run times, and handles loading and error states with responsive design.
  */
 export default function ApprovalSettingsPage() {
   const isMobile = useMediaQuery('(max-width: 768px)')

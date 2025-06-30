@@ -77,9 +77,9 @@ interface ApprovalSonarrRoutingCardProps {
 }
 
 /**
- * Displays a form card for editing Sonarr routing configuration in an approval workflow.
+ * Renders a form card for editing Sonarr routing configuration within an approval workflow.
  *
- * Provides fields for quality profile, root folder, search and monitoring options, series type, tags, synced instances, and priority. Handles validation, asynchronous data loading, tag creation, and user feedback for saving or canceling changes. Disables inputs and actions based on connection validity, saving state, and props.
+ * Allows users to modify quality profile, root folder, search and monitoring options, series type, tags, synced instances, and priority for a specific Sonarr instance. Handles form validation, asynchronous data loading, tag creation, and user feedback for saving or canceling changes. Inputs and actions are conditionally disabled based on connection validity, saving state, and provided props.
  *
  * @returns The Sonarr routing configuration form card UI.
  */

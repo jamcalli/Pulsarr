@@ -30,9 +30,9 @@ interface ConnectionSettingsProps {
 }
 
 /**
- * Renders a form section for entering and testing Radarr connection settings.
+ * Displays a form section for configuring and testing Radarr connection settings.
  *
- * Includes input fields for the Radarr URL and API key, along with a button to test the connection. Displays validation messages and prompts users to test the connection when required or after a failed attempt. The test connection button and tooltip provide visual feedback based on the connection test status.
+ * Provides input fields for the Radarr URL and API key, along with validation messages and a button to test the connection. The test button and tooltip offer visual feedback based on the connection test status, prompting users to test the connection when necessary. Inputs and actions can be disabled based on the component state or props.
  *
  * @param form - The form instance managing Radarr connection fields.
  * @param testStatus - The current status of the connection test.

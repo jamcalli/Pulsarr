@@ -11,11 +11,11 @@ interface NotificationsSectionProps {
 }
 
 /**
- * Displays a user interface for configuring multiple notification integrations and settings.
+ * Renders a sectioned interface for configuring Discord, Apprise, Tautulli, and general notification settings.
  *
- * Organizes forms for Discord, Apprise, Tautulli, and general notification settings into separate, clearly labeled sections with visual separators. Includes an informational area with a shortcut to the Public Content Notifications configuration page.
+ * Provides labeled forms for each notification integration, separated by visual dividers, and includes an informational area with a link to the Public Content Notifications configuration page.
  *
- * @param isInitialized - Whether the notification forms should be initialized.
+ * @param isInitialized - Indicates whether the notification forms should be initialized.
  */
 export function NotificationsSection({
   isInitialized,

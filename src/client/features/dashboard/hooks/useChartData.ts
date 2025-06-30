@@ -38,9 +38,11 @@ export function useNotificationStatsData() {
 }
 
 /**
- * Retrieves the top genres data from the dashboard store.
+ * Returns the top genres data, loading state, and error from the dashboard store.
  *
- * @returns An object containing the top genres array (`data`), a loading state (`isLoading`), and any error information (`error`).
+ * The data defaults to an empty array if unavailable.
+ *
+ * @returns An object with `data` (top genres array), `isLoading` (loading state for genres), and `error` (error related to genres data)
  */
 export function useTopGenresData() {
   const { topGenres, loading, errors } = useDashboardStore()
@@ -53,9 +55,9 @@ export function useTopGenresData() {
 }
 
 /**
- * Retrieves grabbed-to-notified times data along with its loading and error states from the dashboard store.
+ * Returns grabbed-to-notified times data, its loading state, and any related error from the dashboard store.
  *
- * @returns An object containing the grabbed-to-notified times array (empty if unavailable), a loading indicator, and any associated error.
+ * @returns An object with the grabbed-to-notified times array (empty if unavailable), a loading flag, and an error message if present.
  */
 export function useGrabbedToNotifiedData() {
   const { grabbedToNotifiedTimes, loading, errors } = useDashboardStore()
@@ -68,9 +70,9 @@ export function useGrabbedToNotifiedData() {
 }
 
 /**
- * Retrieves the instance content breakdown data, along with its loading and error states, from the dashboard store.
+ * Returns instance content breakdown data, its loading state, and any related error from the dashboard store.
  *
- * @returns An object containing the instance content breakdown array (or an empty array if unavailable), a loading indicator, and any associated error.
+ * @returns An object with the instance content breakdown array (empty if unavailable), a loading flag, and an error value.
  */
 export function useInstanceContentData() {
   const { instanceContentBreakdown, loading, errors } = useDashboardStore()

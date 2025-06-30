@@ -11,9 +11,9 @@ import type { Config } from '@root/schemas/config/config.schema'
 export type ConnectionStatus = 'idle' | 'loading' | 'success' | 'error'
 
 /**
- * React hook for managing Plex token connection state, including form handling, status tracking, and token updates.
+ * React hook that manages the Plex token connection state, including form validation, status tracking, and token updates.
  *
- * Provides form state for the Plex token, tracks initialization and loading states, and exposes handlers to update or remove the Plex token from the application configuration. Displays toast notifications on success or failure.
+ * Initializes the Plex token form with the current configuration, tracks loading and initialization states, and provides handlers to update or remove the Plex token. Displays toast notifications on success or failure of token operations.
  *
  * @returns An object containing the form instance, initialization and loading flags, connection status, a status setter, and handlers for updating or removing the Plex token.
  */

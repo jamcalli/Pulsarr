@@ -22,9 +22,9 @@ interface QuotaSystemScheduleProps {
 }
 
 /**
- * Displays a user interface for configuring the quota maintenance schedule, allowing selection of time and day, and saving changes.
+ * Renders a user interface for configuring the quota maintenance schedule, allowing users to select a maintenance time and day, view the current schedule, and save changes.
  *
- * Shows the current schedule and disables controls when scheduling is inactive or the component is loading.
+ * Disables controls when scheduling is inactive or the component is loading. Displays a warning if scheduling is disabled and shows the current schedule details if available.
  */
 export function QuotaSystemSchedule({
   scheduleTime,

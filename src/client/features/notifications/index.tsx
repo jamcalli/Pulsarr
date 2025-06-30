@@ -5,11 +5,11 @@ import { useNotificationsConfig } from '@/features/notifications/hooks/useNotifi
 import { MIN_LOADING_DELAY } from '@/features/plex/store/constants'
 
 /**
- * Displays the notifications configuration page with a skeleton loader until initialization and a minimum loading delay are complete.
+ * Renders the notifications configuration page, displaying a skeleton loader until both initialization and a minimum loading delay are complete.
  *
- * Ensures that the notifications settings UI is only shown after both the notification configuration is initialized and a minimum loading period has elapsed, providing a smooth user experience.
+ * Ensures the notifications settings UI is only shown after the configuration is ready and a minimum wait time has passed, providing a smoother user experience.
  *
- * @returns The notifications configuration page component with loading state management.
+ * @returns The notifications configuration page component with managed loading state.
  */
 export default function NotificationsConfigPage() {
   const { isInitialized } = useNotificationsConfig()
