@@ -180,6 +180,17 @@ const sidebar: SidebarsConfig = {
     },
     {
       type: 'category',
+      label: 'Approval',
+      link: {
+        type: 'doc',
+        id: 'api/approval',
+      },
+      items: [
+        // Approval API endpoints will be added here
+      ],
+    },
+    {
+      type: 'category',
       label: 'Authentication',
       link: {
         type: 'doc',
@@ -750,6 +761,17 @@ const sidebar: SidebarsConfig = {
           label: 'Sync Tautulli notifiers',
           className: 'api-method post',
         },
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Quota',
+      link: {
+        type: 'doc',
+        id: 'api/quota',
+      },
+      items: [
+        // Quota API endpoints will be added here
       ],
     },
     {

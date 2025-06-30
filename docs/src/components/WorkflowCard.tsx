@@ -76,7 +76,7 @@ const WorkflowSequence = () => {
                   {/* Left text */}
                   <div className="flex-1 p-4 flex items-center justify-center">
                     <p
-                      className="text-text text-center text-sm"
+                      className="text-foreground text-center text-sm"
                       style={{ color: '#c1666b' }}
                     >
                       Personalized notifications the second your content is
@@ -97,7 +97,7 @@ const WorkflowSequence = () => {
             </div>
 
             {/* Caption */}
-            <p className="text-text text-center mt-1 mb-1 text-sm truncate px-2">
+            <p className="text-foreground text-center mt-1 mb-1 text-sm truncate px-2">
               {currentAsset.caption}
             </p>
           </div>
@@ -129,7 +129,7 @@ export default function WorkflowCard() {
       {() => {
         return (
           <div
-            className="outline-border dark:outline-darkBorder bg-bg rounded-base shadow-[10px_10px_0_0_#000] outline outline-4 p-4 h-[300px] lg:h-full"
+            className="outline-border dark:outline-darkBorder bg-background rounded-base shadow-[10px_10px_0_0_#000] outline outline-4 p-4 h-[300px] lg:h-full"
             style={{
               overflow: 'hidden',
             }}

@@ -27,9 +27,29 @@ import Export from "@theme/ApiExplorer/Export";
 >
 </Heading>
 
+The Pulsarr API provides programmatic access to all Pulsarr functionality, enabling automation of Plex watchlist management, content routing, and media workflow operations.
 
+## Available Endpoints
 
-API documentation for Pulsarr - a Plex watchlist integration for Sonarr and Radarr
+The API is organized into logical categories for managing different aspects of your Pulsarr instance:
+
+- **Plex**: Watchlist management, server discovery, and RSS feed generation
+- **Sonarr/Radarr**: Instance configuration, quality profiles, and root folder management
+- **Content Router**: Routing rules and plugin management for intelligent content distribution
+- **Users**: Account management and watchlist access controls
+- **Authentication**: Secure login/logout and password management
+- **Approval**: Content approval workflows with bulk operations
+- **Quota**: User-based quota limits and usage tracking
+- **Statistics**: Dashboard metrics and performance monitoring
+- **Notifications**: Discord bot and webhook integration
+- **Scheduler**: Job scheduling and immediate execution
+- **Session Monitoring**: Plex session tracking and rolling monitoring
+- **Sync**: Content synchronization and tag management
+- **Progress**: Real-time event streaming via Server-Sent Events
+
+## Base URL
+
+All API endpoints are prefixed with `/v1/` and use standard REST conventions with appropriate HTTP methods.
 
 
       
